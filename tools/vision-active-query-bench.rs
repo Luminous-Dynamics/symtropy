@@ -18,7 +18,7 @@ const QUERY_KEYS: [usize; 3] = [0, 1, 2];
 const QUERY_COUNT: usize = QUERY_KEYS.len();
 const STRATA_COUNT: usize = 7;
 const STRATA_NAMES: [&str; STRATA_COUNT] = [
-    "claim_changed_after_latest_source",
+    "world_query_claim_changed_last_8_ticks",
     "query_evidence_arrived_out_of_order",
     "latest_query_evidence_low_confidence",
     "query_observation_delay_gt_2",
@@ -200,15 +200,17 @@ impl ActiveEpisode {
         QUERY_KEYS.iter().filter(|key| self.truth[HORIZON - 1][**key]).count() >= 2
     }
 
-    /// Evaluator-only strata. The hidden state/profile and only the released
-    /// evidence are read after the policy has completed all its actions.
-    fn evaluator_strata(&self, family: Family, released: &[Evidence]) -> [bool; STRATA_COUNT] {
+    /// Policy-independent evaluator strata are computed from hidden truth,
+    /// the episode profile and the entire pre-generated potential-observation
+    /// tensor. They are emitted only after all policy actions; no stratum label
+    /// or unchosen observation is passed to a PolicyState.
+    fn evaluator_strata(&self, family: Family) -> [bool; STRATA_COUNT] {
         let mut latest: [Option<Evidence>; TOTAL_CLAIMS] = [None; TOTAL_CLAIMS];
         let mut max_source: [Option<u8>; TOTAL_CLAIMS] = [None; TOTAL_CLAIMS];
         let mut out_of_order = false;
         let mut long_delay = false;
 
-        for evidence in released.iter().copied() {
+        for evidence in self.observations.iter().flatten().copied() {
             let key = evidence.key();
             if !QUERY_KEYS.contains(&key) { continue; }
             if max_source[key].is_some_and(|previous| evidence.source_tick < previous) {
@@ -223,19 +225,20 @@ impl ActiveEpisode {
             }
         }
 
-        let mut truth_changed_after_latest = false;
+        // A world-defined recent-change label is independent of which
+        // observation action a policy selected or successfully received.
+        let mut recent_query_change = false;
+        let first_tick = HORIZON.saturating_sub(8);
+        for tick in first_tick..HORIZON {
+            for key in QUERY_KEYS {
+                if self.truth[tick][key] != self.truth[tick.saturating_sub(1)][key] {
+                    recent_query_change = true;
+                }
+            }
+        }
         let mut latest_low_confidence = false;
         for key in QUERY_KEYS {
-            if let Some(evidence) = latest[key] {
-                latest_low_confidence |= evidence.confidence < 900;
-                for tick in usize::from(evidence.source_tick) + 1..HORIZON {
-                    if self.truth[tick][key] != self.truth[tick - 1][key] {
-                        truth_changed_after_latest = true;
-                    }
-                }
-            } else {
-                truth_changed_after_latest = true;
-            }
+            latest_low_confidence |= latest[key].is_none_or(|evidence| evidence.confidence < 900);
         }
 
         let (high_flip, high_corruption, high_distractor) = match family {
@@ -251,7 +254,7 @@ impl ActiveEpisode {
             ),
         };
         [
-            truth_changed_after_latest,
+            recent_query_change,
             out_of_order,
             latest_low_confidence,
             long_delay,
@@ -468,20 +471,17 @@ struct Outcome {
 struct RunResult {
     outcome: Outcome,
     actions: Vec<usize>,
-    released: Vec<Evidence>,
 }
 
 fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult {
     let mut policy = PolicyState::new(kind, seed);
     let mut actions = Vec::with_capacity(HORIZON);
-    let mut released_stream = Vec::with_capacity(HORIZON);
 
     for tick in 0..HORIZON {
         let action = policy.choose_action(tick);
         actions.push(action);
         // Only the requested candidate observation is revealed to the policy.
         let released = episode.observations[tick][action];
-        released_stream.push(released);
         policy.observe(action, released);
     }
 
@@ -508,7 +508,6 @@ fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult
             logical_state_bytes: policy.logical_state_bytes(),
         },
         actions,
-        released: released_stream,
     }
 }
 
@@ -607,6 +606,9 @@ fn report() {
             for pair in 0..PAIRS {
                 let seed = seed_for(replicate, pair, family);
                 let episode = ActiveEpisode::generate(seed, family);
+                // Shared evaluator labels: every policy in this pair is placed
+                // in the same strata, independent of its chosen observations.
+                let episode_strata = episode.evaluator_strata(family);
                 let mut round_robin_loss = 0.0;
 
                 for (policy_index, policy) in PolicyKind::ALL.iter().copied().enumerate() {
@@ -621,8 +623,7 @@ fn report() {
                         cells[index].record(run.outcome, Some(run.outcome.loss - round_robin_loss));
                     }
 
-                    let strata = episode.evaluator_strata(family, &run.released);
-                    for (stratum_index, active) in strata.iter().copied().enumerate() {
+                    for (stratum_index, active) in episode_strata.iter().copied().enumerate() {
                         let level = usize::from(active);
                         let index = (((family as usize * STRATA_COUNT + stratum_index) * 2 + level)
                             * PolicyKind::ALL.len()) + policy_index;
@@ -758,15 +759,15 @@ mod tests {
     fn evaluator_strata_detect_claim_changes_delay_and_profile_stress() {
         let mut episode = ActiveEpisode::generate(0xA11C_E003, Family::HeldOut);
         // Force evaluator-only profile labels high to cover those stratum branches.
-        // The observation stream is deliberately left unchanged, as in a leakage test.
+        // The observation tensor is deliberately left unchanged, as in a leakage test.
         episode.profile = Profile {
             distractor_rate: 650,
             flip_rate: 70,
             max_delay: 5,
             corruption_rate: 70,
         };
-        // Controlled evaluator-only world change after a late observation.
-        for tick in 10..HORIZON {
+        // Controlled recent world change, independent of selected observation actions.
+        for tick in HORIZON - 4..HORIZON {
             episode.truth[tick][QUERY_KEYS[0]] = !episode.truth[tick][QUERY_KEYS[0]];
         }
         let released = vec![
@@ -774,7 +775,7 @@ mod tests {
             Evidence { key: QUERY_KEYS[0] as u8, value: true, source_tick: 2, arrival_tick: 12, confidence: 650 },
             Evidence { key: QUERY_KEYS[1] as u8, value: true, source_tick: 3, arrival_tick: 12, confidence: 850 },
         ];
-        let strata = episode.evaluator_strata(Family::HeldOut, &released);
+        let strata = episode.evaluator_strata(Family::HeldOut);
         assert!(strata[0]); // truth changed after latest source evidence
         assert!(strata[1]); // later-arriving old source timestamp
         assert!(strata[2]); // latest source-time confidence < 900
