@@ -77,6 +77,17 @@ jobs:
             and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_mismatch_count == 0)
           ' wildfire-ops-reference-receipt.json
 
+      - name: Independently recompute receipt choices and scorecard
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_receipt -- \
+            benchmarks/fixtures/WILDFIRE_OPS_V0_1.json \
+            wildfire-ops-reference-receipt.json \
+            "$source_commit"
+
       - name: Upload deterministic reference receipt
         uses: actions/upload-artifact@v4
         with:
