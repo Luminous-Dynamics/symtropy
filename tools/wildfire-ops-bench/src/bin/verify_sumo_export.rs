@@ -219,7 +219,9 @@ fn verify(fixture_bytes: &[u8], root: &Path, source_sha: &str) -> Check<Value> {
         let tripinfo_xml = String::from_utf8(tripinfo_bytes.clone())
             .map_err(|_| format!("{at}: SUMO tripinfo output is not UTF-8"))?;
         if !tripinfo_xml.starts_with("<?xml") || !tripinfo_xml.contains("</tripinfos>") {
-            return Err(format!("{at}: SUMO tripinfo output is not a complete XML document"));
+            return Err(format!(
+                "{at}: SUMO tripinfo output is not a complete XML document"
+            ));
         }
         let stdout_bytes = read(&dir.join("sumo-smoke.stdout.log"))?;
         let stderr_bytes = read(&dir.join("sumo-smoke.stderr.log"))?;
