@@ -77,6 +77,20 @@ These are proposed targets, not current Symtropy results or published competitor
 
 The 52-case synthetic oracle covers registry integrity; same-history/different-future models; shared-bias agreement; missing trophic links, delays, thresholds, saturation, density dependence, migration and behavioral plasticity; observation-process mismatch; parameter/seed/weight controls; internal disagreement and sham challengers; family leakage; held-out predictive checks; decision-sensitive/insensitive residuals; active experiment selection; entropy versus decision value; prior shifts and costs; no-safe-action abstention; calibration, detection statistics, lineage/dependence, failed-run accounting, budget mismatch, receipt integrity, common-noise semantics, model revision and claim boundaries.
 
+## Rust semantic validator
+
+The initial implementation is `crates/domains/symtropy-animal-model-set-adequacy`. It checks the checked-in JSON through the same path used for candidate files, and validates the frozen schema/corpus cardinality, unique lower-snake-case IDs, required fields, exact uncertainty-layer set, required receipt identity members, and duplicate/empty arrays. Unknown root/case fields fail closed. It does **not** execute full JSON Schema Draft 2020-12 validation; it checks the specific schema invariants on which this V1 contract depends.
+
+Run in the repository workspace:
+
+```sh
+cargo test -p symtropy-animal-model-set-adequacy
+cargo run -p symtropy-animal-model-set-adequacy --bin validate_animal_model_set_adequacy_oracle
+cargo run -p symtropy-animal-model-set-adequacy --bin validate_animal_model_set_adequacy_oracle -- path/to/candidate-oracle.json
+```
+
+The CLI's success message explicitly limits the result to synthetic contract consistency. It is not a model-completeness certificate.
+
 ## Limits
 - Adequacy is conditional on challenge family and evidence.
 - No finite test suite can guarantee universal mechanism completeness.
