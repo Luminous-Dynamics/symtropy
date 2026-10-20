@@ -5,8 +5,7 @@ use std::fs;
 use std::path::Path;
 
 fn read_text(path: &Path) -> Check<String> {
-    let bytes =
-        fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
+    let bytes = fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     String::from_utf8(bytes).map_err(|_| format!("{} is not UTF-8", path.display()))
 }
 
