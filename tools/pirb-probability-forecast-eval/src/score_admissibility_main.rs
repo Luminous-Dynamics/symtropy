@@ -365,7 +365,7 @@ mod tests {
         assert_eq!(receipt["comparison_status"], "not_admissible");
         let reasons = receipt["reason_codes"].as_array().unwrap();
         assert!(reasons.contains(&json!("OUTCOME_VINTAGE_NOT_MATURE_AND_FROZEN")));
-        assert!(reasons.contains(&json!("DATA_AUTHORITY_NOT_VERIFIED"));
+        assert!(reasons.contains(&json!("DATA_AUTHORITY_NOT_VERIFIED")));
         assert_eq!(receipt["ranking_permitted"], false);
     }
 
