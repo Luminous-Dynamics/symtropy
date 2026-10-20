@@ -107,7 +107,12 @@ pub fn dispatch_request_bytes(
 
     let adapter_receipt = evaluate_request_bytes(bytes, adapter_revision)?;
     let adapter_status = required_string(&adapter_receipt, "result_status", "adapter receipt")?;
-    let evaluation_status = if adapter_status == "PASS" {
+    let output_contract_matches = adapter_status != "PASS"
+        || output_keys_match(
+            adapter_receipt.get("outputs").unwrap_or(&Value::Null),
+            &resolution.outputs,
+        );
+    let evaluation_status = if adapter_status == "PASS" && output_contract_matches {
         "PASS"
     } else {
         "UNRESOLVED"
@@ -122,7 +127,7 @@ pub fn dispatch_request_bytes(
         .as_ref()
         .map(backend_summary)
         .unwrap_or(Value::Null);
-    let diagnostics = adapter_receipt
+    let mut diagnostics = adapter_receipt
         .get("diagnostics")
         .and_then(Value::as_array)
         .into_iter()
@@ -130,6 +135,12 @@ pub fn dispatch_request_bytes(
         .filter_map(Value::as_str)
         .map(str::to_owned)
         .collect::<Vec<_>>();
+    if !output_contract_matches {
+        diagnostics.push(
+            "analytical adapter outputs do not match the selected capability manifest output set"
+                .to_owned(),
+        );
+    }
 
     Ok(json!({
         "schema_version": RECEIPT_SCHEMA,
@@ -178,6 +189,12 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
             return Err(format!("request.requested_physics contains duplicate value '{physics}'"));
         }
     }
+    let inputs = value
+        .get("inputs")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "request.inputs must be an object".to_owned())?
+        .clone();
+    validate_case_inputs(&case_id, &inputs)?;
     let units = value
         .get("units")
         .and_then(Value::as_object)
@@ -193,10 +210,6 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
             return Err(format!("request.units.{key} must be '{expected}', got '{actual}'"));
         }
     }
-    if value.get("inputs").and_then(Value::as_object).is_none() {
-        return Err("request.inputs must be an object".to_owned());
-    }
-
     Ok(DispatchRequest {
         request_id,
         source_revision,
@@ -205,6 +218,58 @@ fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
         requested_physics,
         units,
     })
+}
+
+fn validate_case_inputs(case_id: &str, inputs: &Map<String, Value>) -> Check<()> {
+    let expected: &[&str] = match case_id {
+        "axial_bar" => &["force_n", "length_m", "area_m2", "youngs_modulus_pa"],
+        "cantilever_tip_load" => &[
+            "force_n",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
+            "outer_fiber_distance_m",
+        ],
+        "simply_supported_uniform_load" => &[
+            "load_n_per_m",
+            "length_m",
+            "youngs_modulus_pa",
+            "second_moment_area_m4",
+            "outer_fiber_distance_m",
+        ],
+        // Unknown cases are not evaluated, but their request still receives a
+        // structured unresolved dispatch receipt.
+        _ => return Ok(()),
+    };
+    exact_map_keys(inputs, expected, "request.inputs")?;
+    for key in expected {
+        let number = inputs
+            .get(*key)
+            .and_then(Value::as_f64)
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("request.inputs.{key} must be finite"))?;
+        if matches!(
+            *key,
+            "length_m"
+                | "area_m2"
+                | "youngs_modulus_pa"
+                | "second_moment_area_m4"
+                | "outer_fiber_distance_m"
+        ) && number <= 0.0
+        {
+            return Err(format!("request.inputs.{key} must be positive"));
+        }
+    }
+    Ok(())
+}
+
+fn output_keys_match(outputs: &Value, expected: &[String]) -> bool {
+    let Some(actual) = outputs.as_object() else {
+        return false;
+    };
+    let actual: BTreeSet<&str> = actual.keys().map(String::as_str).collect();
+    let expected: BTreeSet<&str> = expected.iter().map(String::as_str).collect();
+    actual == expected
 }
 
 fn backend_summary(backend: &Value) -> Value {
@@ -403,10 +468,22 @@ mod tests {
         assert_eq!(receipt["evaluation_status"], "UNRESOLVED");
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["adapter_receipt"]["result_status"], "UNRESOLVED");
-        assert!(receipt["model_evaluation_attempted"], true);
+        assert_eq!(receipt["model_evaluation_attempted"], true);
         assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|value| {
             value.as_str().unwrap().contains("could not be completed")
         }));
+    }
+
+    #[test]
+    fn output_contract_mismatch_cannot_be_reported_as_pass() {
+        let expected = vec!["axial_stress_pa".to_owned(), "extension_m".to_owned()];
+        let outputs = json!({
+            "axial_stress_pa": 100_000.0,
+            "extension_m": 1.0e-6,
+            "unexpected_output": 7.0
+        });
+        assert!(!output_keys_match(&outputs, &expected));
+        assert!(!output_keys_match(&Value::Null, &expected));
     }
 
     #[test]
