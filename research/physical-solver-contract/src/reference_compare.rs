@@ -916,21 +916,15 @@ mod tests {
         receipt_value["outputs"][0]["sha256"] = json!(sha256_hex(&mismatched_observation));
         let mismatched_receipt = serde_json::to_vec(&receipt_value).unwrap();
 
-        let report = compare_reference_observables(
+        let error = compare_reference_observables(
             &request,
             &mismatched_receipt,
             &root,
             "normalized",
             &reference_bytes,
         )
-        .unwrap();
-        assert_eq!(report["comparison_status"], "UNRESOLVED");
-        assert!(
-            report["diagnostics"][0]
-                .as_str()
-                .unwrap()
-                .contains("scene_revision")
-        );
+        .unwrap_err();
+        assert!(error.contains("scene_revision"));
         fs::remove_dir_all(root).unwrap();
     }
 
