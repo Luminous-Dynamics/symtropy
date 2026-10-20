@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use std::{
     collections::BTreeSet,
     env, fs,
-    path::{Path, PathBuf},
+    path::Path,
     process::Command,
 };
 
@@ -98,7 +98,7 @@ fn run() -> Check<()> {
         serde_json::from_slice(&request_bytes).map_err(|error| format!("invalid request JSON: {error}"))?;
     let scene: Value =
         serde_json::from_slice(&scene_bytes).map_err(|error| format!("invalid scene JSON: {error}"))?;
-    validate_case(&request, &scene, &request_bytes, &scene_bytes)?;
+    validate_case(&request, &scene, &scene_bytes)?;
     let input_deck = generate_input_deck(&request, &scene)?;
     let input_deck_bytes = input_deck.as_bytes();
     fs::write(root.join("bar.inp"), input_deck_bytes)
@@ -345,12 +345,7 @@ fn run() -> Check<()> {
     Ok(())
 }
 
-fn validate_case(
-    request: &Value,
-    scene: &Value,
-    request_bytes: &[u8],
-    scene_bytes: &[u8],
-) -> Check<()> {
+fn validate_case(request: &Value, scene: &Value, scene_bytes: &[u8]) -> Check<()> {
     if required_string(request, "model_fidelity")? != "continuum_linear_elastic" {
         return Err("smoke adapter requires continuum_linear_elastic fidelity".to_owned());
     }
@@ -466,7 +461,6 @@ fn validate_case(
     if length_unit != "m" || force_unit != "N" {
         return Err("smoke adapter requires SI request units (m, N)".to_owned());
     }
-    let _ = request_bytes;
     Ok(())
 }
 
