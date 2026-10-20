@@ -28,6 +28,14 @@ Candidate inserts include a removable wash tub, draining produce colander, over-
 
 Physical separation can help organize workflows, but changing an insert or changing its color is not a sanitation step. Any transition among raw food, produce, dirty utensils and ready-to-eat tasks must follow an appropriate cleaning/sanitizing procedure.
 
+### C. Efficient water delivery and batch-versus-flow washing
+
+Do not assume the best water-saving change is always a lower-flow faucet. Compare a measured-volume batch-wash workflow with continuous-flow rinsing and lower-flow stream/spray controls using the same load, cleaning endpoint and final-rinse rule. South Africa's CoGTA consumer guidance recommends a plugged sink instead of a running tap for washing dishes and for rinsing vegetables; treat this as a useful behavior/design hypothesis, not measured performance evidence.
+
+A removable wash tub or clearly marked fill reference may make water volume visible and repeatable. Keep wash and final rinse separate: dirty wash water must not be counted as final-rinse water or routed back to potable/food-contact use. Measure the full task, including pre-rinse, batch fill, final rinse, spillage and any rewash, plus the safe lift/drain effort of a loaded tub. Start with a household protocol; do not assume this approach satisfies commercial warewashing or food-premises rules without specific review.
+
+Research reference: https://www.cogta.gov.za/index.php/2020/02/25/play-part-in-saving-water/
+
 ### C. Efficient water delivery with useful control
 
 Compare aerated stream, spray, pull-out reach and temporary high-flow pot filling. Test across declared supply pressures; flow rating at one pressure is insufficient. Measure total litres to achieve the same task endpoint, including all pre-rinse, wash, final-rinse and rewash events.
@@ -169,13 +177,14 @@ The record schema permits structured values for per-surface/per-item results. It
 
 ## 7. Implementation sequence
 
-1. Assemble an inexpensive, instrumented baseline: known-volume collection or calibrated flow meter, pressure and temperature observations, standardized plate/pot/cup set, safe tracer, scale, stopwatch and ambient thermometer/hygrometer.
-2. Reproduce the baseline with repeat trials; declare meter and operator variability.
-3. Change one design family at a time (flow delivery, basin shape, insert, rack geometry, passive airflow).
-4. Screen for hard-gate failures first, then compare paired outcomes and uncertainty.
-5. Only if passive candidates justify it, test assisted drying with power/noise/airflow measurement and contamination controls.
-6. Build repair demonstrations and post-repair checks after basic performance is reproducible.
-7. Publish raw data, test instructions, invalid/failed runs, deviations and candidate revisions. Do not wait for a CI runner to perform this independent research, but do not confuse documentary review with physical validation.
+1. Select a conventional sink/rack and one mainstream workstation-sink reference; capture model/revision, size, accessories, available replacement parts and published warranties before selecting the baseline.
+2. Assemble an inexpensive, instrumented baseline: known-volume collection or calibrated flow meter, pressure and temperature observations, standardized plate/pot/cup set, safe tracer, scale, stopwatch and ambient thermometer/hygrometer.
+3. Reproduce the baseline with repeat trials; declare meter and operator variability.
+4. Change one design family at a time (flow delivery, basin shape, insert, rack geometry, passive airflow).
+5. Screen for hard-gate failures first, then compare paired outcomes and uncertainty.
+6. Only if passive candidates justify it, test assisted drying with power/noise/airflow measurement and contamination controls.
+7. Build repair demonstrations and post-repair checks after basic performance is reproducible.
+8. Publish raw data, test instructions, invalid/failed runs, deviations and candidate revisions. Do not wait for a CI runner to perform this independent research, but do not confuse documentary review with physical validation.
 
 ## 8. Research anchors
 
