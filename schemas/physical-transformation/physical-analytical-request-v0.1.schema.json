@@ -467,8 +467,33 @@
           "minLength": 1,
           "maxLength": 2048,
           "pattern": "\\S"
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "const": "instrumented_measurement"
+              }
+            },
+            "required": [
+              "basis"
+            ]
+          },
+          "then": {
+            "required": [
+              "calibration_ref"
+            ]
+          }
+        }
+      ]
     }
   }
 }
