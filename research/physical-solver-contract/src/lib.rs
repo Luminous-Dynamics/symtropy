@@ -1212,7 +1212,7 @@ pub fn verify_solver_output_artifact_bytes(
         has_unresolved_artifact = true;
     }
 
-    let artifact_status = if has_digest_mismatch {
+    let output_status = if has_digest_mismatch {
         "FAIL"
     } else if has_unresolved_artifact {
         "UNRESOLVED"
@@ -1224,17 +1224,127 @@ pub fn verify_solver_output_artifact_bytes(
         .filter(|item| item.get("status").and_then(Value::as_str) == Some("PASS"))
         .count();
 
+    // Input artifacts are optional for legacy receipts, but a mesh-study gate
+    // requires them. A receipt-declared input becomes evidence only after its
+    // exact bytes are checked under the same canonical root.
+    let input_artifacts = receipt
+        .get("input_artifacts")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut input_results = Vec::<Value>::new();
+    let mut input_diagnostics = Vec::<String>::new();
+    let mut has_input_digest_mismatch = false;
+    let mut has_input_unresolved = false;
+    for (index, input) in input_artifacts.iter().enumerate() {
+        let at = format!("receipt.input_artifacts[{index}]");
+        let input_id = string(input, "input_id", &at)?;
+        let kind = string(input, "kind", &at)?;
+        let artifact_ref = string(input, "artifact_ref", &at)?;
+        let expected_sha256 = string(input, "sha256", &at)?;
+        let mut status = "UNRESOLVED";
+        let mut observed_sha256 = Value::Null;
+        let mut byte_length = Value::Null;
+        let diagnostic = if let Some(reason) = root_diagnostic.as_ref() {
+            Some(reason.clone())
+        } else {
+            match safe_artifact_relative_path(&artifact_ref) {
+                Err(reason) => Some(reason),
+                Ok(relative_path) => {
+                    let root = canonical_root
+                        .as_ref()
+                        .expect("canonical root exists when no root diagnostic exists");
+                    let candidate = root.join(relative_path);
+                    match fs::canonicalize(&candidate) {
+                        Err(error) => Some(format!("input artifact cannot be resolved: {error}")),
+                        Ok(canonical_path) if !canonical_path.starts_with(root) => {
+                            Some("input artifact resolves outside the declared artifact root".to_owned())
+                        }
+                        Ok(canonical_path) => match fs::metadata(&canonical_path) {
+                            Err(error) => Some(format!("input artifact metadata cannot be read: {error}")),
+                            Ok(metadata) if !metadata.is_file() => {
+                                Some("input artifact is not a regular file".to_owned())
+                            }
+                            Ok(_) => match sha256_file(&canonical_path) {
+                                Err(error) => Some(format!("input artifact bytes cannot be read: {error}")),
+                                Ok((observed, length)) => {
+                                    observed_sha256 = json!(observed);
+                                    byte_length = json!(length);
+                                    if observed == expected_sha256 {
+                                        status = "PASS";
+                                        None
+                                    } else {
+                                        status = "FAIL";
+                                        has_input_digest_mismatch = true;
+                                        Some(format!(
+                                            "SHA-256 mismatch: expected {expected_sha256}, observed {observed}"
+                                        ))
+                                    }
+                                }
+                            },
+                        },
+                    }
+                }
+            }
+        };
+        if diagnostic.is_some() && status != "FAIL" {
+            has_input_unresolved = true;
+        }
+        if let Some(reason) = diagnostic.as_ref() {
+            input_diagnostics.push(format!("{input_id}: {reason}"));
+        }
+        input_results.push(json!({
+            "input_id": input_id,
+            "kind": kind,
+            "artifact_ref": artifact_ref,
+            "status": status,
+            "expected_sha256": expected_sha256,
+            "observed_sha256": observed_sha256,
+            "byte_length": byte_length,
+            "diagnostic": diagnostic
+        }));
+    }
+
+    let input_status = if input_artifacts.is_empty() {
+        "NOT_DECLARED"
+    } else if has_input_digest_mismatch {
+        "FAIL"
+    } else if has_input_unresolved {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    let artifact_status = if output_status == "FAIL" || input_status == "FAIL" {
+        "FAIL"
+    } else if output_status == "UNRESOLVED" || input_status == "UNRESOLVED" {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    diagnostics.extend(input_diagnostics);
+
     report["artifact_verification_status"] = json!(artifact_status);
     report["artifact_verification_method"] = json!("local_file_sha256_under_canonical_root");
+    report["output_artifact_verification_status"] = json!(output_status);
+    report["input_artifact_verification_status"] = json!(input_status);
     report["artifact_results"] = Value::Array(artifact_results);
+    report["input_artifact_results"] = Value::Array(input_results);
     report["artifact_diagnostics"] = json!(diagnostics);
     report["verified_output_count"] = json!(verified_output_count);
-    report["output_artifact_bytes_verified"] = json!(artifact_status == "PASS");
+    report["verified_input_count"] = json!(
+        input_results
+            .iter()
+            .filter(|item| item.get("status").and_then(Value::as_str) == Some("PASS"))
+            .count()
+    );
+    report["output_artifact_bytes_verified"] = json!(output_status == "PASS");
+    report["input_artifact_bytes_verified"] =
+        json!(!input_artifacts.is_empty() && input_status == "PASS");
     // Byte identity is not execution identity or physical qualification.
     report["solver_execution_authenticated"] = json!(false);
     report["physical_result_qualified"] = json!(false);
     report["claim_ceiling"] = json!(
-        "output byte identity only; does not authenticate solver execution, numerical correctness, measurement truth, or physical validity"
+        "declared input/output byte identity only; does not authenticate solver execution, numerical correctness, measurement truth, or physical validity"
     );
     Ok(report)
 }
