@@ -5,6 +5,7 @@ on:
     branches: ["research/physical-transformation-kernel-v0-1"]
     paths:
       - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md"
       - ".github/workflows/physical-transformation-reference.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
