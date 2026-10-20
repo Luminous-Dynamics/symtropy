@@ -40,6 +40,9 @@ pub enum DeconstructionStep {
 pub struct DeconstructionPlan {
     pub plan_id: String,
     pub source_revision: u64,
+    /// Canonical, revisioned source state used to preflight this plan. This is
+    /// an equality binding, not a cryptographic digest or physical certificate.
+    pub source_state_snapshot: String,
     pub target_component_ids: Vec<String>,
     pub allocations: Vec<RecoveryAllocation>,
     pub steps: Vec<DeconstructionStep>,
@@ -123,6 +126,7 @@ pub fn preview(
     Ok(DeconstructionPlan {
         plan_id: plan_id.to_owned(),
         source_revision: world.revision,
+        source_state_snapshot: world.canonical_snapshot(),
         target_component_ids: target_ids.into_iter().collect(),
         allocations: ordered_allocations,
         steps,
@@ -140,6 +144,9 @@ pub fn execute(world: &mut World, plan: &DeconstructionPlan) -> Check<()> {
             "stale deconstruction plan: source revision {}, current revision {}",
             plan.source_revision, world.revision
         ));
+    }
+    if world.canonical_snapshot() != plan.source_state_snapshot {
+        return Err("deconstruction plan source-state snapshot mismatch".to_owned());
     }
 
     let expected = preview(world, &plan.plan_id, plan.allocations.clone())?;
@@ -370,6 +377,43 @@ mod tests {
                 .contains("canonical preflight")
         );
         assert_eq!(world.canonical_snapshot(), before_tamper);
+    }
+
+
+    #[test]
+    fn plan_cannot_be_replayed_against_a_different_world_at_same_revision() {
+        let original = connected_pair();
+        let plan = preview(
+            &original,
+            "dismantle-world-bound",
+            vec![allocation("A", 1_000), allocation("B", 2_000)],
+        )
+        .expect("original world can be planned");
+
+        let mut different = World::default();
+        install(&mut different, "install-A", "A", 1_000);
+        different
+            .apply(Event {
+                id: "install-B".to_owned(),
+                operation: Operation::InstallComponent(Component {
+                    id: "B".to_owned(),
+                    material: "concrete".to_owned(),
+                    mass_mg: 2_000,
+                }),
+            })
+            .expect("alternative world component");
+        connect(&mut different, "connect-AB", "AB", "A", "B");
+        assert_eq!(different.revision(), plan.source_revision);
+        assert_ne!(different.canonical_snapshot(), plan.source_state_snapshot);
+
+        let before = different.canonical_snapshot();
+        assert!(
+            execute(&mut different, &plan)
+                .unwrap_err()
+                .contains("source-state snapshot mismatch")
+        );
+        assert_eq!(different.canonical_snapshot(), before);
+        assert_eq!(different.recovered_component_count(), 0);
     }
 
     #[test]
