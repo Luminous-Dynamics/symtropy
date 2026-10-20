@@ -235,9 +235,7 @@ impl ShallowWater1D {
         let stage_two = euler_step(&stage_one, dt_s, config, boundaries)?;
 
         let mut result = Vec::with_capacity(initial.len());
-        for (index, (start, twice_advanced)) in
-            initial.iter().zip(stage_two.iter()).enumerate()
-        {
+        for (index, (start, twice_advanced)) in initial.iter().zip(stage_two.iter()).enumerate() {
             let depth_m = 0.5 * start.depth_m + 0.5 * twice_advanced.depth_m;
             let mut discharge_m2_s =
                 0.5 * start.discharge_m2_s + 0.5 * twice_advanced.discharge_m2_s;
@@ -284,8 +282,7 @@ impl ShallowWater1D {
     ) -> Result<f64, SolverError> {
         config.validate()?;
         validate_cells(&self.cells, config)?;
-        let storage = self.cells.iter().map(|cell| cell.depth_m).sum::<f64>()
-            * config.cell_width_m;
+        let storage = self.cells.iter().map(|cell| cell.depth_m).sum::<f64>() * config.cell_width_m;
         if storage.is_finite() {
             Ok(storage)
         } else {
@@ -304,11 +301,7 @@ fn validate_cells(cells: &[CellState], config: SolverConfig) -> Result<(), Solve
     Ok(())
 }
 
-fn validate_one(
-    cell: CellState,
-    index: usize,
-    config: SolverConfig,
-) -> Result<(), SolverError> {
+fn validate_one(cell: CellState, index: usize, config: SolverConfig) -> Result<(), SolverError> {
     if !cell.depth_m.is_finite()
         || !cell.discharge_m2_s.is_finite()
         || !cell.bed_elevation_m.is_finite()
@@ -410,8 +403,7 @@ fn hydrostatic_rusanov_flux(
 
     let flux_left = physical_flux(reconstructed_left, config);
     let flux_right = physical_flux(reconstructed_right, config);
-    let speed = wave_speed(reconstructed_left, config)
-        .max(wave_speed(reconstructed_right, config));
+    let speed = wave_speed(reconstructed_left, config).max(wave_speed(reconstructed_right, config));
 
     let shared = Flux {
         mass: 0.5 * (flux_left.mass + flux_right.mass)
@@ -422,12 +414,10 @@ fn hydrostatic_rusanov_flux(
                 * (reconstructed_right.discharge_m2_s - reconstructed_left.discharge_m2_s),
     };
 
-    let left_correction = 0.5
-        * config.gravity_m_s2
-        * (left.depth_m.powi(2) - reconstructed_left.depth_m.powi(2));
-    let right_correction = 0.5
-        * config.gravity_m_s2
-        * (right.depth_m.powi(2) - reconstructed_right.depth_m.powi(2));
+    let left_correction =
+        0.5 * config.gravity_m_s2 * (left.depth_m.powi(2) - reconstructed_left.depth_m.powi(2));
+    let right_correction =
+        0.5 * config.gravity_m_s2 * (right.depth_m.powi(2) - reconstructed_right.depth_m.powi(2));
 
     InterfaceFlux {
         left: Flux {
@@ -535,7 +525,9 @@ mod tests {
         let mut solver = ShallowWater1D::new(cells, config).unwrap();
 
         for _ in 0..50 {
-            solver.step(0.01, config, BoundaryConditions::CLOSED).unwrap();
+            solver
+                .step(0.01, config, BoundaryConditions::CLOSED)
+                .unwrap();
         }
 
         for (actual, expected) in solver.cells().iter().zip(initial.iter()) {
@@ -553,11 +545,16 @@ mod tests {
         let mut solver = ShallowWater1D::new(cells, config).unwrap();
 
         for _ in 0..5 {
-            solver.advance(0.1, config, BoundaryConditions::CLOSED).unwrap();
+            solver
+                .advance(0.1, config, BoundaryConditions::CLOSED)
+                .unwrap();
         }
-        assert!(solver.cells().iter().all(|cell| {
-            cell.depth_m == 0.0 && cell.discharge_m2_s == 0.0
-        }));
+        assert!(
+            solver
+                .cells()
+                .iter()
+                .all(|cell| { cell.depth_m == 0.0 && cell.discharge_m2_s == 0.0 })
+        );
     }
 
     #[test]
@@ -570,15 +567,15 @@ mod tests {
         let initial_storage = solver.water_storage_per_unit_width_m2(config).unwrap();
 
         for _ in 0..250 {
-            solver.advance(0.01, config, BoundaryConditions::CLOSED).unwrap();
+            solver
+                .advance(0.01, config, BoundaryConditions::CLOSED)
+                .unwrap();
         }
 
         let final_storage = solver.water_storage_per_unit_width_m2(config).unwrap();
         assert!((final_storage - initial_storage).abs() < 1.0e-10);
         assert!(solver.cells().iter().all(|cell| {
-            cell.depth_m.is_finite()
-                && cell.depth_m >= 0.0
-                && cell.discharge_m2_s.is_finite()
+            cell.depth_m.is_finite() && cell.depth_m >= 0.0 && cell.discharge_m2_s.is_finite()
         }));
     }
 
