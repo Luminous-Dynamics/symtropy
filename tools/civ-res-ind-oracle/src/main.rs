@@ -1315,7 +1315,8 @@ mod tests {
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("divergent action with the same policy input must fail");
         assert!(
-            error.contains("actions differ despite identical policy-visible histories"),
+            error.contains("does not match the visible-input reference policy")
+                || error.contains("actions differ despite identical policy-visible histories"),
             "{error}"
         );
     }
@@ -1346,7 +1347,8 @@ mod tests {
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("different action under identical observations must fail");
         assert!(
-            error.contains("actions differ despite identical policy-visible histories"),
+            error.contains("does not match the visible-input reference policy")
+                || error.contains("actions differ despite identical policy-visible histories"),
             "{error}"
         );
     }
