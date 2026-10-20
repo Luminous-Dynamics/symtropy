@@ -71,6 +71,10 @@ jobs:
             and .summary.axial_bar_extension_m > 0
             and .summary.cantilever_tip_deflection_m > 0
             and .summary.cantilever_maximum_bending_stress_pa > 2499999
+            and .summary.simply_supported_midspan_deflection_m > 0.00208
+            and .summary.simply_supported_midspan_deflection_m < 0.00209
+            and .summary.simply_supported_maximum_bending_stress_pa > 24999999
+            and .summary.simply_supported_maximum_bending_stress_pa < 25000001
             and .summary.connected_components_before_cut == 1
             and .summary.connected_components_after_cut == 2
             and .summary.connected_components_after_reconnect == 1
