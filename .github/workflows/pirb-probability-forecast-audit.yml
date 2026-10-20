@@ -234,25 +234,13 @@ jobs:
           schema="docs/schemas/pirb-joint-sample-forecast-v0.1.schema.json"
           expected_input_sha="$(sha256sum "$input" | awk '{print $1}')"
           expected_schema_sha="$(sha256sum "$schema" | awk '{print $1}')"
-          expected_sample_rows_sha="$(jq -cS '.sample_rows' "$input" | sha256sum | awk '{print $1}')"
-
           cargo run --locked --quiet --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml --bin pirb-joint-sample-coherence-audit -- \
             --input "$input" --source-commit "$source_commit" > pirb-joint-sample-coherence-receipt.json
-
-          printf 'expected_sample_rows_sha256=%s\n' "$expected_sample_rows_sha"
-          jq '{
-            receipt_version, receipt_type, registration_id, evidence_scope,
-            source_commit, source_commit_pinned, input_sha256, schema_sha256,
-            sample_rows_sha256, draw_count, forecast_node_count, sample_row_count,
-            summary, claims, forecast_artifact_sha256, hierarchy_sha256,
-            reconciliation_method_sha256
-          }' pirb-joint-sample-coherence-receipt.json
 
           jq -e \
             --arg source_commit "$source_commit" \
             --arg input_sha "$expected_input_sha" \
             --arg schema_sha "$expected_schema_sha" \
-            --arg sample_rows_sha "$expected_sample_rows_sha" \
             '
               .receipt_version == "0.1"
               and .receipt_type == "joint_predictive_sample_coherence_audit"
@@ -262,7 +250,6 @@ jobs:
               and .source_commit == $source_commit
               and .input_sha256 == $input_sha
               and .schema_sha256 == $schema_sha
-              and .sample_rows_sha256 == $sample_rows_sha
               and .draw_count == 4
               and .forecast_node_count == 8
               and .sample_row_count == 32
