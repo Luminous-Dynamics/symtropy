@@ -953,6 +953,180 @@ jobs:
             and .physical_result_qualified == false
           ' "$tampered/report.json"
 
+      - name: Assess linear superposition with three receipt-bound runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="solver-contract-superposition"
+          tampered="${root}-tampered"
+          rm -rf "$root" "$tampered"
+          mkdir -p "$root/artifacts/a" "$root/artifacts/b" "$root/artifacts/combined"
+
+          fixture="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          jq '
+            .request_id = "fixture:superposition-a"
+            | .requested_physics = ["static_linear_elastic"]
+            | .required_outputs = ["displacement"]
+            | .loads[0].kind = "point_force"
+            | .loads[0].load_id = "force-a"
+            | .loads[0].vector_xyz = [1000, 0, 0]
+          ' "$fixture" > "$root/request-a.json"
+          jq '
+            .request_id = "fixture:superposition-b"
+            | .loads[0].load_id = "force-b"
+            | .loads[0].vector_xyz = [0, 1000, 0]
+          ' "$root/request-a.json" > "$root/request-b.json"
+          jq --slurpfile b "$root/request-b.json" '
+            .request_id = "fixture:superposition-combined"
+            | .loads = [.loads[0], $b[0].loads[0]]
+          ' "$root/request-a.json" > "$root/request-combined.json"
+
+          a_sha="$(sha256sum "$root/request-a.json" | cut -d ' ' -f 1)"
+          b_sha="$(sha256sum "$root/request-b.json" | cut -d ' ' -f 1)"
+          combined_sha="$(sha256sum "$root/request-combined.json" | cut -d ' ' -f 1)"
+
+          write_observation() {
+            req="$1"
+            output="$2"
+            ux="$3"
+            uy="$4"
+            request_sha="$(sha256sum "$req" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg request_sha "$request_sha" \
+              --arg request_id "$(jq -r '.request_id' "$req")" \
+              --arg scene_sha "$(jq -r '.scene_sha256' "$req")" \
+              --argjson scene_revision "$(jq -r '.scene_revision' "$req")" \
+              --argjson ux "$ux" \
+              --argjson uy "$uy" \
+              '{
+                schema_version:"physical-normalized-observables-v0.1",
+                request_sha256:$request_sha,
+                request_id:$request_id,
+                scene_sha256:$scene_sha,
+                scene_revision:$scene_revision,
+                case_id:"superposition-cli-synthetic",
+                observables:[
+                  {observable_id:"tip_ux",value:$ux,unit:"m"},
+                  {observable_id:"tip_uy",value:$uy,unit:"m"}
+                ]
+              }' > "$output"
+          }
+          write_observation "$root/request-a.json" "$root/artifacts/a/displacement.json" 0.01 0
+          write_observation "$root/request-b.json" "$root/artifacts/b/displacement.json" 0 0.02
+          write_observation "$root/request-combined.json" "$root/artifacts/combined/displacement.json" 0.01 0.02
+
+          write_receipt() {
+            req="$1"
+            output_id="$2"
+            artifact_ref="$3"
+            output_file="$4"
+            receipt_file="$5"
+            request_sha="$(sha256sum "$req" | cut -d ' ' -f 1)"
+            output_sha="$(sha256sum "$output_file" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg request_sha "$request_sha" \
+              --arg request_id "$(jq -r '.request_id' "$req")" \
+              --arg source_revision "$(jq -r '.source_revision' "$req")" \
+              --arg output_id "$output_id" \
+              --arg artifact_ref "$artifact_ref" \
+              --arg output_sha "$output_sha" \
+              '{
+                schema_version:"physical-solver-receipt-v0.1",
+                request_id:$request_id,
+                request_sha256:$request_sha,
+                source_revision:$source_revision,
+                adapter:{
+                  adapter_id:"synthetic-superposition-cli",
+                  version:"0.1.0",
+                  executable_sha256:("b" * 64),
+                  configuration_sha256:("c" * 64),
+                  solver_name:"synthetic-test-only",
+                  solver_version:"0.1.0",
+                  solver_build_ref:"fixture-only:no-solver-executed"
+                },
+                status:"PASS",
+                evidence_class:"synthetic",
+                physics_evaluated:["static_linear_elastic"],
+                physics_omitted:[],
+                convergence:{
+                  state:"not_applicable",iterations:null,residual:null,
+                  mesh_refinement_evaluated:false,
+                  details:"Synthetic superposition control; no FEM solver executed."
+                },
+                outputs:[{
+                  output_id:$output_id,
+                  kind:"displacement",
+                  sha256:$output_sha,
+                  media_type:"application/json",
+                  unit:"m",
+                  artifact_ref:$artifact_ref
+                }],
+                uncertainty:{state:"unknown",method:null,summary:"Synthetic control only."},
+                validity_envelope:{
+                  supported_geometry:"synthetic fixture",
+                  supported_material_model:"linear elasticity fixture",
+                  load_regime:"static point forces",
+                  limitations:["No external solver executed."]
+                },
+                claim_ceiling:"Synthetic relation fixture only; not physical qualification.",
+                diagnostics:[]
+              }' > "$receipt_file"
+          }
+          write_receipt "$root/request-a.json" "output-a" "a/displacement.json" "$root/artifacts/a/displacement.json" "$root/receipt-a.json"
+          write_receipt "$root/request-b.json" "output-b" "b/displacement.json" "$root/artifacts/b/displacement.json" "$root/receipt-b.json"
+          write_receipt "$root/request-combined.json" "output-combined" "combined/displacement.json" "$root/artifacts/combined/displacement.json" "$root/receipt-combined.json"
+
+          jq -n \
+            --arg a_sha "$a_sha" --arg b_sha "$b_sha" --arg combined_sha "$combined_sha" \
+            '{
+              schema_version:"physical-linear-superposition-relation-v0.1",
+              relation_id:"synthetic-superposition-cli",
+              case_id:"superposition-cli-synthetic",
+              request_a_sha256:$a_sha,
+              request_b_sha256:$b_sha,
+              request_combined_sha256:$combined_sha,
+              absolute_tolerance:0.000000000001,
+              relative_tolerance:0.0000000001,
+              output_pairs:[{
+                output_kind:"displacement",
+                output_a_id:"output-a",
+                output_b_id:"output-b",
+                output_combined_id:"output-combined"
+              }]
+            }' > "$root/relation.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request-a "$root/request-a.json" --receipt-a "$root/receipt-a.json" \
+            --request-b "$root/request-b.json" --receipt-b "$root/receipt-b.json" \
+            --request-combined "$root/request-combined.json" --receipt-combined "$root/receipt-combined.json" \
+            --artifact-root "$root/artifacts" --superposition-manifest "$root/relation.json" \
+            > "$root/report.json"
+          jq -e '
+            .relation_status == "PASS"
+            and .observable_count == 2
+            and .violation_count == 0
+            and .a_artifact_verification_status == "PASS"
+            and .b_artifact_verification_status == "PASS"
+            and .combined_artifact_verification_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+          ' "$root/report.json"
+
+          cp -a "$root" "$tampered"
+          printf 'deliberately mutated combined observation\n' > "$tampered/artifacts/combined/displacement.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request-a "$tampered/request-a.json" --receipt-a "$tampered/receipt-a.json" \
+            --request-b "$tampered/request-b.json" --receipt-b "$tampered/receipt-b.json" \
+            --request-combined "$tampered/request-combined.json" --receipt-combined "$tampered/receipt-combined.json" \
+            --artifact-root "$tampered/artifacts" --superposition-manifest "$tampered/relation.json" \
+            > "$tampered/report.json"
+          jq -e '
+            .relation_status == "UNRESOLVED"
+            and .combined_artifact_verification_status == "FAIL"
+            and .combined_output_artifact_bytes_verified == false
+            and .physical_result_qualified == false
+          ' "$tampered/report.json"
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
@@ -967,6 +1141,8 @@ jobs:
             solver-contract-equilibrium*/report.json
             solver-contract-load-scaling*/relation.json
             solver-contract-load-scaling*/report.json
+            solver-contract-superposition*/relation.json
+            solver-contract-superposition*/report.json
           if-no-files-found: error
           retention-days: 90
 
