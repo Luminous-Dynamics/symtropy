@@ -108,15 +108,15 @@ jobs:
                     and .minimum_energy_service_target == 0.95
                     and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))
                 ' "${report}"
-                jq --arg fleet "${fleet}" --argjson n "${size}" --argjson seed "${seed}" '
+                jq --arg fleet "${fleet}" --argjson n "${size}" --argjson seed "${seed}" --argjson ports "${ports}" --argjson base_budget "${site_budget}" '
                   {
                     fleet_id: $fleet,
                     fleet_size: $n,
                     seed: $seed,
                     nominal_pack_capacity_kwh: 1100,
                     initial_soc_fraction: 0.1,
-                    charger_port_count: $((($n + 1) / 2)),
-                    declared_base_site_budget_kw: (45 * $n),
+                    charger_port_count: $ports,
+                    declared_base_site_budget_kw: $base_budget,
                     evidence_class: "estimate",
                     policies: [.results[] | {
                       scenario_id, policy, job_count,
