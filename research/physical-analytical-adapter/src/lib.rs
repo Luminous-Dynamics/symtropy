@@ -739,14 +739,10 @@ mod tests {
         }
     }
 
-
     #[test]
     fn bounded_simply_supported_request_encloses_deflection_and_stress() {
-        let receipt = evaluate_request_bytes(
-            &fixture("simply-supported-bounds-v0.2.json"),
-            REV,
-        )
-        .expect("bounded simply supported request");
+        let receipt = evaluate_request_bytes(&fixture("simply-supported-bounds-v0.2.json"), REV)
+            .expect("bounded simply supported request");
         assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
         assert_eq!(receipt["result_status"], "PASS");
         for key in ["midspan_deflection_m", "maximum_bending_stress_pa"] {
@@ -756,8 +752,14 @@ mod tests {
             assert_eq!(range["nominal"].as_f64(), Some(nominal));
             assert!(nominal <= range["upper"].as_f64().unwrap());
         }
-        assert_eq!(receipt["output_intervals"]["midspan_deflection_m"]["unit"], "m");
-        assert_eq!(receipt["output_intervals"]["maximum_bending_stress_pa"]["unit"], "Pa");
+        assert_eq!(
+            receipt["output_intervals"]["midspan_deflection_m"]["unit"],
+            "m"
+        );
+        assert_eq!(
+            receipt["output_intervals"]["maximum_bending_stress_pa"]["unit"],
+            "Pa"
+        );
     }
 
     #[test]
