@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/solver-benchmark-manifest-v0.1.schema.json",
+  "title": "External Solver Benchmark Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "execution_state",
+    "solver_candidate",
+    "verification_level",
+    "case",
+    "reference",
+    "input_fixture",
+    "mesh_plan",
+    "acceptance",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "solver-benchmark-manifest-v0.1"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
+    },
+    "execution_state": {
+      "enum": [
+        "planned",
+        "not_run",
+        "pass",
+        "fail",
+        "unresolved"
+      ]
+    },
+    "solver_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "role",
+        "version_pin",
+        "binary_sha256",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "name": {
+          "enum": [
+            "code_aster",
+            "opensees",
+            "calculix",
+            "moose",
+            "other"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version_pin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "binary_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "configuration_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "verification_level": {
+      "enum": [
+        "analytical_equation_verification",
+        "numerical_solver_verification",
+        "physical_model_validation"
+      ]
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "description",
+        "physics",
+        "units",
+        "geometry_material_loads",
+        "boundary_conditions",
+        "assumptions"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physics": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "static_linear_elastic",
+              "nonlinear_material",
+              "buckling",
+              "dynamic_response",
+              "contact",
+              "fracture",
+              "thermal_coupling"
+            ]
+          }
+        },
+        "units": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "geometry_material_loads": {
+          "type": "object",
+          "minProperties": 1
+        },
+        "boundary_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_url",
+        "source_permission",
+        "outputs",
+        "source_revision"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "closed_form_analytical",
+            "published_numerical",
+            "measured_experiment"
+          ]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_permission": {
+          "enum": [
+            "open_verified",
+            "permission_pending",
+            "restricted",
+            "unknown"
+          ]
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "quantity",
+              "value",
+              "unit",
+              "relative_tolerance",
+              "absolute_tolerance"
+            ],
+            "properties": {
+              "quantity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "relative_tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "absolute_tolerance": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "source_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "input_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "content_class"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "content_class": {
+          "enum": [
+            "synthetic",
+            "open_reference",
+            "measured",
+            "derived",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "mesh_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "element_family",
+        "refinement_levels",
+        "record_required"
+      ],
+      "properties": {
+        "element_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refinement_levels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "record_required": {
+          "const": true
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_deflection_relative_error",
+        "maximum_stress_relative_error",
+        "maximum_reaction_balance_residual",
+        "require_convergence_evidence",
+        "negative_controls"
+      ],
+      "properties": {
+        "maximum_deflection_relative_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_stress_relative_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_reaction_balance_residual": {
+          "type": "number",
+          "minimum": 0
+        },
+        "require_convergence_evidence": {
+          "const": true
+        },
+        "negative_controls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution_state": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "execution_state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "solver_candidate": {
+            "properties": {
+              "version_pin": {
+                "type": "string"
+              },
+              "binary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "configuration_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "input_fixture": {
+            "properties": {
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
