@@ -35,6 +35,7 @@ This formula is a pinhole-camera analytical bound conditional on the caller supp
 
 - Known-answer orthographic scale.
 - Known-answer perspective projection.
+- 2,048 deterministic perturbation samples challenge the perspective bound against direct pinhole projection.
 - Monotonicity with larger geometric error and off-axis radius.
 - Viewport-resolution scaling.
 - Rejection of negative/non-finite geometry error and zero-height viewports.
