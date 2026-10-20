@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/pirb-score-admissibility-v0.1.schema.json",
+  "title": "PIRB Scoring-Rule Admissibility Registration v0.1",
+  "description": "Registers a forecast metric and comparison design so the admissibility validator can reject unsupported score/representation combinations before scoring or ranking.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registration_id",
+    "evidence_scope",
+    "forecast_estimand_id",
+    "prediction_representation",
+    "outcome_type",
+    "comparison_type",
+    "common_evaluation_policy",
+    "score",
+    "governance",
+    "claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registration_id": {
+      "type": "string",
+      "pattern": "^pirb-score-admissibility-[a-z0-9-]+$"
+    },
+    "evidence_scope": {
+      "enum": [
+        "synthetic",
+        "authorized_historical"
+      ]
+    },
+    "forecast_estimand_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prediction_representation": {
+      "enum": [
+        "binary_probability",
+        "quantile_forecast",
+        "multivariate_joint_samples"
+      ]
+    },
+    "outcome_type": {
+      "enum": [
+        "binary_outcome",
+        "scalar_outcome",
+        "multivariate_outcome"
+      ]
+    },
+    "comparison_type": {
+      "enum": [
+        "single_system_verification",
+        "paired_model_comparison",
+        "reconciled_vs_unreconciled_distribution"
+      ]
+    },
+    "common_evaluation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "common_rows_policy_reference",
+        "common_rows_verified",
+        "heldout_outcomes",
+        "outcome_release_sha256",
+        "outcome_maturity_status",
+        "dependence_aware_uncertainty_plan"
+      ],
+      "properties": {
+        "common_rows_policy_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "common_rows_verified": {
+          "type": "boolean"
+        },
+        "heldout_outcomes": {
+          "type": "boolean"
+        },
+        "outcome_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_maturity_status": {
+          "enum": [
+            "synthetic",
+            "mature_frozen_vintage",
+            "immature",
+            "unknown"
+          ]
+        },
+        "dependence_aware_uncertainty_plan": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score_name",
+        "score_orientation",
+        "formula_reference",
+        "formula_sha256",
+        "implementation_reference",
+        "implementation_sha256",
+        "score_version",
+        "parameters",
+        "independent_oracle_reference"
+      ],
+      "properties": {
+        "score_name": {
+          "enum": [
+            "brier_score",
+            "log_score",
+            "pinball_loss",
+            "interval_score",
+            "energy_score",
+            "variogram_score"
+          ]
+        },
+        "score_orientation": {
+          "enum": [
+            "lower_is_better",
+            "higher_is_better"
+          ]
+        },
+        "formula_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formula_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "implementation_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "score_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "independent_oracle_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_authority_status",
+        "disclosure_review_status",
+        "data_authority_reference",
+        "disclosure_review_reference"
+      ],
+      "properties": {
+        "data_authority_status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "authorized",
+            "pending",
+            "denied"
+          ]
+        },
+        "disclosure_review_status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "approved",
+            "pending",
+            "denied"
+          ]
+        },
+        "data_authority_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disclosure_review_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score_calculated",
+        "comparison_superiority_established",
+        "causal_impact_established",
+        "live_decision_authority"
+      ],
+      "properties": {
+        "score_calculated": {
+          "const": false
+        },
+        "comparison_superiority_established": {
+          "const": false
+        },
+        "causal_impact_established": {
+          "const": false
+        },
+        "live_decision_authority": {
+          "const": false
+        }
+      }
+    }
+  }
+}

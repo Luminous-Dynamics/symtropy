@@ -37,4 +37,8 @@ path = "src/joint_sample_coherence_main.rs"
 name = "pirb-policy-impact-admissibility"
 path = "src/policy_impact_main.rs"
 
+[[bin]]
+name = "pirb-score-admissibility"
+path = "src/score_admissibility_main.rs"
+
 [workspace]

@@ -14,6 +14,7 @@ From the repository root:
     cargo run --bin pirb-hierarchy-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-hierarchy-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-joint-sample-coherence-audit --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-joint-sample-forecast-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
     cargo run --bin pirb-policy-impact-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-policy-impact-before-after-not-identified-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
+    cargo run --bin pirb-score-admissibility --manifest-path tools/pirb-probability-forecast-eval/Cargo.toml -- --input docs/fixtures/pirb-score-admissibility-log-score-reconciliation-synthetic-v0.1.json --source-commit "$(git rev-parse HEAD)"
 
 A local run without `--source-commit` is marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The checked-in input is synthetic evaluator plumbing, not a real VIEWS or UCDP extract.
 
@@ -42,6 +43,12 @@ This command audits submitted samples—it does not implement MinTraceSparse or 
 The `pirb-policy-impact-admissibility` binary checks whether a policy-evaluation registration keeps forecast verification, action delivery, observed outcomes and causal evaluation as separate lanes. It requires a no-action baseline, fixed resource capacity, action offer/delivery/adherence records, a measurement and missingness policy, reporting-shift assessment, counterfactual/estimand and design references, and governance declarations. Historical registrations claiming independent-review eligibility must also satisfy declared design-review, outcome-maturity, spillover, source-authority and disclosure gates. The tool accepts no causal effect estimate and never sets impact established.
 
 The checked-in fixture is a synthetic before/after negative control. It passes as `not_identified`, with no effect estimate, because a before/after association alone is not an identified causal effect. Even an eligible receipt means “eligible for independent review”, not that identification assumptions are true or an effect has been estimated. See `docs/tech/PIRB_POLICY_IMPACT_ADMISSIBILITY_V0_1.md` and [issue #2248](https://github.com/Luminous-Dynamics/symtropy/issues/2248).
+
+## Scoring-rule admissibility
+
+The `pirb-score-admissibility` binary validates whether a score family is admissible for the registered prediction representation, outcome type and comparison design; it does not calculate that score. Its closed v0.1 map supports Brier/log score for binary probabilities, pinball/interval score for quantiles, and energy/variogram score for multivariate joint samples. It rejects incompatible pairings, score-orientation mismatches, and explicitly rejects log score for reconciled-versus-unreconciled distribution comparisons according to the comparison-specific warning in Panagiotelis et al. (2023).
+
+The synthetic fixture is intentionally not admissible: it registers log score for reconciled-vs-unreconciled joint samples. The receipt must return `not_admissible`, a reason code, `score_calculated=false`, and `ranking_permitted=false`. A compatible score registration may be admissible for future score computation, but this command never computes a score or establishes superiority. See `docs/tech/PIRB_SCORE_ADMISSIBILITY_V0_1.md`, [the scoring-theory reference](https://doi.org/10.1016/j.ejor.2022.07.040), and [issue #2254](https://github.com/Luminous-Dynamics/symtropy/issues/2254).
 
 ## Outcome-vintage sensitivity
 
