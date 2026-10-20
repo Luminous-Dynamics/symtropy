@@ -42,6 +42,19 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Validate request and receipt schema syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq empty schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json
+          jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e '.properties.result_status.enum == ["PASS","UNRESOLVED"] and .properties.evidence_class.const == "analytical_reference"' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+
       - name: Check formatting
         run: cargo fmt --manifest-path research/physical-analytical-adapter/Cargo.toml --all -- --check
 
