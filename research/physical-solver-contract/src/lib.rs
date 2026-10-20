@@ -8,7 +8,8 @@ use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
-    fs,
+    fs::{self, File},
+    io::Read,
     path::{Component, Path, PathBuf},
 };
 
@@ -53,6 +54,33 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         let _ = write!(&mut out, "{byte:02x}");
     }
     out
+}
+
+/// Hash a file incrementally so mesh and field outputs need not fit in RAM.
+fn sha256_file(path: &Path) -> Check<(String, u64)> {
+    let mut file = File::open(path).map_err(|error| format!("open failed: {error}"))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut byte_length = 0_u64;
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|error| format!("read failed: {error}"))?;
+        if count == 0 {
+            break;
+        }
+        byte_length = byte_length
+            .checked_add(count as u64)
+            .ok_or_else(|| "artifact byte length overflow".to_owned())?;
+        hasher.update(&buffer[..count]);
+    }
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{byte:02x}");
+    }
+    Ok((out, byte_length))
 }
 
 pub fn validate_request_bytes(bytes: &[u8], validator_revision: &str) -> Check<Value> {
@@ -1100,14 +1128,13 @@ pub fn verify_solver_output_artifact_bytes(
                             Ok(metadata) if !metadata.is_file() => {
                                 Some("artifact is not a regular file".to_owned())
                             }
-                            Ok(_) => match fs::read(&canonical_path) {
+                            Ok(_) => match sha256_file(&canonical_path) {
                                 Err(error) => {
                                     Some(format!("artifact bytes cannot be read: {error}"))
                                 }
-                                Ok(bytes) => {
-                                    let observed = sha256_hex(&bytes);
+                                Ok((observed, length)) => {
                                     observed_sha256 = json!(observed);
-                                    byte_length = json!(bytes.len() as u64);
+                                    byte_length = json!(length);
                                     if observed == expected_sha256 {
                                         status = "PASS";
                                         None
