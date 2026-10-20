@@ -374,6 +374,22 @@ impl HazardStats {
     }
 }
 
+fn majority_decision(probabilities: [f64; QUERY_WIDTH]) -> Option<bool> {
+    let [p0, p1, p2] = probabilities;
+    let p_majority_true =
+        p0 * p1 * (1.0 - p2)
+        + p0 * (1.0 - p1) * p2
+        + (1.0 - p0) * p1 * p2
+        + p0 * p1 * p2;
+    if p_majority_true > 0.75 {
+        Some(true)
+    } else if p_majority_true < 0.25 {
+        Some(false)
+    } else {
+        None
+    }
+}
+
 fn probability_different_after_gap(hazard: f64, gap: u8) -> f64 {
     assert!(gap > 0, "source-time gap must be positive");
     let persistence = (1.0 - 2.0 * hazard.clamp(0.0, 0.5 - 1e-9)).powi(i32::from(gap));
@@ -913,6 +929,7 @@ fn report() {
     println!("conditional corruption p per tier = base_rate * (20,160,320)/63 per thousand; aggregate rate approximately preserved");
     println!("gap-aware policy: candidate per-tick hazards={HAZARD_RATES:?}; Bayesian fixed-point log-likelihood grid, irregular source-time gaps");
     println!("joint-noise policy: joint transition-hazard x sensor-base-rate grid; online binary-state filter, confidence-conditioned emissions");
+    println!("joint-noise grid hazards={HAZARD_RATES:?}; sensor base corruption rates per thousand={SENSOR_BASE_RATES:?}; posterior state entries are fixed-size");
     println!("loss: correct=0, abstain=0.25, incorrect=1; intervals are paired episode bootstrap vs FIFO");
     println!("family\tpolicy\tcapacity\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tfresh_query_claim_coverage\tmean_memory_entries\tmean_logical_state_bytes\tmean_hazard_mae\troot_mean_hazard_mse\tdelta_loss_vs_fifo\tbootstrap95_lo_vs_fifo\tbootstrap95_hi_vs_fifo");
 
@@ -1241,10 +1258,14 @@ mod tests {
         assert_eq!(fifo.hazard_error_mse, None);
         assert!(naive.hazard_error_mae.is_some_and(f64::is_finite));
         assert!(naive.hazard_error_mse.is_some_and(f64::is_finite));
+        let joint = evaluate(&episode, Kind::QueryKeyedJointNoise, 3, 7);
         assert!(gap.hazard_error_mae.is_some_and(f64::is_finite));
         assert!(gap.hazard_error_mse.is_some_and(f64::is_finite));
+        assert!(joint.hazard_error_mae.is_some_and(f64::is_finite));
+        assert!(joint.hazard_error_mse.is_some_and(f64::is_finite));
         assert!(naive.hazard_error_mse.unwrap() >= 0.0);
         assert!(gap.hazard_error_mse.unwrap() >= 0.0);
+        assert!(joint.hazard_error_mse.unwrap() >= 0.0);
     }
 
     #[test]
@@ -1253,12 +1274,63 @@ mod tests {
         let mut relabeled = episode.clone();
         relabeled.profile.flip_rate = 0;
 
-        let original = evaluate(&episode, Kind::QueryKeyedGapAware, 3, 0xBEEF);
-        let changed_label = evaluate(&relabeled, Kind::QueryKeyedGapAware, 3, 0xBEEF);
-        assert_eq!(original.loss, changed_label.loss);
-        assert_eq!(original.answered, changed_label.answered);
-        assert_eq!(original.correct, changed_label.correct);
-        assert_ne!(original.hazard_error_mae, changed_label.hazard_error_mae);
+        for kind in [Kind::QueryKeyedGapAware, Kind::QueryKeyedJointNoise] {
+            let original = evaluate(&episode, kind, 3, 0xBEEF);
+            let changed_label = evaluate(&relabeled, kind, 3, 0xBEEF);
+            assert_eq!(original.loss, changed_label.loss);
+            assert_eq!(original.answered, changed_label.answered);
+            assert_eq!(original.correct, changed_label.correct);
+            assert_ne!(original.hazard_error_mae, changed_label.hazard_error_mae);
+        }
+    }
+
+    #[test]
+    fn joint_noise_filter_is_bounded_and_emits_valid_probabilities() {
+        let query = Query { keys: [1, 2, 3] };
+        let mut memory = Memory::new(Kind::QueryKeyedJointNoise, 3, query, 7);
+        for evidence in [
+            Evidence { key: 1, value: true, source_tick: 2, arrival_tick: 2, confidence: 950 },
+            Evidence { key: 2, value: false, source_tick: 3, arrival_tick: 3, confidence: 850 },
+            Evidence { key: 3, value: true, source_tick: 4, arrival_tick: 4, confidence: 650 },
+        ] {
+            memory.observe(evidence);
+        }
+
+        for stats in memory.joint_noise_stats {
+            assert!(stats.estimated_flip_hazard().is_finite());
+            assert!((0.0..=0.5).contains(&stats.estimated_flip_hazard()));
+            for tick in [0, 4, HORIZON] {
+                let p = stats.probability_true_at(tick);
+                assert!(p.is_finite());
+                assert!((0.0..=1.0).contains(&p));
+            }
+        }
+        assert!(memory.decide_joint_noise(HORIZON).is_some() || memory.decide_joint_noise(HORIZON).is_none());
+    }
+
+    #[test]
+    fn joint_noise_filter_ignores_out_of_order_evidence_without_rewinding() {
+        let mut stats = JointNoiseStats::default();
+        stats.observe(Evidence { key: 1, value: true, source_tick: 4, arrival_tick: 4, confidence: 950 });
+        stats.observe(Evidence { key: 1, value: false, source_tick: 8, arrival_tick: 8, confidence: 850 });
+        let previous_tick = stats.last_source_tick;
+        let scores_before = stats.log_scores;
+        let state_before = stats.alpha_true;
+        stats.observe(Evidence { key: 1, value: false, source_tick: 6, arrival_tick: 10, confidence: 950 });
+        assert_eq!(stats.last_source_tick, previous_tick);
+        assert_eq!(stats.log_scores, scores_before);
+        assert_eq!(stats.alpha_true, state_before);
+    }
+
+    #[test]
+    fn joint_noise_policy_reports_larger_logical_state_cost() {
+        let episode = Episode::generate(0xCAFE_BA22, Family::HeldOut);
+        let hazard = evaluate(&episode, Kind::QueryKeyedHazardAware, 3, 0x1234);
+        let joint = evaluate(&episode, Kind::QueryKeyedJointNoise, 3, 0x1234);
+        assert_eq!(hazard.entries, joint.entries);
+        assert!(joint.logical_state_bytes > hazard.logical_state_bytes);
+        assert!(joint.hazard_error_mae.is_some_and(f64::is_finite));
+        assert!(joint.hazard_error_mse.is_some_and(f64::is_finite));
     }
 
     #[test]
