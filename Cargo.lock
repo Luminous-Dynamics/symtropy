@@ -9403,6 +9403,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-shallow-water"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-symthaea-adapter"
 version = "0.1.0"
 dependencies = [

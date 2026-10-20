@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-shallow-water"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic 1D shallow-water reference solver for numerical qualification."
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["shallow-water", "hydraulics", "flood", "finite-volume", "simulation"]
+categories = ["simulation", "science"]
+
+[dependencies]
