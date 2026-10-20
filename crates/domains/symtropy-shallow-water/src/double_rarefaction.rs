@@ -3,10 +3,10 @@
 
 //! Exact symmetric double-rarefaction solution for source-free 1D shallow water.
 //!
-//! The two initially wet states move outward on a flat bed. This gives two
-//! rarefaction fans with a constant, lower-depth intermediate state, provided
-//! the initial outward speed is below the dry-state threshold 2*sqrt(g*h0).
-//! This analytical case verifies the solver on two interacting wave families.
+//! The two initially wet states move outward on a flat bed. Below the
+//! dry-state threshold 2*sqrt(g*h0), the fans enclose a lower-depth intermediate
+//! state; above it, they enclose a dry gap. Both regimes verify interacting wave
+//! families and make the wet-cell metric mask explicit.
 
 use super::SolverError;
 
@@ -25,12 +25,14 @@ pub struct DoubleRarefactionState {
 ///
 /// The initial state is depth `initial_depth_m` on both sides of x=0, with
 /// left velocity `-outward_velocity_m_s` and right velocity
-/// `+outward_velocity_m_s`. The bottom is flat, gravity is constant, both
-/// initial sides are wet, and the speed must be below the dry-state threshold.
+/// `+outward_velocity_m_s`. The bottom is flat and gravity is constant. When
+/// the outward speed is below 2*sqrt(g*h0), the solution has a wet intermediate
+/// state; at or above that threshold, the two fans meet at or separate around a
+/// dry state. The exact vacuum/dry-bed interval is represented explicitly.
 ///
-/// The result includes the undisturbed left/right states, each rarefaction fan,
-/// and the constant intermediate state. This is an analytical verification
-/// reference—not an observed event or a complete physical flood model.
+/// The result includes the undisturbed left/right states, rarefaction fans and
+/// either the intermediate wet state or dry gap. This is an analytical
+/// verification reference—not an observed event or a complete physical flood model.
 ///
 /// # Errors
 ///
@@ -57,44 +59,58 @@ pub fn double_rarefaction(
 
     let initial_celerity_m_s = (gravity_m_s2 * initial_depth_m).sqrt();
     let similarity_m_s = x_m / time_s;
-    if !initial_celerity_m_s.is_finite()
-        || !similarity_m_s.is_finite()
-        || outward_velocity_m_s >= 2.0 * initial_celerity_m_s
-    {
+    if !initial_celerity_m_s.is_finite() || !similarity_m_s.is_finite() {
         return Err(SolverError::InvalidAnalyticalInput);
     }
 
-    // The two rarefaction tails meet the intermediate state at +/- c_star.
-    let star_celerity_m_s = initial_celerity_m_s - 0.5 * outward_velocity_m_s;
-    let star_depth_m = star_celerity_m_s * star_celerity_m_s / gravity_m_s2;
     let left_head_m_s = -outward_velocity_m_s - initial_celerity_m_s;
     let right_head_m_s = outward_velocity_m_s + initial_celerity_m_s;
-    let left_tail_m_s = -star_celerity_m_s;
-    let right_tail_m_s = star_celerity_m_s;
+    let reaches_dry_state = outward_velocity_m_s >= 2.0 * initial_celerity_m_s;
 
     let (depth_m, velocity_m_s) = if similarity_m_s <= left_head_m_s {
         (initial_depth_m, -outward_velocity_m_s)
-    } else if similarity_m_s < left_tail_m_s {
-        let celerity = (2.0 * initial_celerity_m_s
-            - outward_velocity_m_s
-            - similarity_m_s)
-            / 3.0;
-        (celerity * celerity / gravity_m_s2, similarity_m_s + celerity)
-    } else if similarity_m_s <= right_tail_m_s {
-        (star_depth_m, 0.0)
-    } else if similarity_m_s < right_head_m_s {
-        let celerity = (similarity_m_s
-            - outward_velocity_m_s
-            + 2.0 * initial_celerity_m_s)
-            / 3.0;
-        (celerity * celerity / gravity_m_s2, similarity_m_s - celerity)
+    } else if reaches_dry_state {
+        // At a vacuum edge the celerity vanishes. If the outward velocity is
+        // larger than the threshold, the interval between these edges is dry.
+        let left_dry_edge_m_s = 2.0 * initial_celerity_m_s - outward_velocity_m_s;
+        let right_dry_edge_m_s = outward_velocity_m_s - 2.0 * initial_celerity_m_s;
+        if similarity_m_s < left_dry_edge_m_s {
+            let celerity =
+                (2.0 * initial_celerity_m_s - outward_velocity_m_s - similarity_m_s) / 3.0;
+            (celerity * celerity / gravity_m_s2, similarity_m_s + celerity)
+        } else if similarity_m_s < right_dry_edge_m_s {
+            (0.0, 0.0)
+        } else if similarity_m_s < right_head_m_s {
+            let celerity =
+                (similarity_m_s - outward_velocity_m_s + 2.0 * initial_celerity_m_s) / 3.0;
+            (celerity * celerity / gravity_m_s2, similarity_m_s - celerity)
+        } else {
+            (initial_depth_m, outward_velocity_m_s)
+        }
     } else {
-        (initial_depth_m, outward_velocity_m_s)
+        // The two rarefaction tails meet a positive intermediate state at +/- c_star.
+        let star_celerity_m_s = initial_celerity_m_s - 0.5 * outward_velocity_m_s;
+        let star_depth_m = star_celerity_m_s * star_celerity_m_s / gravity_m_s2;
+        let left_tail_m_s = -star_celerity_m_s;
+        let right_tail_m_s = star_celerity_m_s;
+        if similarity_m_s < left_tail_m_s {
+            let celerity =
+                (2.0 * initial_celerity_m_s - outward_velocity_m_s - similarity_m_s) / 3.0;
+            (celerity * celerity / gravity_m_s2, similarity_m_s + celerity)
+        } else if similarity_m_s <= right_tail_m_s {
+            (star_depth_m, 0.0)
+        } else if similarity_m_s < right_head_m_s {
+            let celerity =
+                (similarity_m_s - outward_velocity_m_s + 2.0 * initial_celerity_m_s) / 3.0;
+            (celerity * celerity / gravity_m_s2, similarity_m_s - celerity)
+        } else {
+            (initial_depth_m, outward_velocity_m_s)
+        }
     };
 
     let discharge_m2_s = depth_m * velocity_m_s;
     if !depth_m.is_finite()
-        || depth_m <= 0.0
+        || depth_m < 0.0
         || !velocity_m_s.is_finite()
         || !discharge_m2_s.is_finite()
     {
@@ -225,12 +241,37 @@ mod tests {
     }
 
     #[test]
+    fn double_rarefaction_has_exact_dry_gap_above_vacuum_threshold() {
+        let depth: f64 = 1.0;
+        let outward_velocity: f64 = 7.0;
+        let gravity: f64 = 9.81;
+        let time: f64 = 0.25;
+        let c0 = (gravity * depth).sqrt();
+        let left_edge = 2.0 * c0 - outward_velocity;
+        let right_edge = outward_velocity - 2.0 * c0;
+
+        let dry_center = double_rarefaction(0.0, time, depth, outward_velocity, gravity)
+            .unwrap();
+        assert_eq!(dry_center.depth_m, 0.0);
+        assert_eq!(dry_center.velocity_m_s, 0.0);
+        assert_eq!(dry_center.discharge_m2_s, 0.0);
+
+        let left_vacuum_edge =
+            double_rarefaction(left_edge * time, time, depth, outward_velocity, gravity)
+                .unwrap();
+        assert_eq!(left_vacuum_edge.depth_m, 0.0);
+        let right_vacuum_edge =
+            double_rarefaction(right_edge * time, time, depth, outward_velocity, gravity)
+                .unwrap();
+        assert_eq!(right_vacuum_edge.depth_m, 0.0);
+    }
+
+    #[test]
     fn double_rarefaction_rejects_invalid_and_dry_threshold_inputs() {
         for args in [
             (0.0, 0.0, 1.0, 1.0, 9.81),
             (0.0, 1.0, 0.0, 1.0, 9.81),
             (0.0, 1.0, 1.0, -0.1, 9.81),
-            (0.0, 1.0, 1.0, 10.0, 9.81),
             (f64::NAN, 1.0, 1.0, 1.0, 9.81),
         ] {
             assert_eq!(
