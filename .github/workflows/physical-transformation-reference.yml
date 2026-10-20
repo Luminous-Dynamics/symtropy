@@ -6,12 +6,18 @@ on:
     paths:
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md"
+      - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "research/physical-analytical-adapter/README.md"
+      - ".github/workflows/physical-analytical-adapter.yml"
       - ".github/workflows/physical-transformation-reference.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "research/physical-transformation-reference/**"
       - "docs/research/PHYSICAL_TRANSFORMATION_SCORECARD_V0_1.md"
+      - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "research/physical-analytical-adapter/README.md"
+      - ".github/workflows/physical-analytical-adapter.yml"
       - ".github/workflows/physical-transformation-reference.yml"
   workflow_dispatch:
 
