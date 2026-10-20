@@ -110,7 +110,10 @@ fn feasible(case: &Value, plan: &Value) -> bool {
         return false;
     };
     current_confirmed(shelter, as_of)
-        && shelter.get("capacity").and_then(Value::as_u64).is_some_and(|n| n >= people)
+        && shelter
+            .get("capacity")
+            .and_then(Value::as_u64)
+            .is_some_and(|n| n >= people)
         && shelter
             .get("accessible_capacity")
             .and_then(Value::as_u64)
@@ -151,7 +154,9 @@ fn matches_id(value: &Value, key: &str, expected: Option<&str>, at: &str) -> Che
     if actual == expected {
         Ok(())
     } else {
-        Err(format!("{at}.{key}: expected {expected:?}, found {actual:?}"))
+        Err(format!(
+            "{at}.{key}: expected {expected:?}, found {actual:?}"
+        ))
     }
 }
 
@@ -240,13 +245,16 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source_commit: &str) -
 
         let baseline_feasible = baseline.is_some_and(|plan| feasible(case, plan));
         if b1.get("declared_feasible").and_then(Value::as_bool) != Some(baseline_feasible) {
-            return Err(format!("{at}: B1 declared_feasible does not match independent feasibility"));
+            return Err(format!(
+                "{at}: B1 declared_feasible does not match independent feasibility"
+            ));
         }
 
         let feasible_count = plans.iter().filter(|plan| feasible(case, plan)).count();
-        if b3.get("feasible_plan_count").and_then(Value::as_u64)
-            != Some(feasible_count as u64)
-            || b3.get("no_evidenced_feasible_plan").and_then(Value::as_bool)
+        if b3.get("feasible_plan_count").and_then(Value::as_u64) != Some(feasible_count as u64)
+            || b3
+                .get("no_evidenced_feasible_plan")
+                .and_then(Value::as_bool)
                 != Some(feasible_count == 0)
         {
             return Err(format!("{at}: B3 feasible count/abstention mismatch"));
@@ -292,8 +300,14 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source_commit: &str) -
 
         let b1_matches = baseline_id == expected_id;
         let b3_matches = policy_id == expected_id;
-        if b1.get("matches_oracle_expected_plan").and_then(Value::as_bool) != Some(b1_matches)
-            || b3.get("matches_oracle_expected_plan").and_then(Value::as_bool) != Some(b3_matches)
+        if b1
+            .get("matches_oracle_expected_plan")
+            .and_then(Value::as_bool)
+            != Some(b1_matches)
+            || b3
+                .get("matches_oracle_expected_plan")
+                .and_then(Value::as_bool)
+                != Some(b3_matches)
         {
             return Err(format!("{at}: oracle comparison mismatch"));
         }
@@ -327,7 +341,12 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source_commit: &str) -
     if summary.get("scenario_count").and_then(Value::as_u64) != Some(CASE_IDS.len() as u64) {
         return Err("benchmark_summary scenario_count mismatch".to_owned());
     }
-    check_count(summary, "B1_static_shortest_route", "selected_plan_count", counts[0])?;
+    check_count(
+        summary,
+        "B1_static_shortest_route",
+        "selected_plan_count",
+        counts[0],
+    )?;
     check_count(
         summary,
         "B1_static_shortest_route",
@@ -352,8 +371,18 @@ fn verify(fixture_bytes: &[u8], receipt: &Value, expected_source_commit: &str) -
         "expected_choice_mismatch_count",
         CASE_IDS.len() - counts[3],
     )?;
-    check_count(summary, "B3_evidence_bounded_feasible_choice", "selected_plan_count", counts[4])?;
-    check_count(summary, "B3_evidence_bounded_feasible_choice", "abstention_count", counts[5])?;
+    check_count(
+        summary,
+        "B3_evidence_bounded_feasible_choice",
+        "selected_plan_count",
+        counts[4],
+    )?;
+    check_count(
+        summary,
+        "B3_evidence_bounded_feasible_choice",
+        "abstention_count",
+        counts[5],
+    )?;
     check_count(
         summary,
         "B3_evidence_bounded_feasible_choice",
@@ -380,7 +409,8 @@ fn run() -> Check<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
         return Err(
-            "usage: verify_receipt <fixture.json> <receipt.json> <expected-source-commit>".to_owned(),
+            "usage: verify_receipt <fixture.json> <receipt.json> <expected-source-commit>"
+                .to_owned(),
         );
     }
     let fixture_bytes = fs::read(&args[1]).map_err(|e| format!("read fixture: {e}"))?;
@@ -431,10 +461,7 @@ mod tests {
             serde_json::json!({"id":"PLAN-Z","travel_minutes":5}),
             serde_json::json!({"id":"PLAN-A","travel_minutes":5}),
         ];
-        assert_eq!(
-            plan_id(shortest(&plans, |_| true)),
-            Some("PLAN-A")
-        );
+        assert_eq!(plan_id(shortest(&plans, |_| true)), Some("PLAN-A"));
     }
 
     #[test]
