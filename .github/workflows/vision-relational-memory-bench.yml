@@ -102,6 +102,9 @@ jobs:
           /tmp/vis-active-query-bench > vis-active-query-repeat.tsv
           cmp vis-active-query.tsv vis-active-query-repeat.tsv
           grep -Fq "value_of_information" vis-active-query.tsv
+          grep -Fq "expected_task_loss_reduction" vis-active-query.tsv
+          grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
+          grep -Fq "estimated_scoring_work_units_per_episode" vis-active-query.tsv
           grep -Fq "round_robin" vis-active-query.tsv
           grep -Fq "uniform_random" vis-active-query.tsv
           grep -Fq "world_query_claim_changed_last_8_ticks" vis-active-query.tsv
@@ -111,10 +114,44 @@ jobs:
           grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
           grep -Fq "profile_high_distractor_rate" vis-active-query.tsv
           test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
-          test "$(grep -c '^development' vis-active-query.tsv)" -eq 6
-          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 6
-          awk -F '\t' '$1 == "family" { if (NF != 14) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 14) exit 1; rows++ } END { if (header != 1 || rows != 12) exit 1 }' vis-active-query.tsv
+          test "$(grep -c '^development' vis-active-query.tsv)" -eq 7
+          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 7
+          awk -F '\t' '$1 == "family" { if (NF != 15) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 15) exit 1; rows++ } END { if (header != 1 || rows != 14) exit 1 }' vis-active-query.tsv
           awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
+          grep -Fq 
+          sha256sum vis-active-query.tsv > vis-active-query.sha256
+          sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
+
+      - name: Upload both reproducible reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-relational-memory-report
+          path: |
+            vis-relational-memory.tsv
+            vis-relational-memory.sha256
+            vis-active-query.tsv
+            vis-active-query.sha256
+          if-no-files-found: error
+          retention-days: 14
+PAIRWISE\tfamily\tcontrast' vis-active-query.tsv
+          grep -Fq 
+          sha256sum vis-active-query.tsv > vis-active-query.sha256
+          sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
+
+      - name: Upload both reproducible reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-relational-memory-report
+          path: |
+            vis-relational-memory.tsv
+            vis-relational-memory.sha256
+            vis-active-query.tsv
+            vis-active-query.sha256
+          if-no-files-found: error
+          retention-days: 14
+PAIRWISE\theld_out\texpected_task_loss_reduction_minus_value_of_information' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
           cat vis-active-query.tsv
