@@ -21,7 +21,7 @@ The CLI is offline. It loads the current versioned scenario, metric registry, tr
 ## Evidence and comparison rules
 
 - Every primary scenario metric must be present with an explicit status. Missing, invalid, blocked and not-applicable values must state why; they are never converted to zero.
-- Trial contract validation is not full Draft 2020-12 JSON Schema conformance. It is an explicit semantic validator for the rules described here; keep the contract and validator tests synchronized.
+- Trial contract validation is not full Draft 2020-12 JSON Schema conformance. It is an explicit semantic validator for the rules described here; keep the contract and validator tests synchronized. Every report includes SHA-256 digests for the exact contract files and each loaded trial-record file, making the report content-addressable.
 - Unknown or failed safety gates block physical eligibility. Synthetic fixtures, simulation, literature and documentation records are never pooled as physical observations.
 - Paired comparisons require equal trial IDs, identical scenario conditions and an identical protocol digest. Units must match exactly. Results are candidate-minus-reference descriptive differences, not rankings.
 - Categorical endpoints appear as non-numeric and are not turned into numerical scores. The report does not decide cleaning efficacy, sanitation, certification, product superiority or statistical significance.
