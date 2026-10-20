@@ -1,3 +1,5 @@
+pub mod uncertainty;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Executes only three qualified closed-form reference cases.
 //!
