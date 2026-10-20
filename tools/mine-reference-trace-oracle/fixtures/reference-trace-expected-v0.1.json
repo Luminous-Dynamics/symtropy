@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "reference_repository": "creator-xi/Conformal-Optimistic-Prediction",
+  "reference_commit": "a41c0dcadc10979d8521ab9b5b8f3d460807d883",
+  "implementation": "pinned-upstream-python-reference",
+  "input_sha256": "89aea0a9594e56ee0218f40ad42a193163a85e59b963f2a2981bf6412d286a04",
+  "cases": [
+    {
+      "name": "aci_quantile_and_alpha_trace",
+      "method": "aci",
+      "quantiles": ["Infinity", "Infinity", "Infinity", 0.08, "Infinity", 0.12, 0.1],
+      "coverage": [true, true, true, false, true, true, true],
+      "adaptive_alpha": [0.25, 0.25, 0.25, 0.275, 0.2, 0.225, 0.25]
+    },
+    {
+      "name": "aci_clipped_quantile_and_alpha_trace",
+      "method": "aci_clipped",
+      "quantiles": ["Infinity", 0.02, 0.08, 0.08, 0.12, 0.12, 0.1],
+      "coverage": [true, false, true, false, true, true, true],
+      "adaptive_alpha": [0.25, 0.25, 0.25, 0.275, 0.2, 0.225, 0.25]
+    },
+    {
+      "name": "cop_ecdf_integrator_trace",
+      "method": "cop",
+      "quantiles": [0.0, 0.07500000000000001, 0.07500000000000001, 0.10875, 0.10875, 0.15000000000000002],
+      "coverage": [false, false, false, false, false, false]
+    },
+    {
+      "name": "ogd_hits_and_misses",
+      "method": "ogd",
+      "quantiles": [0.0, -0.025, 0.05000000000000001, 0.02500000000000001, 0.10000000000000002, 0.07500000000000001],
+      "coverage": [true, false, true, false, true, false]
+    },
+    {
+      "name": "scale_free_ogd_hits_and_misses",
+      "method": "sf_ogd",
+      "quantiles": [0.0, -0.1, -0.04116515945854479, 0.0008432430622955026, 0.03525560314287977, 0.06510671884917944],
+      "coverage": [true, false, false, false, false, false]
+    },
+    {
+      "name": "decaying_step_ogd_hits_and_misses",
+      "method": "decay_ogd",
+      "quantiles": [0.0, -0.025, 0.05000000000000001, 0.033506151115338834, 0.07230229046322284, 0.06142040842202129],
+      "coverage": [true, false, true, false, true, false]
+    },
+    {
+      "name": "aci_alpha_threshold_equality",
+      "method": "aci",
+      "quantiles": ["Infinity", "Infinity", "Infinity", "Infinity", "Infinity", 0.7, 0.9],
+      "coverage": [true, true, true, true, true, false, true],
+      "adaptive_alpha": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+    },
+    {
+      "name": "aci_clipped_tied_score_quantiles",
+      "method": "aci_clipped",
+      "quantiles": ["Infinity", 0.1, 0.2, 0.2, 0.2, 0.3, 0.3, 0.4],
+      "coverage": [true, false, true, true, false, true, false, true],
+      "adaptive_alpha": [0.25, 0.25, 0.25, 0.2625, 0.275, 0.23750000000000002, 0.25, 0.2125]
+    },
+    {
+      "name": "cop_all_equal_zero_scale",
+      "method": "cop",
+      "quantiles": [0.0, 0.09000000000000001, 0.09000000000000001, 0.09000000000000001, 0.09000000000000001, 0.09000000000000001],
+      "coverage": [false, false, false, false, false, false]
+    },
+    {
+      "name": "ogd_ahead_two",
+      "method": "ogd",
+      "quantiles": [0.0, 0.0, 0.07500000000000001, 0.15000000000000002, 0.12500000000000003, 0.10000000000000003],
+      "coverage": [true, false, true, true, true, true]
+    }
+  ]
+}
+
