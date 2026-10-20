@@ -121,6 +121,8 @@ jobs:
           grep -Fq "PAIRWISE" vis-active-query.tsv
           grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
           awk -F '\t' '$1 == "PAIRWISE" { if (NF != 7) exit 1; n++ } END { if (n != 3) exit 1 }' vis-active-query.tsv
+          grep -Fq "sensing-budget Pareto frontier" vis-active-query.tsv
+          awk -F '\t' '$1 == "BUDGET" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "BUDGET" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 70 || seen[8] != 14 || seen[16] != 14 || seen[24] != 14 || seen[32] != 14 || seen[48] != 14) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
           cat vis-active-query.tsv
