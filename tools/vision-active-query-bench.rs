@@ -371,6 +371,7 @@ struct PolicyState {
     last: [Option<Evidence>; QUERY_COUNT],
     hazard: [HazardStats; QUERY_COUNT],
     action_rng: Rng,
+    estimated_scoring_work_units: u64,
 }
 
 impl PolicyState {
@@ -382,6 +383,7 @@ impl PolicyState {
             last: [None; QUERY_COUNT],
             hazard: [HazardStats::default(); QUERY_COUNT],
             action_rng: Rng::new(seed),
+            estimated_scoring_work_units: 0,
         }
     }
 
@@ -416,7 +418,7 @@ impl PolicyState {
     }
 
     fn choose_action(&mut self, tick: usize) -> usize {
-        match self.kind {
+        let action = match self.kind {
             PolicyKind::RoundRobin => tick % QUERY_COUNT,
             PolicyKind::UniformRandom => self.action_rng.range(QUERY_COUNT),
             PolicyKind::LeastObserved => {
@@ -454,7 +456,20 @@ impl PolicyState {
                     Self::tie_break(scores, tick)
                 }
             }
-        }
+        };
+        // Deterministic operation proxy, not wall-clock time: simple policies
+        // score at most one value per candidate; expected-risk evaluates every
+        // candidate × delay × confidence tier × binary observation result.
+        let work_this_action = match self.kind {
+            PolicyKind::RoundRobin | PolicyKind::UniformRandom => 1,
+            PolicyKind::LeastObserved | PolicyKind::StalestFirst | PolicyKind::MaxUncertainty
+                | PolicyKind::ValueOfInformation => QUERY_COUNT as u64,
+            PolicyKind::ExpectedTaskLossReduction =>
+                (QUERY_COUNT * DELAY_PRIORS.len() * CONFIDENCE_TIERS.len() * 2 + QUERY_COUNT) as u64,
+        };
+        self.estimated_scoring_work_units = self.estimated_scoring_work_units
+            .saturating_add(work_this_action);
+        action
     }
 
     fn expected_task_loss_reduction_scores(&self, tick: usize) -> [f64; QUERY_COUNT] {
@@ -558,6 +573,7 @@ struct Outcome {
     wasted_fraction: f64,
     allocation_imbalance: usize,
     logical_state_bytes: usize,
+    estimated_scoring_work_units: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -599,6 +615,7 @@ fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult
             wasted_fraction: (HORIZON - relevant) as f64 / HORIZON as f64,
             allocation_imbalance: max_count - min_count,
             logical_state_bytes: policy.logical_state_bytes(),
+            estimated_scoring_work_units: policy.estimated_scoring_work_units,
         },
         actions,
     }
@@ -615,6 +632,7 @@ struct Accumulator {
     wasted_sum: f64,
     imbalance_sum: u64,
     state_bytes_sum: u64,
+    scoring_work_units_sum: u64,
     paired_deltas_vs_rr: Vec<f64>,
 }
 
@@ -631,6 +649,7 @@ impl Accumulator {
         self.wasted_sum += outcome.wasted_fraction;
         self.imbalance_sum += outcome.allocation_imbalance as u64;
         self.state_bytes_sum += outcome.logical_state_bytes as u64;
+        self.scoring_work_units_sum += outcome.estimated_scoring_work_units;
         if let Some(delta) = delta { self.paired_deltas_vs_rr.push(delta); }
     }
 
@@ -651,6 +670,9 @@ impl Accumulator {
     fn mean_wasted_fraction(&self) -> f64 { self.wasted_sum / self.episodes.max(1) as f64 }
     fn mean_imbalance(&self) -> f64 { self.imbalance_sum as f64 / self.episodes.max(1) as f64 }
     fn mean_state_bytes(&self) -> f64 { self.state_bytes_sum as f64 / self.episodes.max(1) as f64 }
+    fn mean_scoring_work_units(&self) -> f64 {
+        self.scoring_work_units_sum as f64 / self.episodes.max(1) as f64
+    }
 }
 
 fn bootstrap_ci(values: &[f64], seed: u64) -> (f64, f64) {
@@ -687,7 +709,7 @@ fn report() {
     println!("Expected-risk scores integrate frozen public confidence/delay/distractor priors and terminal abstention-aware Bayes risk; hidden episode parameters are not consulted.");
     println!("Confidence is sampled independently; only the evaluator has the latent truth and true nuisance profile.");
     println!("Loss: correct=0, abstain=0.25, incorrect=1. Deltas are paired episode-loss differences vs round-robin.");
-    println!("family\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tallocation_imbalance\tlogical_state_bytes\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
+    println!("family\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requested_per_claim\tmean_relevant_per_claim\twasted_observation_rate\tallocation_imbalance\tlogical_state_bytes\testimated_scoring_work_units_per_episode\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
 
     let mut cells = vec![Accumulator::default(); Family::ALL.len() * PolicyKind::ALL.len()];
     let mut strata_cells = vec![
@@ -746,11 +768,11 @@ fn report() {
                 let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
                 (delta, lo, hi)
             };
-            println!("{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.3}\t{:.4}\t{:.3}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
+            println!("{}\t{}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.3}\t{:.4}\t{:.3}\t{:.1}\t{:.1}\t{:.4}\t{:.4}\t{:.4}",
                 family.name(), policy.name(), cell.episodes, cell.mean_loss(), cell.answer_rate(),
                 cell.accuracy(), cell.mean_requested_per_claim(), cell.mean_relevant_per_claim(),
                 cell.mean_wasted_fraction(), cell.mean_imbalance(), cell.mean_state_bytes(),
-                delta, lo, hi);
+                cell.mean_scoring_work_units(), delta, lo, hi);
         }
     }
 
