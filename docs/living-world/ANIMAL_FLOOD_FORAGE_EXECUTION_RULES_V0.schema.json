@@ -197,7 +197,8 @@
         "start_cell_generator",
         "exploration_direction_order",
         "per_action_max_one_cell",
-        "max_policy_actions_source"
+        "max_policy_actions_source",
+        "tie_break_rule"
       ],
       "properties": {
         "initial_energy_source": {
@@ -246,6 +247,9 @@
         "max_policy_actions_source": {
           "type": "string",
           "minLength": 1
+        },
+        "tie_break_rule": {
+          "const": "rotate the declared exploration_direction_order by (tick + current_cell_index) modulo four; the policy receives no seed value"
         }
       }
     },
