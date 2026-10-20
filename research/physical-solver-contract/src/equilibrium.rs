@@ -1015,7 +1015,6 @@ mod tests {
     };
 
     static NEXT: AtomicUsize = AtomicUsize::new(0);
-    const REV: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     struct Bundle {
         root: PathBuf,
