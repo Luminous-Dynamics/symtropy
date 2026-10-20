@@ -139,7 +139,7 @@ pub struct BenchmarkCase {
     pub baseline: Option<ComparisonModel>,
     pub metrics: Vec<BenchmarkMetric>,
     /// Evidence records supporting this case's declared claim ceiling.
-    pub evidence: Vec<super::EvidenceRecord>,
+    pub evidence: Vec<crate::EvidenceRecord>,
     pub splits: Vec<SplitAssignment>,
     pub input_digest_sha256: String,
     pub config_digest_sha256: String,
@@ -164,10 +164,10 @@ pub enum CaseValidationError {
     InvalidComparisonModel(&'static str),
     MissingReferenceForClaim,
     MissingBaselineForClaim,
-    MissingEvidence(super::EvidenceClass),
-    FailedEvidence(super::EvidenceClass),
-    UnavailableEvidence(super::EvidenceClass),
-    NotApplicableEvidence(super::EvidenceClass),
+    MissingEvidence(crate::EvidenceClass),
+    FailedEvidence(crate::EvidenceClass),
+    UnavailableEvidence(crate::EvidenceClass),
+    NotApplicableEvidence(crate::EvidenceClass),
     EmptyEvidenceSuite,
     NoMetrics,
     InvalidMetric(String),
@@ -288,7 +288,7 @@ impl BenchmarkCase {
 
 fn validate_case_evidence(
     claim_ceiling: ClaimTier,
-    records: &[super::EvidenceRecord],
+    records: &[crate::EvidenceRecord],
 ) -> Result<(), CaseValidationError> {
     let mut suite_keys = BTreeSet::new();
     for record in records {
@@ -309,50 +309,50 @@ fn validate_case_evidence(
 
     // Each tier requires its own evidence; presentation quality is never a
     // substitute for physical, observational, impact, or operational evidence.
-    let requirements: Vec<Vec<super::EvidenceClass>> = match claim_ceiling {
+    let requirements: Vec<Vec<crate::EvidenceClass>> = match claim_ceiling {
         ClaimTier::Execution => vec![],
-        ClaimTier::StructuralInvariant => vec![vec![super::EvidenceClass::StructuralInvariant]],
+        ClaimTier::StructuralInvariant => vec![vec![crate::EvidenceClass::StructuralInvariant]],
         ClaimTier::AnalyticalOrManufactured => vec![
-            vec![super::EvidenceClass::StructuralInvariant],
-            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![crate::EvidenceClass::StructuralInvariant],
+            vec![crate::EvidenceClass::AnalyticalOrManufactured],
         ],
         ClaimTier::PublishedReference => vec![
-            vec![super::EvidenceClass::StructuralInvariant],
-            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![crate::EvidenceClass::StructuralInvariant],
+            vec![crate::EvidenceClass::AnalyticalOrManufactured],
             vec![
-                super::EvidenceClass::PublishedBenchmark,
-                super::EvidenceClass::ReferenceDifferential,
+                crate::EvidenceClass::PublishedBenchmark,
+                crate::EvidenceClass::ReferenceDifferential,
             ],
         ],
         ClaimTier::HeldOutObservation => vec![
-            vec![super::EvidenceClass::StructuralInvariant],
-            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![crate::EvidenceClass::StructuralInvariant],
+            vec![crate::EvidenceClass::AnalyticalOrManufactured],
             vec![
-                super::EvidenceClass::PublishedBenchmark,
-                super::EvidenceClass::ReferenceDifferential,
+                crate::EvidenceClass::PublishedBenchmark,
+                crate::EvidenceClass::ReferenceDifferential,
             ],
-            vec![super::EvidenceClass::HeldOutObservation],
+            vec![crate::EvidenceClass::HeldOutObservation],
         ],
         ClaimTier::DecisionImpact => vec![
-            vec![super::EvidenceClass::StructuralInvariant],
-            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![crate::EvidenceClass::StructuralInvariant],
+            vec![crate::EvidenceClass::AnalyticalOrManufactured],
             vec![
-                super::EvidenceClass::PublishedBenchmark,
-                super::EvidenceClass::ReferenceDifferential,
+                crate::EvidenceClass::PublishedBenchmark,
+                crate::EvidenceClass::ReferenceDifferential,
             ],
-            vec![super::EvidenceClass::HeldOutObservation],
-            vec![super::EvidenceClass::DecisionImpact],
+            vec![crate::EvidenceClass::HeldOutObservation],
+            vec![crate::EvidenceClass::DecisionImpact],
         ],
         ClaimTier::Operational => vec![
-            vec![super::EvidenceClass::StructuralInvariant],
-            vec![super::EvidenceClass::AnalyticalOrManufactured],
+            vec![crate::EvidenceClass::StructuralInvariant],
+            vec![crate::EvidenceClass::AnalyticalOrManufactured],
             vec![
-                super::EvidenceClass::PublishedBenchmark,
-                super::EvidenceClass::ReferenceDifferential,
+                crate::EvidenceClass::PublishedBenchmark,
+                crate::EvidenceClass::ReferenceDifferential,
             ],
-            vec![super::EvidenceClass::HeldOutObservation],
-            vec![super::EvidenceClass::DecisionImpact],
-            vec![super::EvidenceClass::OperationalSkill],
+            vec![crate::EvidenceClass::HeldOutObservation],
+            vec![crate::EvidenceClass::DecisionImpact],
+            vec![crate::EvidenceClass::OperationalSkill],
         ],
     };
 
@@ -366,14 +366,14 @@ fn validate_case_evidence(
         }
         for record in &matching {
             match record.status {
-                super::EvidenceStatus::Pass => {}
-                super::EvidenceStatus::Fail => {
+                crate::EvidenceStatus::Pass => {}
+                crate::EvidenceStatus::Fail => {
                     return Err(CaseValidationError::FailedEvidence(record.class));
                 }
-                super::EvidenceStatus::Unavailable => {
+                crate::EvidenceStatus::Unavailable => {
                     return Err(CaseValidationError::UnavailableEvidence(record.class));
                 }
-                super::EvidenceStatus::NotApplicable => {
+                crate::EvidenceStatus::NotApplicable => {
                     return Err(CaseValidationError::NotApplicableEvidence(record.class));
                 }
             }
@@ -597,16 +597,16 @@ mod tests {
                 threshold: None,
             }],
             evidence: vec![
-                super::EvidenceRecord {
-                    class: super::EvidenceClass::StructuralInvariant,
-                    status: super::EvidenceStatus::Pass,
+                crate::EvidenceRecord {
+                    class: crate::EvidenceClass::StructuralInvariant,
+                    status: crate::EvidenceStatus::Pass,
                     suite_id: "closed-basin-budget-v1".into(),
                     source_uri: None,
                     detail: "Synthetic contract fixture for structural checks".into(),
                 },
-                super::EvidenceRecord {
-                    class: super::EvidenceClass::AnalyticalOrManufactured,
-                    status: super::EvidenceStatus::Pass,
+                crate::EvidenceRecord {
+                    class: crate::EvidenceClass::AnalyticalOrManufactured,
+                    status: crate::EvidenceStatus::Pass,
                     suite_id: "lake-at-rest-analytic-v1".into(),
                     source_uri: None,
                     detail: "Synthetic analytical target used only to test schema behavior".into(),
@@ -637,16 +637,16 @@ mod tests {
     fn heldout_case() -> BenchmarkCase {
         let mut spec = case();
         spec.claim_ceiling = ClaimTier::HeldOutObservation;
-        spec.evidence.push(super::EvidenceRecord {
-            class: super::EvidenceClass::PublishedBenchmark,
-            status: super::EvidenceStatus::Pass,
+        spec.evidence.push(crate::EvidenceRecord {
+            class: crate::EvidenceClass::PublishedBenchmark,
+            status: crate::EvidenceStatus::Pass,
             suite_id: "published-lake-at-rest-v1".into(),
             source_uri: Some("https://example.org/benchmark".into()),
             detail: "Synthetic metadata fixture for reference-tier validation".into(),
         });
-        spec.evidence.push(super::EvidenceRecord {
-            class: super::EvidenceClass::HeldOutObservation,
-            status: super::EvidenceStatus::Pass,
+        spec.evidence.push(crate::EvidenceRecord {
+            class: crate::EvidenceClass::HeldOutObservation,
+            status: crate::EvidenceStatus::Pass,
             suite_id: "heldout-observation-v1".into(),
             source_uri: Some("https://example.org/heldout".into()),
             detail: "Synthetic metadata fixture for evidence-tier validation".into(),
@@ -755,9 +755,9 @@ mod tests {
     fn impact_and_operational_claims_require_their_own_context() {
         let mut impact = heldout_case();
         impact.claim_ceiling = ClaimTier::DecisionImpact;
-        impact.evidence.push(super::EvidenceRecord {
-            class: super::EvidenceClass::DecisionImpact,
-            status: super::EvidenceStatus::Pass,
+        impact.evidence.push(crate::EvidenceRecord {
+            class: crate::EvidenceClass::DecisionImpact,
+            status: crate::EvidenceStatus::Pass,
             suite_id: "cost-loss-evaluation-v1".into(),
             source_uri: None,
             detail: "Synthetic contract fixture for decision impact evidence".into(),
@@ -769,9 +769,9 @@ mod tests {
         impact.decision_utility_spec = Some("predeclared cost-loss table v1".into());
         assert_eq!(impact.validate(), Ok(()));
         impact.claim_ceiling = ClaimTier::Operational;
-        impact.evidence.push(super::EvidenceRecord {
-            class: super::EvidenceClass::OperationalSkill,
-            status: super::EvidenceStatus::Pass,
+        impact.evidence.push(crate::EvidenceRecord {
+            class: crate::EvidenceClass::OperationalSkill,
+            status: crate::EvidenceStatus::Pass,
             suite_id: "operational-verification-v1".into(),
             source_uri: None,
             detail: "Synthetic contract fixture for operational claim gating".into(),
@@ -824,7 +824,7 @@ mod tests {
         assert_eq!(
             spec.validate(),
             Err(CaseValidationError::MissingEvidence(
-                super::EvidenceClass::PublishedBenchmark
+                crate::EvidenceClass::PublishedBenchmark
             ))
         );
     }
@@ -848,9 +848,9 @@ mod tests {
         let mut spec = heldout_case();
         spec.claim_ceiling = ClaimTier::DecisionImpact;
         spec.decision_utility_spec = Some("pre-registered cost-loss policy".into());
-        spec.evidence.push(super::EvidenceRecord {
-            class: super::EvidenceClass::DecisionImpact,
-            status: super::EvidenceStatus::Pass,
+        spec.evidence.push(crate::EvidenceRecord {
+            class: crate::EvidenceClass::DecisionImpact,
+            status: crate::EvidenceStatus::Pass,
             suite_id: "impact-decision-value-v1".into(),
             source_uri: None,
             detail: "Synthetic metadata fixture for decision-value tier".into(),
