@@ -54,6 +54,25 @@ Common serviceable items may include aerators/spray heads, hoses, seals, drain s
 
 Test reach and control use across user height, grip strength and seated/standing positions. A design that saves water while increasing pain, force, spill risk or task time for a portion of users is not a global improvement.
 
+## 2.5. Existing industry baseline and the differentiation gap
+
+The underlying workstation-sink concept is already commercially established. For example, Pelham & White describes built-in ledges with a colander, roll mat and cutting board; KOHLER lists a workstation sink with cutting board, drainboard, colander, drying rack and soaking bin. These features are useful prior art, so the programme must not present accessories-on-ledges as an invention.
+
+- Pelham & White workstation features: https://www.pelhamandwhite.com/workstation
+- KOHLER Strive Smart Divide workstation sink: https://la.kohler.com/en/product-detail/33664-PC
+- EPA WaterSense Homes kitchen-faucet context: https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P10180T6.TXT
+
+| Commercial baseline already available | Researchable differentiation target |
+| --- | --- |
+| Ledges and accessory bundles | Compatibility tolerances, loaded stability, cleaning access, cycle wear, replacement availability and cost |
+| Pull-out or multi-mode faucet | Potable litres and hot-water energy per successfully completed task across a declared pressure envelope |
+| Roll-up or over-sink drying rack | Dryness by item type and rack position, residual water mass, drip return, cleaning time and occupied footprint |
+| Drain grids, corner radii or grooved basins | Measured splash-deposition map and reproducible cleanability, with no hidden residue or transferred contamination |
+| Premium materials and product feature lists | Repair-time and post-repair flow/leak/drain evidence, lifecycle cost with explicit assumptions, and accessible use |
+| Optional powered drying as a possible variant | A matched passive-first comparison including energy, noise, airflow and contamination-deposition checks |
+
+This is a proposed verification advantage, not a claim that existing brands lack all these capabilities. Public product pages are evidence that features are sold; they are not independent comparative-performance data. Benchmark at least one readily available conventional sink/rack and one workstation-sink reference before choosing a design winner.
+
 ## 3. Benchmark protocol
 
 ### Freeze the conditions
