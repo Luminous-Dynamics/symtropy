@@ -51,10 +51,7 @@ impl Interval {
         ];
         finite_values(&products, "interval multiplication")?;
         let minimum = products.iter().copied().fold(f64::INFINITY, f64::min);
-        let maximum = products
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let maximum = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let lower = outward_down(minimum)?;
         let upper = outward_up(maximum)?;
         // Preserve known non-negative products (e.g. absolute stress) instead
@@ -81,10 +78,7 @@ impl Interval {
         ];
         finite_values(&quotients, "interval division")?;
         let minimum = quotients.iter().copied().fold(f64::INFINITY, f64::min);
-        let maximum = quotients
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let maximum = quotients.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let lower = outward_down(minimum)?;
         let upper = outward_up(maximum)?;
         let lower = if self.lower >= 0.0 && rhs.lower > 0.0 {
@@ -206,10 +200,7 @@ pub fn propagate(
             let modulus = bounds["youngs_modulus_pa"];
             let stress = force.divide(area)?;
             let strain = stress.divide(modulus)?;
-            let extension = force
-                .multiply(length)?
-                .divide(area)?
-                .divide(modulus)?;
+            let extension = force.multiply(length)?.divide(area)?.divide(modulus)?;
             Ok(BTreeMap::from([
                 ("axial_stress_pa".to_owned(), stress),
                 ("axial_strain".to_owned(), strain),
@@ -265,11 +256,7 @@ pub fn propagate(
     }
 }
 
-fn exact_keys(
-    actual: &BTreeMap<String, f64>,
-    expected: &[&str],
-    label: &str,
-) -> Check<()> {
+fn exact_keys(actual: &BTreeMap<String, f64>, expected: &[&str], label: &str) -> Check<()> {
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
     let actual_set: BTreeSet<&str> = actual.keys().map(String::as_str).collect();
     compare_key_sets(&actual_set, &expected_set, label)
@@ -285,11 +272,7 @@ fn exact_interval_keys(
     compare_key_sets(&actual_set, &expected_set, label)
 }
 
-fn compare_key_sets(
-    actual: &BTreeSet<&str>,
-    expected: &BTreeSet<&str>,
-    label: &str,
-) -> Check<()> {
+fn compare_key_sets(actual: &BTreeSet<&str>, expected: &BTreeSet<&str>, label: &str) -> Check<()> {
     let missing: Vec<_> = expected.difference(actual).copied().collect();
     let unknown: Vec<_> = actual.difference(expected).copied().collect();
     if !missing.is_empty() || !unknown.is_empty() {
@@ -304,7 +287,9 @@ fn finite_values(values: &[f64], operation: &str) -> Check<()> {
     if values.iter().all(|value| value.is_finite()) {
         Ok(())
     } else {
-        Err(format!("{operation} overflowed or produced non-finite values"))
+        Err(format!(
+            "{operation} overflowed or produced non-finite values"
+        ))
     }
 }
 
@@ -353,7 +338,10 @@ mod tests {
     }
 
     fn assert_enclosed(interval: Interval, value: f64) {
-        assert!(interval.contains(value), "{interval:?} did not enclose {value:.17e}");
+        assert!(
+            interval.contains(value),
+            "{interval:?} did not enclose {value:.17e}"
+        );
     }
 
     #[test]
@@ -380,13 +368,15 @@ mod tests {
             ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
             ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
         ]);
-        let ranges = propagate("cantilever_tip_load", &nominal, &bounds)
-            .expect("valid cantilever bounds");
+        let ranges =
+            propagate("cantilever_tip_load", &nominal, &bounds).expect("valid cantilever bounds");
         assert_eq!(ranges["maximum_bending_stress_pa"].lower, 0.0);
-        let exact = cantilever_tip_load(0.0, 2.0, 200.0e9, 8.0e-6, 0.1)
-            .expect("nominal formula");
+        let exact = cantilever_tip_load(0.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("nominal formula");
         assert_enclosed(ranges["tip_deflection_m"], exact.tip_deflection_m);
-        assert_enclosed(ranges["maximum_bending_stress_pa"], exact.maximum_bending_stress_pa);
+        assert_enclosed(
+            ranges["maximum_bending_stress_pa"],
+            exact.maximum_bending_stress_pa,
+        );
     }
 
     #[test]
@@ -403,7 +393,10 @@ mod tests {
         let exact = simply_supported_uniform_load(1_000.0, 4.0, 200.0e9, 8.0e-6, 0.1)
             .expect("nominal formula");
         assert_enclosed(ranges["midspan_deflection_m"], exact.midspan_deflection_m);
-        assert_enclosed(ranges["maximum_bending_stress_pa"], exact.maximum_bending_stress_pa);
+        assert_enclosed(
+            ranges["maximum_bending_stress_pa"],
+            exact.maximum_bending_stress_pa,
+        );
     }
 
     #[test]
@@ -500,7 +493,11 @@ mod tests {
                     .iter()
                     .enumerate()
                     .map(|(index, (key, _, lower, upper))| {
-                        let value = if mask & (1 << index) == 0 { *lower } else { *upper };
+                        let value = if mask & (1 << index) == 0 {
+                            *lower
+                        } else {
+                            *upper
+                        };
                         ((*key).to_owned(), value)
                     })
                     .collect();
@@ -520,7 +517,8 @@ mod tests {
                     inputs["length_m"],
                     inputs["area_m2"],
                     inputs["youngs_modulus_pa"],
-                ).expect("endpoint formula");
+                )
+                .expect("endpoint formula");
                 BTreeMap::from([
                     ("axial_stress_pa".to_owned(), result.axial_stress_pa),
                     ("axial_strain".to_owned(), result.axial_strain),
@@ -534,10 +532,14 @@ mod tests {
                     inputs["youngs_modulus_pa"],
                     inputs["second_moment_area_m4"],
                     inputs["outer_fiber_distance_m"],
-                ).expect("endpoint formula");
+                )
+                .expect("endpoint formula");
                 BTreeMap::from([
                     ("tip_deflection_m".to_owned(), result.tip_deflection_m),
-                    ("maximum_bending_stress_pa".to_owned(), result.maximum_bending_stress_pa),
+                    (
+                        "maximum_bending_stress_pa".to_owned(),
+                        result.maximum_bending_stress_pa,
+                    ),
                 ])
             }
             "simply_supported_uniform_load" => {
@@ -547,10 +549,17 @@ mod tests {
                     inputs["youngs_modulus_pa"],
                     inputs["second_moment_area_m4"],
                     inputs["outer_fiber_distance_m"],
-                ).expect("endpoint formula");
+                )
+                .expect("endpoint formula");
                 BTreeMap::from([
-                    ("midspan_deflection_m".to_owned(), result.midspan_deflection_m),
-                    ("maximum_bending_stress_pa".to_owned(), result.maximum_bending_stress_pa),
+                    (
+                        "midspan_deflection_m".to_owned(),
+                        result.midspan_deflection_m,
+                    ),
+                    (
+                        "maximum_bending_stress_pa".to_owned(),
+                        result.maximum_bending_stress_pa,
+                    ),
                 ])
             }
             _ => unreachable!("case fixture is supported"),
