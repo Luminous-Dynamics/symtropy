@@ -188,12 +188,9 @@ fn run() -> Result<(), String> {
         }
     }
 
-    if let Some(manifest_path) = load_scaling_manifest_path {
+    if let Some(manifest_path) = load_scaling_manifest_path.as_deref() {
         if mesh_study_path.is_some()
             || equilibrium_manifest_path.is_some()
-            || load_scaling_manifest_path.is_some()
-            || scaled_request_path.is_some()
-            || scaled_receipt_path.is_some()
             || reaction_force_output_id.is_some()
             || reaction_moment_output_id.is_some()
             || reference_path.is_some()
