@@ -1708,7 +1708,7 @@ mod randomized_timing {
                 view_delay: 4,
                 ..world
             };
-            let result = run_episode(late, TimedPolicy::ActiveRevision);
+            let result = run_episode(late, TimedPolicy::ActiveRevision, 0x1A7E);
             assert!(result.attempt);
             assert!(result.executed);
             assert!(!result.completed);
