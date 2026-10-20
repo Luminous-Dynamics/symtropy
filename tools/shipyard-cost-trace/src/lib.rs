@@ -752,6 +752,35 @@ mod tests {
     }
 
     #[test]
+    fn large_lineage_chain_is_audited_iteratively() {
+        let mut events = Vec::new();
+        for index in (0..5_000).rev() {
+            let event_id = format!("event-{index}");
+            let mut event = quantity_event(
+                &event_id,
+                Stage::Observed,
+                CONFIG_A,
+                "fabrication-1",
+                "labor.fitter.hours",
+                1.0,
+                None,
+            );
+            if index > 0 {
+                event.related_event_ids.push(format!("event-{}", index - 1));
+            }
+            events.push(event);
+        }
+
+        let report = audit(&events).expect("large acyclic lineage");
+        assert_eq!(report.event_count, 5_000);
+        assert_eq!(report.quantity_reconciliations.len(), 1);
+        assert_eq!(
+            report.quantity_reconciliations[0].observed,
+            Some(5_000.0)
+        );
+    }
+
+    #[test]
     fn input_permutation_does_not_change_report() {
         let first = vec![
             quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor.welder", 10.0, Some(rate())),
