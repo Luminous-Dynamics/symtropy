@@ -441,14 +441,6 @@ fn required_string(value: &Value, key: &str, at: &str) -> Check<String> {
         .ok_or_else(|| format!("{at}.{key} must be a string"))
 }
 
-fn expect_string(value: &Value, key: &str, expected: &str, at: &str) -> Check<()> {
-    let actual = required_string(value, key, at)?;
-    if actual != expected {
-        return Err(format!("{at}.{key} must be '{expected}', got '{actual}'"));
-    }
-    Ok(())
-}
-
 fn required_string_array(value: &Value, key: &str, at: &str) -> Check<Vec<String>> {
     value
         .get(key)
@@ -621,6 +613,53 @@ mod tests {
         });
         assert!(!output_keys_match(&outputs, &expected));
         assert!(!output_keys_match(&Value::Null, &expected));
+    }
+
+
+    #[test]
+    fn bounded_v02_request_dispatches_with_the_v02_receipt() {
+        let receipt = dispatch_request_bytes(
+            &fixture("analytical-bar-bounds-v0.2.json"),
+            REV,
+            REV,
+        )
+        .expect("bounded v0.2 request should dispatch");
+        assert_eq!(receipt["request_schema_version"], "physical-analytical-request-v0.2");
+        assert_eq!(receipt["selection_status"], "SELECTED");
+        assert_eq!(receipt["evaluation_status"], "PASS");
+        assert_eq!(
+            receipt["adapter_receipt"]["schema_version"],
+            "physical-analytical-receipt-v0.2"
+        );
+        assert_eq!(
+            receipt["outputs"]["axial_stress_pa"],
+            receipt["adapter_receipt"]["output_intervals"]["axial_stress_pa"]["nominal"]
+        );
+    }
+
+    #[test]
+    fn invalid_v02_bounds_fail_before_dispatch() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
+        request["input_bounds"]["force_n"]["lower"] = json!(1_001.0);
+        let error = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
+            .unwrap_err();
+        assert!(error.contains("must contain its nominal input"));
+    }
+
+    #[test]
+    fn unsupported_v02_physics_abstains_before_formula_evaluation() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
+        request["requested_physics"] = json!(["static_linear_elastic", "fracture"]);
+        let receipt = dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV)
+            .expect("unsupported v0.2 physics is an abstention");
+        assert_eq!(receipt["request_schema_version"], "physical-analytical-request-v0.2");
+        assert_eq!(receipt["selection_status"], "UNRESOLVED");
+        assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
+        assert_eq!(receipt["adapter_receipt"], Value::Null);
+        assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["model_evaluation_attempted"], false);
     }
 
     #[test]
