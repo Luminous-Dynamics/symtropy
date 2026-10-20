@@ -233,12 +233,7 @@ pub fn validate_artifacts(
         .get("items")
         .and_then(|items| items.get("properties"))
         .ok_or_else(|| ValidationError::new("schema cases.items.properties is required"))?;
-    require_schema_string(
-        item_properties,
-        "id",
-        "pattern",
-        "^[a-z][a-z0-9_]*$",
-    )?;
+    require_schema_string(item_properties, "id", "pattern", "^[a-z][a-z0-9_]*$")?;
     for key in CASE_KEYS {
         if item_properties.get(*key).is_none() {
             return Err(ValidationError::new(format!(
@@ -284,11 +279,7 @@ fn required_string<'a>(
         .ok_or_else(|| ValidationError::new(format!("{path}.{key} must be a nonempty string")))
 }
 
-fn require_nonempty_string(
-    value: &Value,
-    key: &str,
-    path: &str,
-) -> Result<(), ValidationError> {
+fn require_nonempty_string(value: &Value, key: &str, path: &str) -> Result<(), ValidationError> {
     required_string(value, key, path).map(|_| ())
 }
 
@@ -329,9 +320,7 @@ fn require_unique_nonempty_string_array(
             .as_str()
             .filter(|text| !text.trim().is_empty())
             .ok_or_else(|| {
-                ValidationError::new(format!(
-                    "{path}.{key}[{index}] must be a nonempty string"
-                ))
+                ValidationError::new(format!("{path}.{key}[{index}] must be a nonempty string"))
             })?;
         if !members.insert(string) {
             return Err(ValidationError::new(format!(
@@ -357,7 +346,9 @@ fn require_schema_const(
     let actual = properties
         .get(key)
         .and_then(|value| value.get("const"))
-        .ok_or_else(|| ValidationError::new(format!("schema.properties.{key}.const is required")))?;
+        .ok_or_else(|| {
+            ValidationError::new(format!("schema.properties.{key}.const is required"))
+        })?;
     if actual.as_str() != Some(expected)
         && !(key == "case_count" && actual.as_u64() == Some(EXPECTED_CASE_COUNT as u64))
     {
