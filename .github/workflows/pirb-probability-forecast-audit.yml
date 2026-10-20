@@ -244,6 +244,11 @@ jobs:
             --rustc-version "$rustc_version" --cargo-version "$cargo_version" \
             > pirb-hierarchy-sample-score-receipt.json
 
+          printf 'Expected digest inputs:\\n  source_commit=%s\\n  schema_sha=%s\\n  input_sha=%s\\n  forecast_inventory_sha=%s\\n  outcome_snapshot_sha=%s\\n  lock_sha=%s\\n' \\
+            "$source_commit" "$expected_schema_sha" "$expected_input_sha" \\
+            "$expected_forecast_inventory_sha" "$expected_outcome_snapshot_sha" "$expected_lock_sha"
+          jq '{receipt_version,receipt_type,registration_id,source_commit,dependency_lock_sha256,rustc_version,cargo_version,schema_sha256,input_sha256,forecast_inventory_sha256,outcome_snapshot_sha256,outcome_release_id,outcome_release_sha256,score,score_orientation,forecast_count,predictive_sample_count,matured_scored_count,score_denominator,unknown_outcome_count,mean_raw_empirical_crps,mean_reconciled_empirical_crps,mean_raw_minus_reconciled_crps,eligible_forecast_ids,receipt_commitment_sha256}' pirb-hierarchy-sample-score-receipt.json
+
           expected_receipt_commitment="$(printf 'pirb-hierarchy-sample-score-receipt-v0.2\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
             "pirb-hierarchy-crps-synthetic-v0-2-example" "$source_commit" \
             "$expected_schema_sha" "$expected_input_sha" "$expected_forecast_inventory_sha" \
