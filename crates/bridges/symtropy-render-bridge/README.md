@@ -22,6 +22,17 @@ relative costs. Relative cost units are not GPU milliseconds. See
 [the qualification note](../../../docs/research/RENDER_SEMANTIC_LOD_001.md) and
 [the proposed workload manifest](../../../benchmarks/render/SEMANTIC-LOD-01.json).
 
+## Projected geometric-error bounds
+
+The optional pure Rust module `screen_error` maps a caller-supplied world-space
+geometric-deviation bound into an analytical screen-space pixel bound for
+orthographic and pinhole-perspective camera profiles. Perspective profiles
+require lower depth and upper radial-distance bounds for all affected geometry.
+The helper does not extract mesh error, read a Bevy camera, perform frustum
+clipping, or qualify an asset simplifier. Ordinary f64 evaluation is not a
+directed-rounding interval certificate; see
+[the qualification note](../../../docs/research/RENDER_PROJECTION_ERROR_002.md).
+
 ## Licensing
 
 **Apache-2.0 OR MIT.** Zero AGPL dependencies — safe to use in proprietary projects. See the [repository LICENSING.md](https://github.com/luminous-dynamics/symtropy/blob/main/LICENSING.md) for the full dual-track breakdown.
