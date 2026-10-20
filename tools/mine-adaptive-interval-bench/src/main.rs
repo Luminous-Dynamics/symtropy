@@ -929,7 +929,10 @@ mod tests {
     #[test]
     fn finite_sample_quantile_fails_closed_on_undersized_calibration() {
         let calibration = calibration_residuals();
-        assert_eq!(3.0, fixed_split_radius(&calibration, 100 - NOMINAL_COVERAGE_PERCENT).expect("fixed q95"));
+        assert_eq!(
+            3.0,
+            fixed_split_radius(&calibration, 100 - NOMINAL_COVERAGE_PERCENT).expect("fixed q90")
+        );
         assert!(fixed_split_radius(&[], 5).is_err());
         assert!(fixed_split_radius(&calibration, 0).is_err());
         assert!(fixed_split_radius(&calibration, 100).is_err());
@@ -1005,7 +1008,8 @@ mod tests {
             .find(|stream| stream.seed == 10_001 && stream.kind == ScenarioKind::AbruptShift)
             .expect("held-out abrupt-shift stream");
         let calibration = calibration_residuals();
-        let fixed_radius = fixed_split_radius(&calibration, 100 - NOMINAL_COVERAGE_PERCENT).expect("fixed radius");
+        let fixed_radius =
+            fixed_split_radius(&calibration, 100 - NOMINAL_COVERAGE_PERCENT).expect("fixed radius");
         let (fixed, _, _) = evaluate_stream(
             stream,
             Policy::FixedSplitIntervalOnly,
