@@ -24,12 +24,6 @@ fn positive_finite(value: Option<&Value>) -> bool {
         .is_some_and(|number| number.is_finite() && number > 0.0)
 }
 
-fn finite_nonnegative(value: Option<&Value>) -> bool {
-    value
-        .and_then(Value::as_f64)
-        .is_some_and(|number| number.is_finite() && number >= 0.0)
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Rect {
     x: f64,
@@ -453,6 +447,11 @@ pub fn audit_fixtures(document: &Value) -> Vec<String> {
     if text(frame, "geometry_model") != Some("axis_aligned_2d_rectangles") {
         errors.push("root.coordinate_frame: unsupported geometry model".to_owned());
     }
+    if text(field(document, "units").unwrap_or(&Value::Null), "length") != Some("m")
+        || text(field(document, "units").unwrap_or(&Value::Null), "area") != Some("m2")
+    {
+        errors.push("root.units: this fixture audit requires metres and square metres".to_owned());
+    }
 
     let Some(scenarios) = array(document, "scenarios") else {
         errors.push("root: missing scenarios array".to_owned());
@@ -516,8 +515,7 @@ mod tests {
     #[test]
     fn rotated_out_of_bounds_footprint_is_rejected() {
         let errors = errors_after(baseline(), |doc| {
-            doc["scenarios"][3]["alternatives"][0]["placements"][2]["rotation_degrees"] =
-                json!(90);
+            doc["scenarios"][3]["alternatives"][0]["placements"][1]["x_m"] = json!(3.0);
         });
         assert!(errors.iter().any(|error| error.contains("outside nominal room")));
     }
