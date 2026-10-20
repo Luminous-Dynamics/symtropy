@@ -9,6 +9,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cascade;
 pub mod scoring;
 
 use serde::{Deserialize, Serialize};
