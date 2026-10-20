@@ -1,17 +1,64 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Capability-gated dispatch receipt around the qualified analytical adapter.
+//! Capability-first dispatch receipts for physical analytical requests.
 //!
-//! This module selects only the backend allowlisted by capabilities.rs. It does
-//! not launch external processes; future backend kinds must receive a separately
-//! audited execution adapter before they become dispatch-eligible.
+//! Requests are matched against the pinned capability manifest before the
+//! mechanics adapter runs. This module never launches external processes.
 
 use crate::capabilities::{SelectionStatus, resolve_request};
 use crate::evaluate_request_bytes;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
 pub type Check<T> = Result<T, String>;
 
+const REQUEST_SCHEMA: &str = "physical-analytical-request-v0.1";
 const RECEIPT_SCHEMA: &str = "physical-solver-dispatch-receipt-v0.1";
+const REQUEST_KEYS: &[&str] = &[
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "case_id",
+    "assumption_profile",
+    "requested_physics",
+    "units",
+    "inputs",
+];
+const UNIT_KEYS: &[&str] = &[
+    "length",
+    "force",
+    "area",
+    "stress",
+    "second_moment",
+    "distributed_load",
+];
+const EXPECTED_UNITS: &[(&str, &str)] = &[
+    ("length", "m"),
+    ("force", "N"),
+    ("area", "m^2"),
+    ("stress", "Pa"),
+    ("second_moment", "m^4"),
+    ("distributed_load", "N/m"),
+];
+const KNOWN_PHYSICS: &[&str] = &[
+    "static_linear_elastic",
+    "dynamic_response",
+    "nonlinear_material",
+    "fracture",
+    "rigid_contact",
+    "granular_contact",
+    "thermal_coupling",
+];
+
+#[derive(Clone, Debug)]
+struct DispatchRequest {
+    request_id: String,
+    source_revision: String,
+    case_id: String,
+    assumption_profile: String,
+    requested_physics: Vec<String>,
+    units: Map<String, Value>,
+}
 
 pub fn dispatch_request_bytes(
     bytes: &[u8],
@@ -19,36 +66,48 @@ pub fn dispatch_request_bytes(
     adapter_revision: &str,
 ) -> Check<Value> {
     validate_revision(dispatcher_revision, "dispatcher revision")?;
-    let request: Value = serde_json::from_slice(bytes)
+    validate_revision(adapter_revision, "adapter revision")?;
+    let value: Value = serde_json::from_slice(bytes)
         .map_err(|error| format!("dispatch request JSON is invalid: {error}"))?;
-    let adapter_receipt = evaluate_request_bytes(bytes, adapter_revision)?;
+    let request = parse_dispatch_request(&value)?;
+    let request_digest = sha256_hex(bytes);
 
-    let request_id = required_string(&adapter_receipt, "request_id", "adapter receipt")?;
-    let case_id = required_string(&adapter_receipt, "case_id", "adapter receipt")?;
-    let assumption_profile =
-        required_string(&adapter_receipt, "assumption_profile", "adapter receipt")?;
-    let requested_physics = required_string_array(
-        &adapter_receipt,
-        "requested_physics",
-        "adapter receipt",
-    )?;
-    let units = request
-        .get("units")
-        .and_then(Value::as_object)
-        .ok_or_else(|| "request.units must be an object".to_owned())?;
-
+    // The resolver is deliberately called before the numerical adapter. If no
+    // compatible backend exists, return an abstention receipt with no partial
+    // numerical output and without evaluating a weaker fallback model.
     let resolution = resolve_request(
-        &case_id,
-        &assumption_profile,
-        &requested_physics,
-        units,
+        &request.case_id,
+        &request.assumption_profile,
+        &request.requested_physics,
+        &request.units,
     )?;
-    let adapter_status =
-        required_string(&adapter_receipt, "result_status", "adapter receipt")?;
-    let selected = resolution.status == SelectionStatus::Selected;
-    let evaluation_status = if !selected {
-        "NOT_EVALUATED"
-    } else if adapter_status == "PASS" {
+    if resolution.status == SelectionStatus::Unresolved {
+        return Ok(json!({
+            "schema_version": RECEIPT_SCHEMA,
+            "request_id": request.request_id,
+            "request_sha256": request_digest,
+            "source_revision": request.source_revision,
+            "dispatcher_revision": dispatcher_revision,
+            "adapter_revision": adapter_revision,
+            "manifest_sha256": resolution.manifest_sha256,
+            "case_id": request.case_id,
+            "requested_physics": request.requested_physics,
+            "physics_omitted": resolution.physics_omitted,
+            "selection_status": "UNRESOLVED",
+            "evaluation_status": "NOT_EVALUATED",
+            "selected_backend": null,
+            "model_evaluation_attempted": false,
+            "external_solver_invoked": false,
+            "outputs": null,
+            "adapter_receipt": null,
+            "diagnostics": resolution.diagnostics,
+            "claim_ceiling": "capability screening only; no model evaluation, external solver execution, measured physical validation, or structural qualification"
+        }));
+    }
+
+    let adapter_receipt = evaluate_request_bytes(bytes, adapter_revision)?;
+    let adapter_status = required_string(&adapter_receipt, "result_status", "adapter receipt")?;
+    let evaluation_status = if adapter_status == "PASS" {
         "PASS"
     } else {
         "UNRESOLVED"
@@ -63,41 +122,89 @@ pub fn dispatch_request_bytes(
         .as_ref()
         .map(backend_summary)
         .unwrap_or(Value::Null);
-
-    let mut diagnostics = resolution.diagnostics.clone();
-    if adapter_status != "PASS" {
-        diagnostics.extend(
-            adapter_receipt
-                .get("diagnostics")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .filter_map(Value::as_str)
-                .map(str::to_owned),
-        );
-    }
+    let diagnostics = adapter_receipt
+        .get("diagnostics")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
 
     Ok(json!({
         "schema_version": RECEIPT_SCHEMA,
-        "request_id": request_id,
+        "request_id": request.request_id,
         "request_sha256": adapter_receipt["request_sha256"],
-        "source_revision": adapter_receipt["source_revision"],
+        "source_revision": request.source_revision,
         "dispatcher_revision": dispatcher_revision,
         "adapter_revision": adapter_receipt["adapter_revision"],
         "manifest_sha256": resolution.manifest_sha256,
-        "case_id": case_id,
-        "requested_physics": requested_physics,
-        "physics_omitted": resolution.physics_omitted,
-        "selection_status": if selected { "SELECTED" } else { "UNRESOLVED" },
+        "case_id": request.case_id,
+        "requested_physics": request.requested_physics,
+        "physics_omitted": [],
+        "selection_status": "SELECTED",
         "evaluation_status": evaluation_status,
         "selected_backend": selected_backend,
-        "model_evaluation_attempted": selected,
+        "model_evaluation_attempted": true,
         "external_solver_invoked": false,
         "outputs": outputs,
         "adapter_receipt": adapter_receipt,
         "diagnostics": diagnostics,
         "claim_ceiling": "capability dispatch plus the nested named closed-form analytical result only; no external solver execution, measured physical validation, or structural qualification"
     }))
+}
+
+fn parse_dispatch_request(value: &Value) -> Check<DispatchRequest> {
+    exact_keys(value, REQUEST_KEYS, "request")?;
+    expect_string(value, "schema_version", REQUEST_SCHEMA, "request")?;
+    let request_id = required_string(value, "request_id", "request")?;
+    validate_token(&request_id, "request ID")?;
+    let source_revision = required_string(value, "source_revision", "request")?;
+    validate_revision(&source_revision, "source revision")?;
+    let case_id = required_string(value, "case_id", "request")?;
+    validate_token(&case_id, "case ID")?;
+    let assumption_profile = required_string(value, "assumption_profile", "request")?;
+    validate_token(&assumption_profile, "assumption profile")?;
+    let requested_physics = required_string_array(value, "requested_physics", "request")?;
+    if requested_physics.is_empty() {
+        return Err("request.requested_physics must not be empty".to_owned());
+    }
+    let mut seen = BTreeSet::new();
+    for physics in &requested_physics {
+        if !KNOWN_PHYSICS.contains(&physics.as_str()) {
+            return Err(format!("request.requested_physics has unsupported value '{physics}'"));
+        }
+        if !seen.insert(physics.as_str()) {
+            return Err(format!("request.requested_physics contains duplicate value '{physics}'"));
+        }
+    }
+    let units = value
+        .get("units")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "request.units must be an object".to_owned())?
+        .clone();
+    exact_map_keys(&units, UNIT_KEYS, "request.units")?;
+    for (key, expected) in EXPECTED_UNITS {
+        let actual = units
+            .get(*key)
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("request.units.{key} must be a string"))?;
+        if actual != *expected {
+            return Err(format!("request.units.{key} must be '{expected}', got '{actual}'"));
+        }
+    }
+    if value.get("inputs").and_then(Value::as_object).is_none() {
+        return Err("request.inputs must be an object".to_owned());
+    }
+
+    Ok(DispatchRequest {
+        request_id,
+        source_revision,
+        case_id,
+        assumption_profile,
+        requested_physics,
+        units,
+    })
 }
 
 fn backend_summary(backend: &Value) -> Value {
@@ -112,12 +219,38 @@ fn backend_summary(backend: &Value) -> Value {
     })
 }
 
+fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
+    exact_map_keys(object, expected, at)
+}
+
+fn exact_map_keys(actual: &Map<String, Value>, expected: &[&str], at: &str) -> Check<()> {
+    let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
+    let actual_set: BTreeSet<&str> = actual.keys().map(String::as_str).collect();
+    let missing: Vec<_> = expected_set.difference(&actual_set).copied().collect();
+    let unknown: Vec<_> = actual_set.difference(&expected_set).copied().collect();
+    if !missing.is_empty() || !unknown.is_empty() {
+        return Err(format!("{at}: missing keys {missing:?}; unknown keys {unknown:?}"));
+    }
+    Ok(())
+}
+
 fn required_string(value: &Value, key: &str, at: &str) -> Check<String> {
     value
         .get(key)
         .and_then(Value::as_str)
         .map(str::to_owned)
         .ok_or_else(|| format!("{at}.{key} must be a string"))
+}
+
+fn expect_string(value: &Value, key: &str, expected: &str, at: &str) -> Check<()> {
+    let actual = required_string(value, key, at)?;
+    if actual != expected {
+        return Err(format!("{at}.{key} must be '{expected}', got '{actual}'"));
+    }
+    Ok(())
 }
 
 fn required_string_array(value: &Value, key: &str, at: &str) -> Check<Vec<String>> {
@@ -136,6 +269,18 @@ fn required_string_array(value: &Value, key: &str, at: &str) -> Check<Vec<String
         .collect()
 }
 
+fn validate_token(value: &str, label: &str) -> Check<()> {
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.' | ':'))
+    {
+        return Err(format!("invalid {label}"));
+    }
+    Ok(())
+}
+
 fn validate_revision(revision: &str, label: &str) -> Check<()> {
     if revision.len() != 40
         || !revision
@@ -145,6 +290,16 @@ fn validate_revision(revision: &str, label: &str) -> Check<()> {
         return Err(format!("{label} must be a 40-character lowercase hexadecimal Git SHA-1"));
     }
     Ok(())
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut output, "{byte:02x}");
+    }
+    output
 }
 
 #[cfg(test)]
@@ -186,17 +341,23 @@ mod tests {
             assert_eq!(receipt["external_solver_invoked"], false);
             assert_eq!(receipt["model_evaluation_attempted"], true);
             assert_eq!(receipt["manifest_sha256"].as_str().unwrap().len(), 64);
+            assert!(receipt["adapter_receipt"].is_object());
         }
     }
 
     #[test]
-    fn unsupported_fracture_yields_no_backend_and_no_partial_output() {
-        let receipt = dispatch_request_bytes(&fixture("unsupported-fracture-v0.1.json"), REV, REV)
-            .expect("unsupported physics is a dispatch abstention");
+    fn unsupported_physics_yields_no_backend_and_no_formula_evaluation() {
+        let receipt = dispatch_request_bytes(
+            &fixture("unsupported-fracture-v0.1.json"),
+            REV,
+            REV,
+        )
+        .expect("unsupported physics is a dispatch abstention");
         assert_eq!(receipt["selection_status"], "UNRESOLVED");
         assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
         assert_eq!(receipt["selected_backend"], Value::Null);
         assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["adapter_receipt"], Value::Null);
         assert_eq!(receipt["model_evaluation_attempted"], false);
         assert_eq!(receipt["external_solver_invoked"], false);
         assert!(
@@ -204,8 +365,29 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|v| v == "fracture")
+                .any(|value| value == "fracture")
         );
+    }
+
+    #[test]
+    fn unknown_case_id_returns_structured_unresolved_receipt() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        request["case_id"] = json!("dynamic_collapse");
+        request["assumption_profile"] = json!("dynamic_collapse");
+        request["inputs"] = json!({});
+        let bytes = serde_json::to_vec(&request).expect("serialize unknown case request");
+        let receipt = dispatch_request_bytes(&bytes, REV, REV)
+            .expect("unknown validly-shaped case becomes a dispatch abstention");
+        assert_eq!(receipt["selection_status"], "UNRESOLVED");
+        assert_eq!(receipt["evaluation_status"], "NOT_EVALUATED");
+        assert_eq!(receipt["selected_backend"], Value::Null);
+        assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["adapter_receipt"], Value::Null);
+        assert_eq!(receipt["model_evaluation_attempted"], false);
+        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|value| {
+            value.as_str().unwrap().contains("no registered backend")
+        }));
     }
 
     #[test]
@@ -221,8 +403,9 @@ mod tests {
         assert_eq!(receipt["evaluation_status"], "UNRESOLVED");
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["adapter_receipt"]["result_status"], "UNRESOLVED");
-        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|v| {
-            v.as_str().unwrap().contains("could not be completed")
+        assert!(receipt["model_evaluation_attempted"], true);
+        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|value| {
+            value.as_str().unwrap().contains("could not be completed")
         }));
     }
 
@@ -246,5 +429,18 @@ mod tests {
                 .unwrap_err()
                 .contains("dispatcher revision")
         );
+    }
+
+    #[test]
+    fn malformed_units_and_unknown_top_level_fields_fail_closed() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        request["units"]["length"] = json!("ft");
+        assert!(dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).is_err());
+
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-v0.1.json")).unwrap();
+        request["unreviewed_override"] = json!(true);
+        assert!(dispatch_request_bytes(&request.to_string().as_bytes(), REV, REV).is_err());
     }
 }
