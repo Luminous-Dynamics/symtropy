@@ -1,0 +1,862 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-analytical-request-v0.2.schema.json",
+  "title": "Physical Analytical Reference Request v0.2 (optional bounded inputs)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "source_revision",
+    "case_id",
+    "assumption_profile",
+    "requested_physics",
+    "units",
+    "inputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-analytical-request-v0.2"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "case_id": {
+      "enum": [
+        "axial_bar",
+        "cantilever_tip_load",
+        "simply_supported_uniform_load"
+      ]
+    },
+    "assumption_profile": {
+      "enum": [
+        "uniform_linear_elastic_axial_bar",
+        "small_deflection_euler_bernoulli_cantilever_tip_load",
+        "small_deflection_euler_bernoulli_simply_supported_uniform_load"
+      ]
+    },
+    "requested_physics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "static_linear_elastic",
+          "dynamic_response",
+          "fracture",
+          "rigid_contact",
+          "granular_contact",
+          "thermal_coupling"
+        ]
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "force",
+        "area",
+        "stress",
+        "second_moment",
+        "distributed_load"
+      ],
+      "properties": {
+        "length": {
+          "const": "m"
+        },
+        "force": {
+          "const": "N"
+        },
+        "area": {
+          "const": "m^2"
+        },
+        "stress": {
+          "const": "Pa"
+        },
+        "second_moment": {
+          "const": "m^4"
+        },
+        "distributed_load": {
+          "const": "N/m"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "input_bounds": {
+      "type": "object",
+      "description": "Optional. If present, define finite lower/upper bounds for every input to the selected formula; no statistical distribution is implied."
+    }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "case_id": {
+              "const": "axial_bar"
+            },
+            "assumption_profile": {
+              "const": "uniform_linear_elastic_axial_bar"
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "force_n",
+                "length_m",
+                "area_m2",
+                "youngs_modulus_pa"
+              ],
+              "properties": {
+                "force_n": {
+                  "type": "number"
+                },
+                "length_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "area_m2": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "youngs_modulus_pa": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "input_bounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "force_n",
+                "length_m",
+                "area_m2",
+                "youngs_modulus_pa"
+              ],
+              "properties": {
+                "force_n": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "N"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "length_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "area_m2": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m^2"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "youngs_modulus_pa": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "Pa"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "case_id": {
+              "const": "cantilever_tip_load"
+            },
+            "assumption_profile": {
+              "const": "small_deflection_euler_bernoulli_cantilever_tip_load"
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "force_n",
+                "length_m",
+                "youngs_modulus_pa",
+                "second_moment_area_m4",
+                "outer_fiber_distance_m"
+              ],
+              "properties": {
+                "force_n": {
+                  "type": "number"
+                },
+                "length_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "youngs_modulus_pa": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "second_moment_area_m4": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "outer_fiber_distance_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "input_bounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "force_n",
+                "length_m",
+                "youngs_modulus_pa",
+                "second_moment_area_m4",
+                "outer_fiber_distance_m"
+              ],
+              "properties": {
+                "force_n": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "N"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "length_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "youngs_modulus_pa": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "Pa"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "second_moment_area_m4": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m^4"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "outer_fiber_distance_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "case_id": {
+              "const": "simply_supported_uniform_load"
+            },
+            "assumption_profile": {
+              "const": "small_deflection_euler_bernoulli_simply_supported_uniform_load"
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "load_n_per_m",
+                "length_m",
+                "youngs_modulus_pa",
+                "second_moment_area_m4",
+                "outer_fiber_distance_m"
+              ],
+              "properties": {
+                "load_n_per_m": {
+                  "type": "number"
+                },
+                "length_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "youngs_modulus_pa": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "second_moment_area_m4": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "outer_fiber_distance_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "input_bounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "load_n_per_m",
+                "length_m",
+                "youngs_modulus_pa",
+                "second_moment_area_m4",
+                "outer_fiber_distance_m"
+              ],
+              "properties": {
+                "load_n_per_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "N/m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "length_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "youngs_modulus_pa": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "Pa"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "second_moment_area_m4": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m^4"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "outer_fiber_distance_m": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lower",
+                    "upper",
+                    "unit",
+                    "evidence_class",
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "const": "m"
+                    },
+                    "evidence_class": {
+                      "enum": [
+                        "specified",
+                        "measured",
+                        "estimated",
+                        "synthetic",
+                        "unknown"
+                      ]
+                    },
+                    "source_ref": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
