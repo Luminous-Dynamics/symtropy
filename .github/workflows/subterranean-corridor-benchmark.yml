@@ -40,3 +40,5 @@ jobs:
         run: cargo test --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked
       - name: Deterministic demonstration
         run: cargo run --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked
+      - name: Exact small-instance repair scheduler benchmark
+        run: cargo run --manifest-path tools/subterranean-corridor-benchmark/Cargo.toml --locked --bin repair-optimality-benchmark
