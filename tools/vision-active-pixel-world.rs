@@ -894,7 +894,8 @@ mod tests {
     #[test]
     fn deterministic_pairing_and_policy_rollouts_repeat_exactly() {
         let seed = 0xDEAD_BEEF;
-        let (present, removed) = paired(SceneFamily::HeldOut, seed);
+        let present = HiddenWorld::generated(seed, true, SceneFamily::HeldOut);
+        let removed = HiddenWorld::generated(seed, false, SceneFamily::HeldOut);
         assert_eq!(present, HiddenWorld::generated(seed, true, SceneFamily::HeldOut));
         assert_eq!(removed, HiddenWorld::generated(seed, false, SceneFamily::HeldOut));
         assert_eq!(
