@@ -225,23 +225,211 @@ fn validate_case(
 }
 
 fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<String>) {
-    let schema_version = schema
-        .pointer("/properties/schema_version/const")
-        .and_then(Value::as_str);
-    if schema_version != Some("ANIMAL-MODEL-SET-ADEQUACY-ORACLE-V1") {
-        errors.push("schema version const does not match oracle V1".to_owned());
-    }
+    require_schema_string(
+        schema,
+        "/$schema",
+        "https://json-schema.org/draft/2020-12/schema",
+        "schema dialect",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/schema_version/const",
+        "ANIMAL-MODEL-SET-ADEQUACY-ORACLE-V1",
+        "schema version const",
+        errors,
+    );
+    require_schema_string(schema, "/type", "object", "schema root type", errors);
+    require_schema_boolean(
+        schema,
+        "/additionalProperties",
+        false,
+        "schema root additionalProperties",
+        errors,
+    );
+    require_schema_string_array_exact(
+        schema,
+        "/required",
+        REQUIRED_ROOT_FIELDS,
+        "schema root required fields",
+        errors,
+    );
 
-    for (pointer, label) in [
-        ("/properties/case_count/const", "schema case_count const"),
-        ("/properties/cases/minItems", "schema cases minItems"),
-        ("/properties/cases/maxItems", "schema cases maxItems"),
-    ] {
-        let actual = schema.pointer(pointer).and_then(Value::as_u64);
-        if actual != Some(case_count as u64) {
-            errors.push(format!("{label} must equal actual case count {case_count}"));
-        }
-    }
+    require_schema_string(
+        schema,
+        "/properties/status/const",
+        "synthetic_contract_fixture",
+        "schema status const",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/research_snapshot/format",
+        "date",
+        "schema research_snapshot format",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/tracking_issue/format",
+        "uri",
+        "schema tracking_issue format",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/case_count/const",
+        case_count,
+        "schema case_count const",
+        errors,
+    );
+
+    require_schema_string(schema, "/properties/cases/type", "array", "schema cases type", errors);
+    require_schema_unsigned(
+        schema,
+        "/properties/cases/minItems",
+        case_count,
+        "schema cases minItems",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/cases/maxItems",
+        case_count,
+        "schema cases maxItems",
+        errors,
+    );
+
+    require_schema_string(schema, "/properties/cases/items/type", "object", "schema case item type", errors);
+    require_schema_boolean(
+        schema,
+        "/properties/cases/items/additionalProperties",
+        false,
+        "schema case item additionalProperties",
+        errors,
+    );
+    require_schema_string_array_exact(
+        schema,
+        "/properties/cases/items/required",
+        REQUIRED_CASE_FIELDS,
+        "schema case required fields",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/cases/items/properties/id/pattern",
+        "^[a-z][a-z0-9_]*$",
+        "schema case ID pattern",
+        errors,
+    );
+
+    require_schema_string(
+        schema,
+        "/properties/cases/items/properties/expected/type",
+        "object",
+        "schema expected type",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/cases/items/properties/expected/additionalProperties",
+        false,
+        "schema expected additionalProperties",
+        errors,
+    );
+    require_schema_string_array_exact(
+        schema,
+        "/properties/cases/items/properties/expected/required",
+        &["required_properties"],
+        "schema expected required fields",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/cases/items/properties/expected/properties/required_properties/type",
+        "array",
+        "schema expected.required_properties type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/cases/items/properties/expected/properties/required_properties/minItems",
+        1,
+        "schema expected.required_properties minItems",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/cases/items/properties/expected/properties/required_properties/uniqueItems",
+        true,
+        "schema expected.required_properties uniqueItems",
+        errors,
+    );
+
+    require_schema_string(
+        schema,
+        "/properties/cases/items/properties/fail_if/type",
+        "array",
+        "schema fail_if type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/cases/items/properties/fail_if/minItems",
+        1,
+        "schema fail_if minItems",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/cases/items/properties/fail_if/uniqueItems",
+        true,
+        "schema fail_if uniqueItems",
+        errors,
+    );
+
+    require_schema_string(
+        schema,
+        "/properties/required_run_identity/type",
+        "array",
+        "schema required_run_identity type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/required_run_identity/minItems",
+        1,
+        "schema required_run_identity minItems",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/required_run_identity/uniqueItems",
+        true,
+        "schema required_run_identity uniqueItems",
+        errors,
+    );
+    require_schema_string(
+        schema,
+        "/properties/uncertainty_layers/type",
+        "array",
+        "schema uncertainty_layers type",
+        errors,
+    );
+    require_schema_unsigned(
+        schema,
+        "/properties/uncertainty_layers/minItems",
+        REQUIRED_UNCERTAINTY_LAYERS.len(),
+        "schema uncertainty_layers minItems",
+        errors,
+    );
+    require_schema_boolean(
+        schema,
+        "/properties/uncertainty_layers/uniqueItems",
+        true,
+        "schema uncertainty_layers uniqueItems",
+        errors,
+    );
 
     let schema_layers = schema
         .pointer("/properties/uncertainty_layers/items/enum")
@@ -249,13 +437,75 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
     if let Some(schema_layers) = schema_layers {
         let actual: BTreeSet<&str> = schema_layers.iter().filter_map(Value::as_str).collect();
         let expected: BTreeSet<&str> = REQUIRED_UNCERTAINTY_LAYERS.iter().copied().collect();
-        if actual != expected {
+        if actual != expected || schema_layers.len() != expected.len() {
             errors.push(
                 "schema uncertainty_layers enum does not match validator contract".to_owned(),
             );
         }
     } else {
         errors.push("schema uncertainty_layers enum is missing".to_owned());
+    }
+
+    // JSON Schema describes structure; corpus-level uniqueness is semantic and
+    // remains enforced by validate_oracle_value. Keeping the two layers explicit
+    // prevents a permissive schema edit from quietly weakening the validator.
+}
+
+fn require_schema_string(
+    schema: &Value,
+    pointer: &str,
+    expected: &str,
+    label: &str,
+    errors: &mut Vec<String>,
+) {
+    if schema.pointer(pointer).and_then(Value::as_str) != Some(expected) {
+        errors.push(format!("{label} must equal '{expected}'"));
+    }
+}
+
+fn require_schema_boolean(
+    schema: &Value,
+    pointer: &str,
+    expected: bool,
+    label: &str,
+    errors: &mut Vec<String>,
+) {
+    if schema.pointer(pointer).and_then(Value::as_bool) != Some(expected) {
+        errors.push(format!("{label} must be {expected}"));
+    }
+}
+
+fn require_schema_unsigned(
+    schema: &Value,
+    pointer: &str,
+    expected: usize,
+    label: &str,
+    errors: &mut Vec<String>,
+) {
+    if schema.pointer(pointer).and_then(Value::as_u64) != Some(expected as u64) {
+        errors.push(format!("{label} must equal {expected}"));
+    }
+}
+
+fn require_schema_string_array_exact(
+    schema: &Value,
+    pointer: &str,
+    expected: &[&str],
+    label: &str,
+    errors: &mut Vec<String>,
+) {
+    let Some(values) = schema.pointer(pointer).and_then(Value::as_array) else {
+        errors.push(format!("{label} must be an array"));
+        return;
+    };
+    let actual: Vec<&str> = values.iter().filter_map(Value::as_str).collect();
+    let actual_set: BTreeSet<&str> = actual.iter().copied().collect();
+    let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
+    if actual.len() != values.len()
+        || actual.len() != expected.len()
+        || actual_set != expected_set
+    {
+        errors.push(format!("{label} do not match the frozen contract"));
     }
 }
 
@@ -467,6 +717,61 @@ mod tests {
         let errors = validate_oracle_json(&fixture.to_string())
             .expect_err("changed uncertainty layer must fail");
         assert!(errors.iter().any(|e| e.contains("uncertainty_layers")));
+    }
+
+    #[test]
+    fn schema_permissive_root_is_rejected() {
+        let oracle = parsed_fixture();
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        schema["additionalProperties"] = Value::Bool(true);
+        let errors = validate_oracle_value(&oracle, &schema)
+            .expect_err("permissive root schema must fail closed");
+        assert!(errors.iter().any(|e| e.contains("root additionalProperties")));
+    }
+
+    #[test]
+    fn schema_missing_required_field_is_rejected() {
+        let oracle = parsed_fixture();
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        schema["required"]
+            .as_array_mut()
+            .expect("root required list")
+            .retain(|value| value.as_str() != Some("pre_reveal_prediction_digest"));
+        let errors = validate_oracle_value(&oracle, &schema)
+            .expect_err("schema root required mutation must fail");
+        assert!(errors.iter().any(|e| e.contains("schema root required fields")));
+    }
+
+    #[test]
+    fn schema_missing_fail_conditions_is_rejected() {
+        let oracle = parsed_fixture();
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        schema["properties"]["cases"]["items"]["properties"]["fail_if"]["minItems"] =
+            Value::from(0);
+        let errors = validate_oracle_value(&oracle, &schema)
+            .expect_err("fail_if must remain non-empty in the schema");
+        assert!(errors.iter().any(|e| e.contains("schema fail_if minItems")));
+    }
+
+    #[test]
+    fn schema_must_remain_closed_at_case_and_expectation_levels() {
+        let oracle = parsed_fixture();
+        let mut schema: Value =
+            serde_json::from_str(EMBEDDED_SCHEMA).expect("schema should parse");
+        schema["properties"]["cases"]["items"]["additionalProperties"] = Value::Bool(true);
+        let errors = validate_oracle_value(&oracle, &schema)
+            .expect_err("case schema must reject unreviewed properties");
+        assert!(errors.iter().any(|e| e.contains("case item additionalProperties")));
+
+        schema["properties"]["cases"]["items"]["additionalProperties"] = Value::Bool(false);
+        schema["properties"]["cases"]["items"]["properties"]["expected"]["additionalProperties"] =
+            Value::Bool(true);
+        let errors = validate_oracle_value(&oracle, &schema)
+            .expect_err("expected schema must reject unreviewed properties");
+        assert!(errors.iter().any(|e| e.contains("expected additionalProperties")));
     }
 
     #[test]
