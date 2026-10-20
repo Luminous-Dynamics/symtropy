@@ -69,9 +69,9 @@ fn run() -> Result<(), String> {
         "usage: physical-solver-dispatch --request <path> --dispatcher-revision <git-sha> --adapter-revision <git-sha>"
             .to_owned()
     })?;
-    let bytes = fs::read(&path).map_err(|error| format!("could not read request {path}: {error}"))?;
-    let receipt =
-        dispatch_request_bytes(&bytes, &dispatcher_revision, &adapter_revision)?;
+    let bytes =
+        fs::read(&path).map_err(|error| format!("could not read request {path}: {error}"))?;
+    let receipt = dispatch_request_bytes(&bytes, &dispatcher_revision, &adapter_revision)?;
     println!(
         "{}",
         serde_json::to_string(&receipt)
