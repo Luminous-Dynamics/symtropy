@@ -15,6 +15,7 @@
 #[cfg(feature = "inspector")]
 pub mod inspector;
 pub mod large_world;
+pub mod hierarchy_select;
 pub mod material;
 pub mod projection;
 pub mod scale_policy;
@@ -23,6 +24,11 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
+pub use hierarchy_select::{
+    ContentAvailability, HeldParent, HierarchyHoldReason, HierarchyNode, HierarchyPolicy,
+    HierarchyRefinement, HierarchySelection, HierarchySelectionError, RepresentationNodeId,
+    SelectedRepresentation, select_hierarchy,
+};
 pub use large_world::{
     CoordinateFrameId, GpuRelativePosition, LargeWorldError, LargeWorldPosition,
     WORLD_CELL_SIZE_METERS,
