@@ -154,6 +154,10 @@ jobs:
           grep -Fq "fresh_evidence_rate_given_view" rendered-pixel-world.tsv
           grep -Fq "views_without_fresh_evidence" rendered-pixel-world.tsv
           grep -Fq "budget_violations" rendered-pixel-world.tsv
+          grep -Fq "VIS-ACT-005 randomized-timing" rendered-pixel-world.tsv
+          grep -Fq "fixed_sweep" rendered-pixel-world.tsv
+          grep -Fq "fresh_evidence_rate_per_executed_view" rendered-pixel-world.tsv
+          grep -Fq "mean_recovery_steps" rendered-pixel-world.tsv
 
       - name: Upload rendered-pixel world diagnostic report
         uses: actions/upload-artifact@v4
