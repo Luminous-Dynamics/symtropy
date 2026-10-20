@@ -141,9 +141,7 @@ struct SourceEvaluation {
     source_id: String,
     admissible: bool,
     acquisition_cost: f64,
-    delay_penalty: f64,
     signal_entropy_nats: Option<f64>,
-    gross_evsi: Option<f64>,
     net_evsi: Option<f64>,
     report: Value,
 }
@@ -197,9 +195,7 @@ fn evaluate_source(
             source_id: source_id.clone(),
             admissible: false,
             acquisition_cost,
-            delay_penalty,
             signal_entropy_nats: None,
-            gross_evsi: None,
             net_evsi: None,
             report: json!({
                 "source_id": source_id,
@@ -295,9 +291,7 @@ fn evaluate_source(
         source_id: source_id.clone(),
         admissible: true,
         acquisition_cost,
-        delay_penalty,
         signal_entropy_nats: Some(signal_entropy_nats),
-        gross_evsi: Some(gross_evsi),
         net_evsi: Some(net_evsi),
         report: json!({
             "source_id": source_id,
@@ -436,7 +430,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                 "source {source_id} must arrive after forecast origin; already available evidence belongs in the prior"
             ));
         }
-        if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
+        if string_at(registration, "evidence_scope") == Some("authorized_historical") {
             if string_at(source, "source_status") != Some("authorized") {
                 errors.push(format!(
                     "historical source {source_id} requires source_status=authorized"
