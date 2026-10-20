@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process};
 
 const CLAIM_CEILING: &str = "Synthetic intervention-ranking evaluator only. Its oracle is the paired counterfactual result of the declared simulator, not a measured factory truth, industry benchmark, causal production estimate, or capital-investment recommendation.";
@@ -141,8 +142,8 @@ struct Report {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json> <simulation-report-sha256>");
+    if args.len() != 2 {
+        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json>");
         process::exit(2);
     }
     let report_text = match fs::read_to_string(&args[1]) {
@@ -159,7 +160,8 @@ fn main() {
             process::exit(2);
         }
     };
-    let report = match evaluate(&simulation, &args[2]) {
+    let source_digest = format!("{:x}", Sha256::digest(report_text.as_bytes()));
+    let report = match evaluate(&simulation, &source_digest) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("intervention benchmark rejected input: {error}");
