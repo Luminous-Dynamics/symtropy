@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-linear-superposition-relation-v0.1.schema.json",
+  "title": "Physical Linear Superposition Relation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "relation_id",
+    "case_id",
+    "request_a_sha256",
+    "request_b_sha256",
+    "request_combined_sha256",
+    "absolute_tolerance",
+    "relative_tolerance",
+    "output_pairs"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-linear-superposition-relation-v0.1" },
+    "relation_id": { "$ref": "#/$defs/token" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "request_a_sha256": { "$ref": "#/$defs/sha256" },
+    "request_b_sha256": { "$ref": "#/$defs/sha256" },
+    "request_combined_sha256": { "$ref": "#/$defs/sha256" },
+    "absolute_tolerance": { "type": "number", "minimum": 0 },
+    "relative_tolerance": { "type": "number", "minimum": 0 },
+    "output_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["output_kind", "output_a_id", "output_b_id", "output_combined_id"],
+        "properties": {
+          "output_kind": { "$ref": "#/$defs/token" },
+          "output_a_id": { "$ref": "#/$defs/token" },
+          "output_b_id": { "$ref": "#/$defs/token" },
+          "output_combined_id": { "$ref": "#/$defs/token" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
