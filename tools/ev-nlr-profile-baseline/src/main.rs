@@ -631,6 +631,148 @@ fn simulate_sample(
     }))
 }
 
+struct ReferenceProfiles {
+    average_path: String,
+    minimum_peak_path: String,
+    maximum_peak_path: String,
+    average: Vec<f64>,
+    minimum_peak: Vec<f64>,
+    maximum_peak: Vec<f64>,
+}
+
+fn read_reference_curve(path: &str) -> Result<Vec<f64>, String> {
+    let mut reader = ReaderBuilder::new()
+        .trim(csv::Trim::All)
+        .from_path(path)
+        .map_err(|error| format!("cannot_open_reference_csv_{path}:{error}"))?;
+    let headers = reader.headers()
+        .map_err(|error| format!("cannot_read_reference_headers_{path}:{error}"))?
+        .clone();
+    let time_column = headers.iter().position(|header| header.trim() == "time")
+        .ok_or_else(|| format!("reference_csv_missing_time_column:{path}"))?;
+    let power_column = headers.iter()
+        .position(|header| matches!(header.trim(), "avg_power_kw" | "power_kW"))
+        .ok_or_else(|| format!("reference_csv_missing_power_column:{path}"))?;
+    let mut values = Vec::with_capacity(BINS_PER_DAY);
+    for (index, row) in reader.records().enumerate() {
+        let row = row.map_err(|error| format!("invalid_reference_csv_row_{index}_{path}:{error}"))?;
+        if index >= BINS_PER_DAY {
+            return Err(format!("reference_csv_has_more_than_96_rows:{path}"));
+        }
+        let expected_time = format!("{:02}:{:02}:00", index / 4, (index % 4) * 15);
+        let time = row.get(time_column).ok_or_else(|| format!("reference_csv_time_missing_at_row_{index}:{path}"))?;
+        if time != expected_time {
+            return Err(format!("reference_csv_time_grid_mismatch_at_row_{index}:{path}:expected_{expected_time}_got_{time}"));
+        }
+        let text = row.get(power_column).ok_or_else(|| format!("reference_csv_power_missing_at_row_{index}:{path}"))?;
+        let power = text.parse::<f64>().map_err(|_| format!("reference_power_not_numeric_at_row_{index}:{path}"))?;
+        if !power.is_finite() || power < 0.0 {
+            return Err(format!("reference_power_must_be_finite_and_nonnegative_at_row_{index}:{path}"));
+        }
+        values.push(power);
+    }
+    if values.len() != BINS_PER_DAY {
+        return Err(format!("reference_csv_must_have_96_rows_got_{}:{path}", values.len()));
+    }
+    Ok(values)
+}
+
+fn read_reference_profiles(options: &Options) -> Result<Option<ReferenceProfiles>, String> {
+    match (
+        options.reference_average_csv.as_deref(),
+        options.reference_minimum_peak_csv.as_deref(),
+        options.reference_maximum_peak_csv.as_deref(),
+    ) {
+        (None, None, None) => Ok(None),
+        (Some(average_path), Some(minimum_peak_path), Some(maximum_peak_path)) => Ok(Some(ReferenceProfiles {
+            average_path: average_path.to_string(),
+            minimum_peak_path: minimum_peak_path.to_string(),
+            maximum_peak_path: maximum_peak_path.to_string(),
+            average: read_reference_curve(average_path)?,
+            minimum_peak: read_reference_curve(minimum_peak_path)?,
+            maximum_peak: read_reference_curve(maximum_peak_path)?,
+        })),
+        _ => Err("all_three_reference_csvs_must_be_provided_together".to_string()),
+    }
+}
+
+fn first_peak_index(values: &[f64]) -> usize {
+    let mut index = 0;
+    for candidate in 1..values.len() {
+        if values[candidate] > values[index] {
+            index = candidate;
+        }
+    }
+    index
+}
+
+fn compare_profile(
+    model: &[f64],
+    reference: &[f64],
+    reference_path: &str,
+) -> Result<ComparisonMetrics, String> {
+    if model.len() != BINS_PER_DAY || reference.len() != BINS_PER_DAY {
+        return Err("profile_comparison_requires_96_points_per_curve".to_string());
+    }
+    let mut absolute_errors = Vec::with_capacity(BINS_PER_DAY);
+    let mut squared_errors = Vec::with_capacity(BINS_PER_DAY);
+    let mut model_integral = 0.0_f64;
+    let mut reference_integral = 0.0_f64;
+    let mut model_peak = 0.0_f64;
+    let mut reference_peak = 0.0_f64;
+    for (model_value, reference_value) in model.iter().zip(reference) {
+        if !model_value.is_finite() || *model_value < 0.0
+            || !reference_value.is_finite() || *reference_value < 0.0 {
+            return Err("profile_comparison_values_must_be_finite_and_nonnegative".to_string());
+        }
+        let error = model_value - reference_value;
+        absolute_errors.push(error.abs());
+        squared_errors.push(error * error);
+        model_integral += model_value * 0.25;
+        reference_integral += reference_value * 0.25;
+        model_peak = model_peak.max(*model_value);
+        reference_peak = reference_peak.max(*reference_value);
+    }
+    let mae = absolute_errors.iter().sum::<f64>() / BINS_PER_DAY as f64;
+    let rmse = (squared_errors.iter().sum::<f64>() / BINS_PER_DAY as f64).sqrt();
+    let max_abs = absolute_errors.iter().copied().fold(0.0_f64, f64::max);
+    let model_peak_index = first_peak_index(model);
+    let reference_peak_index = first_peak_index(reference);
+    Ok(ComparisonMetrics {
+        reference_csv: reference_path.to_string(),
+        mean_absolute_error_kw: mae,
+        root_mean_square_error_kw: rmse,
+        maximum_absolute_error_kw: max_abs,
+        model_daily_integral_kwh: model_integral,
+        reference_daily_integral_kwh: reference_integral,
+        daily_integral_error_kwh: model_integral - reference_integral,
+        relative_daily_integral_error_fraction: if reference_integral.abs() <= 1.0e-9 {
+            None
+        } else {
+            Some((model_integral - reference_integral) / reference_integral)
+        },
+        model_peak_15min_average_kw: model_peak,
+        reference_peak_15min_average_kw: reference_peak,
+        peak_15min_error_kw: model_peak - reference_peak,
+        model_peak_interval_start_minute: (model_peak_index as u32) * 15,
+        reference_peak_interval_start_minute: (reference_peak_index as u32) * 15,
+        peak_timing_error_minutes: ((model_peak_index as i64 - reference_peak_index as i64).abs() as u32) * 15,
+    })
+}
+
+fn compare_generated_profiles(
+    average: &[f64],
+    minimum_peak: &[f64],
+    maximum_peak: &[f64],
+    references: &ReferenceProfiles,
+) -> Result<PublishedProfileComparison, String> {
+    Ok(PublishedProfileComparison {
+        average_profile: compare_profile(average, &references.average, &references.average_path)?,
+        minimum_peak_profile: compare_profile(minimum_peak, &references.minimum_peak, &references.minimum_peak_path)?,
+        maximum_peak_profile: compare_profile(maximum_peak, &references.maximum_peak, &references.maximum_peak_path)?,
+    })
+}
+
 fn generate_report(report: &AuditReport, days: &[DutyDay], options: &Options) -> Result<Report, String> {
     let mut rng = options.seed;
     let mut sample_metrics = Vec::with_capacity(options.sample_count);
