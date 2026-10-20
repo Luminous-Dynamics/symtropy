@@ -83,6 +83,7 @@ struct Report {
     random_stream_policy: String,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
+    station_sequence_statistics: Vec<StationSequenceStatistics>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -149,6 +150,15 @@ struct ScenarioStatistics {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationSequenceStatistics {
+    scenario_id: String,
+    station_id: String,
+    changeovers_started: DistributionSummary,
+    output_transfers: DistributionSummary,
+    out_of_order_output_transfers: DistributionSummary,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct BufferResult {
     after_station_id: String,
     capacity_units: usize,
@@ -165,6 +175,9 @@ struct StationResult {
     successful_attempts_after_warmup: u64,
     rework_attempts_after_warmup: u64,
     scrapped_jobs_after_warmup: u64,
+    changeovers_started_after_warmup: u64,
+    output_transfers_after_warmup: u64,
+    out_of_order_output_transfers_after_warmup: u64,
     busy_fraction: f64,
     blocked_fraction: f64,
     starved_fraction: f64,
@@ -210,12 +223,16 @@ struct StationMetrics {
     successful_attempts_after_warmup: u64,
     rework_attempts_after_warmup: u64,
     scrapped_jobs_after_warmup: u64,
+    changeovers_started_after_warmup: u64,
+    output_transfers_after_warmup: u64,
+    out_of_order_output_transfers_after_warmup: u64,
 }
 
 #[derive(Debug, Clone)]
 struct StationRuntime {
     servers: Vec<Server>,
     metrics: StationMetrics,
+    last_output_job_id: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -563,6 +580,33 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    let mut station_statistics = Vec::new();
+    for scenario_index in 0..report.scenario_count {
+        for station_index in 0..runs[0].scenarios[scenario_index].stations.len() {
+            let reference_station = &runs[0].scenarios[scenario_index].stations[station_index];
+            let mut changeovers = Vec::with_capacity(runs.len());
+            let mut transfers = Vec::with_capacity(runs.len());
+            let mut out_of_order_transfers = Vec::with_capacity(runs.len());
+            for run in &runs {
+                let station = &run.scenarios[scenario_index].stations[station_index];
+                if station.station_id != reference_station.station_id {
+                    return Err("replications_returned_inconsistent_station_order".into());
+                }
+                changeovers.push(station.changeovers_started_after_warmup as f64);
+                transfers.push(station.output_transfers_after_warmup as f64);
+                out_of_order_transfers
+                    .push(station.out_of_order_output_transfers_after_warmup as f64);
+            }
+            station_statistics.push(StationSequenceStatistics {
+                scenario_id: runs[0].scenarios[scenario_index].scenario_id.clone(),
+                station_id: reference_station.station_id.clone(),
+                changeovers_started: summarize_distribution(&changeovers)?,
+                output_transfers: summarize_distribution(&transfers)?,
+                out_of_order_output_transfers: summarize_distribution(&out_of_order_transfers)?,
+            });
+        }
+    }
+    report.station_sequence_statistics = station_statistics;
     report.output_never_exceeds_released_input = runs
         .iter()
         .all(|run| run.output_never_exceeds_released_input);
@@ -701,6 +745,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
+        station_sequence_statistics: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -737,6 +782,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     })
                     .collect(),
                 metrics: StationMetrics::default(),
+                last_output_job_id: None,
             }
         })
         .collect();
@@ -845,6 +891,11 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             successful_attempts_after_warmup: runtime.metrics.successful_attempts_after_warmup,
             rework_attempts_after_warmup: runtime.metrics.rework_attempts_after_warmup,
             scrapped_jobs_after_warmup: runtime.metrics.scrapped_jobs_after_warmup,
+            changeovers_started_after_warmup: runtime.metrics.changeovers_started_after_warmup,
+            output_transfers_after_warmup: runtime.metrics.output_transfers_after_warmup,
+            out_of_order_output_transfers_after_warmup: runtime
+                .metrics
+                .out_of_order_output_transfers_after_warmup,
             busy_fraction: busy,
             blocked_fraction: blocked,
             starved_fraction: starved,
@@ -1091,6 +1142,22 @@ fn complete_operation(
     Ok(())
 }
 
+fn record_output_transfer(
+    metrics: &mut StationMetrics,
+    last_output_job_id: &mut Option<u64>,
+    job_id: u64,
+    is_measured: bool,
+) {
+    if !is_measured {
+        return;
+    }
+    metrics.output_transfers_after_warmup += 1;
+    if last_output_job_id.is_some_and(|last| job_id < last) {
+        metrics.out_of_order_output_transfers_after_warmup += 1;
+    }
+    *last_output_job_id = Some(last_output_job_id.map_or(job_id, |last| last.max(job_id)));
+}
+
 fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
     loop {
         let mut changed = false;
@@ -1125,6 +1192,15 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 else {
                     return Err("blocked_transfer_state_changed_unexpectedly".into());
                 };
+                {
+                    let runtime = &mut state.stations[station_index];
+                    record_output_transfer(
+                        &mut runtime.metrics,
+                        &mut runtime.last_output_job_id,
+                        job.id,
+                        state.now >= catalog.warmup_seconds,
+                    );
+                }
                 if station_index + 1 == catalog.stations.len() {
                     state.good_units_total += 1;
                     if state.now >= catalog.warmup_seconds {
@@ -1175,7 +1251,8 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
-                if server.last_variant.is_some_and(|last| last != job.variant) {
+                let has_changeover = server.last_variant.is_some_and(|last| last != job.variant);
+                if has_changeover {
                     service_seconds =
                         service_seconds.saturating_add(station.changeover_seconds.round() as u64);
                 }
@@ -1189,6 +1266,11 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     state.stations[station_index]
                         .metrics
                         .attempts_started_after_warmup += 1;
+                    if has_changeover {
+                        state.stations[station_index]
+                            .metrics
+                            .changeovers_started_after_warmup += 1;
+                    }
                 }
                 let completion_at = state.now.saturating_add(service_seconds);
                 schedule_event(
@@ -1298,6 +1380,42 @@ mod tests {
         assert!(report.all_buffers_respected_capacity);
         assert!(report.station_time_accounting_within_horizon);
         assert!(!report.release_ready);
+    }
+
+    #[test]
+    fn sequence_inversions_are_counted_at_transfer_not_at_completion() {
+        let mut metrics = StationMetrics::default();
+        let mut high_water = None;
+        record_output_transfer(&mut metrics, &mut high_water, 99, false);
+        assert_eq!(metrics.output_transfers_after_warmup, 0);
+        assert_eq!(high_water, None);
+
+        for id in [10_u64, 12, 11, 15, 14] {
+            record_output_transfer(&mut metrics, &mut high_water, id, true);
+        }
+        assert_eq!(metrics.output_transfers_after_warmup, 5);
+        assert_eq!(metrics.out_of_order_output_transfers_after_warmup, 2);
+        assert_eq!(high_water, Some(15));
+    }
+
+    #[test]
+    fn sequence_metrics_are_reported_at_the_buffer_transfer_boundary() {
+        let report = evaluate_catalog(&fixture()).expect("replicated simulation");
+        assert_eq!(
+            report.station_sequence_statistics.len(),
+            report.scenario_count * 5
+        );
+        assert!(report.station_sequence_statistics.iter().all(|stat| {
+            stat.changeovers_started.sample_count == 20
+                && stat.output_transfers.sample_count == 20
+                && stat.out_of_order_output_transfers.sample_count == 20
+                && stat.out_of_order_output_transfers.mean <= stat.output_transfers.mean
+        }));
+        assert!(
+            report.station_sequence_statistics.iter().any(|stat| {
+                stat.scenario_id == "baseline" && stat.changeovers_started.mean > 0.0
+            })
+        );
     }
 
     #[test]
