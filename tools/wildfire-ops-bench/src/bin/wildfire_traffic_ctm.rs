@@ -509,10 +509,7 @@ mod tests {
     #[test]
     fn no_accessible_capacity_causes_explicit_abstention() {
         let mut fixture = fixture();
-        for path in fixture["cases"][3]["paths"]
-            .as_array_mut()
-            .expect("paths")
-        {
+        for path in fixture["cases"][3]["paths"].as_array_mut().expect("paths") {
             path["accessible_capacity"] = serde_json::json!(1);
         }
         let results = validate_fixture(&fixture).expect("synthetic constraints remain valid");
