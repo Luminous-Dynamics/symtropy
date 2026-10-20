@@ -1,0 +1,105 @@
+# Furnishing Layout Benchmark v0.1
+
+**Status:** research contract and synthetic fixtures; not executed or qualified.  
+**Workstream:** [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766).  
+**Complementary prototype:** [occupant-led architectural review PR #1993](https://github.com/Luminous-Dynamics/symtropy/pull/1993).  
+**Scope:** Symtropy geometry/constraint substrate with a future Symthaea alternative-generation interface.
+
+## Paradigm shift
+
+Move from "place attractive furniture in a rendered room" to **design a usable, adaptable interior whose functional claims can be checked independently**.
+
+A furniture item is more than a mesh and a bounding box. In a future qualified model, it may expose separate, versioned geometry and evidence for:
+
+- physical footprint and permitted orientations;
+- approach, transfer, reach, and task-operation envelopes;
+- maintenance, cleaning, repair, and replacement access;
+- relationships to outlets, windows, lighting, airflow, acoustic/privacy zones, circulation and other furnishings;
+- material, repair, reuse, disassembly, local fabrication, and lifecycle-cost evidence;
+- resident-authored preferences and the provenance/authority of each preference.
+
+These are distinct facets. A visual fit is not proof of approach access, code compliance, thermal comfort, acoustic performance, or maintainability.
+
+## What v0.1 does—and does not—model
+
+The fixture contract is deliberately small: room-local floor coordinates, metres, axis-aligned 2D rectangles, and 0/90/180/270-degree rotations. Four synthetic scenarios cover a blocked circulation route, blocked maintenance access, competing resident preferences, and unknown real-site geometry.
+
+The frozen zones and expected outcomes are **synthetic known-truth oracles**, not legal clearances. There is no qualified door-swing, wheelchair turning, reach-range, egress, structural, electrical, daylight, thermal, ventilation, acoustic, fire, or cost model in this version. The fixture's preference scores are synthetic test inputs, not user research or measured comfort. The nominal retrofit dimensions must not be treated as a measured site.
+
+Files:
+- `fixtures/interiors/furnishing_layout_scenarios_v0_1.json`
+- `fixtures/interiors/furnishing_layout_scenarios_v0_1.schema.json`
+
+The schema checks record shape. A future independent validator still needs to check cross-record identity references, duplicate IDs, placement bounds after rotation, rectangle intersections, oracle agreement, and blocked-promotion rules.
+
+## System responsibilities
+
+- **Symtropy:** own deterministic geometry, geometric relationships, scenario execution, and the separation between a geometry result and a domain-qualified engineering claim.
+- **Symthaea:** propose candidate arrangements and explain trade-offs from explicitly provided tasks and preferences; preserve conflicts and missing inputs; abstain instead of inventing dimensions or inferring preferences from demographic proxies.
+- **Mycelix (future adapter):** preserve household participation, consent, provenance, dissent, and decision rights. Governance records do not prove physical performance.
+- **Sol-Atlas (future adapter):** provide site, climate, orientation, and solar context only from a qualified, versioned source with units, coverage, epoch, and uncertainty.
+
+These are intended boundaries, not claims that the cross-repository adapters exist today. Reuse [ACCESS-HOME-001 #1687](https://github.com/Luminous-Dynamics/symtropy/issues/1687) for resident-led accessibility and task requirements; this benchmark must not create a competing accessibility authority.
+
+## Benchmark gates
+
+All items below are **proposed acceptance gates**, not measured results.
+
+### 1. Integrity and epistemic correctness
+
+- 100% of fixture IDs and references resolve, with no duplicate scenario, item, zone, requirement, or alternative IDs.
+- 100% of placements are within the declared nominal room after applying rotation; report overlap separately from out-of-bounds geometry.
+- Identical frozen inputs, configuration, and solver revision replay deterministically in the declared deterministic harness.
+- Any missing/stale geometry, unsupported model facet, unresolved mandatory requirement, or conflicting hard constraint remains unknown/blocked—not silently assumed satisfied.
+- A render, generated layout, or confidence score never upgrades a candidate to verified engineering or regulatory status.
+- Independent checking recomputes results from the exact fixture and implementation revision rather than trusting solver-provided summary booleans.
+
+### 2. Constraint-oracle correctness
+
+Compare each solver's decisions with the frozen synthetic oracle. Report a full confusion matrix by check type and fixture; do not combine hard constraints and preferences into a single score.
+
+- **Safety-critical false-safe target:** zero oracle-known mandatory failures classified as pass.
+- **Unknown-input target:** zero candidates promoted beyond blocked/candidate-only status when a required production input is unknown.
+- **Negative controls:** move a furnishing into a keep-clear zone; remove a catalog item; duplicate an ID; change geometry without changing the revision; place a rectangle just outside the room; rotate a non-square object; tamper with an expected outcome. Each mutation must be detected or the run must be explicitly invalidated.
+- Record false positives and over-blocking too. A system that abstains on everything is not useful; correct abstention and correct resolution must both be measured.
+
+### 3. Multi-objective design quality
+
+Keep hard feasibility as a gate, then report each objective independently. Candidate dimensions can include task completion, circulation quality, reach/access, privacy, resident preference fulfillment, acoustic/daylight/thermal outcomes when qualified models exist, cleaning and maintenance access, materials, lifecycle cost, reversibility and adaptation effort.
+
+- Publish Pareto relations and the underlying objective vector. Do not hide contested preferences behind one default weighted "best room" score.
+- Missing or non-comparable values remain missing/incomparable; no zero-filling or imputation.
+- Keep disagreements visible by household member, task and context. An average must not erase a severe cohort-specific failure.
+- Compare scenario-wise regret only against an explicitly defined reference policy and declared preference inputs.
+- Require each objective observation to identify its source, model/version, units, and uncertainty; unavailable models are not "passed" by visual inspection.
+
+### 4. Performance and scaling
+
+Establish results only after an implementation and a pinned run harness exist. Suggested scene tiers are 10, 25, 50, 100 and 500 furnishing objects, with separate counts for zones, requirements and candidate alternatives. Report p50/p95 latency, peak memory, candidate throughput, hard-constraint accuracy, Pareto-frontier size, and completeness/truncation state on named hardware.
+
+Do not announce a speedup until the baseline and candidate use identical fixtures, hardware, stopping criteria and correctness gates. Search caps must produce an explicit incomplete result; a truncated search cannot claim the global best or exhaustive Pareto frontier.
+
+## Baselines and SOTA comparison plan
+
+A fair initial comparison should separate these tasks instead of declaring one product "better":
+
+1. **Feasibility baseline:** naive rectangle placement/packing, with no task reasoning.
+2. **Rule-based baseline:** deterministic hard-constraint-first placement and a documented greedy task-priority policy.
+3. **Optimization candidate:** constrained search or multi-objective optimization with independent verification and explicit search caps.
+4. **Human reference:** layouts created or reviewed by qualified designers and paid co-design participants, with review protocol and disagreement retained.
+5. **Industry workflow:** where legal access and export formats permit, use equivalent room geometry and task/constraint inputs in established CAD/BIM and interior-planning workflows. Record software/version, features available, operator time, manual edits and export loss. Do not equate a rendering-quality comparison with a feasibility comparison.
+
+The first result should answer: **does the system reliably catch known circulation and maintenance conflicts while preserving unknowns and household trade-offs?** Only after passing this gate should we make comparative claims about usability, design quality, speed, resource use or adaptation cost.
+
+## Execution sequence
+
+1. Add a Rust-first independent fixture auditor: schema shape, reference integrity, rotated bounds, rectangle/zone intersections, deterministic canonical output, expected-oracle agreement, and mutation/negative-control tests.
+2. Add a minimal Symtropy adapter that consumes a versioned furnishing catalog plus room/zone/task requirements. Keep it renderer-independent.
+3. Add the first deterministic candidate generator; compare it to the rule-based baseline and keep hard feasibility outside preference optimization.
+4. Connect occupant-reviewed variants to the existing architectural review and owner-led Pareto contracts; require a revision-pinned feedback-to-change trail.
+5. Introduce 3D and specialized performance models one at a time, with separate validation and explicit applicability envelopes.
+6. Conduct consent-based, compensated co-design before making real-world claims about comfort, accessibility, cultural fit, or preference quality.
+
+## Current validation boundary
+
+The JSON schema and fixture files were created on a research branch. JSON syntax and basic nominal room-bound checks were mirrored independently during authoring. No formal JSON Schema validator, Rust compiler, Rust test suite, physical-performance solver, usability study, or hosted CI pass is claimed. Geometry-reference validation, full overlap analysis, and all hostile controls remain future work. This is a benchmark specification—not a furniture optimizer or a qualified interior-design product.
