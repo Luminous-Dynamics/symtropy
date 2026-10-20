@@ -730,4 +730,62 @@ mod tests {
             "observed {observed:.17e}, expected {expected:.17e}, tolerance {tolerance:.17e}"
         );
     }
+
+    #[test]
+    fn deterministic_interior_samples_are_enclosed_for_all_cases() {
+        let cases: Vec<CaseFixture> = vec![
+            (
+                "axial_bar",
+                vec![
+                    ("force_n", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("area_m2", 0.01, 0.009, 0.011),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                ],
+            ),
+            (
+                "cantilever_tip_load",
+                vec![
+                    ("force_n", 100.0, -110.0, 110.0),
+                    ("length_m", 2.0, 1.9, 2.1),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+            (
+                "simply_supported_uniform_load",
+                vec![
+                    ("load_n_per_m", 1_000.0, -1_100.0, 1_100.0),
+                    ("length_m", 4.0, 3.8, 4.2),
+                    ("youngs_modulus_pa", 200.0e9, 195.0e9, 205.0e9),
+                    ("second_moment_area_m4", 8.0e-6, 7.0e-6, 9.0e-6),
+                    ("outer_fiber_distance_m", 0.1, 0.09, 0.11),
+                ],
+            ),
+        ];
+
+        // Fixed-seed xorshift generator keeps the exploration reproducible and
+        // avoids making this test depend on an external random crate.
+        let mut state = 0x6a09_e667_f3bc_c909_u64;
+        for (case_id, entries) in cases {
+            let (nominal, bounds) = fixture(&entries);
+            let ranges = propagate(case_id, &nominal, &bounds).expect("valid interval fixture");
+            for _ in 0..512 {
+                let mut point = BTreeMap::new();
+                for (key, _, lower, upper) in &entries {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    let unit = (state >> 11) as f64 / ((1_u64 << 53) as f64);
+                    let value = lower + unit * (upper - lower);
+                    point.insert((*key).to_owned(), value);
+                }
+                for (output_key, value) in evaluate_point(case_id, &point) {
+                    assert_enclosed(ranges[&output_key], value);
+                }
+            }
+        }
+    }
+
 }
