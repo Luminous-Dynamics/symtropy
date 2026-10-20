@@ -233,12 +233,9 @@ pub fn allocate_lod(
     let mut demotions = BinaryHeap::new();
     for (demand_index, demand) in demands.iter().enumerate() {
         let finest_index = selected_indices[demand_index];
-        if let Some(demotion) = next_demotion(
-            demand,
-            demand_index,
-            finest_index,
-            max_screen_error_px,
-        ) {
+        if let Some(demotion) =
+            next_demotion(demand, demand_index, finest_index, max_screen_error_px)
+        {
             demotions.push(demotion);
         }
     }
@@ -364,30 +361,19 @@ mod tests {
         }
     }
 
-    fn demand(
-        entity_id: u64,
-        importance: u32,
-        selected: bool,
-        critical: bool,
-    ) -> LodDemand {
+    fn demand(entity_id: u64, importance: u32, selected: bool, critical: bool) -> LodDemand {
         LodDemand {
             entity_id,
             importance,
             selected,
             critical,
-            candidates: vec![
-                candidate(0, 100, 4.0, 1),
-                candidate(1, 101, 2.0, 3),
-            ],
+            candidates: vec![candidate(0, 100, 4.0, 1), candidate(1, 101, 2.0, 3)],
         }
     }
 
     #[test]
     fn keeps_finest_representations_when_budget_allows() {
-        let demands = vec![
-            demand(8, 1, false, false),
-            demand(2, 1, false, false),
-        ];
+        let demands = vec![demand(8, 1, false, false), demand(2, 1, false, false)];
 
         let allocation = allocate_lod(&demands, 6, 4.0).expect("budget is sufficient");
 
@@ -401,22 +387,21 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![2, 8]
         );
-        assert!(allocation.choices.iter().all(|choice| choice.quality_rank == 1));
+        assert!(
+            allocation
+                .choices
+                .iter()
+                .all(|choice| choice.quality_rank == 1)
+        );
     }
 
     #[test]
     fn spends_detail_on_high_importance_entities_first() {
         let mut low_importance = demand(10, 1, false, false);
-        low_importance.candidates = vec![
-            candidate(0, 200, 4.0, 1),
-            candidate(1, 201, 1.0, 3),
-        ];
+        low_importance.candidates = vec![candidate(0, 200, 4.0, 1), candidate(1, 201, 1.0, 3)];
 
         let mut high_importance = demand(20, 10, false, false);
-        high_importance.candidates = vec![
-            candidate(0, 300, 4.0, 1),
-            candidate(1, 301, 1.0, 3),
-        ];
+        high_importance.candidates = vec![candidate(0, 300, 4.0, 1), candidate(1, 301, 1.0, 3)];
 
         let allocation = allocate_lod(&[high_importance, low_importance], 5, 4.0)
             .expect("one downgrade should satisfy the budget");
@@ -442,14 +427,16 @@ mod tests {
         let critical = demand(2, 1, false, true);
         let ordinary = demand(3, 1, false, false);
 
-        let allocation =
-            allocate_lod(&[ordinary, critical, selected], 7, 4.0).expect("ordinary entity can degrade");
+        let allocation = allocate_lod(&[ordinary, critical, selected], 7, 4.0)
+            .expect("ordinary entity can degrade");
 
-        assert!(allocation
-            .choices
-            .iter()
-            .filter(|choice| choice.entity_id == 1 || choice.entity_id == 2)
-            .all(|choice| choice.quality_rank == 1 && choice.protected));
+        assert!(
+            allocation
+                .choices
+                .iter()
+                .filter(|choice| choice.entity_id == 1 || choice.entity_id == 2)
+                .all(|choice| choice.quality_rank == 1 && choice.protected)
+        );
         assert_eq!(
             allocation
                 .choices
@@ -481,8 +468,7 @@ mod tests {
 
         let forward = allocate_lod(&[a.clone(), b.clone(), c.clone()], 7, 4.0)
             .expect("budget permits deterministic degradation");
-        let reverse =
-            allocate_lod(&[c, b, a], 7, 4.0).expect("reordered input remains valid");
+        let reverse = allocate_lod(&[c, b, a], 7, 4.0).expect("reordered input remains valid");
 
         assert_eq!(forward, reverse);
     }
@@ -490,7 +476,11 @@ mod tests {
     #[test]
     fn rejects_duplicate_entity_ids() {
         assert_eq!(
-            allocate_lod(&[demand(1, 1, false, false), demand(1, 2, false, false)], 10, 4.0),
+            allocate_lod(
+                &[demand(1, 1, false, false), demand(1, 2, false, false)],
+                10,
+                4.0
+            ),
             Err(LodError::DuplicateEntityId)
         );
     }
