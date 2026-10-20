@@ -1,0 +1,76 @@
+name: VIS-MEM-002 Relational Memory Diagnostic
+
+on:
+  push:
+    branches: ["research/vis-relational-memory-v0-1"]
+    paths:
+      - "tools/vision-relational-memory-bench.rs"
+      - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - ".github/workflows/vision-relational-memory-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-relational-memory-bench.rs"
+      - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - ".github/workflows/vision-relational-memory-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-002-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Compile and run deterministic and negative-control tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-tests
+          /tmp/vis-mem-tests
+
+      - name: Execute report and check determinism
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-bench
+          /tmp/vis-mem-bench > vis-relational-memory.tsv
+          /tmp/vis-mem-bench > vis-relational-memory-repeat.tsv
+          cmp vis-relational-memory.tsv vis-relational-memory-repeat.tsv
+          grep -Fq $'development\tfifo\t1\t384' vis-relational-memory.tsv
+          grep -Fq $'held_out\tquery_keyed_latest\t3\t384' vis-relational-memory.tsv
+          grep -Fq "bootstrap95_lo_vs_fifo" vis-relational-memory.tsv
+          test "$(grep -c $'^held_out\t' vis-relational-memory.tsv)" -eq 15
+          sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
+          sha256sum -c vis-relational-memory.sha256
+
+      - name: Upload reproducible report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-relational-memory-report
+          path: |
+            vis-relational-memory.tsv
+            vis-relational-memory.sha256
+          if-no-files-found: error
+          retention-days: 14
