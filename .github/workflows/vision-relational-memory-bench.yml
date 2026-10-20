@@ -63,6 +63,7 @@ jobs:
           grep -Fq "query_keyed_selective" vis-relational-memory.tsv
           grep -Fq "query_keyed_hazard_aware" vis-relational-memory.tsv
           grep -Fq "query_keyed_gap_aware" vis-relational-memory.tsv
+          grep -Fq "gap_aware_minus_hazard_aware" vis-relational-memory.tsv
           grep -Fq "gap-aware policy: candidate per-tick hazards" vis-relational-memory.tsv
           grep -Fq "mean_logical_state_bytes" vis-relational-memory.tsv
           grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
