@@ -98,6 +98,38 @@ struct ChargeInterval {
     power_kw: f64,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TimelineSegment {
+    start_second: u64,
+    end_second: u64,
+    on_shift: bool,
+    vmt_miles: f64,
+}
+
+fn expanded_merged_timeline(day: &DutyDay) -> Vec<TimelineSegment> {
+    let mut timeline = Vec::<TimelineSegment>::new();
+    for repeat in 0..REPEATED_DAYS {
+        let offset = repeat * DAY_SECONDS;
+        for segment in &day.segments {
+            let next = TimelineSegment {
+                start_second: offset + u64::from(segment.start_second),
+                end_second: offset + u64::from(segment.end_second),
+                on_shift: segment.on_shift,
+                vmt_miles: segment.vmt_miles,
+            };
+            if let Some(previous) = timeline.last_mut() {
+                if previous.end_second == next.start_second && previous.on_shift == next.on_shift {
+                    previous.end_second = next.end_second;
+                    previous.vmt_miles += next.vmt_miles;
+                    continue;
+                }
+            }
+            timeline.push(next);
+        }
+    }
+    timeline
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct Distribution {
     count: usize,
@@ -358,43 +390,41 @@ fn vehicle_charge_intervals(
     }
 
     let mut net_energy_consumed_kwh = 0.0_f64;
-    for repeat in 0..REPEATED_DAYS {
-        let offset = repeat * DAY_SECONDS;
-        for segment in &day.segments {
-            if segment.on_shift {
-                net_energy_consumed_kwh += segment.vmt_miles * kwh_per_mile;
-                continue;
-            }
-            let dwell_seconds = u64::from(segment.duration_seconds);
-            let requested_charge_seconds = (net_energy_consumed_kwh / fixed_power_kw * 3600.0).ceil();
-            if !requested_charge_seconds.is_finite() || requested_charge_seconds > (REPEATED_DAYS * DAY_SECONDS) as f64 {
-                return Err(format!("required_charging_time_out_of_range_for_day_{}", day.summary.operation_day_id));
-            }
-            let requested_charge_seconds = requested_charge_seconds.max(0.0) as u64;
-            if requested_charge_seconds > dwell_seconds && dwell_seconds > 0 {
+    // NLR joins adjacent rows with the same on/off-shift state before stepping the
+    // charging algorithm; this especially matters at the daily wrap between the final
+    // off-shift segment and the next day's first off-shift segment.
+    for segment in expanded_merged_timeline(day) {
+        if segment.on_shift {
+            net_energy_consumed_kwh += segment.vmt_miles * kwh_per_mile;
+            continue;
+        }
+        let dwell_seconds = segment.end_second - segment.start_second;
+        let requested_charge_seconds = (net_energy_consumed_kwh / fixed_power_kw * 3600.0).ceil();
+        if !requested_charge_seconds.is_finite() || requested_charge_seconds > (REPEATED_DAYS * DAY_SECONDS) as f64 {
+            return Err(format!("required_charging_time_out_of_range_for_day_{}", day.summary.operation_day_id));
+        }
+        let requested_charge_seconds = requested_charge_seconds.max(0.0) as u64;
+        if requested_charge_seconds > dwell_seconds && dwell_seconds > 0 {
+            intervals.push(ChargeInterval {
+                start_second: segment.start_second,
+                end_second: segment.end_second,
+                power_kw: fixed_power_kw,
+            });
+            net_energy_consumed_kwh =
+                (net_energy_consumed_kwh - fixed_power_kw * dwell_seconds as f64 / 3600.0).max(0.0);
+        } else {
+            net_energy_consumed_kwh = 0.0;
+            if requested_charge_seconds > 0 {
+                let (charge_start, charge_end) = match strategy {
+                    Strategy::Immediate => (segment.start_second, segment.start_second + requested_charge_seconds),
+                    Strategy::Delayed => (segment.end_second - requested_charge_seconds, segment.end_second),
+                    Strategy::MinimumPower => unreachable!(),
+                };
                 intervals.push(ChargeInterval {
-                    start_second: offset + u64::from(segment.start_second),
-                    end_second: offset + u64::from(segment.end_second),
+                    start_second: charge_start,
+                    end_second: charge_end,
                     power_kw: fixed_power_kw,
                 });
-                net_energy_consumed_kwh =
-                    (net_energy_consumed_kwh - fixed_power_kw * dwell_seconds as f64 / 3600.0).max(0.0);
-            } else {
-                net_energy_consumed_kwh = 0.0;
-                if requested_charge_seconds > 0 {
-                    let start = u64::from(segment.start_second);
-                    let end = u64::from(segment.end_second);
-                    let (charge_start, charge_end) = match strategy {
-                        Strategy::Immediate => (start, start + requested_charge_seconds),
-                        Strategy::Delayed => (end - requested_charge_seconds, end),
-                        Strategy::MinimumPower => unreachable!(),
-                    };
-                    intervals.push(ChargeInterval {
-                        start_second: offset + charge_start,
-                        end_second: offset + charge_end,
-                        power_kw: fixed_power_kw,
-                    });
-                }
             }
         }
     }
