@@ -253,6 +253,42 @@ jobs:
                   paired_seed_deltas: $paired
                 }
               ],
+              linewide_paired_totals: [
+                $fifo[0].scenario_statistics[] as $f |
+                ($fifo[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $fr |
+                ($aware[0].replication_scenario_records | map(select(.scenario_id == $f.scenario_id)) | sort_by(.seed)) as $ar |
+                ([
+                  range(0; ($fr | length)) as $i |
+                  {
+                    seed: $fr[$i].seed,
+                    total_changeovers_delta: (
+                      [$fr[$i].stations[] as $fs |
+                        ($ar[$i].stations[] | select(.station_id == $fs.station_id)) as $as |
+                        ($as.changeovers_started - $fs.changeovers_started)
+                      ] | add
+                    ),
+                    total_output_transfers_delta: (
+                      [$fr[$i].stations[] as $fs |
+                        ($ar[$i].stations[] | select(.station_id == $fs.station_id)) as $as |
+                        ($as.output_transfers - $fs.output_transfers)
+                      ] | add
+                    ),
+                    total_order_inversions_delta: (
+                      [$fr[$i].stations[] as $fs |
+                        ($ar[$i].stations[] | select(.station_id == $fs.station_id)) as $as |
+                        ($as.out_of_order_output_transfers - $fs.out_of_order_output_transfers)
+                      ] | add
+                    )
+                  }
+                ]) as $paired |
+                {
+                  scenario_id: $f.scenario_id,
+                  paired_total_changeovers_delta_ci95: paired_summary([$paired[].total_changeovers_delta]),
+                  paired_total_output_transfers_delta_ci95: paired_summary([$paired[].total_output_transfers_delta]),
+                  paired_total_order_inversions_delta_ci95: paired_summary([$paired[].total_order_inversions_delta]),
+                  paired_seed_totals: $paired
+                }
+              ],
               claim_ceiling: "Paired synthetic simulation comparison only; confidence intervals describe the frozen seed set and do not imply physical performance or release readiness."
             }
           ' > ev-factory-dispatch-policy-comparison.json
@@ -270,6 +306,8 @@ jobs:
             and all(.scenario_pairs[]; .paired_good_units_per_hour_delta_ci95.sample_count == 20 and .paired_good_units_per_hour_delta_ci95.mean_confidence_95_lower != null and .paired_good_units_per_hour_delta_ci95.mean_confidence_95_upper != null)
             and all(.scenario_pairs[]; (.per_variant_paired_wait_deltas | length) == 3 and all(.per_variant_paired_wait_deltas[]; .average_wait_delta_ci95_seconds.sample_count == 20))
             and all(.station_pairs[]; .paired_changeovers_delta_ci95.sample_count == 20 and .paired_out_of_order_transfers_delta_ci95.sample_count == 20)
+            and (.linewide_paired_totals | length) == 6
+            and all(.linewide_paired_totals[]; .paired_total_changeovers_delta_ci95.sample_count == 20 and .paired_total_order_inversions_delta_ci95.sample_count == 20)
           ' ev-factory-dispatch-policy-comparison.json
 
       - name: Run PCB cell routes and assert fail-closed invariants
