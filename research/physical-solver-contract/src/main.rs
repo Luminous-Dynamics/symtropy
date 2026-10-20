@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    validate_request_bytes, validate_solver_output_artifact_bytes, validate_solver_receipt_bytes,
+    validate_request_bytes, verify_solver_output_artifact_bytes, validate_solver_receipt_bytes,
 };
 use std::{env, fs, path::Path, process::ExitCode};
 
