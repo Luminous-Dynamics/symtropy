@@ -292,3 +292,135 @@ fn assert_same_geometric_decision_except_time(
         assert_eq!(left.vertical_separation_m, right.vertical_separation_m);
     }
 }
+
+#[test]
+fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
+    // A moves 100 m east during the shared interval. B has an integer relative start
+    // offset r0 and integer relative displacement d. Every point is integral, so the
+    // expected minimum can be compared to an inclusive integer radius exactly:
+    //
+    //   q = r0·d, n = |d|², m = |r0|².
+    //   If q >= 0, min² = m at t=0.
+    //   If -q >= n, min² = |r0+d|² at t=1.
+    //   Otherwise min² = (m*n - q²)/n, so min² <= R² iff
+    //   m*n - q² <= R²*n. This integer comparison uses no floating-point
+    // minimizer and is independent of the production segment interpolation.
+    //
+    // 121 start offsets × 120 nonzero relative displacements × 5 radii = 72,600
+    // complete end-to-end checks across sloped/crossing tracks and exact boundaries.
+    const STARTS: std::ops::RangeInclusive<i32> = -5..=5;
+    const DISPLACEMENTS: std::ops::RangeInclusive<i32> = -5..=5;
+    const T0: i64 = 1_000;
+    const T1: i64 = 11_000;
+
+    let mut criteria = criteria();
+    criteria.minimum_vertical_separation_m = 5.0;
+
+    for r0_x in STARTS.clone() {
+        for r0_y in STARTS.clone() {
+            for d_x in DISPLACEMENTS.clone() {
+                for d_y in DISPLACEMENTS.clone() {
+                    if d_x == 0 && d_y == 0 {
+                        continue;
+                    }
+
+                    let dx = i64::from(d_x);
+                    let dy = i64::from(d_y);
+                    let rx = i64::from(r0_x);
+                    let ry = i64::from(r0_y);
+                    let dot = rx * dx + ry * dy;
+                    let norm_d = dx * dx + dy * dy;
+                    let norm_r = rx * rx + ry * ry;
+
+                    let min_distance_sq_numerator = if dot >= 0 {
+                        // The exact minimum lies at the start endpoint.
+                        norm_r * norm_d
+                    } else if -dot >= norm_d {
+                        // The exact minimum lies at the end endpoint.
+                        let end_x = rx + dx;
+                        let end_y = ry + dy;
+                        (end_x * end_x + end_y * end_y) * norm_d
+                    } else {
+                        // Strictly interior stationary point. Keep squared distance as
+                        // a rational numerator/denominator instead of evaluating sqrt.
+                        norm_r * norm_d - dot * dot
+                    };
+
+                    for radius_m in 0_i32..=4 {
+                        let radius = i64::from(radius_m);
+                        let expected_conflict =
+                            min_distance_sq_numerator <= radius * radius * norm_d;
+
+                        criteria.minimum_horizontal_separation_m = f64::from(radius_m);
+                        let a = Trajectory {
+                            trajectory_id: "A-rational-oracle".to_owned(),
+                            revision: "rational-crossing-oracle-v1".to_owned(),
+                            reference_frame_id: "RATIONAL-ORACLE-LOCAL-XYZ".to_owned(),
+                            vertical_datum_id: "RATIONAL-ORACLE-VERTICAL".to_owned(),
+                            source_reference: "fixture://rational-oracle/A".to_owned(),
+                            source_sha256: "a".repeat(64),
+                            horizontal_uncertainty_bound_m: 0.0,
+                            vertical_uncertainty_bound_m: 0.0,
+                            points: vec![
+                                point(T0, 0.0, 0.0, 100.0),
+                                point(T1, 100.0, 0.0, 100.0),
+                            ],
+                        };
+                        let b = Trajectory {
+                            trajectory_id: "B-rational-oracle".to_owned(),
+                            revision: "rational-crossing-oracle-v1".to_owned(),
+                            reference_frame_id: "RATIONAL-ORACLE-LOCAL-XYZ".to_owned(),
+                            vertical_datum_id: "RATIONAL-ORACLE-VERTICAL".to_owned(),
+                            source_reference: "fixture://rational-oracle/B".to_owned(),
+                            source_sha256: "b".repeat(64),
+                            horizontal_uncertainty_bound_m: 0.0,
+                            vertical_uncertainty_bound_m: 0.0,
+                            points: vec![
+                                point(
+                                    T0,
+                                    f64::from(r0_x),
+                                    f64::from(r0_y),
+                                    100.0,
+                                ),
+                                point(
+                                    T1,
+                                    100.0 + f64::from(r0_x + d_x),
+                                    f64::from(r0_y + d_y),
+                                    100.0,
+                                ),
+                            ],
+                        };
+
+                        let report = audit_trajectory_pair(&a, &b, &criteria)
+                            .expect("bounded integer-rational fixture must be valid");
+                        let case = format!(
+                            "r0=({r0_x},{r0_y}), d=({d_x},{d_y}), R={radius_m} m"
+                        );
+                        if expected_conflict {
+                            assert_eq!(
+                                report.disposition,
+                                ConflictDisposition::ConflictDetected,
+                                "exact rational oracle expected conflict for {case}"
+                            );
+                            assert!(
+                                !report.conflicts.is_empty(),
+                                "positive oracle case must emit an event for {case}"
+                            );
+                        } else {
+                            assert_eq!(
+                                report.disposition,
+                                ConflictDisposition::NoConflictDetectedWithinEvaluatedWindow,
+                                "exact rational oracle expected no conflict for {case}"
+                            );
+                            assert!(
+                                report.conflicts.is_empty(),
+                                "negative oracle case must not emit an event for {case}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
