@@ -87,11 +87,21 @@ pub struct Event {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
-    ConnectMember { member_id: String },
-    DisconnectMember { member_id: String },
-    RemoveSupport { member_id: String },
-    InstallMember { member: Member },
-    ApplyLoad { load: AppliedLoad },
+    ConnectMember {
+        member_id: String,
+    },
+    DisconnectMember {
+        member_id: String,
+    },
+    RemoveSupport {
+        member_id: String,
+    },
+    InstallMember {
+        member: Member,
+    },
+    ApplyLoad {
+        load: AppliedLoad,
+    },
     RecoverMaterial {
         member_id: String,
         route: RecoveryRoute,
@@ -244,8 +254,7 @@ pub fn execute_scenario(scenario: &Scenario) -> Result<ScenarioReceipt, String> 
         .initial_input_mass_g
         .checked_add(state.added_mass_g)
         .ok_or_else(|| "declared input mass overflow".to_string())?;
-    let mass_balance_residual_g =
-        i128::from(declared_input_mass_g) - i128::from(accounted_mass_g);
+    let mass_balance_residual_g = i128::from(declared_input_mass_g) - i128::from(accounted_mass_g);
 
     let canonical_state = CanonicalState {
         schema_version: SCHEMA_VERSION,
@@ -326,11 +335,7 @@ pub fn evaluate_corpus(corpus: &Corpus) -> Result<CorpusReceipt, String> {
     })
 }
 
-fn compare_expected(
-    expected: &ExpectedResult,
-    actual: &ScenarioReceipt,
-    errors: &mut Vec<String>,
-) {
+fn compare_expected(expected: &ExpectedResult, actual: &ScenarioReceipt, errors: &mut Vec<String>) {
     if actual.connected_components.len() != expected.component_count {
         errors.push(format!(
             "component count: expected {}, got {}",
@@ -369,10 +374,7 @@ fn initialize(scenario: &Scenario) -> Result<State, String> {
     if scenario.id.trim().is_empty() {
         return Err("scenario id must not be empty".to_string());
     }
-    if scenario.units.length != "mm"
-        || scenario.units.mass != "g"
-        || scenario.units.force != "mN"
-    {
+    if scenario.units.length != "mm" || scenario.units.mass != "g" || scenario.units.force != "mN" {
         return Err(format!(
             "unsupported or missing units: required length=mm, mass=g, force=mN; got {:?}",
             scenario.units
@@ -471,7 +473,10 @@ fn validate_member(
         return Err(format!("member {} must have positive mass_g", member.id));
     }
     if member.from_node == member.to_node {
-        return Err(format!("member {} cannot connect a node to itself", member.id));
+        return Err(format!(
+            "member {} cannot connect a node to itself",
+            member.id
+        ));
     }
     if !nodes.contains_key(&member.from_node) {
         return Err(format!(
@@ -567,7 +572,10 @@ fn apply_event(state: &mut State, event: &Event) -> Result<(), String> {
                 ));
             }
             if load.max_abs_component_mn == 0 {
-                return Err(format!("load {} must declare a positive force bound", load.id));
+                return Err(format!(
+                    "load {} must declare a positive force bound",
+                    load.id
+                ));
             }
             for component in load.force_mn {
                 let magnitude = component
@@ -586,10 +594,9 @@ fn apply_event(state: &mut State, event: &Event) -> Result<(), String> {
             state.loads.insert(load.id.clone(), load.clone());
         }
         Action::RecoverMaterial { member_id, route } => {
-            let member = state
-                .members
-                .get(member_id)
-                .ok_or_else(|| format!("material recovery references unknown member {member_id}"))?;
+            let member = state.members.get(member_id).ok_or_else(|| {
+                format!("material recovery references unknown member {member_id}")
+            })?;
             if member.state != MemberState::Rubble {
                 return Err(format!(
                     "member {member_id} must be rubble before material recovery; got {:?}",
@@ -607,7 +614,10 @@ fn apply_event(state: &mut State, event: &Event) -> Result<(), String> {
                     material.id, route
                 ));
             }
-            let member = state.members.get_mut(member_id).expect("member was validated above");
+            let member = state
+                .members
+                .get_mut(member_id)
+                .expect("member was validated above");
             member.state = match route {
                 RecoveryRoute::Reuse => MemberState::Reused,
                 RecoveryRoute::Recycle => MemberState::Recycled,
@@ -730,7 +740,10 @@ mod tests {
         scenario.materials.reverse();
         scenario.members.reverse();
         let permuted = execute_scenario(&scenario).expect("permuted scenario valid");
-        assert_eq!(original.canonical_input_sha256, permuted.canonical_input_sha256);
+        assert_eq!(
+            original.canonical_input_sha256,
+            permuted.canonical_input_sha256
+        );
         assert_eq!(original.final_state_sha256, permuted.final_state_sha256);
         assert_eq!(original.connected_components, permuted.connected_components);
         assert_eq!(original.material_totals, permuted.material_totals);
@@ -763,7 +776,13 @@ mod tests {
     #[test]
     fn broken_recovery_permission_fails_closed() {
         let mut scenario = corpus().cases[2].scenario.clone();
-        scenario.materials.iter_mut().find(|material| material.id == "concrete").expect("fixture concrete material").allowed_recovery_routes.clear();
+        scenario
+            .materials
+            .iter_mut()
+            .find(|material| material.id == "concrete")
+            .expect("fixture concrete material")
+            .allowed_recovery_routes
+            .clear();
         let error = execute_scenario(&scenario).expect_err("recovery must be authorized");
         assert!(error.contains("does not permit recovery route"));
     }
