@@ -18,7 +18,8 @@
     "No improvement claim before matched physical trials; simulation and synthetic fixtures remain separate evidence classes.",
     "Do not compare an absolute uncertainty number across metrics with different units or uncertainty definitions.",
     "For commercial pre-rinse trials, spray force is a target-range variable rather than an objective to maximize; compare only under a frozen applicable test method, pressure and nozzle distance.",
-    "Metric unit must be one of the machine-readable unit_options for its registry entry, unless the entry explicitly declares protocol-defined; exact record units must still match between paired candidates."
+    "Metric unit must be one of the machine-readable unit_options for its registry entry, unless the entry explicitly declares protocol-defined; exact record units must still match between paired candidates.",
+    "A metric with qualifying_values is a non-compensatory outcome gate: physically eligible records must have a measured/derived categorical value in that exact list; gate declarations alone cannot compensate for a contradictory endpoint value."
   ],
   "metrics": {
     "accidental_high_flow_activations": {
@@ -86,6 +87,9 @@
       "interpretation": "An unknown or missing status must not be scored as pass.",
       "unit_options": [
         "1"
+      ],
+      "qualifying_values": [
+        "pass"
       ]
     },
     "cleaning_time": {
@@ -317,6 +321,9 @@
       "interpretation": "An unknown or missing status must not be scored as pass.",
       "unit_options": [
         "1"
+      ],
+      "qualifying_values": [
+        "pass"
       ]
     },
     "litres_by_prewash_wash_final_rinse_and_rewash": {
@@ -416,6 +423,9 @@
       "interpretation": "Successful repair requires observed post-checks; unknown is not pass.",
       "unit_options": [
         "1"
+      ],
+      "qualifying_values": [
+        "pass"
       ]
     },
     "post_service_drainage": {
