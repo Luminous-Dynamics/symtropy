@@ -1261,6 +1261,22 @@ mod tests {
     }
 
     #[test]
+    fn contract_valid_fail_receipt_remains_a_failed_physical_result() {
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut receipt = solver_receipt(&request_bytes, "FAIL");
+        receipt["diagnostics"] = json!(["Synthetic control: registered criterion failed."]);
+        receipt["convergence"]["state"] = json!("not_converged");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+
+        let report = validate_solver_receipt_bytes(&request_bytes, &receipt_bytes)
+            .expect("a well-formed FAIL receipt can be contract-valid");
+        assert_eq!(report["receipt_contract_validation"], "PASS");
+        assert_eq!(report["producer_status"], "FAIL");
+        assert_eq!(report["physical_result_qualified"], false);
+        assert_eq!(report["required_outputs_present"], false);
+    }
+
+    #[test]
     fn unresolved_receipt_requires_exact_disjoint_physics_partition() {
         let request_bytes = fixture("unsupported-dynamic-fracture-request-v0.1.json");
         let mut receipt = solver_receipt(&request_bytes, "UNRESOLVED");
