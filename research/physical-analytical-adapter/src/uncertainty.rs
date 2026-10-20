@@ -897,7 +897,7 @@ mod inari_differential_tests {
                     .expect("positive power");
                 let mut expected = reference(1.0, 1.0);
                 for _ in 0..exponent {
-                    expected = expected * expected_interval;
+                    expected *= expected_interval;
                 }
                 assert_contains_reference(
                     actual,
