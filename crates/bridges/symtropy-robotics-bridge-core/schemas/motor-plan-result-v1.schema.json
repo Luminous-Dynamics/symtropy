@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/motor-plan-result-v1.schema.json",
+  "title": "Symtropy MotorPlanResult v1",
+  "description": "Typed planner outcome. A rejected result's command vector is shape-compatible filler and must not be treated as an accepted physical fallback.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commands",
+    "status"
+  ],
+  "properties": {
+    "commands": {
+      "type": "array",
+      "description": "Finite numeric command values. The expected length is platform-specific and must be validated by the caller.",
+      "items": {
+        "type": "number"
+      }
+    },
+    "status": {
+      "oneOf": [
+        {
+          "const": "ready"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rejected"
+          ],
+          "properties": {
+            "rejected": {
+              "enum": [
+                "invalid_configuration",
+                "invalid_gain",
+                "invalid_observation",
+                "invalid_danger_level",
+                "agent_not_authorized",
+                "encoding_failure",
+                "actuator_interface_mismatch",
+                "bridge_failure",
+                "invalid_output"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "commands": [0.25, 0.5, 0.75],
+      "status": "ready"
+    },
+    {
+      "commands": [0, 0, 0],
+      "status": {
+        "rejected": "agent_not_authorized"
+      }
+    }
+  ]
+}
