@@ -264,10 +264,24 @@ mod tests {
     }
 
     #[test]
-    fn invalid_planner_output_is_rejected_and_normalized_to_expected_shape() {
+    fn wrong_length_planner_output_is_rejected_and_normalized() {
         let mut agent = TestAgent::new();
         let mut planner = TestPlanner::ready();
-        planner.commands = Some(vec![0.1, f64::INFINITY]);
+        planner.commands = Some(vec![0.1; 3]);
+
+        let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
+        assert_eq!(result.commands, vec![0.0; 4]);
+        assert_eq!(
+            result.status,
+            MotorPlannerStatus::Rejected(MotorPlannerFault::InvalidOutput)
+        );
+    }
+
+    #[test]
+    fn non_finite_planner_output_is_rejected_and_normalized() {
+        let mut agent = TestAgent::new();
+        let mut planner = TestPlanner::ready();
+        planner.commands = Some(vec![0.1, 0.2, f64::INFINITY, 0.4]);
 
         let result = agent.tick_motor_plan_with(&[0.5], 0.1, &mut planner);
         assert_eq!(result.commands, vec![0.0; 4]);
