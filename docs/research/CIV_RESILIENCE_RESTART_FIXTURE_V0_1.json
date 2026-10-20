@@ -271,7 +271,7 @@
           }
         ]
       }
-    },
+    }
   },
   "verification_notes": [
     "Every value is synthetic and unit-scoped; do not interpret these numbers as plant capacities or engineering recommendations.",
