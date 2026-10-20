@@ -139,6 +139,7 @@ struct ViewerState {
     far_m: f64,
     bands: [usize; 6],
     visible_bodies: usize,
+    visible_orbit_segments: usize,
     precision_rejections: usize,
     max_radius_exaggeration: f64,
 }
@@ -506,13 +507,15 @@ fn render_radius_for_band(
 
 fn update_scene(
     mut state: ResMut<ViewerState>,
-    mut body_query: Query<(&BodyVisual, &mut Transform, &mut Visibility)>,
-    mut tile_query: Query<(&mut Transform, &mut Visibility), (With<SurfaceTile>, Without<BodyVisual>, Without<LocalFeature>)>,
-    mut feature_query: Query<(&mut Transform, &mut Visibility), (With<LocalFeature>, Without<BodyVisual>, Without<SurfaceTile>)>,
+    mut body_query: Query<(&BodyVisual, &mut Transform, &mut Visibility), (With<BodyVisual>, Without<SolarCamera>)>,
+    mut tile_query: Query<(&mut Transform, &mut Visibility), (With<SurfaceTile>, Without<BodyVisual>, Without<LocalFeature>, Without<SolarCamera>)>,
+    mut feature_query: Query<(&mut Transform, &mut Visibility), (With<LocalFeature>, Without<BodyVisual>, Without<SurfaceTile>, Without<SolarCamera>)>,
+    mut orbit_query: Query<(&OrbitSegment, &mut Transform, &mut Visibility), (With<OrbitSegment>, Without<BodyVisual>, Without<SurfaceTile>, Without<LocalFeature>, Without<SolarCamera>)>,
     mut camera_query: Query<(&mut Transform, &mut Projection), With<SolarCamera>>,
 ) {
     state.bands = [0; 6];
     state.visible_bodies = 0;
+    state.visible_orbit_segments = 0;
     state.precision_rejections = 0;
     state.max_radius_exaggeration = 1.0;
 
@@ -592,6 +595,71 @@ fn update_scene(
         *visibility = Visibility::Visible;
     }
 
+    let orbit_paths_visible = matches!(
+        state.stage,
+        ViewStage::LowOrbit | ViewStage::EarthMoon | ViewStage::InnerSystem | ViewStage::OuterSystem
+    );
+    for (segment, mut transform, mut visibility) in &mut orbit_query {
+        if !orbit_paths_visible {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        let start_relative = match segment.start.relative_to_meters(&state.camera_position) {
+            Ok(value) => value,
+            Err(_) => {
+                state.precision_rejections = state.precision_rejections.saturating_add(1);
+                *visibility = Visibility::Hidden;
+                continue;
+            }
+        };
+        let end_relative = match segment.end.relative_to_meters(&state.camera_position) {
+            Ok(value) => value,
+            Err(_) => {
+                state.precision_rejections = state.precision_rejections.saturating_add(1);
+                *visibility = Visibility::Hidden;
+                continue;
+            }
+        };
+        let start_distance = start_relative[0].hypot(start_relative[1]).hypot(start_relative[2]);
+        let end_distance = end_relative[0].hypot(end_relative[1]).hypot(end_relative[2]);
+        let pixel_error_budget = |distance: f64| {
+            (2.0 * (FOV_RADIANS / 2.0).tan() * distance
+                / f64::from(VIEWPORT_HEIGHT_PX)
+                * 0.05)
+                .max(0.001)
+        };
+        let start_f32 = segment.start.relative_to_f32_with_error_budget(
+            &state.camera_position,
+            pixel_error_budget(start_distance),
+        );
+        let end_f32 = segment.end.relative_to_f32_with_error_budget(
+            &state.camera_position,
+            pixel_error_budget(end_distance),
+        );
+        let (Ok(start_f32), Ok(end_f32)) = (start_f32, end_f32) else {
+            state.precision_rejections = state.precision_rejections.saturating_add(1);
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+
+        let start_position = Vec3::new(start_f32[0], start_f32[1], start_f32[2]);
+        let end_position = Vec3::new(end_f32[0], end_f32[1], end_f32[2]);
+        let delta = end_position - start_position;
+        let length = delta.length();
+        if !length.is_finite() || length <= f32::EPSILON {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        transform.translation = (start_position + end_position) * 0.5;
+        transform.rotation = Quat::from_rotation_arc(Vec3::X, delta / length);
+        let width = segment.thickness_m as f32;
+        transform.scale = Vec3::new(length, width, width);
+        *visibility = Visibility::Visible;
+        state.visible_orbit_segments += 1;
+    }
+
     let surface_relative = state
         .surface_feature
         .relative_to_meters(&state.camera_position)
@@ -663,10 +731,11 @@ fn update_hud(state: Res<ViewerState>, mut query: Query<&mut Text, With<SolarHud
         "camera settled"
     };
     let message = format!(
-        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | coordinate conversions rejected: {}\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
+        "SYMTRY / SOLAR-SCALE EXPLORER  [ILLUSTRATIVE ORBITS — NOT EPHEMERIS]\n{}\n{}\nVisible bodies: {} | orbit segments: {} | coordinate conversions rejected: {}\nApparent bands  subpixel {}  point {}  disc {}  proxy {}  regional {}  surface {}\nMaximum visual radius exaggeration: {:.1}x\nCell size: {:.0} m | camera-relative origin is presentation-only\n\n1 Local  2 Surface  3 Low orbit  4 Earth-Moon  5 Inner system  6 Outer system  7 Return  | Space: next",
         state.stage.label(),
         movement,
         state.visible_bodies,
+        state.visible_orbit_segments,
         state.precision_rejections,
         state.bands[0],
         state.bands[1],
@@ -704,6 +773,7 @@ fn build_initial_state() -> ViewerState {
         far_m,
         bands: [0; 6],
         visible_bodies: 0,
+        visible_orbit_segments: 0,
         precision_rejections: 0,
         max_radius_exaggeration: 1.0,
     }
