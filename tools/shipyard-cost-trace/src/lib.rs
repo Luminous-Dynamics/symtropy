@@ -250,13 +250,12 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
     }
 }
 
-fn find_lineage_cycles(events: &[LedgerEvent]) -> Vec<String> {
+fn find_lineage_cycles<'a>(
+    events: &'a [LedgerEvent],
+    events_by_id: &BTreeMap<&'a str, &'a LedgerEvent>,
+) -> Vec<String> {
     // Iterative DFS avoids call-stack growth for large ledgers.
     // State values: 0 = unseen, 1 = active, 2 = complete.
-    let events_by_id: BTreeMap<&str, &LedgerEvent> = events
-        .iter()
-        .map(|event| (event.event_id.as_str(), event))
-        .collect();
     let mut states: BTreeMap<&str, u8> = BTreeMap::new();
     let mut errors = Vec::new();
 
@@ -338,9 +337,14 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         validate_event(event, &mut errors);
     }
 
+    let events_by_id: BTreeMap<&str, &LedgerEvent> = events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect();
+
     for event in events {
         for related_id in &event.related_event_ids {
-            match events.iter().find(|candidate| candidate.event_id == *related_id) {
+            match events_by_id.get(related_id.as_str()) {
                 None => errors.push(format!(
                     "{}: related event {} does not exist in this ledger",
                     event.event_id, related_id
@@ -370,7 +374,7 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
     }
 
     if errors.is_empty() {
-        errors.extend(find_lineage_cycles(events));
+        errors.extend(find_lineage_cycles(events, &events_by_id));
     }
 
     if !errors.is_empty() {
