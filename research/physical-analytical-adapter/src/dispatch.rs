@@ -254,6 +254,9 @@ fn validate_input_bounds(
     inputs: &Map<String, Value>,
     bounds: &Value,
 ) -> Check<()> {
+    let bound_map = bounds
+        .as_object()
+        .ok_or_else(|| "request.input_bounds must be an object".to_owned())?;
     let expected: &[&str] = match case_id {
         "axial_bar" => &["force_n", "length_m", "area_m2", "youngs_modulus_pa"],
         "cantilever_tip_load" => &[
@@ -272,9 +275,6 @@ fn validate_input_bounds(
         ],
         _ => return Ok(()),
     };
-    let bound_map = bounds
-        .as_object()
-        .ok_or_else(|| "request.input_bounds must be an object".to_owned())?;
     exact_map_keys(bound_map, expected, "request.input_bounds")?;
     const BOUND_KEYS: &[&str] = &[
         "lower",
