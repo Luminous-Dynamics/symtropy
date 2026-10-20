@@ -199,10 +199,10 @@ fn receipt(
         "assumptions": request.case.assumptions(),
         "outputs": outputs,
         "output_units": request.case.units(),
-        "acceptance": {
+        "reference_oracle_tolerances": {
             "relative_tolerance": 1.0e-12,
             "absolute_tolerance": 1.0e-15,
-            "acceptance_basis": "formula evaluation with finite and positive-domain checks; not a comparison against a real specimen"
+            "scope": "applied to frozen CI known-answer fixtures; not a comparison against real specimen data"
         },
         "diagnostics": diagnostics,
         "claim_ceiling": "named closed-form analytical case only; not physical validation, structural certification, or real collapse prediction"
