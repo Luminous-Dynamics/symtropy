@@ -315,7 +315,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
     let origin = integer_at(policy, "forecast_origin_index").unwrap_or_default();
     let target_period = integer_at(policy, "target_period_index").unwrap_or_default();
     let feature_cutoff = integer_at(policy, "action_features_cutoff_index").unwrap_or_default();
-    let outcome_as_of = integer_at(&registration, "outcome_as_of_index").unwrap_or_default();
+    let outcome_as_of = integer_at(registration, "outcome_as_of_index").unwrap_or_default();
 
     if feature_cutoff >= origin {
         errors.push(
@@ -387,13 +387,12 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
                     ));
                 }
             }
-            "abstained" => {
-                if !row["served_probability"].is_null() {
-                    errors.push(format!(
-                        "abstained case {case_id} must not expose a served probability"
-                    ));
-                }
+            "abstained" if !row["served_probability"].is_null() => {
+                errors.push(format!(
+                    "abstained case {case_id} must not expose a served probability"
+                ));
             }
+            "abstained" => {}
             _ => {}
         }
         if string_at(row, "outcome_status") == Some("known") {
@@ -407,7 +406,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         }
     }
 
-    if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
+    if string_at(registration, "evidence_scope") == Some("authorized_historical") {
         for (field, label) in [
             ("forecast_artifact_sha256", "forecast artifact"),
             ("outcome_snapshot_sha256", "outcome snapshot"),
@@ -659,12 +658,12 @@ mod tests {
         )
     }
 
-    fn scenario<'a>(
-        receipt: &'a Value,
+    fn scenario(
+        receipt: &Value,
         capacity: i64,
         cost_multiplier: f64,
         effectiveness_multiplier: f64,
-    ) -> &'a Value {
+    ) -> &Value {
         receipt["scenarios"]
             .as_array()
             .expect("receipt includes scenarios")
