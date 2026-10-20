@@ -56,8 +56,8 @@ impl Interval {
         let upper = outward_up(maximum)?;
         // Preserve known non-negative products (e.g. absolute stress) instead
         // of allowing outward rounding to create a negative subnormal bound.
-        let known_nonnegative = (self.lower >= 0.0 && rhs.lower >= 0.0)
-            || (self.upper <= 0.0 && rhs.upper <= 0.0);
+        let known_nonnegative =
+            (self.lower >= 0.0 && rhs.lower >= 0.0) || (self.upper <= 0.0 && rhs.upper <= 0.0);
         let lower = if known_nonnegative {
             lower.max(0.0)
         } else {
