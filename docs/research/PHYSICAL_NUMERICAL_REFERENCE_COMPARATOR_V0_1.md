@@ -23,8 +23,8 @@ Every arrow is a distinct evidence gate. This comparator does not promote physic
 
 ## Contracts
 
-- `physical-reference-observables-v0.1` identifies a case, exact request SHA-256, reference protocol, oracle method/identity/source, and a non-empty inventory of expected observables with units and non-negative absolute/relative tolerances.
-- `physical-normalized-observables-v0.1` carries the same request SHA-256 and case ID with normalized scalar values and explicit units.
+- `physical-reference-observables-v0.1` identifies a case, exact request SHA-256, request ID, scene SHA-256/revision, reference protocol, oracle method/identity/source, and a non-empty inventory of expected observables with units and non-negative absolute/relative tolerances.
+- `physical-normalized-observables-v0.1` carries the same request SHA-256, request ID, scene SHA-256/revision and case ID with normalized scalar values and explicit units.
 - The normalized result must be an output named by the solver receipt. All receipt outputs must first pass local exact-byte verification under the artifact root.
 - The selected file is hashed again when read for comparison; if it differs from the verified digest, comparison aborts as `UNRESOLVED`.
 - Unknown or duplicate metric IDs, an incomplete/extra metric inventory, units mismatch, request/case mismatch, non-finite values, malformed tolerances or invalid artifact bytes cannot produce a comparison PASS.
