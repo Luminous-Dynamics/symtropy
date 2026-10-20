@@ -1308,6 +1308,32 @@ mod tests {
     }
 
     #[test]
+    fn pass_receipt_cannot_bypass_frame_or_material_gaps() {
+        let request_bytes = fixture("analytical-bar-request-v0.1.json");
+        let mut request: Value = serde_json::from_slice(&request_bytes).unwrap();
+        request["loads"][0]["coordinate_frame_id"] = json!("untransformed-frame");
+        let changed_request = serde_json::to_vec(&request).unwrap();
+        let receipt = solver_receipt(&changed_request, "PASS");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&changed_request, &receipt_bytes)
+                .unwrap_err()
+                .contains("without a declared transform")
+        );
+
+        let mut request: Value = serde_json::from_slice(&request_bytes).unwrap();
+        request["materials"][0]["youngs_modulus_pa"] = Value::Null;
+        let changed_request = serde_json::to_vec(&request).unwrap();
+        let receipt = solver_receipt(&changed_request, "PASS");
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        assert!(
+            validate_solver_receipt_bytes(&changed_request, &receipt_bytes)
+                .unwrap_err()
+                .contains("unresolved material property")
+        );
+    }
+
+    #[test]
     fn invalid_json_and_revision_fail_closed() {
         assert!(validate_request_bytes(b"{", REV).is_err());
         assert!(
