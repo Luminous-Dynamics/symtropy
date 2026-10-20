@@ -38,7 +38,10 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     let object = value
         .as_object()
         .ok_or_else(|| format!("{context} must be an object"))?;
-    if let Some(field) = object.keys().find(|key| !allowed.iter().any(|allowed| *allowed == key.as_str())) {
+    if let Some(field) = object
+        .keys()
+        .find(|key| !allowed.iter().any(|allowed| *allowed == key.as_str()))
+    {
         return Err(format!("{context} contains unknown field '{field}'"));
     }
     Ok(())
@@ -47,7 +50,13 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
 fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     ensure_only_fields(
         root,
-        &["schema_version", "status", "cvar_alpha", "scenario", "models"],
+        &[
+            "schema_version",
+            "status",
+            "cvar_alpha",
+            "scenario",
+            "models",
+        ],
         "input",
     )?;
     if root.get("schema_version").and_then(Value::as_str)
@@ -61,8 +70,7 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
         .ok_or_else(|| "status must be a string".to_owned())?;
     if !matches!(
         status,
-        "synthetic_fixture_not_ecological_validation"
-            | "declared_model_outcomes_not_validated"
+        "synthetic_fixture_not_ecological_validation" | "declared_model_outcomes_not_validated"
     ) {
         return Err("status must state that these outcomes are not validated".to_owned());
     }
@@ -303,11 +311,18 @@ mod tests {
         let mut input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
         input.as_object_mut().expect("root object").remove("status");
-        assert!(parse_input(&input).expect_err("missing status must fail").contains("status"));
+        assert!(
+            parse_input(&input)
+                .expect_err("missing status must fail")
+                .contains("status")
+        );
 
         let mut input: Value =
             serde_json::from_str(SYNTHETIC_EXAMPLE).expect("example JSON should parse");
-        input.as_object_mut().expect("root object").remove("scenario");
+        input
+            .as_object_mut()
+            .expect("root object")
+            .remove("scenario");
         assert!(
             parse_input(&input)
                 .expect_err("missing scenario must fail")
