@@ -847,13 +847,9 @@ mod tests {
                 upper: 0.6,
             },
         ];
-        let result = compare_actions_under_weight_uncertainty(
-            &models,
-            "graze",
-            "retreat",
-            &intervals,
-        )
-        .expect("feasible pairwise comparison");
+        let result =
+            compare_actions_under_weight_uncertainty(&models, "graze", "retreat", &intervals)
+                .expect("feasible pairwise comparison");
         assert!((result.minimum_loss_difference + 1.4).abs() < 1e-9);
         assert!((result.maximum_loss_difference - 1.8).abs() < 1e-9);
         assert_eq!(result.stability, PreferenceStability::CanFlip);
@@ -874,13 +870,9 @@ mod tests {
                 upper: 0.6,
             },
         ];
-        let result = compare_actions_under_weight_uncertainty(
-            &models,
-            "retreat",
-            "wait",
-            &intervals,
-        )
-        .expect("feasible pairwise comparison");
+        let result =
+            compare_actions_under_weight_uncertainty(&models, "retreat", "wait", &intervals)
+                .expect("feasible pairwise comparison");
         assert!((result.minimum_loss_difference - 1.0).abs() < 1e-9);
         assert!((result.maximum_loss_difference - 2.0).abs() < 1e-9);
         assert_eq!(result.stability, PreferenceStability::SecondStrictlyBetter);
@@ -901,14 +893,8 @@ mod tests {
                 upper: 0.6,
             },
         ];
-        let errors = compare_actions_under_weight_uncertainty(
-            &models,
-            "wait",
-            "wait",
-            &intervals,
-        )
-        .expect_err("an action cannot be compared with itself");
+        let errors = compare_actions_under_weight_uncertainty(&models, "wait", "wait", &intervals)
+            .expect_err("an action cannot be compared with itself");
         assert!(errors.iter().any(|error| error.contains("distinct")));
     }
-
 }
