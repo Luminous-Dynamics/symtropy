@@ -641,10 +641,14 @@ struct ReferenceProfiles {
 }
 
 fn read_reference_curve(path: &str) -> Result<Vec<f64>, String> {
+    let bytes = fs::read(path).map_err(|error| format!("cannot_read_reference_csv_{path}:{error}"))?;
+    read_reference_curve_bytes(&bytes, path)
+}
+
+fn read_reference_curve_bytes(bytes: &[u8], path: &str) -> Result<Vec<f64>, String> {
     let mut reader = ReaderBuilder::new()
         .trim(csv::Trim::All)
-        .from_path(path)
-        .map_err(|error| format!("cannot_open_reference_csv_{path}:{error}"))?;
+        .from_reader(bytes);
     let headers = reader.headers()
         .map_err(|error| format!("cannot_read_reference_headers_{path}:{error}"))?
         .clone();
@@ -986,4 +990,53 @@ mod tests {
         report.reconciled_operation_day_segments.clear();
         assert!(validate_and_group_report(&report).unwrap_err().contains("segment_count"));
     }
+    fn reference_csv(values: &[f64]) -> String {
+        let mut output = String::from("time,avg_power_kw\n");
+        for (index, value) in values.iter().enumerate() {
+            output.push_str(&format!(
+                "{:02}:{:02}:00,{:.6}\n",
+                index / 4,
+                (index % 4) * 15,
+                value
+            ));
+        }
+        output
+    }
+
+    #[test]
+    fn published_curve_comparison_reports_error_energy_and_peak_timing() {
+        let mut model = vec![0.0; BINS_PER_DAY];
+        let mut reference = vec![0.0; BINS_PER_DAY];
+        model[4] = 10.0;
+        reference[5] = 12.0;
+        let result = compare_profile(&model, &reference, "published.csv").unwrap();
+        assert!((result.mean_absolute_error_kw - 22.0 / 96.0).abs() < 1.0e-9);
+        assert!((result.model_daily_integral_kwh - 2.5).abs() < 1.0e-9);
+        assert!((result.reference_daily_integral_kwh - 3.0).abs() < 1.0e-9);
+        assert!((result.daily_integral_error_kwh + 0.5).abs() < 1.0e-9);
+        assert!((result.peak_15min_error_kw + 2.0).abs() < 1.0e-9);
+        assert_eq!(result.peak_timing_error_minutes, 15);
+    }
+
+    #[test]
+    fn reference_csv_parser_checks_time_grid_and_profile_length() {
+        let expected = (0..BINS_PER_DAY).map(|i| i as f64).collect::<Vec<_>>();
+        let parsed = read_reference_curve_bytes(reference_csv(&expected).as_bytes(), "fixture.csv").unwrap();
+        assert_eq!(parsed, expected);
+        let bad_time = reference_csv(&expected).replace("00:15:00", "00:16:00");
+        assert!(read_reference_curve_bytes(bad_time.as_bytes(), "bad-time.csv")
+            .unwrap_err()
+            .contains("time_grid_mismatch"));
+        let too_short = "time,avg_power_kw\n00:00:00,0\n";
+        assert!(read_reference_curve_bytes(too_short.as_bytes(), "short.csv")
+            .unwrap_err()
+            .contains("must_have_96_rows"));
+    }
+
+    #[test]
+    fn comparison_rejects_nonfinite_and_negative_reference_loads() {
+        assert!(compare_profile(&vec![0.0; BINS_PER_DAY], &vec![f64::NAN; BINS_PER_DAY], "bad.csv").is_err());
+        assert!(compare_profile(&vec![0.0; BINS_PER_DAY], &vec![-1.0; BINS_PER_DAY], "bad.csv").is_err());
+    }
+
 }
