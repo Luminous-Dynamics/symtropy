@@ -227,6 +227,86 @@ mod tests {
     }
 
     #[test]
+    fn four_dimensional_sync_applies_slice_visibility_without_scaling_geometry() {
+        let mut physics_world: symtropy_physics::PhysicsWorld<4> =
+            symtropy_physics::PhysicsWorld::new(nalgebra::SVector::zeros());
+        let in_slice = physics_world.add_body(symtropy_physics::RigidBody::<4>::dynamic_sphere(
+            BodyHandle(0),
+            symtropy_math::Point::new([1.0, 2.0, 3.0, 0.5]),
+            0.1,
+            1.0,
+        ));
+        let outside_slice =
+            physics_world.add_body(symtropy_physics::RigidBody::<4>::dynamic_sphere(
+                BodyHandle(0),
+                symtropy_math::Point::new([4.0, 5.0, 6.0, 1.5]),
+                0.1,
+                1.0,
+            ));
+
+        let mut app = App::new();
+        app.insert_resource(PhysicsWorldRes4D {
+            world: physics_world,
+        });
+        app.insert_resource(Projector4D::new(0.0, 1.0, 1.0));
+        app.add_systems(Update, sync_physics_4d);
+
+        let original_scale = Vec3::new(2.0, 3.0, 4.0);
+        let inside_entity = app
+            .world_mut()
+            .spawn((
+                PhysicsBody::new(in_slice, 0.1),
+                Transform::from_scale(original_scale),
+                Visibility::Hidden,
+                WSliceProjectionState {
+                    distance_from_slice: f64::INFINITY,
+                    alpha: 0.0,
+                    in_slice: false,
+                },
+            ))
+            .id();
+        let outside_entity = app
+            .world_mut()
+            .spawn((
+                PhysicsBody::new(outside_slice, 0.1),
+                Transform::from_scale(original_scale),
+                Visibility::Inherited,
+                WSliceProjectionState {
+                    distance_from_slice: 0.0,
+                    alpha: 1.0,
+                    in_slice: true,
+                },
+            ))
+            .id();
+
+        app.update();
+
+        let inside_visibility = app.world().get::<Visibility>(inside_entity).unwrap();
+        assert_eq!(*inside_visibility, Visibility::Inherited);
+        let inside_state = app
+            .world()
+            .get::<WSliceProjectionState>(inside_entity)
+            .unwrap();
+        assert!(inside_state.in_slice);
+        assert_eq!(inside_state.alpha, 0.5);
+        let inside_transform = app.world().get::<Transform>(inside_entity).unwrap();
+        assert_eq!(inside_transform.translation, Vec3::new(1.0, 2.0, 3.0));
+        assert_eq!(inside_transform.scale, original_scale);
+
+        let outside_visibility = app.world().get::<Visibility>(outside_entity).unwrap();
+        assert_eq!(*outside_visibility, Visibility::Hidden);
+        let outside_state = app
+            .world()
+            .get::<WSliceProjectionState>(outside_entity)
+            .unwrap();
+        assert!(!outside_state.in_slice);
+        assert_eq!(outside_state.alpha, 0.0);
+        let outside_transform = app.world().get::<Transform>(outside_entity).unwrap();
+        assert_eq!(outside_transform.translation, Vec3::new(4.0, 5.0, 6.0));
+        assert_eq!(outside_transform.scale, original_scale);
+    }
+
+    #[test]
     fn physics_body_component_creation() {
         let pb = PhysicsBody::new(BodyHandle(42), 16.0);
         assert_eq!(pb.handle, BodyHandle(42));
