@@ -79,7 +79,7 @@ jobs:
 
       - name: Retain parity evidence
         if: always()
-        uses: cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: mine-reference-traces-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
