@@ -55,7 +55,7 @@ Each split × scenario-family × policy cell contains:
 - missing-label count and mature-label updates consumed;
 - hard-control acceptance count;
 - incident-onset detections and detection-delay metrics for trust-gated policies;
-- coverage-recovery attempts, success rate and delay to the first causal window within the predeclared 85–95% band, using the last up to eight *matured* label outcomes (at least six required);
+- coverage-recovery attempts, success rate and delay to the first *sustained* recovery: three successive updated windows inside the predeclared 85–95% band, using the last up to eight *matured* label outcomes (at least six required);
 - independent replay mismatches for the gate.
 
 Never compare coverage without the associated width and denominator. Missing labels are not treated as uncovered or covered; they are excluded and counted. Small or undefined statistics must not be imputed as success. A wider interval can restore marginal coverage while becoming too uninformative for a protected service constraint.
