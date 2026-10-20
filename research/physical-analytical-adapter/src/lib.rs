@@ -226,7 +226,9 @@ pub fn evaluate_request_bytes(bytes: &[u8], adapter_revision: &str) -> Check<Val
             "UNRESOLVED",
             Value::Null,
             None,
-            vec![format!("analytical evaluation could not be completed: {error}")],
+            vec![format!(
+                "analytical evaluation could not be completed: {error}"
+            )],
         )),
     }
 }
@@ -270,10 +272,7 @@ fn receipt(
         "claim_ceiling": "named closed-form analytical case only; not physical validation, structural certification, or real collapse prediction"
     });
     if request.schema_version == REQUEST_SCHEMA_V2 {
-        result["input_bounds"] = request
-            .input_bounds_raw
-            .clone()
-            .unwrap_or(Value::Null);
+        result["input_bounds"] = request.input_bounds_raw.clone().unwrap_or(Value::Null);
         result["output_intervals"] = output_intervals.unwrap_or(Value::Null);
         result["interval_semantics"] = json!(
             "deterministic output enclosure conditional on declared input bounds; not a probability distribution or confidence interval"
@@ -386,7 +385,11 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
         REQUEST_SCHEMA => REQUEST_KEYS,
         REQUEST_SCHEMA_V2 if value.get("input_bounds").is_some() => REQUEST_KEYS_V2,
         REQUEST_SCHEMA_V2 => REQUEST_KEYS,
-        _ => return Err(format!("unsupported request schema version '{schema_version}'")),
+        _ => {
+            return Err(format!(
+                "unsupported request schema version '{schema_version}'"
+            ));
+        }
     };
     exact_keys(value, expected_keys, "request")?;
     let request_id = string(value, "request_id", "request")?;
@@ -465,16 +468,15 @@ fn parse_request(value: &Value) -> Check<ParsedRequest> {
         }
     }
 
-    let (input_bounds, input_bounds_raw) =
-        if let Some(raw_bounds) = value.get("input_bounds") {
-            if schema_version != REQUEST_SCHEMA_V2 {
-                return Err("input_bounds requires physical-analytical-request-v0.2".to_owned());
-            }
-            let bounds = parse_input_bounds(raw_bounds, case, inputs)?;
-            (Some(bounds), Some(raw_bounds.clone()))
-        } else {
-            (None, None)
-        };
+    let (input_bounds, input_bounds_raw) = if let Some(raw_bounds) = value.get("input_bounds") {
+        if schema_version != REQUEST_SCHEMA_V2 {
+            return Err("input_bounds requires physical-analytical-request-v0.2".to_owned());
+        }
+        let bounds = parse_input_bounds(raw_bounds, case, inputs)?;
+        (Some(bounds), Some(raw_bounds.clone()))
+    } else {
+        (None, None)
+    };
 
     Ok(ParsedRequest {
         schema_version,
@@ -520,8 +522,8 @@ fn parse_input_bounds(
             .and_then(Value::as_f64)
             .filter(|number| number.is_finite())
             .ok_or_else(|| format!("{at}.upper must be finite"))?;
-        let interval = uncertainty::Interval::new(lower, upper)
-            .map_err(|error| format!("{at}: {error}"))?;
+        let interval =
+            uncertainty::Interval::new(lower, upper).map_err(|error| format!("{at}: {error}"))?;
         let nominal = inputs
             .get(*key)
             .and_then(Value::as_f64)
@@ -534,10 +536,7 @@ fn parse_input_bounds(
         }
         let unit = map_string(entry, "unit", &at)?;
         if unit != expected_input_unit(key) {
-            return Err(format!(
-                "{at}.unit must be '{}'",
-                expected_input_unit(key)
-            ));
+            return Err(format!("{at}.unit must be '{}'", expected_input_unit(key)));
         }
         let evidence = map_string(entry, "evidence_class", &at)?;
         if !["specified", "measured", "estimated", "synthetic", "unknown"]
@@ -557,9 +556,7 @@ fn parse_input_bounds(
             return Err(format!("{at}.source_ref must not be empty"));
         }
         if evidence == "measured" && source_ref.as_str().is_none() {
-            return Err(format!(
-                "{at}: measured bounds require a source_ref"
-            ));
+            return Err(format!("{at}: measured bounds require a source_ref"));
         }
         result.insert(key.to_owned(), interval);
     }
@@ -711,19 +708,25 @@ mod tests {
         }
     }
 
-
     #[test]
     fn bounded_v0_2_request_emits_ordered_output_enclosures() {
         let bytes = fixture("analytical-bar-bounds-v0.2.json");
         let receipt = evaluate_request_bytes(&bytes, REV).expect("valid bounded request");
         assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
         assert_eq!(receipt["result_status"], "PASS");
-        assert_eq!(receipt["input_bounds"]["force_n"]["evidence_class"], "synthetic");
-        assert!(receipt["interval_semantics"]
-            .as_str()
-            .unwrap()
-            .contains("not a probability distribution"));
-        let nominal = receipt["outputs"]["axial_stress_pa"].as_f64().expect("nominal stress");
+        assert_eq!(
+            receipt["input_bounds"]["force_n"]["evidence_class"],
+            "synthetic"
+        );
+        assert!(
+            receipt["interval_semantics"]
+                .as_str()
+                .unwrap()
+                .contains("not a probability distribution")
+        );
+        let nominal = receipt["outputs"]["axial_stress_pa"]
+            .as_f64()
+            .expect("nominal stress");
         let range = &receipt["output_intervals"]["axial_stress_pa"];
         assert!(range["lower"].as_f64().unwrap() < nominal);
         assert_eq!(range["nominal"].as_f64(), Some(nominal));
@@ -764,15 +767,19 @@ mod tests {
         let fixture = fixture("analytical-bar-bounds-v0.2.json");
         let mut request: Value = serde_json::from_slice(&fixture).unwrap();
         request["inputs"]["force_n"] = json!(1_200.0);
-        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV)
-            .unwrap_err()
-            .contains("lies outside request.input_bounds"));
+        assert!(
+            evaluate_request_bytes(request.to_string().as_bytes(), REV)
+                .unwrap_err()
+                .contains("lies outside request.input_bounds")
+        );
 
         let mut request: Value = serde_json::from_slice(&fixture).unwrap();
         request["input_bounds"]["area_m2"]["unit"] = json!("m");
-        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV)
-            .unwrap_err()
-            .contains("input_bounds.area_m2.unit"));
+        assert!(
+            evaluate_request_bytes(request.to_string().as_bytes(), REV)
+                .unwrap_err()
+                .contains("input_bounds.area_m2.unit")
+        );
 
         let mut request: Value = serde_json::from_slice(&fixture).unwrap();
         request["input_bounds"]["area_m2"]["lower"] = json!(0.012);
@@ -785,14 +792,11 @@ mod tests {
         assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV).is_err());
     }
 
-
     #[test]
     fn zero_crossing_load_yields_zero_lower_bound_for_absolute_stress() {
-        let receipt = evaluate_request_bytes(
-            &fixture("cantilever-zero-crossing-bounds-v0.2.json"),
-            REV,
-        )
-        .expect("zero-crossing bounded cantilever request");
+        let receipt =
+            evaluate_request_bytes(&fixture("cantilever-zero-crossing-bounds-v0.2.json"), REV)
+                .expect("zero-crossing bounded cantilever request");
         assert_eq!(receipt["result_status"], "PASS");
         assert_eq!(receipt["outputs"]["maximum_bending_stress_pa"], 0.0);
         assert_eq!(
@@ -821,13 +825,11 @@ mod tests {
         assert_eq!(receipt["result_status"], "UNRESOLVED");
         assert_eq!(receipt["outputs"], Value::Null);
         assert_eq!(receipt["output_intervals"], Value::Null);
-        assert!(
-            receipt["diagnostics"]
-                .as_array()
+        assert!(receipt["diagnostics"].as_array().unwrap().iter().any(|v| {
+            v.as_str()
                 .unwrap()
-                .iter()
-                .any(|v| v.as_str().unwrap().contains("bounded analytical evaluation"))
-        );
+                .contains("bounded analytical evaluation")
+        }));
     }
 
     #[test]
