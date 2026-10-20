@@ -26,3 +26,17 @@ Important status distinction:
 - Unsupported or absent physics is listed in `physics_omitted` and prevents the capability screen from claiming a supported request envelope.
 
 The validator's receipt schema is `solver-validation-receipt-v0.1.schema.json`. Focused CI runs pinned Rust formatting, tests, Clippy, exact-head receipt assertions and negative controls. This remains a request-contract validator, not a complete JSON Schema implementation or a qualified solver adapter.
+
+## Solver-produced receipt verifier
+
+The same Rust crate now exposes a second, deliberately narrower operation:
+
+```sh
+cargo run --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+  --request schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json \
+  --receipt schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json
+```
+
+Receipt mode verifies exact request-byte SHA-256, request ID and source revision; validates the receipt's nested shape and key types; requires `physics_evaluated` and `physics_omitted` to form a disjoint, complete partition of the request's physics; checks that every required output kind appears for producer-`PASS`; and blocks a producer-`PASS` for physics outside the declared fidelity class. The fixture workflow binds the unresolved receipt to the exact checked-in request bytes before verifying it.
+
+The verifier's own report says `receipt_contract_validation = PASS` separately from `producer_status`. It always reports `solver_execution_authenticated = false` and `output_artifact_bytes_verified = false`: no signature, output-file retrieval, solver execution attestation, numerical comparison, or physical validation is performed by this function. It validates the receipt/request relationship, not the truth of the receipt. Reuse the existing evidence-bundle/signature authorities for byte verification and authenticity instead of creating a competing ledger.
