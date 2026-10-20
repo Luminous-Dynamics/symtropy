@@ -45,6 +45,7 @@ jobs:
             and all(.results[]; .declared_mission_fit == true)
             and all(.results[]; .cost_inputs_release_grade == false)
             and all(.results[]; .release_disposition == "needs_evidence")
+            and all(.results[]; .economics_result == "range_crosses_target_ceiling")
           ' ev-passenger-cost-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \

@@ -992,4 +992,45 @@ mod tests {
         let changed = evaluate_catalog(&catalog).results[0].cost_headroom_high;
         assert!(changed < original);
     }
+
+    #[test]
+    fn synthetic_frontier_exposes_high_cost_shortfall_without_claiming_feasibility() {
+        let raw = include_str!("../fixtures/ev_passenger_cost_v0_1.json");
+        let catalog: Catalog = serde_json::from_str(raw).expect("fixture parses");
+        let report = evaluate_catalog(&catalog);
+        assert!((report.retail_price_ceiling - 307_710.0).abs() < 1e-9);
+        assert!((report.maximum_affordable_cost_of_goods - 216_627.84).abs() < 1e-6);
+        assert!(report.results.iter().all(|candidate| {
+            candidate.economics_result == EconomicsResult::RangeCrossesTargetCeiling
+                && candidate.release_disposition == ReleaseDisposition::NeedsEvidence
+        }));
+    }
+
+    #[test]
+    fn inadequate_usable_pack_energy_blocks_range_target() {
+        let mut catalog = minimal_catalog();
+        catalog.candidates[0].envelope.nominal_pack_kwh = 30.0;
+        let findings = declared_mission_findings(&catalog.candidates[0], &catalog.target);
+        assert!(findings.iter().any(|finding| {
+            finding.starts_with("range_energy_exceeds_declared_usable_pack_kwh")
+        }));
+    }
+
+    #[test]
+    fn higher_inclusive_vat_cannot_increase_allowable_cogs() {
+        let mut catalog = minimal_catalog();
+        let baseline = target_waterfall(&catalog).2;
+        catalog.market.vat_fraction = 0.20;
+        let changed = target_waterfall(&catalog).2;
+        assert!(changed < baseline);
+    }
+
+    #[test]
+    fn higher_distributor_share_cannot_increase_allowable_cogs() {
+        let mut catalog = minimal_catalog();
+        let baseline = target_waterfall(&catalog).2;
+        catalog.market.distributor_margin_fraction = 0.20;
+        let changed = target_waterfall(&catalog).2;
+        assert!(changed < baseline);
+    }
 }
