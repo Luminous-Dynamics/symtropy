@@ -24,7 +24,7 @@ struct Observation {
     site_budget_kw: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct ConditionResult {
     vocation: String,
     fleet_size: usize,
@@ -354,18 +354,11 @@ fn analyze(root: &Value, confidence_level: f64, target: f64) -> Result<Report, S
         conditions.push(condition);
     }
     conditions.sort_by(|a, b| {
-        (
-            &a.vocation,
-            a.fleet_size,
-            &a.policy,
-            a.capacity_fraction_of_base,
-        )
-            .cmp(&(
-                &b.vocation,
-                b.fleet_size,
-                &b.policy,
-                b.capacity_fraction_of_base,
-            ))
+        a.vocation
+            .cmp(&b.vocation)
+            .then_with(|| a.fleet_size.cmp(&b.fleet_size))
+            .then_with(|| a.policy.cmp(&b.policy))
+            .then_with(|| a.capacity_fraction_of_base.total_cmp(&b.capacity_fraction_of_base))
     });
 
     let mut frontiers = Vec::new();
