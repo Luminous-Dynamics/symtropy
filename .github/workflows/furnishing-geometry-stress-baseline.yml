@@ -1,0 +1,84 @@
+name: Furnishing Geometry Stress Baseline v0.2
+
+on:
+  push:
+    branches:
+      - bench/furnishing-adversarial-baseline-v0-2-20261020
+  pull_request:
+    branches:
+      - feat/furnishing-functional-envelope-oracle-v0-2-20261020
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/furnishing-layout-audit/Cargo.toml"
+      - "tools/furnishing-layout-audit/benches/functional_envelope_stress.rs"
+      - ".github/workflows/furnishing-geometry-stress-baseline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Exact-head brute-force stress baseline
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head="${{ github.event.pull_request.head.sha }}"
+          test "$(git rev-parse HEAD)" = "$expected_head"
+          echo "Brute-force baseline source SHA: $expected_head"
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Record machine provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version --verbose
+          uname -a
+          lscpu || true
+          free -h || true
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
+      - name: Run v0.2 known-truth and mutation tests
+        run: cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Benchmark same adversarial workloads on v0.2
+        run: |
+          set -euo pipefail
+          echo "=== baseline-v0.2 source: $(git rev-parse HEAD) ==="
+          cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
+      - name: Checkout exact v0.3 indexed candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: a6fadac278a7005c61ff92626ed41e600a3fdb40
+          path: optimized
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Assert optimized candidate source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head="a6fadac278a7005c61ff92626ed41e600a3fdb40"
+          actual_head="$(git -C optimized rev-parse HEAD)"
+          test "$actual_head" = "$expected_head"
+          echo "indexed-v0.3 source: $actual_head"
+      - name: Benchmark the v0.3 indexed candidate on the same host
+        working-directory: optimized
+        run: |
+          set -euo pipefail
+          echo "=== indexed-v0.3 source: $(git rev-parse HEAD) ==="
+          cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_stress
