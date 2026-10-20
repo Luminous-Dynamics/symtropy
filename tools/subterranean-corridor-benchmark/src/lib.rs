@@ -7,6 +7,7 @@
 
 pub mod dependencies;
 pub mod recovery;
+pub mod repair;
 
 const EPS: f64 = 1.0e-9;
 pub const BENCHMARK_VERSION: &str = "0.1.0";
