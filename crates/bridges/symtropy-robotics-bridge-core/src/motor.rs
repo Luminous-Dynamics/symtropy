@@ -285,4 +285,69 @@ mod tests {
             MotorPlannerStatus::Rejected(MotorPlannerFault::BridgeFailure)
         );
     }
+
+    #[test]
+    fn motor_plan_result_serialization_matches_v1_envelope() {
+        let ready = MotorPlanResult {
+            commands: vec![0.25, 0.5, 0.75],
+            status: MotorPlannerStatus::Ready,
+        };
+        let value = serde_json::to_value(&ready).expect("result should serialize");
+        assert_eq!(value["status"], serde_json::json!("ready"));
+        assert_eq!(value["commands"], serde_json::json!([0.25, 0.5, 0.75]));
+        let round_trip: MotorPlanResult =
+            serde_json::from_value(value).expect("result should deserialize");
+        assert_eq!(round_trip, ready);
+
+        let rejected = MotorPlanResult {
+            commands: vec![0.0; 3],
+            status: MotorPlannerStatus::Rejected(MotorPlannerFault::AgentNotAuthorized),
+        };
+        let value = serde_json::to_value(&rejected).expect("rejection should serialize");
+        assert_eq!(
+            value["status"],
+            serde_json::json!({"rejected": "agent_not_authorized"})
+        );
+        let round_trip: MotorPlanResult =
+            serde_json::from_value(value).expect("rejection should deserialize");
+        assert_eq!(round_trip, rejected);
+    }
+
+    #[test]
+    fn serialized_fault_names_match_v1_schema() {
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/motor-plan-result-v1.schema.json"
+        ))
+        .expect("checked-in motor plan schema must parse");
+        let variants = schema["properties"]["status"]["oneOf"]
+            .as_array()
+            .expect("status schema should use oneOf");
+        assert_eq!(variants[0]["const"], serde_json::json!("ready"));
+        let allowed = variants[1]["properties"]["rejected"]["enum"]
+            .as_array()
+            .expect("rejected enum should be present")
+            .iter()
+            .map(|value| value.as_str().expect("fault name must be a string"))
+            .collect::<std::collections::BTreeSet<_>>();
+        let faults = [
+            MotorPlannerFault::InvalidConfiguration,
+            MotorPlannerFault::InvalidGain,
+            MotorPlannerFault::InvalidObservation,
+            MotorPlannerFault::InvalidDangerLevel,
+            MotorPlannerFault::AgentNotAuthorized,
+            MotorPlannerFault::EncodingFailure,
+            MotorPlannerFault::ActuatorInterfaceMismatch,
+            MotorPlannerFault::BridgeFailure,
+            MotorPlannerFault::InvalidOutput,
+        ];
+        for fault in faults {
+            let value = serde_json::to_value(MotorPlannerStatus::Rejected(fault))
+                .expect("fault status should serialize");
+            let name = value["rejected"]
+                .as_str()
+                .expect("rejected status should serialize a fault name");
+            assert!(allowed.contains(name), "serialized fault {name} is absent from schema");
+        }
+        assert_eq!(allowed.len(), faults.len());
+    }
 }
