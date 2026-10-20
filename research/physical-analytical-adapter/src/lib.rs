@@ -244,10 +244,12 @@ fn receipt(
         "outputs": outputs,
         "output_units": request.case.units(),
         "output_enclosures": output_enclosures,
-        "uncertainty_method": if request.input_bounds.is_some() {
+        "uncertainty_method": if request.input_bounds.is_none() {
+            "none_input_bounds_not_supplied"
+        } else if status == "PASS" {
             "deterministic_interval_outward_rounded_v0.1"
         } else {
-            "none_input_bounds_not_supplied"
+            "not_executed_unresolved"
         },
         "real_world_validation_status": "UNRESOLVED",
         "reference_oracle_tolerances": {
