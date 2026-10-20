@@ -346,7 +346,7 @@ fn exhaustive_sloped_segments_match_integer_rational_closest_approach_oracle() {
                         norm_r * norm_d - dot * dot
                     };
 
-                    for radius_m in 0_i32..=4 {
+                    for radius_m in 1_i32..=5 {
                         let radius = i64::from(radius_m);
                         let expected_conflict =
                             min_distance_sq_numerator <= radius * radius * norm_d;
