@@ -1153,6 +1153,14 @@ fn make_receipt(source_commit: &str) -> Check<Receipt> {
             || summary.stream_coverage_count != per_cell_stream_count
             || summary.coverage_recovery_successes > summary.coverage_recovery_attempts
             || summary.coverage_recovery_attempts > per_cell_stream_count
+            || summary.post_recovery_windows_in_band > summary.post_recovery_windows_observed
+            || summary.post_recovery_persistence_rate.is_some_and(|rate| {
+                !rate.is_finite() || !(0.0..=1.0).contains(&rate)
+            })
+            || (summary.post_recovery_windows_observed == 0
+                && summary.post_recovery_persistence_rate.is_some())
+            || (summary.post_recovery_windows_observed > 0
+                && summary.post_recovery_persistence_rate.is_none())
             || summary
                 .coverage_recovery_rate
                 .is_some_and(|rate| !rate.is_finite() || !(0.0..=1.0).contains(&rate))
@@ -1442,6 +1450,35 @@ mod tests {
             .map(|tick| make_outcome(tick, 5))
             .collect::<Vec<_>>();
         assert_eq!(Some(14), coverage_band_recovery_delay(&delayed, 0));
+    }
+
+    #[test]
+    fn post_recovery_persistence_detects_later_coverage_breakdown() {
+        let outcomes = (0..24)
+            .map(|tick| {
+                let covered = if tick < 10 {
+                    true
+                } else if tick < 19 {
+                    tick % 4 != 0
+                } else {
+                    false
+                };
+                StepOutcome {
+                    tick,
+                    radius: 1.0,
+                    decision: Decision::DiagnoseOnly,
+                    coverage: Some(covered),
+                    label_matures_at: Some(tick),
+                    interval_width: 2.0,
+                    hard_control: false,
+                }
+            })
+            .collect::<Vec<_>>();
+        assert!(coverage_band_recovery_delay(&outcomes, 0).is_some());
+        let (in_band, observed) =
+            post_recovery_window_counts(&outcomes, 0).expect("a recovery was found");
+        assert!(observed > 0);
+        assert!(in_band < observed);
     }
 
     #[test]
