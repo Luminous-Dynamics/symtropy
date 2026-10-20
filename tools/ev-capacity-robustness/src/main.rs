@@ -575,6 +575,10 @@ fn aggregate(runs: &[Run], options: &Options, run_manifest_sha256: String) -> Re
         return Err(format!("matrix_too_small:fleet_sizes={},vocations={}", fleet_sizes.len(), vocations.len()));
     }
 
+    let expected_group_count = fleet_sizes.len() * vocations.len();
+    if grouped.len() != expected_group_count {
+        return Err(format!("incomplete_vocation_fleet_cross_product:expected_groups={expected_group_count},actual_groups={}", grouped.len()));
+    }
     let mut policy_aggregates = Vec::<PolicyAggregate>::new();
     for ((vocation, fleet_size), group_runs) in &grouped {
         if group_runs.len() != options.expected_seeds {
