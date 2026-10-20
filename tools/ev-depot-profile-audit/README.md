@@ -33,7 +33,7 @@ The last argument is a caller-declared resource-version label; the report hashes
 
 ## Checks and outputs
 
-The tool recognizes the upstream filename convention, validates the complete 81-key cross product, checks timestamps are exactly 00:00 through 23:45 at 15-minute intervals, and rejects missing/duplicate keys, malformed power columns, non-finite/negative power, incorrect interval count or gaps in the timestamp sequence.
+The tool recognizes the upstream filename convention, validates the complete 81-key cross product, checks timestamps are exactly 00:00 through 23:45 at 15-minute intervals, and rejects missing/duplicate keys, malformed power columns, non-finite/negative power, incorrect interval count or gaps in the timestamp sequence. It explicitly ignores AppleDouble macOS sidecar entries under `__MACOSX/` and `._*` filenames; the archive-level report preserves the number ignored instead of misclassifying resource-fork metadata as profile data.
 
 For each profile it emits the internal CSV SHA-256, fleet/size/strategy/profile class, total daily energy (`Σ kW × 0.25 h`), peak and mean power, nonzero/zero intervals and first/last nonzero interval. The archive-level report carries a ZIP SHA-256 and findings. The CLI exits nonzero if the expected 81-profile contract does not validate; invalid profiles and missing/duplicate keys are represented in the JSON report.
 
