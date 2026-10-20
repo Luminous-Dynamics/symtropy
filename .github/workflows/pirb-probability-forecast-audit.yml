@@ -406,7 +406,7 @@ jobs:
             and (.score_results.base_unreconciled.variogram_score - 0.25 | fabs < 0.000000000001)
             and (.score_results.reconciled.energy_score - 0.8535533905932737 | fabs < 0.000000000001)
             and (.score_results.reconciled.variogram_score - 1.0 | fabs < 0.000000000001)
-            and .coherence_summary.base_coherent_draw_count == 1
+            and .coherence_summary.base_coherent_draw_count == 2
             and .coherence_summary.reconciled_coherent_draw_count == 4
             and .metric_semantics.log_score_used == false
             and .metric_semantics.scored_vector_parent_child_overlap == false
