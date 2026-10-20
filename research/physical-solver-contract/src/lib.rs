@@ -481,15 +481,15 @@ fn validate_acceptance(items: &Map<String, Value>) -> Check<()> {
     {
         return Err("request.acceptance.require_convergence must be boolean".to_owned());
     }
-    if let Some(v) = items.get("max_iterations") {
-        if v.as_u64().is_none_or(|n| n == 0) {
-            return Err("request.acceptance.max_iterations must be positive integer".to_owned());
-        }
+    if let Some(v) = items.get("max_iterations")
+        && v.as_u64().is_none_or(|n| n == 0)
+    {
+        return Err("request.acceptance.max_iterations must be positive integer".to_owned());
     }
-    if let Some(v) = items.get("max_time_step_s") {
-        if v.as_f64().is_none_or(|n| !n.is_finite() || n <= 0.0) {
-            return Err("request.acceptance.max_time_step_s must be positive finite".to_owned());
-        }
+    if let Some(v) = items.get("max_time_step_s")
+        && v.as_f64().is_none_or(|n| !n.is_finite() || n <= 0.0)
+    {
+        return Err("request.acceptance.max_time_step_s must be positive finite".to_owned());
     }
     Ok(())
 }
