@@ -10,13 +10,13 @@
 - Deterministic connected-component analysis after structural-graph changes.
 - A conserved mass ledger partitioned into reused, recycled, contaminated, waste, and unaccounted outputs.
 - A state-bound `RecoverComponent` event that only recovers an existing component once it has no active support or connections; all output categories must sum exactly to the component's declared mass before the component leaves the active scene.
-- A deterministic deconstruction preflight plan that rejects active supports and connections to non-target components, orders target-internal disconnections by ID, then recovery by component ID, and binds execution to the source revision.
+- A deterministic deconstruction preflight plan that rejects active supports and connections to non-target components, orders target-internal disconnections by ID, then recovery by component ID, and binds execution to the source revision and canonical source-state snapshot, preventing a plan from being replayed against a different world with the same numeric revision.
 - Atomic plan execution: the canonical plan is recomputed, stale or tampered plans are rejected, and staged events are committed only if the entire operation succeeds.
 - Three closed-form mechanics references: a uniform linear-elastic axial bar, a small-deflection Euler-Bernoulli cantilever under a tip point load, and a simply supported Euler-Bernoulli beam under a full-span uniform load.
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, cantilever deflection, simply supported midspan deflection and bending stress.
 - Frozen synthetic fixture: three topology components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one. A separate component is then recovered through the state transition and its declared 1,000 mg reconciles exactly to recovery outputs.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
-- Twenty unit tests and four integration tests pin topology, accounting, deconstruction planning, and analytical outcomes against explicit expected values.
+- Twenty-one unit tests and four integration tests pin topology, accounting, deconstruction planning, and analytical outcomes against explicit expected values.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 
 ## Run locally
