@@ -38,7 +38,7 @@ fn ensure_only_fields(value: &Value, allowed: &[&str], context: &str) -> Result<
     let object = value
         .as_object()
         .ok_or_else(|| format!("{context} must be an object"))?;
-    if let Some(field) = object.keys().find(|key| !allowed.iter().any(|allowed| *allowed == key)) {
+    if let Some(field) = object.keys().find(|key| !allowed.iter().any(|allowed| *allowed == key.as_str())) {
         return Err(format!("{context} contains unknown field '{field}'"));
     }
     Ok(())
@@ -66,12 +66,11 @@ fn parse_input(root: &Value) -> Result<(Vec<ModelOutcome>, f64), String> {
     ) {
         return Err("status must state that these outcomes are not validated".to_owned());
     }
-    let scenario = root
+    let _scenario = root
         .get("scenario")
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| "scenario must be a non-empty string".to_owned())?;
-    let _ = scenario;
     let cvar_alpha = root
         .get("cvar_alpha")
         .and_then(Value::as_f64)
