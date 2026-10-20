@@ -86,7 +86,8 @@ impl Method {
             Self::InterdepartureCv => row.interdeparture_cv,
             Self::FlowPressure => {
                 row.utilization_fraction + 0.5 * row.blocked_fraction
-                    - row.starved_fraction - row.down_fraction
+                    - row.starved_fraction
+                    - row.down_fraction
             }
             Self::PredictedMarginalGain => row.predicted_marginal_good_output_gain_fraction,
         }
@@ -206,12 +207,18 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err("scenario_metadata_must_be_nonempty_and_ids_unique".into());
         }
         if scenario.signals.len() < 2 {
-            return Err(format!("scenario_{}_requires_at_least_two_candidates", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_requires_at_least_two_candidates",
+                scenario.scenario_id
+            ));
         }
         let mut station_ids = BTreeSet::new();
         for row in &scenario.signals {
             if row.station_id.trim().is_empty() || !station_ids.insert(row.station_id.clone()) {
-                return Err(format!("scenario_{}_station_ids_must_be_unique", scenario.scenario_id));
+                return Err(format!(
+                    "scenario_{}_station_ids_must_be_unique",
+                    scenario.scenario_id
+                ));
             }
             valid_fraction("utilization_fraction", row.utilization_fraction)?;
             valid_fraction("active_period_fraction", row.active_period_fraction)?;
@@ -227,7 +234,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             }
         }
         if !station_ids.contains(&scenario.ground_truth_constraint_id) {
-            return Err(format!("scenario_{}_ground_truth_not_in_candidates", scenario.scenario_id));
+            return Err(format!(
+                "scenario_{}_ground_truth_not_in_candidates",
+                scenario.scenario_id
+            ));
         }
     }
     Ok(())
@@ -247,7 +257,11 @@ fn predict(scenario: &Scenario, method: Method) -> Prediction {
             tied = true;
         }
     }
-    let winner = if tied { None } else { best_id.map(str::to_string) };
+    let winner = if tied {
+        None
+    } else {
+        best_id.map(str::to_string)
+    };
     Prediction {
         method: method.name().to_string(),
         correct: winner.as_deref() == Some(scenario.ground_truth_constraint_id.as_str()),
@@ -288,10 +302,12 @@ fn evaluate_method(
                 *tp.entry(value.clone()).or_default() += 1;
             } else {
                 *fp.entry(value.clone()).or_default() += 1;
-                *fn_.entry(scenario_result.ground_truth_constraint_id.clone()).or_default() += 1;
+                *fn_.entry(scenario_result.ground_truth_constraint_id.clone())
+                    .or_default() += 1;
             }
         } else {
-            *fn_.entry(scenario_result.ground_truth_constraint_id.clone()).or_default() += 1;
+            *fn_.entry(scenario_result.ground_truth_constraint_id.clone())
+                    .or_default() += 1;
         }
     }
 
@@ -301,14 +317,8 @@ fn evaluate_method(
             let true_positives = *tp.get(station_id).unwrap_or(&0);
             let false_positives = *fp.get(station_id).unwrap_or(&0);
             let false_negatives = *fn_.get(station_id).unwrap_or(&0);
-            let precision = ratio(
-                true_positives,
-                true_positives + false_positives,
-            );
-            let recall = ratio(
-                true_positives,
-                true_positives + false_negatives,
-            );
+            let precision = ratio(true_positives, true_positives + false_positives);
+            let recall = ratio(true_positives, true_positives + false_negatives);
             let f1 = if precision + recall > 0.0 {
                 2.0 * precision * recall / (precision + recall)
             } else {
@@ -417,8 +427,14 @@ mod tests {
         let scenario = &catalog.scenarios[0];
         let utilization = predict(scenario, Method::Utilization);
         let gain = predict(scenario, Method::PredictedMarginalGain);
-        assert_ne!(utilization.predicted_constraint_id, Some(scenario.ground_truth_constraint_id.clone()));
-        assert_eq!(gain.predicted_constraint_id, Some(scenario.ground_truth_constraint_id.clone()));
+        assert_ne!(
+            utilization.predicted_constraint_id,
+            Some(scenario.ground_truth_constraint_id.clone())
+        );
+        assert_eq!(
+            gain.predicted_constraint_id,
+            Some(scenario.ground_truth_constraint_id.clone())
+        );
     }
 
     #[test]
