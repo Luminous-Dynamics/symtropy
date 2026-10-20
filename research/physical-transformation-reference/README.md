@@ -93,3 +93,8 @@ The assessment binds itself to the world's numeric revision and canonical source
 There is deliberately no scalar "DfD score": the vector makes trade-offs and missing dimensions visible rather than allowing arbitrary weights to mask unknown connection behavior. `Complete` means only that the declared metadata vector is complete for the graph. It is not a structural stability result or a qualified safe-removal sequence.
 
 The [PHYS-REVERSIBILITY-001 issue #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268) tracks adding an open, measured DfD comparison set and later comparing against published indicators such as DEI, once permitted source data and metric definitions are available.
+
+
+## Measured DfD validation protocol
+
+A proposed field/bench protocol is in [PHYSICAL_DFD_MEASUREMENT_PROTOCOL_V0_1.md](../../docs/research/PHYSICAL_DFD_MEASUREMENT_PROTOCOL_V0_1.md), tracked by [PHYS-DISASSEMBLY-OBS-001 #2282](https://github.com/Luminous-Dynamics/symtropy/issues/2282). It freezes predictions before task start, uses grouped blind holdouts, preserves all incomplete/safety-stopped tasks, and compares effort/tool/outcome predictions against naive baselines. It starts with non-load-bearing bench coupons; it is not a real demolition trial. No measured corpus or performance claim is included.
