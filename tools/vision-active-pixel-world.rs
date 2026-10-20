@@ -730,8 +730,8 @@ mod tests {
         let persistent = HiddenWorld::generated(seed, true, family);
         let removed = HiddenWorld::generated(seed, false, family);
         (
-            HiddenWorld { side_view_available: true, side_view_successful: true, ..persistent },
-            HiddenWorld { side_view_available: true, side_view_successful: true, ..removed },
+            HiddenWorld { side_view_successful: true, ..persistent },
+            HiddenWorld { side_view_successful: true, ..removed },
         )
     }
 
