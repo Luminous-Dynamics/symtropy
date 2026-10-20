@@ -62,6 +62,8 @@ jobs:
           grep -Fq "query_keyed_latest" vis-relational-memory.tsv
           grep -Fq "query_keyed_selective" vis-relational-memory.tsv
           grep -Fq "query_keyed_hazard_aware" vis-relational-memory.tsv
+          grep -Fq "query_keyed_gap_aware" vis-relational-memory.tsv
+          grep -Fq "gap-aware policy: candidate per-tick hazards" vis-relational-memory.tsv
           grep -Fq "mean_logical_state_bytes" vis-relational-memory.tsv
           grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
           grep -Fq "conditional corruption p per tier" vis-relational-memory.tsv
@@ -73,7 +75,7 @@ jobs:
           grep -Fq "profile_high_claim_flip_rate" vis-relational-memory.tsv
           grep -Fq "profile_high_max_delay" vis-relational-memory.tsv
           grep -Fq "profile_high_corruption_rate" vis-relational-memory.tsv
-          test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 25
+          test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 30
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
           cat vis-relational-memory.tsv
