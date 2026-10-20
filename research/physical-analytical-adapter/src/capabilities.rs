@@ -182,14 +182,14 @@ fn resolve_against_manifest(
             selected_backend: Some(backend),
             manifest_sha256: digest,
             outputs,
-            physics_omitted: physics_omitted.into_iter().collect(),
+            physics_omitted: Vec::new(),
             diagnostics: Vec::new(),
         });
     }
     if compatible.len() > 1 {
         return Ok(unresolved(
             digest,
-            physics_omitted.into_iter().collect(),
+            Vec::new(),
             vec![format!(
                 "ambiguous dispatch: {} qualified backends match the complete request",
                 compatible.len()
