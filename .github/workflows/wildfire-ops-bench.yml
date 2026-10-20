@@ -201,8 +201,8 @@ jobs:
               command -v sumo
               netconvert --version 2>&1 | tee /data/netconvert-version.txt
               sumo --version 2>&1 | tee /data/sumo-version.txt
-              grep -q "Version 1.27.1" /data/netconvert-version.txt
-              grep -q "Version 1.27.1" /data/sumo-version.txt
+              grep -q "1.27.1" /data/netconvert-version.txt
+              grep -q "1.27.1" /data/sumo-version.txt
               for case_dir in /data/*/; do
                 test -f "$case_dir/manifest.json" || continue
                 echo "Building network for $(basename "$case_dir")"

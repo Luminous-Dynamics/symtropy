@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const SUMO_VERSION: &str = "Version 1.27.1";
+const SUMO_VERSION: &str = "1.27.1";
 const CASE_IDS: [&str; 6] = [
     "TWO_ORIGINS_SHARED_BOTTLENECK_001",
     "FINITE_STORAGE_BACKPRESSURE_002",
@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn pinned_runtime_version_is_explicit() {
-        assert_eq!(SUMO_VERSION, "Version 1.27.1");
+        assert_eq!(SUMO_VERSION, "1.27.1");
     }
 
     #[test]
