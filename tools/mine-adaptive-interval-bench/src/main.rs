@@ -558,7 +558,7 @@ fn evaluate_stream(
         policy,
         Policy::FixedSplitIntervalOnly | Policy::FixedSplitTrustGated
     );
-    let mut online_radius = fixed_radius;
+    let mut online_radius = INITIAL_RADIUS;
     let mut history = calibration.to_vec();
     let mut pending_labels: VecDeque<(usize, f64)> = VecDeque::new();
     let mut latched = false;
