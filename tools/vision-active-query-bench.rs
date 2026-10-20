@@ -137,14 +137,11 @@ impl ActiveEpisode {
         let mut profile_rng = Rng::new(mix64(seed ^ 0x5052_4F46_494C_45));
         let profile = family.sample_profile(&mut profile_rng);
 
-        let mut order = [0, 1, 2, 3, 4, 5, 6, 7];
-        let mut query_rng = Rng::new(mix64(seed ^ 0x5155_4552_595F_4B59));
-        for i in (1..TOTAL_CLAIMS).rev() {
-            let j = query_rng.range(i + 1);
-            order.swap(i, j);
-        }
-        let query_keys = [order[0], order[1], order[2]];
-        let hot_distractor = order[3];
+        // Keep the public query fixed across policies and seeds. This makes
+        // matched action choices semantically comparable while the five
+        // remaining claims provide the distractor pool.
+        let query_keys = QUERY_KEYS;
+        let hot_distractor = 3_usize;
 
         let mut world_rng = Rng::new(mix64(seed ^ 0x574F_524C_445F_5255));
         let mut truth = vec![[false; TOTAL_CLAIMS]; HORIZON];
@@ -597,7 +594,7 @@ mod tests {
 
     #[test]
     fn every_policy_respects_the_same_observation_budget() {
-        let episode = ActiveEpisode::generate(0xBUD6_E700, Family::HeldOut);
+        let episode = ActiveEpisode::generate(0xB0D6_E700, Family::HeldOut);
         for policy in PolicyKind::ALL {
             let result = run_policy(&episode, policy, 99);
             assert_eq!(result.actions.len(), HORIZON);
