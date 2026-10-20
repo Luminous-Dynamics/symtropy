@@ -1162,7 +1162,10 @@ mod tests {
             json!("S02_COMMON_MODE_OUTAGE");
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("scenario identity must not enter policy inputs");
-        assert!(error.contains("forbidden future/hidden policy input"), "{error}");
+        assert!(
+            error.contains("forbidden future/hidden policy input"),
+            "{error}"
+        );
     }
 
     #[test]
@@ -1177,7 +1180,10 @@ mod tests {
             left_history;
         let error = evaluate_fixture(&fixture, "test-fixture", &manifest)
             .expect_err("different action under identical observations must fail");
-        assert!(error.contains("actions differ despite identical policy-visible histories"), "{error}");
+        assert!(
+            error.contains("actions differ despite identical policy-visible histories"),
+            "{error}"
+        );
     }
 
     #[test]
