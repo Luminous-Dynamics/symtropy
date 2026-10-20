@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-animal-ecology-pilot"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic synthetic flood-forage pilot runtime with paired receipts."
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+sha2 = "0.10"
+symtropy-animal-ecology-oracle = { path = "../symtropy-animal-ecology-oracle" }
