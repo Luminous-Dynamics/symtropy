@@ -29,7 +29,8 @@ A factory isn't a set of independent cycle times. When mixed variants share work
 - Job IDs are used as a simple release-sequence proxy. Real production orders can have priorities, due dates, family grouping, rework loops and explicit resequencing requests, none of which are modeled.
 - A count of out-of-order transfers is not a full permutation-distance metric, cannot quantify customer delivery delay, and doesn't itself prove that order inversion caused lost output.
 - Changeover events are inferred from each synthetic server's last variant and the fixture duration; no actual production setup logs are used.
-- No sequence-aware dispatch policy, resequencing buffer or scheduler optimizer is implemented here. These are tracked follow-on experiments.
+- This instrumentation slice did not implement a sequence-aware dispatch policy. A stacked follow-on [draft PR #2443](https://github.com/Luminous-Dynamics/symtropy/pull/2443) now implements a bounded local `minimize_changeover` queue policy against the FIFO control, reports per-variant queue waits, and compares both policies on paired seed streams. It remains synthetic-only and is not a scheduler optimizer or production-release mechanism.
+- No due-date model, customer-priority semantics, global route optimization, or plant/MES/PLC control is implied by the follow-on policy.
 - The 20 seeds quantify only stochastic variation under this synthetic model, not uncertainty in the model structure, measurement system or parameters.
 - Site release, product safety, battery/HV processes, process capability and jurisdiction-specific approvals remain hard-false.
 
