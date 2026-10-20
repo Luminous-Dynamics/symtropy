@@ -35,6 +35,7 @@ struct SiteProfile {
     good_vehicle_yield_fraction: f64,
     fully_loaded_labor_cost_per_hour_local: f64,
     electricity_cost_per_kwh_local: f64,
+    useful_thermal_energy_cost_per_kwh_local: f64,
     building_lease_cost_per_sqm_year_local: f64,
     building_fitout_cost_per_sqm_local: f64,
     annual_site_overhead_local: f64,
@@ -82,6 +83,7 @@ struct StationProcess {
     footprint_sqm_per_cell: f64,
     operators_per_cell_per_shift: u32,
     energy_kwh_per_attempt: f64,
+    thermal_energy_kwh_per_attempt: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -127,6 +129,7 @@ struct StationResult {
     total_active_positions_across_shifts: u64,
     footprint_sqm: f64,
     energy_kwh_per_attempt: f64,
+    thermal_energy_kwh_per_attempt: f64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -155,6 +158,7 @@ struct ScenarioResult {
     total_installed_capex_usd: f64,
     annual_labor_cost_usd: f64,
     annual_energy_cost_usd: f64,
+    annual_useful_thermal_energy_cost_usd: f64,
     annual_building_lease_usd: f64,
     annual_site_overhead_usd: f64,
     annual_equipment_maintenance_usd: f64,
@@ -168,6 +172,7 @@ struct ScenarioResult {
     variable_warranty_reserve_usd_per_good_vehicle: f64,
     labor_cost_usd_per_good_vehicle: f64,
     energy_cost_usd_per_good_vehicle: f64,
+    useful_thermal_energy_cost_usd_per_good_vehicle: f64,
     lease_cost_usd_per_good_vehicle: f64,
     site_overhead_usd_per_good_vehicle: f64,
     maintenance_cost_usd_per_good_vehicle: f64,
@@ -323,6 +328,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 site.electricity_cost_per_kwh_local,
             ),
             (
+                "useful_thermal_energy_cost_per_kwh_local",
+                site.useful_thermal_energy_cost_per_kwh_local,
+            ),
+            (
                 "building_lease_cost_per_sqm_year_local",
                 site.building_lease_cost_per_sqm_year_local,
             ),
@@ -427,6 +436,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             )?;
             finite_nonnegative("footprint_sqm_per_cell", station.footprint_sqm_per_cell)?;
             finite_nonnegative("energy_kwh_per_attempt", station.energy_kwh_per_attempt)?;
+            finite_nonnegative(
+                "thermal_energy_kwh_per_attempt",
+                station.thermal_energy_kwh_per_attempt,
+            )?;
             if station.cycle_minutes_per_attempt <= 0.0 {
                 return Err(format!(
                     "process_{}_cycle_minutes_must_be_positive",
@@ -484,6 +497,7 @@ fn evaluate_pair(
             total_active_positions_across_shifts: operators_per_shift * site.shifts_per_day as u64,
             footprint_sqm: station.footprint_sqm_per_cell * parallel_cells as f64,
             energy_kwh_per_attempt: station.energy_kwh_per_attempt,
+            thermal_energy_kwh_per_attempt: station.thermal_energy_kwh_per_attempt,
         });
     }
     stations.sort_by(|a, b| a.process_id.cmp(&b.process_id));
@@ -530,6 +544,14 @@ fn evaluate_pair(
         .sum();
     let annual_energy_kwh = energy_kwh_per_attempt * attempts_at_output;
     let annual_energy_cost_usd = annual_energy_kwh * site.electricity_cost_per_kwh_local / fx;
+    let thermal_energy_kwh_per_attempt: f64 = stations
+        .iter()
+        .map(|station| station.thermal_energy_kwh_per_attempt)
+        .sum();
+    let annual_thermal_energy_cost_usd = thermal_energy_kwh_per_attempt
+        * attempts_at_output
+        * site.useful_thermal_energy_cost_per_kwh_local
+        / fx;
     let annual_lease_usd = building_area * site.building_lease_cost_per_sqm_year_local / fx;
     let annual_site_overhead_usd =
         site.annual_site_overhead_local / fx + template.annual_factory_overhead_usd;
@@ -538,6 +560,7 @@ fn evaluate_pair(
         equipment_capex / 10.0 + fitout_capex / 10.0 + template.launch_validation_capex_usd / 5.0;
     let annual_factory_fixed_cost = annual_labor_usd
         + annual_energy_cost_usd
+        + annual_thermal_energy_cost_usd
         + annual_lease_usd
         + annual_site_overhead_usd
         + annual_maintenance_usd
@@ -659,6 +682,7 @@ fn evaluate_pair(
         total_installed_capex_usd: total_installed_capex,
         annual_labor_cost_usd: annual_labor_usd,
         annual_energy_cost_usd,
+        annual_useful_thermal_energy_cost_usd: annual_thermal_energy_cost_usd,
         annual_building_lease_usd: annual_lease_usd,
         annual_site_overhead_usd,
         annual_equipment_maintenance_usd: annual_maintenance_usd,
@@ -672,6 +696,8 @@ fn evaluate_pair(
         variable_warranty_reserve_usd_per_good_vehicle: warranty_cost,
         labor_cost_usd_per_good_vehicle: labor_per_good,
         energy_cost_usd_per_good_vehicle: energy_per_good,
+        useful_thermal_energy_cost_usd_per_good_vehicle: annual_thermal_energy_cost_usd
+            / output_good as f64,
         lease_cost_usd_per_good_vehicle: lease_per_good,
         site_overhead_usd_per_good_vehicle: overhead_per_good,
         maintenance_cost_usd_per_good_vehicle: maintenance_per_good,
@@ -752,6 +778,7 @@ mod tests {
                 good_vehicle_yield_fraction: 0.9,
                 fully_loaded_labor_cost_per_hour_local: 100.0,
                 electricity_cost_per_kwh_local: 1.0,
+                useful_thermal_energy_cost_per_kwh_local: 0.5,
                 building_lease_cost_per_sqm_year_local: 10.0,
                 building_fitout_cost_per_sqm_local: 100.0,
                 annual_site_overhead_local: 10000.0,
@@ -784,6 +811,7 @@ mod tests {
                         footprint_sqm_per_cell: 20.0,
                         operators_per_cell_per_shift: 2,
                         energy_kwh_per_attempt: 10.0,
+                        thermal_energy_kwh_per_attempt: 0.0,
                     },
                     StationProcess {
                         process_id: "eol".to_string(),
@@ -793,6 +821,7 @@ mod tests {
                         footprint_sqm_per_cell: 10.0,
                         operators_per_cell_per_shift: 1,
                         energy_kwh_per_attempt: 2.0,
+                        thermal_energy_kwh_per_attempt: 0.0,
                     },
                 ],
                 note: "test only".to_string(),
@@ -845,6 +874,14 @@ mod tests {
         let a = evaluate_catalog(&base).results.remove(0);
         let b = evaluate_catalog(&expensive_energy).results.remove(0);
         assert!(b.energy_cost_usd_per_good_vehicle > a.energy_cost_usd_per_good_vehicle);
+        let mut expensive_heat = cost_fixture();
+        expensive_heat.templates[0].station_processes[0].thermal_energy_kwh_per_attempt = 30.0;
+        expensive_heat.sites[0].useful_thermal_energy_cost_per_kwh_local = 2.0;
+        let thermal = evaluate_catalog(&expensive_heat).results.remove(0);
+        assert!(
+            thermal.useful_thermal_energy_cost_usd_per_good_vehicle
+                > a.useful_thermal_energy_cost_usd_per_good_vehicle
+        );
         base.sites[0].fully_loaded_labor_cost_per_hour_local *= 2.0;
         let c = evaluate_catalog(&base).results.remove(0);
         assert!(c.labor_cost_usd_per_good_vehicle > a.labor_cost_usd_per_good_vehicle);

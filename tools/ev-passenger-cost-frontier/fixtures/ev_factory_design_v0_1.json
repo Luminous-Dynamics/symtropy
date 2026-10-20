@@ -52,7 +52,8 @@
         "as_of": "2026-10-20",
         "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
       },
-      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations."
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 1.5
     },
     {
       "site_id": "india-example",
@@ -98,7 +99,8 @@
         "as_of": "2026-10-20",
         "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
       },
-      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations."
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 4.5
     },
     {
       "site_id": "brazil-example",
@@ -144,7 +146,8 @@
         "as_of": "2026-10-20",
         "note": "Battery receipt, damaged-pack quarantine, HV isolation and emergency response not independently reviewed."
       },
-      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations."
+      "note": "All FX and site-cost values are fabricated scenario knobs for exercising the model; they are not current market rates or local quotations.",
+      "useful_thermal_energy_cost_per_kwh_local": 0.35
     }
   ],
   "templates": [
@@ -163,7 +166,8 @@
           "equipment_capex_usd_per_cell": 35000,
           "footprint_sqm_per_cell": 32,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 2
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "chassis-suspension",
@@ -172,7 +176,8 @@
           "equipment_capex_usd_per_cell": 55000,
           "footprint_sqm_per_cell": 45,
           "operators_per_cell_per_shift": 3,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "body-prep-marriage",
@@ -181,7 +186,8 @@
           "equipment_capex_usd_per_cell": 65000,
           "footprint_sqm_per_cell": 50,
           "operators_per_cell_per_shift": 3,
-          "energy_kwh_per_attempt": 3
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "battery-drive-install",
@@ -190,7 +196,8 @@
           "equipment_capex_usd_per_cell": 90000,
           "footprint_sqm_per_cell": 55,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 5
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "cabin-closeout",
@@ -199,7 +206,8 @@
           "equipment_capex_usd_per_cell": 50000,
           "footprint_sqm_per_cell": 58,
           "operators_per_cell_per_shift": 4,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "fill-software-calibration",
@@ -208,7 +216,8 @@
           "equipment_capex_usd_per_cell": 45000,
           "footprint_sqm_per_cell": 38,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 3
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "end-of-line-safety",
@@ -217,7 +226,8 @@
           "equipment_capex_usd_per_cell": 115000,
           "footprint_sqm_per_cell": 60,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 5
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "audit-rework-dispatch",
@@ -226,7 +236,8 @@
           "equipment_capex_usd_per_cell": 25000,
           "footprint_sqm_per_cell": 35,
           "operators_per_cell_per_shift": 1,
-          "energy_kwh_per_attempt": 1
+          "energy_kwh_per_attempt": 1,
+          "thermal_energy_kwh_per_attempt": 0
         }
       ],
       "note": "Buys a painted body and major assemblies; favors leased/repurposed space, manual fixtures and outsourced capital-intensive body/paint processes."
@@ -246,7 +257,8 @@
           "equipment_capex_usd_per_cell": 65000,
           "footprint_sqm_per_cell": 40,
           "operators_per_cell_per_shift": 1,
-          "energy_kwh_per_attempt": 2
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "subassembly-chassis",
@@ -255,7 +267,8 @@
           "equipment_capex_usd_per_cell": 120000,
           "footprint_sqm_per_cell": 58,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "body-marriage",
@@ -264,7 +277,8 @@
           "equipment_capex_usd_per_cell": 130000,
           "footprint_sqm_per_cell": 62,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 3
+          "energy_kwh_per_attempt": 3,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "battery-drive-install",
@@ -273,7 +287,8 @@
           "equipment_capex_usd_per_cell": 180000,
           "footprint_sqm_per_cell": 65,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 6
+          "energy_kwh_per_attempt": 6,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "cabin-closeout",
@@ -282,7 +297,8 @@
           "equipment_capex_usd_per_cell": 110000,
           "footprint_sqm_per_cell": 65,
           "operators_per_cell_per_shift": 3,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "hv-fluid-calibration",
@@ -291,7 +307,8 @@
           "equipment_capex_usd_per_cell": 160000,
           "footprint_sqm_per_cell": 48,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "end-of-line-test",
@@ -300,7 +317,8 @@
           "equipment_capex_usd_per_cell": 250000,
           "footprint_sqm_per_cell": 70,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 7
+          "energy_kwh_per_attempt": 7,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "audit-rework-dispatch",
@@ -309,7 +327,8 @@
           "equipment_capex_usd_per_cell": 65000,
           "footprint_sqm_per_cell": 42,
           "operators_per_cell_per_shift": 1,
-          "energy_kwh_per_attempt": 2
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
         }
       ],
       "note": "Reusable bolt-together fixtures and modular conveyor/carts; receives painted body and imported key assemblies, with automation at verified bottlenecks."
@@ -329,7 +348,8 @@
           "equipment_capex_usd_per_cell": 140000,
           "footprint_sqm_per_cell": 90,
           "operators_per_cell_per_shift": 1,
-          "energy_kwh_per_attempt": 4
+          "energy_kwh_per_attempt": 4,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "body-stamping",
@@ -338,7 +358,8 @@
           "equipment_capex_usd_per_cell": 2200000,
           "footprint_sqm_per_cell": 420,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 25
+          "energy_kwh_per_attempt": 25,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "body-weld",
@@ -347,7 +368,8 @@
           "equipment_capex_usd_per_cell": 1750000,
           "footprint_sqm_per_cell": 440,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 22
+          "energy_kwh_per_attempt": 22,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "paint-shop",
@@ -356,7 +378,8 @@
           "equipment_capex_usd_per_cell": 4200000,
           "footprint_sqm_per_cell": 760,
           "operators_per_cell_per_shift": 3,
-          "energy_kwh_per_attempt": 70
+          "energy_kwh_per_attempt": 75,
+          "thermal_energy_kwh_per_attempt": 550
         },
         {
           "process_id": "body-marriage",
@@ -365,7 +388,8 @@
           "equipment_capex_usd_per_cell": 250000,
           "footprint_sqm_per_cell": 90,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 5
+          "energy_kwh_per_attempt": 5,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "battery-drive-install",
@@ -374,7 +398,8 @@
           "equipment_capex_usd_per_cell": 380000,
           "footprint_sqm_per_cell": 105,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 8
+          "energy_kwh_per_attempt": 8,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "cabin-closeout",
@@ -383,7 +408,8 @@
           "equipment_capex_usd_per_cell": 250000,
           "footprint_sqm_per_cell": 140,
           "operators_per_cell_per_shift": 3,
-          "energy_kwh_per_attempt": 8
+          "energy_kwh_per_attempt": 8,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "hv-fluid-calibration",
@@ -392,7 +418,8 @@
           "equipment_capex_usd_per_cell": 300000,
           "footprint_sqm_per_cell": 80,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 6
+          "energy_kwh_per_attempt": 6,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "end-of-line-test",
@@ -401,7 +428,8 @@
           "equipment_capex_usd_per_cell": 550000,
           "footprint_sqm_per_cell": 130,
           "operators_per_cell_per_shift": 2,
-          "energy_kwh_per_attempt": 12
+          "energy_kwh_per_attempt": 12,
+          "thermal_energy_kwh_per_attempt": 0
         },
         {
           "process_id": "audit-rework-dispatch",
@@ -410,11 +438,12 @@
           "equipment_capex_usd_per_cell": 140000,
           "footprint_sqm_per_cell": 80,
           "operators_per_cell_per_shift": 1,
-          "energy_kwh_per_attempt": 2
+          "energy_kwh_per_attempt": 2,
+          "thermal_energy_kwh_per_attempt": 0
         }
       ],
       "note": "Includes modeled body/paint process cells and higher launch/overhead costs; should only be considered when volume, local capability, permitting and utilization justify the capital."
     }
   ],
-  "claim_ceiling": "All currency conversions, local labor, energy, lease, fit-out, components, station cycle times, staffing, equipment costs, yield and overhead in this fixture are invented sensitivities, not quotes, market data or a production recommendation. Facility-specific safety/code approvals remain unknown."
+  "claim_ceiling": "All currency conversions, local labor, energy, lease, fit-out, components, station cycle times, staffing, equipment costs, yield and overhead in this fixture are invented sensitivities, not quotes, market data or a production recommendation. Facility-specific safety/code approvals remain unknown. The integrated paint-shop energy sensitivity separates electrical from useful thermal energy; the 625 kWh-equivalent stress case is a scenario informed by a published truck/SUV paint-shop reference, not a transferable compact-EV process estimate."
 }
