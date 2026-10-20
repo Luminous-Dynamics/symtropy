@@ -63,6 +63,8 @@ jobs:
           grep -Fq "query_keyed_selective" vis-relational-memory.tsv
           grep -Fq "selective threshold calibrated on 256 separate development episodes" vis-relational-memory.tsv
           grep -Fq "bootstrap95_lo_vs_fifo" vis-relational-memory.tsv
+          grep -Fq "STRATUM" vis-relational-memory.tsv
+          grep -Fq "query_evidence_arrived_out_of_order" vis-relational-memory.tsv
           test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 20
           sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
           sha256sum -c vis-relational-memory.sha256
