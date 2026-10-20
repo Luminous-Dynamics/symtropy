@@ -711,6 +711,90 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn bounded_v0_2_request_emits_ordered_output_enclosures() {
+        let bytes = fixture("analytical-bar-bounds-v0.2.json");
+        let receipt = evaluate_request_bytes(&bytes, REV).expect("valid bounded request");
+        assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["input_bounds"]["force_n"]["evidence_class"], "synthetic");
+        assert_eq!(receipt["interval_semantics"].as_str().unwrap().contains("not a probability distribution"), true);
+        let nominal = receipt["outputs"]["axial_stress_pa"].as_f64().expect("nominal stress");
+        let range = &receipt["output_intervals"]["axial_stress_pa"];
+        assert!(range["lower"].as_f64().unwrap() < nominal);
+        assert_eq!(range["nominal"].as_f64(), Some(nominal));
+        assert!(range["upper"].as_f64().unwrap() > nominal);
+        assert_eq!(range["unit"], "Pa");
+        for (name, value) in receipt["outputs"].as_object().unwrap() {
+            let range = &receipt["output_intervals"][name];
+            assert!(range["lower"].as_f64().unwrap() <= value.as_f64().unwrap());
+            assert!(value.as_f64().unwrap() <= range["upper"].as_f64().unwrap());
+        }
+    }
+
+    #[test]
+    fn point_only_v0_1_request_keeps_legacy_receipt_shape() {
+        let receipt = evaluate_request_bytes(&fixture("analytical-bar-v0.1.json"), REV)
+            .expect("existing point-only request");
+        assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA);
+        assert_eq!(receipt["result_status"], "PASS");
+        assert!(receipt.get("output_intervals").is_none());
+        assert!(receipt.get("input_bounds").is_none());
+    }
+
+    #[test]
+    fn point_only_v0_2_request_does_not_invent_input_ranges() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
+        request.as_object_mut().unwrap().remove("input_bounds");
+        let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .expect("v0.2 point-only request");
+        assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
+        assert_eq!(receipt["result_status"], "PASS");
+        assert_eq!(receipt["input_bounds"], Value::Null);
+        assert_eq!(receipt["output_intervals"], Value::Null);
+    }
+
+    #[test]
+    fn v0_2_bounds_reject_nominal_mismatch_units_and_unknown_keys() {
+        let fixture = fixture("analytical-bar-bounds-v0.2.json");
+        let mut request: Value = serde_json::from_slice(&fixture).unwrap();
+        request["inputs"]["force_n"] = json!(1_200.0);
+        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .unwrap_err()
+            .contains("lies outside request.input_bounds"));
+
+        let mut request: Value = serde_json::from_slice(&fixture).unwrap();
+        request["input_bounds"]["area_m2"]["unit"] = json!("m");
+        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .unwrap_err()
+            .contains("input_bounds.area_m2.unit"));
+
+        let mut request: Value = serde_json::from_slice(&fixture).unwrap();
+        request["input_bounds"]["area_m2"]["lower"] = json!(0.012);
+        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV).is_err());
+
+        let mut request: Value = serde_json::from_slice(&fixture).unwrap();
+        request["input_bounds"]["extra_parameter"] = json!({
+            "lower":0.0,"upper":1.0,"unit":"m","evidence_class":"synthetic","source_ref":"fixture-only"
+        });
+        assert!(evaluate_request_bytes(request.to_string().as_bytes(), REV).is_err());
+    }
+
+    #[test]
+    fn bounded_request_with_unsupported_physics_is_unresolved_without_partial_ranges() {
+        let mut request: Value =
+            serde_json::from_slice(&fixture("analytical-bar-bounds-v0.2.json")).unwrap();
+        request["requested_physics"] = json!(["static_linear_elastic", "fracture"]);
+        let receipt = evaluate_request_bytes(request.to_string().as_bytes(), REV)
+            .expect("well-formed unsupported request yields receipt");
+        assert_eq!(receipt["schema_version"], RECEIPT_SCHEMA_V2);
+        assert_eq!(receipt["result_status"], "UNRESOLVED");
+        assert_eq!(receipt["outputs"], Value::Null);
+        assert_eq!(receipt["output_intervals"], Value::Null);
+    }
+
     #[test]
     fn unsupported_physics_produces_unresolved_receipt_not_weak_fallback() {
         let receipt = evaluate_request_bytes(&fixture("unsupported-fracture-v0.1.json"), REV)
