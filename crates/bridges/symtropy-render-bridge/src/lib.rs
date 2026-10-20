@@ -22,7 +22,7 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
-pub use lod::{allocate_lod, LodAllocation, LodCandidate, LodChoice, LodDemand, LodError};
+pub use lod::{LodAllocation, LodCandidate, LodChoice, LodDemand, LodError, allocate_lod};
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
