@@ -91,3 +91,15 @@ Capacity events are treated as **absolute physical upper bounds**. When a candid
 The frontier also reports service and feasibility monotonicity violations across increasing sampled capacities. We record these rather than assuming the results are monotone. A violation is a diagnostic requiring investigation, not something silently smoothed away.
 
 This experiment does not include stationary storage, tariff optimization, AC load flow, feeder voltage, reactive power, demand charges, battery degradation cost, or storage dispatch. Those additions should arrive as independently modeled dimensions with explicit energy/loss accounting. The current grid sweep is synthetic-input software evidence until a sourced duty cycle and physical site limits have been validated.
+
+
+## Post-charge connector occupancy (v0.2 extension)
+
+Each scenario may declare `port_release_policy`:
+
+- `release_on_charge_completion`: the connector is made available as soon as the target energy is delivered. This preserves earlier behavior as an optimistic zero-turnover reference; it is **not** a physical valet model.
+- `hold_until_departure`: a vehicle continues to occupy its connector after charging completes until its declared departure time. The occupied port is not allocated power after target SOC, and it remains excluded from site input energy.
+
+The latter is important for depot vehicles whose usable charging dwell is longer than their actual charging time. To isolate the effect, the fixture contains a matched two-job counterexample with identical arrivals, deadlines, energy requests, port count and site budget across both modes. Only connector occupancy changes. In that example, zero-turnover release allows both jobs to complete, whereas keeping the first vehicle plugged until minute 120 causes the second job to miss its minute-100 departure on a one-port site.
+
+This is a physical occupancy baseline, not yet a valet optimizer. Valet modeling still needs repositioning time, a limited number of workers, parking/staging capacity, vehicle movement constraints and plug connection/disconnection overhead. Do not compare the optimistic release mode directly to published valet savings and call it a reproduction.
