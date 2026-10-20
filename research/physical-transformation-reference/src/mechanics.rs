@@ -206,7 +206,9 @@ mod tests {
             cantilever_tip_load(100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid positive load");
         let negative =
             cantilever_tip_load(-100.0, 2.0, 200.0e9, 8.0e-6, 0.1).expect("valid negative load");
-        assert!((positive.tip_deflection_m + negative.tip_deflection_m).abs() <= ABSOLUTE_TOLERANCE);
+        assert!(
+            (positive.tip_deflection_m + negative.tip_deflection_m).abs() <= ABSOLUTE_TOLERANCE
+        );
         assert!(
             (positive.maximum_bending_stress_pa - negative.maximum_bending_stress_pa).abs()
                 <= 1.0e-9
