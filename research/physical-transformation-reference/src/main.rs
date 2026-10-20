@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_transformation_reference::mechanics::run_reference_fixtures;
+use physical_transformation_reference::recovery_validation::run_reference_fixture as run_recovery_validation_fixture;
 use physical_transformation_reference::run_reference_fixture;
 use std::env;
 use std::process::ExitCode;
@@ -41,6 +42,12 @@ fn run() -> Result<(), String> {
     })?;
     let outcome = run_reference_fixture()?;
     let mechanics = run_reference_fixtures()?;
+    let recovery_validation = run_recovery_validation_fixture()?;
+    let recovery_status = match recovery_validation.status {
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Measured => "measured",
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Synthetic => "synthetic",
+        physical_transformation_reference::recovery_validation::ComparisonStatus::Unresolved => "unresolved",
+    };
 
     println!(
         concat!(
@@ -56,7 +63,8 @@ fn run() -> Result<(), String> {
             "\"transactional_rejection\":\"{}\",",
             "\"balanced_mass_ledger\":\"{}\",",
             "\"imbalanced_mass_negative_control\":\"{}\",",
-            "\"analytical_mechanics\":\"pass\"",
+            "\"analytical_mechanics\":\"pass\",",
+            "\"planned_vs_observed_recovery\":\"pass\"",
             "}},",
             "\"summary\":{{",
             "\"component_count\":{},",
@@ -75,7 +83,14 @@ fn run() -> Result<(), String> {
             "\"recovered_mass_mg\":{},",
             "\"deconstruction_step_count\":{},",
             "\"deconstruction_recovered_component_count\":{},",
-            "\"deconstruction_recovered_mass_mg\":{}",
+            "\"deconstruction_recovered_mass_mg\":{},",
+            "\"recovery_comparison_status\":\"{}\",",
+            "\"recovery_observed_mass_residual_mg\":{},",
+            "\"recovery_reused_delta_mg\":{},",
+            "\"recovery_recycled_delta_mg\":{},",
+            "\"recovery_contaminated_delta_mg\":{},",
+            "\"recovery_waste_delta_mg\":{},",
+            "\"recovery_unaccounted_delta_mg\":{}",
             "}},",
             "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
             "}}"
@@ -112,7 +127,14 @@ fn run() -> Result<(), String> {
         outcome.recovered_mass_mg,
         outcome.deconstruction_step_count,
         outcome.deconstruction_recovered_component_count,
-        outcome.deconstruction_recovered_mass_mg
+        outcome.deconstruction_recovered_mass_mg,
+        recovery_status,
+        recovery_validation.observed_mass_residual_mg.unwrap_or(i128::MIN),
+        recovery_validation.reused_delta_mg.unwrap_or(i128::MIN),
+        recovery_validation.recycled_delta_mg.unwrap_or(i128::MIN),
+        recovery_validation.contaminated_delta_mg.unwrap_or(i128::MIN),
+        recovery_validation.waste_delta_mg.unwrap_or(i128::MIN),
+        recovery_validation.unaccounted_delta_mg.unwrap_or(i128::MIN)
     );
     Ok(())
 }
