@@ -17,6 +17,7 @@ on:
       - "docs/fixtures/views-api-response-synthetic-*.json"
       - "docs/schemas/pirb-views-offline-import-v0.1.schema.json"
       - "docs/tech/PIRB_PROBABILITY_FORECAST_EVALUATION_V0_1.md"
+      - "docs/tech/PIRB_HIERARCHY_SAMPLE_CRPS_V0_2.md"
       - "tools/pirb-probability-forecast-eval/**"
       - ".github/workflows/pirb-probability-forecast-audit.yml"
   workflow_dispatch:
