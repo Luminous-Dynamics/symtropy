@@ -522,7 +522,8 @@
         "soil_removal_fraction",
         "task_duration",
         "user_effort",
-        "cleaning_endpoint"
+        "cleaning_endpoint",
+        "litres_per_task"
       ],
       "hard_gates": [
         "pressure is measured under flowing conditions",
