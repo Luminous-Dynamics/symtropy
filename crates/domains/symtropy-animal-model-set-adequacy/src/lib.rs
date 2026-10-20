@@ -9,14 +9,12 @@ use serde_json::{Map, Value};
 use std::collections::BTreeSet;
 
 /// Checked-in synthetic challenge oracle.
-pub const EMBEDDED_ORACLE: &str = include_str!(
-    "../../../../docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.json"
-);
+pub const EMBEDDED_ORACLE: &str =
+    include_str!("../../../../docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.json");
 
 /// Frozen JSON Schema paired with the checked-in oracle.
-pub const EMBEDDED_SCHEMA: &str = include_str!(
-    "../../../../docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.schema.json"
-);
+pub const EMBEDDED_SCHEMA: &str =
+    include_str!("../../../../docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.schema.json");
 
 const REQUIRED_ROOT_FIELDS: &[&str] = &[
     "schema_version",
@@ -100,7 +98,12 @@ fn validate_oracle_value(oracle: &Value, schema: &Value) -> Result<usize, Vec<St
         &mut errors,
     );
     require_string_equals(root, "status", "synthetic_contract_fixture", &mut errors);
-    for field in ["tracking_issue", "note", "independent_unit", "research_snapshot"] {
+    for field in [
+        "tracking_issue",
+        "note",
+        "independent_unit",
+        "research_snapshot",
+    ] {
         require_nonempty_string(root, field, &mut errors);
     }
 
@@ -207,22 +210,24 @@ fn validate_case(
         errors.push(format!("{prefix}.expected must be an object"));
         return;
     };
-    check_only_fields(expected, &["required_properties"], &format!("{prefix}.expected"), errors);
+    check_only_fields(
+        expected,
+        &["required_properties"],
+        &format!("{prefix}.expected"),
+        errors,
+    );
     validate_unique_string_array(
         expected.get("required_properties"),
         &format!("{prefix}.expected.required_properties"),
         errors,
     );
-    validate_unique_string_array(
-        case.get("fail_if"),
-        &format!("{prefix}.fail_if"),
-        errors,
-    );
+    validate_unique_string_array(case.get("fail_if"), &format!("{prefix}.fail_if"), errors);
 }
 
 fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<String>) {
-    let schema_version =
-        schema.pointer("/properties/schema_version/const").and_then(Value::as_str);
+    let schema_version = schema
+        .pointer("/properties/schema_version/const")
+        .and_then(Value::as_str);
     if schema_version != Some("ANIMAL-MODEL-SET-ADEQUACY-ORACLE-V1") {
         errors.push("schema version const does not match oracle V1".to_owned());
     }
@@ -245,7 +250,9 @@ fn validate_schema_contract(schema: &Value, case_count: usize, errors: &mut Vec<
         let actual: BTreeSet<&str> = schema_layers.iter().filter_map(Value::as_str).collect();
         let expected: BTreeSet<&str> = REQUIRED_UNCERTAINTY_LAYERS.iter().copied().collect();
         if actual != expected {
-            errors.push("schema uncertainty_layers enum does not match validator contract".to_owned());
+            errors.push(
+                "schema uncertainty_layers enum does not match validator contract".to_owned(),
+            );
         }
     } else {
         errors.push("schema uncertainty_layers enum is missing".to_owned());
@@ -324,7 +331,9 @@ fn check_required_members(
     let members: BTreeSet<&str> = values.iter().filter_map(Value::as_str).collect();
     for required_value in required {
         if !members.contains(required_value) {
-            errors.push(format!("{field} is missing required member '{required_value}'"));
+            errors.push(format!(
+                "{field} is missing required member '{required_value}'"
+            ));
         }
     }
 }
@@ -366,7 +375,10 @@ mod tests {
 
     #[test]
     fn embedded_oracle_passes_semantic_contract() {
-        assert_eq!(validate_embedded_oracle().expect("oracle must validate"), 52);
+        assert_eq!(
+            validate_embedded_oracle().expect("oracle must validate"),
+            52
+        );
     }
 
     #[test]
@@ -382,8 +394,8 @@ mod tests {
     fn duplicate_case_ids_fail_closed() {
         let mut fixture = parsed_fixture();
         fixture["cases"][1]["id"] = fixture["cases"][0]["id"].clone();
-        let errors = validate_oracle_json(&fixture.to_string())
-            .expect_err("duplicate IDs must fail closed");
+        let errors =
+            validate_oracle_json(&fixture.to_string()).expect_err("duplicate IDs must fail closed");
         assert!(errors.iter().any(|e| e.contains("duplicates")));
     }
 
@@ -403,23 +415,27 @@ mod tests {
             .as_array_mut()
             .expect("identity list")
             .retain(|value| value.as_str() != Some("pre_reveal_prediction_digest"));
-        let errors = validate_oracle_json(&fixture.to_string())
-            .expect_err("missing identity must fail");
-        assert!(errors.iter().any(|e| e.contains("pre_reveal_prediction_digest")));
+        let errors =
+            validate_oracle_json(&fixture.to_string()).expect_err("missing identity must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("pre_reveal_prediction_digest"))
+        );
     }
 
     #[test]
     fn unknown_root_and_case_fields_are_rejected() {
         let mut fixture = parsed_fixture();
         fixture["unreviewed_root_field"] = Value::Bool(true);
-        let errors = validate_oracle_json(&fixture.to_string())
-            .expect_err("unknown root field must fail");
+        let errors =
+            validate_oracle_json(&fixture.to_string()).expect_err("unknown root field must fail");
         assert!(errors.iter().any(|e| e.contains("unreviewed_root_field")));
 
         let mut fixture = parsed_fixture();
         fixture["cases"][0]["oracle_truth"] = Value::Bool(true);
-        let errors = validate_oracle_json(&fixture.to_string())
-            .expect_err("unknown case field must fail");
+        let errors =
+            validate_oracle_json(&fixture.to_string()).expect_err("unknown case field must fail");
         assert!(errors.iter().any(|e| e.contains("oracle_truth")));
     }
 
@@ -429,9 +445,18 @@ mod tests {
         let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema must parse");
         let count = oracle["cases"].as_array().expect("cases").len() as u64;
         assert_eq!(oracle["case_count"].as_u64(), Some(count));
-        assert_eq!(schema["properties"]["case_count"]["const"].as_u64(), Some(count));
-        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(count));
-        assert_eq!(schema["properties"]["cases"]["maxItems"].as_u64(), Some(count));
+        assert_eq!(
+            schema["properties"]["case_count"]["const"].as_u64(),
+            Some(count)
+        );
+        assert_eq!(
+            schema["properties"]["cases"]["minItems"].as_u64(),
+            Some(count)
+        );
+        assert_eq!(
+            schema["properties"]["cases"]["maxItems"].as_u64(),
+            Some(count)
+        );
     }
 
     #[test]
@@ -445,7 +470,14 @@ mod tests {
 
     #[test]
     fn only_lowercase_snake_case_ids_are_valid() {
-        for bad in ["", "_leading", "trailing_", "double__underscore", "BadCase", "valid-id"] {
+        for bad in [
+            "",
+            "_leading",
+            "trailing_",
+            "double__underscore",
+            "BadCase",
+            "valid-id",
+        ] {
             assert!(!valid_case_id(bad), "{bad}");
         }
         assert!(valid_case_id("heldout_mechanism_01"));
