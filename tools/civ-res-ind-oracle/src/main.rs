@@ -90,6 +90,12 @@ where
     let mut output = None;
 
     while let Some(flag) = args.next() {
+        if flag == "--help" || flag == "-h" {
+            return Err(
+                "usage: civ-res-ind-oracle --fixture PATH --manifest PATH --source PATH --lock PATH [--output PATH]"
+                    .to_owned(),
+            );
+        }
         let value = args
             .next()
             .ok_or_else(|| format!("{flag}: expected a path argument"))?;
@@ -99,12 +105,6 @@ where
             "--source" => source = Some(PathBuf::from(value)),
             "--lock" => lock = Some(PathBuf::from(value)),
             "--output" => output = Some(PathBuf::from(value)),
-            "--help" | "-h" => {
-                return Err(
-                    "usage: civ-res-ind-oracle --fixture PATH --manifest PATH --source PATH --lock PATH [--output PATH]"
-                        .to_owned(),
-                );
-            }
             unknown => return Err(format!("unknown argument {unknown}")),
         }
     }
@@ -702,6 +702,26 @@ mod tests {
             serde_json::from_slice(&fs::read(manifest_path).expect("manifest bytes"))
                 .expect("manifest JSON");
         (fixture, manifest)
+    }
+
+    #[test]
+    fn pinned_fixture_source_and_lock_hashes_match_manifest() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let fixture_bytes = fs::read(root.join("docs/research/CIV_RESILIENCE_RESTART_FIXTURE_V0_1.json"))
+            .expect("fixture bytes");
+        let source_bytes = fs::read(root.join("tools/civ-res-ind-oracle/src/main.rs"))
+            .expect("source bytes");
+        let lock_bytes = fs::read(root.join("Cargo.lock")).expect("lock bytes");
+        let manifest_path = root.join("docs/research/CIV_RESILIENCE_RESTART_MANIFEST_V0_1.json");
+        let manifest: Value = serde_json::from_slice(&fs::read(manifest_path).expect("manifest bytes"))
+            .expect("manifest JSON");
+        for (key, bytes) in [
+            ("fixture_sha256", fixture_bytes),
+            ("evaluator_source_sha256", source_bytes),
+            ("cargo_lock_sha256", lock_bytes),
+        ] {
+            verify_sha_field(&manifest, key, &bytes).expect("manifest digest must match exact bytes");
+        }
     }
 
     #[test]
