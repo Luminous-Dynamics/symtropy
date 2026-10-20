@@ -193,13 +193,16 @@ pub fn compare_reference_observables(
                 "observable '{id}' exceeds its preregistered tolerance"
             ));
         }
-        let relative_error_value = if expected.expected_value == 0.0 {
-            None
+        let (relative_error, relative_error_status) = if expected.expected_value == 0.0 {
+            (Value::Null, "undefined_zero_reference")
         } else {
             let ratio = absolute_error / expected.expected_value.abs();
-            ratio.is_finite().then_some(ratio)
+            if ratio.is_finite() {
+                (json!(ratio), "computed")
+            } else {
+                (Value::Null, "overflow")
+            }
         };
-        let relative_error = relative_error_value.map_or(Value::Null, |ratio| json!(ratio));
         results.push(json!({
             "observable_id": id,
             "unit": expected.unit,
@@ -207,7 +210,8 @@ pub fn compare_reference_observables(
             "observed_value": actual.value,
             "absolute_error": absolute_error,
             "relative_error": relative_error,
-            "relative_error_defined": relative_error_value.is_some(),
+            "relative_error_defined": expected.expected_value != 0.0,
+            "relative_error_status": relative_error_status,
             "absolute_tolerance": expected.absolute_tolerance,
             "relative_tolerance": expected.relative_tolerance,
             "allowed_absolute_error": allowed_error,
@@ -633,6 +637,20 @@ mod tests {
         let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
         assert_eq!(report["comparison_status"], "PASS");
         assert_eq!(report["observable_results"][0]["relative_error_defined"], false);
+        assert_eq!(report["observable_results"][0]["relative_error"], Value::Null);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unrepresentable_near_zero_relative_error_is_explicit_not_infinite() {
+        let request = request_bytes();
+        let observed = observation(&request, 1.0);
+        let (root, receipt, _) = setup(&request, &observed);
+        let reference = reference(&request, 1e-320, 2.0, 0.0);
+        let report = compare_reference_observables(&request, &receipt, &root, "normalized", &reference).unwrap();
+        assert_eq!(report["comparison_status"], "PASS");
+        assert_eq!(report["observable_results"][0]["relative_error_defined"], true);
+        assert_eq!(report["observable_results"][0]["relative_error_status"], "overflow");
         assert_eq!(report["observable_results"][0]["relative_error"], Value::Null);
         fs::remove_dir_all(root).unwrap();
     }
