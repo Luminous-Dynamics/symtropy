@@ -1,0 +1,110 @@
+{
+  "schema_version": "ANIMAL-FLOOD-FORAGE-EXECUTION-RULES-V0",
+  "status": "synthetic_runtime_rules_not_empirical",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2390",
+  "scenario_id": "flood_forage_risk_corridor_v0",
+  "note": "Explicit runnable toy-world semantics for a software integration test. Not a hydrodynamics solver, fitted animal model, field-calibrated sensor, or biological claim.",
+  "spatial": {
+    "connectivity": "four_neighbor_grid",
+    "flooded_rectangle_inclusive": {
+      "x_min": 4,
+      "x_max": 7,
+      "y_min": 2,
+      "y_max": 5
+    },
+    "impassable_water_depth_cm": 20,
+    "edge_closed_during_flood": {
+      "from_xy": [
+        5,
+        4
+      ],
+      "to_xy": [
+        6,
+        4
+      ]
+    },
+    "static_grid_and_refuge_locations_are_public_prior": true,
+    "current_field_scope": "recorded_in_source_manifest_not_hydrodynamically_simulated_v0",
+    "predator_process": "not_modeled_v0"
+  },
+  "resources": {
+    "initial_distribution": "x_major_cell_order_quotient_remainder_first",
+    "initial_stock_source": "pilot_manifest_world_initial_resource_stock_units",
+    "normal_replenishment_source": "pilot_manifest_world_resource_replenishment_units_per_tick",
+    "replenishment_placement": "(seed + tick * 17) modulo cell_count",
+    "forage_units_consumed_per_success": 1,
+    "forage_energy_gain_units": 0.5,
+    "recovery_delay_source": "registered_public_model_forage_recovery_lag_ticks",
+    "recovery_delay_applies_after_shortage_end": true,
+    "no_stock_clamping": true
+  },
+  "agent": {
+    "initial_energy_source": "pilot_manifest_agent_initial_energy_units",
+    "movement_energy_cost_units": 0.4,
+    "active_sensing_energy_cost_units": 0.2,
+    "failed_forage_energy_cost_units": 0.05,
+    "idle_energy_cost_units": 0.02,
+    "depleted_when_energy_at_or_below": 0,
+    "start_cell_generator": "splitmix64(seed) modulo cell_count",
+    "exploration_direction_order": [
+      "north",
+      "east",
+      "south",
+      "west"
+    ],
+    "per_action_max_one_cell": true,
+    "max_policy_actions_source": "pilot_manifest_agent_max_policy_actions"
+  },
+  "sensing": {
+    "latency_ticks_source": "pilot_manifest_sensory_contract_cue_delivery_latency_ticks",
+    "passive_water_offsets_cm": [
+      -35,
+      0,
+      35
+    ],
+    "passive_resource_offsets_units": [
+      -2,
+      0,
+      2
+    ],
+    "deterministic_noise_generator": "splitmix64(seed,tick,cell_index,channel)_v0",
+    "clamp_observed_depth_minimum": 0,
+    "clamp_observed_resource_minimum": 0,
+    "active_sensing_returns_exact_local_depth_and_resource": true,
+    "active_sensing_does_not_peek_at_adjacent_or_global_cells": true,
+    "ambiguous_water_cue_band_cm": {
+      "min_inclusive": 10,
+      "max_inclusive": 35
+    },
+    "active_sensing_budget_source": "pilot_manifest_agent_active_sensing_actions_per_episode"
+  },
+  "policies": {
+    "reactive_heuristic": {
+      "policy_id": "reactive_heuristic_v0",
+      "rule": "Use only delivered local cues, own state, static grid and remembered action outcomes. When the latest delivered cue at the current cell indicates unsafe water or movement to refuge has failed, take a known-feasible step toward the nearest refuge. Otherwise forage only when a delivered local resource cue is positive; if not, explore a legal adjacent cell using remembered resource cues and deterministic tie-breaking. Never read global water, future event schedule, intervention label, model ID or global resource coordinates."
+    },
+    "adaptive_bounded_sensing": {
+      "policy_id": "adaptive_bounded_sensing_v0",
+      "rule": "Use the same admissible information and action rules as reactive_heuristic_v0, but when a delivered local water cue is in the declared ambiguous band and an active-sensing allowance remains, spend this tick on a local exact sensor sample; it is still delivered after the configured latency. No other policy privilege is granted."
+    },
+    "privileged_planner_upper_bound": {
+      "policy_id": "privileged_planner_upper_bound_v0",
+      "status": "diagnostic_nonqualifying_reference",
+      "rule": "Uses true present-time water map and resource stock to choose a safe action. It never receives future event state or intervention labels. This is a greedy full-state reference, not a proven global optimum, and cannot qualify as a competitive baseline."
+    }
+  },
+  "accounting": {
+    "resource_residual_definition": "initial_stock + total_regrowth - total_consumed - final_stock",
+    "energy_residual_definition": "initial_energy + forage_energy_gains - movement_energy_cost - active_sensing_energy_cost - failed_forage_energy_cost - idle_energy_cost - final_energy",
+    "required_absolute_resource_residual": 0,
+    "required_absolute_energy_residual_tolerance": 1e-8,
+    "all_selected_rollouts_remain_in_denominator": true
+  },
+  "metrics": {
+    "route_feasibility_definition": "successful refuge-directed movement actions divided by attempted refuge-directed movement actions; if the denominator is zero the metric is not_assessed, not zero",
+    "integrated_performance_deficit_definition": "max(0, no_shock_productive_tick_rate - combined_shock_productive_tick_rate) over the overlap window, paired by policy/model/seed; normalized to [0,1]",
+    "sensor_quality_definition": "confusion counts for passive local water-alert classification versus the true unsafe-water condition at the same cell/time; this is sensor diagnostic performance, not policy calibration",
+    "normalized_decision_regret_status": "not_assessed_v0",
+    "normalized_decision_regret_reason": "No proven optimal policy or empirically grounded utility mapping is defined. The privileged greedy reference is not an optimality proof; do not silently substitute it for an oracle."
+  }
+}
