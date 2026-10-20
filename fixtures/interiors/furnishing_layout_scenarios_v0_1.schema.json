@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/interiors/furnishing_layout_scenarios_v0_1.schema.json",
+  "title": "Symtropy synthetic furnishing-layout benchmark v0.1",
+  "description": "A synthetic, 2D, axis-aligned rectangle contract for testing layout feasibility, explicit unknowns, and non-scalar preference tradeoffs. It is not a building-code or physical-performance model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "status", "units", "coordinate_frame", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "benchmark_id": { "const": "furnishing-layout-known-truth-001" },
+    "status": { "enum": ["synthetic_specification_not_run", "synthetic_diagnostic_run"] },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length", "area", "currency"],
+      "properties": {
+        "length": { "const": "m" },
+        "area": { "const": "m2" },
+        "currency": { "const": "not_priced_in_v0_1" }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "origin", "x_axis", "y_axis", "geometry_model", "rotation_degrees_allowed"],
+      "properties": {
+        "kind": { "const": "room_local_floor_plan" },
+        "origin": { "const": "south_west_floor_corner" },
+        "x_axis": { "const": "east" },
+        "y_axis": { "const": "north" },
+        "geometry_model": { "const": "axis_aligned_2d_rectangles" },
+        "rotation_degrees_allowed": {
+          "type": "array",
+          "items": { "enum": [0, 90, 180, 270] },
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x_m", "y_m", "width_m", "depth_m"],
+      "properties": {
+        "x_m": { "type": "number", "minimum": 0 },
+        "y_m": { "type": "number", "minimum": 0 },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "depth_m": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "title", "scope", "room", "zones", "catalog", "requirements", "alternatives"],
+      "properties": {
+        "scenario_id": { "type": "string", "pattern": "^FURN-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 8 },
+        "scope": { "const": "synthetic_only" },
+        "notes": { "type": "string" },
+        "room": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width_m", "depth_m", "geometry_evidence_state"],
+          "properties": {
+            "width_m": { "type": "number", "exclusiveMinimum": 0 },
+            "depth_m": { "type": "number", "exclusiveMinimum": 0 },
+            "geometry_evidence_state": { "enum": ["synthetic_known_truth", "unknown_for_real_site"] }
+          }
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["zone_id", "kind", "rect", "evidence_state"],
+            "properties": {
+              "zone_id": { "type": "string", "minLength": 1 },
+              "kind": { "enum": ["keep_clear", "service_access", "task_zone", "no_place", "window"] },
+              "rect": { "$ref": "#/$defs/rect" },
+              "evidence_state": { "const": "synthetic_known_truth" }
+            }
+          }
+        },
+        "catalog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item_id", "kind", "width_m", "depth_m"],
+            "properties": {
+              "item_id": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "minLength": 1 },
+              "width_m": { "type": "number", "exclusiveMinimum": 0 },
+              "depth_m": { "type": "number", "exclusiveMinimum": 0 },
+              "front_access_depth_m": { "type": "number", "minimum": 0 },
+              "service_access_depth_m": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["requirement_id", "kind", "classification", "evidence_state", "must_be_satisfied_to_advance"],
+            "properties": {
+              "requirement_id": { "type": "string", "minLength": 1 },
+              "kind": { "enum": ["zone_must_remain_clear", "item_must_avoid_zone", "required_geometry_evidence", "preference_tradeoff"] },
+              "classification": { "enum": ["hard_constraint", "owner_preference", "unknown_requires_review"] },
+              "target_zone_id": { "type": "string" },
+              "target_item_id": { "type": "string" },
+              "evidence_state": { "enum": ["synthetic_known_truth", "unknown"] },
+              "must_be_satisfied_to_advance": { "type": "boolean" },
+              "source_note": { "type": "string" }
+            }
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["alternative_id", "placements", "expected_checks", "promotion_disposition"],
+            "properties": {
+              "alternative_id": { "type": "string", "minLength": 1 },
+              "placements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["item_id", "x_m", "y_m", "rotation_degrees"],
+                  "properties": {
+                    "item_id": { "type": "string", "minLength": 1 },
+                    "x_m": { "type": "number", "minimum": 0 },
+                    "y_m": { "type": "number", "minimum": 0 },
+                    "rotation_degrees": { "enum": [0, 90, 180, 270] }
+                  }
+                }
+              },
+              "expected_checks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["requirement_id", "outcome", "rationale"],
+                  "properties": {
+                    "requirement_id": { "type": "string", "minLength": 1 },
+                    "outcome": { "enum": ["pass", "fail", "indeterminate"] },
+                    "rationale": { "type": "string", "minLength": 8 }
+                  }
+                }
+              },
+              "preference_observations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["dimension", "value_0_to_100", "evidence_state"],
+                  "properties": {
+                    "dimension": { "type": "string", "minLength": 1 },
+                    "value_0_to_100": { "type": "integer", "minimum": 0, "maximum": 100 },
+                    "evidence_state": { "const": "synthetic_owner_rating" }
+                  }
+                }
+              },
+              "expected_pareto_relation": { "enum": ["incomparable", "dominates", "dominated", "equal"] },
+              "promotion_disposition": { "enum": ["blocked", "candidate_only", "human_review_required"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}
