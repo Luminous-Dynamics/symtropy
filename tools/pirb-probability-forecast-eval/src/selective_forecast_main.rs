@@ -56,11 +56,7 @@ fn matches_registered_target(row: &Value, target_id: &str) -> bool {
     string_at(row, "target_id") == Some(target_id)
 }
 
-fn expected_reason(
-    row: &Value,
-    policy: &Value,
-    threshold: f64,
-) -> Option<&'static str> {
+fn expected_reason(row: &Value, policy: &Value, threshold: f64) -> Option<&'static str> {
     let target_id = string_at(policy, "target_id").unwrap_or_default();
     if !matches_registered_target(row, target_id) {
         return Some("abstain_target_mismatch");
@@ -326,9 +322,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         return vec!["threshold_grid must be an array after schema validation".to_owned()];
     };
     let thresholds = grid.iter().filter_map(Value::as_f64).collect::<Vec<_>>();
-    if thresholds.len() != grid.len()
-        || thresholds.windows(2).any(|pair| pair[0] >= pair[1])
-    {
+    if thresholds.len() != grid.len() || thresholds.windows(2).any(|pair| pair[0] >= pair[1]) {
         errors.push("threshold_grid must be strictly increasing with no duplicates".to_owned());
     }
     let deployed_threshold = number_at(policy, "deployed_threshold").unwrap_or_default();
@@ -336,7 +330,9 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
         .iter()
         .any(|value| (*value - deployed_threshold).abs() <= SCORE_EPSILON)
     {
-        errors.push("deployed_threshold must be an entry in the preregistered threshold_grid".to_owned());
+        errors.push(
+            "deployed_threshold must be an entry in the preregistered threshold_grid".to_owned(),
+        );
     }
 
     if string_at(&registration, "evidence_scope") == Some("authorized_historical") {
@@ -361,8 +357,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             );
         }
         let governance = &registration["governance"];
-        if string_at(governance, "data_authority_reference")
-            .is_none_or(str::is_empty)
+        if string_at(governance, "data_authority_reference").is_none_or(str::is_empty)
             || string_at(governance, "disclosure_review_reference").is_none_or(str::is_empty)
         {
             errors.push(
@@ -404,9 +399,10 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
             "forecast_issued" => {
                 let candidate = number_at(row, "offline_candidate_probability");
                 let served = number_at(row, "served_probability");
-                if candidate.zip(served).is_none_or(|(candidate, served)| {
-                    (candidate - served).abs() > SCORE_EPSILON
-                }) {
+                if candidate
+                    .zip(served)
+                    .is_none_or(|(candidate, served)| (candidate - served).abs() > SCORE_EPSILON)
+                {
                     errors.push(format!(
                         "issued case {case_id} must serve its registered candidate probability"
                     ));
@@ -423,9 +419,7 @@ fn semantic_errors(registration: &Value) -> Vec<String> {
 
         if string_at(row, "outcome_status") == Some("known") {
             if !matches!(integer_at(row, "outcome"), Some(0 | 1)) {
-                errors.push(format!(
-                    "known outcome for case {case_id} must be 0 or 1"
-                ));
+                errors.push(format!("known outcome for case {case_id} must be 0 or 1"));
             }
         } else if !row["outcome"].is_null() {
             errors.push(format!(
@@ -450,12 +444,20 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         ]);
     }
 
-    let registration: Value = serde_json::from_slice(input)
-        .map_err(|error| vec![format!("selective forecast registration JSON is invalid: {error}")])?;
-    let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
-        .map_err(|error| vec![format!("embedded selective schema JSON is invalid: {error}")])?;
+    let registration: Value = serde_json::from_slice(input).map_err(|error| {
+        vec![format!(
+            "selective forecast registration JSON is invalid: {error}"
+        )]
+    })?;
+    let schema: Value = serde_json::from_slice(SCHEMA_BYTES).map_err(|error| {
+        vec![format!(
+            "embedded selective schema JSON is invalid: {error}"
+        )]
+    })?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
     let validator = jsonschema::draft202012::new(&schema)
         .map_err(|error| vec![format!("cannot build selective schema validator: {error}")])?;
@@ -507,13 +509,19 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
     let mut target_mismatch_count = 0usize;
     for row in &rows {
         group_rows
-            .entry(string_at(row, "group_id").expect("schema validated group_id").to_owned())
+            .entry(
+                string_at(row, "group_id")
+                    .expect("schema validated group_id")
+                    .to_owned(),
+            )
             .or_default()
             .push(row);
         regime_rows
-            .entry(string_at(row, "regime_status")
-                .expect("schema validated regime_status")
-                .to_owned())
+            .entry(
+                string_at(row, "regime_status")
+                    .expect("schema validated regime_status")
+                    .to_owned(),
+            )
             .or_default()
             .push(row);
         if string_at(row, "target_id") != Some(target_id) {
@@ -529,9 +537,8 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
         }
     }
 
-    let minimum_group_count =
-        integer_at(policy, "minimum_group_report_count").expect("schema validated suppression threshold")
-            as usize;
+    let minimum_group_count = integer_at(policy, "minimum_group_report_count")
+        .expect("schema validated suppression threshold") as usize;
     let groups = group_rows
         .iter()
         .map(|(group_id, group)| {
@@ -646,7 +653,8 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("cannot read selective registration {input_path}: {error}"))?;
     let source_commit =
         option_value(&args, "--source-commit")?.unwrap_or_else(|| "UNPINNED_LOCAL_RUN".to_owned());
-    let receipt = validate_and_evaluate(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
+    let receipt =
+        validate_and_evaluate(&input, &source_commit).map_err(|errors| errors.join("\n"))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&receipt)
@@ -680,22 +688,29 @@ mod tests {
 
     #[test]
     fn fixture_evaluates_preregistered_risk_coverage_grid_and_claim_ceiling() {
-        let receipt = validate_and_evaluate(
-            FIXTURE_BYTES,
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("synthetic selective registration is valid");
+        let receipt =
+            validate_and_evaluate(FIXTURE_BYTES, "0123456789abcdef0123456789abcdef01234567")
+                .expect("synthetic selective registration is valid");
         assert_eq!(receipt["case_count"], 12);
         assert_eq!(receipt["mature_known_target_outcome_count"], 9);
         assert_eq!(receipt["target_mismatch_count"], 1);
         assert_eq!(receipt["deployed_policy"]["forecast_issued_count"], 4);
         assert_eq!(receipt["deployed_policy"]["abstained_count"], 8);
-        assert_eq!(receipt["deployed_policy"]["issued_case_scores"]["scored_count"], 3);
+        assert_eq!(
+            receipt["deployed_policy"]["issued_case_scores"]["scored_count"],
+            3
+        );
         assert_eq!(
             receipt["deployed_policy"]["issued_case_scores"]["brier_score"],
             0.03
         );
-        assert_eq!(receipt["pre_registered_risk_coverage_grid"].as_array().unwrap().len(), 5);
+        assert_eq!(
+            receipt["pre_registered_risk_coverage_grid"]
+                .as_array()
+                .unwrap()
+                .len(),
+            5
+        );
         assert_eq!(receipt["claims"]["abstention_means_no_event"], false);
     }
 
@@ -704,7 +719,11 @@ mod tests {
         let mut value = fixture();
         value["rows"][3]["served_probability"] = json!(0.4);
         let errors = evaluate(&value).expect_err("abstained candidate cannot be served");
-        assert!(errors.iter().any(|error| error.contains("must not expose a served probability")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must not expose a served probability"))
+        );
     }
 
     #[test]
@@ -712,7 +731,11 @@ mod tests {
         let mut value = fixture();
         value["rows"][4]["reason_code"] = json!("abstain_low_selection_score");
         let errors = evaluate(&value).expect_err("reason cannot contradict stale-input gate");
-        assert!(errors.iter().any(|error| error.contains("reason_code inconsistent")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("reason_code inconsistent"))
+        );
     }
 
     #[test]
@@ -730,27 +753,33 @@ mod tests {
         value["rows"][6]["reason_code"] = Value::Null;
         value["rows"][6]["served_probability"] = json!(0.7);
         let errors = evaluate(&value).expect_err("wrong estimand cannot be served");
-        assert!(errors.iter().any(|error| error.contains("inconsistent with the pinned policy")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("inconsistent with the pinned policy"))
+        );
     }
 
     #[test]
     fn threshold_grid_must_be_preregistered_ordered_and_include_deployed_threshold() {
         let mut value = fixture();
         value["policy"]["threshold_grid"] = json!([0.0, 0.6, 0.4, 0.95]);
-        let errors = evaluate(&value).expect_err("threshold selection must be deterministic and pinned");
-        assert!(errors.iter().any(|error| error.contains("strictly increasing")));
+        let errors =
+            evaluate(&value).expect_err("threshold selection must be deterministic and pinned");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly increasing"))
+        );
     }
 
     #[test]
     fn historical_scope_requires_authority_and_disclosure_approval() {
         let mut value = fixture();
         value["evidence_scope"] = json!("authorized_historical");
-        let errors = evaluate(&value).expect_err("real historical rows require governance clearance");
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("authorized"))
-        );
+        let errors =
+            evaluate(&value).expect_err("real historical rows require governance clearance");
+        assert!(errors.iter().any(|error| error.contains("authorized"));
     }
 
     #[test]
