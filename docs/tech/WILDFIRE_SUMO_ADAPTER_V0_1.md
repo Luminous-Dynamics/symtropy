@@ -52,3 +52,7 @@ Report p50/p90/p95 clearance time where individual arrivals exist, queue vehicle
 The Rust verifier also emits `sumo-behavior-receipt.json`, which checks the exact planned vehicle-ID inventory against SUMO tripinfo and summarizes arrival fraction plus completed-trip duration, waiting, time loss, departure delay and route-length distributions. SUMO is run with unfinished and undeparted tripinfo output enabled. See [WILDFIRE_SUMO_BEHAVIOR_METRICS_V0_1.md](WILDFIRE_SUMO_BEHAVIOR_METRICS_V0_1.md).
 
 These measurements improve output accounting but are still SUMO-only. They do not bridge the unresolved capacity/storage, sink/accessibility, and closure-semantics gaps above, and are not a matched-model or SOTA result.
+
+## Per-case comparability receipt
+
+The outcome verifier writes `sumo-comparability-receipt.json` alongside the SUMO behavior receipt. It emits `non_comparable` plus blocking reasons whenever declared model semantics are not enforced or calibrated in the SUMO adapter. With the current v0.1 adapter, every frozen case is blocked from cross-model scoring; the closure fixture adds a closure-policy reason. See [WILDFIRE_SUMO_COMPARABILITY_V0_1.md](WILDFIRE_SUMO_COMPARABILITY_V0_1.md). A simulator run and valid receipt are not sufficient to claim equivalence.

@@ -8,6 +8,8 @@ on:
       - "docs/tech/WILDFIRE_TRAFFIC_CTM_BENCHMARK_V0_1.md"
       - "docs/tech/WILDFIRE_NETWORK_FLOW_V0_1.md"
       - "docs/tech/WILDFIRE_SUMO_ADAPTER_V0_1.md"
+      - "docs/tech/WILDFIRE_SUMO_BEHAVIOR_METRICS_V0_1.md"
+      - "docs/tech/WILDFIRE_SUMO_COMPARABILITY_V0_1.md"
       - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
       - "benchmarks/fixtures/WILDFIRE_TRAFFIC_CTM_V0_1.json"
       - "benchmarks/fixtures/WILDFIRE_NETWORK_FLOW_V0_1.json"
@@ -251,6 +253,22 @@ jobs:
             and (.cases | all(.sumo_behavior.trip_time_loss_seconds.count == .sumo_behavior.arrived_by_horizon_vehicle_count))
             and (.cases | all(.sumo_behavior.claim_boundary | contains("not equivalent to Symtropy")))
           ' wildfire-sumo-export/sumo-behavior-receipt.json
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-SUMO-COMPARABILITY-001"
+            and .case_count == 6
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.summary.comparable_case_count == 0)
+            and (.summary.non_comparable_case_count == 6)
+            and (.summary.cross_model_comparison_permitted == false)
+            and (.cases | length == 6)
+            and (.cases | all(.status == "non_comparable" and .comparison_permitted == false))
+            and (.cases | all([.blocking_reasons[].code] | index("EDGE_CAPACITY_STORAGE_UNCALIBRATED") != null))
+            and (.cases | all([.blocking_reasons[].code] | index("SINK_SERVICE_GATES_NOT_ENFORCED") != null))
+            and (.cases | all([.blocking_reasons[].code] | index("ACCESSIBILITY_LABEL_ONLY") != null))
+            and ([.cases[] | select(.case_id == "ENTRY_CLOSURE_DURING_DEPARTURES_003") | .blocking_reasons[].code] | index("CLOSURE_POLICY_DIFFERS") != null)
+          ' wildfire-sumo-export/sumo-comparability-receipt.json
 
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
@@ -261,6 +279,7 @@ jobs:
             wildfire-traffic-ctm-receipt.json
             wildfire-network-flow-reference-receipt.json
             wildfire-sumo-export/sumo-behavior-receipt.json
+            wildfire-sumo-export/sumo-comparability-receipt.json
             wildfire-sumo-export/
           if-no-files-found: error
           retention-days: 90

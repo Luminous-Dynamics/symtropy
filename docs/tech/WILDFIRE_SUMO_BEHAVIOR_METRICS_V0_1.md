@@ -43,3 +43,9 @@ Targets for a future *matched* model comparison (not yet demonstrated):
 - No superiority claim unless both systems receive the same graph, demand, horizon, closure policy, sink constraints, tuning budget and evaluation corpus, with cases and thresholds preregistered before measuring.
 
 Targets are acceptance criteria for future work, not results from this PR. Keep this PR draft until a reviewer confirms actual SUMO outputs and their semantics.
+
+## Comparability gate: machine-readable and fail-closed
+
+The verifier now emits `sumo-comparability-receipt.json` with a per-case `comparable` or `non_comparable` decision and blocking reason codes. In v0.1 all six cases must remain `non_comparable` because the adapter has not calibrated edge capacity/storage, does not enforce sink service constraints, and represents accessibility as a label. The closure case additionally reports the mismatch between SUMO rerouting and fixed-route entry blocking.
+
+The workflow asserts that no case is admitted to aggregate cross-model scorecards. This gate is not meant to remain permanently pessimistic: a future implementation can close each gap and update the frozen contract only with tests that demonstrate the mapping. Until then, matching hashes and successful execution do not authorize a behavioral comparison.
