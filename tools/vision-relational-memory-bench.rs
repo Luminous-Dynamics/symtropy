@@ -835,8 +835,8 @@ fn report() {
         let paired_seed = mix64(ROOT_SEED ^ 0x5041_4952_5749_5345
             ^ match family { Family::Development => 0x4445_56, Family::HeldOut => 0x4845_4C44 });
         let (paired_lo, paired_hi) = bootstrap_ci(&paired_deltas, paired_seed);
-        println!("PAIRWISE\\tfamily\\tcontrast\\tepisodes\\tdelta_loss_a_minus_b\\tbootstrap95_lo\\tbootstrap95_hi");
-        println!("PAIRWISE\\t{}\\tgap_aware_minus_hazard_aware\\t{}\\t{:.4}\\t{:.4}\\t{:.4}",
+        println!("PAIRWISE\tfamily\tcontrast\tepisodes\tdelta_loss_a_minus_b\tbootstrap95_lo\tbootstrap95_hi");
+        println!("PAIRWISE\t{}\tgap_aware_minus_hazard_aware\t{}\t{:.4}\t{:.4}\t{:.4}",
             family.name(), paired_deltas.len(), paired_delta, paired_lo, paired_hi);
 
         println!("VIS-MEM-002 evaluator-only failure-mode strata (capacity=3; groups may overlap)");
