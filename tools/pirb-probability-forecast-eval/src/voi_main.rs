@@ -596,7 +596,9 @@ fn validate_and_evaluate(input: &[u8], source_commit: &str) -> Result<Value, Vec
     let schema: Value = serde_json::from_slice(SCHEMA_BYTES)
         .map_err(|error| vec![format!("embedded VOI schema JSON is invalid: {error}")])?;
     jsonschema::draft202012::meta::validate(&schema).map_err(|error| {
-        vec![format!("Draft 2020-12 schema meta-validation failed: {error}")]
+        vec![format!(
+            "Draft 2020-12 schema meta-validation failed: {error}"
+        )]
     })?;
     let validator = jsonschema::draft202012::new(&schema)
         .map_err(|error| vec![format!("cannot build VOI schema validator: {error}")])?;
