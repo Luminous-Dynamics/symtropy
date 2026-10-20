@@ -1,0 +1,242 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "SOLAR-SCALE-01",
+  "status": "proposed_unmeasured",
+  "purpose": "Frozen validation ladder for continuous Symtropy rendering from near-field detail to solar-system overview and back.",
+  "units": {
+    "distance": "metres",
+    "body_radius": "metres",
+    "projected_size": "physical render pixels",
+    "time": "seconds in an explicitly declared time scale; no epochs encoded by this fixture"
+  },
+  "astronomical_reference_values": [
+    {
+      "id": "EARTH_MEAN_RADIUS",
+      "value_m": 6371008.4,
+      "role": "planetary surface-to-orbit precision reference",
+      "source": "NASA/JPL planetary physical parameters",
+      "source_url": "https://ssd.jpl.nasa.gov/planets/phys_par.html"
+    },
+    {
+      "id": "EARTH_MOON_MEAN_DISTANCE",
+      "value_m": 384400000,
+      "role": "Earth-Moon transition distance",
+      "source": "NASA Moon facts",
+      "source_url": "https://science.nasa.gov/moon/facts/"
+    },
+    {
+      "id": "ASTRONOMICAL_UNIT_APPROX",
+      "value_m": 149597870700,
+      "role": "one-AU coordinate and precision reference; exact conventional value",
+      "source": "IAU astronomical unit definition",
+      "source_url": "https://www.iau.org/public/themes/measuring/"
+    },
+    {
+      "id": "SUN_MEAN_RADIUS",
+      "value_m": 695700000,
+      "role": "solar disc and apparent-size reference",
+      "source": "NASA/NSSDC Sun fact sheet",
+      "source_url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html"
+    },
+    {
+      "id": "NEPTUNE_SEMIMAJOR_AXIS_APPROX",
+      "value_m": 4514953000000,
+      "role": "outer-planet scale reference, about 30 AU",
+      "source": "NASA/JPL planetary physical parameters",
+      "source_url": "https://ssd.jpl.nasa.gov/planets/phys_par.html"
+    }
+  ],
+  "coordinate_precision_ladder": [
+    {
+      "case_id": "PRECISION-1M",
+      "relative_distance_m": 1,
+      "local_delta_m": 0.001,
+      "max_cpu_round_trip_error_m": 0.0001
+    },
+    {
+      "case_id": "PRECISION-1KM",
+      "relative_distance_m": 1000,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.001
+    },
+    {
+      "case_id": "PRECISION-EARTH-RADIUS",
+      "relative_distance_m": 6371008.4,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.01
+    },
+    {
+      "case_id": "PRECISION-EARTH-MOON",
+      "relative_distance_m": 384400000,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.02
+    },
+    {
+      "case_id": "PRECISION-1AU",
+      "relative_distance_m": 149597870700,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.02
+    },
+    {
+      "case_id": "PRECISION-NEPTUNE",
+      "relative_distance_m": 4514953000000,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.1
+    },
+    {
+      "case_id": "PRECISION-100AU",
+      "relative_distance_m": 14959787070000,
+      "local_delta_m": 0.01,
+      "max_cpu_round_trip_error_m": 0.5
+    }
+  ],
+  "apparent_size_known_answers": [
+    {
+      "case_id": "ANGULAR-SUN-1AU",
+      "radius_m": 695700000,
+      "centre_distance_m": 149597870700,
+      "viewport_height_px": 1080,
+      "vertical_fov_radians": 1.0471975511965976,
+      "rule": "projected_sphere_diameter_px using pinhole perspective",
+      "tolerance_px": 0.01,
+      "claim_scope": "analytic apparent-sphere bound, not actual solar imagery or atmospheric effects"
+    },
+    {
+      "case_id": "ANGULAR-EARTH-MOON",
+      "radius_m": 6371008.4,
+      "centre_distance_m": 384400000,
+      "viewport_height_px": 1080,
+      "vertical_fov_radians": 1.0471975511965976,
+      "rule": "projected_sphere_diameter_px using pinhole perspective",
+      "tolerance_px": 0.01,
+      "claim_scope": "illustrative apparent-size oracle; Earth observed from Moon-centre distance is a geometric fixture, not a specific phase/observer ephemeris"
+    }
+  ],
+  "traversal_stages": [
+    {
+      "stage_id": "LOCAL-INSPECTION",
+      "distance_context": "1–1000 m",
+      "required_representation": "engineering-detail",
+      "protected_content": [
+        "selected_feature",
+        "critical_contact"
+      ],
+      "required_check": "selected feature remains inspectable"
+    },
+    {
+      "stage_id": "PLANET-SURFACE",
+      "distance_context": "planetary radius scale",
+      "required_representation": "surface-tiles",
+      "protected_content": [
+        "selected_surface_feature",
+        "horizon",
+        "body_identity"
+      ],
+      "required_check": "surface tiles refine with stable identity and no origin jump"
+    },
+    {
+      "stage_id": "LOW-ORBIT",
+      "distance_context": "planet radius to several planet radii",
+      "required_representation": "body-proxy-plus-regional-context",
+      "protected_content": [
+        "selected_body",
+        "spacecraft"
+      ],
+      "required_check": "surface detail yields to body proxy without discontinuous centre/radius"
+    },
+    {
+      "stage_id": "EARTH-MOON",
+      "distance_context": "384400 km mean distance reference",
+      "required_representation": "planet-and-moon-proxies",
+      "protected_content": [
+        "Earth",
+        "Moon",
+        "selected_target"
+      ],
+      "required_check": "both bodies remain spatially coherent and identifiable"
+    },
+    {
+      "stage_id": "INNER-SYSTEM",
+      "distance_context": "fractions of an AU to several AU",
+      "required_representation": "system-catalog-and-orbit-paths",
+      "protected_content": [
+        "selected_body",
+        "orbital_path"
+      ],
+      "required_check": "ephemeris-backed coordinates retain explicit frame/time provenance"
+    },
+    {
+      "stage_id": "OUTER-SYSTEM",
+      "distance_context": "Neptune semimajor axis reference, about 30 AU",
+      "required_representation": "outer-body-proxies-and-catalog",
+      "protected_content": [
+        "Neptune",
+        "selected_body",
+        "selected_orbit"
+      ],
+      "required_check": "far-body representation does not rely on an absolute f32 position"
+    },
+    {
+      "stage_id": "RETURN-TO-LOCAL",
+      "distance_context": "reverse traversal back to original local feature",
+      "required_representation": "restore engineering-detail",
+      "protected_content": [
+        "original_selected_feature"
+      ],
+      "required_check": "selection, canonical position, and representation identity survive round trip"
+    }
+  ],
+  "hard_invariants": [
+    "Canonical body/feature positions are unchanged by camera-origin changes.",
+    "Coordinate-frame mismatch is rejected until the caller applies a verified transform.",
+    "Selected or task-critical content is not removed solely because apparent size is small.",
+    "Presentation hierarchy preserves stable semantic identity through proxy/tile substitutions.",
+    "Unloaded or unavailable content is not silently treated as nonexistent.",
+    "Ephemeris-backed and illustrative content is explicitly distinguished.",
+    "Projected-error claims are only made when mesh-error and camera assumptions are supplied and validated.",
+    "Every benchmark receipt binds exact source revision, fixture digest, camera path, render resolution, settings, shader revision, adapter/backend, driver, operating system, and reference-frame/epoch metadata."
+  ],
+  "benchmark_reporting": {
+    "status": "planned_not_measured",
+    "reports": [
+      "position_and_projection_error_vs_independent_oracle",
+      "frame_origin_jump_count",
+      "selected_body_and_feature_identity_loss_count",
+      "apparent_size_band_transition_count",
+      "temporal_chatter_and_pop_count",
+      "frame_interval_p50_p95_p99",
+      "gpu_timestamp_p50_p95_p99_when_supported",
+      "visible_body_proxy_and_surface_tile_counts",
+      "resident_asset_bytes_and_peak_memory",
+      "shader_and_fixture_digests"
+    ],
+    "claim_ceiling": [
+      "This manifest is a workload contract, not a rendered result.",
+      "CPU coordinate microbenchmarks do not prove GPU precision or frame-time performance.",
+      "Analytic apparent-sphere values do not replace authoritative ephemeris or actual limb geometry.",
+      "No superiority claim over Gaia Sky, Cesium, Unreal Engine, Unity, or other engines is authorized without matched reproducible comparisons."
+    ]
+  },
+  "references": [
+    {
+      "name": "NASA/JPL planetary physical parameters",
+      "url": "https://ssd.jpl.nasa.gov/planets/phys_par.html"
+    },
+    {
+      "name": "NASA/NSSDC Sun fact sheet",
+      "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html"
+    },
+    {
+      "name": "NASA NAIF SPICE",
+      "url": "https://naif.jpl.nasa.gov/"
+    },
+    {
+      "name": "OGC 3D Tiles 1.1",
+      "url": "https://docs.ogc.org/cs/22-025r4/22-025r4.html"
+    },
+    {
+      "name": "Gaia Sky star rendering",
+      "url": "https://gaia.ari.uni-heidelberg.de/gaiasky/docs/master/Star-rendering.html"
+    }
+  ]
+}
