@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/interiors/furnishing_functional_envelopes_v0_2.schema.json",
+  "title": "Symtropy synthetic functional-envelope benchmark v0.2",
+  "description": "Synthetic 2D item-local front-side rectangular task envelopes. This is not an accessibility, biomechanics, building-code, or safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "status", "units", "coordinate_frame", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.2.0" },
+    "benchmark_id": { "const": "furnishing-functional-envelope-known-truth-001" },
+    "status": { "enum": ["synthetic_specification_not_run", "synthetic_diagnostic_run"] },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length", "area"],
+      "properties": { "length": { "const": "m" }, "area": { "const": "m2" } }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "origin", "x_axis", "y_axis", "geometry_model", "rotation_degrees_allowed"],
+      "properties": {
+        "kind": { "const": "room_local_floor_plan" },
+        "origin": { "const": "south_west_floor_corner" },
+        "x_axis": { "const": "east" },
+        "y_axis": { "const": "north" },
+        "geometry_model": { "const": "axis_aligned_2d_rectangles" },
+        "rotation_degrees_allowed": {
+          "type": "array",
+          "items": { "enum": [0, 90, 180, 270] },
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true
+        }
+      }
+    },
+    "scenarios": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scenario" } }
+  },
+  "$defs": {
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x_m", "y_m", "width_m", "depth_m"],
+      "properties": {
+        "x_m": { "type": "number", "minimum": 0 },
+        "y_m": { "type": "number", "minimum": 0 },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "depth_m": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["envelope_id", "task_kind", "evidence_state", "rect_local_item_frame"],
+      "properties": {
+        "envelope_id": { "type": "string", "minLength": 1 },
+        "task_kind": { "enum": ["drawer_open", "chair_pull_back", "service_access"] },
+        "evidence_state": { "enum": ["synthetic_known_truth", "unknown"] },
+        "rect_local_item_frame": { "$ref": "#/$defs/rect" }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "kind", "width_m", "depth_m", "functional_envelopes"],
+      "properties": {
+        "item_id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "depth_m": { "type": "number", "exclusiveMinimum": 0 },
+        "functional_envelopes": { "type": "array", "items": { "$ref": "#/$defs/envelope" } }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "x_m", "y_m", "rotation_degrees"],
+      "properties": {
+        "item_id": { "type": "string", "minLength": 1 },
+        "x_m": { "type": "number", "minimum": 0 },
+        "y_m": { "type": "number", "minimum": 0 },
+        "rotation_degrees": { "enum": [0, 90, 180, 270] }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "kind", "target_envelope_id", "must_be_satisfied_to_advance"],
+      "properties": {
+        "requirement_id": { "type": "string", "minLength": 1 },
+        "kind": { "const": "functional_envelope_clear" },
+        "target_envelope_id": { "type": "string", "minLength": 1 },
+        "must_be_satisfied_to_advance": { "type": "boolean" }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "outcome"],
+      "properties": {
+        "requirement_id": { "type": "string", "minLength": 1 },
+        "outcome": { "enum": ["pass", "fail", "indeterminate"] }
+      }
+    },
+    "alternative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alternative_id", "placements", "expected_checks", "promotion_disposition"],
+      "properties": {
+        "alternative_id": { "type": "string", "minLength": 1 },
+        "placements": { "type": "array", "items": { "$ref": "#/$defs/placement" } },
+        "expected_checks": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } },
+        "promotion_disposition": { "enum": ["blocked", "candidate_only"] }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "title", "scope", "room", "catalog", "requirements", "alternatives"],
+      "properties": {
+        "scenario_id": { "type": "string", "pattern": "^FENV-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 8 },
+        "scope": { "const": "synthetic_only" },
+        "room": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width_m", "depth_m"],
+          "properties": {
+            "width_m": { "type": "number", "exclusiveMinimum": 0 },
+            "depth_m": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "catalog": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/item" } },
+        "requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/requirement" } },
+        "alternatives": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/alternative" } }
+      }
+    }
+  }
+}

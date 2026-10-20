@@ -1,4 +1,4 @@
-use furnishing_layout_audit::audit_fixtures;
+use furnishing_layout_audit::audit_document;
 use serde_json::Value;
 use std::{env, fs, path::PathBuf, process::ExitCode};
 
@@ -25,12 +25,12 @@ fn main() -> ExitCode {
         }
     };
 
-    let errors = audit_fixtures(&document);
+    let errors = audit_document(&document);
     if errors.is_empty() {
         println!("PASS: synthetic furnishing-layout fixture audit");
         println!("Input: {}", path.display());
         println!(
-            "Scope: 2D geometric oracle only; not a building-code or physical-performance model"
+            "Scope: synthetic 2D geometry only; not a building-code, accessibility, or physical-performance certification"
         );
         ExitCode::SUCCESS
     } else {

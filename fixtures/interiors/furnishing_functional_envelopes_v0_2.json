@@ -1,0 +1,210 @@
+{
+  "schema_version": "0.2.0",
+  "benchmark_id": "furnishing-functional-envelope-known-truth-001",
+  "status": "synthetic_specification_not_run",
+  "units": { "length": "m", "area": "m2" },
+  "coordinate_frame": {
+    "kind": "room_local_floor_plan",
+    "origin": "south_west_floor_corner",
+    "x_axis": "east",
+    "y_axis": "north",
+    "geometry_model": "axis_aligned_2d_rectangles",
+    "rotation_degrees_allowed": [0, 90, 180, 270]
+  },
+  "scenarios": [
+    {
+      "scenario_id": "FENV-001",
+      "title": "Drawer access must remain clear",
+      "scope": "synthetic_only",
+      "room": { "width_m": 4.0, "depth_m": 4.0 },
+      "catalog": [
+        {
+          "item_id": "cabinet",
+          "kind": "cabinet",
+          "width_m": 0.8,
+          "depth_m": 0.6,
+          "functional_envelopes": [
+            {
+              "envelope_id": "drawer_front",
+              "task_kind": "drawer_open",
+              "evidence_state": "synthetic_known_truth",
+              "rect_local_item_frame": { "x_m": 0.0, "y_m": 0.6, "width_m": 0.8, "depth_m": 0.75 }
+            }
+          ]
+        },
+        { "item_id": "stool", "kind": "stool", "width_m": 0.45, "depth_m": 0.45, "functional_envelopes": [] }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "drawer_access_clear",
+          "kind": "functional_envelope_clear",
+          "target_envelope_id": "drawer_front",
+          "must_be_satisfied_to_advance": true
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "drawer_clear",
+          "placements": [
+            { "item_id": "cabinet", "x_m": 1.0, "y_m": 0.5, "rotation_degrees": 0 },
+            { "item_id": "stool", "x_m": 2.0, "y_m": 1.2, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "drawer_access_clear", "outcome": "pass" }
+          ],
+          "promotion_disposition": "candidate_only"
+        },
+        {
+          "alternative_id": "drawer_blocked",
+          "placements": [
+            { "item_id": "cabinet", "x_m": 1.0, "y_m": 0.5, "rotation_degrees": 0 },
+            { "item_id": "stool", "x_m": 1.1, "y_m": 1.2, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "drawer_access_clear", "outcome": "fail" }
+          ],
+          "promotion_disposition": "blocked"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FENV-002",
+      "title": "Front access rotates with the furniture item",
+      "scope": "synthetic_only",
+      "room": { "width_m": 4.0, "depth_m": 4.0 },
+      "catalog": [
+        {
+          "item_id": "workbench",
+          "kind": "workbench",
+          "width_m": 1.2,
+          "depth_m": 0.5,
+          "functional_envelopes": [
+            {
+              "envelope_id": "service_front",
+              "task_kind": "service_access",
+              "evidence_state": "synthetic_known_truth",
+              "rect_local_item_frame": { "x_m": 0.0, "y_m": 0.5, "width_m": 1.2, "depth_m": 0.6 }
+            }
+          ]
+        },
+        { "item_id": "crate", "kind": "crate", "width_m": 0.3, "depth_m": 0.3, "functional_envelopes": [] }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "service_access_clear",
+          "kind": "functional_envelope_clear",
+          "target_envelope_id": "service_front",
+          "must_be_satisfied_to_advance": true
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "rotated_access_clear",
+          "placements": [
+            { "item_id": "workbench", "x_m": 2.0, "y_m": 0.5, "rotation_degrees": 90 },
+            { "item_id": "crate", "x_m": 0.9, "y_m": 0.8, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "service_access_clear", "outcome": "pass" }
+          ],
+          "promotion_disposition": "candidate_only"
+        },
+        {
+          "alternative_id": "rotated_access_blocked",
+          "placements": [
+            { "item_id": "workbench", "x_m": 2.0, "y_m": 0.5, "rotation_degrees": 90 },
+            { "item_id": "crate", "x_m": 1.5, "y_m": 0.8, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "service_access_clear", "outcome": "fail" }
+          ],
+          "promotion_disposition": "blocked"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FENV-003",
+      "title": "Unknown envelope evidence must remain indeterminate",
+      "scope": "synthetic_only",
+      "room": { "width_m": 3.0, "depth_m": 3.0 },
+      "catalog": [
+        {
+          "item_id": "cabinet",
+          "kind": "cabinet",
+          "width_m": 0.8,
+          "depth_m": 0.6,
+          "functional_envelopes": [
+            {
+              "envelope_id": "unverified_service_front",
+              "task_kind": "service_access",
+              "evidence_state": "unknown",
+              "rect_local_item_frame": { "x_m": 0.0, "y_m": 0.6, "width_m": 0.8, "depth_m": 0.7 }
+            }
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "unknown_service_access",
+          "kind": "functional_envelope_clear",
+          "target_envelope_id": "unverified_service_front",
+          "must_be_satisfied_to_advance": true
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "unknown_access_blocked",
+          "placements": [
+            { "item_id": "cabinet", "x_m": 1.0, "y_m": 1.0, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "unknown_service_access", "outcome": "indeterminate" }
+          ],
+          "promotion_disposition": "blocked"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FENV-004",
+      "title": "Known access envelope outside the room is a failure",
+      "scope": "synthetic_only",
+      "room": { "width_m": 2.0, "depth_m": 2.0 },
+      "catalog": [
+        {
+          "item_id": "cabinet",
+          "kind": "cabinet",
+          "width_m": 0.8,
+          "depth_m": 0.6,
+          "functional_envelopes": [
+            {
+              "envelope_id": "front_access_at_wall",
+              "task_kind": "chair_pull_back",
+              "evidence_state": "synthetic_known_truth",
+              "rect_local_item_frame": { "x_m": 0.0, "y_m": 0.6, "width_m": 0.8, "depth_m": 0.75 }
+            }
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "front_access_inside_room",
+          "kind": "functional_envelope_clear",
+          "target_envelope_id": "front_access_at_wall",
+          "must_be_satisfied_to_advance": true
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "wall_blocks_access",
+          "placements": [
+            { "item_id": "cabinet", "x_m": 1.0, "y_m": 1.1, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            { "requirement_id": "front_access_inside_room", "outcome": "fail" }
+          ],
+          "promotion_disposition": "blocked"
+        }
+      ]
+    }
+  ]
+}

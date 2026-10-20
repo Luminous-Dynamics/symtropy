@@ -2,11 +2,13 @@ name: Furnishing Layout Audit
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.schema.json'
+      - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.json'
+      - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.schema.json'
       - 'tools/furnishing-layout-audit/**'
       - '.github/workflows/furnishing-layout-audit.yml'
 permissions:
