@@ -276,7 +276,7 @@ fn validate_token(value: &str, label: &str) -> Check<()> {
         || value.len() > 128
         || !value
             .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
     {
         return Err(format!("{label} is not a valid stable token"));
     }
