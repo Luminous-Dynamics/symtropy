@@ -1068,6 +1068,68 @@ mod tests {
     }
 
     #[test]
+    fn frozen_scale_factor_matrix_accepts_exact_and_rejects_perturbed_responses() {
+        for alpha in [0.25, 0.5, 2.0, 4.0] {
+            let exact = assess(&make_bundle(alpha, 1.0));
+            assert_eq!(exact["relation_status"], "PASS", "exact alpha={alpha}");
+
+            let perturbed = assess(&make_bundle(alpha, 1.1));
+            assert_eq!(perturbed["relation_status"], "FAIL", "perturbed alpha={alpha}");
+            assert_eq!(perturbed["violation_count"], 1, "perturbed alpha={alpha}");
+        }
+    }
+
+    #[test]
+    fn identical_inputs_produce_byte_identical_relation_reports() {
+        let bundle = make_bundle(0.5, 1.0);
+        let first = serde_json::to_vec(&assess(&bundle)).unwrap();
+        let second = serde_json::to_vec(&assess(&bundle)).unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn strain_energy_output_requires_si_joules() {
+        let bundle = make_bundle(2.0, 1.0);
+        let bytes = fs::read(bundle.root.join("baseline-displacement.json")).unwrap();
+        let digest = sha256_hex(&bytes);
+        let receipt = json!({
+            "outputs":[{
+                "output_id":"baseline-displacement",
+                "kind":"strain_energy",
+                "sha256":digest,
+                "media_type":"application/json",
+                "unit":"m",
+                "artifact_ref":"baseline-displacement.json"
+            }]
+        });
+        let verification = json!({
+            "artifact_results":[{
+                "output_id":"baseline-displacement",
+                "status":"PASS",
+                "observed_sha256":digest
+            }],
+            "producer_status":"PASS"
+        });
+        assert!(bind_output(
+            &bundle.root,
+            &receipt,
+            &verification,
+            "baseline-displacement",
+            "strain_energy"
+        ).is_err());
+
+        let mut receipt_j = receipt.clone();
+        receipt_j["outputs"][0]["unit"] = json!("J");
+        assert!(bind_output(
+            &bundle.root,
+            &receipt_j,
+            &verification,
+            "baseline-displacement",
+            "strain_energy"
+        ).is_ok());
+    }
+
+    #[test]
     fn wrong_scaled_response_fails_the_relation() {
         let report = assess(&make_bundle(2.0, 1.1));
         assert_eq!(report["relation_status"], "FAIL");
