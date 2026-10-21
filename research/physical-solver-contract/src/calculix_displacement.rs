@@ -576,7 +576,7 @@ fn parse_and_validate_deck(
     .collect();
     if cards
         .iter()
-        .any(|card| !allowed.contains(card.name.as_str()) )
+        .any(|card| !allowed.contains(card.name.as_str()))
     {
         let unsupported: Vec<&str> = cards
             .iter()
