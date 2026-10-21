@@ -824,7 +824,7 @@ mod tests {
             .validate_against_evaluation_plan(
                 &snapshot_bytes,
                 b"boundary-conditions-v0-empty",
-                &plan_bytes
+                &plan_bytes,
             )
             .unwrap_err();
         assert!(
