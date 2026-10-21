@@ -51,12 +51,21 @@ pub struct QuantityRate {
     pub rate_card_ref: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QuantityAggregationSemantics {
+    /// The value is a contribution that may be added to other contributions.
+    AdditiveContribution,
+    /// The value is a cumulative state reading and must be normalized before audit.
+    CumulativeSnapshot,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuantityEvent {
     /// Semantic identity such as labor.welder.hours or material.aluminium.kg.
     pub quantity_key: String,
-    /// Additive contribution only; cumulative snapshots must first pass through event_semantics.
+    /// Numeric value. The aggregation semantics below determine whether audit may sum it.
     pub quantity: f64,
+    pub aggregation_semantics: QuantityAggregationSemantics,
     pub unit: String,
     /// Optional estimate from a declared and versioned rate card.
     pub rate: Option<QuantityRate>,
@@ -253,6 +262,11 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
 
     match &event.kind {
         EventKind::Quantity(quantity) => {
+            if quantity.aggregation_semantics != QuantityAggregationSemantics::AdditiveContribution {
+                errors.push(format!(
+                    "{label}: cumulative snapshots must be normalized before audit; only additive contributions are accepted"
+                ));
+            }
             if !is_nonempty(&quantity.quantity_key) {
                 errors.push(format!("{label}: quantity_key is missing"));
             }
@@ -641,6 +655,7 @@ mod tests {
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: key.to_owned(),
                 quantity,
+                aggregation_semantics: QuantityAggregationSemantics::AdditiveContribution,
                 unit: "hour".to_owned(),
                 rate,
             }),
@@ -1340,6 +1355,26 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("conflicting minor_unit_exponent values"))
         );
+    }
+
+    #[test]
+    fn audit_rejects_cumulative_snapshot_semantics_before_aggregation() {
+        let mut event = quantity_event(
+            "snapshot",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            12.0,
+            None,
+        );
+        if let EventKind::Quantity(quantity) = &mut event.kind {
+            quantity.aggregation_semantics = QuantityAggregationSemantics::CumulativeSnapshot;
+        }
+        let errors = audit(&[event]).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains(
+            "cumulative snapshots must be normalized before audit"
+        )));
     }
 
     #[test]
