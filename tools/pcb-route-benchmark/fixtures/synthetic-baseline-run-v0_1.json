@@ -47,7 +47,8 @@
       "elapsed_ms": 100,
       "cpu_ms": 90,
       "peak_memory_bytes": 200000000,
-      "output_board_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      "output_board_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "drc_report_sha256": "7070707070707070707070707070707070707070707070707070707070707070"
     },
     {
       "board_id": "gridless-002",
@@ -66,7 +67,8 @@
       "elapsed_ms": 200,
       "cpu_ms": 190,
       "peak_memory_bytes": 220000000,
-      "output_board_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      "output_board_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "drc_report_sha256": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c"
     },
     {
       "board_id": "crossing-003",
@@ -88,7 +90,8 @@
       "elapsed_ms": 180,
       "cpu_ms": 170,
       "peak_memory_bytes": 210000000,
-      "output_board_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      "output_board_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "drc_report_sha256": "2828282828282828282828282828282828282828282828282828282828282828"
     },
     {
       "board_id": "congestion-004",
@@ -107,7 +110,8 @@
       "elapsed_ms": 1000,
       "cpu_ms": null,
       "peak_memory_bytes": null,
-      "output_board_sha256": null
+      "output_board_sha256": null,
+      "drc_report_sha256": null
     },
     {
       "board_id": "router-error-005",
@@ -126,7 +130,8 @@
       "elapsed_ms": 80,
       "cpu_ms": null,
       "peak_memory_bytes": null,
-      "output_board_sha256": null
+      "output_board_sha256": null,
+      "drc_report_sha256": null
     },
     {
       "board_id": "upstream-drc-006",
@@ -145,7 +150,8 @@
       "elapsed_ms": 50,
       "cpu_ms": 45,
       "peak_memory_bytes": 180000000,
-      "output_board_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      "output_board_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "drc_report_sha256": "9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a"
     }
   ]
 }
