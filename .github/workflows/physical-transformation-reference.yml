@@ -291,6 +291,63 @@ jobs:
             and (.claim_ceiling | contains("not full NAFEMS Challenge 5 2D truss reproduction"))
           ' modal-bar-reference-receipt.json
 
+      - name: Generate and verify deterministic NAFEMS modal-truss receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin nafems-modal-truss-reference -- \
+            --source-commit "$source_commit" > nafems-modal-truss-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin nafems-modal-truss-reference -- \
+            --source-commit "$source_commit" > nafems-modal-truss-raw-b.json
+          cmp --silent nafems-modal-truss-raw-a.json nafems-modal-truss-raw-b.json
+          request_canonical="$(jq -r '.request_canonical' nafems-modal-truss-raw-a.json)"
+          fixture_canonical="$(cat research/physical-transformation-reference/fixtures/nafems_challenge5_modal_request_v0_1.txt)"
+          test "$request_canonical" = "$fixture_canonical"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "53fefbf59c0c1bd5aef38966d9db89625be43951175c192233e184a18d713919"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of UTF-8 request_canonical bytes without a final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked research/physical-transformation-reference files"
+            }
+          ' nafems-modal-truss-raw-a.json > nafems-modal-truss-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "modal-truss-receipt-v0.1"
+            and .benchmark_id == "PHYS-MODAL-NAFEMS-C5-001"
+            and .fixture_id == "NAFEMS-C5-ORIGINAL-TRUSS"
+            and .source_commit == $source_commit
+            and .evidence_class == "software-test-run-with-published-reference"
+            and .result == "pass"
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and (.input.nodes | length) == 3
+            and (.input.bars | length) == 2
+            and (.consistent_mass.frequencies_hz | length) == 2
+            and (.row_sum_lumped_mass.frequencies_hz | length) == 2
+            and ([.consistent_mass.relative_errors[], .row_sum_lumped_mass.relative_errors[]] | all(. < 0.0002))
+            and ([.consistent_mass.normalized_eigen_residuals[], .row_sum_lumped_mass.normalized_eigen_residuals[]] | all(. < 1e-10))
+            and .consistent_mass.maximum_mass_orthogonality_residual < 1e-10
+            and .row_sum_lumped_mass.maximum_mass_orthogonality_residual < 1e-10
+            and .verification.published_frequency_targets == "pass"
+            and .verification.mode_shape_residuals == "pass"
+            and .verification.mass_orthogonality == "pass"
+            and .verification.physical_validation == "not_performed"
+            and (.claim_ceiling | contains("not the full refinement"))
+          ' nafems-modal-truss-reference-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -302,5 +359,6 @@ jobs:
             planar-truss-sweep-receipt.json
             modal-bar-reference-receipt.json
             modal-bar-mutation-receipt.json
+            nafems-modal-truss-reference-receipt.json
           if-no-files-found: error
           retention-days: 90
