@@ -549,7 +549,8 @@ mod tests {
         );
         unknown.objectives[0].evidence = ObjectiveEvidence::Unknown;
         let known = candidate("known", VerificationStatus::Verified, (10.0, 12.0), (80.0, 85.0));
-        let report = compute_interval_frontier(&[unknown, known]).expect("excluded evidence is explicit");
+        let report = compute_interval_frontier(&[unknown, known])
+            .expect("excluded evidence is explicit");
         assert_eq!(report.frontier_ids, vec!["known"]);
         assert!(!report.ranking_complete);
         assert!(matches!(
@@ -658,7 +659,8 @@ mod tests {
             (10.0, 12.0),
             (80.0, 85.0),
         );
-        let report = compute_interval_frontier(&[stale, current]).expect("stale binding is reported");
+        let report =
+            compute_interval_frontier(&[stale, current]).expect("stale binding is reported");
         assert_eq!(report.frontier_ids, vec!["current"]);
         assert!(!report.ranking_complete);
         assert!(matches!(
