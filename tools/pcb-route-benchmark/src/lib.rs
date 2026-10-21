@@ -2362,6 +2362,9 @@ mod tests {
                     license_evidence_relative_path: Some("license-evidence/board-easy-1.txt".into()),
                     license_evidence_url: Some("https://github.com/example/license/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE".into()),
                     license_evidence_source_commit_sha: Some("a".repeat(40)),
+                    license_evidence_git_blob_sha1: Some(git_blob_sha1(
+                        b"SYNTHETIC license-evidence fixture text for CC-BY-4.0\n",
+                    )),
                 },
                 IntakeBoard {
                     board_id: "board-hard-1".into(),
@@ -2372,6 +2375,9 @@ mod tests {
                     license_evidence_relative_path: Some("license-evidence/board-hard-1.txt".into()),
                     license_evidence_url: Some("https://github.com/example/license/blob/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/LICENSE".into()),
                     license_evidence_source_commit_sha: Some("b".repeat(40)),
+                    license_evidence_git_blob_sha1: Some(git_blob_sha1(
+                        b"SYNTHETIC license-evidence fixture text for MIT\n",
+                    )),
                 },
             ],
         };
@@ -2473,6 +2479,7 @@ mod tests {
             board.license_evidence_url = None;
             board.license_evidence_sha256 = None;
             board.license_evidence_source_commit_sha = None;
+            board.license_evidence_git_blob_sha1 = None;
         }
         assert!(
             validate_manifest(&manifest)
@@ -2505,6 +2512,7 @@ mod tests {
                 board.board_id,
                 "d".repeat(40)
             ));
+            board.license_evidence_git_blob_sha1 = Some("a".repeat(40));
         }
         assert!(validate_manifest(&manifest).is_ok());
 
@@ -2829,6 +2837,17 @@ mod tests {
         assert!((exact_paired_sign_test_p_value(2, 0).unwrap() - 0.5).abs() < 1e-12);
         assert!((exact_paired_sign_test_p_value(10, 0).unwrap() - (2.0 / 1024.0)).abs() < 1e-12);
         assert!((exact_paired_sign_test_p_value(4, 4).unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn git_blob_sha1_matches_the_canonical_empty_blob_id() {
+        assert_eq!(
+            git_blob_sha1(b""),
+            "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        );
+        assert!(!is_git_blob_sha1(&"a".repeat(39)));
+        assert!(is_git_blob_sha1(&"a".repeat(40)));
+        assert!(!is_git_blob_sha1(&"b".repeat(64)));
     }
 
     #[test]
