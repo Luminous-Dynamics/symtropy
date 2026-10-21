@@ -51,6 +51,19 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh
 
+      - name: Verify modal-bar mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_bar_mutations.sh
+
+      - name: Re-verify modal-bar production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/modal_bar.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -287,5 +300,6 @@ jobs:
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
             modal-bar-reference-receipt.json
+            modal-bar-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
