@@ -143,7 +143,8 @@ fn reference_evaluate(events: &[LedgerEvent]) -> AuditReport {
                     Stage::Simulated => &mut target.simulated,
                     Stage::Observed => &mut target.observed,
                 };
-                *bucket = Some(bucket.unwrap_or(0.0) + item.quantity);
+                let previous = (*bucket).unwrap_or(0.0);
+                *bucket = Some(previous + item.quantity);
                 if let Some(rate_card) = &item.rate {
                     let cost_index = rate_costs.iter().position(|row| {
                         row.build_id == event.build_id
