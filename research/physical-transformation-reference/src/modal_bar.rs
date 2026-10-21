@@ -122,14 +122,29 @@ pub fn analyze_fixed_free_bar(
     }
 
     let wave_speed = (bar.youngs_modulus_pa / bar.density_kg_m3).sqrt();
+    if !wave_speed.is_finite() || wave_speed <= 0.0 {
+        return Err("continuum wave speed is outside the supported numeric range".to_owned());
+    }
     let exact_frequencies_hz: Vec<f64> = (1..=n)
         .map(|mode| (2 * mode - 1) as f64 * wave_speed / (4.0 * bar.length_m))
         .collect();
-    let normalized_frequencies = numerical_frequencies_hz
+    if exact_frequencies_hz
+        .iter()
+        .any(|frequency| !frequency.is_finite() || *frequency <= 0.0)
+    {
+        return Err("continuum reference frequency is outside the supported numeric range".to_owned());
+    }
+    let normalized_frequencies: Vec<f64> = numerical_frequencies_hz
         .iter()
         .zip(exact_frequencies_hz.iter())
         .map(|(numerical, exact)| numerical / exact)
         .collect();
+    if normalized_frequencies
+        .iter()
+        .any(|ratio| !ratio.is_finite() || *ratio <= 0.0)
+    {
+        return Err("normalized frequency is outside the supported numeric range".to_owned());
+    }
 
     Ok(ModalFrequencies {
         formulation,
@@ -242,6 +257,9 @@ fn multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Vec<Vec<f64>> {
 
 fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
     let n = matrix.len();
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err("transformed stiffness matrix contains non-finite values".to_owned());
+    }
     let scale = matrix
         .iter()
         .enumerate()
