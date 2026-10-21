@@ -7,7 +7,7 @@
 use shipyard_cost_trace::{
     AuditReport, EventKind, EvidencePermission, FinancialActualTotal, FinancialTransaction,
     LedgerEvent, QuantityDisposition, QuantityEvent, QuantityRate, QuantityReconciliation,
-    RateCardCostTotal, Stage,
+    QuantityAggregationSemantics, RateCardCostTotal, Stage,
 };
 
 const GOLDEN_TSV: &str = include_str!("fixtures/golden-ledger-v0.tsv");
@@ -63,6 +63,7 @@ fn frozen_fixture() -> Vec<LedgerEvent> {
                         quantity_key: fields[6].to_owned(),
                         unit: fields[7].to_owned(),
                         quantity: fields[8].parse().expect("valid frozen quantity"),
+                        aggregation_semantics: QuantityAggregationSemantics::AdditiveContribution,
                         rate,
                     })
                 }
