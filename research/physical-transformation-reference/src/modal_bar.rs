@@ -132,7 +132,9 @@ pub fn analyze_fixed_free_bar(
         .iter()
         .any(|frequency| !frequency.is_finite() || *frequency <= 0.0)
     {
-        return Err("continuum reference frequency is outside the supported numeric range".to_owned());
+        return Err(
+            "continuum reference frequency is outside the supported numeric range".to_owned(),
+        );
     }
     let normalized_frequencies: Vec<f64> = numerical_frequencies_hz
         .iter()
@@ -168,7 +170,9 @@ fn validate_bar(bar: FixedFreeBar) -> Check<()> {
         return Err("density must be finite and positive".to_owned());
     }
     if !(1..=MAX_ELEMENTS).contains(&bar.elements) {
-        return Err(format!("element count must be between 1 and {MAX_ELEMENTS}"));
+        return Err(format!(
+            "element count must be between 1 and {MAX_ELEMENTS}"
+        ));
     }
     Ok(())
 }
@@ -228,9 +232,7 @@ fn invert_lower(lower: &[Vec<f64>]) -> Check<Vec<Vec<f64>>> {
     let mut inverse = vec![vec![0.0; n]; n];
     for column in 0..n {
         for row in 0..n {
-            let correction: f64 = (0..row)
-                .map(|k| lower[row][k] * inverse[k][column])
-                .sum();
+            let correction: f64 = (0..row).map(|k| lower[row][k] * inverse[k][column]).sum();
             let rhs = if row == column { 1.0 } else { 0.0 };
             inverse[row][column] = (rhs - correction) / lower[row][row];
             if !inverse[row][column].is_finite() {
@@ -286,7 +288,10 @@ fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
         if largest <= tolerance {
             let mut values: Vec<f64> = (0..n).map(|i| matrix[i][i]).collect();
             values.sort_by(f64::total_cmp);
-            if values.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+            if values
+                .iter()
+                .any(|value| !value.is_finite() || *value <= 0.0)
+            {
                 return Err("generalized eigenproblem has a non-positive eigenvalue".to_owned());
             }
             return Ok(values);
@@ -314,11 +319,8 @@ fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
                 matrix[q][k] = matrix[k][q];
             }
         }
-        matrix[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq
-            + sine * sine * aqq;
-        matrix[q][q] = sine * sine * app
-            + 2.0 * sine * cosine * apq
-            + cosine * cosine * aqq;
+        matrix[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
+        matrix[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
         matrix[p][q] = 0.0;
         matrix[q][p] = 0.0;
     }
@@ -327,9 +329,7 @@ fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        FixedFreeBar, MassFormulation, analyze_fixed_free_bar, validate_bar,
-    };
+    use super::{FixedFreeBar, MassFormulation, analyze_fixed_free_bar, validate_bar};
 
     fn nafems_reference_bar(elements: usize) -> FixedFreeBar {
         FixedFreeBar {
@@ -351,8 +351,7 @@ mod tests {
     #[test]
     fn one_element_brackets_exact_fixed_free_frequency_for_both_mass_models() {
         let bar = nafems_reference_bar(1);
-        let exact = (bar.youngs_modulus_pa / bar.density_kg_m3).sqrt()
-            / (4.0 * bar.length_m);
+        let exact = (bar.youngs_modulus_pa / bar.density_kg_m3).sqrt() / (4.0 * bar.length_m);
         let consistent = analyze_fixed_free_bar(bar, MassFormulation::Consistent)
             .expect("consistent-mass solution");
         let lumped = analyze_fixed_free_bar(bar, MassFormulation::RowSumLumped)
@@ -396,7 +395,12 @@ mod tests {
             assert!(lumped_error < previous_lumped_error);
             assert!(consistent.frequencies_hz[0] > 0.0);
             assert!(lumped.frequencies_hz[0] > 0.0);
-            close(exact, lumped.exact_frequencies_hz[0], 1.0e-10, "exact frequency");
+            close(
+                exact,
+                lumped.exact_frequencies_hz[0],
+                1.0e-10,
+                "exact frequency",
+            );
             previous_consistent_error = consistent_error;
             previous_lumped_error = lumped_error;
         }
@@ -427,27 +431,22 @@ mod tests {
 
     #[test]
     fn frequency_is_invariant_to_area_and_joint_scaling_of_modulus_and_density() {
-        let reference = analyze_fixed_free_bar(
-            nafems_reference_bar(8),
-            MassFormulation::Consistent,
-        )
-        .expect("reference modal solution");
+        let reference =
+            analyze_fixed_free_bar(nafems_reference_bar(8), MassFormulation::Consistent)
+                .expect("reference modal solution");
         let mut scaled_area = nafems_reference_bar(8);
         scaled_area.area_m2 *= 7.0;
-        let area_result =
-            analyze_fixed_free_bar(scaled_area, MassFormulation::Consistent)
-                .expect("area-scaled modal solution");
+        let area_result = analyze_fixed_free_bar(scaled_area, MassFormulation::Consistent)
+            .expect("area-scaled modal solution");
         let mut scaled_material = nafems_reference_bar(8);
         scaled_material.youngs_modulus_pa *= 9.0;
         scaled_material.density_kg_m3 *= 9.0;
-        let material_result =
-            analyze_fixed_free_bar(scaled_material, MassFormulation::Consistent)
-                .expect("modulus/density-scaled modal solution");
+        let material_result = analyze_fixed_free_bar(scaled_material, MassFormulation::Consistent)
+            .expect("modulus/density-scaled modal solution");
         let mut scaled_length = nafems_reference_bar(8);
         scaled_length.length_m *= 2.0;
-        let length_result =
-            analyze_fixed_free_bar(scaled_length, MassFormulation::Consistent)
-                .expect("length-scaled modal solution");
+        let length_result = analyze_fixed_free_bar(scaled_length, MassFormulation::Consistent)
+            .expect("length-scaled modal solution");
 
         close(
             area_result.frequencies_hz[0],
@@ -489,18 +488,22 @@ mod tests {
     #[test]
     fn mode_count_equals_free_axial_degree_count_and_frequencies_are_sorted() {
         for elements in [1, 2, 4, 8, 16] {
-            for formulation in [
-                MassFormulation::Consistent,
-                MassFormulation::RowSumLumped,
-            ] {
+            for formulation in [MassFormulation::Consistent, MassFormulation::RowSumLumped] {
                 let result = analyze_fixed_free_bar(nafems_reference_bar(elements), formulation)
                     .expect("bounded modal solve");
                 assert_eq!(result.frequencies_hz.len(), elements);
-                assert!(result.frequencies_hz.windows(2).all(|pair| pair[0] < pair[1]));
-                assert!(result
-                    .normalized_frequencies
-                    .iter()
-                    .all(|ratio| ratio.is_finite() && *ratio > 0.0));
+                assert!(
+                    result
+                        .frequencies_hz
+                        .windows(2)
+                        .all(|pair| pair[0] < pair[1])
+                );
+                assert!(
+                    result
+                        .normalized_frequencies
+                        .iter()
+                        .all(|ratio| ratio.is_finite() && *ratio > 0.0)
+                );
             }
         }
     }
