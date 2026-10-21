@@ -45,6 +45,11 @@ run_mutation() {
       perl -0pi -e 's/let mass_right = matrix_vector_product\(mass, right_mode\)\?;/let mass_right = right_mode.clone();/' "$source"
       grep -Fq 'let mass_right = right_mode.clone();' "$source"
       ;;
+    absolute_frequency_gap)
+      grep -Fq 'let relative_gap = (current - previous).abs() / current.abs().max(previous.abs());' "$source"
+      perl -0pi -e 's/let relative_gap = \(current - previous\)\.abs\(\) \/ current\.abs\(\)\.max\(previous\.abs\(\)\);/let relative_gap = (current - previous).abs();/' "$source"
+      grep -Fq 'let relative_gap = (current - previous).abs();' "$source"
+      ;;
     *)
       printf 'Unknown modal-subspace mutation: %s\n' "$mutation" >&2
       return 2
@@ -66,6 +71,7 @@ run_mutation() {
 
 run_mutation "subspace-gram-whitening-omitted" omit_gram_whitening repeated_mode_cluster_is_invariant_to_basis_rotation_and_scaling
 run_mutation "mass-metric-ignored" ignore_mass_metric comparison_uses_the_mass_inner_product_not_euclidean_mac
+run_mutation "absolute-not-relative-frequency-gap" absolute_frequency_gap frequency_clusters_use_scale_invariant_predeclared_relative_gap
 
 test "$source_sha256" = "$(sha256sum "$crate_dir/src/modal_subspace.rs" | awk '{print $1}')"
 
@@ -91,6 +97,12 @@ jq -n \
       {
         id: "PHYS-MODAL-SUBSPACE-MUT-MASS-METRIC-001",
         expected_test: "comparison_uses_the_mass_inner_product_not_euclidean_mac",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-MODAL-SUBSPACE-MUT-FREQ-GAP-001",
+        expected_test: "frequency_clusters_use_scale_invariant_predeclared_relative_gap",
         disposition: "detected"
       }
     ],
