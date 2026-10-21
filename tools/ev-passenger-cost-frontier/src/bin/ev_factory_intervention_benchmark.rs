@@ -173,10 +173,21 @@ struct Report {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json>");
+    if !(2..=3).contains(&args.len()) {
+        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]");
         process::exit(2);
     }
+    let practical_margin = if args.len() == 3 {
+        match args[2].parse::<f64>() {
+            Ok(value) if value.is_finite() && value > 0.0 => value,
+            _ => {
+                eprintln!("practical margin must be a finite positive number");
+                process::exit(2);
+            }
+        }
+    } else {
+        0.05
+    };
     let report_text = match fs::read_to_string(&args[1]) {
         Ok(value) => value,
         Err(error) => {
@@ -192,7 +203,7 @@ fn main() {
         }
     };
     let source_digest = format!("{:x}", Sha256::digest(report_text.as_bytes()));
-    let report = match evaluate(&simulation, &source_digest) {
+    let report = match evaluate(&simulation, &source_digest, practical_margin) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("intervention benchmark rejected input: {error}");
@@ -408,9 +419,16 @@ fn validate_simulation_report(input: &SimulationReport) -> Result<(), String> {
     Ok(())
 }
 
-fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, String> {
+fn evaluate(
+    input: &SimulationReport,
+    report_digest: &str,
+    practical_equivalence_margin: f64,
+) -> Result<Report, String> {
     if !valid_sha256(report_digest) {
         return Err("source_simulation_report_sha256_must_be_64_hex_characters".into());
+    }
+    if !practical_equivalence_margin.is_finite() || practical_equivalence_margin <= 0.0 {
+        return Err("practical_equivalence_margin_must_be_finite_and_positive".into());
     }
     validate_simulation_report(input)?;
     let baseline = input
@@ -480,7 +498,6 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
         _ => false,
     };
 
-    const PRACTICAL_EQUIVALENCE_MARGIN: f64 = 0.05;
     let replication_outcomes: BTreeMap<(u64, String), &ReplicationOutcome> = input
         .replication_outcomes
         .iter()
@@ -510,9 +527,9 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
                     .paired_good_units_per_hour_delta_vs_baseline
                     .ok_or_else(|| "paired_gain_missing_for_station_b".to_string())?;
                 let difference = gain_a - gain_b;
-                if difference > PRACTICAL_EQUIVALENCE_MARGIN {
+                if difference > practical_equivalence_margin {
                     a_win_count += 1;
-                } else if difference < -PRACTICAL_EQUIVALENCE_MARGIN {
+                } else if difference < -practical_equivalence_margin {
                     b_win_count += 1;
                 }
                 difference_samples.push(difference);
@@ -520,21 +537,11 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
             let paired_effect = summarize_distribution(&difference_samples)?;
             let lower = paired_effect.mean_confidence_95_lower;
             let upper = paired_effect.mean_confidence_95_upper;
-            let decision = match (lower, upper) {
-                (Some(lo), Some(hi)) if lo > PRACTICAL_EQUIVALENCE_MARGIN => {
-                    "station_a_meaningfully_better_under_paired_model"
-                }
-                (Some(lo), Some(hi)) if hi < -PRACTICAL_EQUIVALENCE_MARGIN => {
-                    "station_b_meaningfully_better_under_paired_model"
-                }
-                (Some(lo), Some(hi))
-                    if lo >= -PRACTICAL_EQUIVALENCE_MARGIN
-                        && hi <= PRACTICAL_EQUIVALENCE_MARGIN =>
-                {
-                    "practically_equivalent_within_declared_margin"
-                }
-                _ => "inconclusive_under_paired_interval",
-            };
+            let decision = paired_interval_decision(
+                lower,
+                upper,
+                practical_equivalence_margin,
+            );
             paired_comparisons.push(PairedInterventionComparison {
                 station_a_id: station_a.clone(),
                 station_b_id: station_b.clone(),
@@ -543,7 +550,7 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
                 paired_effect_a_minus_b: paired_effect,
                 probability_a_beats_b_beyond_margin: a_win_count as f64 / input.replication_count as f64,
                 probability_b_beats_a_beyond_margin: b_win_count as f64 / input.replication_count as f64,
-                practical_equivalence_margin_units_per_hour: PRACTICAL_EQUIVALENCE_MARGIN,
+                practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
                 decision: decision.into(),
             });
         }
@@ -624,7 +631,7 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
         runner_up_station_ci_upper: runner_up.oracle_paired_gain_ci_95_upper,
         nonoverlapping_interval_screen_separates_top_two: intervals_separate,
         interval_screen_note: "Legacy descriptive screen only; paired_intervention_comparisons is the primary comparison of intervention-vs-intervention effects.".into(),
-        practical_equivalence_margin_units_per_hour: PRACTICAL_EQUIVALENCE_MARGIN,
+        practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
         paired_intervention_comparisons: paired_comparisons,
         robust_best_station_id,
         paired_effect_recommendation_status,
@@ -634,6 +641,25 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
         production_release_authorized: false,
         claim_ceiling: CLAIM_CEILING.into(),
     })
+}
+
+fn paired_interval_decision(
+    lower: Option<f64>,
+    upper: Option<f64>,
+    margin: f64,
+) -> &'static str {
+    match (lower, upper) {
+        (Some(lo), Some(_hi)) if lo > margin => {
+            "station_a_meaningfully_better_under_paired_model"
+        }
+        (Some(_lo), Some(hi)) if hi < -margin => {
+            "station_b_meaningfully_better_under_paired_model"
+        }
+        (Some(lo), Some(hi)) if lo >= -margin && hi <= margin => {
+            "practically_equivalent_within_declared_margin"
+        }
+        _ => "inconclusive_under_paired_interval",
+    }
 }
 
 fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
@@ -1026,6 +1052,28 @@ mod tests {
         let summary = summarize_distribution(&paired_effects).expect("paired effect of effects");
         assert_eq!(summary.sample_count, 5);
         assert!((summary.mean - 0.8).abs() < 1e-12);
+    }
+
+    #[test]
+    fn margin_is_explicit_and_can_change_equivalence_decision() {
+        let lower = Some(0.08);
+        let upper = Some(0.08);
+        assert_eq!(
+            paired_interval_decision(lower, upper, 0.05),
+            "station_a_meaningfully_better_under_paired_model"
+        );
+        assert_eq!(
+            paired_interval_decision(lower, upper, 0.10),
+            "practically_equivalent_within_declared_margin"
+        );
+        assert_eq!(
+            paired_interval_decision(Some(0.02), Some(0.12), 0.05),
+            "inconclusive_under_paired_interval"
+        );
+        assert_eq!(
+            paired_interval_decision(None, None, 0.05),
+            "inconclusive_under_paired_interval"
+        );
     }
 
     #[test]
