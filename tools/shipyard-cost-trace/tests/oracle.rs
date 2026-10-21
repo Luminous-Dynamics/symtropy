@@ -1,6 +1,6 @@
 use shipyard_cost_trace::{
-    EventKind, EvidencePermission, FinancialTransaction, LedgerEvent, QuantityEvent, QuantityRate,
-    Stage, audit,
+    EventKind, EvidencePermission, FinancialTransaction, LedgerEvent, QuantityAggregationSemantics,
+    QuantityEvent, QuantityRate, Stage, audit,
 };
 
 const CONFIG: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -24,6 +24,7 @@ fn quantity_event(
         kind: EventKind::Quantity(QuantityEvent {
             quantity_key: "labor.fitter.hours".to_owned(),
             quantity,
+            aggregation_semantics: QuantityAggregationSemantics::AdditiveContribution,
             unit: "hour".to_owned(),
             rate,
         }),
