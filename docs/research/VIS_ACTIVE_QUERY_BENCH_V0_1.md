@@ -223,7 +223,7 @@ The development-only objective selected request cost `0.00000`, effectively disa
 
 The next question is whether `expected_task_loss_reduction_scores` predict any reduction in the belief-risk objective actually used by this simulator. The new `VALUE_CALIBRATION` report samples 12 fixed ticks across the 48-tick horizon while an `ExpectedTaskLossReduction` reference policy runs. At each sampled information state, the evaluator (not the policy) inspects the candidate values for all three query actions, clones that state, and applies only the pre-generated potential observation for one candidate. It records predicted risk reduction and realized one-step change in the same terminal belief-risk function. Candidate outcomes are never supplied to policy choice or future policy state.
 
-The report separates development and held-out families and includes:
+The report separates development and held-out families and includes (empty strata are printed as `NA`, not a measured zero; for example, development has no delay greater than two ticks by construction):
 - all candidates;
 - relevant versus distractor observations;
 - source delays up to 2 versus greater than 2;
