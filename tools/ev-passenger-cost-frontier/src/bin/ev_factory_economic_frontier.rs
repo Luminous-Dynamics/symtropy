@@ -13,6 +13,11 @@ struct EconomicCatalog {
     schema_version: String,
     benchmark_id: String,
     input_evidence_class: String,
+    source_note: String,
+    annualization_note: String,
+    energy_duty_basis: String,
+    carbon_factor_evidence_class: String,
+    pareto_objectives: Vec<Objective>,
     sites: Vec<SiteProfile>,
     station_profiles: Vec<StationCostProfile>,
     claim_ceiling: String,
@@ -187,7 +192,7 @@ struct Report {
     claim_ceiling: String,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 struct Objective {
     field: String,
     direction: String,
@@ -395,9 +400,40 @@ fn validate_inputs(
     {
         return Err("simulation_seed_list_must_be_positive_and_unique".into());
     }
+    let expected_pareto_objectives = vec![
+        Objective {
+            field: "annual_incremental_good_units_mean".into(),
+            direction: "maximize".into(),
+        },
+        Objective {
+            field: "incremental_capex_local".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_opex_local".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_energy_kwh".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_emissions_kgco2e".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "incremental_floor_area_sqm".into(),
+            direction: "minimize".into(),
+        },
+    ];
     if economics.schema_version != "0.1.0"
         || economics.benchmark_id != "EV-FACTORY-ECON-001"
         || economics.input_evidence_class != "synthetic"
+        || economics.source_note.trim().is_empty()
+        || economics.annualization_note.trim().is_empty()
+        || economics.energy_duty_basis.trim().is_empty()
+        || economics.carbon_factor_evidence_class != "synthetic"
+        || economics.pareto_objectives != expected_pareto_objectives
         || economics.sites.is_empty()
         || economics.station_profiles.is_empty()
         || economics.claim_ceiling.trim().is_empty()
