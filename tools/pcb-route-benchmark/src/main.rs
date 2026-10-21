@@ -46,7 +46,8 @@ fn run() -> Result<Vec<u8>, String> {
         [command, manifest_path, dataset_root] if command == "verify-dataset" => {
             let manifest = fs::read(manifest_path)
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
-            let receipt = verify_dataset_files(&manifest, Path::new(dataset_root), &evaluator_head)?;
+            let receipt =
+                verify_dataset_files(&manifest, Path::new(dataset_root), &evaluator_head)?;
             serde_json::to_vec_pretty(&receipt)
                 .map_err(|error| format!("cannot serialize dataset verification receipt: {error}"))
         }
@@ -78,8 +79,7 @@ fn run() -> Result<Vec<u8>, String> {
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
             let baseline = load_report_series(baseline_dir, &manifest, &evaluator_head)?;
             let treatment = load_report_series(treatment_dir, &manifest, &evaluator_head)?;
-            let comparison =
-                compare_replicated_runs(&baseline, &treatment, &evaluator_head)?;
+            let comparison = compare_replicated_runs(&baseline, &treatment, &evaluator_head)?;
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize replicated comparison: {error}"))
         }
@@ -98,6 +98,7 @@ fn run() -> Result<Vec<u8>, String> {
         }
         _ => Err("usage: pcb-route-benchmark build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json".into()),
     }
+}
 
 fn load_report_series(
     directory: &str,
@@ -108,9 +109,9 @@ fn load_report_series(
     let mut paths = fs::read_dir(root)
         .map_err(|error| format!("cannot read run series directory {directory}: {error}"))?
         .map(|entry| {
-            entry
-                .map(|entry| entry.path())
-                .map_err(|error| format!("cannot enumerate run series directory {directory}: {error}"))
+            entry.map(|entry| entry.path()).map_err(|error| {
+                format!("cannot enumerate run series directory {directory}: {error}")
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
     paths.retain(|path| {
@@ -130,13 +131,11 @@ fn load_report_series(
     paths
         .into_iter()
         .map(|path| {
-            let report_bytes = fs::read(&path)
-                .map_err(|error| format!("cannot read run report {}: {error}", path.display()))?;
+            let report_bytes = fs::read(&path).map_err(|error| {
+                format!("cannot read run report {}: {error}", path.display())
+            })?;
             evaluate_report_bytes(&report_bytes, manifest_bytes, evaluator_git_head)
                 .map_err(|error| format!("run report {} rejected: {error}", path.display()))
         })
         .collect()
-}
-
-
 }
