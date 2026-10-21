@@ -294,7 +294,10 @@ fn matrix_infinity_norm(matrix: &Matrix) -> f64 {
 }
 
 fn vector_infinity_norm(vector: &[f64]) -> f64 {
-    vector.iter().map(|value| value.abs()).fold(0.0_f64, f64::max)
+    vector
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max)
 }
 
 fn matrix_vector_product(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
@@ -670,7 +673,11 @@ mod tests {
         )
         .expect("modal result");
         assert_eq!(modes.len(), 3);
-        assert!(modes.windows(2).all(|pair| pair[0].frequency_hz < pair[1].frequency_hz));
+        assert!(
+            modes
+                .windows(2)
+                .all(|pair| pair[0].frequency_hz < pair[1].frequency_hz)
+        );
         for mode in modes {
             assert_eq!(mode.shape_free_dofs.len(), 8);
             assert!(mode.normalized_eigen_residual < 1.0e-10);
