@@ -32,9 +32,9 @@ Unsupported geometry is first-class and **not feasible**. A polygon profile, unk
 
 The frozen fixture at `tests/fixtures/space-time-v0.tsv` has raw-byte SHA-256:
 
-`7a1b65b926ad7417902ef38f69040a7757dc89fd038801d93afaee881298df00`
+`73b51779e5264983ae60ca1c46b7446aa4c0fd3874185daddee9327d801472c2`
 
-It contains 17 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry, invalid time/rectangle, missing yard bounds, and out-of-bounds blocks/corridors. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
+It contains 18 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry, invalid time/rectangle, missing/invalid yard bounds, and out-of-bounds blocks/corridors. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
 
 These checks provide bounded correctness evidence, not proof of arbitrary polygon geometry, general optimizer correctness, production shipyard safety or real-world throughput. The test suite must pass on the exact PR head before the milestone can be called verified.
 
