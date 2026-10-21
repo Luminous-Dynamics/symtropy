@@ -51,6 +51,17 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh
 
+      - name: Re-verify production tree after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- \
+            research/physical-transformation-reference/src/mechanics.rs \
+            research/physical-transformation-reference/tests/metamorphic.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Run frozen fixture and verify exact-head receipt
         shell: bash
         run: |
