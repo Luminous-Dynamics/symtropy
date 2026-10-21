@@ -830,7 +830,7 @@ fn parse_id(value: &str, line: usize, label: &str) -> Check<u64> {
 }
 
 fn parse_dof(value: &str, line: usize) -> Check<u8> {
-    let dof = value.parse::<u8>().ok().filter(|dof| (1..=3).contains(dof))
+    value.parse::<u8>().ok().filter(|dof| (1..=3).contains(dof))
         .ok_or_else(|| format!("DOF '{value}' at line {line} is outside translational DOFs 1..3"))
 }
 
