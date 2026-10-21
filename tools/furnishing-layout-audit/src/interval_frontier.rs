@@ -191,6 +191,12 @@ fn unrankable_reasons(candidate: &IntervalAlternativeCandidate) -> Vec<String> {
                 objective.dimension
             ));
         }
+        if objective.semantics.kind != IntervalSemanticsKind::DeterministicEnvelope {
+            reasons.push(format!(
+                "objective {:?} is not a deterministic envelope; this API does not claim guaranteed dominance for statistical or declared ranges",
+                objective.dimension
+            ));
+        }
         if !objective.lower.is_finite() || !objective.upper.is_finite() {
             reasons.push(format!(
                 "objective {:?} interval endpoints must be finite",
@@ -384,7 +390,7 @@ mod tests {
     fn semantics() -> IntervalSemantics {
         IntervalSemantics {
             kind: IntervalSemanticsKind::DeterministicEnvelope,
-            basis_id: "room-fit-envelope-v1".to_owned(),
+            basis_id: "synthetic-deterministic-bounds-v1".to_owned(),
         }
     }
 
@@ -591,8 +597,8 @@ mod tests {
             (80.0, 81.0),
         );
         different_semantics.objectives[0].semantics = IntervalSemantics {
-            kind: IntervalSemanticsKind::ConfidenceInterval,
-            basis_id: "bootstrap-95pct-v1".to_owned(),
+            kind: IntervalSemanticsKind::DeterministicEnvelope,
+            basis_id: "alternate-envelope-v2".to_owned(),
         };
         let a = candidate("a", VerificationStatus::Verified, (12.0, 13.0), (70.0, 71.0));
         assert!(matches!(
@@ -610,6 +616,29 @@ mod tests {
         assert!(matches!(
             compute_interval_frontier(&[a, different_unit]),
             Err(IntervalFrontierError::IncompatibleObjectiveSchemas { .. })
+        ));
+    }
+
+    #[test]
+    fn statistical_intervals_do_not_claim_deterministic_guarantees() {
+        let mut statistical = candidate(
+            "statistical",
+            VerificationStatus::Verified,
+            (10.0, 12.0),
+            (80.0, 85.0),
+        );
+        statistical.objectives[0].semantics = IntervalSemantics {
+            kind: IntervalSemanticsKind::ConfidenceInterval,
+            basis_id: "bootstrap-95pct-v1".to_owned(),
+        };
+        let report = compute_interval_frontier(&[statistical])
+            .expect("unsupported semantics must be explicitly excluded");
+        assert!(report.frontier_ids.is_empty());
+        assert!(!report.ranking_complete);
+        assert!(matches!(
+            result(&report, "statistical"),
+            IntervalCandidateDisposition::ExcludedUnrankable(reasons)
+                if reasons.iter().any(|reason| reason.contains("not a deterministic envelope"))
         ));
     }
 
