@@ -2485,9 +2485,7 @@ mod tests {
         assert!(exact_paired_sign_test_p_value(0, 0).is_none());
         assert!((exact_paired_sign_test_p_value(1, 0).unwrap() - 1.0).abs() < 1e-12);
         assert!((exact_paired_sign_test_p_value(2, 0).unwrap() - 0.5).abs() < 1e-12);
-        assert!(
-            (exact_paired_sign_test_p_value(10, 0).unwrap() - (2.0 / 1024.0)).abs() < 1e-12
-        );
+        assert!((exact_paired_sign_test_p_value(10, 0).unwrap() - (2.0 / 1024.0)).abs() < 1e-12);
         assert!((exact_paired_sign_test_p_value(4, 4).unwrap() - 1.0).abs() < 1e-12);
     }
 
