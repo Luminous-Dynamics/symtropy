@@ -35,6 +35,32 @@ The (cs=0) mutation is specifically assigned to the 128-case asymmetric paramete
 
 The asymmetric sweep bounds are: span 2–6 m; apex x between 20% and 80% of span; apex height 0.5–3 m; Young's modulus 50–210 GPa; bar axial stiffnesses 1e7–1e10 and 7e6–1.3e10 N/m; and both apex force components from −3,000 to +3,000 N. The fixed LCG seed and constants are checked into the test; the CI metadata receipt names the independent 2x2 inverse oracle and its source hash. These bounds are deterministic regression coverage, not a distributional uncertainty model.
 
+## Conditioning, backward error, and the fail-closed envelope
+
+The asymmetric sweep varies geometry and load direction, but a bounded sample with apex height at least 0.5 m does not stress the numerical limit as a two-bar truss approaches a mechanism. The conditioning sweep deliberately lowers the apex toward the support line for the same off-axis geometry and unequal axial stiffnesses.
+
+For each height, it independently constructs the reduced 2-DOF stiffness matrix:
+`K = [[Kxx, Kxy], [Kxy, Kyy]]`. With axial member stiffnesses `kA = EA/L`, `kB = EB/L`, and direction cosines/sines `(cA,sA)`, `(cB,sB)`:
+
+```text
+Kxx = kA*cA^2 + kB*cB^2
+Kxy = kA*cA*sA + kB*cB*sB
+Kyy = kA*sA^2 + kB*sB^2
+det(K) = kA*kB*(cA*sB - sA*cB)^2
+```
+
+The determinant identity is used rather than `Kxx*Kyy - Kxy*Kxy` to avoid cancellation as the two direction vectors become nearly parallel. The exact 2x2 inverse supplies an infinity-norm condition number `kappa_inf = ||K||inf * ||K^-1||inf`. This is a mathematical reference for this 2-DOF case; the test does not pretend it is a scalable general sparse-matrix condition estimator.
+
+A fixed target apex displacement is chosen first and its applied load is independently generated as `F = K*u_target`. For any accepted solver output `u_hat`, the test separately computes:
+
+- Forward error: `||u_hat - u_target||inf / ||u_target||inf`.
+- Backward residual: `||K*u_hat - F||inf / (||K||inf*||u_hat||inf + ||F||inf)`.
+- Condition-amplified backward residual: `kappa_inf * backward_error`.
+
+This tests a subtle but important numerical fact: a low backward residual does not imply low forward error for an ill-conditioned matrix. The frozen acceptance calculation compares the forward error against the condition-amplified backward term plus an explicit roundoff allowance. When `kappa_inf * machine_epsilon >= 1e-3`, the test requires the production solver to return a numerical-singularity error and issue no displacements. The geometry/height schedule, target displacement, stiffnesses, threshold, and condition/error equations are fixed in the test. These are declared test-envelope thresholds, not universal structural design limits or a posteriori error certification for arbitrary FEM systems.
+
+The exact-head workflow adds `planar-truss-conditioning-receipt-v0.1`, containing the commit and source hash, all nine heights, independent condition-oracle definition, acceptance threshold and claim ceiling. This is a test-run receipt: it does not serialize physical experiment data, invoke an external solver, or establish physical validity.
+
 ## Named mutation set
 
 The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies the crate manifest, lockfile, source files and frozen input fixture into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
