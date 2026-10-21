@@ -199,282 +199,282 @@
       "option_a_id": "add-body-prep",
       "option_b_id": "add-eol-test",
       "incremental_good_units_per_hour": 0.8,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "add-eol-test",
       "incremental_good_units_per_hour": 0.8,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "add-eol-test",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-body-prep",
       "option_b_id": "add-eol-test",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-body-prep",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-body-prep",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-body-prep",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.4,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-body-prep",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.5,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-body-prep",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-body-prep",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-body-prep",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-eol-test",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": -0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-eol-test",
       "option_b_id": "extend-buffer",
       "incremental_good_units_per_hour": -0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-eol-test",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.5,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-eol-test",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.6,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "add-eol-test",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "add-eol-test",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "add-eol-test",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "extend-buffer",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "extend-buffer",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.1,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "extend-buffer",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.2,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "extend-buffer",
       "option_b_id": "improve-yield",
       "incremental_good_units_per_hour": 0.7,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "extend-buffer",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "extend-buffer",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "extend-buffer",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "extend-buffer",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "supplier-stress",
       "option_a_id": "improve-yield",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "body-prep-constrained",
       "option_a_id": "improve-yield",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "eol-test-constrained",
       "option_a_id": "improve-yield",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     },
     {
       "scenario_id": "low-yield-rework",
       "option_a_id": "improve-yield",
       "option_b_id": "reduce-changeovers",
       "incremental_good_units_per_hour": 0,
-      "uncertainty_half_width_units_per_hour": 0.1
+      "uncertainty_half_width_units_per_hour": 0.75
     }
   ],
-  "uncertainty_contract": "All main-effect coefficients have independent synthetic intervals [mean - 0.12, mean + 0.12] good units/hour. All pairwise-interaction coefficients have independent synthetic intervals [mean - 0.10, mean + 0.10] good units/hour, including explicit zero-mean interactions. Coefficients are shared across designs within each scenario so regret comparisons use the same unknown realization. Scenario coefficients are independent across scenarios. This deliberately conservative rectangular uncertainty set is not calibrated to a real factory. No higher-order interaction effects are modelled.",
-  "claim_ceiling": "Every scenario, effect mean, half-width, resource value, grid factor and limit is synthetic. Pairwise interactions are complete and explicit; higher-order interactions are excluded. This is a deterministic interval-uncertainty oracle, not calibrated plant simulation, ROI, vendor advice or release authorization."
+  "uncertainty_contract": "All main-effect coefficients have independent synthetic intervals [mean - 0.12, mean + 0.12] good units/hour. All pairwise-interaction coefficients have independent synthetic intervals [mean - 0.75, mean + 0.75] good units/hour, including explicit zero-mean interactions. The wide interaction interval is a deliberate model-uncertainty stress case rather than a calibrated estimate. Coefficients are shared across designs within each scenario so regret comparisons use the same unknown realization. Scenario coefficients are independent across scenarios. This deliberately conservative rectangular uncertainty set is not calibrated to a real factory. No higher-order interaction effects are modelled.",
+  "claim_ceiling": "Every scenario, effect mean, half-width, resource value, grid factor and limit is synthetic. Pairwise interactions are complete and explicit; higher-order interactions are excluded. The deliberately broad interaction intervals are a stress test of decision fragility, not calibrated uncertainty bounds. This is a deterministic interval-uncertainty oracle, not calibrated plant simulation, ROI, vendor advice or release authorization."
 }
