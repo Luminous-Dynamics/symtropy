@@ -315,4 +315,51 @@ mod tests {
         }
         assert_eq!(case_count, 30);
     }
+
+    #[test]
+    fn below_threshold_restitution_is_recorded_as_engine_policy() {
+        // The engine intentionally suppresses restitution for approach speeds
+        // below 1 m/s to avoid resting-contact micro-bounces. This is a solver
+        // policy fixture, not an idealized elastic-collision reference case.
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, 1.0);
+
+        for (handle, velocity) in [(body_a, 0.4), (body_b, -0.4)] {
+            let body = world.body_mut(handle).expect("body was inserted");
+            body.linear_velocity = SVector::from([velocity, 0.0, 0.0]);
+            body.restitution = 1.0;
+            body.friction = 0.0;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+        }
+
+        let initial = world.invariant_snapshot();
+        let mut contact_observed = false;
+        for _ in 0..MAX_STEPS {
+            world.step(DT);
+            if !world.contacts.is_empty() {
+                contact_observed = true;
+                break;
+            }
+        }
+        assert!(contact_observed, "below-threshold collision was not detected");
+
+        let velocity_a = world.body(body_a).expect("body A remains").linear_velocity[0];
+        let velocity_b = world.body(body_b).expect("body B remains").linear_velocity[0];
+        let final_state = world.invariant_snapshot();
+        assert!(
+            velocity_a.abs() <= VELOCITY_TOLERANCE
+                && velocity_b.abs() <= VELOCITY_TOLERANCE,
+            "low-speed restitution suppression should not reverse the pair: va={velocity_a}, vb={velocity_b}"
+        );
+        assert!(
+            final_state.kinetic_energy < initial.kinetic_energy - 0.1,
+            "policy fixture should suppress the elastic rebound: initial={}, final={}",
+            initial.kinetic_energy,
+            final_state.kinetic_energy
+        );
+    }
+
 }
