@@ -4,6 +4,7 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -20,6 +21,7 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -381,6 +383,16 @@ jobs:
             and (.multiplicity_adjustment | contains("none"))
           ' ev-factory-age-threshold-sensitivity.json
 
+      - name: Independently recompute primary threshold intervals from raw reports
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_dispatch_threshold_verify -- \
+            ev-factory-simulation-report.json \
+            ev-factory-age-threshold-sensitivity.json \
+            300=ev-factory-age-300-report.json \
+            900=ev-factory-variant-aware-report.json \
+            1800=ev-factory-age-1800-report.json \
+            3600=ev-factory-age-3600-report.json
+
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -461,6 +473,7 @@ jobs:
             docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs \
             ev-factory-age-300.json ev-factory-age-300-report.json \
             ev-factory-age-1800.json ev-factory-age-1800-report.json \
             ev-factory-age-3600.json ev-factory-age-3600-report.json \
