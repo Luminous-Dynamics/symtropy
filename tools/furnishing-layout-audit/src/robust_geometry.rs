@@ -167,6 +167,7 @@ fn definitely_overlapping(
 #[cfg(test)]
 mod tests {
     use super::{ClosedRange, IntervalRect, OverlapClassification, RangeError};
+    use super::super::Rect;
 
     fn range(min: f64, max: f64) -> ClosedRange {
         ClosedRange::new(min, max).expect("test ranges are valid")
@@ -180,6 +181,155 @@ mod tests {
             range(depth.0, depth.1),
         )
         .expect("test rectangle is valid")
+    }
+
+
+    // Test-only independent endpoint enumerator: 4 interval dimensions per
+    // rectangle, hence 2^8 exact rectangle pairs. Every coordinate predicate
+    // is monotone in each endpoint, so endpoint enumeration is the reference
+    // for the bounded Cartesian interval contract.
+    fn corner(rect: IntervalRect, mask: u8) -> Rect {
+        let pick = |range: ClosedRange, bit: u8| {
+            if mask & bit == 0 {
+                range.min()
+            } else {
+                range.max()
+            }
+        };
+        Rect {
+            x: pick(rect.x(), 1),
+            y: pick(rect.y(), 2),
+            width: pick(rect.width(), 4),
+            depth: pick(rect.depth(), 8),
+        }
+    }
+
+    fn endpoint_reference(a: IntervalRect, b: IntervalRect) -> OverlapClassification {
+        let mut overlaps = 0usize;
+        for a_mask in 0..16 {
+            for b_mask in 0..16 {
+                if corner(a, a_mask).overlaps(corner(b, b_mask)) {
+                    overlaps += 1;
+                }
+            }
+        }
+        match overlaps {
+            0 => OverlapClassification::DefinitelyClear,
+            256 => OverlapClassification::DefinitelyOverlapping,
+            _ => OverlapClassification::Indeterminate,
+        }
+    }
+
+    fn generated_rect(seed: u64) -> IntervalRect {
+        let position = |value: u64, multiplier: u64| {
+            let min = ((value * multiplier) % 29) as f64 * 0.1;
+            let max = min + ((value * (multiplier + 3)) % 4) as f64 * 0.05;
+            (min, max)
+        };
+        let extent = |value: u64, multiplier: u64| {
+            let min = 0.1 + ((value * multiplier) % 7) as f64 * 0.1;
+            let max = min + ((value * (multiplier + 5)) % 4) as f64 * 0.05;
+            (min, max)
+        };
+        rect(
+            position(seed, 7),
+            position(seed + 3, 11),
+            extent(seed + 5, 13),
+            extent(seed + 9, 17),
+        )
+    }
+
+    fn shift(rect: IntervalRect, dx: f64, dy: f64) -> IntervalRect {
+        let shift_range = |range: ClosedRange, delta: f64| {
+            range(range.min() + delta, range.max() + delta)
+        };
+        IntervalRect::new(
+            shift_range(rect.x(), dx),
+            shift_range(rect.y(), dy),
+            rect.width(),
+            rect.depth(),
+        )
+        .expect("finite common translations preserve valid extents")
+    }
+
+    fn widen(rect: IntervalRect, delta: f64) -> IntervalRect {
+        let widen_range = |value: ClosedRange| {
+            range(value.min() - delta, value.max() + delta)
+        };
+        IntervalRect::new(
+            widen_range(rect.x()),
+            widen_range(rect.y()),
+            widen_range(rect.width()),
+            widen_range(rect.depth()),
+        )
+        .expect("small expansion keeps generated extents positive")
+    }
+
+    #[test]
+    fn endpoint_classification_matches_independent_exhaustive_reference() {
+        // Deterministic generated corpus; no random dependency or seed hidden
+        // from reviewers. 128 pairs x 256 endpoint combinations = 32,768 checks.
+        for case in 0..128_u64 {
+            let a = generated_rect(case * 37 + 1);
+            let b = generated_rect(case * 53 + 19);
+            let actual = a.classify_overlap(b);
+            let reference = endpoint_reference(a, b);
+            assert_eq!(
+                actual, reference,
+                "classification mismatch for generated case {case}: {a:?} vs {b:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn classification_is_symmetric_and_invariant_under_common_translation() {
+        for case in 0..64_u64 {
+            let a = generated_rect(case * 19 + 2);
+            let b = generated_rect(case * 23 + 7);
+            let expected = a.classify_overlap(b);
+            assert_eq!(expected, b.classify_overlap(a), "symmetry case {case}");
+
+            let dx = 10.0 + case as f64 * 0.03125;
+            let dy = 20.0 + case as f64 * 0.0625;
+            assert_eq!(
+                expected,
+                shift(a, dx, dy).classify_overlap(shift(b, dx, dy)),
+                "translation invariance case {case}"
+            );
+        }
+    }
+
+    #[test]
+    fn widening_bounds_never_strengthens_an_uncertain_decision() {
+        for case in 0..96_u64 {
+            let a = generated_rect(case * 31 + 4);
+            let b = generated_rect(case * 43 + 13);
+            let before = a.classify_overlap(b);
+            let after = widen(a, 0.01).classify_overlap(b);
+            match before {
+                OverlapClassification::DefinitelyClear => {
+                    assert_ne!(
+                        after,
+                        OverlapClassification::DefinitelyOverlapping,
+                        "widening created an impossible certainty of collision in case {case}"
+                    );
+                }
+                OverlapClassification::DefinitelyOverlapping => {
+                    assert_ne!(
+                        after,
+                        OverlapClassification::DefinitelyClear,
+                        "widening created a false-safe result in case {case}"
+                    );
+                }
+                OverlapClassification::Indeterminate => {
+                    assert_eq!(
+                        after,
+                        OverlapClassification::Indeterminate,
+                        "widening removed outcomes that were already possible in case {case}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
