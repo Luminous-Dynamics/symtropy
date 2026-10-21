@@ -32,7 +32,7 @@ run_mutation() {
 
   mkdir -p "$mutant_dir"
   cp "$crate_dir/Cargo.toml" "$crate_dir/Cargo.lock" "$mutant_dir/"
-  cp -a "$crate_dir/src" "$mutant_dir/"
+  cp -a "$crate_dir/src" "$crate_dir/fixtures" "$mutant_dir/"
 
   case "$mutation" in
     truss_stiffness_omits_area)
