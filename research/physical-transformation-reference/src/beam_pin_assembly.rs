@@ -753,7 +753,7 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use super::{
         BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode,
@@ -1001,9 +1001,50 @@ mod tests {
                 .collect::<BTreeSet<_>>();
             assert_eq!(unique_stations.len(), interior_rotations.len());
 
-            for (_, _, index) in interior_rotations {
-                assert!(assembly.stiffness_global[index][index] > 0.0);
-                assert!(assembly.mass_global[index][index] > 0.0);
+            let mut translation_dofs = BTreeMap::<String, Vec<usize>>::new();
+            for descriptor in &assembly.dof_descriptors {
+                match &descriptor.kind {
+                    BeamPinDofKind::NodeTranslationX { node_id }
+                    | BeamPinDofKind::NodeTranslationY { node_id } => {
+                        translation_dofs
+                            .entry(node_id.clone())
+                            .or_default()
+                            .push(descriptor.index);
+                    }
+                    _ => {}
+                }
+            }
+
+            let member_inputs = chains(elements_per_member);
+            for (member_id, station_index, index) in &interior_rotations {
+                assert!(assembly.stiffness_global[*index][*index] > 0.0);
+                assert!(assembly.mass_global[*index][*index] > 0.0);
+                let member = member_inputs
+                    .iter()
+                    .find(|member| member.id == *member_id)
+                    .expect("member chain in test fixture");
+                let previous_station = if *station_index == 1 {
+                    member.start_node_id.clone()
+                } else {
+                    format!("{}::station::{:04}", member.id, station_index - 1)
+                };
+                let next_station = if *station_index + 1 == elements_per_member {
+                    member.end_node_id.clone()
+                } else {
+                    format!("{}::station::{:04}", member.id, station_index + 1)
+                };
+                let previous_dofs = translation_dofs
+                    .get(&previous_station)
+                    .expect("previous station translation DOFs");
+                let next_dofs = translation_dofs
+                    .get(&next_station)
+                    .expect("next station translation DOFs");
+                assert!(previous_dofs.iter().any(|dof| {
+                    assembly.stiffness_global[*index][*dof].abs() > 0.0
+                }), "rotation {member_id}/{station_index} must couple to the previous station");
+                assert!(next_dofs.iter().any(|dof| {
+                    assembly.stiffness_global[*index][*dof].abs() > 0.0
+                }), "rotation {member_id}/{station_index} must couple to the next station");
             }
             assert_eq!(
                 assembly
@@ -1036,6 +1077,31 @@ mod tests {
                 .expect("canonical reversed beam-chain request"),
             first
         );
+    }
+
+    #[test]
+    fn canonical_mesh_sweep_request_covers_levels_and_is_order_invariant() {
+        let expected = include_str!("../fixtures/beam_chain_sweep_request_v0_1.txt")
+            .trim_end_matches('\n');
+        let first = canonical_beam_chain_sweep_request(&nodes(), &chains(1), &[1, 2, 4, 8])
+            .expect("canonical sweep request");
+        assert_eq!(first, expected);
+
+        let mut reversed_nodes = nodes();
+        reversed_nodes.reverse();
+        let mut reversed_chains = chains(1);
+        reversed_chains.reverse();
+        assert_eq!(
+            canonical_beam_chain_sweep_request(
+                &reversed_nodes,
+                &reversed_chains,
+                &[8, 4, 2, 1]
+            )
+            .expect("canonical reversed sweep request"),
+            first
+        );
+        assert!(canonical_beam_chain_sweep_request(&nodes(), &chains(1), &[1, 2, 2]).is_err());
+        assert!(canonical_beam_chain_sweep_request(&nodes(), &chains(1), &[]).is_err());
     }
 
     #[test]
