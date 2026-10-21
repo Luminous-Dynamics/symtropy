@@ -20,7 +20,7 @@ Every output scenario is passed to the independent space-time verifier. The base
 
 ## Tests
 
-Unit cases cover concurrent non-overlapping placements, temporal reuse of the same space, exclusion-zone avoidance, exhausted-yard rejection, deterministic replay, empty input and unsupported exclusion geometry. A second cell-set check independently confirms that concurrent placements emitted by the baseline share no lattice cell.
+Unit cases cover concurrent non-overlapping placements, temporal reuse of the same space, exclusion-zone avoidance, exhausted-yard rejection, deterministic replay, empty input and unsupported exclusion geometry. A separate integration test independently enumerates all legal integer placements in 216 tiny three-block cases using cell-set collision checks, then compares exact feasibility with first-fit outputs. The gate forbids false-feasible plans; it also prints missed-feasible coverage so the heuristic's incompleteness is measured instead of hidden. A second cell-set check independently confirms that concurrent placements emitted by the baseline share no lattice cell.
 
 ## Claim boundary
 
