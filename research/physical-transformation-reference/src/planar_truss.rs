@@ -135,10 +135,23 @@ pub struct EquilibriumSummary {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct EnergySummary {
+    /// Element strain energy, joules, reconstructed from axial force and extension.
+    pub strain_energy_j: f64,
+    /// One-half applied load dot displacement, joules, for proportional linear loading.
+    pub external_work_j: f64,
+    /// Strain energy minus external work, joules.
+    pub residual_j: f64,
+    /// Absolute energy residual divided by the larger absolute energy (or MIN_POSITIVE).
+    pub normalized_residual: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlanarTrussResult {
     pub node_results: Vec<TrussNodeResult>,
     pub bar_results: Vec<TrussBarResult>,
     pub equilibrium: EquilibriumSummary,
+    pub energy: EnergySummary,
     pub claim_ceiling: &'static str,
 }
 
@@ -466,10 +479,50 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         });
     }
 
+    // Energy balance is computed independently from global equilibrium
+    // diagnostics: member axial force × extension versus applied load ×
+    // displacement. Supports have zero prescribed displacement, so reactions
+    // perform no work in this formulation.
+    let mut strain_energy_j = 0.0_f64;
+    for bar in &bar_results {
+        let contribution = 0.5 * bar.axial_force_n * bar.axial_extension_m;
+        require_finite(contribution, "member strain-energy contribution")?;
+        strain_energy_j += contribution;
+        require_finite(strain_energy_j, "total strain energy")?;
+    }
+
+    let mut full_load_dot_displacement = 0.0_f64;
+    for dof in 0..dof_count {
+        let contribution = loads[dof] * displacement[dof];
+        require_finite(contribution, "applied-load work contribution")?;
+        full_load_dot_displacement += contribution;
+        require_finite(full_load_dot_displacement, "applied load-displacement sum")?;
+    }
+    let external_work_j = 0.5 * full_load_dot_displacement;
+    let residual_j = strain_energy_j - external_work_j;
+    let energy_scale = strain_energy_j
+        .abs()
+        .max(external_work_j.abs())
+        .max(f64::MIN_POSITIVE);
+    let normalized_residual = residual_j.abs() / energy_scale;
+    for (label, value) in [
+        ("external work", external_work_j),
+        ("energy residual", residual_j),
+        ("normalized energy residual", normalized_residual),
+    ] {
+        require_finite(value, label)?;
+    }
+
     Ok(PlanarTrussResult {
         node_results,
         bar_results,
         equilibrium,
+        energy: EnergySummary {
+            strain_energy_j,
+            external_work_j,
+            residual_j,
+            normalized_residual,
+        },
         claim_ceiling: "linear-elastic small-displacement 2D pin-jointed truss only; not member bending/buckling, nonlinear response, physical validation, structural safety, code compliance, or construction/demolition authorization",
     })
 }
