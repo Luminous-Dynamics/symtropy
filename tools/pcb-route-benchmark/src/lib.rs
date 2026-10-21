@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::{Component, Path},
+};
 
 pub const MANIFEST_SCHEMA: &str = "pcb-route-dataset-manifest-v0.1";
 pub const RUN_SCHEMA: &str = "pcb-route-run-v0.1";
@@ -29,6 +33,7 @@ pub struct BoardPin {
     pub required_nets: u32,
     pub license: String,
     pub source_url: String,
+    pub relative_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -160,6 +165,25 @@ pub struct RunSummary {
     pub p90_elapsed_ms_all_attempts: Option<f64>,
     pub median_wirelength_mm_valid_completions: Option<f64>,
     pub median_via_count_valid_completions: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct DatasetFileVerificationEntry {
+    pub board_id: String,
+    pub relative_path: String,
+    pub byte_len: u64,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct DatasetFileVerificationReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub dataset_manifest_sha256: String,
+    pub verified_board_count: usize,
+    pub entries: Vec<DatasetFileVerificationEntry>,
+    pub authority: String,
+    pub claim_ceiling: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -328,6 +352,14 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                 board.board_id
             ));
         }
+        if let Some(relative_path) = board.relative_path.as_deref() {
+            validate_relative_path(relative_path, &board.board_id)?;
+        } else if manifest.evidence_class == "external_benchmark" {
+            return Err(format!(
+                "{}: external benchmark board needs a dataset-relative source path",
+                board.board_id
+            ));
+        }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
             return Err(format!(
@@ -337,6 +369,112 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn validate_relative_path(relative_path: &str, board_id: &str) -> Result<(), String> {
+    if relative_path.trim().is_empty()
+        || relative_path.contains(char::from(92))
+        || relative_path.contains(':')
+        || relative_path.bytes().any(|byte| byte == 0)
+        || Path::new(relative_path).is_absolute()
+        || relative_path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err(format!(
+            "{board_id}: unsafe dataset-relative source path: {relative_path}"
+        ));
+    }
+    if Path::new(relative_path)
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(format!(
+            "{board_id}: source path contains a non-normal component: {relative_path}"
+        ));
+    }
+    Ok(())
+}
+
+pub fn verify_dataset_files(
+    manifest_bytes: &[u8],
+    dataset_root: &Path,
+    evaluator_git_head: &str,
+) -> Result<DatasetFileVerificationReceipt, String> {
+    if !is_commit_sha(evaluator_git_head) {
+        return Err(
+            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
+    }
+    let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+    validate_manifest(&manifest)?;
+
+    let root = dataset_root.canonicalize().map_err(|error| {
+        format!(
+            "cannot canonicalize dataset root {}: {error}",
+            dataset_root.display()
+        )
+    })?;
+    if !root.is_dir() {
+        return Err(format!("dataset root is not a directory: {}", root.display()));
+    }
+
+    let mut entries = Vec::with_capacity(manifest.boards.len());
+    for board in &manifest.boards {
+        let relative_path = board.relative_path.as_deref().ok_or_else(|| {
+            format!("{}: dataset-relative source path missing", board.board_id)
+        })?;
+        validate_relative_path(relative_path, &board.board_id)?;
+        let actual_path = root.join(relative_path).canonicalize().map_err(|error| {
+            format!(
+                "{}: cannot resolve source file {}: {error}",
+                board.board_id, relative_path
+            )
+        })?;
+        if !actual_path.starts_with(&root) {
+            return Err(format!(
+                "{}: source file resolves outside the dataset root",
+                board.board_id
+            ));
+        }
+        if !actual_path.is_file() {
+            return Err(format!(
+                "{}: source path is not a regular file: {}",
+                board.board_id, relative_path
+            ));
+        }
+        let bytes = fs::read(&actual_path).map_err(|error| {
+            format!(
+                "{}: cannot read source file {}: {error}",
+                board.board_id, relative_path
+            )
+        })?;
+        let digest = sha256_hex(&bytes);
+        if digest != board.input_board_sha256 {
+            return Err(format!(
+                "{}: source bytes SHA-256 does not match the pinned manifest",
+                board.board_id
+            ));
+        }
+        entries.push(DatasetFileVerificationEntry {
+            board_id: board.board_id.clone(),
+            relative_path: relative_path.to_string(),
+            byte_len: bytes.len() as u64,
+            sha256: digest,
+        });
+    }
+    entries.sort_by(|a, b| a.board_id.cmp(&b.board_id));
+
+    Ok(DatasetFileVerificationReceipt {
+        schema: "pcb-route-dataset-file-verification-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        verified_board_count: entries.len(),
+        entries,
+        authority: "dataset_source_bytes_match_pinned_manifest_only".into(),
+        claim_ceiling: "This receipt verifies source file paths and byte digests under the declared dataset root. It does not route boards, validate board semantics, authorize a benchmark score, or establish manufacturing/physical quality.".into(),
+    })
 }
 
 fn validate_report(
@@ -965,6 +1103,46 @@ mod tests {
             serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         let bytes = serde_json::to_vec(&value).expect("canonical fixture run");
         evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).expect("run validates")
+    }
+
+    #[test]
+    fn dataset_intake_hashes_actual_bytes_and_rejects_path_escape() {
+        let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
+        manifest.evidence_class = "external_benchmark".into();
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-benchmark-intake-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+
+        for board in &mut manifest.boards {
+            let relative_path = format!("{}.kicad_pcb", board.board_id);
+            let bytes = format!("synthetic source bytes for {}\n", board.board_id);
+            std::fs::write(root.join(&relative_path), bytes.as_bytes()).unwrap();
+            board.input_board_sha256 = sha256_hex(bytes.as_bytes());
+            board.relative_path = Some(relative_path);
+        }
+        let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+        let receipt =
+            verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD).expect("source files verify");
+        assert_eq!(receipt.verified_board_count, 6);
+        assert_eq!(receipt.entries.len(), 6);
+        assert_eq!(receipt.dataset_manifest_sha256, sha256_hex(&manifest_bytes));
+
+        let first_path = root.join(&receipt.entries[0].relative_path);
+        std::fs::write(&first_path, b"tampered after manifest creation").unwrap();
+        assert!(verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("source bytes SHA-256"));
+
+        manifest.boards[0].relative_path = Some("../outside.kicad_pcb".into());
+        let escaped_manifest = serde_json::to_vec(&manifest).unwrap();
+        assert!(verify_dataset_files(&escaped_manifest, &root, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("unsafe dataset-relative source path"));
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
