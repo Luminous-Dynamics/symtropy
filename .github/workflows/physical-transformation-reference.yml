@@ -296,6 +296,10 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           truss_source_sha256="$(sha256sum research/physical-transformation-reference/src/planar_truss.rs | awk '{print $1}')"
+          conditioning_source_sha256="$(sha256sum research/physical-transformation-reference/src/truss_conditioning.rs | awk '{print $1}')"
+          conditioning_bin_sha256="$(sha256sum research/physical-transformation-reference/src/bin/planar-truss-conditioning.rs | awk '{print $1}')"
+          lib_source_sha256="$(sha256sum research/physical-transformation-reference/src/lib.rs | awk '{print $1}')"
+          cargo_manifest_sha256="$(sha256sum research/physical-transformation-reference/Cargo.toml | awk '{print $1}')"
 
           cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-conditioning -- \
             --source-commit "$source_commit" > planar-truss-conditioning-raw-a.json
@@ -303,20 +307,41 @@ jobs:
             --source-commit "$source_commit" > planar-truss-conditioning-raw-b.json
           cmp --silent planar-truss-conditioning-raw-a.json planar-truss-conditioning-raw-b.json
 
-          jq --arg source_sha256 "$truss_source_sha256" '
+          jq \
+            --arg truss_source_sha256 "$truss_source_sha256" \
+            --arg conditioning_source_sha256 "$conditioning_source_sha256" \
+            --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
+            --arg lib_source_sha256 "$lib_source_sha256" \
+            --arg cargo_manifest_sha256 "$cargo_manifest_sha256" '
             . + {
-              source_sha256: {planar_truss_rs: $source_sha256},
-              source_digest_algorithm: "SHA-256 of src/planar_truss.rs bytes",
+              source_sha256: {
+                planar_truss_rs: $truss_source_sha256,
+                truss_conditioning_rs: $conditioning_source_sha256,
+                planar_truss_conditioning_bin_rs: $conditioning_bin_sha256,
+                lib_rs: $lib_source_sha256,
+                cargo_toml: $cargo_manifest_sha256
+              },
+              source_digest_algorithm: "SHA-256 of each exact listed UTF-8 source/manifest file",
               duplicate_run_bytes_identical: true
             }
           ' planar-truss-conditioning-raw-a.json > planar-truss-conditioning-receipt.json
 
-          jq -e --arg source_commit "$source_commit" --arg truss_source_sha256 "$truss_source_sha256" '
+          jq -e \
+            --arg source_commit "$source_commit" \
+            --arg truss_source_sha256 "$truss_source_sha256" \
+            --arg conditioning_source_sha256 "$conditioning_source_sha256" \
+            --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
+            --arg lib_source_sha256 "$lib_source_sha256" \
+            --arg cargo_manifest_sha256 "$cargo_manifest_sha256" '
             .schema_version == "planar-truss-conditioning-receipt-v0.1"
             and .benchmark_id == "PHYS-TRUSS-CONDITION-001"
             and .source_commit == $source_commit
             and .source_sha256.planar_truss_rs == $truss_source_sha256
-            and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
+            and .source_sha256.truss_conditioning_rs == $conditioning_source_sha256
+            and .source_sha256.planar_truss_conditioning_bin_rs == $conditioning_bin_sha256
+            and .source_sha256.lib_rs == $lib_source_sha256
+            and .source_sha256.cargo_toml == $cargo_manifest_sha256
+            and (.source_sha256 | all(.[]; type == "string" and test("^[0-9a-f]{64}$")))
             and .evidence_class == "software-test-run"
             and .result == "pass"
             and .case_count == 9
