@@ -51,6 +51,8 @@ The benchmark sweep is fixed in advance at **300, 900, 1,800 and 3,600 seconds**
 
 The 20-seed paired 95% t intervals for secondary metrics remain **unadjusted for multiple comparisons**. The report now also emits conservative Bonferroni simultaneous 95% intervals for one predeclared primary family only: throughput delta vs FIFO across the four thresholds and six fixed scenarios (24 two-sided comparisons). With 20 paired seeds (df=19), it uses a conservative t critical value of 4.0, above the required Bonferroni critical value for that fixed family. This correction does not extend to waiting-time, changeover, scrap, rework or order-inversion metrics; these remain descriptive guardrails, not confirmatory claims.
 
+An independent Rust verifier now reconstructs all 24 primary intervals from the raw per-seed/per-scenario reports rather than trusting the sensitivity generator's summaries. It checks identical seed/scenario keys, unique records, each policy/threshold label, finite paired deltas, conservation/release guards, family size, and the recomputed means, standard deviations and interval endpoints. This is a reproducibility check, not an independent simulator and not a substitute for validating the statistical assumptions.
+
 This is still a sensitivity screen, not a process for choosing a “best” threshold. Keep the grid fixed, report the paired seed deltas, and do not rank thresholds on one metric while ignoring the fairness/quality guardrails. A later validation/holdout design with additional replications and an explicit decision rule is required before selecting a policy for site-specific evaluation. All results remain synthetic and cannot establish a real factory waiting-time target.
 
 ## Claim ceiling
