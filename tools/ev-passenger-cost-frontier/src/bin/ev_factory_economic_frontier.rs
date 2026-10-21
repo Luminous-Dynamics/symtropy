@@ -603,11 +603,15 @@ mod tests {
             mean_confidence_95_lower: Some(1.0),
             mean_confidence_95_upper: Some(1.0),
         };
+        let busy_half = DistributionSummary {
+            mean: 0.5,
+            ..gain.clone()
+        };
         let operating = StationOperatingStatistics {
             scenario_id: "intervention".into(),
             station_id: "station".into(),
             server_count: 2,
-            busy_fraction: gain.clone(),
+            busy_fraction: busy_half,
             blocked_fraction: gain.clone(),
             starved_fraction: gain.clone(),
             down_fraction: gain.clone(),
@@ -617,13 +621,13 @@ mod tests {
         assert_eq!(row.annual_scheduled_operating_hours, 3200.0);
         assert_eq!(row.annual_incremental_labor_hours, 3200.0);
         assert_eq!(row.annual_incremental_labor_cost_local, 32000.0);
-        assert_eq!(row.annual_incremental_energy_kwh, 16000.0);
-        assert_eq!(row.annual_incremental_energy_cost_local, 48000.0);
-        assert_eq!(row.annual_incremental_emissions_kgco2e, 8000.0);
+        assert_eq!(row.annual_incremental_energy_kwh, 6400.0);
+        assert_eq!(row.annual_incremental_energy_cost_local, 19200.0);
+        assert_eq!(row.annual_incremental_emissions_kgco2e, 3200.0);
         assert_eq!(row.incremental_capex_local, 200.0);
         assert_eq!(row.annual_incremental_maintenance_cost_local, 20.0);
         assert_eq!(row.annual_incremental_floor_lease_cost_local, 8.0);
-        assert_eq!(row.annual_incremental_opex_local, 80028.0);
+        assert_eq!(row.annual_incremental_opex_local, 51228.0);
         assert_eq!(row.annual_incremental_good_units_mean, 3200.0);
         assert_eq!(row.capex_per_incremental_annual_good_unit_local, Some(0.0625));
     }
