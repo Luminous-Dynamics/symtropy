@@ -441,10 +441,10 @@ fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<
             let y_index = y_coordinates
                 .binary_search_by(|value| value.total_cmp(&point.y))
                 .expect("every point y coordinate is in the compressed index");
-            if let Some(witness_index) = fenwick_query(&tree, y_index, &points) {
-                if points[witness_index].z <= point.z {
-                    dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
-                }
+            if let Some(witness_index) = fenwick_query(&tree, y_index, &points)
+                && points[witness_index].z <= point.z
+            {
+                dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
             }
         }
 
@@ -465,11 +465,11 @@ fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<
                 if dominators.contains_key(point.id) {
                     continue;
                 }
-                if let Some(witness_index) = prefix_min_z {
-                    if points[witness_index].z <= point.z {
-                        dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
-                        continue;
-                    }
+                if let Some(witness_index) = prefix_min_z
+                    && points[witness_index].z <= point.z
+                {
+                    dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
+                    continue;
                 }
                 if points[same_y_min_z].z < point.z {
                     dominators.insert(point.id.to_owned(), points[same_y_min_z].id.to_owned());
