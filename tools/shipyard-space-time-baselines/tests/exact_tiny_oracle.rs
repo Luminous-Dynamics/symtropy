@@ -145,12 +145,38 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
     }
 
     assert_eq!(examined, 216, "frozen tiny-instance family changed");
-    assert!(exact_feasible > 0, "oracle family must contain feasible layouts");
-    assert!(baseline_solved > 0, "baseline must solve at least one case");
-    assert!(
-        baseline_rejected_infeasible > 0,
-        "oracle family must test infeasibility rejection"
-    );
+    assert_eq!(exact_feasible, 154, "exact feasibility reference changed");
+    assert_eq!(baseline_solved, 150, "first-fit reference coverage changed");
+    assert_eq!(baseline_missed_feasible, 4, "first-fit miss count changed");
+    assert_eq!(baseline_rejected_infeasible, 62, "infeasible rejection count changed");
+
+    // One frozen counterexample proves first-fit is a baseline rather than an exact solver.
+    // An exact arrangement exists, but the deterministic greedy sequence misses it.
+    let known_miss = [
+        PlacementRequest {
+            reservation_id: "miss-a".to_owned(),
+            block_id: "block-a".to_owned(),
+            width: 1,
+            height: 1,
+            occupied: occupancy,
+        },
+        PlacementRequest {
+            reservation_id: "miss-b".to_owned(),
+            block_id: "block-b".to_owned(),
+            width: 1,
+            height: 2,
+            occupied: occupancy,
+        },
+        PlacementRequest {
+            reservation_id: "miss-c".to_owned(),
+            block_id: "block-c".to_owned(),
+            width: 3,
+            height: 2,
+            occupied: occupancy,
+        },
+    ];
+    assert!(exact_pack_exists(yard, &known_miss));
+    assert!(first_fit_bottom_left(yard, &known_miss, &[]).is_err());
 
     // False infeasibility is allowed for a heuristic baseline but is measured explicitly.
     // These counters make the baseline's coverage visible in test output for the frozen family.
