@@ -392,6 +392,57 @@ mod tests {
     }
 
     #[test]
+    fn transverse_translational_mass_matches_closed_form_entrywise() {
+        // Independent Hermite-shape integral: integral rho*A*N^T*N dx.
+        let matrices = matrices();
+        let factor = DENSITY_KG_M3 * AREA_M2 * LENGTH_M / 420.0;
+        let l2 = LENGTH_M.powi(2);
+        let expected = [
+            [156.0, 22.0 * LENGTH_M, 54.0, -13.0 * LENGTH_M],
+            [22.0 * LENGTH_M, 4.0 * l2, 13.0 * LENGTH_M, -3.0 * l2],
+            [54.0, 13.0 * LENGTH_M, 156.0, -22.0 * LENGTH_M],
+            [-13.0 * LENGTH_M, -3.0 * l2, -22.0 * LENGTH_M, 4.0 * l2],
+        ];
+        let indices = [1, 2, 4, 5];
+        for row in 0..4 {
+            for col in 0..4 {
+                close(
+                    matrices.translational_mass_local[indices[row]][indices[col]],
+                    expected[row][col] * factor,
+                    1.0e-13,
+                    "transverse translational mass entry",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rotary_inertia_mass_matches_closed_form_entrywise() {
+        // Independent derivative-shape integral:
+        // integral rho*I*(dN/dx)^T*(dN/dx) dx.
+        let matrices = matrices();
+        let factor = DENSITY_KG_M3 * SECOND_MOMENT_M4 / (30.0 * LENGTH_M);
+        let l2 = LENGTH_M.powi(2);
+        let expected = [
+            [36.0, 3.0 * LENGTH_M, -36.0, 3.0 * LENGTH_M],
+            [3.0 * LENGTH_M, 4.0 * l2, -3.0 * LENGTH_M, -l2],
+            [-36.0, -3.0 * LENGTH_M, 36.0, -3.0 * LENGTH_M],
+            [3.0 * LENGTH_M, -l2, -3.0 * LENGTH_M, 4.0 * l2],
+        ];
+        let indices = [1, 2, 4, 5];
+        for row in 0..4 {
+            for col in 0..4 {
+                close(
+                    matrices.rotary_inertia_mass_local[indices[row]][indices[col]],
+                    expected[row][col] * factor,
+                    1.0e-13,
+                    "rotary-inertia mass entry",
+                );
+            }
+        }
+    }
+
+    #[test]
     fn rotary_inertia_is_separate_and_scales_with_density_and_second_moment() {
         let base = matrices();
         let doubled_density = euler_bernoulli_frame_element(
