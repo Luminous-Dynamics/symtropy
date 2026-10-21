@@ -207,7 +207,7 @@ fn parse_case(case_id: &str, specification: &str) -> Result<Case, String> {
     let catalog_sha256 = sha256(&catalog_bytes);
     let report_sha256 = sha256(&report_bytes);
     let (seed_order, station_ids, baseline_by_seed, gains_by_station) =
-        validate_and_extract(&catalog, &report)?;
+        validate_and_extract(&catalog, &report, &catalog_sha256)?;
     Ok(Case {
         case_id: case_id.to_string(),
         factor_id: factor_id.to_string(),
@@ -257,6 +257,7 @@ fn value_f64(value: &Value, key: &str) -> Result<f64, String> {
 fn validate_and_extract(
     catalog: &Value,
     report: &Value,
+    expected_catalog_sha256: &str,
 ) -> Result<(
     Vec<u64>,
     Vec<String>,
@@ -275,6 +276,9 @@ fn validate_and_extract(
         || value_str(report, "benchmark_id")? != "EV-FACTORY-SIM-001"
     {
         return Err("unsupported_simulation_report_schema_or_benchmark".into());
+    }
+    if value_str(report, "source_catalog_sha256")? != expected_catalog_sha256 {
+        return Err("simulation_report_source_catalog_digest_mismatch".into());
     }
     if value_str(report, "input_evidence_class")? != "synthetic"
         || value_bool(report, "release_ready")?
@@ -318,6 +322,8 @@ fn validate_and_extract(
         .collect::<Result<_, _>>()?;
     if report_seeds != catalog_seeds
         || value_usize(report, "replication_count")? != catalog_seeds.len()
+        || value_u64(report, "seed")? != catalog_seeds[0]
+        || value_u64(catalog, "seed")? != catalog_seeds[0]
     {
         return Err("catalog_report_ordered_seed_list_mismatch".into());
     }
@@ -402,8 +408,18 @@ fn validate_and_extract(
                 .filter(|row| row.get("seed").and_then(Value::as_u64) == Some(*seed)
                     && row.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
                 .collect();
-            if baseline_rows.len() != 1 || (value_f64(baseline_rows[0], "good_units_per_hour")? - *base).abs() > 1e-9 {
+            if baseline_rows.len() != 1
+                || (value_f64(baseline_rows[0], "good_units_per_hour")? - *base).abs() > 1e-9
+            {
                 return Err("per_seed_baseline_duplicate_or_inconsistent".into());
+            }
+            for row in outcomes.iter().filter(|row| {
+                row.get("seed").and_then(Value::as_u64) == Some(*seed)
+                    && row.get("scenario_id").and_then(Value::as_str) != Some("baseline")
+            }) {
+                if (value_f64(row, "baseline_good_units_per_hour")? - *base).abs() > 1e-9 {
+                    return Err("intervention_row_references_different_seed_baseline".into());
+                }
             }
         }
     }
@@ -659,7 +675,7 @@ fn paired_decision(summary: &DistributionSummary, margin: f64) -> &'static str {
     }
 }
 
-fn level_result(case: &Case, nominal: &Case, label: &str, paths: &[String]) -> Result<LevelResult, String> {
+fn level_result(case: &Case, label: &str, paths: &[String]) -> Result<LevelResult, String> {
     let baseline_values: Vec<f64> = case.seed_order.iter()
         .map(|seed| *case.baseline_by_seed.get(seed).expect("validated baseline seed"))
         .collect();
@@ -777,9 +793,9 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
                 simulation_report_sha256: case.report_sha256.clone(),
             });
         }
-        let low_result = level_result(low, nominal, "low", &paths)?;
-        let nominal_result = level_result(nominal, nominal, "nominal", &paths)?;
-        let high_result = level_result(high, nominal, "high", &paths)?;
+        let low_result = level_result(low, "low", &paths)?;
+        let nominal_result = level_result(nominal, "nominal", &paths)?;
+        let high_result = level_result(high, "high", &paths)?;
         let baseline_differences: Vec<f64> = nominal.seed_order.iter().map(|seed| {
             low.baseline_by_seed[seed] - high.baseline_by_seed[seed]
         }).collect();
@@ -809,6 +825,13 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
             } else {
                 None
             };
+            let rank_at = |level: &LevelResult| {
+                level.station_intervention_gains.iter()
+                    .find(|row| row.station_id == *station_id)
+                    .map(|row| row.point_estimate_rank)
+            };
+            let rank_changed = rank_at(&low_result) != rank_at(&nominal_result)
+                || rank_at(&nominal_result) != rank_at(&high_result);
             station_sensitivities.push(StationEndpointSensitivity {
                 station_id: station_id.clone(),
                 low_mean_paired_gain_units_per_hour: low_mean,
@@ -816,7 +839,7 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
                 high_mean_paired_gain_units_per_hour: high_mean,
                 high_minus_low_paired_gain_units_per_hour: swing,
                 relative_endpoint_swing_fraction_of_nominal_magnitude: relative,
-                ranking_changed_across_levels: ranking_changed,
+                ranking_changed_across_levels: rank_changed,
             });
         }
         let robust_winner = [ &low_result, &nominal_result, &high_result ]
