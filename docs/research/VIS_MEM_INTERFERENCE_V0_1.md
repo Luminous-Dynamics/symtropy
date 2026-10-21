@@ -247,3 +247,34 @@ Reject the lifecycle-gated design if receipts can pass while native predicates f
 ### Research snapshot / constraints
 
 The MEMOBench main branch resolved to `490b58ffcbd4ac042d6d1daf218b4fbd2827f4cb` on 2026-10-21; the README described dataset/asset downloads and an OpenPI websocket policy server. Re-resolve all artifacts when execution begins. The benchmark is separate from RoboMME and RoboMME-Interference; its operation-specific rates and its 31.9% task-success result are not numerically interchangeable with their published success metrics.
+
+
+## Stronger architecture comparator discovered: HyMeS
+
+Research sweep update (2026-10-21): the preprint [Skills in Weights, Memory in Code: Hybrid Learning for Memory-Dependent Robot Manipulation](https://arxiv.org/abs/2608.09410) reports **HyMeS**, an architecture that separates motor-skill learning in model weights from memory-strategy learning in executable code. A frozen Markovian VLA is steered by state-conditioned constraints, and stage progression is updated using both proprioceptive signals and multi-frame VLM verification. The paper uses a 3-of-5 completion-query vote before advancing a stage.
+
+On the authors' corrected **12-task / 160-episode RoboMemArena protocol** (not the full 26-task benchmark), the paper reports:
+- π₀.₅: 52.5% Cumulative Success Rate (CSR), 41.3% Task Success Rate (TSR).
+- PrediMem, reevaluated on the same corrected subset: 61.7% CSR, 45.6% TSR.
+- HyMeS: 66.2% CSR, 60.1% TSR.
+- On three SO-101 real-world tasks / 35 trials total, the paper reports TSR rising from 25.7% for the matched fine-tuned π₀.₅ policy to 57.1% with HyMeS.
+
+These are **paper-reported preprint results**, not a Symtropy reproduction or an independently validated industry score. They must not be compared to RoboMemArena's 26-task leaderboard numbers without matching the protocol. The paper also notes remaining failures from motor execution and stage-verification errors, and inference latency/cost from periodic VLM queries and coding-agent use. During this research pass, a public HyMeS implementation/checkpoint repository was not found, so local reproducibility and licensing remain unverified.
+
+### What this changes in the Symtropy hypothesis
+
+The strongest design challenge is no longer just "better retrieval" or "better compression". HyMeS suggests the control boundary between **memory, executable intent, verification, and action** may matter more than the storage representation by itself.
+
+The Symtropy-specific hypothesis should be a *provenance-gated executable memory controller*:
+1. Keep the evidence ledger and memory-state transitions auditable and bounded.
+2. Compile only verified, non-ambiguous state into a typed task-state machine or action constraint; unresolved or stale evidence cannot advance a task stage.
+3. Require a predeclared, calibrated completion rule using independently sourced signals when available, with a safe no-advance/fallback state when signals disagree.
+4. Record which evidence versions authorize a transition, the verifier votes, and the resulting state digest.
+5. Keep memory strategy and action executor independently ablatable. Do not attribute an improvement to memory if the policy weights, action chunks, completion verification, or replanning interval also changed.
+
+This adds an important split to the test plan:
+- The Rust VIS-MEM-008 lifecycle model checks source-time monotonicity, provenance links, fixed-budget compression, and deterministic receipts cheaply.
+- A later native RoboMemArena comparison should reproduce the exact 12-task HyMeS protocol **only if its checkpoint/code/dependencies can be pinned and legally used**; otherwise use an eligible public baseline, label the HyMeS paper as literature context, and preserve its distinct protocol.
+- Compare memory-only effects first; test stage verification as a separate factor; test their interaction only in a small predeclared factorial design.
+
+**New advancement criterion:** a memory system must improve both the correctness of its internal lifecycle operations and the external decision/task outcome. Passing the lifecycle microbench is necessary evidence of semantics, not sufficient evidence of robotic competence.
