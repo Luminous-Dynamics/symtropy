@@ -125,9 +125,7 @@ fn main() {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        return Err(
-            "usage: ev_factory_value_of_information <synthetic-voi-fixture.json>".into(),
-        );
+        return Err("usage: ev_factory_value_of_information <synthetic-voi-fixture.json>".into());
     }
 
     let fixture_bytes = fs::read(&args[1])
@@ -298,9 +296,8 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
     }
 
     for i in 0..measurement_results.len() {
-        let dominated = (0..measurement_results.len()).any(|j| {
-            i != j && dominates(&measurement_results[j], &measurement_results[i])
-        });
+        let dominated = (0..measurement_results.len())
+            .any(|j| i != j && dominates(&measurement_results[j], &measurement_results[i]));
         measurement_results[i].frontier_member = !dominated;
     }
 
@@ -463,33 +460,41 @@ mod tests {
         let mut fixture = fixture();
         let duplicate = fixture.scenarios[0].action_effects[0].clone();
         fixture.scenarios[0].action_effects.push(duplicate);
-        assert!(validate_fixture(&fixture)
-            .expect_err("duplicate action effect rejected")
-            .contains("duplicate"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("duplicate action effect rejected")
+                .contains("duplicate")
+        );
     }
 
     #[test]
     fn incomplete_measurement_observations_are_rejected() {
         let mut fixture = fixture();
         fixture.measurements[0].observations.pop();
-        assert!(validate_fixture(&fixture)
-            .expect_err("missing measurement observation rejected")
-            .contains("must_map_every_scenario"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("missing measurement observation rejected")
+                .contains("must_map_every_scenario")
+        );
     }
 
     #[test]
     fn non_synthetic_measurements_and_negative_costs_are_rejected() {
         let mut fixture = fixture();
         fixture.measurements[0].evidence_class = "measured".into();
-        assert!(validate_fixture(&fixture)
-            .expect_err("evidence label rejected")
-            .contains("evidence_invalid"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("evidence label rejected")
+                .contains("evidence_invalid")
+        );
 
         let mut fixture = fixture();
         fixture.measurements[0].cost_amount = -1.0;
-        assert!(validate_fixture(&fixture)
-            .expect_err("negative cost rejected")
-            .contains("cost_time_or_evidence_invalid"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("negative cost rejected")
+                .contains("cost_time_or_evidence_invalid")
+        );
     }
 
     #[test]
