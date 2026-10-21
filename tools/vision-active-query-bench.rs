@@ -1159,22 +1159,56 @@ fn report_marginal_value_stop() {
         loss_lo, loss_hi, objective_delta, objective_lo, objective_hi);
 }
 
+const VALUE_CALIBRATION_MC_DRAWS: usize = 64;
+
+fn sample_evaluator_observation(
+    episode: &ActiveEpisode,
+    tick: usize,
+    action: usize,
+    seed: u64,
+) -> Evidence {
+    // Evaluator-only sampler from the simulator's actual hidden sensor profile.
+    // This is never called by the policy and its draws never enter policy state
+    // except in cloned counterfactual states used to estimate expected value.
+    let mut rng = Rng::new(mix64(seed));
+    let delay = rng.range(episode.profile.max_delay + 1);
+    let source_tick = tick.saturating_sub(delay);
+    let observed_key = if rng.chance(episode.profile.distractor_rate) {
+        3_usize
+    } else {
+        QUERY_KEYS[action]
+    };
+    let confidence = sample_confidence(&mut rng);
+    let corrupted = rng.chance(
+        conditional_corruption_rate(episode.profile.corruption_rate, confidence)
+    );
+    let mut value = episode.truth[source_tick][observed_key];
+    if corrupted { value = !value; }
+    Evidence {
+        key: observed_key as u8,
+        value,
+        source_tick: source_tick as u8,
+        arrival_tick: tick as u8,
+        confidence,
+    }
+}
+
 fn report_value_calibration() {
-    println!("VALUE_CALIBRATION\tfamily\tstratum\tepisodes\tcandidate_observations\tmean_predicted_risk_reduction\tmean_realized_belief_risk_drop\tmean_prediction_minus_realized\tbootstrap95_lo\tbootstrap95_hi\tmean_absolute_gap");
-    println!("VALUE_RANKING\tfamily\tepisodes\tdecision_states\tmean_top_action_agreement\tbootstrap95_lo\tbootstrap95_hi\tmean_pairwise_concordance\tmean_realized_one_step_regret\tregret_bootstrap95_lo\tregret_bootstrap95_hi");
+    println!("VALUE_CALIBRATION\tfamily\tepisodes\tcandidate_states\tmc_draws_per_candidate\tcandidate_samples\tmean_predicted_risk_reduction\tmean_mc_expected_risk_reduction\tmean_prediction_minus_mc\tbootstrap95_lo\tbootstrap95_hi\tmean_absolute_gap");
+    println!("VALUE_REALIZED_STRATA\tfamily\tstratum\tepisodes\tobservation_samples\tmean_realized_belief_risk_drop\tbootstrap95_lo\tbootstrap95_hi");
+    println!("VALUE_RANKING\tfamily\tepisodes\tdecision_states\tmean_top_action_agreement\tbootstrap95_lo\tbootstrap95_hi\tmean_pairwise_concordance\tmean_mc_oracle_regret\tregret_bootstrap95_lo\tregret_bootstrap95_hi");
+
     for (family_index, family) in Family::ALL.iter().copied().enumerate() {
-        let mut predicted_by_episode: Vec<Vec<f64>> =
+        let mut predicted_mean_by_episode = Vec::new();
+        let mut mc_mean_by_episode = Vec::new();
+        let mut calibration_error_by_episode = Vec::new();
+        let mut calibration_abs_gap_by_episode = Vec::new();
+        let mut realized_strata_by_episode: Vec<Vec<f64>> =
             (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
-        let mut realized_by_episode: Vec<Vec<f64>> =
-            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
-        let mut errors_by_episode: Vec<Vec<f64>> =
-            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
-        let mut abs_gap_by_episode: Vec<Vec<f64>> =
-            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
-        let mut observations_by_stratum = [0_u64; 7];
+        let mut samples_by_stratum = [0_u64; 7];
         let mut top_agreement_by_episode = Vec::new();
         let mut pairwise_concordance_by_episode = Vec::new();
-        let mut realized_regret_by_episode = Vec::new();
+        let mut mc_regret_by_episode = Vec::new();
 
         for replicate in 0..REPLICATES {
             for pair in 0..PAIRS {
@@ -1183,72 +1217,96 @@ fn report_value_calibration() {
                 let actor_seed = mix64(seed ^ 0x5641_4C55_4543_414C);
                 let mut policy =
                     PolicyState::new(PolicyKind::ExpectedTaskLossReduction, actor_seed);
-                let mut predicted: Vec<Vec<f64>> =
-                    (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
-                let mut realized: Vec<Vec<f64>> =
+
+                let mut episode_predicted_values = Vec::new();
+                let mut episode_mc_values = Vec::new();
+                let mut episode_realized_strata: Vec<Vec<f64>> =
                     (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
                 let mut episode_top_matches = Vec::new();
                 let mut episode_pairwise_concordance = Vec::new();
-                let mut episode_realized_regret = Vec::new();
+                let mut episode_regrets = Vec::new();
 
                 for tick in 0..HORIZON {
                     if VALUE_CALIBRATION_TICKS.contains(&tick) {
                         // The state is the reference policy's pre-action information set.
-                        // The evaluator enumerates all candidate potential observations
-                        // after the fact; none of these alternatives are exposed to policy.
+                        // Evaluator-only Monte Carlo draws estimate the true conditional
+                        // expected value of each candidate under this episode's hidden
+                        // profile. Those draws are never revealed to the policy.
                         let scores = policy.expected_task_loss_reduction_scores(tick);
                         let before = terminal_decision_risk(policy.probabilities(HORIZON - 1));
-                        let mut realized_drops = [0.0_f64; QUERY_COUNT];
+                        let mut mc_expected_drops = [0.0_f64; QUERY_COUNT];
+
                         for action in 0..QUERY_COUNT {
-                            let evidence = episode.observations[tick][action];
-                            let mut counterfactual = policy.clone();
-                            counterfactual.observe(action, evidence);
-                            let after = terminal_decision_risk(
-                                counterfactual.probabilities(HORIZON - 1)
-                            );
-                            let realized_drop = before - after;
-                            realized_drops[action] = realized_drop;
-                            let delay = usize::from(evidence.arrival_tick)
-                                .saturating_sub(usize::from(evidence.source_tick));
-                            let relevant = evidence.key() as usize == QUERY_KEYS[action];
-                            let active = [
-                                true,
-                                relevant,
-                                !relevant,
-                                delay <= 2,
-                                delay > 2,
-                                evidence.confidence >= 900,
-                                evidence.confidence < 900,
-                            ];
-                            for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
-                                if active[stratum] {
-                                    predicted[stratum].push(scores[action]);
-                                    realized[stratum].push(realized_drop);
-                                    observations_by_stratum[stratum] += 1;
+                            let mut drop_sum = 0.0;
+                            for draw in 0..VALUE_CALIBRATION_MC_DRAWS {
+                                let draw_seed = mix64(
+                                    seed
+                                    ^ 0x4D43_5F56_414C_5545
+                                    ^ (tick as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                                    ^ (action as u64).wrapping_mul(0xD1B5_4A32_D192_ED03)
+                                    ^ (draw as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                                );
+                                let evidence = sample_evaluator_observation(
+                                    &episode, tick, action, draw_seed
+                                );
+                                let mut counterfactual = policy.clone();
+                                counterfactual.observe(action, evidence);
+                                let after = terminal_decision_risk(
+                                    counterfactual.probabilities(HORIZON - 1)
+                                );
+                                let realized_drop = before - after;
+                                drop_sum += realized_drop;
+
+                                let delay = usize::from(evidence.arrival_tick)
+                                    .saturating_sub(usize::from(evidence.source_tick));
+                                let relevant = evidence.key() == QUERY_KEYS[action];
+                                let active = [
+                                    true,
+                                    relevant,
+                                    !relevant,
+                                    delay <= 2,
+                                    delay > 2,
+                                    evidence.confidence >= 900,
+                                    evidence.confidence < 900,
+                                ];
+                                for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
+                                    if active[stratum] {
+                                        episode_realized_strata[stratum].push(realized_drop);
+                                        samples_by_stratum[stratum] += 1;
+                                    }
                                 }
                             }
+                            let mc_expected_drop =
+                                drop_sum / VALUE_CALIBRATION_MC_DRAWS as f64;
+                            mc_expected_drops[action] = mc_expected_drop;
+                            episode_predicted_values.push(scores[action]);
+                            episode_mc_values.push(mc_expected_drop);
                         }
 
-                        // Post-hoc ranking audit: which candidate actually reduced this
-                        // belief-risk proxy the most after its one sampled observation?
-                        // This is noisy realized counterfactual evidence, not an oracle
-                        // policy or an environment-task-loss estimate.
+                        // Compare predicted rankings with Monte Carlo expected value,
+                        // not a single noisy sampled outcome. This is an evaluator-only
+                        // estimate under hidden simulator parameters, not a deployable oracle.
                         let predicted_top = PolicyState::tie_break(scores, tick);
-                        let realized_top = PolicyState::tie_break(realized_drops, tick);
-                        episode_top_matches.push(if predicted_top == realized_top { 1.0 } else { 0.0 });
-                        episode_realized_regret.push(
-                            (realized_drops[realized_top] - realized_drops[predicted_top]).max(0.0)
+                        let mc_top = PolicyState::tie_break(mc_expected_drops, tick);
+                        episode_top_matches.push(
+                            if predicted_top == mc_top { 1.0 } else { 0.0 }
                         );
+                        episode_regrets.push(
+                            (mc_expected_drops[mc_top] - mc_expected_drops[predicted_top])
+                                .max(0.0)
+                        );
+
                         let mut concordance_sum = 0.0;
                         let mut pair_count = 0_u64;
                         for left in 0..QUERY_COUNT {
                             for right in (left + 1)..QUERY_COUNT {
                                 let predicted_difference = scores[left] - scores[right];
-                                let realized_difference = realized_drops[left] - realized_drops[right];
+                                let mc_difference =
+                                    mc_expected_drops[left] - mc_expected_drops[right];
                                 let concordance = if predicted_difference.abs() <= 1e-12
-                                    || realized_difference.abs() <= 1e-12 {
+                                    || mc_difference.abs() <= 1e-12 {
                                     0.5
-                                } else if predicted_difference * realized_difference > 0.0 {
+                                } else if predicted_difference * mc_difference > 0.0 {
                                     1.0
                                 } else {
                                     0.0
@@ -1262,13 +1320,28 @@ fn report_value_calibration() {
                         );
                     }
 
-                    // Advance the reference policy using only its selected observation.
+                    // Advance the reference policy using only its selected pre-generated
+                    // observation; Monte Carlo counterfactual observations stay isolated.
                     let action = policy.choose_action(tick);
                     if action < QUERY_COUNT {
                         policy.observe(action, episode.observations[tick][action]);
                     }
                 }
 
+                let predicted_mean = episode_predicted_values.iter().sum::<f64>()
+                    / episode_predicted_values.len().max(1) as f64;
+                let mc_mean = episode_mc_values.iter().sum::<f64>()
+                    / episode_mc_values.len().max(1) as f64;
+                predicted_mean_by_episode.push(predicted_mean);
+                mc_mean_by_episode.push(mc_mean);
+                calibration_error_by_episode.push(predicted_mean - mc_mean);
+                calibration_abs_gap_by_episode.push(
+                    episode_predicted_values.iter()
+                        .zip(episode_mc_values.iter())
+                        .map(|(p, r)| (p - r).abs())
+                        .sum::<f64>()
+                        / episode_predicted_values.len().max(1) as f64
+                );
                 top_agreement_by_episode.push(
                     episode_top_matches.iter().sum::<f64>()
                         / episode_top_matches.len().max(1) as f64
@@ -1277,70 +1350,72 @@ fn report_value_calibration() {
                     episode_pairwise_concordance.iter().sum::<f64>()
                         / episode_pairwise_concordance.len().max(1) as f64
                 );
-                realized_regret_by_episode.push(
-                    episode_realized_regret.iter().sum::<f64>()
-                        / episode_realized_regret.len().max(1) as f64
+                mc_regret_by_episode.push(
+                    episode_regrets.iter().sum::<f64>()
+                        / episode_regrets.len().max(1) as f64
                 );
 
                 for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
-                    if predicted[stratum].is_empty() { continue; }
-                    let predicted_mean = predicted[stratum].iter().sum::<f64>()
-                        / predicted[stratum].len() as f64;
-                    let realized_mean = realized[stratum].iter().sum::<f64>()
-                        / realized[stratum].len() as f64;
-                    let error = predicted_mean - realized_mean;
-                    let abs_gap = predicted[stratum].iter()
-                        .zip(realized[stratum].iter())
-                        .map(|(p, r)| (p - r).abs())
-                        .sum::<f64>() / predicted[stratum].len() as f64;
-                    predicted_by_episode[stratum].push(predicted_mean);
-                    realized_by_episode[stratum].push(realized_mean);
-                    errors_by_episode[stratum].push(error);
-                    abs_gap_by_episode[stratum].push(abs_gap);
+                    if !episode_realized_strata[stratum].is_empty() {
+                        let mean = episode_realized_strata[stratum].iter().sum::<f64>()
+                            / episode_realized_strata[stratum].len() as f64;
+                        realized_strata_by_episode[stratum].push(mean);
+                    }
                 }
             }
         }
 
+        let mean_predicted = predicted_mean_by_episode.iter().sum::<f64>()
+            / predicted_mean_by_episode.len().max(1) as f64;
+        let mean_mc = mc_mean_by_episode.iter().sum::<f64>()
+            / mc_mean_by_episode.len().max(1) as f64;
+        let mean_error = calibration_error_by_episode.iter().sum::<f64>()
+            / calibration_error_by_episode.len().max(1) as f64;
+        let mean_abs_gap = calibration_abs_gap_by_episode.iter().sum::<f64>()
+            / calibration_abs_gap_by_episode.len().max(1) as f64;
+        let cal_seed = mix64(ROOT_SEED ^ 0x4341_4C49_4252_4154
+            ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB));
+        let (cal_lo, cal_hi) = bootstrap_ci(&calibration_error_by_episode, cal_seed);
+        println!("VALUE_CALIBRATION\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}",
+            family.name(), calibration_error_by_episode.len(),
+            VALUE_CALIBRATION_TICKS.len(),
+            VALUE_CALIBRATION_MC_DRAWS,
+            calibration_error_by_episode.len()
+                * VALUE_CALIBRATION_TICKS.len()
+                * QUERY_COUNT
+                * VALUE_CALIBRATION_MC_DRAWS,
+            mean_predicted, mean_mc, mean_error, cal_lo, cal_hi, mean_abs_gap);
+
         for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
-            let predictions = &predicted_by_episode[stratum];
-            let realizations = &realized_by_episode[stratum];
-            let errors = &errors_by_episode[stratum];
-            let abs_gaps = &abs_gap_by_episode[stratum];
-            if errors.is_empty() {
-                // Some strata are impossible by design in a family, e.g. delay > 2
-                // in development. Emit NA, never a synthetic zero or empty bootstrap.
-                println!("VALUE_CALIBRATION\t{}\t{}\t0\t0\tNA\tNA\tNA\tNA\tNA\tNA",
+            let values = &realized_strata_by_episode[stratum];
+            if values.is_empty() {
+                println!("VALUE_REALIZED_STRATA\t{}\t{}\t0\t0\tNA\tNA\tNA",
                     family.name(), VALUE_CALIBRATION_STRATA[stratum]);
                 continue;
             }
-            let mean_predicted = predictions.iter().sum::<f64>() / predictions.len() as f64;
-            let mean_realized = realizations.iter().sum::<f64>() / realizations.len() as f64;
-            let mean_error = errors.iter().sum::<f64>() / errors.len() as f64;
-            let mean_abs_gap = abs_gaps.iter().sum::<f64>() / abs_gaps.len() as f64;
-            let ci_seed = mix64(ROOT_SEED
-                ^ 0x5641_4C43_414C_4942
+            let mean = values.iter().sum::<f64>() / values.len() as f64;
+            let stratum_seed = mix64(ROOT_SEED ^ 0x5354_5241_5441_5641
                 ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
                 ^ (stratum as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9));
-            let (lo, hi) = bootstrap_ci(errors, ci_seed);
-            println!("VALUE_CALIBRATION\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}",
-                family.name(), VALUE_CALIBRATION_STRATA[stratum], errors.len(),
-                observations_by_stratum[stratum], mean_predicted, mean_realized,
-                mean_error, lo, hi, mean_abs_gap);
+            let (lo, hi) = bootstrap_ci(values, stratum_seed);
+            println!("VALUE_REALIZED_STRATA\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{:.6}",
+                family.name(), VALUE_CALIBRATION_STRATA[stratum], values.len(),
+                samples_by_stratum[stratum], mean, lo, hi);
         }
 
         let top_agreement = top_agreement_by_episode.iter().sum::<f64>()
             / top_agreement_by_episode.len().max(1) as f64;
         let pairwise_concordance = pairwise_concordance_by_episode.iter().sum::<f64>()
             / pairwise_concordance_by_episode.len().max(1) as f64;
-        let realized_regret = realized_regret_by_episode.iter().sum::<f64>()
-            / realized_regret_by_episode.len().max(1) as f64;
+        let mc_regret = mc_regret_by_episode.iter().sum::<f64>()
+            / mc_regret_by_episode.len().max(1) as f64;
         let (agreement_lo, agreement_hi) = bootstrap_ci(
             &top_agreement_by_episode,
             mix64(ROOT_SEED ^ 0x5241_4E4B_4147_5245
                 ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)),
         );
         let (regret_lo, regret_hi) = bootstrap_ci(
-            &realized_regret_by_episode,
+            &mc_regret_by_episode,
             mix64(ROOT_SEED ^ 0x5241_4E4B_5245_4752
                 ^ (family_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)),
         );
@@ -1348,7 +1423,7 @@ fn report_value_calibration() {
             family.name(), top_agreement_by_episode.len(),
             VALUE_CALIBRATION_TICKS.len() * top_agreement_by_episode.len(),
             top_agreement, agreement_lo, agreement_hi,
-            pairwise_concordance, realized_regret, regret_lo, regret_hi);
+            pairwise_concordance, mc_regret, regret_lo, regret_hi);
     }
 }
 
