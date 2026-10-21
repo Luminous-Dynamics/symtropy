@@ -109,3 +109,16 @@ FreeRouting reference: https://github.com/freerouting/freerouting/blob/master/we
 ### Raw evidence digests are mandatory for a valid completion
 
 Each per-board attempt now includes `drc_report_sha256`, the SHA-256 of the raw DRC report generated for that saved output board. When the digest is absent, an otherwise connected zero-violation summary is categorized as `evidence_incomplete`, not a valid completion. A malformed digest rejects the report. A normalized row's string alone is not proof of correct provenance: the actual adapter must hash the real DRC bytes and bind the report to the exact output-board digest, DRC engine and DRC policy. The synthetic fixtures use explicitly synthetic digests and must never be presented as real KiCad measurements.
+
+
+## Source-byte intake verification
+
+External benchmark manifests now require a safe dataset-relative path for every board in addition to license, source URL, board digest and required-net count. Run `verify-dataset MANIFEST.json DATASET_ROOT` before route evaluation. The Rust verifier resolves each path under the canonical dataset root, rejects absolute paths, `..`, `.`, empty path components, backslashes, drive-prefix colons and symlink targets that canonicalize outside the root, then hashes the bytes actually read. Its receipt records each file's relative path, byte length and computed SHA-256, and binds the raw manifest digest and evaluator commit.
+
+Example:
+
+    export PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)"
+    cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+      verify-dataset pinned-dataset-manifest.json /path/to/immutable/PCBWorld/data
+
+This is a separate gate from report validation: a report's digest must match the input board digest pinned by the manifest, and the intake receipt must show that the manifest digest corresponds to the actual bytes in the dataset tree. Keep the original dataset read-only throughout runs. The unit test writes temporary synthetic files to test digest tampering and path escape; those test bytes are not PCB layouts and are not benchmark evidence.
