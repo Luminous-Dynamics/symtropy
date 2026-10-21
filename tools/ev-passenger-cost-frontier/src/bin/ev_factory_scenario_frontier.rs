@@ -119,7 +119,6 @@ fn run() -> Result<(), String> {
 
     let specs = family_specs();
     let mut family_results = Vec::with_capacity(specs.len());
-    let mut raw_rankings: BTreeMap<(String, String), Value> = BTreeMap::new();
     for spec in &specs {
         let mut fixture = base.clone();
         apply_family(&mut fixture, &spec.family_id)?;
@@ -146,7 +145,6 @@ fn run() -> Result<(), String> {
 
         let mut margin_results = Vec::with_capacity(MARGINS.len());
         let mut default_ranking: Option<RankingSummary> = None;
-        let mut default_report_sha = String::new();
         let mut default_value: Option<Value> = None;
         for margin in MARGINS {
             let margin_slug = margin_slug(margin);
@@ -176,9 +174,7 @@ fn run() -> Result<(), String> {
                 robust_best_station_id: ranking.robust_best_station_id.clone(),
                 recommendation_status: ranking.paired_effect_recommendation_status.clone(),
             });
-            raw_rankings.insert((spec.family_id.clone(), margin_slug), ranking_value.clone());
             if (margin - 0.05).abs() < f64::EPSILON {
-                default_report_sha = ranking_sha;
                 default_ranking = Some(ranking);
                 default_value = Some(ranking_value);
             }
@@ -212,7 +208,6 @@ fn run() -> Result<(), String> {
             point_estimate_rank_reversal_vs_nominal: false,
             release_ready,
         });
-        let _ = default_report_sha;
     }
 
     let nominal = family_results.iter()
