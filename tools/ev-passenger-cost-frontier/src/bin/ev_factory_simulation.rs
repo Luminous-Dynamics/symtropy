@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
-    collections::{BTreeSet, BinaryHeap, VecDeque},
+    collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque},
     env, fs, process,
 };
 
@@ -123,6 +123,8 @@ struct Report {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct ScenarioResult {
     scenario_id: String,
+    job_lifecycle_summary: JobLifecycleSummary,
+    job_lifecycle_events: Vec<JobLifecycleEvent>,
     intervention_station_id: Option<String>,
     added_servers: usize,
     released_jobs_total: u64,
@@ -168,6 +170,91 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+    per_seed_median_good_job_lead_time_seconds: Option<DistributionSummary>,
+    per_seed_p95_good_job_lead_time_seconds: Option<DistributionSummary>,
+    right_censored_jobs_at_horizon: DistributionSummary,
+    station_first_pass_yield_by_station: Vec<StationFirstPassYieldStatistics>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationFirstPassYieldStatistics {
+    station_id: String,
+    first_attempts_started_in_cohort: DistributionSummary,
+    observed_first_attempts: DistributionSummary,
+    first_attempt_passed: DistributionSummary,
+    first_attempt_failed: DistributionSummary,
+    unresolved_first_attempts_at_horizon: DistributionSummary,
+    observed_first_pass_yield_fraction: Option<DistributionSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationFirstPassYield {
+    station_id: String,
+    first_attempts_started_in_cohort: u64,
+    first_attempts_with_observed_outcome: u64,
+    first_attempt_passed: u64,
+    first_attempt_failed: u64,
+    unresolved_first_attempts_at_horizon: u64,
+    observed_first_pass_yield_fraction: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct JobLifecycleSummary {
+    cohort_definition: String,
+    eligible_released_jobs_after_warmup: u64,
+    accepted_good_jobs_in_cohort: u64,
+    scrapped_jobs_in_cohort: u64,
+    right_censored_jobs_at_horizon: u64,
+    good_job_lead_time_seconds: Option<DistributionSummary>,
+    median_good_job_lead_time_seconds: Option<f64>,
+    p95_good_job_lead_time_seconds: Option<f64>,
+    station_first_pass_yield: Vec<StationFirstPassYield>,
+    event_count_in_ledger: usize,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum JobLifecycleEventKind {
+    JobRelease,
+    BufferEnter,
+    BufferExit,
+    StationStart,
+    StationEnd,
+    QualityPass,
+    QualityFail,
+    ReworkStart,
+    JobScrapped,
+    FinalGoodCompletion,
+    JobCensoredAtHorizon,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct JobLifecycleEvent {
+    schema_version: String,
+    seed: u64,
+    scenario_id: String,
+    event_sequence: u64,
+    timestamp_seconds: u64,
+    kind: JobLifecycleEventKind,
+    job_id: u64,
+    variant_id: usize,
+    station_id: Option<String>,
+    resource_id: Option<String>,
+    buffer_id: Option<String>,
+    attempt_number: Option<u32>,
+    evidence_class: String,
+}
+
+#[derive(Debug, Clone)]
+struct JobRecord {
+    job_id: u64,
+    variant_id: usize,
+    released_at_seconds: u64,
+    first_attempt_started_at_by_station: Vec<Option<u64>>,
+    first_attempt_outcome_by_station: Vec<Option<bool>>,
+    attempts_started_by_station: Vec<u32>,
+    final_good_at_seconds: Option<u64>,
+    scrapped_at_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -270,6 +357,12 @@ struct StationRuntime {
 #[derive(Debug, Clone)]
 struct SimState {
     now: u64,
+    seed: u64,
+    scenario_id: String,
+    record_lifecycle_events: bool,
+    next_lifecycle_sequence: u64,
+    lifecycle_events: Vec<JobLifecycleEvent>,
+    job_records: BTreeMap<u64, JobRecord>,
     next_event_sequence: u64,
     events: BinaryHeap<TimedEvent>,
     supplier_rng: DeterministicRng,
@@ -549,7 +642,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         let mut run_catalog = catalog.clone();
         run_catalog.seed = *seed;
         run_catalog.replication_seeds.clear();
-        runs.push(evaluate_single_seed(&run_catalog)?);
+        runs.push(evaluate_single_seed(&run_catalog, runs.is_empty())?);
     }
     let reference = runs
         .first()
@@ -574,6 +667,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         let mut relative_deltas = Vec::with_capacity(runs.len());
         let mut scrapped = Vec::with_capacity(runs.len());
         let mut rework = Vec::with_capacity(runs.len());
+        let mut per_seed_lead_medians = Vec::new();
+        let mut per_seed_lead_p95 = Vec::new();
+        let mut right_censored = Vec::with_capacity(runs.len());
         for (run, baseline_rate) in runs.iter().zip(baseline_rates.iter()) {
             let scenario = &run.scenarios[scenario_index];
             if scenario.scenario_id != first_scenario.scenario_id {
@@ -582,6 +678,23 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             good_rates.push(scenario.measured_good_units_per_hour);
             scrapped.push(scenario.scrapped_jobs_total as f64);
             rework.push(scenario.measured_rework_attempts as f64);
+            right_censored.push(
+                scenario
+                    .job_lifecycle_summary
+                    .right_censored_jobs_at_horizon as f64,
+            );
+            if let Some(median) = scenario
+                .job_lifecycle_summary
+                .median_good_job_lead_time_seconds
+            {
+                per_seed_lead_medians.push(median);
+            }
+            if let Some(p95) = scenario
+                .job_lifecycle_summary
+                .p95_good_job_lead_time_seconds
+            {
+                per_seed_lead_p95.push(p95);
+            }
             if scenario_index > 0 {
                 delta_rates.push(scenario.measured_good_units_per_hour - baseline_rate);
                 if *baseline_rate > 0.0 {
@@ -590,6 +703,49 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     );
                 }
             }
+        }
+        let mut station_first_pass_yield_by_station = Vec::new();
+        for station_index in 0..catalog.stations.len() {
+            let mut starts = Vec::with_capacity(runs.len());
+            let mut observed = Vec::with_capacity(runs.len());
+            let mut passed = Vec::with_capacity(runs.len());
+            let mut failed = Vec::with_capacity(runs.len());
+            let mut unresolved = Vec::with_capacity(runs.len());
+            let mut yields = Vec::new();
+            for run in &runs {
+                let rows = &run.scenarios[scenario_index]
+                    .job_lifecycle_summary
+                    .station_first_pass_yield;
+                let row = rows
+                    .get(station_index)
+                    .ok_or_else(|| "per_seed_station_first_pass_summary_missing".to_string())?;
+                if row.station_id != catalog.stations[station_index].station_id {
+                    return Err(
+                        "replications_returned_inconsistent_first_pass_station_order".into(),
+                    );
+                }
+                starts.push(row.first_attempts_started_in_cohort as f64);
+                observed.push(row.first_attempts_with_observed_outcome as f64);
+                passed.push(row.first_attempt_passed as f64);
+                failed.push(row.first_attempt_failed as f64);
+                unresolved.push(row.unresolved_first_attempts_at_horizon as f64);
+                if let Some(value) = row.observed_first_pass_yield_fraction {
+                    yields.push(value);
+                }
+            }
+            station_first_pass_yield_by_station.push(StationFirstPassYieldStatistics {
+                station_id: catalog.stations[station_index].station_id.clone(),
+                first_attempts_started_in_cohort: summarize_distribution(&starts)?,
+                observed_first_attempts: summarize_distribution(&observed)?,
+                first_attempt_passed: summarize_distribution(&passed)?,
+                first_attempt_failed: summarize_distribution(&failed)?,
+                unresolved_first_attempts_at_horizon: summarize_distribution(&unresolved)?,
+                observed_first_pass_yield_fraction: if yields.is_empty() {
+                    None
+                } else {
+                    Some(summarize_distribution(&yields)?)
+                },
+            });
         }
         statistics.push(ScenarioStatistics {
             scenario_id: first_scenario.scenario_id.clone(),
@@ -609,6 +765,18 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             },
             scrapped_jobs_total: summarize_distribution(&scrapped)?,
             measured_rework_attempts: summarize_distribution(&rework)?,
+            per_seed_median_good_job_lead_time_seconds: if per_seed_lead_medians.is_empty() {
+                None
+            } else {
+                Some(summarize_distribution(&per_seed_lead_medians)?)
+            },
+            per_seed_p95_good_job_lead_time_seconds: if per_seed_lead_p95.is_empty() {
+                None
+            } else {
+                Some(summarize_distribution(&per_seed_lead_p95)?)
+            },
+            right_censored_jobs_at_horizon: summarize_distribution(&right_censored)?,
+            station_first_pass_yield_by_station,
         });
     }
 
@@ -757,12 +925,15 @@ fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
     }
 }
 
-fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
-    let baseline = simulate(catalog, None)?;
+fn evaluate_single_seed(
+    catalog: &Catalog,
+    include_lifecycle_ledger: bool,
+) -> Result<Report, String> {
+    let baseline = simulate(catalog, None, include_lifecycle_ledger)?;
     let mut scenarios = Vec::with_capacity(catalog.stations.len() + 1);
     scenarios.push(baseline.clone());
     for index in 0..catalog.stations.len() {
-        scenarios.push(simulate(catalog, Some(index))?);
+        scenarios.push(simulate(catalog, Some(index), false)?);
     }
 
     let baseline_rate = baseline.measured_good_units_per_hour;
@@ -825,7 +996,11 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
     })
 }
 
-fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<ScenarioResult, String> {
+fn simulate(
+    catalog: &Catalog,
+    extra_server_at: Option<usize>,
+    include_lifecycle_ledger: bool,
+) -> Result<ScenarioResult, String> {
     if let Some(index) = extra_server_at {
         if index >= catalog.stations.len() {
             return Err("intervention_station_index_out_of_bounds".into());
@@ -849,8 +1024,18 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             }
         })
         .collect();
+    let scenario_id = match extra_server_at {
+        None => "baseline".to_string(),
+        Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
+    };
     let mut state = SimState {
         now: 0,
+        seed: catalog.seed,
+        scenario_id,
+        record_lifecycle_events: include_lifecycle_ledger && extra_server_at.is_none(),
+        next_lifecycle_sequence: 0,
+        lifecycle_events: Vec::new(),
+        job_records: BTreeMap::new(),
         next_event_sequence: 0,
         events: BinaryHeap::new(),
         supplier_rng: DeterministicRng::new(catalog.seed ^ 0x535550504c595f31),
@@ -889,10 +1074,35 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let id = state.next_job_id;
                 state.next_job_id += 1;
                 state.released_jobs_total += 1;
+                let variant =
+                    ((id / catalog.variant_batch_size) % catalog.variant_count as u64) as usize;
+                state.job_records.insert(
+                    id,
+                    JobRecord {
+                        job_id: id,
+                        variant_id: variant,
+                        released_at_seconds: state.now,
+                        first_attempt_started_at_by_station: vec![None; catalog.stations.len()],
+                        first_attempt_outcome_by_station: vec![None; catalog.stations.len()],
+                        attempts_started_by_station: vec![0; catalog.stations.len()],
+                        final_good_at_seconds: None,
+                        scrapped_at_seconds: None,
+                    },
+                );
+                record_lifecycle_event(
+                    &mut state,
+                    catalog,
+                    JobLifecycleEventKind::JobRelease,
+                    id,
+                    variant,
+                    None,
+                    None,
+                    None,
+                    None,
+                );
                 state.supplier_backlog.push_back(Job {
                     id,
-                    variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
-                        as usize,
+                    variant,
                     queued_since_seconds: state.now,
                 });
                 state.supplier_backlog_peak = state
@@ -926,6 +1136,27 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
+    let censored_jobs: Vec<(u64, usize)> = state
+        .job_records
+        .values()
+        .filter(|record| {
+            record.final_good_at_seconds.is_none() && record.scrapped_at_seconds.is_none()
+        })
+        .map(|record| (record.job_id, record.variant_id))
+        .collect();
+    for (job_id, variant_id) in censored_jobs {
+        record_lifecycle_event(
+            &mut state,
+            catalog,
+            JobLifecycleEventKind::JobCensoredAtHorizon,
+            job_id,
+            variant_id,
+            None,
+            None,
+            None,
+            None,
+        );
+    }
 
     let measured_seconds = catalog.horizon_seconds - catalog.warmup_seconds;
     let good_per_hour = state.measured_good_units as f64 / measured_seconds as f64 * 3600.0;
@@ -991,12 +1222,12 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             .all(|buffer| buffer.peak_occupancy_units <= buffer.capacity_units)
         && state.source_buffer_peak <= catalog.source_buffer_capacity;
     let output_never_exceeds_released_input = state.good_units_total <= state.released_jobs_total;
-    let baseline_id = match extra_server_at {
-        None => "baseline".to_string(),
-        Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
-    };
+    let baseline_id = state.scenario_id.clone();
+    let lifecycle_summary = build_job_lifecycle_summary(&state, catalog)?;
     Ok(ScenarioResult {
         scenario_id: baseline_id,
+        job_lifecycle_summary: lifecycle_summary,
+        job_lifecycle_events: std::mem::take(&mut state.lifecycle_events),
         intervention_station_id: extra_server_at
             .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
@@ -1078,7 +1309,22 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
 fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     while state.source_buffer.len() < catalog.source_buffer_capacity {
         match state.supplier_backlog.pop_front() {
-            Some(job) => state.source_buffer.push_back(job),
+            Some(job) => {
+                let job_id = job.id;
+                let variant_id = job.variant;
+                state.source_buffer.push_back(job);
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::BufferEnter,
+                    job_id,
+                    variant_id,
+                    None,
+                    None,
+                    Some("source-material".into()),
+                    None,
+                );
+            }
             None => break,
         }
     }
@@ -1143,6 +1389,17 @@ fn complete_operation(
     };
 
     let station = &catalog.stations[station_index];
+    record_lifecycle_event(
+        state,
+        catalog,
+        JobLifecycleEventKind::StationEnd,
+        job.id,
+        job.variant,
+        Some(station_index),
+        Some(server_index),
+        None,
+        Some(station_attempts),
+    );
     let passed = DeterministicRng::for_key(
         catalog.seed,
         "quality-outcome",
@@ -1152,8 +1409,56 @@ fn complete_operation(
     )
     .unit()
         < station.good_yield_fraction;
+    {
+        let record = state
+            .job_records
+            .get_mut(&job.id)
+            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_quality_outcome", job.id))?;
+        if station_attempts == 1 {
+            if record.first_attempt_outcome_by_station[station_index].is_some() {
+                return Err(format!(
+                    "job_{}_first_attempt_outcome_duplicated_for_station_{}",
+                    job.id, station.station_id
+                ));
+            }
+            record.first_attempt_outcome_by_station[station_index] = Some(passed);
+        }
+    }
+    record_lifecycle_event(
+        state,
+        catalog,
+        if passed {
+            JobLifecycleEventKind::QualityPass
+        } else {
+            JobLifecycleEventKind::QualityFail
+        },
+        job.id,
+        job.variant,
+        Some(station_index),
+        Some(server_index),
+        None,
+        Some(station_attempts),
+    );
     if !passed && station_attempts <= station.max_rework_attempts {
-        let rework_seconds = sample_service_seconds(catalog, station, job.id, station_attempts + 1);
+        let rework_attempt = station_attempts + 1;
+        let rework_seconds = sample_service_seconds(catalog, station, job.id, rework_attempt);
+        if !state.job_records.contains_key(&job.id) {
+            return Err(format!(
+                "job_{}_lifecycle_record_missing_at_rework",
+                job.id
+            ));
+        }
+        record_lifecycle_event(
+            state,
+            catalog,
+            JobLifecycleEventKind::ReworkStart,
+            job.id,
+            job.variant,
+            Some(station_index),
+            Some(server_index),
+            None,
+            Some(rework_attempt),
+        );
         let runtime = &mut state.stations[station_index];
         if state.now >= catalog.warmup_seconds {
             runtime.metrics.rework_attempts_after_warmup += 1;
@@ -1162,7 +1467,7 @@ fn complete_operation(
         }
         runtime.servers[server_index].state = ServerState::Busy {
             job,
-            station_attempts: station_attempts + 1,
+            station_attempts: rework_attempt,
             service_seconds_for_job: service_seconds_for_job.saturating_add(rework_seconds),
         };
         let completion_at = state.now.saturating_add(rework_seconds);
@@ -1195,6 +1500,24 @@ fn complete_operation(
             machine_fails_after_release: machine_fails,
         };
     } else {
+        let record = state
+            .job_records
+            .get_mut(&job.id)
+            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_scrap", job.id))?;
+        if record.scrapped_at_seconds.replace(state.now).is_some() {
+            return Err(format!("job_{}_scrap_terminal_record_duplicated", job.id));
+        }
+        record_lifecycle_event(
+            state,
+            catalog,
+            JobLifecycleEventKind::JobScrapped,
+            job.id,
+            job.variant,
+            Some(station_index),
+            Some(server_index),
+            None,
+            Some(station_attempts),
+        );
         state.scrapped_jobs_total += 1;
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
@@ -1204,6 +1527,145 @@ fn complete_operation(
         release_server_after_operation(state, catalog, station_index, server_index, machine_fails);
     }
     Ok(())
+}
+
+fn record_lifecycle_event(
+    state: &mut SimState,
+    catalog: &Catalog,
+    kind: JobLifecycleEventKind,
+    job_id: u64,
+    variant_id: usize,
+    station_index: Option<usize>,
+    server_index: Option<usize>,
+    buffer_id: Option<String>,
+    attempt_number: Option<u32>,
+) {
+    if !state.record_lifecycle_events {
+        return;
+    }
+    let station_id = station_index.map(|index| catalog.stations[index].station_id.clone());
+    let resource_id = match (station_id.as_deref(), server_index) {
+        (Some(station_id), Some(server_index)) => {
+            Some(format!("{station_id}-server-{:02}", server_index + 1))
+        }
+        _ => None,
+    };
+    let event = JobLifecycleEvent {
+        schema_version: "0.1.0".into(),
+        seed: state.seed,
+        scenario_id: state.scenario_id.clone(),
+        event_sequence: state.next_lifecycle_sequence,
+        timestamp_seconds: state.now,
+        kind,
+        job_id,
+        variant_id,
+        station_id,
+        resource_id,
+        buffer_id,
+        attempt_number,
+        evidence_class: "synthetic".into(),
+    };
+    state.next_lifecycle_sequence = state.next_lifecycle_sequence.saturating_add(1);
+    state.lifecycle_events.push(event);
+}
+
+fn build_job_lifecycle_summary(
+    state: &SimState,
+    catalog: &Catalog,
+) -> Result<JobLifecycleSummary, String> {
+    let mut eligible_released_jobs = 0_u64;
+    let mut accepted_good_jobs = 0_u64;
+    let mut scrapped_jobs = 0_u64;
+    let mut right_censored_jobs = 0_u64;
+    let mut lead_times = Vec::<f64>::new();
+    let mut first_pass: Vec<StationFirstPassYield> = catalog
+        .stations
+        .iter()
+        .map(|station| StationFirstPassYield {
+            station_id: station.station_id.clone(),
+            first_attempts_started_in_cohort: 0,
+            first_attempts_with_observed_outcome: 0,
+            first_attempt_passed: 0,
+            first_attempt_failed: 0,
+            unresolved_first_attempts_at_horizon: 0,
+            observed_first_pass_yield_fraction: None,
+        })
+        .collect();
+
+    for record in state.job_records.values() {
+        if record.released_at_seconds < catalog.warmup_seconds {
+            continue;
+        }
+        eligible_released_jobs += 1;
+        if let Some(completed_at) = record.final_good_at_seconds {
+            accepted_good_jobs += 1;
+            if completed_at >= record.released_at_seconds {
+                lead_times.push((completed_at - record.released_at_seconds) as f64);
+            } else {
+                return Err(format!(
+                    "job_{}_final_good_timestamp_precedes_release",
+                    record.job_id
+                ));
+            }
+        } else if record.scrapped_at_seconds.is_some() {
+            scrapped_jobs += 1;
+        } else {
+            right_censored_jobs += 1;
+        }
+
+        for station_index in 0..catalog.stations.len() {
+            let Some(first_start) = record.first_attempt_started_at_by_station[station_index]
+            else {
+                continue;
+            };
+            if first_start < catalog.warmup_seconds {
+                continue;
+            }
+            let station = &mut first_pass[station_index];
+            station.first_attempts_started_in_cohort += 1;
+            match record.first_attempt_outcome_by_station[station_index] {
+                Some(true) => {
+                    station.first_attempts_with_observed_outcome += 1;
+                    station.first_attempt_passed += 1;
+                }
+                Some(false) => {
+                    station.first_attempts_with_observed_outcome += 1;
+                    station.first_attempt_failed += 1;
+                }
+                None => station.unresolved_first_attempts_at_horizon += 1,
+            }
+        }
+    }
+    for station in &mut first_pass {
+        if station.first_attempts_with_observed_outcome > 0 {
+            station.observed_first_pass_yield_fraction = Some(
+                station.first_attempt_passed as f64
+                    / station.first_attempts_with_observed_outcome as f64,
+            );
+        }
+    }
+    let (lead_time_summary, median, p95) = if lead_times.is_empty() {
+        (None, None, None)
+    } else {
+        let summary = summarize_distribution(&lead_times)?;
+        (
+            Some(summary.clone()),
+            Some(summary.median),
+            Some(summary.p95),
+        )
+    };
+    Ok(JobLifecycleSummary {
+        cohort_definition: "jobs released at or after warmup_seconds; good-job lead time is final-good transfer timestamp minus release timestamp; jobs still nonterminal at horizon are right-censored; first-pass yield is based on observed first-attempt outcomes whose first attempt began at or after warm-up".into(),
+        eligible_released_jobs_after_warmup: eligible_released_jobs,
+        accepted_good_jobs_in_cohort: accepted_good_jobs,
+        scrapped_jobs_in_cohort: scrapped_jobs,
+        right_censored_jobs_at_horizon: right_censored_jobs,
+        good_job_lead_time_seconds: lead_time_summary,
+        median_good_job_lead_time_seconds: median,
+        p95_good_job_lead_time_seconds: p95,
+        station_first_pass_yield: first_pass,
+        event_count_in_ledger: state.lifecycle_events.len(),
+    })
 }
 
 fn record_output_transfer(
@@ -1293,7 +1755,41 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     if state.now >= catalog.warmup_seconds {
                         state.measured_good_units += 1;
                     }
+                    let record = state.job_records.get_mut(&job.id).ok_or_else(|| {
+                        format!("job_{}_lifecycle_record_missing_at_final_good", job.id)
+                    })?;
+                    if record.final_good_at_seconds.replace(state.now).is_some() {
+                        return Err(format!(
+                            "job_{}_final_good_terminal_record_duplicated",
+                            job.id
+                        ));
+                    }
+                    record_lifecycle_event(
+                        state,
+                        catalog,
+                        JobLifecycleEventKind::FinalGoodCompletion,
+                        job.id,
+                        job.variant,
+                        Some(station_index),
+                        Some(server_index),
+                        None,
+                        None,
+                    );
                 } else {
+                    record_lifecycle_event(
+                        state,
+                        catalog,
+                        JobLifecycleEventKind::BufferEnter,
+                        job.id,
+                        job.variant,
+                        Some(station_index),
+                        Some(server_index),
+                        Some(format!(
+                            "buffer-after-{}",
+                            catalog.stations[station_index].station_id
+                        )),
+                        None,
+                    );
                     let mut queued_job = job;
                     queued_job.queued_since_seconds = state.now;
                     state.buffers[station_index].push_back(queued_job);
@@ -1350,6 +1846,47 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 let Some(job) = job else {
                     continue;
                 };
+                let input_buffer_id = if station_index == 0 {
+                    "source-material".to_string()
+                } else {
+                    format!(
+                        "buffer-after-{}",
+                        catalog.stations[station_index - 1].station_id
+                    )
+                };
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::BufferExit,
+                    job.id,
+                    job.variant,
+                    Some(station_index),
+                    Some(server_index),
+                    Some(input_buffer_id),
+                    None,
+                );
+                let attempt_number = {
+                    let job_record = state.job_records.get_mut(&job.id).ok_or_else(|| {
+                        format!("job_{}_lifecycle_record_missing_at_station_start", job.id)
+                    })?;
+                    if job_record.attempts_started_by_station[station_index] == 0 {
+                        job_record.first_attempt_started_at_by_station[station_index] =
+                            Some(state.now);
+                    }
+                    job_record.attempts_started_by_station[station_index] += 1;
+                    job_record.attempts_started_by_station[station_index]
+                };
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::StationStart,
+                    job.id,
+                    job.variant,
+                    Some(station_index),
+                    Some(server_index),
+                    None,
+                    Some(attempt_number),
+                );
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
@@ -1651,6 +2188,158 @@ mod tests {
                     baseline.good_units_per_hour
                 );
             }
+        }
+    }
+
+    #[test]
+    fn lifecycle_ledger_replays_terminal_counts_lead_time_and_first_pass_yield() {
+        let catalog = fixture();
+        let report = evaluate_catalog(&catalog).expect("lifecycle fixture simulation");
+        let baseline = report
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "baseline")
+            .expect("primary seed baseline");
+        let ledger = &baseline.job_lifecycle_events;
+        assert!(!ledger.is_empty());
+        assert_eq!(
+            baseline.job_lifecycle_summary.event_count_in_ledger,
+            ledger.len()
+        );
+        assert!(ledger.iter().all(|event| {
+            event.schema_version == "0.1.0"
+                && event.seed == report.seed
+                && event.scenario_id == "baseline"
+                && event.evidence_class == "synthetic"
+        }));
+        assert!(ledger.windows(2).all(|pair| {
+            pair[0].timestamp_seconds <= pair[1].timestamp_seconds
+                && pair[0].event_sequence < pair[1].event_sequence
+        }));
+        assert!(
+            ledger
+                .iter()
+                .enumerate()
+                .all(|(i, event)| event.event_sequence == i as u64)
+        );
+
+        let mut releases = BTreeMap::<u64, u64>::new();
+        let mut terminal_counts = BTreeMap::<u64, u32>::new();
+        let mut lead_times = Vec::<f64>::new();
+        let mut first_starts = BTreeMap::<(u64, String), u64>::new();
+        let mut first_outcomes = BTreeMap::<(u64, String), bool>::new();
+        for event in ledger {
+            match event.kind {
+                JobLifecycleEventKind::JobRelease => {
+                    assert!(
+                        releases
+                            .insert(event.job_id, event.timestamp_seconds)
+                            .is_none()
+                    );
+                }
+                JobLifecycleEventKind::FinalGoodCompletion => {
+                    *terminal_counts.entry(event.job_id).or_default() += 1;
+                    let released_at = *releases
+                        .get(&event.job_id)
+                        .expect("release precedes completion");
+                    assert!(event.timestamp_seconds >= released_at);
+                    if released_at >= catalog.warmup_seconds {
+                        lead_times.push((event.timestamp_seconds - released_at) as f64);
+                    }
+                }
+                JobLifecycleEventKind::JobScrapped
+                | JobLifecycleEventKind::JobCensoredAtHorizon => {
+                    *terminal_counts.entry(event.job_id).or_default() += 1;
+                }
+                JobLifecycleEventKind::StationStart if event.attempt_number == Some(1) => {
+                    first_starts.insert(
+                        (
+                            event.job_id,
+                            event.station_id.clone().expect("start station"),
+                        ),
+                        event.timestamp_seconds,
+                    );
+                }
+                JobLifecycleEventKind::QualityPass | JobLifecycleEventKind::QualityFail
+                    if event.attempt_number == Some(1) =>
+                {
+                    let station_id = event.station_id.clone().expect("quality station");
+                    first_outcomes.insert(
+                        (event.job_id, station_id),
+                        event.kind == JobLifecycleEventKind::QualityPass,
+                    );
+                }
+                _ => {}
+            }
+        }
+        assert_eq!(releases.len() as u64, baseline.released_jobs_total);
+        assert!(
+            releases
+                .keys()
+                .all(|job_id| terminal_counts.get(job_id) == Some(&1))
+        );
+        assert_eq!(terminal_counts.len(), releases.len());
+
+        let summary = &baseline.job_lifecycle_summary;
+        assert_eq!(
+            summary.eligible_released_jobs_after_warmup,
+            summary.accepted_good_jobs_in_cohort
+                + summary.scrapped_jobs_in_cohort
+                + summary.right_censored_jobs_at_horizon
+        );
+        let lead_summary = summary
+            .good_job_lead_time_seconds
+            .as_ref()
+            .expect("good lead times");
+        let recomputed_leads =
+            summarize_distribution(&lead_times).expect("ledger-derived lead times");
+        assert_eq!(lead_summary.sample_count, recomputed_leads.sample_count);
+        assert!((lead_summary.mean - recomputed_leads.mean).abs() < 1e-12);
+        assert!((lead_summary.median - recomputed_leads.median).abs() < 1e-12);
+        assert!((lead_summary.p95 - recomputed_leads.p95).abs() < 1e-12);
+
+        for station_summary in &summary.station_first_pass_yield {
+            let station_id = station_summary.station_id.clone();
+            let eligible_starts: Vec<_> = first_starts
+                .iter()
+                .filter(|((job_id, station), timestamp)| {
+                    station == &station_id
+                        && **timestamp >= catalog.warmup_seconds
+                        && releases
+                            .get(job_id)
+                            .is_some_and(|released_at| *released_at >= catalog.warmup_seconds)
+                })
+                .map(|(key, _)| key)
+                .collect();
+            let outcomes: Vec<bool> = eligible_starts
+                .iter()
+                .filter_map(|key| first_outcomes.get(*key).copied())
+                .collect();
+            let passed = outcomes.iter().filter(|passed| **passed).count() as u64;
+            let failed = outcomes.len() as u64 - passed;
+            assert_eq!(
+                station_summary.first_attempts_started_in_cohort,
+                eligible_starts.len() as u64
+            );
+            assert_eq!(
+                station_summary.first_attempts_with_observed_outcome,
+                outcomes.len() as u64
+            );
+            assert_eq!(station_summary.first_attempt_passed, passed);
+            assert_eq!(station_summary.first_attempt_failed, failed);
+            assert_eq!(
+                station_summary.unresolved_first_attempts_at_horizon,
+                eligible_starts.len() as u64 - outcomes.len() as u64
+            );
+            let expected_yield = if outcomes.is_empty() {
+                None
+            } else {
+                Some(passed as f64 / outcomes.len() as f64)
+            };
+            assert_eq!(
+                station_summary.observed_first_pass_yield_fraction,
+                expected_yield
+            );
         }
     }
 

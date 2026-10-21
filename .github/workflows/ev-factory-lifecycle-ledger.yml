@@ -1,0 +1,88 @@
+name: EV Factory Job Lifecycle Ledger
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "docs/research/EV_FACTORY_JOB_LIFECYCLE_LEDGER_V0_1.md"
+      - ".github/workflows/ev-factory-lifecycle-ledger.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "docs/research/EV_FACTORY_JOB_LIFECYCLE_LEDGER_V0_1.md"
+      - ".github/workflows/ev-factory-lifecycle-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate synthetic catalog
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            (.seed) as $seed
+            | .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and (.replication_seeds | length) == 20
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate baseline ledger and lifecycle summaries
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-lifecycle-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .replication_count == 20
+            and .replication_seeds[0] == .seed
+            and (.replication_outcomes | length) == 120
+            and (.scenarios | length) == 6
+            and .scenarios[0].scenario_id == "baseline"
+            and (.scenarios[0].job_lifecycle_events | length) > 0
+            and .scenarios[0].job_lifecycle_summary.event_count_in_ledger == (.scenarios[0].job_lifecycle_events | length)
+            and (.scenarios[1:] | all(.[]; (.job_lifecycle_events | length) == 0))
+            and (.scenarios[0].job_lifecycle_events | all(.[]; .schema_version == "0.1.0" and .seed == $seed and .scenario_id == "baseline" and .evidence_class == "synthetic"))
+            and .scenarios[0].job_lifecycle_summary.eligible_released_jobs_after_warmup == (.scenarios[0].job_lifecycle_summary.accepted_good_jobs_in_cohort + .scenarios[0].job_lifecycle_summary.scrapped_jobs_in_cohort + .scenarios[0].job_lifecycle_summary.right_censored_jobs_at_horizon)
+            and .scenarios[0].job_lifecycle_summary.good_job_lead_time_seconds.sample_count == .scenarios[0].job_lifecycle_summary.accepted_good_jobs_in_cohort
+            and (.scenarios[0].job_lifecycle_summary.station_first_pass_yield | length) == 5
+            and (.scenarios[0].job_lifecycle_summary.station_first_pass_yield | all(.[]; .first_attempt_passed + .first_attempt_failed == .first_attempts_with_observed_outcome and .first_attempts_started_in_cohort == (.first_attempts_with_observed_outcome + .unresolved_first_attempts_at_horizon)))
+            and (.scenarios[0].job_lifecycle_events | map(.event_sequence) | unique | length) == (.scenarios[0].job_lifecycle_events | length)
+            and (.scenarios[0].job_lifecycle_events | map(select(.kind == "job_release")) | length) == .scenarios[0].released_jobs_total
+            and (.scenarios[0].job_lifecycle_events | map(select(.kind == "final_good_completion" or .kind == "job_scrapped" or .kind == "job_censored_at_horizon")) | length) == .scenarios[0].released_jobs_total
+            and all(.scenario_statistics[]; .right_censored_jobs_at_horizon.sample_count == 20 and (.station_first_pass_yield_by_station | length) == 5 and all(.station_first_pass_yield_by_station[]; .first_attempts_started_in_cohort.sample_count == 20 and .observed_first_attempts.sample_count == 20 and .unresolved_first_attempts_at_horizon.sample_count == 20))
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+          ' ev-factory-lifecycle-report.json
+      - name: Verify deterministic report replay
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-lifecycle-repeat.json
+          cmp ev-factory-lifecycle-report.json ev-factory-lifecycle-repeat.json
+      - name: Hash source, fixture, protocol and report
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_JOB_LIFECYCLE_LEDGER_V0_1.md \
+            ev-factory-lifecycle-report.json > ev-factory-lifecycle-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-job-lifecycle-ledger
+          path: |
+            ev-factory-lifecycle-report.json
+            ev-factory-lifecycle-report.sha256
+          if-no-files-found: error

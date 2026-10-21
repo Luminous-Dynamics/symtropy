@@ -377,6 +377,130 @@ fn not_estimable_metric(
     }
 }
 
+fn validate_job_lifecycle_evidence(
+    baseline: &Value,
+    primary_seed: u64,
+    expected_released_jobs: u64,
+) -> Result<bool, String> {
+    let Some(events) = baseline
+        .get("job_lifecycle_events")
+        .and_then(Value::as_array)
+    else {
+        return Ok(false);
+    };
+    let Some(summary) = baseline.get("job_lifecycle_summary") else {
+        return Ok(false);
+    };
+    if events.is_empty() {
+        return Ok(false);
+    }
+    if field_usize(summary, "event_count_in_ledger")? != events.len() {
+        return Err("lifecycle_event_count_does_not_match_ledger".into());
+    }
+    let mut previous_timestamp = 0_u64;
+    let mut release_ids = std::collections::BTreeSet::new();
+    let mut terminal_counts = std::collections::BTreeMap::<u64, usize>::new();
+    let mut previous_sequence: Option<u64> = None;
+    for (index, event) in events.iter().enumerate() {
+        if field_str(event, "schema_version")? != "0.1.0"
+            || field_u64(event, "seed")? != primary_seed
+            || field_str(event, "scenario_id")? != "baseline"
+            || field_str(event, "evidence_class")? != "synthetic"
+        {
+            return Err("lifecycle_event_schema_seed_scenario_or_evidence_mismatch".into());
+        }
+        let sequence = field_u64(event, "event_sequence")?;
+        if sequence != index as u64 || previous_sequence.is_some_and(|prior| sequence <= prior) {
+            return Err("lifecycle_event_sequence_not_contiguous_and_monotonic".into());
+        }
+        previous_sequence = Some(sequence);
+        let timestamp = field_u64(event, "timestamp_seconds")?;
+        if index > 0 && timestamp < previous_timestamp {
+            return Err("lifecycle_event_timestamp_regression".into());
+        }
+        previous_timestamp = timestamp;
+        let job_id = field_u64(event, "job_id")?;
+        let kind = field_str(event, "kind")?;
+        match kind {
+            "job_release" => {
+                if !release_ids.insert(job_id) {
+                    return Err("duplicate_job_release_in_lifecycle_ledger".into());
+                }
+            }
+            "final_good_completion" | "job_scrapped" | "job_censored_at_horizon" => {
+                *terminal_counts.entry(job_id).or_default() += 1;
+            }
+            _ => {}
+        }
+    }
+    if release_ids.len() as u64 != expected_released_jobs
+        || terminal_counts.len() != release_ids.len()
+        || release_ids
+            .iter()
+            .any(|job_id| terminal_counts.get(job_id) != Some(&1))
+        || terminal_counts
+            .keys()
+            .any(|job_id| !release_ids.contains(job_id))
+    {
+        return Err("lifecycle_ledger_release_terminal_coverage_mismatch".into());
+    }
+    let eligible = field_u64(summary, "eligible_released_jobs_after_warmup")?;
+    let good = field_u64(summary, "accepted_good_jobs_in_cohort")?;
+    let scrapped = field_u64(summary, "scrapped_jobs_in_cohort")?;
+    let censored = field_u64(summary, "right_censored_jobs_at_horizon")?;
+    if eligible != good + scrapped + censored {
+        return Err("lifecycle_cohort_terminal_counts_do_not_reconcile".into());
+    }
+    let lead_time = summary.get("good_job_lead_time_seconds");
+    match (good, lead_time) {
+        (0, Some(value)) if value.is_null() => {}
+        (0, None) => {}
+        (expected, Some(value)) if expected > 0 => {
+            let distribution: DistributionSummary = serde_json::from_value(value.clone())
+                .map_err(|error| format!("lifecycle_lead_time_distribution_invalid:{error}"))?;
+            if distribution.sample_count as u64 != expected {
+                return Err("lifecycle_lead_time_samples_do_not_match_good_jobs".into());
+            }
+        }
+        _ => return Err("lifecycle_lead_time_distribution_presence_mismatch".into()),
+    }
+    for station in array(summary, "station_first_pass_yield")? {
+        let started = field_u64(station, "first_attempts_started_in_cohort")?;
+        let observed = field_u64(station, "first_attempts_with_observed_outcome")?;
+        let passed = field_u64(station, "first_attempt_passed")?;
+        let failed = field_u64(station, "first_attempt_failed")?;
+        let unresolved = field_u64(station, "unresolved_first_attempts_at_horizon")?;
+        if passed + failed != observed || observed + unresolved != started {
+            return Err("first_pass_outcome_counts_do_not_reconcile".into());
+        }
+        let yield_value = station.get("observed_first_pass_yield_fraction");
+        if observed == 0 {
+            if yield_value.is_some_and(|value| !value.is_null()) {
+                return Err("first_pass_yield_present_without_observed_outcomes".into());
+            }
+        } else {
+            let ratio = yield_value
+                .and_then(Value::as_f64)
+                .ok_or_else(|| "first_pass_yield_missing_with_observed_outcomes".to_string())?;
+            if !ratio.is_finite() || (ratio - passed as f64 / observed as f64).abs() > 1e-9 {
+                return Err("first_pass_yield_arithmetic_mismatch".into());
+            }
+        }
+    }
+    Ok(true)
+}
+
+fn optional_distribution(
+    value: &Value,
+    key: &str,
+    expected_count: Option<usize>,
+) -> Result<Option<DistributionSummary>, String> {
+    match value.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(_) => get_distribution(value, key, expected_count).map(Some),
+    }
+}
+
 fn baseline_scenario<'a>(report: &'a Value) -> Result<&'a Value, String> {
     let scenarios = array(report, "scenarios")?;
     scenarios
@@ -690,6 +814,20 @@ fn build_report(
         }
     }
 
+    let lifecycle_available = validate_job_lifecycle_evidence(
+        baseline,
+        field_u64(simulation, "seed")?,
+        field_u64(baseline, "released_jobs_total")?,
+    )?;
+    append_lifecycle_kpis(
+        &mut metrics,
+        catalog,
+        baseline,
+        baseline_stats,
+        replication_count,
+        lifecycle_available,
+    )?;
+
     metrics.extend(not_estimable_metrics());
     let crosswalk = vec![
         CrosswalkItem {
@@ -713,7 +851,7 @@ fn build_report(
         CrosswalkItem {
             metric_family: "Quality and maintenance".into(),
             informative_iso_22400_concept: "Quality, scrap/rework and maintenance indicators".into(),
-            implementation_note: "Counts and state fractions are exposed where simulated; first-pass yield, MTBF/MTTR observed distributions and schedule-adjusted availability are not-estimable without additional event/count definitions.".into(),
+            implementation_note: "Per-station observed first-pass yield now uses unique job first attempts with observed outcomes, and unresolved first attempts are counted separately. MTBF/MTTR observed distributions and schedule-adjusted availability remain not-estimable without further event/calendar semantics.".into(),
             conformance_claim: false,
         },
         CrosswalkItem {
@@ -738,6 +876,230 @@ fn build_report(
         production_release_authorized: false,
         claim_ceiling: CLAIM_CEILING.into(),
     })
+}
+
+fn append_lifecycle_kpis(
+    metrics: &mut Vec<KpiMetric>,
+    catalog: &Value,
+    baseline: &Value,
+    baseline_stats: &Value,
+    replication_count: usize,
+    lifecycle_available: bool,
+) -> Result<(), String> {
+    let cohort = "Jobs released at or after warm-up; lead time ends at accepted final-good transfer; nonterminal jobs are right-censored at the simulation horizon.";
+    let lifecycle_fields = vec![
+        "scenarios[scenario_id=baseline].job_lifecycle_summary".into(),
+        "scenario_statistics[scenario_id=baseline]".into(),
+        "replication_seeds".into(),
+    ];
+    if !lifecycle_available {
+        metrics.push(not_estimable_metric(
+            "p95_end_to_end_lead_time",
+            "P95 end-to-end good-job lead time",
+            "flow.lead-time.p95-by-seed.v1",
+            "For each replication, calculate P95(final-good acceptance timestamp minus release timestamp) over good jobs in the eligible cohort; summarize per-seed P95 values.",
+            "seconds/job",
+            cohort,
+            lifecycle_fields.clone(),
+            "Lifecycle event ledger or per-seed lifecycle summaries are missing or failed validation; no percentile is inferred from aggregate throughput.",
+        ));
+        for station in array(catalog, "stations")? {
+            let station_id = field_str(station, "station_id")?;
+            metrics.push(not_estimable_metric(
+                &format!("station.{station_id}.first_pass_yield"),
+                &format!("Observed first-pass yield: {station_id}"),
+                "quality.first-pass-yield.observed.v1",
+                "Unique jobs passing the first attempt / unique jobs with an observed first-attempt quality outcome, where the first attempt began at or after warm-up.",
+                "fraction",
+                cohort,
+                lifecycle_fields.clone(),
+                "The traceable first-attempt outcome cohort is unavailable; missing data is not treated as a failure, pass or zero.",
+            ));
+        }
+        return Ok(());
+    }
+
+    let p50 = optional_distribution(
+        baseline_stats,
+        "per_seed_median_good_job_lead_time_seconds",
+        None,
+    )?;
+    let p95 = optional_distribution(
+        baseline_stats,
+        "per_seed_p95_good_job_lead_time_seconds",
+        None,
+    )?;
+    for (metric_id, name, formula_id, formula, distribution) in [
+        (
+            "median_good_job_lead_time_seconds",
+            "Mean across replications of the per-seed median good-job lead time",
+            "flow.lead-time.median-by-seed.v1",
+            "For each seed, take the median accepted-good-job lead time in the eligible release cohort; summarize the per-seed medians.",
+            p50,
+        ),
+        (
+            "p95_end_to_end_lead_time",
+            "Mean across replications of per-seed P95 good-job lead time",
+            "flow.lead-time.p95-by-seed.v1",
+            "For each seed, take P95 of final-good transfer timestamp minus release timestamp for eligible good jobs; summarize the per-seed P95 values. Right-censored jobs are reported separately and are not assigned invented completion times.",
+            p95,
+        ),
+    ] {
+        match distribution {
+            Some(summary) => {
+                if summary.sample_count > replication_count {
+                    return Err(format!("{metric_id}_sample_count_exceeds_replication_count"));
+                }
+                metrics.push(computed_distribution_metric(
+                    metric_id,
+                    name,
+                    formula_id,
+                    formula,
+                    "seconds/job",
+                    summary,
+                    "Eligible release cohort, per-seed lead-time summary after warm-up",
+                    "Final-good acceptance timestamp minus job release timestamp",
+                    "Seconds between timestamps for an accepted good job; right-censored jobs excluded and separately counted",
+                    vec![
+                        "scenario_statistics[scenario_id=baseline].per_seed_median_good_job_lead_time_seconds".into(),
+                        "scenario_statistics[scenario_id=baseline].per_seed_p95_good_job_lead_time_seconds".into(),
+                        "scenarios[scenario_id=baseline].job_lifecycle_events".into(),
+                    ],
+                    "Model-conditional summary; per-seed quantile summaries are not a pooled-job quantile and do not validate real plant performance.",
+                ));
+            }
+            None => metrics.push(not_estimable_metric(
+                metric_id,
+                name,
+                formula_id,
+                formula,
+                "seconds/job",
+                cohort,
+                lifecycle_fields.clone(),
+                "No replication had an observed accepted-good-job lead-time sample for this statistic.",
+            )),
+        }
+    }
+
+    let right_censored = get_distribution(
+        baseline_stats,
+        "right_censored_jobs_at_horizon",
+        Some(replication_count),
+    )?;
+    metrics.push(computed_distribution_metric(
+        "right_censored_jobs_at_horizon",
+        "Right-censored jobs at simulation horizon",
+        "flow.right-censored-count.v1",
+        "Count of eligible released jobs not accepted as final good or scrapped by the simulation horizon, per seed.",
+        "jobs",
+        right_censored,
+        "Eligible job-release cohort at or after warm-up; horizon-end state",
+        "Eligible released jobs that remain nonterminal at the horizon",
+        "One simulation horizon per seed",
+        vec![
+            "scenario_statistics[scenario_id=baseline].right_censored_jobs_at_horizon".into(),
+            "replication_seeds".into(),
+        ],
+        "Censoring is disclosed rather than silently dropping open jobs or assigning fake completion times.",
+    ));
+
+    let station_rows = array(baseline_stats, "station_first_pass_yield_by_station")?;
+    let mut seen_stations = std::collections::BTreeSet::new();
+    for station_summary in station_rows {
+        let station_id = field_str(station_summary, "station_id")?;
+        if !seen_stations.insert(station_id.to_string()) {
+            return Err("duplicate_station_first_pass_summary".into());
+        }
+        for (suffix, name, field) in [
+            (
+                "first_attempts_started_in_cohort",
+                "First attempts started in eligible cohort",
+                "first_attempts_started_in_cohort",
+            ),
+            (
+                "first_attempts_with_observed_outcome",
+                "Observed first-attempt outcomes",
+                "observed_first_attempts",
+            ),
+            (
+                "first_attempt_passed",
+                "First attempts passed",
+                "first_attempt_passed",
+            ),
+            (
+                "first_attempt_failed",
+                "First attempts failed",
+                "first_attempt_failed",
+            ),
+            (
+                "unresolved_first_attempts_at_horizon",
+                "Unresolved first attempts at horizon",
+                "unresolved_first_attempts_at_horizon",
+            ),
+        ] {
+            let distribution = get_distribution(station_summary, field, Some(replication_count))?;
+            metrics.push(computed_distribution_metric(
+                &format!("station.{station_id}.{suffix}"),
+                &format!("{name}: {station_id}"),
+                &format!("quality.first-attempt-count.{suffix}.v1"),
+                "Per seed, count unique job first attempts whose first operation start at this station occurred at or after warm-up; report observed outcomes and unresolved attempts separately.",
+                "jobs",
+                distribution,
+                cohort,
+                "Unique job/station first-attempt record",
+                "One seed simulation",
+                vec![
+                    format!("scenario_statistics[scenario_id=baseline].station_first_pass_yield_by_station[station_id={station_id}].{field}"),
+                    "replication_seeds".into(),
+                ],
+                "Synthetic cohort count; not a plant quality result.",
+            ));
+        }
+        if let Some(yield_summary) =
+            optional_distribution(station_summary, "observed_first_pass_yield_fraction", None)?
+        {
+            if yield_summary.sample_count > replication_count {
+                return Err(format!(
+                    "station_{station_id}_first_pass_yield_sample_count_exceeds_replications"
+                ));
+            }
+            metrics.push(computed_distribution_metric(
+                &format!("station.{station_id}.first_pass_yield"),
+                &format!("Observed first-pass yield: {station_id}"),
+                "quality.first-pass-yield.observed.v1",
+                "For each seed, unique jobs that pass their first attempt at this station divided by unique jobs whose first-attempt outcome was observed, where the attempt began at or after warm-up. Unresolved first attempts are counted separately.",
+                "fraction",
+                yield_summary,
+                cohort,
+                "Observed first-attempt passes",
+                "Observed first-attempt pass plus fail outcomes for unique jobs",
+                vec![
+                    format!("scenario_statistics[scenario_id=baseline].station_first_pass_yield_by_station[station_id={station_id}].observed_first_pass_yield_fraction"),
+                    format!("scenario_statistics[scenario_id=baseline].station_first_pass_yield_by_station[station_id={station_id}].unresolved_first_attempts_at_horizon"),
+                    "replication_seeds".into(),
+                ],
+                "This is a seed-level distribution of observed first-pass fractions. It is not final yield; jobs with unresolved first-attempt outcomes are excluded from the fraction and disclosed separately.",
+            ));
+        } else {
+            metrics.push(not_estimable_metric(
+                &format!("station.{station_id}.first_pass_yield"),
+                &format!("Observed first-pass yield: {station_id}"),
+                "quality.first-pass-yield.observed.v1",
+                "Unique jobs passing the first attempt divided by unique jobs with an observed first-attempt quality outcome.",
+                "fraction",
+                cohort,
+                vec![
+                    format!("scenario_statistics[scenario_id=baseline].station_first_pass_yield_by_station[station_id={station_id}]"),
+                    "replication_seeds".into(),
+                ],
+                "No first-attempt outcome was observed in any replication for this station.",
+            ));
+        }
+    }
+    if seen_stations.len() != array(catalog, "stations")?.len() {
+        return Err("first_pass_summaries_do_not_cover_all_catalog_stations".into());
+    }
+    Ok(())
 }
 
 fn not_estimable_metrics() -> Vec<KpiMetric> {
@@ -786,20 +1148,6 @@ fn not_estimable_metrics() -> Vec<KpiMetric> {
             "Synthetic mean cycle inputs are model parameters, not independently approved ideal-cycle standards, and complete product-family counts are not reported.",
         ),
         not_estimable_metric(
-            "first_pass_yield",
-            "First-pass yield",
-            "quality.first-pass-yield.v1",
-            "Units passing an operation on the first attempt / units entering that operation in the same window.",
-            "fraction",
-            "Station and product-family measured window",
-            vec![
-                "unique_units_entering_station".into(),
-                "unique_units_passing_first_attempt".into(),
-                "rework_linkage_by_unit_and_operation".into(),
-            ],
-            "The current simulator does not expose a complete same-window unique-unit cohort and first-attempt outcome denominator for each station.",
-        ),
-        not_estimable_metric(
             "energy_per_good_unit",
             "Energy intensity per good unit",
             "energy.kwh-per-good-unit.v1",
@@ -844,20 +1192,6 @@ fn not_estimable_metrics() -> Vec<KpiMetric> {
             "No audited factory cost data, tariff/FX evidence, or accounting allocation policy is supplied.",
         ),
         not_estimable_metric(
-            "p95_end_to_end_lead_time",
-            "P95 end-to-end production lead time",
-            "flow.lead-time.p95.v1",
-            "P95 of final-good completion timestamp minus cohort release timestamp for completed jobs, with right-censoring disclosed.",
-            "seconds/job",
-            "Defined order-release cohort and observation window",
-            vec![
-                "job_release_timestamp".into(),
-                "final_good_completion_timestamp".into(),
-                "right_censored_open_jobs".into(),
-            ],
-            "Per-job end-to-end release/completion timestamps are not retained in the report, so a lead-time percentile cannot be reconstructed.",
-        ),
-        not_estimable_metric(
             "on_time_delivery_rate",
             "On-time delivery rate",
             "delivery.on-time-rate.v1",
@@ -878,6 +1212,80 @@ fn not_estimable_metrics() -> Vec<KpiMetric> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lifecycle_ledger_validation_rejects_duplicate_sequences_and_bad_quality_counts() {
+        let baseline = serde_json::json!({
+            "job_lifecycle_events": [
+                {
+                    "schema_version": "0.1.0",
+                    "seed": 17,
+                    "scenario_id": "baseline",
+                    "event_sequence": 0,
+                    "timestamp_seconds": 0,
+                    "kind": "job_release",
+                    "job_id": 1,
+                    "evidence_class": "synthetic"
+                },
+                {
+                    "schema_version": "0.1.0",
+                    "seed": 17,
+                    "scenario_id": "baseline",
+                    "event_sequence": 1,
+                    "timestamp_seconds": 5,
+                    "kind": "final_good_completion",
+                    "job_id": 1,
+                    "evidence_class": "synthetic"
+                }
+            ],
+            "job_lifecycle_summary": {
+                "event_count_in_ledger": 2,
+                "eligible_released_jobs_after_warmup": 1,
+                "accepted_good_jobs_in_cohort": 1,
+                "scrapped_jobs_in_cohort": 0,
+                "right_censored_jobs_at_horizon": 0,
+                "good_job_lead_time_seconds": {
+                    "sample_count": 1,
+                    "mean": 5.0,
+                    "sample_standard_deviation": null,
+                    "minimum": 5.0,
+                    "p05": 5.0,
+                    "median": 5.0,
+                    "p95": 5.0,
+                    "maximum": 5.0,
+                    "mean_confidence_95_lower": null,
+                    "mean_confidence_95_upper": null
+                },
+                "station_first_pass_yield": [{
+                    "station_id": "station-a",
+                    "first_attempts_started_in_cohort": 1,
+                    "first_attempts_with_observed_outcome": 1,
+                    "first_attempt_passed": 1,
+                    "first_attempt_failed": 0,
+                    "unresolved_first_attempts_at_horizon": 0,
+                    "observed_first_pass_yield_fraction": 1.0
+                }]
+            }
+        });
+        assert!(validate_job_lifecycle_evidence(&baseline, 17, 1).unwrap());
+
+        let mut duplicate_sequence = baseline.clone();
+        duplicate_sequence["job_lifecycle_events"][1]["event_sequence"] = serde_json::json!(0);
+        assert!(validate_job_lifecycle_evidence(&duplicate_sequence, 17, 1).is_err());
+
+        let mut wrong_yield = baseline.clone();
+        wrong_yield["job_lifecycle_summary"]["station_first_pass_yield"][0]["first_attempt_passed"] =
+            serde_json::json!(2);
+        assert!(validate_job_lifecycle_evidence(&wrong_yield, 17, 1).is_err());
+
+        let mut missing_terminal = baseline.clone();
+        missing_terminal["job_lifecycle_events"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        missing_terminal["job_lifecycle_summary"]["event_count_in_ledger"] = serde_json::json!(1);
+        assert!(validate_job_lifecycle_evidence(&missing_terminal, 17, 1).is_err());
+    }
 
     #[test]
     fn summary_has_units_of_observation_and_no_single_sample_ci() {

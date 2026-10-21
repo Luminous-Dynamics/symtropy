@@ -31,13 +31,16 @@ This tool borrows the idea of explicit definitions and reference periods; it doe
 | Good output per hour | good units/hour, 20 replications after warm-up | Per-seed baseline good output divided by measured time |
 | Linearized annualized output | good units/year, 20 replications | Throughput × declared productive seconds/year; assumes constant rate, not a demand or production forecast |
 | Total scrapped jobs | jobs, 20 replications over full horizon including warm-up | Count only; not a quality yield ratio |
-| Rework attempts | attempts, 20 replications after warm-up | Count only; not first-pass yield |
+| Rework attempts | attempts, 20 replications after warm-up | Count only; first-pass yield is separately computed from first-attempt outcomes with job linkage |
+| Per-seed median and P95 good-job lead time | seconds/job, distribution across seed-level quantiles | Uses the eligible job-release cohort and final-good transfer acceptance timestamp; jobs still open at horizon are reported as right-censored |
+| Right-censored jobs at horizon | jobs, 20 replications | Nonterminal eligible jobs at the horizon; never imputed as completed |
+| Per-station observed first-pass yield | fraction, seed-level ratios | Unique jobs first attempted after warm-up; denominator uses observed first-attempt outcomes only, with unresolved attempts disclosed separately |
 | Busy / blocked / starved / down fraction | fraction of server-seconds, primary seed only | Uses the simulator's all-server-seconds denominator; not planned-time availability, utilization under a plant's calendar, or OEE |
 | Average source-buffer / supplier-backlog WIP | units, primary seed only | Time-average inventory/queue level in the measured horizon |
 | Average interstation-buffer occupancy | units, primary seed only | Time-average finite-buffer WIP; no replication interval in v0.1 |
 | Changeover count, output-transfer count, out-of-order transfer proxy | counts, 20 replications after warm-up | Station-level synthetic counters; job-ID order inversions are a coarse sequence proxy |
 
-All computed metrics identify the exact source catalog SHA-256 and simulation report SHA-256. Distribution summaries report sample size, mean, sample standard deviation, empirical P05/P50/P95, min/max and a Student-t mean interval when at least two independent seed-level observations exist. The primary-seed station-state/WIP values explicitly have sample count one and no confidence interval.
+All computed metrics identify the exact source catalog SHA-256 and simulation report SHA-256. Distribution summaries report sample size, mean, sample standard deviation, empirical P05/P50/P95, min/max and a Student-t mean interval when at least two independent seed-level observations exist. The primary-seed station-state/WIP values explicitly have sample count one and no confidence interval. The event ledger is retained for the primary-seed baseline only; the other seeds and station interventions still contribute to per-seed lifecycle summaries.
 
 ## Intentionally not estimable yet
 
@@ -46,11 +49,11 @@ The report explicitly returns null/not-estimable for:
 - **OEE:** requires compatible planned production time, ideal cycle reference, total quantity and good quantity over one common defined window.
 - **Scheduled-time equipment availability:** requires planned production calendar and a declared planned-maintenance inclusion rule.
 - **Performance efficiency versus ideal cycle:** current cycle inputs are synthetic model parameters, not approved ideal-cycle standards.
-- **First-pass yield:** requires unique units entering an operation and first-attempt outcomes over the same window, with rework linked to original units.
+- **First-pass yield:** now computable per station when the job lifecycle ledger validates; it is an observed first-attempt fraction and unresolved first attempts are counted separately. It is not final yield.
 - **Energy per good unit:** no meter or validated station energy model in the DES output.
 - **Good units per paid labor hour:** no worker roster, labor-role scope, or paid hours.
 - **Audited cost per good unit:** no verified labor, tariff/FX, material, scrap, overhead or maintenance cost inputs.
-- **P95 end-to-end lead time:** no per-job release and final-good completion timestamp in the report.
+- **Lead-time uncertainty:** the ledger enables per-seed median/P95 good-job lead time with explicit right-censoring. This is still model-conditional and is not validated lead time from a physical production system.
 - **On-time delivery rate:** no customer order/due-date cohort or promised timestamp.
 
 The tool does not invent OEE by multiplying the current state fractions; those denominators do not match a standard OEE formula. Nor does it label the synthetic mean cycle seconds as an approved ideal-cycle reference.
