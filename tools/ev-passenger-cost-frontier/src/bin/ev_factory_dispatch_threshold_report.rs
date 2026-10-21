@@ -182,7 +182,7 @@ fn summary_optional(xs:Vec<Option<Pair>>)->Result<Option<Summary>,String>{if xs.
 fn summarize(xs:Vec<Pair>)->Result<Summary,String>{
     if xs.len()!=20||xs.iter().any(|x|!x.delta.is_finite()){return Err("paired_metric_requires_twenty_finite_deltas".into())}
     let n=xs.len()as f64;let mean=xs.iter().map(|x|x.delta).sum::<f64>()/n;
-    let var=xs.iter().map(|x|(x.delta-mean).powi(2)).sum::<f64>/(n-1.0);let sd=var.sqrt();let h=T_CRITICAL_DF_19*sd/n.sqrt();
+    let var=xs.iter().map(|x|(x.delta-mean).powi(2)).sum::<f64>()/(n-1.0);let sd=var.sqrt();let h=T_CRITICAL_DF_19*sd/n.sqrt();
     if !mean.is_finite()||!sd.is_finite()||!h.is_finite(){return Err("non_finite_summary".into())}
     Ok(Summary{sample_count:xs.len(),mean,sample_standard_deviation:sd,confidence_95_lower_unadjusted:mean-h,confidence_95_upper_unadjusted:mean+h,paired_seed_deltas:xs})
 }
