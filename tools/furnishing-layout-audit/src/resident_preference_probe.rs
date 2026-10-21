@@ -628,6 +628,86 @@ mod tests {
         }
     }
 
+    fn direct_utility(
+        alternative: &PreferenceAlternative,
+        scenario: &PreferenceScenario,
+    ) -> u64 {
+        alternative
+            .criterion_scores_bps
+            .iter()
+            .zip(&scenario.weights_bps)
+            .map(|(score, weight)| u64::from(*score) * u64::from(*weight))
+            .sum()
+    }
+
+    /// Small-instance reference: deliberately recomputes utilities for every
+    /// alternative/scenario pair and does not call the optimized implementation.
+    fn direct_minimax_regret(
+        alternatives: &[PreferenceAlternative],
+        scenarios: &[PreferenceScenario],
+    ) -> u64 {
+        assert!(!alternatives.is_empty() && !scenarios.is_empty());
+        let best_by_scenario = scenarios
+            .iter()
+            .map(|scenario| {
+                alternatives
+                    .iter()
+                    .map(|alternative| direct_utility(alternative, scenario))
+                    .max()
+                    .expect("reference fixture contains an alternative")
+            })
+            .collect::<Vec<_>>();
+        alternatives
+            .iter()
+            .map(|alternative| {
+                scenarios
+                    .iter()
+                    .zip(&best_by_scenario)
+                    .map(|(scenario, best)| best - direct_utility(alternative, scenario))
+                    .max()
+                    .expect("reference fixture contains scenarios")
+            })
+            .min()
+            .expect("reference fixture contains alternatives")
+    }
+
+    fn direct_question_partition(
+        input: &ResidentPreferenceProbeRequest,
+        question: &PairwisePreferenceQuestion,
+    ) -> ([usize; 3], u64) {
+        let left = input
+            .alternatives
+            .iter()
+            .find(|alternative| alternative.candidate_id == question.left_candidate_id)
+            .expect("question left candidate exists");
+        let right = input
+            .alternatives
+            .iter()
+            .find(|alternative| alternative.candidate_id == question.right_candidate_id)
+            .expect("question right candidate exists");
+        let mut partitions: [Vec<PreferenceScenario>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+        for scenario in &input.scenarios {
+            let outcome = match direct_utility(left, scenario).cmp(&direct_utility(right, scenario)) {
+                std::cmp::Ordering::Greater => 0,
+                std::cmp::Ordering::Less => 1,
+                std::cmp::Ordering::Equal => 2,
+            };
+            partitions[outcome].push(scenario.clone());
+        }
+        let counts = [
+            partitions[0].len(),
+            partitions[1].len(),
+            partitions[2].len(),
+        ];
+        let post_regret = partitions
+            .iter()
+            .filter(|partition| !partition.is_empty())
+            .map(|partition| direct_minimax_regret(&input.alternatives, partition))
+            .max()
+            .expect("all scenarios belong to an answer partition");
+        (counts, post_regret)
+    }
+
     #[test]
     fn extreme_pair_question_reduces_known_minimax_regret_to_zero() {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
@@ -785,9 +865,31 @@ mod tests {
                 .collect();
 
             let report = compute_resident_preference_probe(&input).expect("generated model valid");
-            assert!(report.questions.iter().all(|q| {
-                q.post_answer_worst_case_regret_units <= report.baseline_minimax_regret_units
-            }));
+            let direct_baseline = direct_minimax_regret(&input.alternatives, &input.scenarios);
+            assert_eq!(report.baseline_minimax_regret_units, direct_baseline);
+            for question in &input.questions {
+                let (counts, direct_post) = direct_question_partition(&input, question);
+                let actual = report
+                    .questions
+                    .iter()
+                    .find(|result| result.question_id == question.question_id)
+                    .expect("question result exists");
+                assert_eq!(actual.baseline_minimax_regret_units, direct_baseline);
+                assert_eq!(actual.post_answer_worst_case_regret_units, direct_post);
+                assert_eq!(
+                    actual.worst_case_regret_reduction_units,
+                    direct_baseline - direct_post
+                );
+                assert_eq!(
+                    actual.answer_counts,
+                    PreferenceAnswerCounts::ExactModelPartition {
+                        left_preferred: counts[0],
+                        right_preferred: counts[1],
+                        indifferent: counts[2],
+                    }
+                );
+                assert!(direct_post <= direct_baseline);
+            }
             input.alternatives.reverse();
             input.scenarios.reverse();
             input.questions.reverse();
