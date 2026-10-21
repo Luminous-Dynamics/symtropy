@@ -36,10 +36,7 @@ fn run() -> Result<String, String> {
         return Err("canonical NAFEMS NBC05 request differs from frozen fixture bytes".to_owned());
     }
 
-    let consistent = solve_published_axial_truss(
-        parameters,
-        MassMatrixFormulation::Consistent,
-    )?;
+    let consistent = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)?;
     let lumped = solve_published_axial_truss(parameters, MassMatrixFormulation::Lumped)?;
     verify_reference(&consistent, &lumped)?;
 
@@ -158,7 +155,9 @@ fn result_json(result: &Nbc05AxialTrussResult) -> String {
 fn parse_source_commit() -> Result<String, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 2 || args[0] != "--source-commit" {
-        return Err("usage: nafems-nbc05-modal-reference --source-commit <40-char-git-sha>".to_owned());
+        return Err(
+            "usage: nafems-nbc05-modal-reference --source-commit <40-char-git-sha>".to_owned(),
+        );
     }
     let value = &args[1];
     if value.len() != 40 || !value.chars().all(|character| character.is_ascii_hexdigit()) {
