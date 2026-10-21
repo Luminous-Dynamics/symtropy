@@ -1,0 +1,207 @@
+name: EV Factory Epistemic Parameter Sensitivity
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_parameter_sensitivity.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_EPISTEMIC_PARAMETER_SENSITIVITY_V0_1.md"
+      - ".github/workflows/ev-factory-epistemic-sensitivity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_parameter_sensitivity.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_EPISTEMIC_PARAMETER_SENSITIVITY_V0_1.md"
+      - ".github/workflows/ev-factory-epistemic-sensitivity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  epistemic-sensitivity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate nominal synthetic catalog and uncertainty design
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .dispatch_policy == "fifo"
+            and (.replication_seeds | length) == 20
+            and (.stations | length) == 5
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Generate nominal and 12 one-factor endpoint catalogs
+        run: |
+          BASE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          cp "$BASE" ev-param-nominal.json
+          jq '.mean_supply_interarrival_seconds *= 0.75' "$BASE" > ev-param-supplier_interarrival_low.json
+          jq '.mean_supply_interarrival_seconds *= 1.25' "$BASE" > ev-param-supplier_interarrival_high.json
+          jq '.stations |= map(.mean_cycle_seconds *= 0.85)' "$BASE" > ev-param-cycle_time_scale_low.json
+          jq '.stations |= map(.mean_cycle_seconds *= 1.15)' "$BASE" > ev-param-cycle_time_scale_high.json
+          jq '.stations |= map(.good_yield_fraction = (.good_yield_fraction - 0.005))' "$BASE" > ev-param-yield_envelope_low.json
+          jq '.stations |= map(.good_yield_fraction = (.good_yield_fraction + 0.005))' "$BASE" > ev-param-yield_envelope_high.json
+          jq '.stations |= map(.changeover_seconds *= 0.5)' "$BASE" > ev-param-changeover_scale_low.json
+          jq '.stations |= map(.changeover_seconds *= 2.0)' "$BASE" > ev-param-changeover_scale_high.json
+          jq '.stations |= map(.mean_time_between_failures_seconds *= 0.5)' "$BASE" > ev-param-mtbf_scale_low.json
+          jq '.stations |= map(.mean_time_between_failures_seconds *= 2.0)' "$BASE" > ev-param-mtbf_scale_high.json
+          jq '.stations |= map(.mean_time_to_repair_seconds *= 0.5)' "$BASE" > ev-param-mttr_scale_low.json
+          jq '.stations |= map(.mean_time_to_repair_seconds *= 2.0)' "$BASE" > ev-param-mttr_scale_high.json
+          for profile in ev-param-*.json; do
+            jq -e '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .input_evidence_class == "synthetic"
+              and .dispatch_policy == "fifo"
+              and (.replication_seeds | length) == 20
+              and (.stations | length) == 5
+            ' "$profile" >/dev/null
+          done
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate 13 paired simulation reports bound to exact catalogs
+        run: |
+          for profile in ev-param-*.json; do
+            case_id="${profile#ev-param-}"
+            case_id="${case_id%.json}"
+            cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$profile" > "ev-report-$case_id.json"
+            expected="$(sha256sum "$profile" | cut -d' ' -f1)"
+            jq -e --arg digest "$expected" '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .source_catalog_sha256 == $digest
+              and .input_evidence_class == "synthetic"
+              and .replication_count == 20
+              and (.replication_seeds | length) == 20
+              and (.replication_outcomes | length) == 120
+              and .release_ready == false
+              and .output_never_exceeds_released_input
+              and .all_buffers_respected_capacity
+              and .station_time_accounting_within_horizon
+            ' "ev-report-$case_id.json" >/dev/null
+          done
+      - name: Evaluate isolated factor envelopes and paired intervention effects
+        run: |
+          ARGS=(
+            "nominal=nominal:nominal:ev-param-nominal.json:ev-report-nominal.json"
+            "supplier_interarrival_low=supplier_interarrival:low:ev-param-supplier_interarrival_low.json:ev-report-supplier_interarrival_low.json"
+            "supplier_interarrival_high=supplier_interarrival:high:ev-param-supplier_interarrival_high.json:ev-report-supplier_interarrival_high.json"
+            "cycle_time_scale_low=cycle_time_scale:low:ev-param-cycle_time_scale_low.json:ev-report-cycle_time_scale_low.json"
+            "cycle_time_scale_high=cycle_time_scale:high:ev-param-cycle_time_scale_high.json:ev-report-cycle_time_scale_high.json"
+            "yield_envelope_low=yield_envelope:low:ev-param-yield_envelope_low.json:ev-report-yield_envelope_low.json"
+            "yield_envelope_high=yield_envelope:high:ev-param-yield_envelope_high.json:ev-report-yield_envelope_high.json"
+            "changeover_scale_low=changeover_scale:low:ev-param-changeover_scale_low.json:ev-report-changeover_scale_low.json"
+            "changeover_scale_high=changeover_scale:high:ev-param-changeover_scale_high.json:ev-report-changeover_scale_high.json"
+            "mtbf_scale_low=mtbf_scale:low:ev-param-mtbf_scale_low.json:ev-report-mtbf_scale_low.json"
+            "mtbf_scale_high=mtbf_scale:high:ev-param-mtbf_scale_high.json:ev-report-mtbf_scale_high.json"
+            "mttr_scale_low=mttr_scale:low:ev-param-mttr_scale_low.json:ev-report-mttr_scale_low.json"
+            "mttr_scale_high=mttr_scale:high:ev-param-mttr_scale_high.json:ev-report-mttr_scale_high.json"
+          )
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_parameter_sensitivity -- "${ARGS[@]}" > ev-factory-epistemic-sensitivity-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-EPISTEMIC-001"
+            and .factor_count == 6
+            and .parameter_setting_count == 13
+            and .shared_replication_count == 20
+            and (.shared_replication_seeds | length) == 20
+            and (.station_ids | length) == 5
+            and (.case_digests | length) == 13
+            and (.factors | length) == 6
+            and (.measurement_priority_order | length) == 6
+            and .aleatory_and_epistemic_are_separate
+            and (.factor_levels_are_probability_weighted == false)
+            and .results_are_synthetic_model_conditional
+            and (.production_release_authorized == false)
+            and all(.factors[];
+              (.changed_parameter_paths | length) >= 1
+              and (.low.station_intervention_gains | length) == 5
+              and (.nominal.station_intervention_gains | length) == 5
+              and (.high.station_intervention_gains | length) == 5
+              and (.low.pairwise_intervention_comparisons | length) == 10
+              and (.nominal.pairwise_intervention_comparisons | length) == 10
+              and (.high.pairwise_intervention_comparisons | length) == 10
+              and all(.low.pairwise_intervention_comparisons[]; .paired_gain_difference.sample_count == 20)
+              and all(.nominal.pairwise_intervention_comparisons[]; .paired_gain_difference.sample_count == 20)
+              and all(.high.pairwise_intervention_comparisons[]; .paired_gain_difference.sample_count == 20)
+              and (.low_parameter_values | length) == (.changed_parameter_paths | length)
+              and (.nominal_parameter_values | length) == (.changed_parameter_paths | length)
+              and (.high_parameter_values | length) == (.changed_parameter_paths | length)
+            )
+          ' ev-factory-epistemic-sensitivity-report.json
+      - name: Deterministic replay of sensitivity aggregation
+        run: |
+          ARGS=(
+            "nominal=nominal:nominal:ev-param-nominal.json:ev-report-nominal.json"
+            "supplier_interarrival_low=supplier_interarrival:low:ev-param-supplier_interarrival_low.json:ev-report-supplier_interarrival_low.json"
+            "supplier_interarrival_high=supplier_interarrival:high:ev-param-supplier_interarrival_high.json:ev-report-supplier_interarrival_high.json"
+            "cycle_time_scale_low=cycle_time_scale:low:ev-param-cycle_time_scale_low.json:ev-report-cycle_time_scale_low.json"
+            "cycle_time_scale_high=cycle_time_scale:high:ev-param-cycle_time_scale_high.json:ev-report-cycle_time_scale_high.json"
+            "yield_envelope_low=yield_envelope:low:ev-param-yield_envelope_low.json:ev-report-yield_envelope_low.json"
+            "yield_envelope_high=yield_envelope:high:ev-param-yield_envelope_high.json:ev-report-yield_envelope_high.json"
+            "changeover_scale_low=changeover_scale:low:ev-param-changeover_scale_low.json:ev-report-changeover_scale_low.json"
+            "changeover_scale_high=changeover_scale:high:ev-param-changeover_scale_high.json:ev-report-changeover_scale_high.json"
+            "mtbf_scale_low=mtbf_scale:low:ev-param-mtbf_scale_low.json:ev-report-mtbf_scale_low.json"
+            "mtbf_scale_high=mtbf_scale:high:ev-param-mtbf_scale_high.json:ev-report-mtbf_scale_high.json"
+            "mttr_scale_low=mttr_scale:low:ev-param-mttr_scale_low.json:ev-report-mttr_scale_low.json"
+            "mttr_scale_high=mttr_scale:high:ev-param-mttr_scale_high.json:ev-report-mttr_scale_high.json"
+          )
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_parameter_sensitivity -- "${ARGS[@]}" > ev-factory-epistemic-sensitivity-repeat.json
+          cmp ev-factory-epistemic-sensitivity-report.json ev-factory-epistemic-sensitivity-repeat.json
+      - name: Negative controls - catalog/report cross-wire and seed reassignment
+        run: |
+          ARGS=(
+            "nominal=nominal:nominal:ev-param-nominal.json:ev-report-nominal.json"
+            "supplier_interarrival_low=supplier_interarrival:low:ev-param-supplier_interarrival_low.json:ev-report-supplier_interarrival_low.json"
+            "supplier_interarrival_high=supplier_interarrival:high:ev-param-supplier_interarrival_high.json:ev-report-supplier_interarrival_high.json"
+            "cycle_time_scale_low=cycle_time_scale:low:ev-param-cycle_time_scale_low.json:ev-report-cycle_time_scale_low.json"
+            "cycle_time_scale_high=cycle_time_scale:high:ev-param-cycle_time_scale_high.json:ev-report-cycle_time_scale_high.json"
+            "yield_envelope_low=yield_envelope:low:ev-param-yield_envelope_low.json:ev-report-yield_envelope_low.json"
+            "yield_envelope_high=yield_envelope:high:ev-param-yield_envelope_high.json:ev-report-yield_envelope_high.json"
+            "changeover_scale_low=changeover_scale:low:ev-param-changeover_scale_low.json:ev-report-changeover_scale_low.json"
+            "changeover_scale_high=changeover_scale:high:ev-param-changeover_scale_high.json:ev-report-changeover_scale_high.json"
+            "mtbf_scale_low=mtbf_scale:low:ev-param-mtbf_scale_low.json:ev-report-mtbf_scale_low.json"
+            "mtbf_scale_high=mtbf_scale:high:ev-param-mtbf_scale_high.json:ev-report-mtbf_scale_high.json"
+            "mttr_scale_low=mttr_scale:low:ev-param-mttr_scale_low.json:ev-report-mttr_scale_low.json"
+            "mttr_scale_high=mttr_scale:high:ev-param-mttr_scale_high.json:ev-report-mttr_scale_high.json"
+          )
+          BAD_CROSSWIRE=("${ARGS[@]}")
+          BAD_CROSSWIRE[1]="supplier_interarrival_low=supplier_interarrival:low:ev-param-supplier_interarrival_low.json:ev-report-nominal.json"
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_parameter_sensitivity -- "${BAD_CROSSWIRE[@]}" >/dev/null 2>&1; then
+            echo "cross-wired catalog/report unexpectedly accepted"
+            exit 1
+          fi
+          jq '.replication_outcomes[1].seed = 999999' ev-report-supplier_interarrival_low.json > ev-report-invalid-seed.json
+          BAD_SEED=("${ARGS[@]}")
+          BAD_SEED[1]="supplier_interarrival_low=supplier_interarrival:low:ev-param-supplier_interarrival_low.json:ev-report-invalid-seed.json"
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_parameter_sensitivity -- "${BAD_SEED[@]}" >/dev/null 2>&1; then
+            echo "mismatched per-seed outcome unexpectedly accepted"
+            exit 1
+          fi
+      - name: Hash source catalogs, reports, tool and protocol
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_parameter_sensitivity.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_EPISTEMIC_PARAMETER_SENSITIVITY_V0_1.md \
+            .github/workflows/ev-factory-epistemic-sensitivity.yml \
+            ev-param-*.json ev-report-*.json \
+            ev-factory-epistemic-sensitivity-report.json > ev-factory-epistemic-sensitivity.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-epistemic-sensitivity-report
+          path: |
+            ev-param-*.json
+            ev-report-*.json
+            ev-factory-epistemic-sensitivity-report.json
+            ev-factory-epistemic-sensitivity.sha256
+          if-no-files-found: error
