@@ -1,9 +1,9 @@
 //! Dependency-free scaling probe for evidence-qualified Pareto ranking.
 //!
-//! Candidate construction is outside the timed section. The tradeoff-heavy
-//! profile stresses the worst-case non-dominated set; the dominated-chain
-//! profile checks that a stable dominance witness avoids quadratic report
-//! memory when most candidates are dominated.
+//! Candidate construction is outside the timed section. Tradeoff-heavy profiles
+//! keep every candidate non-dominated; dominated-chain profiles keep one point
+//! on the frontier. Three objectives exercise the new Fenwick-tree sweep while
+//! four objectives exercise the exact pairwise fallback.
 
 use furnishing_layout_audit::alternative_frontier::{
     AlternativeCandidate, ObjectiveDirection, ObjectiveEvidence, ObjectiveObservation,
@@ -12,34 +12,72 @@ use furnishing_layout_audit::alternative_frontier::{
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-fn candidate(index: usize, count: usize, profile: &str) -> AlternativeCandidate {
-    let (cost, coverage) = match profile {
-        "tradeoff-heavy" => (index as f64 + 1.0, index as f64 / count.max(1) as f64),
-        "dominated-chain" => (index as f64 + 1.0, 1.0 / (index as f64 + 1.0)),
+fn observation(
+    dimension: &str,
+    unit: &str,
+    direction: ObjectiveDirection,
+    value: f64,
+) -> ObjectiveObservation {
+    ObjectiveObservation {
+        dimension: dimension.to_owned(),
+        unit: unit.to_owned(),
+        direction,
+        value,
+        evidence: ObjectiveEvidence::AcceptedByPolicy,
+    }
+}
+
+fn candidate(
+    index: usize,
+    count: usize,
+    profile: &str,
+    dimensions: usize,
+) -> AlternativeCandidate {
+    let cost = index as f64 + 1.0;
+    let coverage = match profile {
+        "tradeoff-heavy" => index as f64 / count.max(1) as f64,
+        "dominated-chain" => 1.0 / (index as f64 + 1.0),
         _ => unreachable!("only named benchmark profiles are used"),
     };
+    let area = match profile {
+        "tradeoff-heavy" => (count - index) as f64,
+        "dominated-chain" => index as f64 + 1.0,
+        _ => unreachable!("only named benchmark profiles are used"),
+    };
+    let effort = match profile {
+        "tradeoff-heavy" => (count - index) as f64,
+        "dominated-chain" => index as f64 + 1.0,
+        _ => unreachable!("only named benchmark profiles are used"),
+    };
+
+    let mut objectives = vec![
+        observation("install_cost", "USD", ObjectiveDirection::Minimize, cost),
+        observation("task_coverage", "ratio", ObjectiveDirection::Maximize, coverage),
+    ];
+    if dimensions >= 3 {
+        objectives.push(observation(
+            "occupied_area",
+            "m2",
+            ObjectiveDirection::Minimize,
+            area,
+        ));
+    }
+    if dimensions >= 4 {
+        objectives.push(observation(
+            "install_effort",
+            "hours",
+            ObjectiveDirection::Minimize,
+            effort,
+        ));
+    }
+
     AlternativeCandidate {
         candidate_id: format!("candidate-{index:05}"),
         revision_sha256: Some(format!("{:064x}", index + 1)),
         verifier_receipt_sha256: Some(format!("{:064x}", index + count + 1)),
         verified_revision_sha256: Some(format!("{:064x}", index + 1)),
         verification: VerificationStatus::Verified,
-        objectives: vec![
-            ObjectiveObservation {
-                dimension: "install_cost".to_owned(),
-                unit: "USD".to_owned(),
-                direction: ObjectiveDirection::Minimize,
-                value: cost,
-                evidence: ObjectiveEvidence::AcceptedByPolicy,
-            },
-            ObjectiveObservation {
-                dimension: "task_coverage".to_owned(),
-                unit: "ratio".to_owned(),
-                direction: ObjectiveDirection::Maximize,
-                value: coverage,
-                evidence: ObjectiveEvidence::AcceptedByPolicy,
-            },
-        ],
+        objectives,
     }
 }
 
@@ -54,9 +92,9 @@ fn percentile(samples: &[Duration], numerator: usize, denominator: usize) -> Dur
     sorted[rank - 1]
 }
 
-fn run_profile(count: usize, profile: &str, iterations: usize) {
+fn run_profile(count: usize, profile: &str, dimensions: usize, iterations: usize) {
     let candidates = (0..count)
-        .map(|index| candidate(index, count, profile))
+        .map(|index| candidate(index, count, profile, dimensions))
         .collect::<Vec<_>>();
 
     let reference =
@@ -83,7 +121,7 @@ fn run_profile(count: usize, profile: &str, iterations: usize) {
     let p95 = percentile(&durations, 95, 100);
     let maximum = durations.iter().copied().max().unwrap_or_default();
     println!(
-        "frontier_bench profile={profile} n={count} samples={iterations} \
+        "frontier_bench dimensions={dimensions} profile={profile} n={count} samples={iterations} \
          p50_ms={:.3} p95_ms={:.3} max_ms={:.3} frontier={expected_frontier}",
         p50.as_secs_f64() * 1000.0,
         p95.as_secs_f64() * 1000.0,
@@ -91,16 +129,28 @@ fn run_profile(count: usize, profile: &str, iterations: usize) {
     );
 }
 
+fn iterations_for(count: usize) -> usize {
+    match count {
+        25 => 50,
+        100 => 30,
+        1_000 => 10,
+        _ => 5,
+    }
+}
+
 fn main() {
     println!("Benchmark input construction is excluded from timed measurements.");
     for count in [25_usize, 100, 1_000, 10_000] {
-        let iterations = match count {
-            25 => 50,
-            100 => 30,
-            1_000 => 10,
-            _ => 5,
-        };
-        run_profile(count, "tradeoff-heavy", iterations);
-        run_profile(count, "dominated-chain", iterations);
+        let iterations = iterations_for(count);
+        for dimensions in [2_usize, 3] {
+            run_profile(count, "tradeoff-heavy", dimensions, iterations);
+            run_profile(count, "dominated-chain", dimensions, iterations);
+        }
+        // Keep the quadratic fallback benchmark tractable while still exposing
+        // its dimensionality cost and checking the larger input size.
+        if count <= 1_000 {
+            run_profile(count, "tradeoff-heavy", 4, iterations);
+            run_profile(count, "dominated-chain", 4, iterations);
+        }
     }
 }
