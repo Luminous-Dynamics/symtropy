@@ -65,7 +65,7 @@ Use independently derived or rights-cleared definitions at first. Freeze geometr
 
 Keep development cases separate from confirmatory holdouts. Any case that informed policy parameters is no longer an untouched holdout. Do not inflate case counts by cloning cases, relaxing limits or tuning to the final test set.
 
-## 5. Code-verification frontier: go beyond observed order alone
+## 5. Code-verification frontier and conditioning
 
 Method of Manufactured Solutions (MMS) is a strong code-verification tool because the manufactured analytical solution can be mathematically complex without needing to represent a realistic experiment. Sandia's blind-test work reports that MMS can detect coding mistakes that alter observed order, while also demonstrating error classes that it does not expose: https://www.sandia.gov/research/publications/details/code-verification-by-the-method-of-manufactured-solutions-2000-06-01/ and https://www.osti.gov/biblio/759450.
 
@@ -80,7 +80,15 @@ Proposed sequence:
 
 This is a research target, not a claimed feature of the current evaluator. It complements NAFEMS analytical benchmarks, receipt-bound equilibrium invariants, scalar observables and refinement studies rather than replacing them.
 
-## 5. Metrics and proposed targets
+### Conditioning and input sensitivity are separate from residual size
+
+A computed solution can have a small backward residual while having substantial forward error when the linear system is ill-conditioned. The numerical record should therefore include both a backward residual and an independently calculated forward error on known-answer cases; for a real solver, condition estimates must be interpreted within the solver/formulation and norm being assessed, not as universal error certificates. LAPACK's DGECON estimates reciprocal condition number through (RCOND=1/(\|A\|\,\|A^{-1}\|)): https://www.netlib.org/lapack/explore-html/d4/daf/group__gecon_ga4f9b830e19e12c7f082ddb497a57af18.html.
+
+The new synthetic conditioning work [PHYS-TRUSS-CONDITION-001 #2497](https://github.com/Luminous-Dynamics/symtropy/issues/2497) / [draft PR #2498](https://github.com/Luminous-Dynamics/symtropy/pull/2498) exercises a two-degree-of-freedom reduced truss matrix near a mechanism. It is designed to report condition number, forward/backward error, fail-closed outcomes and response amplification for a controlled load perturbation. This fills a gap in fixed-output tests: a result can be arithmetically accepted yet be too sensitive to input changes for a particular engineering decision.
+
+This remains a synthetic small-displacement, 2D pin-jointed-truss code-verification case. It is not an external FEM result, a probability distribution for loading uncertainty, a general sparse-matrix condition estimator, or physical validation. Transfer the principle to the FEM adapter only after its matrix/solver diagnostics and error semantics are independently understood.
+
+## 6. Metrics and proposed targets
 
 ### Integrity and abstention
 - Zero false PASS outcomes across the frozen adversarial corpus.
@@ -100,7 +108,7 @@ This is a research target, not a claimed feature of the current evaluator. It co
 - Plot error versus DOFs and total compute cost; report paired per-case cost to first meet the frozen quantity-of-interest tolerance.
 - For later uniform-versus-adaptive work [PHYS-AMR-BENCH-001 #2331](https://github.com/Luminous-Dynamics/symtropy/issues/2331), the proposed stretch target is at least 25% lower median total CPU-seconds to the same eligible tolerance OR twice as many held-out cases meeting tolerance at equal compute, with no increase in false-pass/false-safe outcomes. This is a hypothesis to test, not an established result.
 
-## 6. How to claim improvement over the state of the art
+## 7. How to claim improvement over the state of the art
 
 The primary objective is **more independently verified engineering accuracy per complete evidence and compute budget**, subject to a hard zero-false-PASS gate—not speed at the cost of validity.
 
@@ -115,7 +123,7 @@ The claim ladder:
 
 No stage implies the next one automatically.
 
-## 7. References
+## 8. References
 
 - NAFEMS, [The Standard NAFEMS Benchmarks (P18)](https://www.nafems.org/publications/resource_center/p18/) and [Linear Static Benchmarks — Volume 1](https://www.nafems.org/publications/browse_buy/browse_by_topic/linear/p07/).
 - NIST, [FEM Solution Uncertainty and Accuracy Assessment](https://www.nist.gov/publications/finite-element-method-solution-uncertainty-asymptotic-solution-and-new-approach).
