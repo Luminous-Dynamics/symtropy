@@ -32,7 +32,7 @@
     "metadata_license_link_without_spdx": 4,
     "missing_or_null_pcbench_license": 16,
     "primary_source_license_blob_checked": 14,
-    "primary_source_license_commit_sha_pinned": 0,
+    "primary_source_license_commit_sha_pinned": 14,
     "benchmark_eligible": 0
   },
   "boards": [
@@ -52,7 +52,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/BonfaceKilz/AVR-Playground",
@@ -60,7 +60,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "9cecc1d4669ee8af2ca727a5d8cde10cd8b2d7cc",
         "resolved_spdx_id": "GPL-3.0",
-        "blob_url": "https://github.com/BonfaceKilz/AVR-Playground/blob/master/LICENSE"
+        "blob_url": "https://github.com/BonfaceKilz/AVR-Playground/blob/6fb79b955cd776c6a0ffb38b5ee21edc0ce28806/LICENSE",
+        "source_commit_sha": "6fb79b955cd776c6a0ffb38b5ee21edc0ce28806"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -80,7 +81,7 @@
         }
       ],
       "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/vektorious/test_tube_photometer",
@@ -88,7 +89,8 @@
         "file_path": "LICENSE.md",
         "git_blob_sha1": "2e72ca1121b413a67745f02f679eb5caef6c7bef",
         "resolved_spdx_id": "CC-BY-SA-4.0",
-        "blob_url": "https://github.com/vektorious/test_tube_photometer/blob/master/LICENSE.md"
+        "blob_url": "https://github.com/vektorious/test_tube_photometer/blob/0feb89c329b34f3dec3726c6c817441fb5919b5f/LICENSE.md",
+        "source_commit_sha": "0feb89c329b34f3dec3726c6c817441fb5919b5f"
       },
       "license_match_status": "source_text_resolves_specific_spdx_from_pcbench_label_or_license_link"
     },
@@ -108,7 +110,7 @@
         }
       ],
       "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/BeeHive-org/BeeHive",
@@ -116,7 +118,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "20766377944dc07d67a60a15d238f76decee1d22",
         "resolved_spdx_id": "MIT",
-        "blob_url": "https://github.com/BeeHive-org/BeeHive/blob/master/LICENSE"
+        "blob_url": "https://github.com/BeeHive-org/BeeHive/blob/a7bbd36c15c2fb293a4699d9088aaf81921192e2/LICENSE",
+        "source_commit_sha": "a7bbd36c15c2fb293a4699d9088aaf81921192e2"
       },
       "license_match_status": "source_text_resolves_specific_spdx_from_pcbench_label_or_license_link"
     },
@@ -148,7 +151,7 @@
         }
       ],
       "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/mossmann/retroreflectors",
@@ -156,7 +159,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "22fbe5dbacbe58748f688cac277d917aebb467b4",
         "resolved_spdx_id": "GPL-2.0",
-        "blob_url": "https://github.com/mossmann/retroreflectors/blob/master/LICENSE"
+        "blob_url": "https://github.com/mossmann/retroreflectors/blob/fff29ec9b9d1d08f055fe9e68616719ee35e9ee6/LICENSE",
+        "source_commit_sha": "fff29ec9b9d1d08f055fe9e68616719ee35e9ee6"
       },
       "license_match_status": "source_text_resolves_specific_spdx_from_pcbench_label_or_license_link"
     },
@@ -224,7 +228,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/bbtinkerer/PsuFanController",
@@ -232,7 +236,8 @@
         "file_path": "LICENSE.md",
         "git_blob_sha1": "94a9ed024d3859793618152ea559a168bbcbb5e2",
         "resolved_spdx_id": "GPL-3.0",
-        "blob_url": "https://github.com/bbtinkerer/PsuFanController/blob/master/LICENSE.md"
+        "blob_url": "https://github.com/bbtinkerer/PsuFanController/blob/bb693325f119615b770936b6d27e20e7d646d47c/LICENSE.md",
+        "source_commit_sha": "bb693325f119615b770936b6d27e20e7d646d47c"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -288,7 +293,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/OLIMEX/MOD-MPU9150",
@@ -296,7 +301,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "8f71f43fee3f78649d238238cbde51e6d7055c82",
         "resolved_spdx_id": "Apache-2.0",
-        "blob_url": "https://github.com/OLIMEX/MOD-MPU9150/blob/master/LICENSE"
+        "blob_url": "https://github.com/OLIMEX/MOD-MPU9150/blob/6eb430673ff885007765ddbee873303c38c08ebc/LICENSE",
+        "source_commit_sha": "6eb430673ff885007765ddbee873303c38c08ebc"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -316,7 +322,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/ffleurey/ATtiny461Breakout",
@@ -324,7 +330,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "65c5ca88a67c30becee01c5a8816d964b03862f9",
         "resolved_spdx_id": "LGPL-3.0",
-        "blob_url": "https://github.com/ffleurey/ATtiny461Breakout/blob/master/LICENSE"
+        "blob_url": "https://github.com/ffleurey/ATtiny461Breakout/blob/b75483a2aeae581ecbfa783d7b150ac063478ad3/LICENSE",
+        "source_commit_sha": "b75483a2aeae581ecbfa783d7b150ac063478ad3"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -356,7 +363,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/ar13pit/raspberrypi-3-usb-hub",
@@ -364,7 +371,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "9cecc1d4669ee8af2ca727a5d8cde10cd8b2d7cc",
         "resolved_spdx_id": "GPL-3.0",
-        "blob_url": "https://github.com/ar13pit/raspberrypi-3-usb-hub/blob/master/LICENSE"
+        "blob_url": "https://github.com/ar13pit/raspberrypi-3-usb-hub/blob/85c0930610e8d6559356d73abe4adb5eaf2bca45/LICENSE",
+        "source_commit_sha": "85c0930610e8d6559356d73abe4adb5eaf2bca45"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -396,7 +404,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/festlv/mavbridge",
@@ -404,7 +412,8 @@
         "file_path": "LICENSE.md",
         "git_blob_sha1": "e44239da2d9215a2357e45f87be2d1f10040cdfd",
         "resolved_spdx_id": "MIT",
-        "blob_url": "https://github.com/festlv/mavbridge/blob/master/LICENSE.md"
+        "blob_url": "https://github.com/festlv/mavbridge/blob/423cc156483efbc306c774586e34d780139a0235/LICENSE.md",
+        "source_commit_sha": "423cc156483efbc306c774586e34d780139a0235"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -424,7 +433,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/james481/cat-trainer",
@@ -432,7 +441,8 @@
         "file_path": "LICENSE.txt",
         "git_blob_sha1": "4406bb9848d971bfedab600ef5abaf1b39ccab07",
         "resolved_spdx_id": "BSD-3-Clause-Clear",
-        "blob_url": "https://github.com/james481/cat-trainer/blob/master/LICENSE.txt"
+        "blob_url": "https://github.com/james481/cat-trainer/blob/82e5a215c159f2c125d9c9f9763c36a455cca3dc/LICENSE.txt",
+        "source_commit_sha": "82e5a215c159f2c125d9c9f9763c36a455cca3dc"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -488,7 +498,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/LibreSolar/data-manager",
@@ -496,7 +506,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "edfdf646da6e556a479181e785d9565da2acfd0a",
         "resolved_spdx_id": "CC-BY-SA-4.0",
-        "blob_url": "https://github.com/LibreSolar/data-manager/blob/master/LICENSE"
+        "blob_url": "https://github.com/LibreSolar/data-manager/blob/df43f33e1b91cd8e66459ae533b369a796ce8d1c/LICENSE",
+        "source_commit_sha": "df43f33e1b91cd8e66459ae533b369a796ce8d1c"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -516,7 +527,7 @@
         }
       ],
       "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/carrotIndustries/pluto",
@@ -524,7 +535,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "9cecc1d4669ee8af2ca727a5d8cde10cd8b2d7cc",
         "resolved_spdx_id": "GPL-3.0",
-        "blob_url": "https://github.com/carrotIndustries/pluto/blob/master/LICENSE"
+        "blob_url": "https://github.com/carrotIndustries/pluto/blob/3f25b12a9d1c7eb931cf74858881f92337a70776/LICENSE",
+        "source_commit_sha": "3f25b12a9d1c7eb931cf74858881f92337a70776"
       },
       "license_match_status": "source_text_resolves_specific_spdx_from_pcbench_label_or_license_link"
     },
@@ -568,7 +580,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/FordPrfkt/Brushless_ESC",
@@ -576,7 +588,8 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "8cdb8451d9b90c1d4000c6f22eb86471a4568be6",
         "resolved_spdx_id": "GPL-2.0",
-        "blob_url": "https://github.com/FordPrfkt/Brushless_ESC/blob/master/LICENSE"
+        "blob_url": "https://github.com/FordPrfkt/Brushless_ESC/blob/4359758cde38af35bad2f55337101a32e79fdf4b/LICENSE",
+        "source_commit_sha": "4359758cde38af35bad2f55337101a32e79fdf4b"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     },
@@ -608,7 +621,7 @@
         }
       ],
       "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
-      "primary_source_license_review": "source-license-text-observed; blob digest pinned; exact source-repo revision still needs a commit pin",
+      "primary_source_license_review": "source-license-file-bytes-hash-pinned-at-immutable-source-commit; legal/applicability review remains distinct",
       "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
       "primary_source_license_evidence": {
         "repository": "https://github.com/soldesign/TOBS",
@@ -616,15 +629,16 @@
         "file_path": "LICENSE",
         "git_blob_sha1": "97bec110d0eb1d88fa0e719f4dd2f6d7a486628a",
         "resolved_spdx_id": "GPL-3.0",
-        "blob_url": "https://github.com/soldesign/TOBS/blob/master/LICENSE"
+        "blob_url": "https://github.com/soldesign/TOBS/blob/8583b4fdf3f8565b3b266526a86fbad306911b4d/LICENSE",
+        "source_commit_sha": "8583b4fdf3f8565b3b266526a86fbad306911b4d"
       },
       "license_match_status": "source_text_matches_pcbench_spdx_metadata"
     }
   ],
   "notes": [
-    "The PCBench metadata blob and upstream split are pinned; every source-board candidate retains its original project URL.",
-    "14 source repository license text files were fetched and their Git blob SHA-1 values recorded. This pins the exact license text bytes, but the source repositories' commit SHAs were not pinned for those ref paths yet.",
-    "The other 16 candidate source-license claims remain unresolved from this audit and are not approved for a real benchmark run.",
-    "No board is benchmark-eligible yet: actual prepared-board file bytes, required-net counts, native tool provenance and complete source license review are still required."
+    "PCBench dataset commit and per-board metadata blob IDs are pinned. The source license files for 14 candidates have both a Git blob SHA-1 and the source repository commit SHA that identifies the immutable tree containing that license file.",
+    "The file hashes establish exact license-evidence bytes. They do not themselves determine legal applicability to the specific PCB/layout or resolve whether the dataset's transformations preserve all copyright notices.",
+    "The other 16 candidates remain unresolved because the PCBench metadata has missing/null license fields or source-license evidence was not confirmed during this pass.",
+    "No board is yet authorized for benchmark execution: the actual processed_v9_guide_v3.kicad_pcb bytes must be sourced under the pinned PCBWorld/PCBench revision and hashed, required-net counts must be measured from the pinned source, and the engine/split/config must be pinned in the final manifest."
   ]
 }
