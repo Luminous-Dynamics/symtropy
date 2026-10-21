@@ -1,0 +1,119 @@
+name: EV Factory Scenario Frontier
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_scenario_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_SCENARIO_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-scenario-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_scenario_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_SCENARIO_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-scenario-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scenario-frontier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate base synthetic fixture
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .dispatch_policy == "fifo"
+            and (.replication_seeds | length) == 20
+            and .release_ready != true
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Build all sibling executables
+        run: cargo build --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bins
+      - name: Execute nine-family intervention frontier
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_scenario_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            ev-factory-scenario-frontier-artifacts \
+            > ev-factory-scenario-frontier-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SCENARIO-FRONTIER-001"
+            and .family_count == 9
+            and .replication_count_per_family == 20
+            and .scenarios_per_family == 6
+            and (.practical_equivalence_margins_units_per_hour == [0.01, 0.05, 2.5])
+            and .unweighted_family_counts_are_probabilities == false
+            and .production_release_authorized == false
+            and (.source_fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.family_results | length) == 9
+            and all(.family_results[];
+              .replication_count == 20
+              and (.replication_seeds | length) == 20
+              and .simulation_outcome_rows == 120
+              and .release_ready == false
+              and (.input_fixture_sha256 | test("^[0-9a-f]{64}$"))
+              and (.simulation_report_sha256 | test("^[0-9a-f]{64}$"))
+              and (.candidates | length) == 5
+              and (.margin_sensitivity | length) == 3
+              and all(.margin_sensitivity[]; (.ranking_report_sha256 | test("^[0-9a-f]{64}$")))
+            )
+            and ([.family_results[] | select(.family.family_id == "nominal") | .margin_sensitivity[] | select(.margin_units_per_hour == 0.01) | .robust_best_station_id][0] == "end-of-line-test")
+            and ([.family_results[] | select(.family.family_id == "nominal") | .margin_sensitivity[] | select(.margin_units_per_hour == 2.5) | .robust_best_station_id][0] == null)
+          ' ev-factory-scenario-frontier-report.json
+      - name: Negative control - measured evidence rejected
+        run: |
+          jq '.input_evidence_class = "measured"' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > invalid-scenario-frontier-fixture.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_scenario_frontier -- \
+            invalid-scenario-frontier-fixture.json invalid-scenario-frontier-output >/dev/null 2>&1; then
+            echo "non-synthetic base fixture unexpectedly accepted"
+            exit 1
+          fi
+      - name: Verify fixed-input report reproducibility
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_scenario_frontier -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            ev-factory-scenario-frontier-repeat-artifacts \
+            > ev-factory-scenario-frontier-repeat.json
+          cmp ev-factory-scenario-frontier-report.json ev-factory-scenario-frontier-repeat.json
+      - name: Hash generator, inputs, summary and family outputs
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_scenario_frontier.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_SCENARIO_FRONTIER_V0_1.md \
+            ev-factory-scenario-frontier-report.json \
+            > ev-factory-scenario-frontier.sha256
+          find ev-factory-scenario-frontier-artifacts -type f -name '*.json' -print0 \
+            | sort -z | xargs -0 sha256sum > ev-factory-scenario-frontier-artifacts/files.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-scenario-frontier-report
+          path: |
+            ev-factory-scenario-frontier-report.json
+            ev-factory-scenario-frontier.sha256
+            ev-factory-scenario-frontier-artifacts/**
+          if-no-files-found: error
