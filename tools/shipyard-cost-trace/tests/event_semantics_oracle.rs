@@ -125,8 +125,9 @@ fn frozen_quantity_semantics_corpus_matches_hand_calculated_outputs() {
         let fields: Vec<&str> = line.split('\t').collect();
         assert_eq!(fields.len(), 5, "expected corpus must have 5 columns");
         let (cutoff, records) = parse_case(fields[0]);
-        let actual = normalize_quantities(&records, cutoff)
-            .unwrap_or_else(|errors| panic!("valid frozen case {} rejected: {errors:?}", fields[0]));
+        let actual = normalize_quantities(&records, cutoff).unwrap_or_else(|errors| {
+            panic!("valid frozen case {} rejected: {errors:?}", fields[0])
+        });
         assert_expected(&actual, &fields, fields[0]);
         cases_seen.push(fields[0]);
     }
