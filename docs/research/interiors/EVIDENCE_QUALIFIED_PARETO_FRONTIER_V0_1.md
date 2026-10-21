@@ -19,7 +19,7 @@ This utility is downstream of verification. It does not implement or replace the
 - Each objective names a stable dimension, explicit unit or normalized scale, minimize/maximize direction, finite numeric value, and evidence-admission state. Dimension, unit, and direction must match exactly across the ranking set; this utility performs no currency conversion or hidden normalization.
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
 - Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
-- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative. With exactly two objective dimensions, an O(n log n) sweep computes the frontier and one deterministic dominance witness per dominated candidate; inputs with more than two objective dimensions use the conservative O(n²) pairwise path.
+- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative. Exactly two objectives use an O(n log n) sweep; exactly three objectives use an O(n log n) sweep with a y-prefix Fenwick tree and explicit equal-coordinate handling. Four or more objective dimensions use an exact incremental-frontier algorithm: compare only with current non-dominated points, reject immediately if one dominates the candidate, otherwise remove every frontier point it dominates. This remains O(n²) in the all-nondominated worst case, but can approach O(n) when the frontier is small.
 - Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier. Each dominated candidate stores one deterministic dominance witness rather than every dominator, keeping report memory linear in candidate count.
 - The resident retains final choice. Pareto membership is not a statement that an alternative is universally best.
 
@@ -51,7 +51,7 @@ Proposed acceptance targets (not measured performance claims):
 - fail-closed behavior for incomparable objective schemas;
 - exact-head formatting, unit tests, and strict Clippy passing.
 
-The frontier utility has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. Candidate construction is outside the timed section; each profile asserts expected frontier cardinality and reports p50/p95/max duration. The two-objective sweep is O(n log n); the general higher-dimensional fallback is O(n²). The harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module.
+The frontier utility has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. Candidate construction is outside the timed section; each profile asserts expected frontier cardinality and reports p50/p95/max duration. The two- and three-objective sweeps are O(n log n). Four-or-more objectives use an exact incremental frontier with O(n·F) dominance checks for frontier width F, and O(n²) worst case when most inputs are non-dominated. The harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module.
 
 ### Exact-head performance evidence
 
@@ -74,6 +74,29 @@ A second exact-head run after the documentation/CI-wiring change (`046fca1de725f
 
 This is an internal microbenchmark, not an external SOTA result. End-to-end evaluation must compare identical verified candidate sets against transparent rules, human-curated trade-offs, and commercial/research workflows using identical inputs, objective definitions, and an independent evaluator.
 
+## Three-objective follow-up
+
+The exact three-objective sweep is in stacked draft [PR #2519](https://github.com/Luminous-Dynamics/symtropy/pull/2519). It uses a compressed y-coordinate index and Fenwick prefix-minimum witnesses, defers updates across equal-x groups, and resolves equal-y candidates separately so identical points do not dominate one another. Its generated-grid and adversarial tests compare frontier membership and each reported witness against the brute-force dominance oracle.
+
+Exact tested head `39a5c413e92569db1174a72e4b203be700f08744` passed [Furnishing Layout Audit run #39590356895](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39590356895): formatting, 38 crate tests, strict Clippy and the expanded benchmark matrix.
+
+| Dimensions | Alternatives | Profile | Samples | p50 | p95 |
+|---:|---:|---|---:|---:|---:|
+| 3 | 1,000 | Tradeoff-heavy | 10 | 0.912 ms | 1.031 ms |
+| 3 | 1,000 | Dominated chain | 10 | 1.371 ms | 1.553 ms |
+| 3 | 10,000 | Tradeoff-heavy; all non-dominated | 5 | 10.452 ms | 11.266 ms |
+| 3 | 10,000 | Dominated chain; one frontier member | 5 | 17.341 ms | 18.635 ms |
+| 4 | 1,000 | Tradeoff-heavy; pairwise fallback | 10 | 7.548 ms | 7.832 ms |
+| 4 | 1,000 | Dominated chain; pairwise fallback | 10 | 1.035 ms | 1.088 ms |
+
+These are synthetic internal microbenchmarks. The 10,000-candidate rows use five samples, so p95 is exploratory, not an SLA. Peak memory is not measured. The 3D cases matched the exact pairwise reference in tests; this does not yet establish external SOTA superiority. Four or more objectives remain O(n²) and are the next algorithmic gap.
+
+## Adaptive high-dimensional follow-up
+
+Draft [PR #2520](https://github.com/Luminous-Dynamics/symtropy/pull/2520) replaces the 4+ objective pairwise-per-candidate scan with a deterministic incremental frontier. It checks candidates in stable ID order against current frontier members, preserves a valid dominance witness for each removed/blocked candidate, and rejects immediately when a current frontier member dominates the candidate. It remains exact and has no approximation or weights, but worst-case O(n²) persists when the frontier is wide.
+
+The PR adds brute-force equivalence, witness validity, and order-invariance checks over 257 generated points at 4, 6, and 8 objectives. Its benchmark matrix extends 4D to 10,000 candidates and measures 6D/8D through 1,000 candidates. Exact-head runtime and performance conclusions remain pending until the current PR head's tests and benchmark finish.
+ 
 ## Claim ceiling
 
 A frontier result is only a deterministic comparison of caller-supplied objective observations among candidates labelled verified by a caller. It does not establish source accuracy, authenticity of the verifier receipt, global optimality, real-room fit, accessibility, building-code compliance, environmental benefit, user preference, or resident outcomes. Those require independent evidence and specific evaluation protocols.
