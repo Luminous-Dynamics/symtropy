@@ -181,11 +181,233 @@ struct Report {
     claim_ceiling: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct SelectionCalibrationReport {
+    schema_version: String,
+    benchmark_id: String,
+    generator: String,
+    generator_spec_sha256: String,
+    generator_seed_hex: String,
+    candidate_count: usize,
+    replications_per_candidate: usize,
+    practical_equivalence_margin_units_per_hour: f64,
+    familywise_nominal_error_rate_target: f64,
+    null_trial_count: usize,
+    null_pointwise_false_winner_count: usize,
+    null_pointwise_false_winner_rate: f64,
+    null_pointwise_false_winner_rate_wilson_95_lower: f64,
+    null_pointwise_false_winner_rate_wilson_95_upper: f64,
+    null_familywise_false_winner_count: usize,
+    null_familywise_false_winner_rate: f64,
+    null_familywise_false_winner_rate_wilson_95_lower: f64,
+    null_familywise_false_winner_rate_wilson_95_upper: f64,
+    separated_winner_trial_count: usize,
+    separated_winner_true_effect_units_per_hour: f64,
+    separated_winner_pointwise_correct_selection_count: usize,
+    separated_winner_pointwise_correct_selection_rate: f64,
+    separated_winner_pointwise_correct_selection_rate_wilson_95_lower: f64,
+    separated_winner_pointwise_correct_selection_rate_wilson_95_upper: f64,
+    separated_winner_familywise_correct_selection_count: usize,
+    separated_winner_familywise_correct_selection_rate: f64,
+    separated_winner_familywise_correct_selection_rate_wilson_95_lower: f64,
+    separated_winner_familywise_correct_selection_rate_wilson_95_upper: f64,
+    all_generators_are_synthetic: bool,
+    field_sota_claim: bool,
+    production_release_authorized: bool,
+    claim_ceiling: String,
+}
+
+fn wilson_interval_95(successes: usize, trials: usize) -> (f64, f64) {
+    if trials == 0 {
+        return (f64::NAN, f64::NAN);
+    }
+    let z = 1.959_963_984_540_054_f64;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = z * z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width =
+        z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    ((center - half_width).max(0.0), (center + half_width).min(1.0))
+}
+
+fn build_selection_calibration_report() -> SelectionCalibrationReport {
+    const SEED: u64 = 0xA17E_2026_10_21;
+    const REPLICATIONS: usize = 20;
+    const NULL_TRIALS: usize = 2_000;
+    const POWER_TRIALS: usize = 500;
+    const PRACTICAL_MARGIN: f64 = 0.05;
+    const WINNER_EFFECT: f64 = 1.7;
+
+    let generator_spec = "splitmix64; centered-sum-of-12-uniforms; shared-component=0.3; idiosyncratic-component=0.9539392014169457; candidates=5; replications=20; practical-margin=0.05; null-trials=2000; separated-winner-trials=500; winner-effect=1.7; methods=pointwise-paired-t,bonferroni-familywise-paired-t";
+    let generator_spec_sha256 = format!("{:x}", Sha256::digest(generator_spec.as_bytes()));
+
+    let mut state = SEED;
+    let null_means = [0.0; 5];
+    let mut null_pointwise = 0usize;
+    let mut null_familywise = 0usize;
+    for _ in 0..NULL_TRIALS {
+        let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
+        null_pointwise += usize::from(
+            selected_robust_winner(&samples, false, PRACTICAL_MARGIN).is_some(),
+        );
+        null_familywise += usize::from(
+            selected_robust_winner(&samples, true, PRACTICAL_MARGIN).is_some(),
+        );
+    }
+
+    let separated_means = [WINNER_EFFECT, 0.0, 0.0, 0.0, 0.0];
+    let mut separated_pointwise = 0usize;
+    let mut separated_familywise = 0usize;
+    for _ in 0..POWER_TRIALS {
+        let samples = synthetic_paired_samples(&mut state, &separated_means, REPLICATIONS);
+        separated_pointwise +=
+            usize::from(selected_robust_winner(&samples, false, PRACTICAL_MARGIN) == Some(0));
+        separated_familywise +=
+            usize::from(selected_robust_winner(&samples, true, PRACTICAL_MARGIN) == Some(0));
+    }
+
+    let null_pointwise_rate = null_pointwise as f64 / NULL_TRIALS as f64;
+    let null_familywise_rate = null_familywise as f64 / NULL_TRIALS as f64;
+    let pointwise_power = separated_pointwise as f64 / POWER_TRIALS as f64;
+    let familywise_power = separated_familywise as f64 / POWER_TRIALS as f64;
+    let (null_pointwise_lower, null_pointwise_upper) =
+        wilson_interval_95(null_pointwise, NULL_TRIALS);
+    let (null_familywise_lower, null_familywise_upper) =
+        wilson_interval_95(null_familywise, NULL_TRIALS);
+    let (pointwise_power_lower, pointwise_power_upper) =
+        wilson_interval_95(separated_pointwise, POWER_TRIALS);
+    let (familywise_power_lower, familywise_power_upper) =
+        wilson_interval_95(separated_familywise, POWER_TRIALS);
+
+    SelectionCalibrationReport {
+        schema_version: "0.1.0".into(),
+        benchmark_id: "EV-FACTORY-STAT-CAL-001".into(),
+        generator: "Deterministic SplitMix64 stream with sum-of-12-uniforms approximate-normal variates; correlated common component plus independent candidate noise. Calibration is a synthetic smoke test, not proof of distribution-free coverage.".into(),
+        generator_spec_sha256,
+        generator_seed_hex: format!("0x{SEED:016x}"),
+        candidate_count: 5,
+        replications_per_candidate: REPLICATIONS,
+        practical_equivalence_margin_units_per_hour: PRACTICAL_MARGIN,
+        familywise_nominal_error_rate_target: FAMILYWISE_ALPHA,
+        null_trial_count: NULL_TRIALS,
+        null_pointwise_false_winner_count: null_pointwise,
+        null_pointwise_false_winner_rate: null_pointwise_rate,
+        null_pointwise_false_winner_rate_wilson_95_lower: null_pointwise_lower,
+        null_pointwise_false_winner_rate_wilson_95_upper: null_pointwise_upper,
+        null_familywise_false_winner_count: null_familywise,
+        null_familywise_false_winner_rate: null_familywise_rate,
+        null_familywise_false_winner_rate_wilson_95_lower: null_familywise_lower,
+        null_familywise_false_winner_rate_wilson_95_upper: null_familywise_upper,
+        separated_winner_trial_count: POWER_TRIALS,
+        separated_winner_true_effect_units_per_hour: WINNER_EFFECT,
+        separated_winner_pointwise_correct_selection_count: separated_pointwise,
+        separated_winner_pointwise_correct_selection_rate: pointwise_power,
+        separated_winner_pointwise_correct_selection_rate_wilson_95_lower: pointwise_power_lower,
+        separated_winner_pointwise_correct_selection_rate_wilson_95_upper: pointwise_power_upper,
+        separated_winner_familywise_correct_selection_count: separated_familywise,
+        separated_winner_familywise_correct_selection_rate: familywise_power,
+        separated_winner_familywise_correct_selection_rate_wilson_95_lower: familywise_power_lower,
+        separated_winner_familywise_correct_selection_rate_wilson_95_upper: familywise_power_upper,
+        all_generators_are_synthetic: true,
+        field_sota_claim: false,
+        production_release_authorized: false,
+        claim_ceiling: "Synthetic parametric smoke calibration only. Wilson intervals quantify Monte Carlo uncertainty over these fixed synthetic generators; they do not establish distribution-free guarantees, physical-factory validity, an industrial SOTA result or purchase authorization.".into(),
+    }
+}
+
+fn splitmix64(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut value = *state;
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+// Sum of twelve centered uniforms: a deterministic, approximately normal
+// variate with variance one. This is a calibration smoke generator, not a
+// replacement for a high-quality simulation RNG or a formal proof.
+fn centered_normal_approx(state: &mut u64) -> f64 {
+    (0..12)
+        .map(|_| (splitmix64(state) >> 11) as f64 / ((1u64 << 53) as f64))
+        .sum::<f64>()
+        - 6.0
+}
+
+fn selected_robust_winner(
+    samples: &[Vec<f64>],
+    familywise: bool,
+    practical_margin: f64,
+) -> Option<usize> {
+    let sample_count = samples.first()?.len();
+    (0..samples.len()).find(|&candidate| {
+        (0..samples.len())
+            .filter(|&other| other != candidate)
+            .all(|other| {
+                let differences: Vec<f64> = samples[candidate]
+                    .iter()
+                    .zip(samples[other].iter())
+                    .map(|(a, b)| a - b)
+                    .collect();
+                let Ok(summary) = summarize_distribution(&differences) else {
+                    return false;
+                };
+                let (lower, upper) = if familywise {
+                    let critical = student_t_critical_bonferroni_10((sample_count - 1) as u32);
+                    let Some(sd) = summary.sample_standard_deviation else {
+                        return false;
+                    };
+                    let half_width = critical * sd / (sample_count as f64).sqrt();
+                    (
+                        Some(summary.mean - half_width),
+                        Some(summary.mean + half_width),
+                    )
+                } else {
+                    (
+                        summary.mean_confidence_95_lower,
+                        summary.mean_confidence_95_upper,
+                    )
+                };
+                paired_interval_decision(lower, upper, practical_margin)
+                    == "station_a_meaningfully_better_under_paired_model"
+            })
+    })
+}
+
+fn synthetic_paired_samples(
+    state: &mut u64,
+    means: &[f64; 5],
+    replications: usize,
+) -> Vec<Vec<f64>> {
+    let mut samples = vec![Vec::with_capacity(replications); means.len()];
+    for _ in 0..replications {
+        let shared = 0.3 * centered_normal_approx(state);
+        for (candidate, mean) in means.iter().enumerate() {
+            let idiosyncratic = 0.953_939_201_416_945_7 * centered_normal_approx(state);
+            samples[candidate].push(mean + shared + idiosyncratic);
+        }
+    }
+    samples
+}
+
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() == 2 && args[1] == "--calibrate-selection" {
+        let report = build_selection_calibration_report();
+        match serde_json::to_string_pretty(&report) {
+            Ok(value) => println!("{value}"),
+            Err(error) => {
+                eprintln!("cannot serialize selection calibration report: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
     let args: Vec<String> = env::args().collect();
     if !(2..=3).contains(&args.len()) {
         eprintln!(
-            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]"
+            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour] | --calibrate-selection"
         );
         process::exit(2);
     }
@@ -992,80 +1214,6 @@ fn kendall_tau_b(left: &[f64], right: &[f64]) -> Option<f64> {
 mod tests {
     use super::*;
 
-    fn splitmix64(state: &mut u64) -> u64 {
-        *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut value = *state;
-        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        value ^ (value >> 31)
-    }
-
-    // Sum of twelve centered uniforms: a deterministic, approximately normal
-    // variate with variance one. This is a calibration smoke generator, not a
-    // replacement for a high-quality simulation RNG or a formal proof.
-    fn centered_normal_approx(state: &mut u64) -> f64 {
-        (0..12)
-            .map(|_| (splitmix64(state) >> 11) as f64 / ((1u64 << 53) as f64))
-            .sum::<f64>()
-            - 6.0
-    }
-
-    fn selected_robust_winner(
-        samples: &[Vec<f64>],
-        familywise: bool,
-        practical_margin: f64,
-    ) -> Option<usize> {
-        let sample_count = samples.first()?.len();
-        (0..samples.len()).find(|&candidate| {
-            (0..samples.len())
-                .filter(|&other| other != candidate)
-                .all(|other| {
-                    let differences: Vec<f64> = samples[candidate]
-                        .iter()
-                        .zip(samples[other].iter())
-                        .map(|(a, b)| a - b)
-                        .collect();
-                    let Ok(summary) = summarize_distribution(&differences) else {
-                        return false;
-                    };
-                    let (lower, upper) = if familywise {
-                        let critical = student_t_critical_bonferroni_10((sample_count - 1) as u32);
-                        let Some(sd) = summary.sample_standard_deviation else {
-                            return false;
-                        };
-                        let half_width = critical * sd / (sample_count as f64).sqrt();
-                        (
-                            Some(summary.mean - half_width),
-                            Some(summary.mean + half_width),
-                        )
-                    } else {
-                        (
-                            summary.mean_confidence_95_lower,
-                            summary.mean_confidence_95_upper,
-                        )
-                    };
-                    paired_interval_decision(lower, upper, practical_margin)
-                        == "station_a_meaningfully_better_under_paired_model"
-                })
-        })
-    }
-
-    fn synthetic_paired_samples(
-        state: &mut u64,
-        means: &[f64; 5],
-        replications: usize,
-    ) -> Vec<Vec<f64>> {
-        let mut samples = vec![Vec::with_capacity(replications); means.len()];
-        for _ in 0..replications {
-            let shared = 0.3 * centered_normal_approx(state);
-            for (candidate, mean) in means.iter().enumerate() {
-                let idiosyncratic = 0.953_939_201_416_945_7 * centered_normal_approx(state);
-                samples[candidate].push(mean + shared + idiosyncratic);
-            }
-        }
-        samples
-    }
-
     fn dist(mean: f64, lower: f64, upper: f64) -> DistributionSummary {
         DistributionSummary {
             sample_count: 20,
@@ -1186,55 +1334,27 @@ mod tests {
 
     #[test]
     fn deterministic_monte_carlo_calibrates_null_and_separated_winner_cases() {
-        const REPLICATIONS: usize = 20;
-        const NULL_TRIALS: usize = 2_000;
-        const POWER_TRIALS: usize = 500;
-        let mut state = 0xA17E_2026_10_21u64;
-        let null_means = [0.0; 5];
-        let mut pointwise_false_winners = 0usize;
-        let mut familywise_false_winners = 0usize;
-        for _ in 0..NULL_TRIALS {
-            let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
-            pointwise_false_winners += if selected_robust_winner(&samples, false, 0.05).is_some() {
-                1
-            } else {
-                0
-            };
-            familywise_false_winners += if selected_robust_winner(&samples, true, 0.05).is_some() {
-                1
-            } else {
-                0
-            };
-        }
-        let pointwise_rate = pointwise_false_winners as f64 / NULL_TRIALS as f64;
-        let familywise_rate = familywise_false_winners as f64 / NULL_TRIALS as f64;
+        let report = build_selection_calibration_report();
+        assert_eq!(report.null_trial_count, 2_000);
+        assert_eq!(report.separated_winner_trial_count, 500);
+        assert_eq!(report.replications_per_candidate, 20);
         assert!(
-            familywise_rate <= pointwise_rate + f64::EPSILON,
-            "adjusted intervals must not select more null winners than pointwise intervals: pointwise={pointwise_rate:.4}, familywise={familywise_rate:.4}"
+            report.null_familywise_false_winner_rate
+                <= report.null_pointwise_false_winner_rate + f64::EPSILON,
+            "familywise null rate must not exceed pointwise rate"
         );
-        // A 6% smoke threshold allows Monte Carlo sampling variation around the
-        // nominal 5% target; the CI report must not overstate this as proof.
         assert!(
-            familywise_rate <= 0.06,
-            "family-wise null winner smoke rate exceeded 6%: {familywise_rate:.4}"
+            report.null_familywise_false_winner_rate <= 0.06,
+            "familywise null smoke rate exceeded 6%: {:.4}",
+            report.null_familywise_false_winner_rate
         );
-
-        let separated_means = [1.7, 0.0, 0.0, 0.0, 0.0];
-        let mut correct_familywise_selections = 0usize;
-        for _ in 0..POWER_TRIALS {
-            let samples = synthetic_paired_samples(&mut state, &separated_means, REPLICATIONS);
-            correct_familywise_selections +=
-                if selected_robust_winner(&samples, true, 0.05) == Some(0) {
-                    1
-                } else {
-                    0
-                };
-        }
-        let correct_selection_rate = correct_familywise_selections as f64 / POWER_TRIALS as f64;
         assert!(
-            correct_selection_rate >= 0.90,
-            "separated-winner smoke power fell below 90%: {correct_selection_rate:.4}"
+            report.separated_winner_familywise_correct_selection_rate >= 0.90,
+            "separated-winner familywise power fell below 90%: {:.4}",
+            report.separated_winner_familywise_correct_selection_rate
         );
+        assert!(!report.field_sota_claim);
+        assert!(!report.production_release_authorized);
     }
 
     #[test]
