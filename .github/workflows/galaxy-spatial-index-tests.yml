@@ -2,7 +2,7 @@ name: Galaxy Spatial Index Tests
 
 on:
   pull_request:
-    branches: ["feat/solar-system-hierarchy-selection-004"]
+    branches: ["feat/solar-system-hierarchy-selection-004", "feat/milky-way-spatial-index-006"]
     paths:
       - "crates/bridges/symtropy-render-bridge/src/galaxy_spatial.rs"
       - "crates/bridges/symtropy-render-bridge/src/lib.rs"
