@@ -20,7 +20,7 @@ This utility is downstream of verification. It does not implement or replace the
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
 - Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
 - Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative.
-- Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier.
+- Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier. Each dominated candidate stores one deterministic dominance witness rather than every dominator, keeping report memory linear in candidate count.
 - The resident retains final choice. Pareto membership is not a statement that an alternative is universally best.
 
 ## Relevant research and industry baseline
@@ -51,7 +51,7 @@ Proposed acceptance targets (not measured performance claims):
 - fail-closed behavior for incomparable objective schemas;
 - exact-head formatting, unit tests, and strict Clippy passing.
 
-The frontier utility needs its own eventual runtime / memory measurements at 25, 100, 1,000, and 10,000 alternatives. Existing collision-oracle timings are not measurements of this module. End-to-end evaluation must later compare the same verified candidate set against transparent rules, human-curated trade-offs, and commercial workflows, using identical objective definitions and input snapshots.
+The frontier utility now has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. It separates a tradeoff-heavy worst-case non-dominated profile from a dominated-chain profile, asserts the expected frontier cardinality, excludes candidate construction from timings, and reports p50/p95/max duration. Worst-case comparison time remains quadratic in arbitrary objective vectors; existing collision-oracle timings are not measurements of this module. End-to-end evaluation must later compare the same verified candidate set against transparent rules, human-curated trade-offs, and commercial workflows, using identical objective definitions and input snapshots.
 
 ## Claim ceiling
 
