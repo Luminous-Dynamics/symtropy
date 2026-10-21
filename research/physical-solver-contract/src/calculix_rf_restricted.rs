@@ -6,7 +6,7 @@
 //! This module accepts only an allowlisted static linear truss deck with point loads
 //! disjoint from the prescribed-support nodes and no distributed or transformed loads.
 
-use crate::{Check, calculix_rr, sha256_hex};
+use crate::{Check, sha256_hex};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -370,7 +370,11 @@ fn parse_support_catalog(
     {
         return Err("support-node catalogue identity/frame/deck digest mismatch".to_owned());
     }
-    require_si_units(catalog, "node catalogue")?;
+    let catalog_units = catalog.get("units").ok_or_else(|| "node catalogue.units is required".to_owned())?;
+    exact_keys(catalog_units, &["length"], "node catalogue.units")?;
+    if field_str(catalog_units, "length", "node catalogue.units")? != "m" {
+        return Err("node catalogue length unit must be m".to_owned());
+    }
     validate_provenance(catalog.get("provenance").ok_or_else(|| "node catalogue.provenance missing".to_owned())?, "node catalogue.provenance")?;
     let values = catalog.get("nodes").and_then(Value::as_array)
         .ok_or_else(|| "node catalogue.nodes must be an array".to_owned())?;
@@ -815,7 +819,9 @@ fn parse_rf_header(line: &str) -> Check<(String, f64)> {
 }
 
 fn csv_fields(row: &str) -> Vec<&str> {
-    row.split(',').map(str::trim).collect()
+    row.split(|character: char| character == ',' || character.is_whitespace())
+        .filter(|field| !field.is_empty())
+        .collect()
 }
 
 fn parse_finite(value: &str, line: usize) -> Check<f64> {
@@ -852,8 +858,283 @@ fn param<'a>(card: &'a Card, key: &str) -> Check<&'a str> {
     card.params.get(key).map(String::as_str).ok_or_else(|| format!("*{} requires {key}", card.name))
 }
 
-fn parse_support_catalog(
-  // ...
-  //
-  // Existing code truncated.
+
+fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
+    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    for key in expected {
+        if !object.contains_key(*key) { return Err(format!("{at}.{key} is required")); }
+    }
+    if let Some(key) = object.keys().find(|key| !expected.contains(&key.as_str())) {
+        return Err(format!("{at} contains unsupported field '{key}'"));
+    }
+    Ok(())
+}
+
+fn field_str<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
+    value.get(key).and_then(Value::as_str)
+        .ok_or_else(|| format!("{at}.{key} must be a string"))
+}
+
+fn token_field(value: &Value, key: &str, at: &str) -> Check<String> {
+    let text = field_str(value, key, at)?;
+    validate_token(text, &format!("{at}.{key}"))?;
+    Ok(text.to_owned())
+}
+
+fn field_sha(value: &Value, key: &str, at: &str) -> Check<&'static str> {
+    let text = value.get(key).and_then(Value::as_str)
+        .ok_or_else(|| format!("{at}.{key} must be a string"))?;
+    if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+        return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
+    }
+    // The borrowed hash is only compared during this call; use a static marker return to keep
+    // call sites simple while performing validation before comparison.
+    Ok(if text.is_empty() { "" } else { "" })
+}
+
+fn field_sha_eq(value: &Value, key: &str, at: &str, expected: &str) -> Check<bool> {
+    let text = value.get(key).and_then(Value::as_str)
+        .ok_or_else(|| format!("{at}.{key} must be a string"))?;
+    if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+        return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
+    }
+    Ok(text == expected)
+}
+
+fn field_u64(value: &Value, key: &str, at: &str) -> Check<u64> {
+    value.get(key).and_then(Value::as_u64)
+        .ok_or_else(|| format!("{at}.{key} must be a non-negative integer"))
+}
+
+fn field_vec3(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
+    let values = value.get(key).and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be a 3-component vector"))?;
+    if values.len() != 3 { return Err(format!("{at}.{key} must contain exactly three components")); }
+    let mut result = [0.0; 3];
+    for (index, component) in values.iter().enumerate() {
+        result[index] = component.as_f64().filter(|n| n.is_finite())
+            .ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
+    }
+    Ok(result)
+}
+
+fn validate_token(value: &str, label: &str) -> Check<()> {
+    if value.is_empty() || value.len() > 128
+        || !value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
+    {
+        return Err(format!("{label} is not a valid stable token"));
+    }
+    Ok(())
+}
+
+fn validate_provenance(value: &Value, at: &str) -> Check<()> {
+    exact_keys(value, &["method", "identity", "source_ref"], at)?;
+    for key in ["method", "identity", "source_ref"] {
+        let text = field_str(value, key, at)?;
+        if text.trim().is_empty() || text.len() > 2048 {
+            return Err(format!("{at}.{key} must be non-empty and <=2048 bytes"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Bundle {
+        request: Vec<u8>,
+        deck: Vec<u8>,
+        dat: Vec<u8>,
+        manifest: Vec<u8>,
+        catalog: Vec<u8>,
+    }
+
+    const DECK: &str = "*HEADING
+synthetic axial bar
+*NODE
+1,0,0,0
+2,1,0,0
+*ELEMENT,TYPE=T3D2,ELSET=BAR
+1,1,2
+*NSET,NSET=SUPPORT
+1
+*MATERIAL,NAME=STEEL
+*ELASTIC
+210000000000,0.3
+*SOLID SECTION,ELSET=BAR,MATERIAL=STEEL
+0.01
+*BOUNDARY
+1,1,3,0
+*STEP
+*STATIC
+1.,1.,1.E-05,1.
+*CLOAD
+2,1,1000.
+*NODE PRINT,NSET=SUPPORT
+RF
+*END STEP
+";
+    const DAT: &str = " forces (fx,fy,fz) for set SUPPORT and time 0.1000000E+01
+  1 -1.000000E+03 0.000000E+00 0.000000E+00
+
+";
+
+    fn bundle_with(deck_text: &str, dat_text: &str) -> Bundle {
+        let request_value = json!({
+            "schema_version":"physical-solver-request-v0.1",
+            "request_id":"fixture:rf-restricted",
+            "source_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scene_revision":1,
+            "scene_sha256":"a".repeat(64),
+            "model_fidelity":"analytical_linear_elastic",
+            "requested_physics":["static_linear_elastic"],
+            "coordinate_frame_id":"fixture:global-xyz",
+            "units":{"length":"m","mass":"kg","time":"s","force":"N","stress":"Pa"},
+            "loads":[{
+                "load_id":"load-tip",
+                "kind":"point_force",
+                "target_id":"bar-end-b",
+                "vector_xyz":[1000.0,0.0,0.0],
+                "coordinate_frame_id":"fixture:global-xyz"
+            }],
+            "boundary_conditions":[{
+                "condition_id":"fixed-end-a",
+                "target_id":"bar-end-a",
+                "kind":"fixed",
+                "dofs":["ux","uy","uz"]
+            }],
+            "required_outputs":["reaction_force"]
+        });
+        let request = serde_json::to_vec(&request_value).unwrap();
+        let deck = deck_text.as_bytes().to_vec();
+        let dat = dat_text.as_bytes().to_vec();
+        let request_sha = sha256_hex(&request);
+        let deck_sha = sha256_hex(&deck);
+        let scene_sha = "a".repeat(64);
+        let catalog_value = json!({
+            "schema_version":CATALOG_SCHEMA,
+            "case_id":"rf-restricted-case",
+            "request_id":"fixture:rf-restricted",
+            "request_sha256":request_sha,
+            "scene_sha256":scene_sha,
+            "scene_revision":1,
+            "coordinate_frame_id":"fixture:global-xyz",
+            "deck_sha256":deck_sha,
+            "units":{"length":"m"},
+            "nodes":[{"node_id":1,"position_m":[0.0,0.0,0.0]}],
+            "provenance":{
+                "method":"independently_checked_node_catalogue",
+                "identity":"one-node-support-catalogue",
+                "source_ref":"fixture-only:rf-restricted"
+            }
+        });
+        let catalog = serde_json::to_vec(&catalog_value).unwrap();
+        let manifest_value = json!({
+            "schema_version":MANIFEST_SCHEMA,
+            "case_id":"rf-restricted-case",
+            "request_id":"fixture:rf-restricted",
+            "request_sha256":request_sha,
+            "scene_sha256":scene_sha,
+            "scene_revision":1,
+            "coordinate_frame_id":"fixture:global-xyz",
+            "node_set":"SUPPORT",
+            "deck_sha256":deck_sha,
+            "node_catalog_sha256":sha256_hex(&catalog),
+            "support_node_map":[{"target_id":"bar-end-a","node_id":1}],
+            "load_node_map":[{"target_id":"bar-end-b","node_id":2}],
+            "units":{"length":"m","force":"N"},
+            "provenance":{
+                "method":"independent_request_to_deck_mapping",
+                "identity":"simple axial bar load/support map",
+                "source_ref":"fixture-only:rf-restricted-v1"
+            }
+        });
+        Bundle {
+            request,
+            deck,
+            dat,
+            manifest:serde_json::to_vec(&manifest_value).unwrap(),
+            catalog,
+        }
+    }
+
+    fn bundle() -> Bundle {
+        bundle_with(DECK, DAT)
+    }
+
+    fn assess(bundle: &Bundle) -> Check<Value> {
+        normalize_restricted_rf_bytes(
+            &bundle.request,
+            &bundle.deck,
+            &bundle.dat,
+            &bundle.manifest,
+            &bundle.catalog,
+        )
+    }
+
+    #[test]
+    fn clean_allowlisted_rf_fixture_proves_restricted_equivalence_without_physical_qualification() {
+        let report = assess(&bundle()).unwrap();
+        assert_eq!(report["normalization_status"], "PASS");
+        assert_eq!(report["source_semantics"], "RF_under_restricted_deck_equivalence");
+        assert_eq!(report["restricted_equivalence_proved"], true);
+        assert_eq!(report["normalized_output"]["reaction_forces"][0]["force_n"][0], -1000.0);
+        assert_eq!(report["physical_result_qualified"], false);
+        assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
+    }
+
+    #[test]
+    fn any_distributed_load_keyword_is_rejected_by_allowlist() {
+        let deck = DECK.replace("*CLOAD", "*DLOAD\nBAR,GRAV,-9.81,0,0,-1\n*CLOAD");
+        let report = bundle_with(&deck, DAT);
+        assert!(assess(&report).unwrap_err().contains("unsupported deck keyword '*DLOAD'"));
+    }
+
+    #[test]
+    fn frame_transform_keyword_is_rejected() {
+        let deck = DECK.replace("*BOUNDARY", "*TRANSFORM,NSET=SUPPORT\n1,0,0,0,0,1,0\n*BOUNDARY");
+        let report = bundle_with(&deck, DAT);
+        assert!(assess(&report).unwrap_err().contains("unsupported deck keyword '*TRANSFORM'"));
+    }
+
+    #[test]
+    fn unknown_cards_are_not_ignored() {
+        let deck = DECK.replace("*STEP", "*EQUATION\n2\n1,1,1,2,1,-1\n*STEP");
+        assert!(assess(&bundle_with(&deck, DAT)).is_err());
+    }
+
+    #[test]
+    fn rf_section_for_wrong_support_set_is_rejected() {
+        let dat = DAT.replace("for set SUPPORT", "for set OTHER");
+        assert!(assess(&bundle_with(DECK, &dat)).is_err());
+    }
+
+    #[test]
+    fn reaction_only_section_is_not_substituted_for_stock_rf_section() {
+        let dat = DAT.replace("forces (fx,fy,fz)", "reaction forces (rfx,rfy,rfz)");
+        assert!(assess(&bundle_with(DECK, &dat)).unwrap_err().contains("reaction-only output section is not admitted"));
+    }
+
+    #[test]
+    fn stale_manifest_deck_digest_is_rejected() {
+        let mut b = bundle();
+        let mut manifest: Value = serde_json::from_slice(&b.manifest).unwrap();
+        manifest["deck_sha256"] = json!("d".repeat(64));
+        b.manifest = serde_json::to_vec(&manifest).unwrap();
+        assert!(assess(&b).unwrap_err().contains("manifest request/deck/node-catalogue SHA-256"));
+    }
+
+    #[test]
+    fn Cload_at_support_is_rejected_by_support_load_disjointness() {
+        let deck = DECK.replace("2,1,1000.", "1,1,1000.");
+        let b = bundle_with(&deck, DAT);
+        assert!(assess(&b).is_err());
+    }
+
+    #[test]
+    fn output_node_inventory_must_match_support_catalogue() {
+        let dat = DAT.replace("  1 -1.000000E+03", "  9 -1.000000E+03");
+        assert!(assess(&bundle_with(DECK, &dat)).is_err());
+    }
 }
