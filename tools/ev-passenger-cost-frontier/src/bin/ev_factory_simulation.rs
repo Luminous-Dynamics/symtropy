@@ -224,6 +224,7 @@ enum JobLifecycleEventKind {
     ReworkStart,
     JobScrapped,
     FinalGoodCompletion,
+    JobCensoredAtHorizon,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -1056,6 +1057,23 @@ fn simulate(
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
+    let censored_jobs: Vec<(u64, usize)> = state.job_records.values()
+        .filter(|record| record.final_good_at_seconds.is_none() && record.scrapped_at_seconds.is_none())
+        .map(|record| (record.job_id, record.variant_id))
+        .collect();
+    for (job_id, variant_id) in censored_jobs {
+        record_lifecycle_event(
+            &mut state,
+            catalog,
+            JobLifecycleEventKind::JobCensoredAtHorizon,
+            job_id,
+            variant_id,
+            None,
+            None,
+            None,
+            None,
+        );
+    }
 
     let measured_seconds = catalog.horizon_seconds - catalog.warmup_seconds;
     let good_per_hour = state.measured_good_units as f64 / measured_seconds as f64 * 3600.0;
