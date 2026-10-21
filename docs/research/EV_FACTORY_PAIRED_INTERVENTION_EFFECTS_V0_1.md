@@ -26,7 +26,7 @@ The probability-labelled fields in the JSON are deliberately defined as the empi
 
 ## Decision rule and practical-equivalence margin
 
-The initial evaluator uses a fixed, internal `0.05 good units/hour` practical-equivalence margin for the synthetic example:
+The CLI now accepts an explicit optional `practical-margin-units-per-hour` argument; when omitted it defaults to `0.05` for backward-compatible synthetic benchmarking. The value is echoed in the report and is tested as a decision-boundary parameter. Example sensitivity panel: run the same paired simulation report at `0.01`, `0.05`, `0.10`, and a deliberately large margin to distinguish a stable winner from a threshold-dependent decision. The initial default is an internal synthetic setting:
 
 - A is meaningfully better when the full 95% paired interval for (d_{A,B}) is above +0.05.
 - B is meaningfully better when the full interval is below -0.05.
@@ -43,6 +43,12 @@ A candidate is reported as robust-best only if it is meaningfully better than ev
 - Each stored per-seed intervention gain is cross-checked against the same-seed baseline and output.
 - Repeated fixed inputs should yield byte-identical report output.
 - Release status remains false regardless of a narrow interval or a robust-best result.
+
+## Evidence and state-of-the-art boundary
+
+A 2026 automotive-parts plant study reports ABAP F1 = 0.89 and accuracy = 0.80, with utilization F1 = 0.73, for **classification against expert-labelled shop-floor bottleneck windows**. These results are useful reference context but are not comparable to our simulator-counterfactual intervention ranking or its confidence intervals: https://doi.org/10.3233/ATDE260693.
+
+NIST's July 2026 manufacturing digital-twin workshop report identifies interoperability, VVUQ, cybersecurity and workforce readiness as outstanding technical priorities: https://doi.org/10.6028/NIST.IR.8620. Its October 2026 report on simulation uncertainty recommends a risk-proportionate credibility approach connected to measurement/metrology practice: https://doi.org/10.6028/NIST.AMS.100-85. The takeaway is that reproducibility and seed-level confidence intervals are necessary, but they do not measure model-form error, calibration quality or physical-factory validity.
 
 ## Interpretation
 
