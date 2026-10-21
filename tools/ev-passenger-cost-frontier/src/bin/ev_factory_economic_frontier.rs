@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, env, fs, process};
+use std::{collections::{BTreeMap, BTreeSet}, env, fs, process};
 
 const CLAIM_CEILING: &str = "Synthetic cost-energy-labor-capacity frontier only. All prices, equipment costs, station power, staffing and grid intensity are sensitivity inputs. This is not a measured factory, ROI calculation, vendor quote, SOTA result or purchase recommendation.";
 
@@ -58,6 +58,7 @@ struct SimulationReport {
     station_time_accounting_within_horizon: bool,
     scenarios: Vec<SimulationScenario>,
     scenario_statistics: Vec<ScenarioStatistics>,
+    replication_outcomes: Vec<ReplicationOutcome>,
     station_operating_statistics: Vec<StationOperatingStatistics>,
 }
 
@@ -79,6 +80,16 @@ struct ScenarioStatistics {
     scenario_id: String,
     intervention_station_id: Option<String>,
     paired_good_units_per_hour_delta_vs_baseline: Option<DistributionSummary>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ReplicationOutcome {
+    seed: u64,
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    good_units_per_hour: f64,
+    baseline_good_units_per_hour: f64,
+    paired_good_units_per_hour_delta_vs_baseline: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -513,6 +524,99 @@ fn validate_inputs(
     }
     if simulation.replication_outcomes.len() != expected_outcome_count {
         return Err("simulation_per_seed_outcome_count_mismatch".into());
+    }
+
+    let close_enough = |left: f64, right: f64| {
+        (left - right).abs() <= 1e-9 * left.abs().max(right.abs()).max(1.0)
+    };
+    let expected_scenarios: BTreeSet<String> = std::iter::once("baseline".to_string())
+        .chain(
+            station_ids
+                .iter()
+                .map(|station_id| format!("add-one-server-{station_id}")),
+        )
+        .collect();
+    let mut outcome_keys = BTreeSet::new();
+    let mut baseline_rate_by_seed = BTreeMap::<u64, f64>::new();
+    let mut gains_by_scenario = BTreeMap::<String, Vec<f64>>::new();
+
+    for outcome in &simulation.replication_outcomes {
+        if !seeds.contains(&outcome.seed)
+            || !expected_scenarios.contains(&outcome.scenario_id)
+            || !all_finite(&[
+                outcome.good_units_per_hour,
+                outcome.baseline_good_units_per_hour,
+            ])
+            || outcome.good_units_per_hour < 0.0
+            || outcome.baseline_good_units_per_hour < 0.0
+            || !outcome_keys.insert((outcome.seed, outcome.scenario_id.clone()))
+        {
+            return Err("simulation_per_seed_outcome_identity_or_value_invalid".into());
+        }
+
+        if let Some(previous_baseline) = baseline_rate_by_seed
+            .insert(outcome.seed, outcome.baseline_good_units_per_hour)
+        {
+            if !close_enough(previous_baseline, outcome.baseline_good_units_per_hour) {
+                return Err("simulation_same_seed_baseline_rate_mismatch".into());
+            }
+        }
+
+        if outcome.scenario_id == "baseline" {
+            if outcome.intervention_station_id.is_some()
+                || outcome.paired_good_units_per_hour_delta_vs_baseline.is_some()
+                || !close_enough(
+                    outcome.good_units_per_hour,
+                    outcome.baseline_good_units_per_hour,
+                )
+            {
+                return Err("simulation_baseline_outcome_contract_invalid".into());
+            }
+        } else {
+            let station_id = outcome
+                .scenario_id
+                .strip_prefix("add-one-server-")
+                .unwrap_or_default();
+            let delta = outcome
+                .paired_good_units_per_hour_delta_vs_baseline
+                .ok_or_else(|| "simulation_intervention_paired_delta_missing".to_string())?;
+            if !station_ids.contains(station_id)
+                || outcome.intervention_station_id.as_deref() != Some(station_id)
+                || !delta.is_finite()
+                || !close_enough(
+                    delta,
+                    outcome.good_units_per_hour - outcome.baseline_good_units_per_hour,
+                )
+            {
+                return Err("simulation_intervention_outcome_delta_or_identity_invalid".into());
+            }
+            gains_by_scenario
+                .entry(outcome.scenario_id.clone())
+                .or_default()
+                .push(delta);
+        }
+    }
+
+    if outcome_keys.len() != expected_outcome_count || baseline_rate_by_seed.len() != seeds.len() {
+        return Err("simulation_per_seed_outcomes_incomplete_or_duplicate".into());
+    }
+
+    for row in simulation
+        .scenario_statistics
+        .iter()
+        .filter(|row| row.scenario_id != "baseline")
+    {
+        let samples = gains_by_scenario
+            .get(&row.scenario_id)
+            .ok_or_else(|| "simulation_intervention_seed_samples_missing".to_string())?;
+        let summary = row
+            .paired_good_units_per_hour_delta_vs_baseline
+            .as_ref()
+            .ok_or_else(|| "simulation_intervention_paired_gain_summary_missing".to_string())?;
+        let mean = samples.iter().sum::<f64>() / samples.len() as f64;
+        if samples.len() != simulation.replication_count || !close_enough(mean, summary.mean) {
+            return Err("simulation_per_seed_gain_mean_disagrees_with_summary".into());
+        }
     }
     for profile in &economics.station_profiles {
         let expected_scenario = format!("add-one-server-{}", profile.station_id);
