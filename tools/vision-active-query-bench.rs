@@ -401,6 +401,7 @@ struct PolicyState {
     estimated_scoring_work_units: u64,
     stop_cost_per_observation: f64,
     observed_delay_counts: [u64; 6],
+    observed_delay_samples: u64,
     observed_distractor_count: u64,
     observed_response_count: u64,
 }
@@ -417,6 +418,7 @@ impl PolicyState {
             estimated_scoring_work_units: 0,
             stop_cost_per_observation: STOP_COST_PER_OBSERVATION,
             observed_delay_counts: [0; 6],
+            observed_delay_samples: 0,
             observed_distractor_count: 0,
             observed_response_count: 0,
         }
@@ -570,7 +572,7 @@ impl PolicyState {
         // Dirichlet smoothing prevents a few early observations from erasing the prior.
         // The prior contributes six pseudo-observations in total.
         let prior_strength = 6.0;
-        let total = prior_strength + self.observed_response_count as f64;
+        let total = prior_strength + self.observed_delay_samples as f64;
         std::array::from_fn(|delay| {
             let prior = DELAY_PRIORS[delay].1 * prior_strength;
             (delay, (prior + self.observed_delay_counts[delay] as f64) / total)
@@ -658,11 +660,17 @@ impl PolicyState {
 
     fn observe(&mut self, action: usize, evidence: Evidence) {
         self.requested_counts[action] += 1;
-        let source_delay = usize::from(evidence.arrival_tick)
-            .saturating_sub(usize::from(evidence.source_tick))
-            .min(self.observed_delay_counts.len() - 1);
-        self.observed_delay_counts[source_delay] += 1;
         self.observed_response_count += 1;
+        // At source_tick == 0 the observation's true delay may have been clipped
+        // by saturating_sub at the episode boundary. Do not treat that lower bound
+        // as an exact delay; this prevents early-episode bias against long delays.
+        if evidence.source_tick > 0 {
+            let source_delay = usize::from(evidence.arrival_tick)
+                .saturating_sub(usize::from(evidence.source_tick))
+                .min(self.observed_delay_counts.len() - 1);
+            self.observed_delay_counts[source_delay] += 1;
+            self.observed_delay_samples += 1;
+        }
         if evidence.key() as usize != QUERY_KEYS[action] {
             self.observed_distractor_count += 1;
         }
@@ -1592,6 +1600,17 @@ mod tests {
         let adapted_delays = state.adaptive_delay_priors();
         assert!(adapted_delays[5].1 > initial_delays[5].1);
         assert!(state.adaptive_distractor_probability() > initial_distractor);
+        assert_eq!(state.observed_delay_samples, 1);
+
+        // A source timestamp clipped to tick zero is censored, not an exact delay.
+        state.observe(2, Evidence {
+            key: QUERY_KEYS[2] as u8,
+            value: false,
+            source_tick: 0,
+            arrival_tick: 1,
+            confidence: 950,
+        });
+        assert_eq!(state.observed_delay_samples, 1);
 
         state.observe(1, Evidence {
             key: QUERY_KEYS[1] as u8,
