@@ -36,16 +36,17 @@ The NBC05 figure identifies a planar, pin-jointed two-member truss with 1 m dime
 
 Those are **reported solver outputs**, not by themselves exact target frequencies. They must not be converted into a hard-coded pass range without the full problem definition and independent reference.
 
-Before reproducing NBC05, resolve and freeze:
+The source-attributed **reported-table model** is now explicit:
 
-- The section annotation's meaning and units (in particular whether \(r\) denotes a radius, and therefore whether a circular area \(A=\pi r^2\) is justified).
-- Exact node coordinates and member connectivity from the source drawing.
-- The truss model's support conditions and free degrees of freedom. The source paragraph's supports for the separate straight-bar *test structure* must not be silently reused as the truss boundary conditions.
-- Which mass formulation is intended for each comparison; any consistent and lumped variants must be labelled as distinct model runs.
-- The expected physical mode family and how any rigid/mechanism modes are identified or constrained.
-- Whether the acceptance reference is analytical, a published numerical target, or an independently checked cross-solver result.
+- Interpret the figure's supports as the upper-left node A=(0,1 m) and lower-left node B=(0,0) fixed in both translations; the upper-right node C=(1 m,1 m) is free in x/y.
+- Member AC is horizontal with length 1 m. Member BC is diagonal with length \(\sqrt{2}\,\mathrm{m}\). Both use the figure's common E and density.
+- The official solution identifies CS1 as the consistent-mass system and CS2 as the lumped-mass system: https://www.nafems.org/downloads/nbr5v3.pdf.
+- Preserve the annotation \(r=0.01\) as an assumption that it denotes the radius of a circular section. The area \(A=\pi r^2\) cancels from these axial-only frequencies because the same area multiplies stiffness and inertia; this does **not** make section interpretation irrelevant to beam bending / rotary inertia. Poisson ratio is recorded but unused by linear pin-jointed axial elements.
+- This is a two-free-DOF problem. The independently reduced stiffness is \(K=EA\begin{bmatrix}1/L_h+c^2/L_d&cs/L_d\\cs/L_d&s^2/L_d\end{bmatrix}\), with \(c=1/\sqrt{2}\), \(s=1/\sqrt{2}\), \(L_h=1\) and \(L_d=\sqrt{2}\). The consistent free-node translational mass is \(\rho A(L_h+L_d)/3\,I\); row-sum lumped mass is \(\rho A(L_h+L_d)/2\,I\). The two eigenvalues of K can therefore be computed directly from trace and discriminant, without using the production eigen-solver.
 
-If one of these changes the mathematical problem and is unresolved, the adapter must return **not-qualified / missing-input**, not pass.
+The independent analytic values are 452.091943 / 1114.580038 Hz (consistent) and 369.131526 / 910.050790 Hz (lumped). These match the published rounded table within a predeclared relative tolerance of \(10^{-4}\) (0.01%). They reproduce the **reported single-element-per-member axial-bar calculation**, not the real structure's complete modal response.
+
+The official solution also shows why this qualification boundary matters: refining pin-jointed bars creates transverse mechanisms without centreline constraints, and a beam-element model with released joints recovers bending modes and a substantially lower fundamental frequency. Full structural modal behaviour remains a separate benchmark model class, not implied by the table reproduction. If an implementation cannot reproduce the inputs/formulation above, it must return **not-qualified / missing-input**, not pass.
 
 ## Verification ladder
 
@@ -72,9 +73,11 @@ For the 1 m, 210 GPa, 7800 kg/m³ values displayed in NBC05, the fundamental is 
 
 Create a tiny, analytically solvable \(K\phi=\lambda M\phi\) known-answer fixture that is independently derived (not assembled by the same production routine). Check eigenvalues, eigen-residuals, eigenvector normalization, and mode-order stability. Include a repeated/near-repeated eigenvalue case so mode comparison does not depend solely on sign or array ordering.
 
-### M2 — NBC05 single-element-per-member reconstruction
+### M2 — NBC05 reported axial-bar table, then full modal fidelity
 
-Only after the unresolved inputs above are checked, freeze a machine-readable case manifest and independently derive or obtain eligible reference frequencies. Report the CS1/CS2 numbers as literature comparators, not as ground truth. A result counts as reproduced only when the benchmark identity, units, geometry, supports, mass model, degree-of-freedom map and target definition all match.
+The implementation candidate now pins a machine-readable case manifest and independently derives the two eigenvalues of the reduced 2×2 model; it emits a request/source-bound receipt and checks the reported CS1/CS2 frequencies at the tolerance declared above. Count this only as a reproduction of the *published axial-bar table*. The exact-head CI and mutation-audit gates must pass before the new result is counted as a software-qualified reproduction.
+
+A subsequent M2b/M3 must add subdivided member centreline constraints and zero/mechanism-mode classification; then use a released-joint beam model with second moment of area and appropriate rotary inertia to test physical modal completeness. Do not call the current axial-only model the real structure's modal solution.
 
 ### M3 — Subdivision and mechanism tests
 

@@ -64,6 +64,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify NAFEMS NBC05 modal oracle mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_nafems_nbc05_mutations.sh
+
+      - name: Re-verify NAFEMS NBC05 production oracle after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/nafems_nbc05.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -290,6 +303,59 @@ jobs:
             and (.claim_ceiling | contains("not_modal_truss_nbc05"))
           ' modal-bar-reference-receipt.json
 
+      - name: Generate and verify NAFEMS NBC05 axial-truss receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin nafems-nbc05-modal-reference -- \
+            --source-commit "$source_commit" > nafems-nbc05-modal-reference-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin nafems-nbc05-modal-reference -- \
+            --source-commit "$source_commit" > nafems-nbc05-modal-reference-raw-b.json
+          cmp --silent nafems-nbc05-modal-reference-raw-a.json nafems-nbc05-modal-reference-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/nafems_nbc05_axial_truss_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' nafems-nbc05-modal-reference-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=nafems-nbc05-axial-truss-request-v0.1|fixture=PHYS-NAFEMS-NBC05-AXIAL-001|geometry=top_span_m:1,vertical_offset_m:1|node_A=(0,vertical_offset),fixed_x=true,fixed_y=true|node_B=(0,0),fixed_x=true,fixed_y=true|node_C=(top_span,vertical_offset),fixed_x=false,fixed_y=false|member_AC=horizontal|member_BC=diagonal|youngs_modulus_pa=210000000000|poisson_ratio=0.3|density_kg_m3=7800|section_radius_m=0.01|mass_formulations=consistent,lumped|reference_cs1_hz=452.09,1114.6|reference_cs2_hz=369.13,910.05|reference_model=single_element_per_member_axial_bar_only|claim_ceiling=reported_table_reproduction_not_bending_or_physical_validation"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "b64d2f1ee97224fb292f6c9b6b948b5f0c26a4a61ac8c1cff75ad4c40206dd2d"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' nafems-nbc05-modal-reference-raw-a.json > nafems-nbc05-modal-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "nafems-nbc05-axial-truss-receipt-v0.1"
+            and .benchmark_id == "PHYS-NAFEMS-NBC05-AXIAL-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .references.challenge == "https://www.nafems.org/downloads/nbc5_challenge.pdf"
+            and .references.solution == "https://www.nafems.org/downloads/nbr5v3.pdf"
+            and .evidence_class == "published-reference-reproduction"
+            and .result == "pass"
+            and (.cs1_consistent_mass.frequencies_hz[0] - 452.0919432369085 | abs < 1e-7)
+            and (.cs1_consistent_mass.frequencies_hz[1] - 1114.5800375516237 | abs < 1e-7)
+            and (.cs2_lumped_mass.frequencies_hz[0] - 369.1315259179073 | abs < 1e-7)
+            and (.cs2_lumped_mass.frequencies_hz[1] - 910.0507898311973 | abs < 1e-7)
+            and (.cs1_consistent_mass.reference_relative_errors | all(.[]; . < 1e-4))
+            and (.cs2_lumped_mass.reference_relative_errors | all(.[]; . < 1e-4))
+            and .acceptance.all_four_frequency_targets_within_tolerance == true
+            and (.claim_ceiling | contains("not_member_bending"))
+          ' nafems-nbc05-modal-reference-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -301,5 +367,7 @@ jobs:
             planar-truss-sweep-receipt.json
             modal-bar-reference-receipt.json
             modal-bar-mutation-receipt.json
+            nafems-nbc05-modal-reference-receipt.json
+            nafems-nbc05-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
