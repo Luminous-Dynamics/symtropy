@@ -302,8 +302,7 @@ pub fn first_fit_bottom_left(
 
     let mut placements: Vec<Placement> = Vec::with_capacity(requests.len());
     for request in requests {
-        let (xs, ys) =
-            candidate_coordinates(yard_bounds, request, &placements, exclusion_zones);
+        let (xs, ys) = candidate_coordinates(yard_bounds, request, &placements, exclusion_zones);
         let mut selected = None;
 
         'candidate: for y in &ys {
@@ -369,10 +368,7 @@ pub fn first_fit_bottom_left(
             .map(|violation| BaselineError {
                 code: BaselineErrorCode::VerifierRejected,
                 subject_id: violation.subject_ids.join(";"),
-                detail: format!(
-                    "independent verifier rejected {}",
-                    violation.code.as_str()
-                ),
+                detail: format!("independent verifier rejected {}", violation.code.as_str()),
             })
             .collect();
         return Err(errors);
@@ -459,7 +455,10 @@ mod tests {
             request("r-b", "block-b", 5, 4, 4, 8),
         ];
         let scenario = first_fit_bottom_left(yard(), &requests, &[]).unwrap();
-        assert_eq!(rect_of(&scenario.placements[0]), rect_of(&scenario.placements[1]));
+        assert_eq!(
+            rect_of(&scenario.placements[0]),
+            rect_of(&scenario.placements[1])
+        );
         assert!(verify(&scenario).is_feasible());
     }
 
