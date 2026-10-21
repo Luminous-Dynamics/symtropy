@@ -78,7 +78,7 @@
       "difficulty": "easy",
       "pcbench_directory": "kitspace_hum_temp_sensor",
       "metadata_path": "PCBs/kitspace_hum_temp_sensor/metadata.json",
-      "metadata_git_blob_sha1": "ead5c886148644ef826b47e5a68340047355c70b9d",
+      "metadata_git_blob_sha1": "ead5c886148644876d9cf7b07a7c9a497c1c2778",
       "original_source_repository": "https://github.com/BeeHive-org/BeeHive",
       "pcbench_reported_licenses": [
         {
