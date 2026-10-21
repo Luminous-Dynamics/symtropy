@@ -28,7 +28,7 @@
 cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
 cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
 cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
-cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml -- \
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin physical-transformation-reference -- \
   --source-commit "$(git rev-parse HEAD)"
 cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
   --source-commit "$(git rev-parse HEAD)"
