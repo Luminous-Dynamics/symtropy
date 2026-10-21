@@ -61,7 +61,8 @@ fn run_profile(count: usize, profile: &str, iterations: usize) {
         .map(|index| candidate(index, count, profile))
         .collect::<Vec<_>>();
 
-    let reference = compute_pareto_frontier(&candidates).expect("synthetic profile must be comparable");
+    let reference = compute_pareto_frontier(&candidates)
+        .expect("synthetic profile must be comparable");
     assert!(reference.ranking_complete);
     let expected_frontier = if profile == "tradeoff-heavy" { count } else { 1 };
     assert_eq!(reference.frontier_ids.len(), expected_frontier);
