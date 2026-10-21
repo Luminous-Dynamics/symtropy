@@ -111,8 +111,9 @@ fn run_case(alternatives: usize, scenarios: usize, criteria: usize, samples: usi
     let p95 = percentile(&timings, 95, 100);
     let maximum = timings.iter().copied().max().unwrap_or_default();
     println!(
-        "resident_preference_probe_bench alternatives={alternatives} scenarios={scenarios}          criteria={criteria} questions={} samples={samples} p50_ms={:.3} p95_ms={:.3}          max_ms={:.3} baseline_regret_units={} frontier_questions={}",
+        "resident_preference_probe_bench alternatives={alternatives} scenarios={scenarios}          criteria={criteria} questions={} indifference_margin_units={} samples={samples} p50_ms={:.3} p95_ms={:.3}          max_ms={:.3} baseline_regret_units={} frontier_questions={}",
         request.questions.len(),
+        expected.indifference_margin_units,
         p50.as_secs_f64() * 1_000.0,
         p95.as_secs_f64() * 1_000.0,
         maximum.as_secs_f64() * 1_000.0,
