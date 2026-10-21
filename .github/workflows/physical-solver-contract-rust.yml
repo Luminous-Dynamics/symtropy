@@ -914,7 +914,8 @@ jobs:
               output_pairs:[{
                 output_kind:"displacement",
                 baseline_output_id:"baseline-displacement",
-                scaled_output_id:"scaled-displacement"
+                scaled_output_id:"scaled-displacement",
+                scaling_exponent:1
               }]
             }' > "$root/relation.json"
 
