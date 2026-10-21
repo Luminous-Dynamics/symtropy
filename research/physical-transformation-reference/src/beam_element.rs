@@ -7,7 +7,9 @@
 //! damping, geometric stiffness, nonlinear kinematics and joint-release
 //! assembly are outside this module.
 
-#![allow(clippy::needless_range_loop)] // Matrix assembly deliberately indexes coupled DOFs.\n\nuse crate::Check;
+#![allow(clippy::needless_range_loop)] // Matrix assembly deliberately indexes coupled DOFs.
+
+use crate::Check;
 
 pub type Matrix6 = [[f64; 6]; 6];
 
