@@ -440,7 +440,7 @@ mod tests {
         ]
     }
 
-    fn disposition(report: &FrontierReport, id: &str) -> &CandidateDisposition {
+    fn disposition<'a>(report: &'a FrontierReport, id: &str) -> &'a CandidateDisposition {
         &report
             .candidates
             .iter()
