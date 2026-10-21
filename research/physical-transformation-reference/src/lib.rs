@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub type Check<T> = Result<T, String>;
 
+pub mod beam_element;
 pub mod deconstruction;
 pub mod mechanics;
 pub mod modal_bar;
