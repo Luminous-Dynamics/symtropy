@@ -33,7 +33,7 @@ No live source is downloaded. No field site is named. The fixture's numbers and 
 
 ## Contract and calculations
 
-Each case binds a forecast and an independent reference to an explicit metric ID, unit, spatial scope and temporal stratum. The forecast includes a point estimate and a declared prediction interval. A baseline forecast is required so error skill is not reported in isolation.
+Each case binds a forecast and an independent reference to an explicit metric ID, unit, spatial scope, temporal stratum, independent evaluation unit, and split (`training`, `calibration`, or `held_out`). Only held-out cases contribute to scoring; other partitions receive `not_held_out` exclusions. The forecast includes a point estimate and a declared prediction interval. A baseline forecast is required so error skill is not reported in isolation. Summaries report both row count and distinct independent-unit count; repeated records from one property must not be represented as independent properties.
 
 For each metric/scope/stratum/model group, the report computes:
 
@@ -42,9 +42,9 @@ For each metric/scope/stratum/model group, the report computes:
 - Baseline MAE and MAE skill score: `1 - candidate_MAE / baseline_MAE`. A zero-error baseline makes the score not computable rather than infinite.
 - Point-reference coverage inside the declared prediction interval and mean interval width.
 
-Metrics are **never pooled across units, spatial scopes or time strata**. There is no universal sustainability score, ranking across unrelated outcomes, or causal inference. Reference uncertainty is surfaced per case; v0.1 does not silently treat it as zero or use it to widen the model's interval. Three synthetic rows per group are a known-answer software test, not enough samples to establish calibration.
+Metrics are **never pooled across units, spatial scopes or time strata**. There is no universal sustainability score, ranking across unrelated outcomes, or causal inference. Reference uncertainty is surfaced per case; v0.1 does not silently treat it as zero or use it to widen the model's interval. Three synthetic held-out rows from three independent synthetic units per group are a known-answer software test, not enough samples to establish calibration. The extra calibration-partition case verifies that fitted data do not leak into the reported test metrics.
 
-The verifier fails closed on unknown fields, duplicate case IDs, non-finite/out-of-bound values, malformed or missing source digests for valid references, invalid intervals, invalid reference/status combinations, and any attempt to label the fixture as real field data. Missing, stale and contradictory references are excluded with distinct reasons. A valid measurement with an incompatible support key is excluded as `scope_mismatch`, not scored.
+The verifier fails closed on unknown fields, duplicate case IDs, missing independent-unit IDs, a forecast scope key inconsistent with its declared scope/period, non-finite/out-of-bound values, malformed or missing source digests for valid references, invalid intervals, invalid reference/status combinations, and any attempt to label the fixture as real field data. Calibration/training cases are explicitly excluded so evaluation cannot accidentally score fitted observations. Missing, stale and contradictory references are excluded with distinct reasons. A valid measurement with an incompatible support key is excluded as `scope_mismatch`, not scored.
 
 ## Run
 
