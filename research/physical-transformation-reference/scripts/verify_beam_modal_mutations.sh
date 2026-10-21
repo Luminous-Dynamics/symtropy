@@ -162,7 +162,7 @@ jq -n \
     mutation_count: 4,
     detected_count: 4,
     production_source_unchanged: true,
-    claim_ceiling: "software test sensitivity for synthetic one-element-per-member generalized modal solve; no refined NAFEMS spectrum or physical validation"
+    claim_ceiling: "software test sensitivity for synthetic generalized modal solve and fixed-grid mode sampling; no 200-element NAFEMS spectrum or physical validation"
   }' > "$receipt_path"
 
 printf 'PASS beam-modal mutation receipt: %s\n' "$receipt_path"
