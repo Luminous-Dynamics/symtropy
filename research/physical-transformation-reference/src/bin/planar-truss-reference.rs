@@ -59,7 +59,11 @@ fn run() -> Result<String, String> {
                 if !matches!(value.as_str(), "symmetric" | "asymmetric") {
                     return Err("--fixture must be symmetric or asymmetric".to_owned());
                 }
-                fixture_kind = if value == "asymmetric" { "asymmetric" } else { "symmetric" };
+                fixture_kind = if value == "asymmetric" {
+                    "asymmetric"
+                } else {
+                    "symmetric"
+                };
                 fixture_was_supplied = true;
                 index += 2;
             }
@@ -234,36 +238,74 @@ fn verify_asymmetric_reference_outcome(result: &PlanarTrussResult) -> Result<(),
     let support_b = node("B")?;
     let ac = bar("AC")?;
     let bc = bar("BC")?;
-    close(apex.displacement_x_m, 1.875e-7, 1.0e-15, "asymmetric apex x")?;
-    close(apex.displacement_y_m, -5.625e-7, 1.0e-15, "asymmetric apex y")?;
     close(
-        support_a.reaction_x_n.ok_or_else(|| "A x reaction missing".to_owned())?,
+        apex.displacement_x_m,
+        1.875e-7,
+        1.0e-15,
+        "asymmetric apex x",
+    )?;
+    close(
+        apex.displacement_y_m,
+        -5.625e-7,
+        1.0e-15,
+        "asymmetric apex y",
+    )?;
+    close(
+        support_a
+            .reaction_x_n
+            .ok_or_else(|| "A x reaction missing".to_owned())?,
         150.0,
         1.0e-6,
         "asymmetric A x reaction",
     )?;
     close(
-        support_a.reaction_y_n.ok_or_else(|| "A y reaction missing".to_owned())?,
+        support_a
+            .reaction_y_n
+            .ok_or_else(|| "A y reaction missing".to_owned())?,
         450.0,
         1.0e-6,
         "asymmetric A y reaction",
     )?;
     close(
-        support_b.reaction_x_n.ok_or_else(|| "B x reaction missing".to_owned())?,
+        support_b
+            .reaction_x_n
+            .ok_or_else(|| "B x reaction missing".to_owned())?,
         -750.0,
         1.0e-6,
         "asymmetric B x reaction",
     )?;
     close(
-        support_b.reaction_y_n.ok_or_else(|| "B y reaction missing".to_owned())?,
+        support_b
+            .reaction_y_n
+            .ok_or_else(|| "B y reaction missing".to_owned())?,
         750.0,
         1.0e-6,
         "asymmetric B y reaction",
     )?;
-    close(ac.axial_force_n, -1_500.0 / 10.0_f64.sqrt(), 1.0e-6, "asymmetric AC force")?;
-    close(bc.axial_force_n, -1_500.0 / 2.0_f64.sqrt(), 1.0e-6, "asymmetric BC force")?;
-    close(ac.axial_stress_pa, -30_000.0, 1.0e-6, "asymmetric AC stress")?;
-    close(bc.axial_stress_pa, -25_000.0, 1.0e-6, "asymmetric BC stress")?;
+    close(
+        ac.axial_force_n,
+        -1_500.0 / 10.0_f64.sqrt(),
+        1.0e-6,
+        "asymmetric AC force",
+    )?;
+    close(
+        bc.axial_force_n,
+        -1_500.0 / 2.0_f64.sqrt(),
+        1.0e-6,
+        "asymmetric BC force",
+    )?;
+    close(
+        ac.axial_stress_pa,
+        -30_000.0,
+        1.0e-6,
+        "asymmetric AC stress",
+    )?;
+    close(
+        bc.axial_stress_pa,
+        -25_000.0,
+        1.0e-6,
+        "asymmetric BC stress",
+    )?;
     close(ac.axial_strain, -1.5e-7, 1.0e-15, "asymmetric AC strain")?;
     close(bc.axial_strain, -1.25e-7, 1.0e-15, "asymmetric BC strain")?;
     close(
@@ -280,9 +322,24 @@ fn verify_asymmetric_reference_outcome(result: &PlanarTrussResult) -> Result<(),
     )?;
 
     let expected_energy_j = 3.9375e-4;
-    close(result.energy.strain_energy_j, expected_energy_j, 1.0e-12, "asymmetric strain energy")?;
-    close(result.energy.external_work_j, expected_energy_j, 1.0e-12, "asymmetric external work")?;
-    close(result.energy.residual_j, 0.0, 1.0e-12, "asymmetric energy residual")?;
+    close(
+        result.energy.strain_energy_j,
+        expected_energy_j,
+        1.0e-12,
+        "asymmetric strain energy",
+    )?;
+    close(
+        result.energy.external_work_j,
+        expected_energy_j,
+        1.0e-12,
+        "asymmetric external work",
+    )?;
+    close(
+        result.energy.residual_j,
+        0.0,
+        1.0e-12,
+        "asymmetric energy residual",
+    )?;
 
     for (label, value) in [
         ("force", result.equilibrium.normalized_force_residual),
@@ -291,16 +348,15 @@ fn verify_asymmetric_reference_outcome(result: &PlanarTrussResult) -> Result<(),
         ("energy", result.energy.normalized_residual),
     ] {
         if !value.is_finite() || value >= 1.0e-12 {
-            return Err(format!("asymmetric {label} residual exceeds receipt gate: {value:.17e}"));
+            return Err(format!(
+                "asymmetric {label} residual exceeds receipt gate: {value:.17e}"
+            ));
         }
     }
     Ok(())
 }
 
-fn verify_reference_outcome(
-    result: &PlanarTrussResult,
-    fixture_kind: &str,
-) -> Result<(), String> {
+fn verify_reference_outcome(result: &PlanarTrussResult, fixture_kind: &str) -> Result<(), String> {
     if fixture_kind == "asymmetric" {
         return verify_asymmetric_reference_outcome(result);
     }
