@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
-    calculix_rf_restricted::normalize_restricted_rf_bytes,
-    equilibrium::assess_equilibrium_bytes, mesh_convergence::assess_mesh_refinement_study_bytes,
+    calculix_rf_restricted::normalize_restricted_rf_bytes, equilibrium::assess_equilibrium_bytes,
+    mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
 };
@@ -213,17 +213,32 @@ fn run() -> Result<(), String> {
         {
             return Err("--restricted-rf-manifest accepts request/deck/dat/node-catalog only and cannot be combined with receipt, mesh-study, equilibrium, reference-comparison, artifact-root, or request-validator options".to_owned());
         }
-        let request_path = request_path.ok_or_else(|| "--restricted-rf-manifest requires --request".to_owned())?;
-        let deck_path = deck_path.ok_or_else(|| "--restricted-rf-manifest requires --deck".to_owned())?;
-        let dat_path = dat_path.ok_or_else(|| "--restricted-rf-manifest requires --dat".to_owned())?;
-        let node_catalog_path = node_catalog_path.ok_or_else(|| "--restricted-rf-manifest requires --node-catalog".to_owned())?;
-        let request_bytes = fs::read(&request_path).map_err(|error| format!("could not read request {request_path}: {error}"))?;
-        let deck_bytes = fs::read(&deck_path).map_err(|error| format!("could not read deck {deck_path}: {error}"))?;
-        let dat_bytes = fs::read(&dat_path).map_err(|error| format!("could not read .dat output {dat_path}: {error}"))?;
-        let manifest_bytes = fs::read(manifest_path).map_err(|error| format!("could not read restricted RF manifest {manifest_path}: {error}"))?;
-        let catalog_bytes = fs::read(&node_catalog_path).map_err(|error| format!("could not read node catalogue {node_catalog_path}: {error}"))?;
+        let request_path =
+            request_path.ok_or_else(|| "--restricted-rf-manifest requires --request".to_owned())?;
+        let deck_path =
+            deck_path.ok_or_else(|| "--restricted-rf-manifest requires --deck".to_owned())?;
+        let dat_path =
+            dat_path.ok_or_else(|| "--restricted-rf-manifest requires --dat".to_owned())?;
+        let node_catalog_path = node_catalog_path
+            .ok_or_else(|| "--restricted-rf-manifest requires --node-catalog".to_owned())?;
+        let request_bytes = fs::read(&request_path)
+            .map_err(|error| format!("could not read request {request_path}: {error}"))?;
+        let deck_bytes = fs::read(&deck_path)
+            .map_err(|error| format!("could not read deck {deck_path}: {error}"))?;
+        let dat_bytes = fs::read(&dat_path)
+            .map_err(|error| format!("could not read .dat output {dat_path}: {error}"))?;
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| {
+            format!("could not read restricted RF manifest {manifest_path}: {error}")
+        })?;
+        let catalog_bytes = fs::read(&node_catalog_path).map_err(|error| {
+            format!("could not read node catalogue {node_catalog_path}: {error}")
+        })?;
         let report = normalize_restricted_rf_bytes(
-            &request_bytes, &deck_bytes, &dat_bytes, &manifest_bytes, &catalog_bytes,
+            &request_bytes,
+            &deck_bytes,
+            &dat_bytes,
+            &manifest_bytes,
+            &catalog_bytes,
         )?;
         println!(
             "{}",
