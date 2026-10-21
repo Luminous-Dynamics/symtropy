@@ -5,7 +5,7 @@
 
 use shipyard_space_time::{Rect, TimeRange, verify};
 use shipyard_space_time_baselines::{
-    PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left,
+    PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left, first_fit_portfolio,
 };
 
 const YARD_WIDTH: i64 = 5;
@@ -86,6 +86,10 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
     let mut decreasing_missed = 0usize;
     let mut decreasing_rejected_infeasible = 0usize;
     let mut decreasing_false_feasible = 0usize;
+    let mut portfolio_solved = 0usize;
+    let mut portfolio_missed = 0usize;
+    let mut portfolio_rejected_infeasible = 0usize;
+    let mut portfolio_false_feasible = 0usize;
 
     for _case in 0..CASES {
         let requests: Vec<PlacementRequest> = (0..4)
@@ -132,6 +136,23 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
             Err(_) if exact => decreasing_missed += 1,
             Err(_) => decreasing_rejected_infeasible += 1,
         }
+
+        match first_fit_portfolio(yard, &requests, &[]) {
+            Ok(result) => {
+                portfolio_solved += 1;
+                if !exact {
+                    portfolio_false_feasible += 1;
+                }
+                assert_eq!(result.policies_attempted, 6);
+                assert!(result.feasible_candidates > 0);
+                assert!(
+                    verify(&result.scenario).is_feasible(),
+                    "independent spatial verifier rejected portfolio output: {result:?}"
+                );
+            }
+            Err(_) if exact => portfolio_missed += 1,
+            Err(_) => portfolio_rejected_infeasible += 1,
+        }
     }
 
     assert_eq!(CASES, 512, "generated case family size changed");
@@ -149,5 +170,15 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
     assert_eq!(
         decreasing_false_feasible, 0,
         "decreasing-area false-feasible plans detected"
+    );
+    assert_eq!(portfolio_solved, 203, "portfolio coverage changed");
+    assert_eq!(portfolio_missed, 2, "portfolio missed-feasible count changed");
+    assert_eq!(
+        portfolio_rejected_infeasible, 307,
+        "portfolio infeasibility rejection count changed"
+    );
+    assert_eq!(
+        portfolio_false_feasible, 0,
+        "portfolio false-feasible plans detected"
     );
 }
