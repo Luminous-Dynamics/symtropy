@@ -1,0 +1,44 @@
+name: Elastic Collision Validation
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "crates/core/symtropy-math/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/elastic-collision-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elastic-collision-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analytical-collision:
+    name: Analytical collision contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format package
+        run: cargo fmt --manifest-path crates/core/symtropy-physics/Cargo.toml -- --check
+
+      - name: Run analytical collision tests
+        run: cargo test --locked --manifest-path crates/core/symtropy-physics/Cargo.toml --example elastic_collision_validation
+
+      - name: Emit CSV and enforce acceptance gates
+        run: cargo run --locked --manifest-path crates/core/symtropy-physics/Cargo.toml --example elastic_collision_validation
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path crates/core/symtropy-physics/Cargo.toml --example elastic_collision_validation -- -D warnings
