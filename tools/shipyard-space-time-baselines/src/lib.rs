@@ -539,6 +539,23 @@ mod tests {
     }
 
     #[test]
+    fn decreasing_area_policy_is_invariant_to_input_permutation() {
+        let requests = [
+            request("r-a", "block-a", 1, 1, 0, 8),
+            request("r-b", "block-b", 2, 2, 0, 8),
+            request("r-c", "block-c", 3, 2, 0, 8),
+            request("r-d", "block-d", 1, 3, 0, 8),
+        ];
+        let mut reversed = requests.clone();
+        reversed.reverse();
+
+        let forward = first_fit_decreasing_bottom_left(yard(), &requests, &[]).unwrap();
+        let reverse = first_fit_decreasing_bottom_left(yard(), &reversed, &[]).unwrap();
+        assert_eq!(forward, reverse);
+        assert!(verify(&forward).is_feasible());
+    }
+
+    #[test]
     fn empty_requests_and_unsupported_exclusions_fail_closed() {
         assert_eq!(
             first_fit_bottom_left(yard(), &[], &[]).unwrap_err()[0].code,
