@@ -923,8 +923,8 @@ mod tests {
                     "dominated-chain" => (
                         ((index * 10) as f64, (index * 10 + 2) as f64),
                         (
-                            (2_000 - index * 10 - 2) as f64,
-                            (2_000 - index * 10) as f64,
+                            (10_000 - index * 10 - 2) as f64,
+                            (10_000 - index * 10) as f64,
                         ),
                     ),
                     "tradeoff-heavy" => (
@@ -964,7 +964,7 @@ mod tests {
                             (index * 10 + axis) as f64
                         }
                         ("dominated-chain", ObjectiveDirection::Maximize) => {
-                            (2_000 - index * 10 - axis) as f64
+                            (10_000 - index * 10 - axis) as f64
                         }
                         ("tradeoff-heavy", ObjectiveDirection::Minimize) => {
                             (index * 10 + axis) as f64
