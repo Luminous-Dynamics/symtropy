@@ -227,3 +227,10 @@ The CSV adapter now reports both `success_rate_over_all_rows` / `clean_pass_rate
 - Never overwrite missing values with a synthetic false metric. Preserve the raw status/metric absence, show both views and publish the full denominator.
 
 The new regression fixture includes an explicit crashed attempt with no `success` or `clean_pass` report: the conservative rate changes from 2/3 to 2/4, while the observed-metric rate remains 2/3 and reported-metric coverage falls to 3/4. This distinguishes algorithm quality from the benchmark adapter's observability rather than conflating them.
+
+
+## Paired significance check for completion changes
+
+In addition to the paired bootstrap confidence interval, the Rust evaluator now reports a two-sided **exact paired sign-test p-value** for completion outcomes. For a single-seed comparison, only discordant board pairs contribute: boards completed by the treatment but not baseline count in one direction, and boards completed by baseline but not treatment count in the other. For replicated comparisons, the sign test uses board-clustered completion-rate deltas; repeated seeds on one board do not inflate the independent sample count.
+
+The p-value is reported as a supplement to effect size and the bootstrap interval—not a replacement for board-level results, stratification, practical effect thresholds or independent test sets. If both methods have the same completion result on every board, the sign-test p-value is `null` (no discordant pairs), not 1.0. The six-board synthetic 2/6 versus 4/6 fixture has two treatment-only completions and zero baseline-only completions, yielding an exact two-sided (p=0.5); it is deliberately not statistically persuasive.
