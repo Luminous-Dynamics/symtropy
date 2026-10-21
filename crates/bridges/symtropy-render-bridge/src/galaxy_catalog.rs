@@ -184,6 +184,14 @@ impl GalaxyTileSummary {
         self.child_mask
     }
 
+    pub const fn complete_child_mask(&self) -> u8 {
+        self.complete_child_mask
+    }
+
+    pub const fn known_child_mask(&self) -> u8 {
+        self.known_child_mask
+    }
+
     /// Merge one direct child exactly once. Context mismatch, non-child tiles,
     /// duplicate octants, and arithmetic overflow leave this parent unchanged.
     pub fn merge_child(&mut self, child: &Self) -> Result<(), GalaxyCatalogError> {
@@ -301,6 +309,8 @@ mod tests {
         }
         assert_eq!(parent.payload_record_count(), 28);
         assert_eq!(parent.child_mask(), u8::MAX);
+        assert_eq!(parent.complete_child_mask(), u8::MAX);
+        assert_eq!(parent.known_child_mask(), u8::MAX);
         assert_eq!(
             parent.coverage(),
             GalaxyCoverageState::CompleteWithinSelection
