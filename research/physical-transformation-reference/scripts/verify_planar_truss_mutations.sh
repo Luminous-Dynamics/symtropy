@@ -45,6 +45,11 @@ run_mutation() {
       perl -0pi -e 's/let axial_force = bar\.youngs_modulus_pa \* bar\.area_m2 \* strain;/let axial_force = bar.youngs_modulus_pa * strain;/' "$source"
       grep -Fq 'let axial_force = bar.youngs_modulus_pa * strain;' "$source"
       ;;
+    truss_stiffness_wrong_length_exponent)
+      grep -Fq 'let axial_stiffness = bar.youngs_modulus_pa * bar.area_m2 / length;' "$source"
+      perl -0pi -e 's/let axial_stiffness = bar\.youngs_modulus_pa \* bar\.area_m2 \/ length;/let axial_stiffness = bar.youngs_modulus_pa * bar.area_m2 \/ (length * length);/' "$source"
+      grep -Fq 'let axial_stiffness = bar.youngs_modulus_pa * bar.area_m2 / (length * length);' "$source"
+      ;;
     support_reaction_sign)
       grep -Fq 'let value = internal[2 * index + 1] - loads[2 * index + 1];' "$source"
       perl -0pi -e 's/let value = internal\[2 \* index \+ 1\] - loads\[2 \* index \+ 1\];/let value = loads[2 * index + 1] - internal[2 * index + 1];/' "$source"
@@ -83,6 +88,10 @@ run_mutation \
   member_force_omits_area \
   symmetric_two_bar_truss_matches_independent_closed_form_oracle
 run_mutation \
+  "truss-stiffness-span-exponent" \
+  truss_stiffness_wrong_length_exponent \
+  fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form
+run_mutation \
   "vertical-support-reaction-sign" \
   support_reaction_sign \
   symmetric_two_bar_truss_matches_independent_closed_form_oracle
@@ -118,6 +127,11 @@ jq -n \
         disposition: "detected"
       },
       {
+        id: "PHYS-TRUSS-MUT-STIFFNESS-LENGTH-001",
+        expected_test: "fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form",
+        disposition: "detected"
+      },
+      {
         id: "PHYS-TRUSS-MUT-REACTION-SIGN-001",
         expected_test: "symmetric_two_bar_truss_matches_independent_closed_form_oracle",
         disposition: "detected"
@@ -129,7 +143,7 @@ jq -n \
       }
     ],
     summary: {
-      detected: 4,
+      detected: 5,
       undetected: 0,
       invalid_mutant: 0,
       equivalent_mutant: 0,
@@ -141,9 +155,9 @@ jq -e '
   .schema_version == "planar-truss-mutation-receipt-v0.1"
   and (.source_commit | type == "string" and length == 40)
   and .baseline_control.disposition == "pass"
-  and .summary.detected == 4
+  and .summary.detected == 5
   and .summary.undetected == 0
   and ([.mutations[].disposition] | all(. == "detected"))
 ' "$receipt_path" >/dev/null
 
-printf 'Planar-truss mutation sensitivity: 4/4 named defects detected. Receipt: %s\n' "$receipt_path"
+printf 'Planar-truss mutation sensitivity: 5/5 named defects detected. Receipt: %s\n' "$receipt_path"
