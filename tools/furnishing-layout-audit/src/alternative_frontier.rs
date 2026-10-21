@@ -46,6 +46,8 @@ pub enum ObjectiveEvidence {
 pub struct ObjectiveObservation {
     /// Stable objective key, such as install_cost or task_coverage.
     pub dimension: String,
+    /// Explicit unit or normalized scale; comparisons require an exact match.
+    pub unit: String,
     /// Whether the objective is minimized or maximized.
     pub direction: ObjectiveDirection,
     /// Finite numeric observation in the dimension's declared units.
@@ -150,10 +152,16 @@ struct RankableCandidate<'a> {
 }
 
 impl RankableCandidate<'_> {
-    fn schema(&self) -> Vec<(&str, ObjectiveDirection)> {
+    fn schema(&self) -> Vec<(&str, ObjectiveDirection, &str)> {
         self.objectives
             .iter()
-            .map(|objective| (objective.dimension.as_str(), objective.direction))
+            .map(|objective| {
+                (
+                    objective.dimension.as_str(),
+                    objective.direction,
+                    objective.unit.as_str(),
+                )
+            })
             .collect()
     }
 }
@@ -186,6 +194,12 @@ fn objective_exclusion_reasons(candidate: &AlternativeCandidate) -> Vec<String> 
         } else if !dimensions.insert(objective.dimension.as_str()) {
             reasons.push(format!(
                 "duplicate objective dimension {:?}",
+                objective.dimension
+            ));
+        }
+        if objective.unit.trim().is_empty() || objective.unit != objective.unit.trim() {
+            reasons.push(format!(
+                "objective {:?} has a blank unit or surrounding whitespace",
                 objective.dimension
             ));
         }
@@ -375,17 +389,33 @@ pub fn compute_pareto_frontier(
 mod tests {
     use super::*;
 
-    fn objective(
+    fn objective_in_unit(
         dimension: &str,
+        unit: &str,
         direction: ObjectiveDirection,
         value: f64,
     ) -> ObjectiveObservation {
         ObjectiveObservation {
             dimension: dimension.to_owned(),
+            unit: unit.to_owned(),
             direction,
             value,
             evidence: ObjectiveEvidence::AcceptedByPolicy,
         }
+    }
+
+    fn objective(
+        dimension: &str,
+        direction: ObjectiveDirection,
+        value: f64,
+    ) -> ObjectiveObservation {
+        let unit = match dimension {
+            "install_cost" | "cost" => "USD",
+            "task_coverage" => "ratio",
+            "aesthetics" => "score_0_to_100",
+            _ => "test_unit",
+        };
+        objective_in_unit(dimension, unit, direction, value)
     }
 
     fn candidate(
@@ -544,6 +574,24 @@ mod tests {
         );
         assert!(matches!(
             compute_pareto_frontier(&[a, b]),
+            Err(FrontierError::IncompatibleObjectiveSchemas { .. })
+        ));
+    }
+
+    #[test]
+    fn incompatible_units_fail_closed() {
+        let usd = candidate(
+            "usd",
+            VerificationStatus::Verified,
+            vec![objective_in_unit("cost", "USD", ObjectiveDirection::Minimize, 10.0)],
+        );
+        let zar = candidate(
+            "zar",
+            VerificationStatus::Verified,
+            vec![objective_in_unit("cost", "ZAR", ObjectiveDirection::Minimize, 190.0)],
+        );
+        assert!(matches!(
+            compute_pareto_frontier(&[usd, zar]),
             Err(FrontierError::IncompatibleObjectiveSchemas { .. })
         ));
     }
