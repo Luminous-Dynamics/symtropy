@@ -1,0 +1,497 @@
+{
+  "schema": "pcbworld-pilot-source-metadata-audit-v0.1",
+  "status": "metadata_inventory_only_not_benchmark_manifest",
+  "audit_date": "2026-10-21",
+  "upstream": {
+    "pcbworld_repository": "https://github.com/LGAI-Research/PCBWorld",
+    "pcbworld_commit_sha": "1989a9325796b73cca793a0c8f222dd1509256e8",
+    "d3_split_config_path": "configs/datasets/d3.json",
+    "d3_split_config_git_blob_sha1": "61d86bbf6cfd8ff8d1e13089c8d98a90f6f81bb3",
+    "pcbench_repository": "https://github.com/PCBench/PCBench",
+    "pcbench_commit_sha": "dec3be75cbdef74787625f9043c7391cd473bb64",
+    "metadata_source_path": "PCBs/<folder>/metadata.json",
+    "metadata_audit_note": "Each license value below is the PCBench metadata's reported field only. No source license text has been verified and no candidate is approved for benchmark execution by this ledger."
+  },
+  "strata": [
+    {
+      "difficulty": "easy",
+      "selected_count": 10
+    },
+    {
+      "difficulty": "medium",
+      "selected_count": 10
+    },
+    {
+      "difficulty": "hard",
+      "selected_count": 10
+    }
+  ],
+  "source_board_candidate_count": 30,
+  "license_summary": {
+    "explicit_spdx_in_pcbench_metadata": 10,
+    "metadata_license_link_without_spdx": 4,
+    "missing_or_null_pcbench_license": 16,
+    "primary_source_license_verified": 0,
+    "benchmark_eligible": 0
+  },
+  "boards": [
+    {
+      "board_id": "0005_AVR-Playground_hello_world",
+      "difficulty": "easy",
+      "pcbench_directory": "AVR-Playground_hello_world",
+      "metadata_path": "PCBs/AVR-Playground_hello_world/metadata.json",
+      "metadata_git_blob_sha1": "fec2b1028f94ef826b47e5a68340047355c70b9d",
+      "original_source_repository": "https://github.com/BonfaceKilz/AVR-Playground",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v3.0",
+          "spdx_id": "GPL-3.0",
+          "key": "gpl-3.0",
+          "url": "https://api.github.com/licenses/gpl-3.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0015_kitspace_tt_opt101_module_b1",
+      "difficulty": "easy",
+      "pcbench_directory": "kitspace_tt_opt101_module_b1",
+      "metadata_path": "PCBs/kitspace_tt_opt101_module_b1/metadata.json",
+      "metadata_git_blob_sha1": "8f4f20c530861a58fe502b309d02b2b4e974ab62",
+      "original_source_repository": "https://github.com/vektorious/test_tube_photometer",
+      "pcbench_reported_licenses": [
+        {
+          "name": "Creative Commons",
+          "spdx_id": null,
+          "key": null,
+          "url": "https://raw.githubusercontent.com/vektorious/test_tube_photometer/master/LICENSE.md"
+        }
+      ],
+      "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0025_kitspace_hum_temp_sensor",
+      "difficulty": "easy",
+      "pcbench_directory": "kitspace_hum_temp_sensor",
+      "metadata_path": "PCBs/kitspace_hum_temp_sensor/metadata.json",
+      "metadata_git_blob_sha1": "ead5c886148644ef826b47e5a68340047355c70b9d",
+      "original_source_repository": "https://github.com/BeeHive-org/BeeHive",
+      "pcbench_reported_licenses": [
+        {
+          "name": "MIT",
+          "spdx_id": null,
+          "key": null,
+          "url": "https://raw.githubusercontent.com/BeeHive-org/BeeHive/master/LICENSE"
+        }
+      ],
+      "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0035_KiCad-Like-a-Pro-Tutorial_rf24-breakout-v1",
+      "difficulty": "easy",
+      "pcbench_directory": "KiCad-Like-a-Pro-Tutorial_rf24-breakout-v1",
+      "metadata_path": "PCBs/KiCad-Like-a-Pro-Tutorial_rf24-breakout-v1/metadata.json",
+      "metadata_git_blob_sha1": "667a4c48621bb946cb5a6b642ba4e3af779b9727",
+      "original_source_repository": "https://github.com/wicker/KiCad-Like-a-Pro-Tutorial",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0045_retroreflectors_TANGOFLOCK",
+      "difficulty": "easy",
+      "pcbench_directory": "retroreflectors_TANGOFLOCK",
+      "metadata_path": "PCBs/retroreflectors_TANGOFLOCK/metadata.json",
+      "metadata_git_blob_sha1": "b9f19290ed1509df484831c558d712462132a286",
+      "original_source_repository": "https://github.com/mossmann/retroreflectors",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v2.0",
+          "spdx_id": null,
+          "key": null,
+          "url": "https://api.github.com/licenses/gpl-2.0"
+        }
+      ],
+      "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0055_dustbox_Dustbox",
+      "difficulty": "easy",
+      "pcbench_directory": "dustbox_Dustbox",
+      "metadata_path": "PCBs/dustbox_Dustbox/metadata.json",
+      "metadata_git_blob_sha1": "43cf020d4bbae741248c0be47477bcb276d55e44",
+      "original_source_repository": "https://github.com/citizensense/dustbox",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0065_DiscoDanceFloorV1_BusTerminator",
+      "difficulty": "easy",
+      "pcbench_directory": "DiscoDanceFloorV1_BusTerminator",
+      "metadata_path": "PCBs/DiscoDanceFloorV1_BusTerminator/metadata.json",
+      "metadata_git_blob_sha1": "9a575e752706dc9f4819d5339cdebc70789855a9",
+      "original_source_repository": "https://github.com/jgillick/DiscoDanceFloorV1",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0075_RPi-ATtiny85-Programmer_rpi_attiny85_programmer",
+      "difficulty": "easy",
+      "pcbench_directory": "RPi-ATtiny85-Programmer_rpi_attiny85_programmer",
+      "metadata_path": "PCBs/RPi-ATtiny85-Programmer_rpi_attiny85_programmer/metadata.json",
+      "metadata_git_blob_sha1": "4a22aba571a275ada7f16dc9c8bf93ce89b66f68",
+      "original_source_repository": "https://github.com/IoT-Open/RPi-ATtiny85-Programmer",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0085_mini-whip_mini-whip-power-feed",
+      "difficulty": "easy",
+      "pcbench_directory": "mini-whip_mini-whip-power-feed",
+      "metadata_path": "PCBs/mini-whip_mini-whip-power-feed/metadata.json",
+      "metadata_git_blob_sha1": "d671f4896bbbf3511f36b649cc494d993cd1eba7",
+      "original_source_repository": "https://github.com/vlad-ivanov-name/mini-whip",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0095_PsuFanController_FanController",
+      "difficulty": "easy",
+      "pcbench_directory": "PsuFanController_FanController",
+      "metadata_path": "PCBs/PsuFanController_FanController/metadata.json",
+      "metadata_git_blob_sha1": "120ca22f5b348a7feeb24f4d6edf176b5eaca563",
+      "original_source_repository": "https://github.com/bbtinkerer/PsuFanController",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v3.0",
+          "spdx_id": "GPL-3.0",
+          "key": "gpl-3.0",
+          "url": "https://api.github.com/licenses/gpl-3.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0113_maytal_Maytal",
+      "difficulty": "medium",
+      "pcbench_directory": "maytal_Maytal",
+      "metadata_path": "PCBs/maytal_Maytal/metadata.json",
+      "metadata_git_blob_sha1": "098e897d790ffdd6b09baa082802f1ecb6026437",
+      "original_source_repository": "https://github.com/DAI-Maker-Lab/maytal",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0144_ottawa-badges-2016_ottawa-badge-tagger-2016",
+      "difficulty": "medium",
+      "pcbench_directory": "ottawa-badges-2016_ottawa-badge-tagger-2016",
+      "metadata_path": "PCBs/ottawa-badges-2016_ottawa-badge-tagger-2016/metadata.json",
+      "metadata_git_blob_sha1": "e256607a685a535bbc60686589227d850516cd90",
+      "original_source_repository": "https://github.com/rglenn/ottawa-badges-2016",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0174_sensorboard_DiffIR",
+      "difficulty": "medium",
+      "pcbench_directory": "sensorboard_DiffIR",
+      "metadata_path": "PCBs/sensorboard_DiffIR/metadata.json",
+      "metadata_git_blob_sha1": "6b964474415a0e4536b999528f18a6639f9d51c9",
+      "original_source_repository": "https://github.com/quixotic120/sensorboard",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0203_MOD-MPU9150_mod-mpu9150",
+      "difficulty": "medium",
+      "pcbench_directory": "MOD-MPU9150_mod-mpu9150",
+      "metadata_path": "PCBs/MOD-MPU9150_mod-mpu9150/metadata.json",
+      "metadata_git_blob_sha1": "d4375b20cd1c7772a5e0810d79a37aefff12c544",
+      "original_source_repository": "https://github.com/OLIMEX/MOD-MPU9150",
+      "pcbench_reported_licenses": [
+        {
+          "name": "Apache License 2.0",
+          "spdx_id": "Apache-2.0",
+          "key": "apache-2.0",
+          "url": "https://api.github.com/licenses/apache-2.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0232_ATtiny461Breakout_ATTiny461DevBoard",
+      "difficulty": "medium",
+      "pcbench_directory": "ATtiny461Breakout_ATTiny461DevBoard",
+      "metadata_path": "PCBs/ATtiny461Breakout_ATTiny461DevBoard/metadata.json",
+      "metadata_git_blob_sha1": "a19cca73d534ae19926c969ec3853d925019c3eb",
+      "original_source_repository": "https://github.com/ffleurey/ATtiny461Breakout",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU Lesser General Public License v3.0",
+          "spdx_id": "LGPL-3.0",
+          "key": "lgpl-3.0",
+          "url": "https://api.github.com/licenses/lgpl-3.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0260_NiMH-Charger_NiMH Charger",
+      "difficulty": "medium",
+      "pcbench_directory": "NiMH-Charger_NiMH Charger",
+      "metadata_path": "PCBs/NiMH-Charger_NiMH Charger/metadata.json",
+      "metadata_git_blob_sha1": "848f700fcbe2dc80e81b5d61198f1fcdfe22b5f2",
+      "original_source_repository": "https://github.com/deefstes/NiMH-Charger",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0288_raspberrypi-3-usb-hub_usb_hub",
+      "difficulty": "medium",
+      "pcbench_directory": "raspberrypi-3-usb-hub_usb_hub",
+      "metadata_path": "PCBs/raspberrypi-3-usb-hub_usb_hub/metadata.json",
+      "metadata_git_blob_sha1": "26b1ec8e3484a777ee413ebb9610ae0c5a789685",
+      "original_source_repository": "https://github.com/ar13pit/raspberrypi-3-usb-hub",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v3.0",
+          "spdx_id": "GPL-3.0",
+          "key": "gpl-3.0",
+          "url": "https://api.github.com/licenses/gpl-3.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0316_kicad-workshop_fancyboard",
+      "difficulty": "medium",
+      "pcbench_directory": "kicad-workshop_fancyboard",
+      "metadata_path": "PCBs/kicad-workshop_fancyboard/metadata.json",
+      "metadata_git_blob_sha1": "8ef979d1caaa2f4295dd2ab9f71654643b036dae",
+      "original_source_repository": "https://github.com/xil-se/kicad-workshop",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0344_mavbridge_mavbridge",
+      "difficulty": "medium",
+      "pcbench_directory": "mavbridge_mavbridge",
+      "metadata_path": "PCBs/mavbridge_mavbridge/metadata.json",
+      "metadata_git_blob_sha1": "a8c7b154b13174ee567efc46a9d633e0644581ea",
+      "original_source_repository": "https://github.com/festlv/mavbridge",
+      "pcbench_reported_licenses": [
+        {
+          "name": "MIT License",
+          "spdx_id": "MIT",
+          "key": "mit",
+          "url": "https://api.github.com/licenses/mit"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0376_cat-trainer_teensy_base_pcb",
+      "difficulty": "medium",
+      "pcbench_directory": "cat-trainer_teensy_base_pcb",
+      "metadata_path": "PCBs/cat-trainer_teensy_base_pcb/metadata.json",
+      "metadata_git_blob_sha1": "bdb6b3eab147b3ba552f5cbb0eb93babe6a7dede",
+      "original_source_repository": "https://github.com/james481/cat-trainer",
+      "pcbench_reported_licenses": [
+        {
+          "name": "BSD 3-Clause Clear License",
+          "spdx_id": "BSD-3-Clause-Clear",
+          "key": "bsd-3-clause-clear",
+          "url": "https://api.github.com/licenses/bsd-3-clause-clear"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0400_laptimer58_Chickadee",
+      "difficulty": "hard",
+      "pcbench_directory": "laptimer58_Chickadee",
+      "metadata_path": "PCBs/laptimer58_Chickadee/metadata.json",
+      "metadata_git_blob_sha1": "6cf9d11dfb8ac824da253609de849eee485464f4",
+      "original_source_repository": "https://github.com/chickadee-tech/laptimer58",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0423_induction-hob_temperature-sender",
+      "difficulty": "hard",
+      "pcbench_directory": "induction-hob_temperature-sender",
+      "metadata_path": "PCBs/induction-hob_temperature-sender/metadata.json",
+      "metadata_git_blob_sha1": "d17187a1cf456265b21a5abe2cea844432eb2bc1",
+      "original_source_repository": "https://github.com/johannesc/induction-hob",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0448_uedaino_uedaino",
+      "difficulty": "hard",
+      "pcbench_directory": "uedaino_uedaino",
+      "metadata_path": "PCBs/uedaino_uedaino/metadata.json",
+      "metadata_git_blob_sha1": "493041e3d34ebee56b06a828560c364fa051a638",
+      "original_source_repository": "https://github.com/fabkominka/uedaino",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0473_data-manager_data-manager",
+      "difficulty": "hard",
+      "pcbench_directory": "data-manager_data-manager",
+      "metadata_path": "PCBs/data-manager_data-manager/metadata.json",
+      "metadata_git_blob_sha1": "28cc832aed18f7d65d48275b79dde26c487a32a0",
+      "original_source_repository": "https://github.com/LibreSolar/data-manager",
+      "pcbench_reported_licenses": [
+        {
+          "name": "Creative Commons Attribution Share Alike 4.0 International",
+          "spdx_id": "CC-BY-SA-4.0",
+          "key": "cc-by-sa-4.0",
+          "url": "https://api.github.com/licenses/cc-by-sa-4.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0496_kitspace_f-91w",
+      "difficulty": "hard",
+      "pcbench_directory": "kitspace_f-91w",
+      "metadata_path": "PCBs/kitspace_f-91w/metadata.json",
+      "metadata_git_blob_sha1": "c64268c15c237b401ecc7e8e773061a382cef1ce",
+      "original_source_repository": "https://github.com/carrotIndustries/pluto",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU",
+          "spdx_id": null,
+          "key": null,
+          "url": "https://raw.githubusercontent.com/carrotIndustries/pluto/master/LICENSE"
+        }
+      ],
+      "pcbench_license_status": "license_label_or_link_only_spdx_unverified_primary_text_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0520_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD_negative",
+      "difficulty": "hard",
+      "pcbench_directory": "RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD_negative",
+      "metadata_path": "PCBs/RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD_negative/metadata.json",
+      "metadata_git_blob_sha1": "3a1c857bd7986f0785408bb1787b4745df0adc5a",
+      "original_source_repository": "https://github.com/ReclaimerLabs/RGBMatrixPanelCPLD-PhotonBackpack",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0546_ozinverter_ozinverterkicad",
+      "difficulty": "hard",
+      "pcbench_directory": "ozinverter_ozinverterkicad",
+      "metadata_path": "PCBs/ozinverter_ozinverterkicad/metadata.json",
+      "metadata_git_blob_sha1": "a1f89e155db55df3c67cf1cf6327543981356ff1",
+      "original_source_repository": "https://github.com/jdevine82/ozinverter",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0571_Brushless_ESC_Brushless_ESC",
+      "difficulty": "hard",
+      "pcbench_directory": "Brushless_ESC_Brushless_ESC",
+      "metadata_path": "PCBs/Brushless_ESC_Brushless_ESC/metadata.json",
+      "metadata_git_blob_sha1": "a62e8f8f21a8e2af98663f3449a2bd7989aaa3e3",
+      "original_source_repository": "https://github.com/FordPrfkt/Brushless_ESC",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v2.0",
+          "spdx_id": "GPL-2.0",
+          "key": "gpl-2.0",
+          "url": "https://api.github.com/licenses/gpl-2.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0599_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD",
+      "difficulty": "hard",
+      "pcbench_directory": "RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD",
+      "metadata_path": "PCBs/RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD/metadata.json",
+      "metadata_git_blob_sha1": "aaa5c9e688054ca0e61b2f5642c2051034e2fc0f",
+      "original_source_repository": "https://github.com/ReclaimerLabs/RGBMatrixPanelCPLD-PhotonBackpack",
+      "pcbench_reported_licenses": [],
+      "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    },
+    {
+      "board_id": "0626_TOBS_HybridChargeController",
+      "difficulty": "hard",
+      "pcbench_directory": "TOBS_HybridChargeController",
+      "metadata_path": "PCBs/TOBS_HybridChargeController/metadata.json",
+      "metadata_git_blob_sha1": "9cefb5f6babf775dfe82845c96f2400537ac24f3",
+      "original_source_repository": "https://github.com/soldesign/TOBS",
+      "pcbench_reported_licenses": [
+        {
+          "name": "GNU General Public License v3.0",
+          "spdx_id": "GPL-3.0",
+          "key": "gpl-3.0",
+          "url": "https://api.github.com/licenses/gpl-3.0"
+        }
+      ],
+      "pcbench_license_status": "spdx_declared_in_pcbench_metadata_primary_source_still_needs_review",
+      "primary_source_license_review": "not_performed",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+    }
+  ]
+}
