@@ -40,6 +40,7 @@ pub enum BaselineErrorCode {
     UnsupportedExclusionGeometry,
     OutOfBoundsExclusionZone,
     NoFeasiblePlacement,
+    AllPoliciesFailed,
     VerifierRejected,
 }
 
@@ -61,6 +62,7 @@ impl BaselineErrorCode {
             Self::UnsupportedExclusionGeometry => "UnsupportedExclusionGeometry",
             Self::OutOfBoundsExclusionZone => "OutOfBoundsExclusionZone",
             Self::NoFeasiblePlacement => "NoFeasiblePlacement",
+            Self::AllPoliciesFailed => "AllPoliciesFailed",
             Self::VerifierRejected => "VerifierRejected",
         }
     }
@@ -278,6 +280,217 @@ fn validate_inputs(
     }
 
     errors
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum PortfolioPolicy {
+    CallerOrder,
+    DecreasingArea,
+    DecreasingMaximumSide,
+    DecreasingHeight,
+    DecreasingWidth,
+    DecreasingPerimeter,
+}
+
+impl PortfolioPolicy {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CallerOrder => "caller-order",
+            Self::DecreasingArea => "decreasing-area",
+            Self::DecreasingMaximumSide => "decreasing-maximum-side",
+            Self::DecreasingHeight => "decreasing-height",
+            Self::DecreasingWidth => "decreasing-width",
+            Self::DecreasingPerimeter => "decreasing-perimeter",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct PortfolioScore {
+    /// Sum over event intervals of (active-placement bounding-envelope area × duration).
+    /// Smaller is more compact, but does not account for access routes, safety envelopes, or
+    /// future unscheduled blocks; it is only a deterministic baseline tie-break objective.
+    pub bounding_area_time: u128,
+    /// Stable final tie-break: reservation ID, min_x, min_y.
+    pub canonical_placements: Vec<(String, i64, i64)>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortfolioResult {
+    pub scenario: Scenario,
+    pub selected_policy: PortfolioPolicy,
+    pub policies_attempted: usize,
+    pub feasible_candidates: usize,
+    pub score: PortfolioScore,
+}
+
+fn order_requests(
+    requests: &[PlacementRequest],
+    policy: PortfolioPolicy,
+) -> Vec<PlacementRequest> {
+    let mut ordered = requests.to_vec();
+    match policy {
+        PortfolioPolicy::CallerOrder => {}
+        PortfolioPolicy::DecreasingArea => ordered.sort_by(|left, right| {
+            let left_area = i128::from(left.width) * i128::from(left.height);
+            let right_area = i128::from(right.width) * i128::from(right.height);
+            right_area
+                .cmp(&left_area)
+                .then_with(|| right.width.max(right.height).cmp(&left.width.max(left.height)))
+                .then_with(|| right.width.cmp(&left.width))
+                .then_with(|| right.height.cmp(&left.height))
+                .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+        }),
+        PortfolioPolicy::DecreasingMaximumSide => ordered.sort_by(|left, right| {
+            right
+                .width
+                .max(right.height)
+                .cmp(&left.width.max(left.height))
+                .then_with(|| {
+                    (i128::from(right.width) * i128::from(right.height))
+                        .cmp(&(i128::from(left.width) * i128::from(left.height)))
+                })
+                .then_with(|| right.width.cmp(&left.width))
+                .then_with(|| right.height.cmp(&left.height))
+                .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+        }),
+        PortfolioPolicy::DecreasingHeight => ordered.sort_by(|left, right| {
+            right
+                .height
+                .cmp(&left.height)
+                .then_with(|| right.width.cmp(&left.width))
+                .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+        }),
+        PortfolioPolicy::DecreasingWidth => ordered.sort_by(|left, right| {
+            right
+                .width
+                .cmp(&left.width)
+                .then_with(|| right.height.cmp(&left.height))
+                .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+        }),
+        PortfolioPolicy::DecreasingPerimeter => ordered.sort_by(|left, right| {
+            (i128::from(right.width) + i128::from(right.height))
+                .cmp(&(i128::from(left.width) + i128::from(left.height)))
+                .then_with(|| {
+                    (i128::from(right.width) * i128::from(right.height))
+                        .cmp(&(i128::from(left.width) * i128::from(left.height)))
+                })
+                .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+        }),
+    }
+    ordered
+}
+
+fn portfolio_score(scenario: &Scenario) -> PortfolioScore {
+    let mut boundaries: Vec<u64> = scenario
+        .placements
+        .iter()
+        .flat_map(|placement| [placement.occupied.start_tick, placement.occupied.end_tick])
+        .collect();
+    boundaries.sort_unstable();
+    boundaries.dedup();
+
+    let mut bounding_area_time = 0u128;
+    for pair in boundaries.windows(2) {
+        let (start, end) = (pair[0], pair[1]);
+        if start >= end {
+            continue;
+        }
+        let mut bounds: Option<Rect> = None;
+        for placement in &scenario.placements {
+            if placement.occupied.start_tick > start || placement.occupied.end_tick < end {
+                continue;
+            }
+            let Footprint::AxisAlignedRect(rect) = &placement.footprint else {
+                continue;
+            };
+            bounds = Some(match bounds {
+                None => *rect,
+                Some(old) => Rect {
+                    min_x: old.min_x.min(rect.min_x),
+                    min_y: old.min_y.min(rect.min_y),
+                    max_x: old.max_x.max(rect.max_x),
+                    max_y: old.max_y.max(rect.max_y),
+                },
+            });
+        }
+        if let Some(rect) = bounds {
+            let width = (i128::from(rect.max_x) - i128::from(rect.min_x)) as u128;
+            let height = (i128::from(rect.max_y) - i128::from(rect.min_y)) as u128;
+            let duration = u128::from(end - start);
+            let extent = width.saturating_mul(height).saturating_mul(duration);
+            bounding_area_time = bounding_area_time.saturating_add(extent);
+        }
+    }
+
+    let mut canonical_placements: Vec<(String, i64, i64)> = scenario
+        .placements
+        .iter()
+        .map(|placement| {
+            let (x, y) = match &placement.footprint {
+                Footprint::AxisAlignedRect(rect) => (rect.min_x, rect.min_y),
+                Footprint::Unsupported { .. } => (i64::MAX, i64::MAX),
+            };
+            (placement.reservation_id.clone(), x, y)
+        })
+        .collect();
+    canonical_placements.sort();
+
+    PortfolioScore {
+        bounding_area_time,
+        canonical_placements,
+    }
+}
+
+/// Evaluate a fixed portfolio of deterministic first-fit orderings and choose the most compact
+/// independently verified result by lexicographic (bounding-envelope area-time, canonical
+/// placement) score. Exhausting the portfolio is a heuristic failure, NOT proof that no feasible
+/// packing exists. All candidate plans use the same independent verifier.
+pub fn first_fit_portfolio(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+) -> Result<PortfolioResult, Vec<BaselineError>> {
+    let policies = [
+        PortfolioPolicy::CallerOrder,
+        PortfolioPolicy::DecreasingArea,
+        PortfolioPolicy::DecreasingMaximumSide,
+        PortfolioPolicy::DecreasingHeight,
+        PortfolioPolicy::DecreasingWidth,
+        PortfolioPolicy::DecreasingPerimeter,
+    ];
+    let mut best: Option<(PortfolioPolicy, Scenario, PortfolioScore)> = None;
+    let mut feasible_candidates = 0usize;
+
+    for policy in policies {
+        let ordered = order_requests(requests, policy);
+        if let Ok(scenario) = first_fit_bottom_left(yard_bounds, &ordered, exclusion_zones) {
+            feasible_candidates += 1;
+            let score = portfolio_score(&scenario);
+            if best
+                .as_ref()
+                .is_none_or(|(_, _, best_score)| score < *best_score)
+            {
+                best = Some((policy, scenario, score));
+            }
+        }
+    }
+
+    match best {
+        Some((selected_policy, scenario, score)) => Ok(PortfolioResult {
+            scenario,
+            selected_policy,
+            policies_attempted: policies.len(),
+            feasible_candidates,
+            score,
+        }),
+        None => Err(vec![BaselineError {
+            code: BaselineErrorCode::AllPoliciesFailed,
+            subject_id: "yard".to_owned(),
+            detail: "no portfolio policy produced a verified plan; this is not proof of infeasibility"
+                .to_owned(),
+        }]),
+    }
 }
 
 /// Place requests in deterministic decreasing-area order before using the same candidate policy.
