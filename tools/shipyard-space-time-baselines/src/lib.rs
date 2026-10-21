@@ -281,11 +281,11 @@ fn validate_inputs(
 }
 
 /// Place requests in deterministic decreasing-area order before using the same candidate policy.
-////
-//// Tie-break order is descending maximum side, width, height, then ascending reservation ID.
-//// Area is computed in i128 to avoid overflow for positive i64 dimensions.
-////
-//// This remains a heuristic policy, not a globally optimal rectangle-packing algorithm.
+///
+/// Tie-break order is descending maximum side, width, height, then ascending reservation ID.
+/// Area is computed in i128 to avoid overflow for positive i64 dimensions.
+///
+/// This remains a heuristic policy, not a globally optimal rectangle-packing algorithm.
 pub fn first_fit_decreasing_bottom_left(
     yard_bounds: Rect,
     requests: &[PlacementRequest],
