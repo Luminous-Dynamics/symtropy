@@ -439,6 +439,18 @@ fn validate_simulation_output(value: &Value, expected_seed_count: usize) -> Resu
     {
         return Err("simulation_output_failed_synthetic_invariant_contract".into());
     }
+    let operating_rows = value["station_operating_statistics"]
+        .as_array()
+        .ok_or_else(|| "station_operating_statistics_must_be_array".to_string())?;
+    for row in operating_rows {
+        for field in ["busy_fraction", "blocked_fraction", "starved_fraction", "down_fraction", "accounted_fraction"] {
+            if row[field]["sample_count"].as_u64() != Some(expected_seed_count as u64)
+                || row[field]["mean"].as_f64().is_none_or(|mean| !mean.is_finite() || !(0.0..=1.0).contains(&mean))
+            {
+                return Err(format!("station_operating_summary_invalid_{}_{}", row["station_id"], field));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -503,6 +515,43 @@ mod tests {
         assert_eq!(fixture["stations"][0]["changeover_seconds"], json!(45.0));
         assert_eq!(fixture["stations"][0]["good_yield_fraction"], json!(0.98));
         assert_eq!(fixture["mean_supply_interarrival_seconds"], json!(120.0));
+    }
+
+    #[test]
+    fn each_scenario_family_is_deterministic_and_preserves_synthetic_identity() {
+        let base = serde_json::json!({
+            "benchmark_id":"EV-FACTORY-SIM-001",
+            "input_evidence_class":"synthetic",
+            "release_ready":false,
+            "seed":22,
+            "replication_seeds":[22,23],
+            "mean_supply_interarrival_seconds":100.0,
+            "supply_interarrival_variability_fraction":0.1,
+            "source_buffer_capacity":8,
+            "buffer_capacities":[2,4,1],
+            "variant_batch_size":20,
+            "stations":[
+                {"station_id":"body-preparation","mean_cycle_seconds":200.0,"changeover_seconds":30.0,"good_yield_fraction":0.99,"mean_time_between_failures_seconds":1000.0,"mean_time_to_repair_seconds":10.0},
+                {"station_id":"end-of-line-test","mean_cycle_seconds":250.0,"changeover_seconds":20.0,"good_yield_fraction":0.99,"mean_time_between_failures_seconds":1000.0,"mean_time_to_repair_seconds":10.0}
+            ]
+        });
+        let base_digest = sha256(&serde_json::to_vec(&base).unwrap());
+        for spec in family_specs() {
+            let mut first = base.clone();
+            let mut repeat = base.clone();
+            apply_family(&mut first, &spec.family_id).expect("first mutation");
+            apply_family(&mut repeat, &spec.family_id).expect("repeated mutation");
+            assert_eq!(first, repeat, "family {} must be deterministic", spec.family_id);
+            assert_eq!(first["seed"], base["seed"]);
+            assert_eq!(first["replication_seeds"], base["replication_seeds"]);
+            assert_eq!(first["input_evidence_class"], "synthetic");
+            assert_eq!(first["release_ready"], false);
+            if spec.family_id == "nominal" {
+                assert_eq!(sha256(&serde_json::to_vec(&first).unwrap()), base_digest);
+            } else {
+                assert_ne!(sha256(&serde_json::to_vec(&first).unwrap()), base_digest);
+            }
+        }
     }
 
     #[test]
