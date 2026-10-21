@@ -1,0 +1,245 @@
+{
+  "schema_version": "beverage-experiment-selection-scenarios-v1",
+  "status": "synthetic_experiment_selection_contract_fixtures_not_physical_trials",
+  "description": "Synthetic contract cases for comparing fermentation experimental-design strategies under pre-registered equal budgets, quality/safety constraints and uncertainty reporting. No scenario contains a physical fermentation result.",
+  "scenarios": [
+    {
+      "id": "EXPSEL-001",
+      "name": "equal_budget_multi_method_benchmark",
+      "budget_units": 8,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "SPACE_FILLING",
+        "GREEDY_MEAN",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "ACCEPT_FOR_SYNTHETIC_BENCHMARK",
+      "guards": [
+        "same_candidate_domain",
+        "same_initial_observations",
+        "same_experiment_budget",
+        "predeclared_objective",
+        "all_hard_gates_retained"
+      ],
+      "claim_ceiling": "Software contract only; no real-world optimizer superiority."
+    },
+    {
+      "id": "EXPSEL-002",
+      "name": "optimizer_uses_more_experiments_than_baseline",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "NORMALIZED_HYPERVOLUME_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "equal_budget_enforced",
+        "aborted_and_failed_runs_counted",
+        "measurement_cost_counted"
+      ],
+      "claim_ceiling": "Unequal experiment budgets cannot establish algorithmic superiority."
+    },
+    {
+      "id": "EXPSEL-003",
+      "name": "best_seed_selected_after_results",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "SPACE_FILLING",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "seed_list_frozen_before_run",
+        "all_seeds_reported",
+        "no_best_seed_only_claim"
+      ],
+      "claim_ceiling": "Post-hoc selection of a favourable seed is not a valid aggregate comparison."
+    },
+    {
+      "id": "EXPSEL-004",
+      "name": "target_metric_changed_after_observing_results",
+      "budget_units": 8,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "TIME_TO_FEASIBLE",
+      "methods": [
+        "FACTORIAL_DOE",
+        "GREEDY_MEAN",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "primary_metric_preregistered",
+        "normalization_fixed",
+        "secondary_metrics_not_substituted_post_hoc"
+      ],
+      "claim_ceiling": "A target chosen after results invalidates the pre-registered benchmark."
+    },
+    {
+      "id": "EXPSEL-005",
+      "name": "quality_or_safety_violation_compensated_by_yield",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "NORMALIZED_HYPERVOLUME_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "quality_gates_non_compensatory",
+        "safety_gates_non_compensatory",
+        "unsafe_candidates_not_ranked_as_feasible"
+      ],
+      "claim_ceiling": "Yield, speed or cost cannot compensate for a failed hard gate."
+    },
+    {
+      "id": "EXPSEL-006",
+      "name": "synthetic_optimizer_win_reported_as_plant_savings",
+      "budget_units": 32,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "synthetic_evidence_label_preserved",
+        "no_empirical_savings_claim",
+        "physical_validation_required"
+      ],
+      "claim_ceiling": "Synthetic regret reduction is not a physical resource saving."
+    },
+    {
+      "id": "EXPSEL-007",
+      "name": "prediction_uncertainty_omitted",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "GREEDY_MEAN",
+        "UNCERTAINTY_ONLY",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "uncertainty_or_interval_reported",
+        "per_seed_variability",
+        "feasibility_probability"
+      ],
+      "claim_ceiling": "Point estimates alone do not establish risk-aware experiment-selection quality."
+    },
+    {
+      "id": "EXPSEL-008",
+      "name": "candidate_outside_evidence_supported_domain",
+      "budget_units": 8,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "HARD_CONSTRAINT_VIOLATIONS",
+      "methods": [
+        "GREEDY_MEAN",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "applicability_domain_checked",
+        "extrapolation_flagged",
+        "constraints_not_relaxed"
+      ],
+      "claim_ceiling": "Out-of-domain predictions are not qualified candidates."
+    },
+    {
+      "id": "EXPSEL-009",
+      "name": "candidate_domain_or_seed_manifest_not_frozen",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "NORMALIZED_HYPERVOLUME_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "SPACE_FILLING",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "candidate_space_digest",
+        "seed_manifest_digest",
+        "method_versions",
+        "cost_model_version"
+      ],
+      "claim_ceiling": "Missing benchmark manifest prevents a reproducible comparison."
+    },
+    {
+      "id": "EXPSEL-010",
+      "name": "prospective_pilot_meets_preregistered_decision_gate",
+      "budget_units": 32,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "FACTORIAL_DOE",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "ACCEPT_FOR_INDEPENDENT_REVIEW",
+      "guards": [
+        "prospective_design_declared",
+        "same_budget",
+        "paired_uncertainty",
+        "quality_and_safety_non_inferiority",
+        "resource_boundaries_aligned"
+      ],
+      "claim_ceiling": "Synthetic control case only; independent review and actual measured outcomes are still required."
+    },
+    {
+      "id": "EXPSEL-011",
+      "name": "optimizer_leaks_results_of_unrun_candidate",
+      "budget_units": 8,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "FEASIBLE_SIMPLE_REGRET",
+      "methods": [
+        "SPACE_FILLING",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "REJECT",
+      "guards": [
+        "selection_uses_only_prior_results",
+        "append_only_run_log",
+        "time_ordered_data_visibility"
+      ],
+      "claim_ceiling": "Future-result leakage invalidates the experimental-design comparison."
+    },
+    {
+      "id": "EXPSEL-012",
+      "name": "no_candidate_is_feasible_under_declared_constraints",
+      "budget_units": 16,
+      "budget_definition": "new_independent_experiments",
+      "evidence_class": "SYNTHETIC",
+      "primary_metric": "HARD_CONSTRAINT_VIOLATIONS",
+      "methods": [
+        "FACTORIAL_DOE",
+        "CONSTRAINED_BATCH_BO"
+      ],
+      "expected_disposition": "INFEASIBLE_WITHOUT_RELAXATION",
+      "guards": [
+        "infeasibility_reported",
+        "no_silent_constraint_relaxation",
+        "no_feasible_score_imputed"
+      ],
+      "claim_ceiling": "The correct response to an empty feasible set is explicit infeasibility, not a forced recommendation."
+    }
+  ]
+}
