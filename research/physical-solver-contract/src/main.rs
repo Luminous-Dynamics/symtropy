@@ -201,15 +201,17 @@ fn run() -> Result<(), String> {
     }
 
     if let Some(manifest_path) = restricted_rf_manifest_path.as_deref() {
-        if mesh_study_path.is_some()
+        if receipt_path.is_some()
+            || mesh_study_path.is_some()
             || equilibrium_manifest_path.is_some()
             || reaction_force_output_id.is_some()
             || reaction_moment_output_id.is_some()
+            || artifact_root.is_some()
             || reference_path.is_some()
             || observation_output_id.is_some()
             || validator_revision.is_some()
         {
-            return Err("--restricted-rf-manifest cannot be combined with mesh-study, equilibrium, reference-comparison, or request-validator options".to_owned());
+            return Err("--restricted-rf-manifest accepts request/deck/dat/node-catalog only and cannot be combined with receipt, mesh-study, equilibrium, reference-comparison, artifact-root, or request-validator options".to_owned());
         }
         let request_path = request_path.ok_or_else(|| "--restricted-rf-manifest requires --request".to_owned())?;
         let deck_path = deck_path.ok_or_else(|| "--restricted-rf-manifest requires --deck".to_owned())?;
