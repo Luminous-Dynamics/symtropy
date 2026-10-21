@@ -626,7 +626,13 @@ mod tests {
         assert_eq!(fixture["input_evidence_class"], "synthetic");
         assert_eq!(fixture["release_ready"], false);
         assert_eq!(fixture["buffer_capacities"], json!([1, 2, 1]));
-        assert_eq!(fixture["stations"][0]["mean_cycle_seconds"], json!(230.0));
+        let body_preparation_cycle = fixture["stations"][0]["mean_cycle_seconds"]
+            .as_f64()
+            .expect("mixed-stress body-preparation cycle");
+        assert!(
+            (body_preparation_cycle - 230.0).abs() < 1e-9,
+            "expected mixed-stress body-preparation cycle near 230.0, got {body_preparation_cycle}"
+        );
         assert_eq!(fixture["stations"][0]["changeover_seconds"], json!(45.0));
         assert_eq!(fixture["stations"][0]["good_yield_fraction"], json!(0.98));
         assert_eq!(fixture["mean_supply_interarrival_seconds"], json!(120.0));
