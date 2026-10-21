@@ -116,8 +116,9 @@ fn valid_sha256(value: Option<&str>) -> bool {
 fn validate_rankable_inputs(candidates: &[IntervalAlternativeCandidate]) {
     assert!(!candidates.is_empty());
     let mut seen_ids = BTreeSet::new();
-    let mut expected_schema: Option<Vec<(String, String, ObjectiveDirection, IntervalSemantics)>> =
-        None;
+    let mut expected_schema: Option<
+        Vec<(String, String, ObjectiveDirection, IntervalSemantics)>,
+    > = None;
 
     for candidate in candidates {
         assert!(!candidate.candidate_id.trim().is_empty());
