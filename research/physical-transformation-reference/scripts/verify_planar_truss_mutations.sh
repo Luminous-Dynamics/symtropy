@@ -11,6 +11,7 @@ trap 'rm -rf "$tmp_root"' EXIT
 receipt_path="${GITHUB_WORKSPACE:-$repo_root}/planar-truss-mutation-receipt.json"
 source_commit="$(git -C "$repo_root" rev-parse HEAD)"
 truss_sha256="$(sha256sum "$crate_dir/src/planar_truss.rs" | awk '{print $1}')"
+conditioning_sha256="$(sha256sum "$crate_dir/src/truss_conditioning.rs" | awk '{print $1}')"
 rustc_version="$(rustc --version)"
 cargo_version="$(cargo --version)"
 
@@ -28,7 +29,13 @@ run_mutation() {
   local test_name="$3"
   local mutant_dir="$tmp_root/$label"
   local source="$mutant_dir/src/planar_truss.rs"
+  local test_filter="planar_truss::tests::$test_name"
   local log="$tmp_root/$label.log"
+
+  if [[ "$test_name" == truss_conditioning::tests::* ]]; then
+    source="$mutant_dir/src/truss_conditioning.rs"
+    test_filter="$test_name"
+  fi
 
   mkdir -p "$mutant_dir"
   cp "$crate_dir/Cargo.toml" "$crate_dir/Cargo.lock" "$mutant_dir/"
@@ -70,18 +77,23 @@ run_mutation() {
       perl -0pi -e 's/f64::EPSILON \* PIVOT_EPSILON_FACTOR \* matrix_scale \* n as f64/f64::EPSILON * PIVOT_EPSILON_FACTOR * matrix_scale.max(1.0) * n as f64/' "$source"
       grep -Fq 'matrix_scale.max(1.0) * n as f64' "$source"
       ;;
+    conditioning_threshold_too_permissive)
+      grep -Fq 'const CONDITION_REJECT_THRESHOLD: f64 = 1.0e-3;' "$source"
+      perl -0pi -e 's/const CONDITION_REJECT_THRESHOLD: f64 = 1\.0e-3;/const CONDITION_REJECT_THRESHOLD: f64 = 1.0e-1;/' "$source"
+      grep -Fq 'const CONDITION_REJECT_THRESHOLD: f64 = 1.0e-1;' "$source"
+      ;;
     *)
       printf 'Unknown truss mutation: %s\n' "$mutation" >&2
       return 2
       ;;
   esac
 
-  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" --lib "planar_truss::tests::$test_name" -- --exact >"$log" 2>&1; then
+  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" --lib "$test_filter" -- --exact >"$log" 2>&1; then
     printf 'ERROR: planar-truss mutation survived: %s\n' "$label" >&2
     cat "$log" >&2
     return 1
   fi
-  if ! grep -Fq "test planar_truss::tests::$test_name ... FAILED" "$log"; then
+  if ! grep -Fq "test $test_filter ... FAILED" "$log"; then
     printf 'ERROR: mutant %s failed for a reason other than the expected assertion.\n' "$label" >&2
     cat "$log" >&2
     return 1
@@ -117,8 +129,13 @@ run_mutation \
   "unit-scale-dependent-singularity-floor" \
   absolute_pivot_floor \
   uniform_stiffness_and_load_rescaling_does_not_change_displacement
+run_mutation \
+  "conditioning-threshold-too-permissive" \
+  conditioning_threshold_too_permissive \
+  truss_conditioning::tests::sweep_is_deterministic_and_separates_accepted_from_rejected_cases
 
 test "$truss_sha256" = "$(sha256sum "$crate_dir/src/planar_truss.rs" | awk '{print $1}')"
+test "$conditioning_sha256" = "$(sha256sum "$crate_dir/src/truss_conditioning.rs" | awk '{print $1}')"
 
 jq -n \
   --arg source_commit "$source_commit" \
@@ -168,10 +185,16 @@ jq -n \
         id: "PHYS-TRUSS-MUT-PIVOT-SCALE-001",
         expected_test: "uniform_stiffness_and_load_rescaling_does_not_change_displacement",
         disposition: "detected"
+      },
+      {
+        id: "PHYS-TRUSS-MUT-CONDITION-THRESHOLD-001",
+        expected_test: "truss_conditioning::tests::sweep_is_deterministic_and_separates_accepted_from_rejected_cases",
+        disposition: "detected",
+        source_file: "src/truss_conditioning.rs"
       }
     ],
     summary: {
-      detected: 7,
+      detected: 8,
       undetected: 0,
       invalid_mutant: 0,
       equivalent_mutant: 0,
@@ -183,9 +206,9 @@ jq -e '
   .schema_version == "planar-truss-mutation-receipt-v0.1"
   and (.source_commit | type == "string" and length == 40)
   and .baseline_control.disposition == "pass"
-  and .summary.detected == 7
+  and .summary.detected == 8
   and .summary.undetected == 0
   and ([.mutations[].disposition] | all(. == "detected"))
 ' "$receipt_path" >/dev/null
 
-printf 'Planar-truss mutation sensitivity: 7/7 named defects detected. Receipt: %s\n' "$receipt_path"
+printf 'Planar-truss mutation sensitivity: 8/8 named defects detected. Receipt: %s\n' "$receipt_path"
