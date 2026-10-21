@@ -18,3 +18,8 @@ serde_json = "=1.0.154"
 name = "functional_envelope_scaling"
 path = "benches/functional_envelope_scaling.rs"
 harness = false
+
+[[bench]]
+name = "alternative_frontier_scaling"
+path = "benches/alternative_frontier_scaling.rs"
+harness = false
