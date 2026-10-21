@@ -11,7 +11,9 @@ The catalog now has an explicit `dispatch_policy` field. Omitting it remains bac
 - **`fifo`**: remove the oldest job from the station's input queue.
 - **`minimize_changeover`**: when an idle server has a prior variant, select the oldest waiting job of that variant if one exists; otherwise select the oldest waiting job. The policy uses that server's recorded last variant, does not look ahead at future events, and applies separately to the source buffer and each station input buffer.
 
-The variant-aware policy preserves FIFO within a variant by selecting the first matching queue position. Each job carries a consecutive-skip counter while waiting in one queue. Every time a later queued job is selected ahead of it, the counter increments; queue transfer resets the counter. Once the oldest job reaches `maximum_consecutive_skips`, it is forced through before a later matching job can be selected. The setting must be positive. Tie-breaking and server visitation order are deterministic.
+The variant-aware policy preserves FIFO within a variant by selecting the first matching queue position. Each job carries a consecutive-skip counter while waiting in one queue. Every time a later queued job is selected ahead of it, the counter increments; queue transfer resets the counter. Once the oldest job reaches `maximum_consecutive_skips`, it is forced through before a later matching job can be selected.
+
+It also applies an **elapsed-age priority override**: when the oldest queued job's time in that queue reaches `maximum_queue_age_seconds`, it is selected before a later matching variant. The fixture makes this threshold explicit at 900 seconds; omission in older catalogs defaults to 900 for backward compatibility. This is a synthetic benchmark knob, not a plant-derived service-level target. The threshold is checked only when an idle server has a dispatch opportunity: it is not a guaranteed maximum waiting time, because server occupancy, failures, blocking, and downstream congestion may continue to delay the job. The age override and consecutive-skip rule are separate guards.
 
 This is a bounded local queue-selection rule, not a global optimizer, due-date scheduler, sequence planner, or safe plant controller. Job ID inversion remains a release-order proxy rather than a complete customer-order or service-level model.
 
@@ -33,7 +35,8 @@ A finite maximum consecutive-skip rule bounds how many later jobs can bypass an 
 
 ## Required controls and interpretation
 
-- **Legacy control:** omission of `dispatch_policy` defaults to FIFO, and omission of `maximum_consecutive_skips` defaults to 3.
+- **Legacy control:** omission of `dispatch_policy` defaults to FIFO, omission of `maximum_consecutive_skips` defaults to 3, and omission of `maximum_queue_age_seconds` defaults to 900.
+- **Age-priority control:** an aged queue-front job must override variant matching at the configured threshold; a zero threshold is rejected. The threshold is not asserted as a hard wait-time guarantee.
 - **Queue unit tests:** deterministic FIFO tie-break, oldest matching variant, FIFO within variant, fallback when no matching variant exists, and forced service after the maximum skip count.
 - **Homogeneous/no-setup control:** one product variant and zero changeover durations must produce the same system behavior under FIFO and `minimize_changeover`.
 - **Shared streams:** FIFO and variant-aware runs use the same ordered replication seeds, job release sequence, quality/failure keys and supplier stream.
