@@ -293,12 +293,13 @@ fn compare_interval_dominance(
                 right_strict |= right_value.lower > left_value.upper;
             }
         }
+
+        if !left_non_worse && !right_non_worse {
+            return IntervalDominanceRelation::Incomparable;
+        }
     }
 
-    match (
-        left_non_worse && left_strict,
-        right_non_worse && right_strict,
-    ) {
+    match (left_non_worse && left_strict, right_non_worse && right_strict) {
         (true, false) => IntervalDominanceRelation::LeftDominates,
         (false, true) => IntervalDominanceRelation::RightDominates,
         _ => IntervalDominanceRelation::Incomparable,
