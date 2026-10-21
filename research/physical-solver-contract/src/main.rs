@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
+    calculix_rf_restricted::normalize_restricted_rf_bytes,
     equilibrium::assess_equilibrium_bytes, mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
     validate_solver_receipt_bytes, verify_solver_output_artifact_bytes,
@@ -22,6 +23,10 @@ fn run() -> Result<(), String> {
     let mut receipt_path: Option<String> = None;
     let mut mesh_study_path: Option<String> = None;
     let mut equilibrium_manifest_path: Option<String> = None;
+    let mut restricted_rf_manifest_path: Option<String> = None;
+    let mut deck_path: Option<String> = None;
+    let mut dat_path: Option<String> = None;
+    let mut node_catalog_path: Option<String> = None;
     let mut reaction_force_output_id: Option<String> = None;
     let mut reaction_moment_output_id: Option<String> = None;
     let mut artifact_root: Option<String> = None;
@@ -38,6 +43,50 @@ fn run() -> Result<(), String> {
                 request_path = Some(
                     args.get(i + 1)
                         .ok_or_else(|| "--request requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--restricted-rf-manifest" => {
+                if restricted_rf_manifest_path.is_some() {
+                    return Err("--restricted-rf-manifest may be supplied only once".to_owned());
+                }
+                restricted_rf_manifest_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--restricted-rf-manifest requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--deck" => {
+                if deck_path.is_some() {
+                    return Err("--deck may be supplied only once".to_owned());
+                }
+                deck_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--deck requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--dat" => {
+                if dat_path.is_some() {
+                    return Err("--dat may be supplied only once".to_owned());
+                }
+                dat_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--dat requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--node-catalog" => {
+                if node_catalog_path.is_some() {
+                    return Err("--node-catalog may be supplied only once".to_owned());
+                }
+                node_catalog_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--node-catalog requires a path".to_owned())?
                         .clone(),
                 );
                 i += 2;
@@ -151,10 +200,48 @@ fn run() -> Result<(), String> {
         }
     }
 
+    if let Some(manifest_path) = restricted_rf_manifest_path.as_deref() {
+        if mesh_study_path.is_some()
+            || equilibrium_manifest_path.is_some()
+            || reaction_force_output_id.is_some()
+            || reaction_moment_output_id.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || validator_revision.is_some()
+        {
+            return Err("--restricted-rf-manifest cannot be combined with mesh-study, equilibrium, reference-comparison, or request-validator options".to_owned());
+        }
+        let request_path = request_path.ok_or_else(|| "--restricted-rf-manifest requires --request".to_owned())?;
+        let deck_path = deck_path.ok_or_else(|| "--restricted-rf-manifest requires --deck".to_owned())?;
+        let dat_path = dat_path.ok_or_else(|| "--restricted-rf-manifest requires --dat".to_owned())?;
+        let node_catalog_path = node_catalog_path.ok_or_else(|| "--restricted-rf-manifest requires --node-catalog".to_owned())?;
+        let request_bytes = fs::read(&request_path).map_err(|error| format!("could not read request {request_path}: {error}"))?;
+        let deck_bytes = fs::read(&deck_path).map_err(|error| format!("could not read deck {deck_path}: {error}"))?;
+        let dat_bytes = fs::read(&dat_path).map_err(|error| format!("could not read .dat output {dat_path}: {error}"))?;
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| format!("could not read restricted RF manifest {manifest_path}: {error}"))?;
+        let catalog_bytes = fs::read(&node_catalog_path).map_err(|error| format!("could not read node catalogue {node_catalog_path}: {error}"))?;
+        let report = normalize_restricted_rf_bytes(
+            &request_bytes, &deck_bytes, &dat_bytes, &manifest_bytes, &catalog_bytes,
+        )?;
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|error| format!("report serialization failed: {error}"))?
+        );
+        return Ok(());
+    }
+    if deck_path.is_some() || dat_path.is_some() || node_catalog_path.is_some() {
+        return Err("--deck, --dat and --node-catalog require --restricted-rf-manifest".to_owned());
+    }
+
     if let Some(study_path) = mesh_study_path.as_deref() {
         if request_path.is_some()
             || receipt_path.is_some()
             || equilibrium_manifest_path.is_some()
+            || restricted_rf_manifest_path.is_some()
+            || deck_path.is_some()
+            || dat_path.is_some()
+            || node_catalog_path.is_some()
             || reaction_force_output_id.is_some()
             || reaction_moment_output_id.is_some()
             || reference_path.is_some()
@@ -181,6 +268,10 @@ fn run() -> Result<(), String> {
 
     if let Some(manifest_path) = equilibrium_manifest_path {
         if mesh_study_path.is_some()
+            || restricted_rf_manifest_path.is_some()
+            || deck_path.is_some()
+            || dat_path.is_some()
+            || node_catalog_path.is_some()
             || reference_path.is_some()
             || observation_output_id.is_some()
             || validator_revision.is_some()
