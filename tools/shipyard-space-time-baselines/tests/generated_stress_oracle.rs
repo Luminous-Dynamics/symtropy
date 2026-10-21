@@ -170,7 +170,7 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
                 } else {
                     portfolio_rejected_infeasible += 1;
                 }
-            },
+            }
         }
 
         match first_fit_portfolio(yard, &requests, &[]) {
