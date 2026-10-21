@@ -51,7 +51,7 @@ jobs:
           FIXTURES="tools/pcb-route-benchmark/fixtures"
           TMP="$RUNNER_TEMP/pcb-route-benchmark"
           OUT="$GITHUB_WORKSPACE/pcb-route-benchmark-out"
-          mkdir -p "$TMP" "$OUT"
+          mkdir -p "$TMP" "$OUT" "$TMP/series-baseline" "$TMP/series-treatment"
           MANIFEST_SHA=$(sha256sum "$MANIFEST" | cut -d ' ' -f 1)
 
           jq --arg sha "$MANIFEST_SHA" '.dataset_manifest_sha256 = $sha' \
@@ -66,6 +66,17 @@ jobs:
             validate "$TMP/treatment.json" "$MANIFEST" > "$OUT/treatment-receipt.json"
           cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
             compare "$TMP/baseline.json" "$TMP/treatment.json" "$MANIFEST" > "$OUT/paired-comparison.json"
+
+          for seed in 17 23 31; do
+            jq --arg sha "$MANIFEST_SHA" --argjson seed "$seed" \
+              '.dataset_manifest_sha256 = $sha | .seed = $seed | .run_id = (.run_id + "-seed-" + ($seed | tostring))' \
+              "$FIXTURES/synthetic-baseline-run-v0_1.json" > "$TMP/series-baseline/run-$seed.json"
+            jq --arg sha "$MANIFEST_SHA" --argjson seed "$seed" \
+              '.dataset_manifest_sha256 = $sha | .seed = $seed | .run_id = (.run_id + "-seed-" + ($seed | tostring))' \
+              "$FIXTURES/synthetic-treatment-run-v0_1.json" > "$TMP/series-treatment/run-$seed.json"
+          done
+          cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+            compare-series "$TMP/series-baseline" "$TMP/series-treatment" "$MANIFEST" > "$OUT/replicated-comparison.json"
 
           jq -e --arg head "$(git rev-parse HEAD)" '
             .schema == "pcb-route-validation-receipt-v0.1"
@@ -97,9 +108,27 @@ jobs:
             and (.board_pairs | length) == 6
           ' "$OUT/paired-comparison.json" > /dev/null
 
+          jq -e --arg head "$(git rev-parse HEAD)" '
+            .schema == "pcb-route-replicated-comparison-v0.1"
+            and .evaluator_git_head == $head
+            and .summary.board_count == 6
+            and .summary.seed_count == 3
+            and .summary.paired_attempt_count == 18
+            and .summary.baseline_valid_attempts == 6
+            and .summary.treatment_valid_attempts == 12
+            and (.summary.completion_delta_percentage_points - 33.333333333333336 | fabs) < 0.000001
+            and .summary.completion_delta_95_ci_board_clustered.resamples == 10000
+            and (.seed_pairs | length) == 3
+            and (.boards | length) == 6
+          ' "$OUT/replicated-comparison.json" > /dev/null
+
           cp "$MANIFEST" "$OUT/synthetic-dataset-manifest.json"
           cp "$TMP/baseline.json" "$OUT/synthetic-baseline-run.json"
           cp "$TMP/treatment.json" "$OUT/synthetic-treatment-run.json"
+          cp "$OUT/replicated-comparison.json" "$OUT/replicated-comparison.json"
+          mkdir -p "$OUT/replicates"
+          cp "$TMP"/series-baseline/*.json "$OUT/replicates/"
+          cp "$TMP"/series-treatment/*.json "$OUT/replicates/"
           (
             cd "$OUT"
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
