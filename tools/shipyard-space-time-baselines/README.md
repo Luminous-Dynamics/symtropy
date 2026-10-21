@@ -22,6 +22,17 @@ Every output scenario is passed to the independent space-time verifier. The base
 
 Unit cases cover concurrent non-overlapping placements, temporal reuse of the same space, exclusion-zone avoidance, exhausted-yard rejection, deterministic replay, empty input and unsupported exclusion geometry. A separate integration test independently enumerates all legal integer placements in 216 tiny three-block cases using cell-set collision checks, then compares exact feasibility with both policies. Frozen expected counts are 154 exact-feasible cases and 62 infeasible cases. Caller-order first-fit solves 150 feasible cases, misses four (4/154 ≈ 2.6%), and rejects the 62 infeasible cases. Decreasing-area first-fit is expected to solve all 154 feasible cases, miss zero, and reject the same 62 infeasible cases, with zero false-feasible outputs for both. One known feasible packing that caller-order first-fit misses is explicitly included and is expected to be solved by the decreasing-area policy. These are authored expectations until exact-head CI passes; the 3-block integer-lattice family is deliberately too small to imply general or industrial superiority.
 
+## Generated four-block stress family
+
+The integration test `tests/generated_stress_oracle.rs` uses a pinned xorshift seed (`0x5eed_c0de`) to generate 512 four-block requests on a 5×5 integer yard. An independent 25-bit cell-occupancy recursion decides exact feasibility; it does not use production rectangle overlap or candidate-coordinate generation.
+
+Pinned expected outputs:
+- exactly feasible: 205; infeasible: 307;
+- caller-order first-fit: 179 solved, 26 feasible cases missed, 307 infeasible cases rejected, zero false-feasible outputs;
+- decreasing-area first-fit: 197 solved, 8 feasible cases missed, 307 infeasible cases rejected, zero false-feasible outputs.
+
+This family suggests decreasing-area ordering closes 18 of the 26 missed-feasible cases in this generator (+8.8 percentage points of all exactly feasible cases, from 179/205 = 87.3% to 197/205 = 96.1%). Those are target outputs from an independent development-time enumeration and pinned test expectations; the committed Rust run must pass before this is reported as verified. The family is synthetic, uses four axis-aligned rectangles and no disruptions, and is not an industrial or SOTA comparison.
+
 ## Claim boundary
 
 This is a transparent baseline, not a globally optimal bottom-left solver. It does not support irregular polygons, rotation, block transfer routes, cranes, lifting/rigging, multi-capacity vehicles, vertical clearance, stacking, floor bearing, or operational safety. A passing synthetic case does not establish industrial throughput, cost savings or superiority to a published solver.
