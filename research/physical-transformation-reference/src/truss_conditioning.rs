@@ -378,7 +378,7 @@ mod tests {
         );
         for case in &first.cases {
             if case.disposition == "accepted" {
-                assert!(case.forward_error_relative.is_some_and(f64::is_finite));
+                assert!(case.forward_error_relative.is_some_and(|value| value.is_finite()));
                 assert!(case.backward_error_relative.is_some_and(f64::is_finite));
                 assert!(case.forward_error_acceptance_limit.is_some_and(f64::is_finite));
                 assert!(case.normalized_energy_residual.is_some_and(f64::is_finite));
