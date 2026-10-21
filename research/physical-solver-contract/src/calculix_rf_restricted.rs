@@ -1496,7 +1496,7 @@ RF
     }
 
     #[test]
-    fn Cload_at_support_is_rejected_by_support_load_disjointness() {
+    fn cload_at_support_is_rejected_by_support_load_disjointness() {
         let deck = DECK.replace("2,1,1000.", "1,1,1000.");
         let mut b = bundle_with(&deck, DAT);
         let mut manifest: Value = serde_json::from_slice(&b.manifest).unwrap();
