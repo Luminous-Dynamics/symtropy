@@ -62,7 +62,9 @@ impl CaseKind {
             Self::SimplySupportedUniformLoad => {
                 "small_deflection_euler_bernoulli_simply_supported_uniform_load"
             }
-            Self::PlanarTrussTwoBar => "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss",
+            Self::PlanarTrussTwoBar => {
+                "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss"
+            }
         }
     }
 
@@ -343,8 +345,14 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
                 ("span_m".to_owned(), number("span_m")?),
                 ("apex_x_m".to_owned(), number("apex_x_m")?),
                 ("apex_height_m".to_owned(), number("apex_height_m")?),
-                ("axial_rigidity_a_n".to_owned(), number("axial_rigidity_a_n")?),
-                ("axial_rigidity_b_n".to_owned(), number("axial_rigidity_b_n")?),
+                (
+                    "axial_rigidity_a_n".to_owned(),
+                    number("axial_rigidity_a_n")?,
+                ),
+                (
+                    "axial_rigidity_b_n".to_owned(),
+                    number("axial_rigidity_b_n")?,
+                ),
                 ("force_x_n".to_owned(), number("force_x_n")?),
                 ("force_y_n".to_owned(), number("force_y_n")?),
             ]);
