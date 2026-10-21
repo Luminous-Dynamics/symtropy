@@ -6,7 +6,7 @@ on:
       - feat/furnishing-spatial-index-benchmark-v0-3-20261020
       - feat/interior-verified-pareto-frontier-v0-1-20261021-ready
   pull_request:
-    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020", "feat/interior-verified-pareto-frontier-v0-1-20261021-ready"]
+    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020", "feat/interior-verified-pareto-frontier-v0-1-20261021-ready", "feat/interior-interval-robust-frontier-v0-1-20261021", "feat/interior-interval-adaptive-frontier-v0-1-20261021"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
