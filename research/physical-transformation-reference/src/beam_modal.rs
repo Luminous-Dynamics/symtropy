@@ -443,7 +443,52 @@ mod tests {
         assemble_released_joint_pin_truss,
     };
 
-    use super::{BeamModeClass, solve_beam_pin_assembly_modes};
+    use super::{
+        BeamModeClass, modal_assurance_criterion, sample_beam_chain_mode_on_fixed_grid,
+        solve_beam_pin_assembly_modes,
+    };
+
+    fn chain_fixture(
+        elements_per_member: usize,
+    ) -> (Vec<BeamPinNode>, Vec<BeamMemberChain>) {
+        let nodes = vec![
+            BeamPinNode {
+                id: "A".to_owned(),
+                x_m: 0.0,
+                y_m: 1.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "B".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "C".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrain_x: false,
+                restrain_y: false,
+            },
+        ];
+        let members = ["AC", "BC"]
+            .into_iter()
+            .map(|id| BeamMemberChain {
+                id: id.to_owned(),
+                start_node_id: if id == "AC" { "A" } else { "B" }.to_owned(),
+                end_node_id: "C".to_owned(),
+                area_m2: 3.141592653589793e-4,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7800.0,
+                second_moment_m4: 7.853981633974483e-9,
+                elements_per_member,
+            })
+            .collect();
+        (nodes, members)
+    }
 
     fn fixture() -> crate::beam_pin_assembly::BeamPinAssembly {
         let nodes = vec![
@@ -549,6 +594,73 @@ mod tests {
                 assert_eq!(mode.shape_global_dofs[*fixed_dof], 0.0);
             }
         }
+    }
+
+    #[test]
+    fn mac_is_sign_invariant_and_fail_closed_on_incompatible_vectors() {
+        assert!(
+            (modal_assurance_criterion(&[1.0, -2.0, 3.0], &[-2.0, 4.0, -6.0])
+                .expect("sign invariant MAC")
+                - 1.0)
+                .abs()
+                < 1.0e-14
+        );
+        assert!(
+            modal_assurance_criterion(&[1.0, 0.0], &[0.0, 1.0])
+                .expect("orthogonal MAC")
+                .abs()
+                < 1.0e-14
+        );
+        assert!(modal_assurance_criterion(&[1.0], &[1.0, 2.0]).is_err());
+        assert!(modal_assurance_criterion(&[0.0, 0.0], &[1.0, 0.0]).is_err());
+    }
+
+    #[test]
+    fn fixed_grid_mode_sampling_is_invariant_for_rigid_translation_across_meshes() {
+        let (nodes_1, members_1) = chain_fixture(1);
+        let assembly_1 = assemble_released_joint_beam_chains(&nodes_1, &members_1)
+            .expect("coarse member-chain assembly");
+        let (nodes_4, members_4) = chain_fixture(4);
+        let assembly_4 = assemble_released_joint_beam_chains(&nodes_4, &members_4)
+            .expect("refined member-chain assembly");
+
+        let make_translation = |assembly: &crate::beam_pin_assembly::BeamPinAssembly| {
+            let mut shape = vec![0.0; assembly.stiffness_global.len()];
+            for descriptor in &assembly.dof_descriptors {
+                match &descriptor.kind {
+                    crate::beam_pin_assembly::BeamPinDofKind::NodeTranslationX { .. } => {
+                        shape[descriptor.index] = 0.25;
+                    }
+                    crate::beam_pin_assembly::BeamPinDofKind::NodeTranslationY { .. } => {
+                        shape[descriptor.index] = -0.5;
+                    }
+                    _ => {}
+                }
+            }
+            super::BeamModalMode {
+                eigenvalue_rad_s_squared: 1.0,
+                frequency_hz: Some(1.0 / (2.0 * std::f64::consts::PI)),
+                class: BeamModeClass::Elastic,
+                shape_global_dofs: shape,
+                normalized_eigen_residual: 0.0,
+                mass_norm_residual: 0.0,
+            }
+        };
+        let mode_1 = make_translation(&assembly_1);
+        let mode_4 = make_translation(&assembly_4);
+        let samples_1 =
+            sample_beam_chain_mode_on_fixed_grid(&nodes_1, &members_1, &assembly_1, &mode_1, 17)
+                .expect("coarse samples");
+        let samples_4 =
+            sample_beam_chain_mode_on_fixed_grid(&nodes_4, &members_4, &assembly_4, &mode_4, 17)
+                .expect("refined samples");
+        assert_eq!(samples_1.len(), 2 * 17 * 2);
+        assert_eq!(samples_1, samples_4);
+        assert!(
+            (modal_assurance_criterion(&samples_1, &samples_4).expect("same-grid MAC") - 1.0)
+                .abs()
+                < 1.0e-14
+        );
     }
 
     #[test]
