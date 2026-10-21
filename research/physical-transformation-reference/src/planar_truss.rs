@@ -997,6 +997,245 @@ mod tests {
     }
 
     #[test]
+    fn fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle() {
+        // Sweep nonsymmetric geometry and mixed loading. The oracle is a
+        // separately evaluated 2x2 stiffness inverse, not the solver assembly.
+        let mut seed = 0x4153_594D_5452_5553_u64;
+        const CASES: usize = 128;
+
+        for case_index in 0..CASES {
+            let base_span_m = sample_between(&mut seed, 2.0, 6.0);
+            let apex_x_m = sample_between(&mut seed, 0.2 * base_span_m, 0.8 * base_span_m);
+            let apex_y_m = sample_between(&mut seed, 0.5, 3.0);
+            let youngs_modulus_pa = sample_between(&mut seed, 50.0e9, 210.0e9);
+            let stiffness_a = sample_between(&mut seed, 1.0e7, 1.0e10);
+            let stiffness_b = sample_between(&mut seed, 0.7e7, 1.3e10);
+            let force_x_n = sample_between(&mut seed, -3_000.0, 3_000.0);
+            let force_y_n = sample_between(&mut seed, -3_000.0, 3_000.0);
+
+            let dx_a = apex_x_m;
+            let dy_a = apex_y_m;
+            let length_a = dx_a.hypot(dy_a);
+            let cosine_a = dx_a / length_a;
+            let sine_a = dy_a / length_a;
+
+            let dx_b = apex_x_m - base_span_m;
+            let dy_b = apex_y_m;
+            let length_b = dx_b.hypot(dy_b);
+            let cosine_b = dx_b / length_b;
+            let sine_b = dy_b / length_b;
+
+            let area_a = stiffness_a * length_a / youngs_modulus_pa;
+            let area_b = stiffness_b * length_b / youngs_modulus_pa;
+            let kxx = stiffness_a * cosine_a * cosine_a + stiffness_b * cosine_b * cosine_b;
+            let kxy = stiffness_a * cosine_a * sine_a + stiffness_b * cosine_b * sine_b;
+            let kyy = stiffness_a * sine_a * sine_a + stiffness_b * sine_b * sine_b;
+            let determinant = kxx * kyy - kxy * kxy;
+            assert!(
+                determinant.is_finite() && determinant > 0.0,
+                "case {case_index} independent oracle has invalid determinant={determinant:.17e}"
+            );
+
+            let expected_ux = (kyy * force_x_n - kxy * force_y_n) / determinant;
+            let expected_uy = (kxx * force_y_n - kxy * force_x_n) / determinant;
+            let expected_extension_a = cosine_a * expected_ux + sine_a * expected_uy;
+            let expected_extension_b = cosine_b * expected_ux + sine_b * expected_uy;
+            let expected_force_a = stiffness_a * expected_extension_a;
+            let expected_force_b = stiffness_b * expected_extension_b;
+            let expected_energy = 0.5 * (force_x_n * expected_ux + force_y_n * expected_uy);
+            assert!(
+                expected_energy.is_finite() && expected_energy >= 0.0,
+                "case {case_index} independent oracle energy={expected_energy:.17e}"
+            );
+
+            let mut input = PlanarTrussInput {
+                nodes: vec![
+                    TrussNode {
+                        id: "A".to_owned(),
+                        x_m: 0.0,
+                        y_m: 0.0,
+                        restrained_x: true,
+                        restrained_y: true,
+                        force_x_n: 0.0,
+                        force_y_n: 0.0,
+                    },
+                    TrussNode {
+                        id: "B".to_owned(),
+                        x_m: base_span_m,
+                        y_m: 0.0,
+                        restrained_x: true,
+                        restrained_y: true,
+                        force_x_n: 0.0,
+                        force_y_n: 0.0,
+                    },
+                    TrussNode {
+                        id: "C".to_owned(),
+                        x_m: apex_x_m,
+                        y_m: apex_y_m,
+                        restrained_x: false,
+                        restrained_y: false,
+                        force_x_n,
+                        force_y_n,
+                    },
+                ],
+                bars: vec![
+                    TrussBar {
+                        id: "AC".to_owned(),
+                        node_i: "A".to_owned(),
+                        node_j: "C".to_owned(),
+                        area_m2: area_a,
+                        youngs_modulus_pa,
+                    },
+                    TrussBar {
+                        id: "BC".to_owned(),
+                        node_i: "B".to_owned(),
+                        node_j: "C".to_owned(),
+                        area_m2: area_b,
+                        youngs_modulus_pa,
+                    },
+                ],
+            };
+            if case_index % 2 == 1 {
+                input.nodes.reverse();
+                input.bars.reverse();
+            }
+
+            let result = solve(&input)
+                .unwrap_or_else(|error| panic!("asymmetric truss case {case_index}: {error}"));
+            let apex = node(&result, "C");
+            let support_a = node(&result, "A");
+            let support_b = node(&result, "B");
+            let bar_a = result
+                .bar_results
+                .iter()
+                .find(|member| member.bar_id == "AC")
+                .unwrap_or_else(|| panic!("case {case_index} missing AC result"));
+            let bar_b = result
+                .bar_results
+                .iter()
+                .find(|member| member.bar_id == "BC")
+                .unwrap_or_else(|| panic!("case {case_index} missing BC result"));
+            let tolerance =
+                |expected: f64, relative: f64, floor: f64| (expected.abs() * relative).max(floor);
+
+            close(
+                apex.displacement_x_m,
+                expected_ux,
+                tolerance(expected_ux, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} apex x"),
+            );
+            close(
+                apex.displacement_y_m,
+                expected_uy,
+                tolerance(expected_uy, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} apex y"),
+            );
+            close(
+                bar_a.axial_extension_m,
+                expected_extension_a,
+                tolerance(expected_extension_a, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} AC extension"),
+            );
+            close(
+                bar_b.axial_extension_m,
+                expected_extension_b,
+                tolerance(expected_extension_b, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} BC extension"),
+            );
+            close(
+                bar_a.axial_force_n,
+                expected_force_a,
+                tolerance(expected_force_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} AC force"),
+            );
+            close(
+                bar_b.axial_force_n,
+                expected_force_b,
+                tolerance(expected_force_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} BC force"),
+            );
+            close(
+                bar_a.axial_stress_pa,
+                expected_force_a / area_a,
+                tolerance(expected_force_a / area_a, 1.0e-9, 1.0e-3),
+                &format!("case {case_index} AC stress"),
+            );
+            close(
+                bar_b.axial_stress_pa,
+                expected_force_b / area_b,
+                tolerance(expected_force_b / area_b, 1.0e-9, 1.0e-3),
+                &format!("case {case_index} BC stress"),
+            );
+            close(
+                bar_a.axial_strain,
+                expected_extension_a / length_a,
+                tolerance(expected_extension_a / length_a, 1.0e-9, 1.0e-15),
+                &format!("case {case_index} AC strain"),
+            );
+            close(
+                bar_b.axial_strain,
+                expected_extension_b / length_b,
+                tolerance(expected_extension_b / length_b, 1.0e-9, 1.0e-15),
+                &format!("case {case_index} BC strain"),
+            );
+            close(
+                support_a.reaction_x_n.expect("A x reaction"),
+                -expected_force_a * cosine_a,
+                tolerance(expected_force_a * cosine_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} A x reaction"),
+            );
+            close(
+                support_a.reaction_y_n.expect("A y reaction"),
+                -expected_force_a * sine_a,
+                tolerance(expected_force_a * sine_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} A y reaction"),
+            );
+            close(
+                support_b.reaction_x_n.expect("B x reaction"),
+                -expected_force_b * cosine_b,
+                tolerance(expected_force_b * cosine_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} B x reaction"),
+            );
+            close(
+                support_b.reaction_y_n.expect("B y reaction"),
+                -expected_force_b * sine_b,
+                tolerance(expected_force_b * sine_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} B y reaction"),
+            );
+            close(
+                result.energy.strain_energy_j,
+                expected_energy,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} strain energy"),
+            );
+            close(
+                result.energy.external_work_j,
+                expected_energy,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} external work"),
+            );
+            close(
+                result.energy.residual_j,
+                0.0,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} energy residual"),
+            );
+
+            for (label, residual) in [
+                ("force", result.equilibrium.normalized_force_residual),
+                ("moment", result.equilibrium.normalized_moment_residual),
+                ("free-DOF", result.equilibrium.normalized_free_dof_residual),
+                ("energy", result.energy.normalized_residual),
+            ] {
+                assert!(
+                    residual < 1.0e-12,
+                    "asymmetric case {case_index} normalized {label} residual={residual:.17e}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form() {
         // Fixed seed and bounded ranges make every case reproducible. These are
         // numerical coverage ranges for the declared linear-elastic model, not
