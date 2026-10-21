@@ -60,6 +60,11 @@ run_mutation() {
       perl -0pi -e 's/let rotary_mass_factor = density_kg_m3 \* second_moment_m4 \/ \(30\.0 \* length_m\);/let rotary_mass_factor = density_kg_m3 * second_moment_m4 \/ (30.0 * length_m * length_m);/' "$source"
       grep -Fq 'let rotary_mass_factor = density_kg_m3 * second_moment_m4 / (30.0 * length_m * length_m);' "$source"
       ;;
+    local_to_global_transverse_sign)
+      grep -Fq '[-sine, cosine, 0.0, 0.0, 0.0, 0.0],' "$source"
+      perl -0pi -e 's/\[-sine, cosine, 0\.0, 0\.0, 0\.0, 0\.0\],/[sine, -cosine, 0.0, 0.0, 0.0, 0.0],/' "$source"
+      grep -Fq '[sine, -cosine, 0.0, 0.0, 0.0, 0.0],' "$source"
+      ;;
     *)
       printf 'Unknown beam-element mutation: %s\n' "$mutation" >&2
       return 2
@@ -84,6 +89,7 @@ run_mutation "bending-coupling-sign" bending_coupling_sign bending_stiffness_mat
 run_mutation "axial-stiffness-area-omitted" axial_stiffness_omits_area axial_stiffness_and_consistent_mass_match_closed_forms
 run_mutation "rotary-inertia-omitted" rotary_inertia_omitted rotary_inertia_is_separate_and_scales_with_density_and_second_moment
 run_mutation "rotary-inertia-length-exponent" rotary_inertia_wrong_length_exponent rotary_inertia_is_separate_and_scales_with_density_and_second_moment
+run_mutation "local-to-global-transverse-sign" local_to_global_transverse_sign rigid_body_translation_and_rotation_have_zero_internal_force
 
 test "$beam_sha256" = "$(sha256sum "$crate_dir/src/beam_element.rs" | awk '{print $1}')"
 
@@ -124,6 +130,12 @@ jq -n \
       {
         id: "PHYS-BEAM-MUT-ROTARY-EXPONENT-001",
         expected_test: "rotary_inertia_is_separate_and_scales_with_density_and_second_moment",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MUT-GLOBAL-TRANSVERSE-SIGN-001",
+        expected_test: "rigid_body_translation_and_rotation_have_zero_internal_force",
         disposition: "detected"
       }
     ],
