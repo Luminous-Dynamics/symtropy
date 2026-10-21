@@ -699,22 +699,14 @@ mod tests {
         // truss frequencies: CS1 uses consistent mass, CS2 uses lumped mass.
         // Values are published to two decimals / one decimal, respectively.
         let cases = [
-            (
-                ModalTrussMassFormulation::Consistent,
-                [452.09, 1_114.6],
-            ),
-            (
-                ModalTrussMassFormulation::RowSumLumped,
-                [369.13, 910.05],
-            ),
+            (ModalTrussMassFormulation::Consistent, [452.09, 1_114.6]),
+            (ModalTrussMassFormulation::RowSumLumped, [369.13, 910.05]),
         ];
 
         for (formulation, expected_frequencies_hz) in cases {
-            let result = analyze_planar_modal_truss(
-                &nafems_challenge5_reference_fixture(),
-                formulation,
-            )
-            .expect("supported NAFEMS Challenge 5 single-element truss");
+            let result =
+                analyze_planar_modal_truss(&nafems_challenge5_reference_fixture(), formulation)
+                    .expect("supported NAFEMS Challenge 5 single-element truss");
             assert_eq!(result.modes.len(), 2);
             assert_eq!(result.near_zero_mode_count, 0);
             assert!(result.maximum_mass_orthogonality_residual < 1.0e-10);
