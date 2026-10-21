@@ -567,6 +567,37 @@ mod tests {
             .disposition
     }
 
+    fn pairwise_frontier_ids(candidates: &[AlternativeCandidate]) -> Vec<String> {
+        let mut frontier = Vec::new();
+        for (index, subject) in candidates.iter().enumerate() {
+            let mut subject_objectives = subject.objectives.iter().collect::<Vec<_>>();
+            subject_objectives.sort_by_key(|objective| objective.dimension.clone());
+            let subject_rankable = RankableCandidate {
+                candidate: subject,
+                objectives: subject_objectives,
+            };
+            let is_dominated = candidates.iter().enumerate().any(|(other_index, other)| {
+                if index == other_index {
+                    return false;
+                }
+                let mut other_objectives = other.objectives.iter().collect::<Vec<_>>();
+                other_objectives.sort_by_key(|objective| objective.dimension.clone());
+                dominates(
+                    &RankableCandidate {
+                        candidate: other,
+                        objectives: other_objectives,
+                    },
+                    &subject_rankable,
+                )
+            });
+            if !is_dominated {
+                frontier.push(subject.candidate_id.clone());
+            }
+        }
+        frontier.sort();
+        frontier
+    }
+
     #[test]
     fn returns_non_dominated_tradeoffs_without_scalar_weights() {
         let input = vec![
@@ -757,34 +788,7 @@ mod tests {
             .collect::<Vec<_>>();
         let report = compute_pareto_frontier(&candidates).expect("valid adversarial fixture");
 
-        let mut reference = Vec::new();
-        for (index, subject) in candidates.iter().enumerate() {
-            let mut objectives = subject.objectives.iter().collect::<Vec<_>>();
-            objectives.sort_by_key(|objective| objective.dimension.clone());
-            let subject_rankable = RankableCandidate {
-                candidate: subject,
-                objectives,
-            };
-            let is_dominated = candidates.iter().enumerate().any(|(other_index, other)| {
-                if index == other_index {
-                    return false;
-                }
-                let mut other_objectives = other.objectives.iter().collect::<Vec<_>>();
-                other_objectives.sort_by_key(|objective| objective.dimension.clone());
-                dominates(
-                    &RankableCandidate {
-                        candidate: other,
-                        objectives: other_objectives,
-                    },
-                    &subject_rankable,
-                )
-            });
-            if !is_dominated {
-                reference.push(subject.candidate_id.clone());
-            }
-        }
-        reference.sort();
-        assert_eq!(report.frontier_ids, reference);
+        assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
 
         for result in &report.candidates {
             if let CandidateDisposition::DominatedBy(witness_id) = &result.disposition {
@@ -812,6 +816,49 @@ mod tests {
                 ));
             }
         }
+    }
+
+    #[test]
+    fn two_dimensional_sweep_matches_pairwise_on_generated_grid() {
+        let candidates = (0..257)
+            .map(|index| {
+                let cost = ((index * 37) % 101) as f64;
+                let coverage = ((index * 53) % 97) as f64;
+                candidate(
+                    &format!("generated-{index:03}"),
+                    VerificationStatus::Verified,
+                    two_objectives(cost, coverage),
+                )
+            })
+            .collect::<Vec<_>>();
+        let report = compute_pareto_frontier(&candidates).expect("generated schema is valid");
+        assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
+    }
+
+    #[test]
+    fn higher_dimensional_inputs_use_pairwise_dominance() {
+        let triple = |id: &str, cost: f64, area: f64, coverage: f64| {
+            candidate(
+                id,
+                VerificationStatus::Verified,
+                vec![
+                    objective_in_unit("install_cost", "USD", ObjectiveDirection::Minimize, cost),
+                    objective_in_unit("occupied_area", "m2", ObjectiveDirection::Minimize, area),
+                    objective_in_unit("task_coverage", "ratio", ObjectiveDirection::Maximize, coverage),
+                ],
+            )
+        };
+        let candidates = vec![
+            triple("a", 10.0, 20.0, 80.0),
+            triple("b", 12.0, 15.0, 70.0),
+            triple("c", 11.0, 22.0, 75.0),
+            triple("d", 11.0, 25.0, 85.0),
+            triple("e", 13.0, 30.0, 60.0),
+        ];
+        let report = compute_pareto_frontier(&candidates)
+            .expect("three-dimensional schema is valid");
+        assert_eq!(report.frontier_ids, vec!["a", "b", "d"]);
+        assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
     }
 
     #[test]
