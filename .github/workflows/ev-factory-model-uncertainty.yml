@@ -1,0 +1,111 @@
+name: EV Factory Model Uncertainty
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_model_uncertainty.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_MODEL_UNCERTAINTY_V0_1.md"
+      - ".github/workflows/ev-factory-model-uncertainty.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_model_uncertainty.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_MODEL_UNCERTAINTY_V0_1.md"
+      - ".github/workflows/ev-factory-model-uncertainty.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-uncertainty-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse frozen synthetic fixture
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json
+          jq empty "$FIXTURE"
+          jq -e '
+            .benchmark_id == "EV-FACTORY-MODEL-UNCERTAINTY-001"
+            and .evidence_class == "synthetic"
+            and (.options | length) == 5
+            and (.scenarios | length) == 4
+            and (.option_effects | length) == 20
+            and (.interaction_effects | length) == 40
+            and ([.interaction_effects[].uncertainty_half_width_units_per_hour] | unique) == [0.75]
+          ' "$FIXTURE"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Enumerate exact uncertainty oracle
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json
+          EXPECTED_SHA256=$(sha256sum "$FIXTURE" | cut -d' ' -f1)
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_model_uncertainty -- "$FIXTURE" > ev-factory-model-uncertainty-report.json
+          jq -e --arg digest "$EXPECTED_SHA256" '
+            .benchmark_id == "EV-FACTORY-MODEL-UNCERTAINTY-001"
+            and .source_fixture_sha256 == $digest
+            and .source_evidence_class == "synthetic"
+            and .scenario_count == 4
+            and .option_count == 5
+            and .exact_design_space_size == 32
+            and .feasible_design_count == 28
+            and .infeasible_design_count == 4
+            and .nominal_scenario_robust_best_design_id == "add-body-prep+add-eol-test+improve-yield"
+            and .interval_robust_best_design_id == "extend-buffer"
+            and .minimax_regret_design_id == "add-body-prep+add-eol-test+improve-yield"
+            and ((.nominal_scenario_robust_best_gain_units_per_hour - 2.5) | fabs) < 0.000000001
+            and ((.interval_robust_best_lower_bound_gain_units_per_hour - 0.18) | fabs) < 0.000000001
+            and ((.minimax_regret_upper_bound_units_per_hour - 6.41) | fabs) < 0.000000001
+            and .nominal_choice_and_interval_robust_choice_differ == true
+            and .nominal_choice_and_minimax_regret_choice_differ == false
+            and .coefficient_intervals_are_independent == true
+            and .scenario_probabilities_used == false
+            and .expected_value_reported == false
+            and .roi_computed == false
+            and .all_inputs_are_synthetic == true
+            and .field_sota_claim == false
+            and .production_release_authorized == false
+            and all(.designs[] | select(.feasible == true); (.infeasibility_reasons | length) == 0)
+            and all(.designs[] | select(.feasible == false); (.infeasibility_reasons | length) > 0 and .pareto_frontier_member == false)
+          ' ev-factory-model-uncertainty-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_model_uncertainty -- "$FIXTURE" > ev-factory-model-uncertainty-repeat.json
+          cmp ev-factory-model-uncertainty-report.json ev-factory-model-uncertainty-repeat.json
+      - name: Invalid fixtures fail closed
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json
+          jq '.option_effects += [.option_effects[0]]' "$FIXTURE" > invalid-model-uncertainty-duplicate-effect.json
+          jq '.options = [range(0;11) as $i | { "option_id":("option-" + ($i|tostring)), "label":"synthetic", "capex":0, "staffed_labor_hours_per_shift":0, "active_power_kw":0, "energy_kwh_per_shift":0, "floor_area_sqm":0 }]' "$FIXTURE" > invalid-model-uncertainty-search-cap.json
+          jq '.interaction_effects |= .[1:]' "$FIXTURE" > invalid-model-uncertainty-missing-pair.json
+          jq '.interaction_effects += [{ "scenario_id":"body-prep-constrained", "option_a_id":"add-eol-test", "option_b_id":"add-body-prep", "incremental_good_units_per_hour":0.8, "uncertainty_half_width_units_per_hour":0.1 }]' "$FIXTURE" > invalid-model-uncertainty-reversed-pair.json
+          jq '.option_effects[0].uncertainty_half_width_units_per_hour = -0.1' "$FIXTURE" > invalid-model-uncertainty-negative-width.json
+          for invalid in invalid-model-uncertainty-duplicate-effect.json invalid-model-uncertainty-search-cap.json invalid-model-uncertainty-missing-pair.json invalid-model-uncertainty-reversed-pair.json invalid-model-uncertainty-negative-width.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_model_uncertainty -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid model-uncertainty fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash frozen model and oracle evidence
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_model_uncertainty.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json \
+            docs/research/EV_FACTORY_MODEL_UNCERTAINTY_V0_1.md \
+            ev-factory-model-uncertainty-report.json > ev-factory-model-uncertainty.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-model-uncertainty-report
+          path: |
+            ev-factory-model-uncertainty-report.json
+            ev-factory-model-uncertainty.sha256
+          if-no-files-found: error
