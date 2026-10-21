@@ -46,12 +46,6 @@ struct LoadNodeMap {
 }
 
 #[derive(Clone, Debug)]
-struct SupportNodeMap {
-    target_id: String,
-    node_id: u64,
-}
-
-#[derive(Clone, Debug)]
 struct SupportNode {
     node_id: u64,
     position_m: [f64; 3],
@@ -881,15 +875,13 @@ fn token_field(value: &Value, key: &str, at: &str) -> Check<String> {
     Ok(text.to_owned())
 }
 
-fn field_sha(value: &Value, key: &str, at: &str) -> Check<&'static str> {
+fn field_sha<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
     let text = value.get(key).and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key} must be a string"))?;
     if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
         return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
     }
-    // The borrowed hash is only compared during this call; use a static marker return to keep
-    // call sites simple while performing validation before comparison.
-    Ok(if text.is_empty() { "" } else { "" })
+    Ok(text)
 }
 
 fn field_sha_eq(value: &Value, key: &str, at: &str, expected: &str) -> Check<bool> {
