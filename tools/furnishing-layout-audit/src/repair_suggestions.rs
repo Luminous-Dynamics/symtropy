@@ -86,7 +86,6 @@ struct ItemPlacement {
     y: f64,
     width: f64,
     depth: f64,
-    rotation: u64,
 }
 
 impl ItemPlacement {
@@ -172,7 +171,6 @@ fn item_rect(placement: &Value, catalog: &[Value]) -> Option<ItemPlacement> {
         y,
         width,
         depth,
-        rotation,
     };
     result.rect().valid().then_some(result)
 }
@@ -309,6 +307,8 @@ fn candidate_positions(
     let mut ys = Vec::new();
     push_coordinate(&mut xs, 0.0);
     push_coordinate(&mut ys, 0.0);
+    push_coordinate(&mut xs, moved.x);
+    push_coordinate(&mut ys, moved.y);
     push_coordinate(&mut xs, room_width - moved.width);
     push_coordinate(&mut ys, room_depth - moved.depth);
 
@@ -648,6 +648,18 @@ pub fn suggest_single_item_zone_repairs(
             );
         };
 
+        if candidate_tests.saturating_add(positions.len()) > MAX_CANDIDATE_TESTS {
+            return outcome_report(
+                RepairDisposition::SearchCapped,
+                scenario_id,
+                alternative_id,
+                requirement_id,
+                blockers,
+                0,
+                Vec::new(),
+                vec![format!("total candidate search would exceed {MAX_CANDIDATE_TESTS} position checks")],
+            );
+        }
         candidate_tests = candidate_tests.saturating_add(positions.len());
         for (x, y) in positions {
             if (x - moved.x).abs() <= f64::EPSILON && (y - moved.y).abs() <= f64::EPSILON {
@@ -692,7 +704,7 @@ pub fn suggest_single_item_zone_repairs(
             .total_cmp(&right.displacement_m)
             .then_with(|| left.item_id.cmp(&right.item_id))
             .then_with(|| left.to_x_m.total_cmp(&right.to_x_m))
-            .then_with(|| left.to_y_m.total_cmp(&right.to_y_m)
+            .then_with(|| left.to_y_m.total_cmp(&right.to_y_m))
     });
     candidates.dedup_by(|left, right| {
         left.item_id == right.item_id
