@@ -209,3 +209,10 @@ Sources: FreeRouting's page separates "fully routed" from "clean (0 DRC)" and re
 ### Stronger statistical unit
 
 The board—not each random attempt—is the generalization unit. For multi-attempt stochastic methods, report (a) attempt-level rate as an operational metric, (b) per-board probability/range across attempts, and (c) paired board-level treatment deltas. Bootstrap or otherwise resample board IDs as clusters, carrying the board's repeated attempts together. Do not treat multiple runs on the same board as independent board samples. The current v0.1 CLI pairs one report row per board; seed-level replication and board-cluster bootstrap must be a versioned extension before publishing inferential claims from multi-seed D3-B runs.
+
+
+## Actual-byte run artifact verification (new CLI gate)
+
+The Rust CLI now also exposes `verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT`. It validates the report against the pinned dataset manifest, then canonicalizes every completed attempt's output-board and raw DRC-report path under the declared run root, reads those bytes, computes SHA-256, and checks them against the hashes in the run report. It rejects missing paths/digests for completed attempts, path traversal, root-escaping symlinks, duplicate relative paths/canonical files, and digest mismatches. Its receipt binds the report/manifest hashes and exact evaluator commit.
+
+That closes an integrity gap between "the normalized JSON says a board was clean" and "the native output board and DRC report that the claim refers to are actually present and hash-matched." It **still does not prove the normalized metric fields were extracted faithfully from the raw DRC JSON**; the eventual PCBWorld adapter must parse the pinned engine report, cross-check counts/types and preserve the raw DRC output and invocation metadata. The synthetic tests exercise filesystem/digest contract only, never an actual router.
