@@ -5,9 +5,9 @@
 //! profile checks that a stable dominance witness avoids quadratic report
 //! memory when most candidates are dominated.
 
-use furnishing_layout_audit::{
-    AlternativeCandidate, ObjectiveDirection, ObjectiveEvidence, ObjectiveObservation,
-    VerificationStatus, compute_pareto_frontier,
+use furnishing_layout_audit::alternative_frontier::{
+    compute_pareto_frontier, AlternativeCandidate, ObjectiveDirection, ObjectiveEvidence,
+    ObjectiveObservation, VerificationStatus,
 };
 use std::hint::black_box;
 use std::time::{Duration, Instant};
