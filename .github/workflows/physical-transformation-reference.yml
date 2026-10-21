@@ -92,10 +92,12 @@ jobs:
             and (.claim_ceiling | contains("not_structural_or_collapse_prediction"))
           ' physical-transformation-reference-receipt.json
 
-      - name: Upload deterministic reference receipt
+      - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
-          name: physical-transformation-reference-receipt
-          path: physical-transformation-reference-receipt.json
+          name: physical-transformation-reference-receipts
+          path: |
+            physical-transformation-reference-receipt.json
+            mutation-sensitivity-receipt.json
           if-no-files-found: error
           retention-days: 90
