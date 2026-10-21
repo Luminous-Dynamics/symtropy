@@ -1490,6 +1490,39 @@ U
         .unwrap_err();
         assert!(error.contains("invalid ELEMENT node ID"), "{error}");
 
+        let changed_step_text = String::from_utf8(deck.clone())
+            .unwrap()
+            .replace("*STEP\\n", "*STEP,NLGEOM=YES\\n");
+        let changed_step = changed_step_text.into_bytes();
+        let changed_step_manifest = manifest(&request, &changed_step, &dat, &build);
+        let step_error = compare_displacement_reference_bytes(
+            &request,
+            &changed_step,
+            &dat,
+            &changed_step_manifest,
+            &build,
+        )
+        .unwrap_err();
+        assert!(
+            step_error.contains("unsupported or missing parameters"),
+            "{step_error}"
+        );
+
+        let changed_time_text = String::from_utf8(deck.clone())
+            .unwrap()
+            .replace("1.,1.,1.E-05,1.\\n", "1.,2.,1.E-05,1.\\n");
+        let changed_time = changed_time_text.into_bytes();
+        let changed_time_manifest = manifest(&request, &changed_time, &dat, &build);
+        let time_error = compare_displacement_reference_bytes(
+            &request,
+            &changed_time,
+            &dat,
+            &changed_time_manifest,
+            &build,
+        )
+        .unwrap_err();
+        assert!(time_error.contains("match manifest.target_time"), "{time_error}");
+
         let wrong_build = build_manifest().into_iter().collect::<Vec<_>>();
         let mut changed_build: Value = serde_json::from_slice(&wrong_build).unwrap();
         changed_build["builder_repository_commit"] =
