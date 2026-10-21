@@ -20,6 +20,7 @@ struct FamilySpec {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 struct CandidateGain {
     station_id: String,
+    #[serde(alias = "oracle_mean_paired_gain_units_per_hour")]
     mean_paired_gain_units_per_hour: f64,
 }
 
@@ -149,10 +150,8 @@ fn run() -> Result<(), String> {
         let mut default_value: Option<Value> = None;
         for margin in MARGINS {
             let margin_slug = margin_slug(margin);
-            let ranking_output = run_child(
-                &evaluator,
-                &[simulation_path.as_path(), margin.to_string().as_str()],
-            )?;
+            let ranking_output =
+                run_child_with_margin(&evaluator, &simulation_path, margin)?;
             let ranking_value: Value = serde_json::from_slice(&ranking_output)
                 .map_err(|error| format!("family_{}_margin_{}_invalid_ranking_JSON: {error}", spec.family_id, margin_slug))?;
             let ranking: RankingSummary = serde_json::from_value(ranking_value.clone())
@@ -260,7 +259,7 @@ fn run() -> Result<(), String> {
         scenarios_per_family: family_results.first().map(|family| family.simulation_outcome_rows / family.replication_count.max(1)).unwrap_or(0),
         practical_equivalence_margins_units_per_hour: MARGINS.to_vec(),
         nominal_point_estimate_best_station_id: nominal_point_best,
-        nominal_robust_best_station_id: nominal_robust_best.unwrap_or_default_option(),
+        nominal_robust_best_station_id: nominal_robust_best,
         point_estimate_rank_reversal_count_vs_nominal: reversals,
         robust_best_family_counts: robust_best_counts,
         unresolved_family_count_at_default_margin: unresolved,
@@ -367,7 +366,10 @@ fn apply_family(fixture: &mut Value, family_id: &str) -> Result<(), String> {
                 station["good_yield_fraction"] = json!((current - 0.02).max(0.90));
             }
         }
-        "tight-buffers" => halve_positive(fixture, "source_buffer_capacity")?,
+        "tight-buffers" => {
+            halve_positive(fixture, "source_buffer_capacity")?;
+            halve_buffer_capacities(fixture)?;
+        },
         "downtime-stress" => {
             for station in fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())? {
                 multiply_number(station, "mean_time_between_failures_seconds", 0.5)?;
@@ -383,16 +385,9 @@ fn apply_family(fixture: &mut Value, family_id: &str) -> Result<(), String> {
                 station["good_yield_fraction"] = json!((current - 0.01).max(0.90));
             }
             halve_positive(fixture, "source_buffer_capacity")?;
+            halve_buffer_capacities(fixture)?;
         }
         _ => return Err(format!("unknown_scenario_family_{family_id}")),
-    }
-    if let Some(buffers) = fixture["buffer_capacities"].as_array_mut() {
-        for buffer in buffers {
-            if let Some(value) = buffer.as_u64() {
-                let halved = (value / 2).max(1);
-                *buffer = json!(halved);
-            }
-        }
     }
     Ok(())
 }
@@ -415,6 +410,19 @@ fn multiply_number(value: &mut Value, field: &str, factor: f64) -> Result<(), St
     Ok(())
 }
 
+fn halve_buffer_capacities(fixture: &mut Value) -> Result<(), String> {
+    let buffers = fixture["buffer_capacities"]
+        .as_array_mut()
+        .ok_or_else(|| "buffer_capacities_must_be_array".to_string())?;
+    for buffer in buffers {
+        let value = buffer
+            .as_u64()
+            .ok_or_else(|| "buffer_capacity_must_be_positive_integer".to_string())?;
+        *buffer = json!((value / 2).max(1));
+    }
+    Ok(())
+}
+
 fn halve_positive(value: &mut Value, field: &str) -> Result<(), String> {
     let current = value[field].as_u64().ok_or_else(|| format!("{field}_must_be_positive_integer"))?;
     value[field] = json!((current / 2).max(1));
@@ -427,6 +435,8 @@ fn validate_simulation_output(value: &Value, expected_seed_count: usize) -> Resu
         || value["release_ready"] != false
         || value["replication_count"].as_u64() != Some(expected_seed_count as u64)
         || value["replication_seeds"].as_array().map(Vec::len) != Some(expected_seed_count)
+        || value["replication_outcomes"].as_array().map(Vec::len)
+            != Some(expected_seed_count.saturating_mul(6))
         || value["output_never_exceeds_released_input"] != true
         || value["all_buffers_respected_capacity"] != true
         || value["station_time_accounting_within_horizon"] != true
