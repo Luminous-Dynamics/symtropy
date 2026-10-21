@@ -382,6 +382,71 @@ jobs:
             and (.claim_ceiling | contains("not_member_bending"))
           ' nafems-nbc05-modal-reference-receipt.json
 
+      - name: Verify released-joint beam assembly mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_pin_assembly_mutations.sh
+
+      - name: Re-verify beam element and released-joint assembly sources after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_element.rs
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_pin_assembly.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify deterministic released-joint assembly receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-pin-assembly-reference -- \
+            --source-commit "$source_commit" > beam-pin-assembly-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-pin-assembly-reference -- \
+            --source-commit "$source_commit" > beam-pin-assembly-raw-b.json
+          cmp --silent beam-pin-assembly-raw-a.json beam-pin-assembly-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_pin_assembly_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-pin-assembly-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-pin-assembly-request-v0.1|fixture=PHYS-BEAM-PIN-001|node|A|0|1|true|true|node|B|0|0|true|true|node|C|1|1|false|false|member|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|member|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "f32f853195dfd6f3b117bc547206cbad23ab876eb576ee76a8160a3d32d78dd7"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-pin-assembly-raw-a.json > beam-pin-assembly-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-pin-assembly-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-PIN-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "deterministic-software-assembly"
+            and .result == "pass"
+            and .dof_count == 10
+            and .fixed_dof_indices == [0,1,2,3]
+            and .free_dof_indices == [4,5,6,7,8,9]
+            and .member_end_rotation_indices == [6,7,8,9]
+            and (.dof_descriptors | length == 10)
+            and ([.stiffness_global[6][6],.stiffness_global[7][7],.stiffness_global[8][8],.stiffness_global[9][9]] | all(.[]; . > 0))
+            and ([.mass_global[6][6],.mass_global[7][7],.mass_global[8][8],.mass_global[9][9]] | all(.[]; . > 0))
+            and (.claim_ceiling | contains("no eigen-solution"))
+          ' beam-pin-assembly-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -396,6 +461,8 @@ jobs:
             nafems-nbc05-modal-reference-receipt.json
             nafems-nbc05-mutation-receipt.json
             beam-element-mutation-receipt.json
+            beam-pin-assembly-mutation-receipt.json
+            beam-pin-assembly-receipt.json
             beam-pin-assembly-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
