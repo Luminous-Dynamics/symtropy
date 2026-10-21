@@ -1148,10 +1148,7 @@ fn token<'a>(value: &'a str, label: &str) -> Check<&'a str> {
 }
 
 fn csv_fields(text: &str) -> Vec<&str> {
-    text.split(',')
-        .map(str::trim)
-        .filter(|field| !field.is_empty())
-        .collect()
+    text.split(',').map(str::trim).collect()
 }
 
 fn whitespace_fields(text: &str) -> Vec<&str> {
@@ -1408,6 +1405,23 @@ U
             )
             .is_err()
         );
+
+        // Empty fields are malformed input, not separators to silently discard.
+        let malformed_deck_text = String::from_utf8(deck.clone())
+            .unwrap()
+            .replace("1,1,2\\n", "1,,2\\n");
+        let malformed_deck = malformed_deck_text.into_bytes();
+        let malformed_manifest = manifest(&request, &malformed_deck, &dat, &build);
+        let error = compare_displacement_reference_bytes(
+            &request,
+            &malformed_deck,
+            &dat,
+            &malformed_manifest,
+            &build,
+        )
+        .unwrap_err();
+        assert!(error.contains("invalid ELEMENT node ID"), "{error}");
+
         let wrong_build = build_manifest().into_iter().collect::<Vec<_>>();
         let mut changed_build: Value = serde_json::from_slice(&wrong_build).unwrap();
         changed_build["builder_repository_commit"] =
