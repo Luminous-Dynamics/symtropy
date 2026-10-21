@@ -208,7 +208,7 @@ Sources: FreeRouting's page separates "fully routed" from "clean (0 DRC)" and re
 
 ### Stronger statistical unit
 
-The board—not each random attempt—is the generalization unit. For multi-attempt stochastic methods, report (a) attempt-level rate as an operational metric, (b) per-board probability/range across attempts, and (c) paired board-level treatment deltas. Bootstrap or otherwise resample board IDs as clusters, carrying the board's repeated attempts together. Do not treat multiple runs on the same board as independent board samples. The current v0.1 CLI pairs one report row per board; seed-level replication and board-cluster bootstrap must be a versioned extension before publishing inferential claims from multi-seed D3-B runs.
+The board—not each random attempt—is the generalization unit. For multi-attempt stochastic methods, report (a) attempt-level rate as an operational metric, (b) per-board completion frequency/range across attempts, and (c) paired board-level treatment deltas. Bootstrap board IDs as clusters, carrying the board's repeated attempts together; do not treat multiple runs on the same board as independent board samples. The CLI now has `compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json`: it requires the same declared seed set in both methods, validates each run against identical board bytes/rules/engine/environment, and emits paired per-board rates plus 10,000-resample board-clustered intervals. The simpler `compare` command remains for one paired attempt per board. The series comparison was added after the earlier v0.1 single-run contract; treat its receipt schema (`pcb-route-replicated-comparison-v0.1`) as a separate, explicit evaluation output.
 
 
 ## Actual-byte run artifact verification (new CLI gate)
