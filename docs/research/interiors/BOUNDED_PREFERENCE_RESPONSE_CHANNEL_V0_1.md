@@ -24,6 +24,7 @@ The module tests:
 - fully ambiguous responses yielding zero worst-case regret reduction;
 - unsupported/unmodelled answers producing an explicit outside-channel state;
 - admitted unresolved answers preserving every compatible model;
+- held-out balanced weights producing an indifference absent from the trained model set and surfaced outside-channel;
 - rejection of empty or out-of-range masks;
 - report invariance under input permutations.
 
