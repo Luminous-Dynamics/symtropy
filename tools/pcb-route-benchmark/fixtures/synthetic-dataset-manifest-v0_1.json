@@ -1,0 +1,53 @@
+{
+  "schema": "pcb-route-dataset-manifest-v0.1",
+  "benchmark_id": "pcbworld-bench-contract-smoke",
+  "benchmark_version": "0.1.0",
+  "dataset_id": "synthetic-route-control-set",
+  "split_id": "synthetic-known-answer-v0.1",
+  "evidence_class": "synthetic",
+  "source_url": "https://github.com/LGAI-Research/PCBWorld",
+  "boards": [
+    {
+      "board_id": "easy-001",
+      "input_board_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "required_nets": 2,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/easy-001"
+    },
+    {
+      "board_id": "gridless-002",
+      "input_board_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "required_nets": 5,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/gridless-002"
+    },
+    {
+      "board_id": "crossing-003",
+      "input_board_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "required_nets": 4,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/crossing-003"
+    },
+    {
+      "board_id": "congestion-004",
+      "input_board_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "required_nets": 8,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/congestion-004"
+    },
+    {
+      "board_id": "router-error-005",
+      "input_board_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "required_nets": 4,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/router-error-005"
+    },
+    {
+      "board_id": "upstream-drc-006",
+      "input_board_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "required_nets": 1,
+      "license": "synthetic-fixture",
+      "source_url": "synthetic://pcb-route-benchmark-v0.1/upstream-drc-006"
+    }
+  ]
+}
