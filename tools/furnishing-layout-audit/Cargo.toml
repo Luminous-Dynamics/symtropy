@@ -28,3 +28,8 @@ harness = false
 name = "resident_preference_probe_scaling"
 path = "benches/resident_preference_probe_scaling.rs"
 harness = false
+
+[[bench]]
+name = "response_robustness_scaling"
+path = "benches/response_robustness_scaling.rs"
+harness = false
