@@ -20,12 +20,16 @@ fn close(actual: f64, expected: f64, label: &str) {
 #[test]
 fn named_source_unit_conversions_match_canonical_si_values() {
     close(
-        LengthM::from_millimeters(1_500.0).expect("valid mm length").as_meters(),
+        LengthM::from_millimeters(1_500.0)
+            .expect("valid mm length")
+            .as_meters(),
         1.5,
         "mm to m",
     );
     close(
-        ForceN::from_kilonewtons(0.1).expect("valid kN force").as_newtons(),
+        ForceN::from_kilonewtons(0.1)
+            .expect("valid kN force")
+            .as_newtons(),
         100.0,
         "kN to N",
     );
@@ -69,7 +73,11 @@ fn typed_solver_wrappers_match_independent_si_call_sites() {
     )
     .expect("typed SI bar");
     let raw_bar = raw_axial_bar(4_000.0, 3.0, 0.002, 70.0e9).expect("canonical SI bar");
-    close(typed_bar.axial_stress_pa, raw_bar.axial_stress_pa, "bar stress");
+    close(
+        typed_bar.axial_stress_pa,
+        raw_bar.axial_stress_pa,
+        "bar stress",
+    );
     close(typed_bar.axial_strain, raw_bar.axial_strain, "bar strain");
     close(typed_bar.extension_m, raw_bar.extension_m, "bar extension");
 
@@ -102,9 +110,8 @@ fn typed_solver_wrappers_match_independent_si_call_sites() {
         LengthM::from_millimeters(150.0).unwrap(),
     )
     .expect("typed SI simply-supported beam");
-    let raw_beam =
-        raw_simply_supported_uniform_load(800.0, 4.5, 70.0e9, 6.0e-5, 0.15)
-            .expect("canonical SI simply-supported beam");
+    let raw_beam = raw_simply_supported_uniform_load(800.0, 4.5, 70.0e9, 6.0e-5, 0.15)
+        .expect("canonical SI simply-supported beam");
     close(
         typed_beam.midspan_deflection_m,
         raw_beam.midspan_deflection_m,
