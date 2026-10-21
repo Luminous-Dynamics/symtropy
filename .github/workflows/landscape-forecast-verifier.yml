@@ -44,7 +44,10 @@ jobs:
         run: cargo fmt --manifest-path tools/landscape-forecast-verifier/Cargo.toml -- --check
 
       - name: Run tests
-        run: cargo test --locked --manifest-path tools/landscape-forecast-verifier/Cargo.toml
+        run: cargo test --manifest-path tools/landscape-forecast-verifier/Cargo.toml
+
+      - name: Capture resolved standalone lockfile (temporary bootstrap)
+        run: cat tools/landscape-forecast-verifier/Cargo.lock
 
       - name: Emit and check the frozen synthetic report
         shell: bash
@@ -53,7 +56,7 @@ jobs:
           fixture="docs/research/fixtures/LANDSCAPE_FORECAST_VERIFICATION_V0_1.json"
           report="$RUNNER_TEMP/landscape-forecast-verification.json"
           expected_sha256="$(sha256sum "$fixture" | cut -d ' ' -f 1)"
-          cargo run --locked --manifest-path tools/landscape-forecast-verifier/Cargo.toml -- "$fixture" > "$report"
+          cargo run --manifest-path tools/landscape-forecast-verifier/Cargo.toml -- "$fixture" > "$report"
           jq -e --arg digest "$expected_sha256" '
             .schema_version == "luminous.landscape_forecast_verification_report.v0.1" and
             .suite_id == "LANDSCAPE-FORECAST-VERIFICATION-V0.1" and
