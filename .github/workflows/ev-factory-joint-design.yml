@@ -1,0 +1,98 @@
+name: EV Factory Joint Design Oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_joint_design_oracle.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_JOINT_DESIGN_ORACLE_V0_1.md"
+      - ".github/workflows/ev-factory-joint-design.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_joint_design_oracle.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_JOINT_DESIGN_ORACLE_V0_1.md"
+      - ".github/workflows/ev-factory-joint-design.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  joint-design-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse frozen synthetic fixture
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .evidence_class == "synthetic"
+            and (.options | length) == 5
+            and (.scenarios | length) == 4
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Enumerate exact joint-design space
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_joint_design_oracle -- "$FIXTURE" > ev-factory-joint-design-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-DESIGN-001"
+            and .scenario_count == 4
+            and .option_count == 5
+            and .exact_design_space_size == 32
+            and .feasible_design_count == 28
+            and .infeasible_design_count == 4
+            and .exact_robust_best_design_id == "add-body-prep+add-eol-test+improve-yield"
+            and (.exact_robust_best_worst_case_incremental_good_units_per_hour - 2.5 | fabs) < 0.000000001
+            and (.designs | length) == 32
+            and all(.designs[] | select(.feasible == true); (.infeasibility_reasons | length) == 0)
+            and all(.designs[] | select(.feasible == false); (.infeasibility_reasons | length) > 0 and .pareto_frontier_member == false)
+            and ([.search_comparisons[] | select(.method == "best-single-intervention" and .regret_vs_exact_oracle_good_units_per_hour > 0)] | length) == 1
+            and ([.search_comparisons[] | select(.method == "greedy-marginal-worst-case-gain" and .regret_vs_exact_oracle_good_units_per_hour > 0)] | length) == 1
+            and .scenario_probabilities_used == false
+            and .expected_value_reported == false
+            and .roi_computed == false
+            and .production_release_authorized == false
+            and .all_inputs_are_synthetic == true
+          ' ev-factory-joint-design-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_joint_design_oracle -- "$FIXTURE" > ev-factory-joint-design-repeat.json
+          cmp ev-factory-joint-design-report.json ev-factory-joint-design-repeat.json
+      - name: Negative controls fail closed
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json
+          jq '.option_effects += [.option_effects[0]]' "$FIXTURE" > invalid-joint-design-duplicate-effect.json
+          jq '.interaction_effects += [{ "scenario_id":"body-prep-constrained", "option_a_id":"add-eol-test", "option_b_id":"add-body-prep", "incremental_good_units_per_hour":0.5 }]' "$FIXTURE" > invalid-joint-design-noncanonical-pair.json
+          jq '.options = [range(0;21) as $i | { "option_id":("option-" + ($i|tostring)), "label":"synthetic", "capex":0, "staffed_labor_hours_per_shift":0, "active_power_kw":0, "energy_kwh_per_shift":0, "floor_area_sqm":0 }]' "$FIXTURE" > invalid-joint-design-space-size.json
+          jq '.options[0].capex = -1' "$FIXTURE" > invalid-joint-design-negative-capex.json
+          for invalid in invalid-joint-design-duplicate-effect.json invalid-joint-design-noncanonical-pair.json invalid-joint-design-space-size.json invalid-joint-design-negative-capex.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_joint_design_oracle -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid joint-design fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash all source evidence
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_joint_design_oracle.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_joint_design_v0_1.json \
+            docs/research/EV_FACTORY_JOINT_DESIGN_ORACLE_V0_1.md \
+            ev-factory-joint-design-report.json > ev-factory-joint-design.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-joint-design-oracle-report
+          path: |
+            ev-factory-joint-design-report.json
+            ev-factory-joint-design.sha256
+          if-no-files-found: error
