@@ -51,6 +51,10 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh
 
+      - name: Verify modal-bar mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_bar_mutations.sh
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -295,5 +299,6 @@ jobs:
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
             modal-bar-reference-receipt.json
+            modal-bar-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
