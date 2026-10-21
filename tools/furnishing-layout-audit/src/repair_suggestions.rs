@@ -264,7 +264,10 @@ fn mandatory_constraints_pass(scenario: &Value, placements: &[ItemPlacement]) ->
                 let Some(zone_rect) = zone.get("rect").and_then(rect_from_value) else {
                     return false;
                 };
-                if placements.iter().any(|placement| placement.rect().overlaps(zone_rect)) {
+                if placements
+                    .iter()
+                    .any(|placement| placement.rect().overlaps(zone_rect))
+                {
                     return false;
                 }
             }
@@ -380,7 +383,10 @@ pub fn suggest_single_item_zone_repairs(
             Vec::new(),
             0,
             Vec::new(),
-            vec!["repair v0.1 supports only the known-truth v0.1 axis-aligned fixture contract".to_owned()],
+            vec![
+                "repair v0.1 supports only the known-truth v0.1 axis-aligned fixture contract"
+                    .to_owned(),
+            ],
         );
     }
 
@@ -456,7 +462,10 @@ pub fn suggest_single_item_zone_repairs(
             Vec::new(),
             0,
             Vec::new(),
-            vec!["target must be a mandatory, known-truth zone_must_remain_clear hard constraint".to_owned()],
+            vec![
+                "target must be a mandatory, known-truth zone_must_remain_clear hard constraint"
+                    .to_owned(),
+            ],
         );
     }
 
@@ -537,7 +546,8 @@ pub fn suggest_single_item_zone_repairs(
             vec!["room geometry is missing".to_owned()],
         );
     };
-    let (Some(room_width), Some(room_depth)) = (number(room, "width_m"), number(room, "depth_m")) else {
+    let (Some(room_width), Some(room_depth)) = (number(room, "width_m"), number(room, "depth_m"))
+    else {
         return outcome_report(
             RepairDisposition::Blocked,
             scenario_id,
@@ -633,9 +643,13 @@ pub fn suggest_single_item_zone_repairs(
             .filter(|item| item.item_id != *blocking_id)
             .map(ItemPlacement::rect)
             .collect::<Vec<_>>();
-        let Some(positions) =
-            candidate_positions(moved, room_width, room_depth, &protected_zones, &other_rects)
-        else {
+        let Some(positions) = candidate_positions(
+            moved,
+            room_width,
+            room_depth,
+            &protected_zones,
+            &other_rects,
+        ) else {
             return outcome_report(
                 RepairDisposition::SearchCapped,
                 scenario_id,
@@ -644,7 +658,9 @@ pub fn suggest_single_item_zone_repairs(
                 blockers,
                 0,
                 Vec::new(),
-                vec![format!("candidate search would exceed {MAX_CANDIDATE_TESTS} position checks")],
+                vec![format!(
+                    "candidate search would exceed {MAX_CANDIDATE_TESTS} position checks"
+                )],
             );
         };
 
@@ -657,7 +673,9 @@ pub fn suggest_single_item_zone_repairs(
                 blockers,
                 0,
                 Vec::new(),
-                vec![format!("total candidate search would exceed {MAX_CANDIDATE_TESTS} position checks")],
+                vec![format!(
+                    "total candidate search would exceed {MAX_CANDIDATE_TESTS} position checks"
+                )],
             );
         }
         candidate_tests = candidate_tests.saturating_add(positions.len());
@@ -665,19 +683,31 @@ pub fn suggest_single_item_zone_repairs(
             if (x - moved.x).abs() <= f64::EPSILON && (y - moved.y).abs() <= f64::EPSILON {
                 continue;
             }
-            let candidate_rect = Rect { x, y, width: moved.width, depth: moved.depth };
+            let candidate_rect = Rect {
+                x,
+                y,
+                width: moved.width,
+                depth: moved.depth,
+            };
             if !candidate_rect.valid() || !candidate_rect.inside_room(room_width, room_depth) {
                 continue;
             }
             if candidate_rect.overlaps(zone_rect)
-                || protected_zones.iter().any(|zone| candidate_rect.overlaps(*zone))
-                || other_rects.iter().any(|other| candidate_rect.overlaps(*other))
+                || protected_zones
+                    .iter()
+                    .any(|zone| candidate_rect.overlaps(*zone))
+                || other_rects
+                    .iter()
+                    .any(|other| candidate_rect.overlaps(*other))
             {
                 continue;
             }
 
             let mut updated = placements.clone();
-            if let Some(placement) = updated.iter_mut().find(|item| item.item_id == moved.item_id) {
+            if let Some(placement) = updated
+                .iter_mut()
+                .find(|item| item.item_id == moved.item_id)
+            {
                 placement.x = x;
                 placement.y = y;
             }
@@ -707,9 +737,7 @@ pub fn suggest_single_item_zone_repairs(
             .then_with(|| left.to_y_m.total_cmp(&right.to_y_m))
     });
     candidates.dedup_by(|left, right| {
-        left.item_id == right.item_id
-            && left.to_x_m == right.to_x_m
-            && left.to_y_m == right.to_y_m
+        left.item_id == right.item_id && left.to_x_m == right.to_x_m && left.to_y_m == right.to_y_m
     });
     let candidate_count_before_limit = candidates.len();
     candidates.truncate(limit);
@@ -795,7 +823,10 @@ mod tests {
             "route_remains_clear",
             1,
         );
-        let suggestion = report.suggestions.first().expect("a repair must be suggested");
+        let suggestion = report
+            .suggestions
+            .first()
+            .expect("a repair must be suggested");
         let scenario = &mut document["scenarios"][0];
         let alternative = &mut scenario["alternatives"][0];
         let placement = alternative["placements"]
