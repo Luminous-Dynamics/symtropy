@@ -538,6 +538,16 @@ mod tests {
     const AREA_M2: f64 = 1.0;
     const YOUNGS_MODULUS_PA: f64 = 210.0e9;
     const DENSITY_KG_M3: f64 = 7800.0;
+    const MODAL_SWEEP_REQUEST: &str = concat!(
+        "schema=modal-bar-sweep-request-v0.1|fixture=PHYS-AXIAL-BAR-SWEEP-001",
+        "|seed_hex=0x4D4F44414C534331|lcg_multiplier=6364136223846793005",
+        "|lcg_increment=1442695040888963407|cases=128|length_m=0.2..5.0",
+        "|area_m2=1e-8..1e-2|youngs_modulus_pa=30e9..210e9",
+        "|density_kg_m3=1000..16000|elements=1..16",
+        "|mass_formulation=consistent,lumped|modes=all",
+        "|independent_oracle=closed_form_discrete_eigenvalues",
+        "|checks=oracle_rel_lt_2e-9,area_rel_lt_2e-10,inverse_length_rel_lt_2e-10"
+    );
 
     fn exact(mode_count: usize) -> Vec<f64> {
         analytical_fixed_free_axial_bar_frequencies(
@@ -736,6 +746,161 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn next_sweep_unit(state: &mut u64) -> f64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*state >> 11) as f64) / ((1_u64 << 53) as f64)
+    }
+
+    /// Independent closed-form spectrum of the uniform 1D finite-element
+    /// matrices. This derives eigenvalues from their tridiagonal recurrence,
+    /// rather than assembling K or M using the production implementation.
+    fn independent_discrete_spectrum(
+        length_m: f64,
+        youngs_modulus_pa: f64,
+        density_kg_m3: f64,
+        element_count: usize,
+        formulation: MassMatrixFormulation,
+    ) -> Vec<f64> {
+        let h = length_m / element_count as f64;
+        (1..=element_count)
+            .map(|mode| {
+                let theta =
+                    (2 * mode - 1) as f64 * std::f64::consts::PI / (2.0 * element_count as f64);
+                let cosine = theta.cos();
+                let eigenvalue = match formulation {
+                    MassMatrixFormulation::Consistent => {
+                        (youngs_modulus_pa / (density_kg_m3 * h * h))
+                            * (6.0 * (1.0 - cosine) / (2.0 + cosine))
+                    }
+                    MassMatrixFormulation::Lumped => {
+                        (youngs_modulus_pa / (density_kg_m3 * h * h)) * (2.0 * (1.0 - cosine))
+                    }
+                };
+                eigenvalue.sqrt() / (2.0 * std::f64::consts::PI)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn fixed_seed_128_case_modal_sweep_matches_discrete_oracle_and_scale_laws() {
+        assert_eq!(
+            include_str!("../fixtures/modal_bar_sweep_request_v0_1.txt").trim_end_matches('\n'),
+            MODAL_SWEEP_REQUEST
+        );
+        let mut state = 0x4D4F_4441_4C53_4331_u64;
+        let mut maximum_oracle_error = 0.0_f64;
+        let mut maximum_area_scaling_error = 0.0_f64;
+        let mut maximum_length_scaling_error = 0.0_f64;
+
+        for case_index in 0..128 {
+            let length_m = 0.2 + 4.8 * next_sweep_unit(&mut state);
+            let area_m2 = 10.0_f64.powf(-8.0 + 6.0 * next_sweep_unit(&mut state));
+            let youngs_modulus_pa = 30.0e9 + 180.0e9 * next_sweep_unit(&mut state);
+            let density_kg_m3 = 1000.0 + 15_000.0 * next_sweep_unit(&mut state);
+            let element_count = 1 + ((next_sweep_unit(&mut state) * 16.0) as usize).min(15);
+
+            for formulation in [
+                MassMatrixFormulation::Consistent,
+                MassMatrixFormulation::Lumped,
+            ] {
+                let expected = independent_discrete_spectrum(
+                    length_m,
+                    youngs_modulus_pa,
+                    density_kg_m3,
+                    element_count,
+                    formulation,
+                );
+                let actual = fixed_free_axial_bar_frequencies(
+                    length_m,
+                    area_m2,
+                    youngs_modulus_pa,
+                    density_kg_m3,
+                    element_count,
+                    element_count,
+                    formulation,
+                )
+                .expect("sweep modal frequencies");
+
+                assert_eq!(actual.len(), element_count);
+                for (mode_index, (frequency, expected_frequency)) in
+                    actual.iter().zip(&expected).enumerate()
+                {
+                    let error = relative_error(*frequency, *expected_frequency);
+                    maximum_oracle_error = maximum_oracle_error.max(error);
+                    assert!(
+                        error < 2.0e-9,
+                        "case {case_index}, mode {}, formulation {:?}: error={error:.17e}",
+                        mode_index + 1,
+                        formulation
+                    );
+                }
+
+                // Area multiplies K and M by the same factor, so the entire
+                // generalized spectrum must remain invariant.
+                let area_scaled = fixed_free_axial_bar_frequencies(
+                    length_m,
+                    area_m2 * 1000.0,
+                    youngs_modulus_pa,
+                    density_kg_m3,
+                    element_count,
+                    element_count,
+                    formulation,
+                )
+                .expect("area-scaled sweep modal frequencies");
+                for (base, scaled) in actual.iter().zip(&area_scaled) {
+                    let error = relative_error(*scaled, *base);
+                    maximum_area_scaling_error = maximum_area_scaling_error.max(error);
+                    assert!(
+                        error < 2.0e-10,
+                        "case {case_index}: modal frequency changed with area scaling"
+                    );
+                }
+
+                // At fixed E, density and dimensionless mesh, f is exactly
+                // proportional to 1/L.
+                let length_scaled = fixed_free_axial_bar_frequencies(
+                    length_m * 1.7,
+                    area_m2,
+                    youngs_modulus_pa,
+                    density_kg_m3,
+                    element_count,
+                    element_count,
+                    formulation,
+                )
+                .expect("length-scaled sweep modal frequencies");
+                for (base, scaled) in actual.iter().zip(&length_scaled) {
+                    let error = relative_error(*scaled, *base / 1.7);
+                    maximum_length_scaling_error = maximum_length_scaling_error.max(error);
+                    assert!(
+                        error < 2.0e-10,
+                        "case {case_index}: modal frequency violates inverse-length scaling"
+                    );
+                }
+            }
+        }
+
+        assert!(maximum_oracle_error < 2.0e-9);
+        assert!(maximum_area_scaling_error < 2.0e-10);
+        assert!(maximum_length_scaling_error < 2.0e-10);
+        println!(
+            concat!(
+                "MODAL_SWEEP_JSON {{",
+                "\"schema_version\":\"modal-bar-sweep-test-result-v0.1\",",
+                "\"benchmark_id\":\"PHYS-AXIAL-BAR-SWEEP-001\",",
+                "\"case_count\":128,",
+                "\"mass_formulation_count\":2,",
+                "\"modes_checked\":\"all_modes_for_each_case\",",
+                "\"max_oracle_relative_error\":{:.17e},",
+                "\"max_area_scaling_relative_error\":{:.17e},",
+                "\"max_inverse_length_scaling_relative_error\":{:.17e}",
+                "}}"
+            ),
+            maximum_oracle_error, maximum_area_scaling_error, maximum_length_scaling_error
+        );
     }
 
     #[test]
