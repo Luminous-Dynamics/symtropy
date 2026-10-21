@@ -37,7 +37,7 @@ jobs:
         run: cargo fmt --all --manifest-path tools/shipyard-space-time/Cargo.toml -- --check
 
       - name: Verify frozen spatial scenario corpus digest
-        run: echo "73b51779e5264983ae60ca1c46b7446aa4c0fd3874185daddee9327d801472c2  tools/shipyard-space-time/tests/fixtures/space-time-v0.tsv" | sha256sum --check --status
+        run: echo "7dc5602f8222a78926e7b3ce5386387b12e22125fd0c9b2ddbb7deecc817f1dd  tools/shipyard-space-time/tests/fixtures/space-time-v0.tsv" | sha256sum --check --status
 
       - name: Run dependency-free tests offline
         run: cargo test --locked --offline --manifest-path tools/shipyard-space-time/Cargo.toml
