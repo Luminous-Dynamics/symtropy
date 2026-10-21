@@ -357,10 +357,11 @@ enum PolicyKind {
     ExpectedTaskLossReduction,
     RiskThresholdStop,
     MarginalValueStop,
+    OnlineAdaptiveValue,
 }
 
 impl PolicyKind {
-    const ALL: [Self; 9] = [
+    const ALL: [Self; 10] = [
         Self::RoundRobin,
         Self::UniformRandom,
         Self::LeastObserved,
@@ -370,6 +371,7 @@ impl PolicyKind {
         Self::ExpectedTaskLossReduction,
         Self::RiskThresholdStop,
         Self::MarginalValueStop,
+        Self::OnlineAdaptiveValue,
     ];
 
     fn name(self) -> &'static str {
@@ -383,6 +385,7 @@ impl PolicyKind {
             Self::ExpectedTaskLossReduction => "expected_task_loss_reduction",
             Self::RiskThresholdStop => "risk_threshold_stop",
             Self::MarginalValueStop => "marginal_value_stop",
+            Self::OnlineAdaptiveValue => "online_adaptive_value",
         }
     }
 }
@@ -397,6 +400,9 @@ struct PolicyState {
     action_rng: Rng,
     estimated_scoring_work_units: u64,
     stop_cost_per_observation: f64,
+    observed_delay_counts: [u64; 6],
+    observed_distractor_count: u64,
+    observed_response_count: u64,
 }
 
 impl PolicyState {
@@ -410,6 +416,9 @@ impl PolicyState {
             action_rng: Rng::new(seed),
             estimated_scoring_work_units: 0,
             stop_cost_per_observation: STOP_COST_PER_OBSERVATION,
+            observed_delay_counts: [0; 6],
+            observed_distractor_count: 0,
+            observed_response_count: 0,
         }
     }
 
@@ -492,6 +501,11 @@ impl PolicyState {
                     Self::tie_break(scores, tick)
                 }
             }
+            PolicyKind::OnlineAdaptiveValue => {
+                let scores = self.adaptive_task_loss_reduction_scores(tick);
+                let best = scores.iter().copied().fold(0.0_f64, f64::max);
+                if best <= 1e-12 { tick % QUERY_COUNT } else { Self::tie_break(scores, tick) }
+            }
             PolicyKind::MarginalValueStop => {
                 // A majority query has complementary information value: one claim can
                 // look non-pivotal while the other claims remain completely unknown.
@@ -532,6 +546,8 @@ impl PolicyState {
             PolicyKind::RiskThresholdStop => QUERY_COUNT as u64 + 1,
             PolicyKind::MarginalValueStop =>
                 (QUERY_COUNT * DELAY_PRIORS.len() * CONFIDENCE_TIERS.len() * 2 + QUERY_COUNT + 1) as u64,
+            PolicyKind::OnlineAdaptiveValue =>
+                (QUERY_COUNT * DELAY_PRIORS.len() * CONFIDENCE_TIERS.len() * 2 + QUERY_COUNT + DELAY_PRIORS.len() + 2) as u64,
         };
         self.estimated_scoring_work_units = self.estimated_scoring_work_units
             .saturating_add(work_this_action);
@@ -539,6 +555,42 @@ impl PolicyState {
     }
 
     fn expected_task_loss_reduction_scores(&self, tick: usize) -> [f64; QUERY_COUNT] {
+        self.expected_task_loss_reduction_scores_with_priors(
+            tick, DELAY_PRIORS, PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0
+        )
+    }
+
+    fn adaptive_task_loss_reduction_scores(&self, tick: usize) -> [f64; QUERY_COUNT] {
+        self.expected_task_loss_reduction_scores_with_priors(
+            tick, self.adaptive_delay_priors(), self.adaptive_distractor_probability()
+        )
+    }
+
+    fn adaptive_delay_priors(&self) -> [(usize, f64); 6] {
+        // Dirichlet smoothing prevents a few early observations from erasing the prior.
+        // The prior contributes six pseudo-observations in total.
+        let prior_strength = 6.0;
+        let total = prior_strength + self.observed_response_count as f64;
+        std::array::from_fn(|delay| {
+            let prior = DELAY_PRIORS[delay].1 * prior_strength;
+            (delay, (prior + self.observed_delay_counts[delay] as f64) / total)
+        })
+    }
+
+    fn adaptive_distractor_probability(&self) -> f64 {
+        // Beta prior with four pseudo-observations around the fixed public prior.
+        let alpha = PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0 * 4.0;
+        let beta = (1.0 - PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0) * 4.0;
+        (alpha + self.observed_distractor_count as f64)
+            / (alpha + beta + self.observed_response_count as f64)
+    }
+
+    fn expected_task_loss_reduction_scores_with_priors(
+        &self,
+        tick: usize,
+        delay_priors: [(usize, f64); 6],
+        distractor_probability: f64,
+    ) -> [f64; QUERY_COUNT] {
         let terminal_now = self.probabilities(HORIZON - 1);
         let current_risk = terminal_decision_risk(terminal_now);
         let current_at_tick = self.probabilities(tick);
@@ -547,7 +599,7 @@ impl PolicyState {
             let hazard = self.hazard[claim_index].rate();
             let mut expected_risk_given_relevant = 0.0;
 
-            for (delay, delay_weight) in DELAY_PRIORS {
+            for (delay, delay_weight) in delay_priors {
                 let source_tick = tick.saturating_sub(delay);
                 // A hypothetical observation older than retained source-time
                 // evidence would be ignored and adds no decision value.
@@ -598,7 +650,6 @@ impl PolicyState {
             }
 
             // A requested view may be diverted to an irrelevant hot distractor.
-            let distractor_probability = PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0;
             let expected_risk = distractor_probability * current_risk
                 + (1.0 - distractor_probability) * expected_risk_given_relevant;
             (current_risk - expected_risk).max(0.0)
@@ -607,6 +658,14 @@ impl PolicyState {
 
     fn observe(&mut self, action: usize, evidence: Evidence) {
         self.requested_counts[action] += 1;
+        let source_delay = usize::from(evidence.arrival_tick)
+            .saturating_sub(usize::from(evidence.source_tick))
+            .min(self.observed_delay_counts.len() - 1);
+        self.observed_delay_counts[source_delay] += 1;
+        self.observed_response_count += 1;
+        if evidence.key() as usize != QUERY_KEYS[action] {
+            self.observed_distractor_count += 1;
+        }
         let key = evidence.key();
         if let Some(index) = QUERY_KEYS.iter().position(|query_key| *query_key == key) {
             self.relevant_counts[index] += 1;
@@ -810,7 +869,8 @@ fn report() {
     println!("VIS-ACT-004 active evidence acquisition benchmark");
     println!("Fixed observation budget: {HORIZON} requests per episode; 3 public query claims; 5 distractor claims");
     println!("Potential observations are pre-generated by (episode,tick,requested-key). Each policy sees only the result for its chosen action.");
-    println!("Policies: round_robin, uniform_random, least_observed, stalest_first, max_uncertainty, value_of_information, expected_task_loss_reduction, risk_threshold_stop, marginal_value_stop");
+    println!("Policies: round_robin, uniform_random, least_observed, stalest_first, max_uncertainty, value_of_information, expected_task_loss_reduction, online_adaptive_value, risk_threshold_stop, marginal_value_stop");
+    println!("Online-adaptive value learns only observable distractor frequency and source-delay distribution from its own released observations; sensor corruption remains fixed and unobserved.");
     println!("Expected-risk scores integrate frozen public confidence/delay/distractor priors and terminal abstention-aware Bayes risk; hidden episode parameters are not consulted.");
     println!("Risk-threshold stop baseline: stop when estimated terminal Bayes risk <= {STOP_COST_PER_OBSERVATION:.3} task-loss units per request; not claimed optimal.");
     println!("Marginal-value stop baseline: stop when modeled next-observation risk reduction <= request cost; threshold selected from a frozen grid using development episodes only.");
