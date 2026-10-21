@@ -10,6 +10,7 @@
 //! That exaggeration is reported in the HUD and never changes body coordinates.
 
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use std::f64::consts::PI;
 use symtropy_render_bridge::{
     ApparentSizeBand, ApparentSizeProfile, ApparentSizeProjection, CoordinateFrameId,
@@ -107,7 +108,7 @@ impl ViewStage {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct SolarBody {
     id: &'static str,
     name: &'static str,
@@ -528,7 +529,7 @@ fn setup(
     commands.spawn((
         DirectionalLight {
             illuminance: 12_000.0,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_xyz(5.0, 8.0, 4.0).looking_at(Vec3::ZERO, Vec3::Y),
@@ -552,7 +553,7 @@ fn setup(
     commands.spawn((
         Text::new("Symtropy solar-scale explorer"),
         TextFont {
-            font_size: 16.0,
+            font_size: FontSize::Px(16.0),
             ..default()
         },
         TextColor(Color::WHITE),
