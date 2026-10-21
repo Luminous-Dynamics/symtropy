@@ -755,24 +755,24 @@ mod tests {
 
     #[test]
     fn duplicate_main_effect_and_noncanonical_interaction_fail_closed() {
-        let mut fixture = fixture();
-        fixture
+        let mut duplicate_effect_fixture = fixture();
+        duplicate_effect_fixture
             .option_effects
-            .push(fixture.option_effects[0].clone());
+            .push(duplicate_effect_fixture.option_effects[0].clone());
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&duplicate_effect_fixture)
                 .expect_err("duplicate main effect rejected")
                 .contains("option_effect_unknown")
         );
-        let mut fixture = fixture();
-        fixture.interaction_effects.push(InteractionEffect {
+        let mut noncanonical_pair_fixture = fixture();
+        noncanonical_pair_fixture.interaction_effects.push(InteractionEffect {
             scenario_id: "body-prep-constrained".into(),
             option_a_id: "add-eol-test".into(),
             option_b_id: "add-body-prep".into(),
             incremental_good_units_per_hour: 0.5,
         });
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&noncanonical_pair_fixture)
                 .expect_err("noncanonical pair rejected")
                 .contains("interaction_effect_unknown")
         );
@@ -780,8 +780,8 @@ mod tests {
 
     #[test]
     fn exact_search_size_limit_and_invalid_resources_fail_closed() {
-        let mut fixture = fixture();
-        fixture.options = (0..21)
+        let mut oversized_fixture = fixture();
+        oversized_fixture.options = (0..21)
             .map(|index| DesignOption {
                 option_id: format!("option-{index:02}"),
                 label: "synthetic".into(),
@@ -793,14 +793,14 @@ mod tests {
             })
             .collect();
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&oversized_fixture)
                 .expect_err("exact-search cap enforced")
                 .contains("exact-enumeration")
         );
-        let mut fixture = fixture();
-        fixture.options[0].capex = -1.0;
+        let mut invalid_resource_fixture = fixture();
+        invalid_resource_fixture.options[0].capex = -1.0;
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&invalid_resource_fixture)
                 .expect_err("negative resource rejected")
                 .contains("resource_inputs_invalid")
         );
