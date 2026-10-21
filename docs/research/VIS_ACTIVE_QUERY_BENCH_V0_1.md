@@ -209,3 +209,28 @@ The candidate advances only if the **development-selected** threshold has (a) a 
 
 This remains symbolic and synthetic. It cannot be ranked numerically against ActiveArena task success or RoboMME scores. After this gate, the next external gate remains a controller-only ablation on a pinned ActiveArena baseline: fixed model/checkpoint, prompts, preprocessing, executor and committed ID/OOD seed order; report task-macro success, per-task/category results, paired uncertainty, failures, latency, VRAM/RAM and observation counts. A +5 percentage-point OOD improvement with paired evidence and no more than a 3-point ID regression is an internal target, not a community standard.
 
+## Qualified negative result: development-calibrated marginal stop
+
+At source head `90b901972c4493c6ad6c61eb64561700fd11f120`, the focused benchmark and cross-platform CI passed. The artifact was downloaded and inspected: [workflow run #39520072684](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39520072684), [artifact #12310402449](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39520072684/artifacts/12310402449).
+
+The development-only objective selected request cost `0.00000`, effectively disabling cost-based stopping. On 384 held-out episodes, that setting produced loss `0.2305`, mean requests `47.086`, and paired raw-loss delta vs round-robin `+0.0462`. The paired interval in the sensitivity row was `[+0.0137, +0.0788]`; the separately seeded calibration-row interval was `[+0.0150, +0.0820]`. The held-out result clearly fails the predeclared objective-improvement gate and the raw-loss non-inferiority gate. At higher request costs the policy usually abstains and loses too much task quality; do not choose a higher cost from the held-out grid.
+
+**Decision: reject `marginal_value_stop` as the preferred policy.** This also indicates that threshold selection is not the central failure: the underlying estimated value/action policy is not improving held-out decisions.
+
+## VIS-ACT-009: predicted-value calibration diagnostic
+
+**Status:** diagnostic added; the exact-head results are pending after code changes. No calibration result is claimed until the focused workflow passes and its artifact is inspected.
+
+The next question is whether `expected_task_loss_reduction_scores` predict any reduction in the belief-risk objective actually used by this simulator. The new `VALUE_CALIBRATION` report samples 12 fixed ticks across the 48-tick horizon while an `ExpectedTaskLossReduction` reference policy runs. At each sampled information state, the evaluator (not the policy) inspects the candidate values for all three query actions, clones that state, and applies only the pre-generated potential observation for one candidate. It records predicted risk reduction and realized one-step change in the same terminal belief-risk function. Candidate outcomes are never supplied to policy choice or future policy state.
+
+The report separates development and held-out families and includes:
+- all candidates;
+- relevant versus distractor observations;
+- source delays up to 2 versus greater than 2;
+- high versus lower confidence;
+- per-episode-clustered bootstrap intervals for the mean prediction-minus-realized-risk-drop difference.
+
+This is a post-hoc simulator diagnostic, not task-loss improvement, a claim about correctness calibration in the physical world, or evidence that the candidate selector should be used. Negative realized risk drops are possible and retained. Because confidence/delay/corruption distributions differ by family, a growing gap in held-out strata would support focusing on sensor/world model mismatch before attempting more policy tuning. Results are bootstrapped across episodes rather than treating multiple observations from the same episode as independent samples.
+
+The protocol deliberately uses the **same belief-risk function** in predicted and realized values to test whether the expected-value calculation matches observed risk changes under the generated stream. It does not pretend that this score is the environment's true task loss.
+
