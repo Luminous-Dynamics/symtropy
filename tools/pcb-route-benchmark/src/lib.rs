@@ -360,6 +360,24 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                 board.board_id
             ));
         }
+        if manifest.evidence_class == "external_benchmark" {
+            let license = board.license.trim().to_ascii_lowercase();
+            if matches!(
+                license.as_str(),
+                "unknown" | "n/a" | "not-provided" | "noassertion" | "unverified"
+            ) {
+                return Err(format!(
+                    "{}: external board license must be explicitly verified",
+                    board.board_id
+                ));
+            }
+            if !board.source_url.starts_with("https://") {
+                return Err(format!(
+                    "{}: external board source_url must use HTTPS",
+                    board.board_id
+                ));
+            }
+        }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
             return Err(format!(
@@ -1112,7 +1130,7 @@ mod tests {
     #[test]
     fn dataset_intake_hashes_actual_bytes_and_rejects_path_escape() {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
-        manifest.evidence_class = "external_benchmark".into();
+        manifest.evidence_class = "synthetic".into();
         let root =
             std::env::temp_dir().join(format!("pcb-route-benchmark-intake-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -1147,6 +1165,28 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn external_manifest_rejects_unverified_license_and_non_https_source() {
+        let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
+        manifest.evidence_class = "external_benchmark".into();
+        for board in &mut manifest.boards {
+            board.relative_path = Some(format!("boards/{}.kicad_pcb", board.board_id));
+            board.license = "unknown".into();
+            board.source_url = format!("https://example.invalid/{}", board.board_id);
+        }
+        assert!(validate_manifest(&manifest)
+            .unwrap_err()
+            .contains("license must be explicitly verified"));
+
+        for board in &mut manifest.boards {
+            board.license = "CC-BY-4.0".into();
+            board.source_url = format!("http://example.invalid/{}", board.board_id);
+        }
+        assert!(validate_manifest(&manifest)
+            .unwrap_err()
+            .contains("source_url must use HTTPS"));
     }
 
     #[test]
