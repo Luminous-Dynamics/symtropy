@@ -84,10 +84,11 @@ jobs:
         run: |
           FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_model_uncertainty_v0_1.json
           jq '.option_effects += [.option_effects[0]]' "$FIXTURE" > invalid-model-uncertainty-duplicate-effect.json
+          jq '.options = [range(0;11) as $i | { "option_id":("option-" + ($i|tostring)), "label":"synthetic", "capex":0, "staffed_labor_hours_per_shift":0, "active_power_kw":0, "energy_kwh_per_shift":0, "floor_area_sqm":0 }]' "$FIXTURE" > invalid-model-uncertainty-search-cap.json
           jq '.interaction_effects |= .[1:]' "$FIXTURE" > invalid-model-uncertainty-missing-pair.json
           jq '.interaction_effects += [{ "scenario_id":"body-prep-constrained", "option_a_id":"add-eol-test", "option_b_id":"add-body-prep", "incremental_good_units_per_hour":0.8, "uncertainty_half_width_units_per_hour":0.1 }]' "$FIXTURE" > invalid-model-uncertainty-reversed-pair.json
           jq '.option_effects[0].uncertainty_half_width_units_per_hour = -0.1' "$FIXTURE" > invalid-model-uncertainty-negative-width.json
-          for invalid in invalid-model-uncertainty-duplicate-effect.json invalid-model-uncertainty-missing-pair.json invalid-model-uncertainty-reversed-pair.json invalid-model-uncertainty-negative-width.json; do
+          for invalid in invalid-model-uncertainty-duplicate-effect.json invalid-model-uncertainty-search-cap.json invalid-model-uncertainty-missing-pair.json invalid-model-uncertainty-reversed-pair.json invalid-model-uncertainty-negative-width.json; do
             if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_model_uncertainty -- "$invalid" >/dev/null 2>&1; then
               echo "invalid model-uncertainty fixture unexpectedly accepted: $invalid"
               exit 1
