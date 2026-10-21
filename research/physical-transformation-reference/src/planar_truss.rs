@@ -948,7 +948,10 @@ mod tests {
             ("free-DOF", result.equilibrium.normalized_free_dof_residual),
             ("energy", result.energy.normalized_residual),
         ] {
-            assert!(residual < 1.0e-12, "asymmetric normalized {label} residual={residual:.17e}");
+            assert!(
+                residual < 1.0e-12,
+                "asymmetric normalized {label} residual={residual:.17e}"
+            );
         }
         let expected_energy_j = 3.9375e-4;
         close(
