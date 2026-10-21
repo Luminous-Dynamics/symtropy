@@ -259,11 +259,7 @@ fn minimization_coordinate(objective: &ObjectiveObservation) -> f64 {
         ObjectiveDirection::Minimize => objective.value,
         ObjectiveDirection::Maximize => -objective.value,
     };
-    if coordinate == 0.0 {
-        0.0
-    } else {
-        coordinate
-    }
+    if coordinate == 0.0 { 0.0 } else { coordinate }
 }
 
 /// Find one deterministic dominator per dominated candidate in two dimensions.
@@ -350,11 +346,7 @@ struct SweepPoint3<'a> {
     z: f64,
 }
 
-fn minimum_z_witness(
-    left: usize,
-    right: usize,
-    points: &[SweepPoint3<'_>],
-) -> usize {
+fn minimum_z_witness(left: usize, right: usize, points: &[SweepPoint3<'_>]) -> usize {
     match points[left].z.total_cmp(&points[right].z) {
         std::cmp::Ordering::Less => left,
         std::cmp::Ordering::Greater => right,
@@ -410,9 +402,7 @@ fn fenwick_query(
 /// tree captures candidates from strictly earlier x groups; equal-x groups
 /// are handled separately so an identical point never dominates its duplicate.
 /// The tree stores the minimum z witness for each y prefix, breaking ties by ID.
-fn three_dimensional_dominators(
-    rankable: &[RankableCandidate<'_>],
-) -> BTreeMap<String, String> {
+fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<String, String> {
     let mut points = rankable
         .iter()
         .map(|candidate| SweepPoint3 {
@@ -453,10 +443,7 @@ fn three_dimensional_dominators(
                 .expect("every point y coordinate is in the compressed index");
             if let Some(witness_index) = fenwick_query(&tree, y_index, &points) {
                 if points[witness_index].z <= point.z {
-                    dominators.insert(
-                        point.id.to_owned(),
-                        points[witness_index].id.to_owned(),
-                    );
+                    dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
                 }
             }
         }
@@ -480,18 +467,12 @@ fn three_dimensional_dominators(
                 }
                 if let Some(witness_index) = prefix_min_z {
                     if points[witness_index].z <= point.z {
-                        dominators.insert(
-                            point.id.to_owned(),
-                            points[witness_index].id.to_owned(),
-                        );
+                        dominators.insert(point.id.to_owned(), points[witness_index].id.to_owned());
                         continue;
                     }
                 }
                 if points[same_y_min_z].z < point.z {
-                    dominators.insert(
-                        point.id.to_owned(),
-                        points[same_y_min_z].id.to_owned(),
-                    );
+                    dominators.insert(point.id.to_owned(), points[same_y_min_z].id.to_owned());
                 }
             }
             prefix_min_z = Some(match prefix_min_z {
@@ -749,10 +730,7 @@ mod tests {
         ]
     }
 
-    fn assert_report_witnesses_valid(
-        report: &FrontierReport,
-        candidates: &[AlternativeCandidate],
-    ) {
+    fn assert_report_witnesses_valid(report: &FrontierReport, candidates: &[AlternativeCandidate]) {
         for result in &report.candidates {
             let CandidateDisposition::DominatedBy(witness_id) = &result.disposition else {
                 continue;
@@ -1119,7 +1097,12 @@ mod tests {
                 VerificationStatus::Verified,
                 vec![
                     objective_in_unit("install_cost", "USD", ObjectiveDirection::Minimize, cost),
-                    objective_in_unit("install_effort", "hours", ObjectiveDirection::Minimize, cost),
+                    objective_in_unit(
+                        "install_effort",
+                        "hours",
+                        ObjectiveDirection::Minimize,
+                        cost,
+                    ),
                     objective_in_unit("occupied_area", "m2", ObjectiveDirection::Minimize, area),
                     objective_in_unit(
                         "task_coverage",
