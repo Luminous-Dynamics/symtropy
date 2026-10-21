@@ -7,7 +7,7 @@
 //! Digest validation here checks syntax and preserves identifiers; it does not
 //! authenticate a source, recompute a digest, or validate a verifier receipt.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
