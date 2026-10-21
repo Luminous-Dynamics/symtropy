@@ -2231,6 +2231,27 @@ fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
+fn is_git_blob_sha1(value: &str) -> bool {
+    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Compute Git's SHA-1 object identifier for a blob. SHA-256 remains the
+/// primary content-integrity digest; this interoperates with upstream GitHub
+/// blob IDs to prove that the copied license file matches the pinned source.
+fn git_blob_sha1(bytes: &[u8]) -> String {
+    let header = format!("blob {}\0", bytes.len());
+    let mut hasher = Sha1::new();
+    hasher.update(header.as_bytes());
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    let mut output = String::with_capacity(40);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(output, "{byte:02x}");
+    }
+    output
+}
+
 fn is_commit_sha(value: &str) -> bool {
     matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
