@@ -41,6 +41,8 @@ pub enum BaselineErrorCode {
     OutOfBoundsExclusionZone,
     NoFeasiblePlacement,
     AllPoliciesFailed,
+    ExactSearchProvenInfeasible,
+    ExactSearchBudgetExceeded,
     VerifierRejected,
 }
 
@@ -63,6 +65,8 @@ impl BaselineErrorCode {
             Self::OutOfBoundsExclusionZone => "OutOfBoundsExclusionZone",
             Self::NoFeasiblePlacement => "NoFeasiblePlacement",
             Self::AllPoliciesFailed => "AllPoliciesFailed",
+            Self::ExactSearchProvenInfeasible => "ExactSearchProvenInfeasible",
+            Self::ExactSearchBudgetExceeded => "ExactSearchBudgetExceeded",
             Self::VerifierRejected => "VerifierRejected",
         }
     }
@@ -290,6 +294,7 @@ pub enum PortfolioPolicy {
     DecreasingHeight,
     DecreasingWidth,
     DecreasingPerimeter,
+    ExactTinySearch,
 }
 
 impl PortfolioPolicy {
@@ -301,6 +306,7 @@ impl PortfolioPolicy {
             Self::DecreasingHeight => "decreasing-height",
             Self::DecreasingWidth => "decreasing-width",
             Self::DecreasingPerimeter => "decreasing-perimeter",
+            Self::ExactTinySearch => "exact-tiny-search",
         }
     }
 }
@@ -320,7 +326,10 @@ pub struct PortfolioResult {
     pub scenario: Scenario,
     pub selected_policy: PortfolioPolicy,
     pub policies_attempted: usize,
+    /// Number of heuristic policies that produced accepted candidates (zero for exact fallback).
     pub feasible_candidates: usize,
+    pub exact_fallback_used: bool,
+    pub exact_nodes_examined: usize,
     pub score: PortfolioScore,
 }
 
@@ -446,7 +455,7 @@ fn portfolio_score(scenario: &Scenario) -> PortfolioScore {
 /// independently verified result by lexicographic (bounding-envelope area-time, canonical
 /// placement) score. Exhausting the portfolio is a heuristic failure, NOT proof that no feasible
 /// packing exists. All candidate plans use the same independent verifier.
-pub fn first_fit_portfolio(
+pub fn first_fit_heuristic_portfolio(
     yard_bounds: Rect,
     requests: &[PlacementRequest],
     exclusion_zones: &[ExclusionZone],
@@ -494,14 +503,241 @@ pub fn first_fit_portfolio(
             selected_policy,
             policies_attempted: policies.len(),
             feasible_candidates,
+            exact_fallback_used: false,
+            exact_nodes_examined: 0,
             score,
         }),
         None => Err(vec![BaselineError {
             code: BaselineErrorCode::AllPoliciesFailed,
             subject_id: "yard".to_owned(),
-            detail: "no portfolio policy produced a verified plan; this is not proof of infeasibility"
+            detail: "no heuristic policy produced a verified plan; this is not proof of infeasibility"
                 .to_owned(),
         }]),
+    }
+}
+
+/// Bounded exact-search domain used only after the heuristic portfolio misses.
+const EXACT_TINY_MAX_YARD_DIMENSION: i128 = 5;
+const EXACT_TINY_MAX_REQUESTS: usize = 4;
+const EXACT_TINY_NODE_BUDGET: usize = 100_000;
+
+enum ExactSearchProgress {
+    Found,
+    ProvenInfeasible,
+    BudgetExceeded,
+}
+
+enum ExactSearchOutcome {
+    Found(Scenario, usize),
+    ProvenInfeasible(usize),
+    BudgetExceeded(usize),
+}
+
+fn exact_tiny_search_recursive(
+    yard: Rect,
+    requests: &[PlacementRequest],
+    index: usize,
+    placements: &mut Vec<Placement>,
+    zones: &[ExclusionZone],
+    nodes_examined: &mut usize,
+) -> ExactSearchProgress {
+    if index == requests.len() {
+        return ExactSearchProgress::Found;
+    }
+
+    let request = &requests[index];
+    let yard_width = i128::from(yard.max_x) - i128::from(yard.min_x);
+    let yard_height = i128::from(yard.max_y) - i128::from(yard.min_y);
+    if request.width <= 0
+        || request.height <= 0
+        || i128::from(request.width) > yard_width
+        || i128::from(request.height) > yard_height
+        || !request.occupied.is_valid()
+    {
+        return ExactSearchProgress::ProvenInfeasible;
+    }
+
+    for min_y in yard.min_y..=yard.max_y - request.height {
+        for min_x in yard.min_x..=yard.max_x - request.width {
+            if *nodes_examined >= EXACT_TINY_NODE_BUDGET {
+                return ExactSearchProgress::BudgetExceeded;
+            }
+            *nodes_examined += 1;
+
+            let candidate_rect = Rect {
+                min_x,
+                min_y,
+                max_x: min_x + request.width,
+                max_y: min_y + request.height,
+            };
+            let zone_conflict = zones.iter().any(|zone| {
+                request.occupied.overlaps(zone.active)
+                    && matches!(
+                        &zone.footprint,
+                        Footprint::AxisAlignedRect(zone_rect)
+                            if candidate_rect.overlaps(*zone_rect)
+                    )
+            });
+            if zone_conflict {
+                continue;
+            }
+
+            let placement_conflict = placements.iter().any(|prior| {
+                request.occupied.overlaps(prior.occupied)
+                    && matches!(
+                        &prior.footprint,
+                        Footprint::AxisAlignedRect(prior_rect)
+                            if candidate_rect.overlaps(*prior_rect)
+                    )
+            });
+            if placement_conflict {
+                continue;
+            }
+
+            placements.push(Placement {
+                reservation_id: request.reservation_id.clone(),
+                block_id: request.block_id.clone(),
+                footprint: Footprint::AxisAlignedRect(candidate_rect),
+                occupied: request.occupied,
+            });
+
+            match exact_tiny_search_recursive(
+                yard,
+                requests,
+                index + 1,
+                placements,
+                zones,
+                nodes_examined,
+            ) {
+                ExactSearchProgress::Found => return ExactSearchProgress::Found,
+                ExactSearchProgress::BudgetExceeded => return ExactSearchProgress::BudgetExceeded,
+                ExactSearchProgress::ProvenInfeasible => {
+                    placements.pop();
+                }
+            }
+        }
+    }
+    ExactSearchProgress::ProvenInfeasible
+}
+
+fn exact_tiny_search(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+) -> Option<ExactSearchOutcome> {
+    let yard_width = i128::from(yard_bounds.max_x) - i128::from(yard_bounds.min_x);
+    let yard_height = i128::from(yard_bounds.max_y) - i128::from(yard_bounds.min_y);
+    if requests.len() > EXACT_TINY_MAX_REQUESTS
+        || yard_width <= 0
+        || yard_height <= 0
+        || yard_width > EXACT_TINY_MAX_YARD_DIMENSION
+        || yard_height > EXACT_TINY_MAX_YARD_DIMENSION
+    {
+        return None;
+    }
+
+    let ordered = order_requests(requests, PortfolioPolicy::DecreasingArea);
+    let mut placements = Vec::with_capacity(ordered.len());
+    let mut nodes_examined = 0usize;
+    match exact_tiny_search_recursive(
+        yard_bounds,
+        &ordered,
+        0,
+        &mut placements,
+        exclusion_zones,
+        &mut nodes_examined,
+    ) {
+        ExactSearchProgress::Found => {
+            let mut scenario = Scenario {
+                yard_bounds: Some(yard_bounds),
+                placements,
+                transfers: Vec::new(),
+                exclusion_zones: exclusion_zones.to_vec(),
+            };
+            scenario
+                .placements
+                .sort_by(|left, right| left.reservation_id.cmp(&right.reservation_id));
+            scenario
+                .exclusion_zones
+                .sort_by(|left, right| left.id.cmp(&right.id));
+            Some(ExactSearchOutcome::Found(scenario, nodes_examined))
+        }
+        ExactSearchProgress::ProvenInfeasible => {
+            Some(ExactSearchOutcome::ProvenInfeasible(nodes_examined))
+        }
+        ExactSearchProgress::BudgetExceeded => {
+            Some(ExactSearchOutcome::BudgetExceeded(nodes_examined))
+        }
+    }
+}
+
+/// Use the six-policy heuristic portfolio first, then a bounded complete search for small integer
+/// rectangle instances. Exact fallback is eligible only for at most four requests in a yard no
+/// larger than 5×5 lattice units, with a 100,000-candidate node budget. Its outcomes distinguish
+/// a verified solution, a complete proof of infeasibility, and an exhausted budget. A larger
+/// model that defeats all heuristics returns AllPoliciesFailed, never a false infeasibility claim.
+pub fn first_fit_portfolio(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+) -> Result<PortfolioResult, Vec<BaselineError>> {
+    match first_fit_heuristic_portfolio(yard_bounds, requests, exclusion_zones) {
+        Ok(result) => Ok(result),
+        Err(errors)
+            if errors
+                .first()
+                .is_some_and(|error| error.code == BaselineErrorCode::AllPoliciesFailed) =>
+        {
+            match exact_tiny_search(yard_bounds, requests, exclusion_zones) {
+                Some(ExactSearchOutcome::Found(scenario, nodes_examined)) => {
+                    let report = verify(&scenario);
+                    if !report.is_feasible() {
+                        return Err(report
+                            .violations
+                            .into_iter()
+                            .map(|violation| BaselineError {
+                                code: BaselineErrorCode::VerifierRejected,
+                                subject_id: violation.subject_ids.join(";"),
+                                detail: format!(
+                                    "independent verifier rejected exact fallback result: {}",
+                                    violation.code.as_str()
+                                ),
+                            })
+                            .collect());
+                    }
+                    let score = portfolio_score(&scenario);
+                    Ok(PortfolioResult {
+                        scenario,
+                        selected_policy: PortfolioPolicy::ExactTinySearch,
+                        policies_attempted: 6,
+                        feasible_candidates: 0,
+                        exact_fallback_used: true,
+                        exact_nodes_examined: nodes_examined,
+                        score,
+                    })
+                }
+                Some(ExactSearchOutcome::ProvenInfeasible(nodes_examined)) => {
+                    Err(vec![BaselineError {
+                        code: BaselineErrorCode::ExactSearchProvenInfeasible,
+                        subject_id: "yard".to_owned(),
+                        detail: format!(
+                            "complete exact search found no valid layout within the declared                              rectangle/time model after {nodes_examined} candidates"
+                        ),
+                    }])
+                }
+                Some(ExactSearchOutcome::BudgetExceeded(nodes_examined)) => {
+                    Err(vec![BaselineError {
+                        code: BaselineErrorCode::ExactSearchBudgetExceeded,
+                        subject_id: "yard".to_owned(),
+                        detail: format!(
+                            "exact fallback budget exhausted after {nodes_examined} candidates;                              this is not a proof of infeasibility"
+                        ),
+                    }])
+                }
+                None => Err(errors),
+            }
+        }
+        Err(errors) => Err(errors),
     }
 }
 
