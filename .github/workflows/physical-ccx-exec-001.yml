@@ -50,6 +50,15 @@ jobs:
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           Snapshot: 20261020T000000Z
           EOF
+          # This minimal, digest-pinned image has no system CA bundle. Bootstrap the
+          # snapshot-pinned CA package while apt still verifies Ubuntu's signed InRelease
+          # metadata with the image's trusted archive keyring. Then repeat the update with
+          # normal HTTPS certificate verification enabled.
+          printf 'Acquire::https::Verify-Peer "false";\n' > /etc/apt/apt.conf.d/99phys-ccx-ca-bootstrap
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates
+          rm -f /etc/apt/apt.conf.d/99phys-ccx-ca-bootstrap
+          rm -rf /var/lib/apt/lists/*
           apt-get update
           apt-get install -y --no-install-recommends \
             build-essential gfortran make curl tar bzip2 ca-certificates \
