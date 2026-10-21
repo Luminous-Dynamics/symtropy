@@ -25,6 +25,7 @@
 - Planar-truss mutation audit tests seven deliberately defective variants: omitted area in stiffness, omitted area in member force, wrong stiffness span exponent, wrong strain-energy half-factor, zeroed off-diagonal direction-cosine coupling, reversed support-reaction sign, and an absolute pivot-tolerance floor that breaks scale invariance. Each intended test must fail in its isolated temporary copy. CI then re-runs the full unmodified suite, formatting and Clippy and publishes a source-bound mutation receipt.
 - CI publishes a separate 128-case sweep receipt with the pinned seed, generator constants, exact source commit/hash, tested parameter ranges, 17 scalar assertions per case, and residual gates. It is emitted only after the full test suite, mutation gate, and post-mutation integrity rerun have passed; the receipt is evidence of regression-test execution, not physical validation.
 - Frozen planar-truss request bytes live at `fixtures/planar_truss_request_v0_1.txt`; the canonical serializer is order-independent and tested against those exact bytes. The `planar-truss-reference` binary emits a deterministic truss receipt containing node displacements, member forces/stresses/strains, support reactions, normalized equilibrium residuals, source commit and the canonical request. CI computes SHA-256 over the canonical UTF-8 request bytes (without a trailing newline), verifies the pinned digest/oracle gates, and uploads the receipt alongside the topology/mass and mutation receipts. The physical-validation field remains `not_performed`.
+- The same CLI supports `--fixture asymmetric` and emits a separate `PHYS-TRUSS-ASYM-001` receipt for the nonsymmetric off-axis known-answer case. Its canonical request is frozen in `fixtures/planar_truss_asymmetric_request_v0_1.txt`, with its own pinned SHA-256, independent displacement/member/reaction oracle, and energy/equilibrium gates. Both symmetric and asymmetric raw receipts are double-executed and byte-compared in CI before being annotated with source/request digests and uploaded.
 
 ## Run locally
 
@@ -36,6 +37,8 @@ cargo run --locked --manifest-path research/physical-transformation-reference/Ca
   --source-commit "$(git rev-parse HEAD)"
 cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
   --source-commit "$(git rev-parse HEAD)"
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
+  --source-commit "$(git rev-parse HEAD)" --fixture asymmetric
 ```
 
 The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics; CI adds the SHA-256 request digest and pins the expected digest. Neither receipt is a claim of verified real-world evidence.

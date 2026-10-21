@@ -159,6 +159,68 @@ jobs:
             and (.bar_results | length == 2)
           ' planar-truss-reference-receipt.json
 
+      - name: Generate and verify exact-head asymmetric planar-truss receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
+            --source-commit "$source_commit" --fixture asymmetric > planar-truss-asymmetric-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
+            --source-commit "$source_commit" --fixture asymmetric > planar-truss-asymmetric-raw-b.json
+          cmp --silent planar-truss-asymmetric-raw-a.json planar-truss-asymmetric-raw-b.json
+          request_canonical="$(jq -r '.request_canonical' planar-truss-asymmetric-raw-a.json)"
+          fixture_canonical="$(cat research/physical-transformation-reference/fixtures/planar_truss_asymmetric_request_v0_1.txt)"
+          test "$request_canonical" = "$fixture_canonical"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "b1e555732efc56cb43d023b52b60e9d4852532efffde11db83d9f209700f6d9b"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of UTF-8 request_canonical bytes without a final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked research/physical-transformation-reference files"
+            }
+          ' planar-truss-asymmetric-raw-a.json > planar-truss-asymmetric-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "planar-truss-receipt-v0.1"
+            and .benchmark_id == "PHYS-TRUSS-ASYM-001"
+            and .input_fixture_id == "PHYS-TRUSS-ASYM-001"
+            and .source_commit == $source_commit
+            and .evidence_class == "synthetic"
+            and .result == "pass"
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .verification.independent_known_answer == "pass"
+            and .verification.equilibrium_gate == "pass"
+            and .verification.energy_balance == "pass"
+            and .verification.physical_validation == "not_performed"
+            and (.node_results | length == 3)
+            and (.bar_results | length == 2)
+            and ([.node_results[] | select(.node_id == "C" and ((.displacement_x_m - 1.875e-7 | abs) < 1e-15) and ((.displacement_y_m + 5.625e-7 | abs) < 1e-15))] | length == 1)
+            and ([.node_results[] | select(.node_id == "A" and ((.reaction_x_n - 150 | abs) < 1e-6) and ((.reaction_y_n - 450 | abs) < 1e-6))] | length == 1)
+            and ([.node_results[] | select(.node_id == "B" and ((.reaction_x_n + 750 | abs) < 1e-6) and ((.reaction_y_n - 750 | abs) < 1e-6))] | length == 1)
+            and ([.bar_results[] | select(.bar_id == "AC" and ((.axial_force_n + 1500 / (10|sqrt) | abs) < 1e-6) and ((.axial_stress_pa + 30000 | abs) < 1e-6))] | length == 1)
+            and ([.bar_results[] | select(.bar_id == "BC" and ((.axial_force_n + 1500 / (2|sqrt) | abs) < 1e-6) and ((.axial_stress_pa + 25000 | abs) < 1e-6))] | length == 1)
+            and ((.energy.strain_energy_j - 0.00039375 | abs) < 1e-12)
+            and ((.energy.external_work_j - 0.00039375 | abs) < 1e-12)
+            and (.energy.normalized_residual < 1e-12)
+            and (.equilibrium.normalized_force_residual < 1e-12)
+            and (.equilibrium.normalized_moment_residual < 1e-12)
+            and (.equilibrium.normalized_free_dof_residual < 1e-12)
+            and (.claim_ceiling | contains("not member bending/buckling"))
+          ' planar-truss-asymmetric-reference-receipt.json
+
       - name: Generate deterministic planar-truss sweep receipt
         shell: bash
         run: |
@@ -230,6 +292,7 @@ jobs:
             physical-transformation-reference-receipt.json
             planar-truss-mutation-receipt.json
             planar-truss-reference-receipt.json
+            planar-truss-asymmetric-reference-receipt.json
             planar-truss-sweep-receipt.json
           if-no-files-found: error
           retention-days: 90

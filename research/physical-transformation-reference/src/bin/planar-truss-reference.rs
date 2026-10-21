@@ -6,13 +6,17 @@
 //! binary avoids claiming a custom in-tree cryptographic implementation.
 
 use physical_transformation_reference::planar_truss::{
-    PlanarTrussResult, canonical_request, solve, symmetric_two_bar_reference_fixture,
+    PlanarTrussResult, asymmetric_two_bar_reference_fixture, canonical_request, solve,
+    symmetric_two_bar_reference_fixture,
 };
 use std::env;
 use std::process::ExitCode;
 
-const FIXTURE_ID: &str = "PHYS-TRUSS-V-001";
-const FIXED_REQUEST: &str = include_str!("../../fixtures/planar_truss_request_v0_1.txt");
+const SYMMETRIC_FIXTURE_ID: &str = "PHYS-TRUSS-V-001";
+const ASYMMETRIC_FIXTURE_ID: &str = "PHYS-TRUSS-ASYM-001";
+const SYMMETRIC_REQUEST: &str = include_str!("../../fixtures/planar_truss_request_v0_1.txt");
+const ASYMMETRIC_REQUEST: &str =
+    include_str!("../../fixtures/planar_truss_asymmetric_request_v0_1.txt");
 
 fn main() -> ExitCode {
     match run() {
@@ -30,33 +34,68 @@ fn main() -> ExitCode {
 fn run() -> Result<String, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     let mut source_commit: Option<String> = None;
+    let mut fixture_kind = "symmetric";
+    let mut fixture_was_supplied = false;
     let mut index = 0;
     while index < args.len() {
-        if args[index] == "--source-commit" {
-            if source_commit.is_some() {
-                return Err("--source-commit may be supplied only once".to_owned());
+        match args[index].as_str() {
+            "--source-commit" => {
+                if source_commit.is_some() {
+                    return Err("--source-commit may be supplied only once".to_owned());
+                }
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--source-commit requires a value".to_owned())?;
+                source_commit = Some(normalize_source_commit(value)?);
+                index += 2;
             }
-            let value = args
-                .get(index + 1)
-                .ok_or_else(|| "--source-commit requires a value".to_owned())?;
-            source_commit = Some(normalize_source_commit(value)?);
-            index += 2;
-        } else {
-            return Err(format!("unknown argument: {}", args[index]));
+            "--fixture" => {
+                if fixture_was_supplied {
+                    return Err("--fixture may be supplied only once".to_owned());
+                }
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--fixture requires symmetric or asymmetric".to_owned())?;
+                if !matches!(value.as_str(), "symmetric" | "asymmetric") {
+                    return Err("--fixture must be symmetric or asymmetric".to_owned());
+                }
+                fixture_kind = if value == "asymmetric" {
+                    "asymmetric"
+                } else {
+                    "symmetric"
+                };
+                fixture_was_supplied = true;
+                index += 2;
+            }
+            unknown => return Err(format!("unknown argument: {unknown}")),
         }
     }
 
     let source_commit = source_commit.ok_or_else(|| {
-        "usage: planar-truss-reference --source-commit <40-char-git-sha>".to_owned()
+        "usage: planar-truss-reference --source-commit <40-char-git-sha> [--fixture symmetric|asymmetric]".to_owned()
     })?;
-    let input = symmetric_two_bar_reference_fixture();
-    let request_canonical = canonical_request(FIXTURE_ID, &input)?;
-    if request_canonical != FIXED_REQUEST.trim_end_matches('\n') {
+    let (fixture_id, benchmark_id, input, fixed_request) = if fixture_kind == "asymmetric" {
+        (
+            ASYMMETRIC_FIXTURE_ID,
+            "PHYS-TRUSS-ASYM-001",
+            asymmetric_two_bar_reference_fixture(),
+            ASYMMETRIC_REQUEST,
+        )
+    } else {
+        (
+            SYMMETRIC_FIXTURE_ID,
+            "PHYS-TRUSS-001",
+            symmetric_two_bar_reference_fixture(),
+            SYMMETRIC_REQUEST,
+        )
+    };
+    let request_canonical = canonical_request(fixture_id, &input)?;
+    if request_canonical != fixed_request.trim_end_matches('\n') {
         return Err("canonical request differs from the frozen fixture bytes".to_owned());
     }
 
     let result = solve(&input)?;
-    verify_reference_outcome(&result)?;
+    verify_reference_outcome(&result, fixture_kind)?;
 
     let nodes_json = result
         .node_results
@@ -109,7 +148,7 @@ fn run() -> Result<String, String> {
         concat!(
             "{{",
             "\"schema_version\":\"planar-truss-receipt-v0.1\",",
-            "\"benchmark_id\":\"PHYS-TRUSS-001\",",
+            "\"benchmark_id\":{},",
             "\"input_fixture_id\":{},",
             "\"source_commit\":{},",
             "\"evidence_class\":\"synthetic\",",
@@ -146,7 +185,8 @@ fn run() -> Result<String, String> {
             "\"claim_ceiling\":{}",
             "}}"
         ),
-        quote(FIXTURE_ID),
+        quote(benchmark_id),
+        quote(fixture_id),
         quote(&source_commit),
         quote(&request_canonical),
         nodes_json,
@@ -177,7 +217,149 @@ fn normalize_source_commit(value: &str) -> Result<String, String> {
     Ok(value.to_ascii_lowercase())
 }
 
-fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
+fn verify_asymmetric_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
+    let node = |id: &str| {
+        result
+            .node_results
+            .iter()
+            .find(|entry| entry.node_id == id)
+            .ok_or_else(|| format!("asymmetric known-answer result is missing node {id}"))
+    };
+    let bar = |id: &str| {
+        result
+            .bar_results
+            .iter()
+            .find(|entry| entry.bar_id == id)
+            .ok_or_else(|| format!("asymmetric known-answer result is missing bar {id}"))
+    };
+
+    let apex = node("C")?;
+    let support_a = node("A")?;
+    let support_b = node("B")?;
+    let ac = bar("AC")?;
+    let bc = bar("BC")?;
+    close(
+        apex.displacement_x_m,
+        1.875e-7,
+        1.0e-15,
+        "asymmetric apex x",
+    )?;
+    close(
+        apex.displacement_y_m,
+        -5.625e-7,
+        1.0e-15,
+        "asymmetric apex y",
+    )?;
+    close(
+        support_a
+            .reaction_x_n
+            .ok_or_else(|| "A x reaction missing".to_owned())?,
+        150.0,
+        1.0e-6,
+        "asymmetric A x reaction",
+    )?;
+    close(
+        support_a
+            .reaction_y_n
+            .ok_or_else(|| "A y reaction missing".to_owned())?,
+        450.0,
+        1.0e-6,
+        "asymmetric A y reaction",
+    )?;
+    close(
+        support_b
+            .reaction_x_n
+            .ok_or_else(|| "B x reaction missing".to_owned())?,
+        -750.0,
+        1.0e-6,
+        "asymmetric B x reaction",
+    )?;
+    close(
+        support_b
+            .reaction_y_n
+            .ok_or_else(|| "B y reaction missing".to_owned())?,
+        750.0,
+        1.0e-6,
+        "asymmetric B y reaction",
+    )?;
+    close(
+        ac.axial_force_n,
+        -1_500.0 / 10.0_f64.sqrt(),
+        1.0e-6,
+        "asymmetric AC force",
+    )?;
+    close(
+        bc.axial_force_n,
+        -1_500.0 / 2.0_f64.sqrt(),
+        1.0e-6,
+        "asymmetric BC force",
+    )?;
+    close(
+        ac.axial_stress_pa,
+        -30_000.0,
+        1.0e-6,
+        "asymmetric AC stress",
+    )?;
+    close(
+        bc.axial_stress_pa,
+        -25_000.0,
+        1.0e-6,
+        "asymmetric BC stress",
+    )?;
+    close(ac.axial_strain, -1.5e-7, 1.0e-15, "asymmetric AC strain")?;
+    close(bc.axial_strain, -1.25e-7, 1.0e-15, "asymmetric BC strain")?;
+    close(
+        ac.axial_extension_m,
+        -1.5e-7 * 10.0_f64.sqrt(),
+        1.0e-15,
+        "asymmetric AC extension",
+    )?;
+    close(
+        bc.axial_extension_m,
+        -1.25e-7 * 18.0_f64.sqrt(),
+        1.0e-15,
+        "asymmetric BC extension",
+    )?;
+
+    let expected_energy_j = 3.9375e-4;
+    close(
+        result.energy.strain_energy_j,
+        expected_energy_j,
+        1.0e-12,
+        "asymmetric strain energy",
+    )?;
+    close(
+        result.energy.external_work_j,
+        expected_energy_j,
+        1.0e-12,
+        "asymmetric external work",
+    )?;
+    close(
+        result.energy.residual_j,
+        0.0,
+        1.0e-12,
+        "asymmetric energy residual",
+    )?;
+
+    for (label, value) in [
+        ("force", result.equilibrium.normalized_force_residual),
+        ("moment", result.equilibrium.normalized_moment_residual),
+        ("free-DOF", result.equilibrium.normalized_free_dof_residual),
+        ("energy", result.energy.normalized_residual),
+    ] {
+        if !value.is_finite() || value >= 1.0e-12 {
+            return Err(format!(
+                "asymmetric {label} residual exceeds receipt gate: {value:.17e}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_reference_outcome(result: &PlanarTrussResult, fixture_kind: &str) -> Result<(), String> {
+    if fixture_kind == "asymmetric" {
+        return verify_asymmetric_reference_outcome(result);
+    }
     let apex = result
         .node_results
         .iter()
@@ -381,6 +563,18 @@ mod tests {
         let input = symmetric_two_bar_reference_fixture();
         let mut result = solve(&input).expect("valid fixture");
         result.equilibrium.normalized_force_residual = f64::NAN;
-        assert!(verify_reference_outcome(&result).is_err());
+        assert!(verify_reference_outcome(&result, "symmetric").is_err());
+    }
+
+    #[test]
+    fn asymmetric_receipt_verification_pins_known_answer_and_energy() {
+        let input = asymmetric_two_bar_reference_fixture();
+        let result = solve(&input).expect("valid asymmetric fixture");
+        verify_reference_outcome(&result, "asymmetric")
+            .expect("asymmetric known-answer and energy gates should pass");
+
+        let mut bad_energy = result;
+        bad_energy.energy.strain_energy_j *= 2.0;
+        assert!(verify_reference_outcome(&bad_energy, "asymmetric").is_err());
     }
 }

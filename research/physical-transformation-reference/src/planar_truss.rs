@@ -93,6 +93,61 @@ pub fn symmetric_two_bar_reference_fixture() -> PlanarTrussInput {
     }
 }
 
+/// Canonical nonsymmetric two-bar truss with mixed horizontal/vertical loading.
+///
+/// Supports A=(0,0), B=(4,0); free apex C=(1,3). Bars have E=200 GPa
+/// and areas chosen for approximately EA/L = 1e9 and 2e9 N/m. The asymmetric
+/// geometry makes the off-diagonal direction-cosine terms observable.
+pub fn asymmetric_two_bar_reference_fixture() -> PlanarTrussInput {
+    PlanarTrussInput {
+        nodes: vec![
+            TrussNode {
+                id: "A".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+                force_x_n: 0.0,
+                force_y_n: 0.0,
+            },
+            TrussNode {
+                id: "B".to_owned(),
+                x_m: 4.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+                force_x_n: 0.0,
+                force_y_n: 0.0,
+            },
+            TrussNode {
+                id: "C".to_owned(),
+                x_m: 1.0,
+                y_m: 3.0,
+                restrained_x: false,
+                restrained_y: false,
+                force_x_n: 600.0,
+                force_y_n: -1_200.0,
+            },
+        ],
+        bars: vec![
+            TrussBar {
+                id: "AC".to_owned(),
+                node_i: "A".to_owned(),
+                node_j: "C".to_owned(),
+                area_m2: 0.015_811_388_300_841_896,
+                youngs_modulus_pa: 200.0e9,
+            },
+            TrussBar {
+                id: "BC".to_owned(),
+                node_i: "B".to_owned(),
+                node_j: "C".to_owned(),
+                area_m2: 0.042_426_406_871_192_854,
+                youngs_modulus_pa: 200.0e9,
+            },
+        ],
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TrussNodeResult {
     pub node_id: String,
@@ -683,59 +738,7 @@ mod tests {
     }
 
     fn asymmetric_two_bar_truss() -> PlanarTrussInput {
-        let youngs_modulus_pa = 200.0e9;
-        let length_ac = 10.0_f64.sqrt();
-        let length_bc = 18.0_f64.sqrt();
-        let axial_stiffness_ac = 1.0e9;
-        let axial_stiffness_bc = 2.0e9;
-
-        PlanarTrussInput {
-            nodes: vec![
-                TrussNode {
-                    id: "A".to_owned(),
-                    x_m: 0.0,
-                    y_m: 0.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                    force_x_n: 0.0,
-                    force_y_n: 0.0,
-                },
-                TrussNode {
-                    id: "B".to_owned(),
-                    x_m: 4.0,
-                    y_m: 0.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                    force_x_n: 0.0,
-                    force_y_n: 0.0,
-                },
-                TrussNode {
-                    id: "C".to_owned(),
-                    x_m: 1.0,
-                    y_m: 3.0,
-                    restrained_x: false,
-                    restrained_y: false,
-                    force_x_n: 600.0,
-                    force_y_n: -1_200.0,
-                },
-            ],
-            bars: vec![
-                TrussBar {
-                    id: "AC".to_owned(),
-                    node_i: "A".to_owned(),
-                    node_j: "C".to_owned(),
-                    area_m2: axial_stiffness_ac * length_ac / youngs_modulus_pa,
-                    youngs_modulus_pa,
-                },
-                TrussBar {
-                    id: "BC".to_owned(),
-                    node_i: "B".to_owned(),
-                    node_j: "C".to_owned(),
-                    area_m2: axial_stiffness_bc * length_bc / youngs_modulus_pa,
-                    youngs_modulus_pa,
-                },
-            ],
-        }
+        asymmetric_two_bar_reference_fixture()
     }
 
     fn close(actual: f64, expected: f64, tolerance: f64, label: &str) {
@@ -871,6 +874,27 @@ mod tests {
             result.energy.normalized_residual < 1.0e-12,
             "normalized energy residual={:.17e}",
             result.energy.normalized_residual
+        );
+    }
+
+    #[test]
+    fn asymmetric_request_matches_frozen_bytes_and_ignores_input_order() {
+        let original = asymmetric_two_bar_truss();
+        let expected = include_str!("../fixtures/planar_truss_asymmetric_request_v0_1.txt")
+            .trim_end_matches('\n');
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-ASYM-001", &original)
+                .expect("canonical asymmetric request"),
+            expected
+        );
+
+        let mut permuted = original;
+        permuted.nodes.reverse();
+        permuted.bars.reverse();
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-ASYM-001", &permuted)
+                .expect("permuted asymmetric request"),
+            expected
         );
     }
 
