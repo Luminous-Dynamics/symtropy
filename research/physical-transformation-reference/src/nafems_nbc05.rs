@@ -6,8 +6,8 @@
 //! model, not a model of the full physical structure. It excludes bending,
 //! rotary inertia, joint flexibility, material nonlinearity and damping.
 
-use crate::modal_bar::MassMatrixFormulation;
 use crate::Check;
+use crate::modal_bar::MassMatrixFormulation;
 
 /// Parameters transcribed from the NAFEMS NBC05 figure with explicitly stated
 /// assumptions. The section annotation is interpreted as a circular radius;
@@ -103,9 +103,7 @@ pub fn solve_published_axial_truss(
     let area_m2 = std::f64::consts::PI * parameters.section_radius_m.powi(2);
     validate_positive("section_area_m2", area_m2)?;
     let horizontal_length = parameters.top_span_m;
-    let diagonal_length = parameters
-        .top_span_m
-        .hypot(parameters.vertical_offset_m);
+    let diagonal_length = parameters.top_span_m.hypot(parameters.vertical_offset_m);
     validate_positive("diagonal_length_m", diagonal_length)?;
 
     // Supports A=(0,h) and B=(0,0) are fixed in x/y; joint C=(span,h)
@@ -122,11 +120,11 @@ pub fn solve_published_axial_truss(
     let stiffness = [[kxx, kxy], [kxy, kyy]];
     let trace = kxx + kyy;
     let discriminant = (kxx - kyy).hypot(2.0 * kxy);
-    let stiffness_eigenvalues = [
-        0.5 * (trace - discriminant),
-        0.5 * (trace + discriminant),
-    ];
-    if stiffness_eigenvalues.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    let stiffness_eigenvalues = [0.5 * (trace - discriminant), 0.5 * (trace + discriminant)];
+    if stiffness_eigenvalues
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err("reduced stiffness must have two finite positive eigenvalues".to_owned());
     }
 
@@ -143,11 +141,14 @@ pub fn solve_published_axial_truss(
         * mass_multiplier;
     validate_positive("effective_mass_kg", effective_mass)?;
 
-    let frequencies = stiffness_eigenvalues.map(|stiffness_eigenvalue| {
-        (stiffness_eigenvalue / effective_mass).sqrt()
-            / (2.0 * std::f64::consts::PI)
-    });
-    if frequencies.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    let frequencies = stiffness_eigenvalues
+        .map(|stiffness_eigenvalue| {
+            (stiffness_eigenvalue / effective_mass).sqrt() / (2.0 * std::f64::consts::PI)
+        });
+    if frequencies
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err("frequency result must be finite and positive".to_owned());
     }
 
@@ -180,9 +181,7 @@ fn validate_positive(name: &str, value: f64) -> Check<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        canonical_request, published_nbc05_parameters, solve_published_axial_truss,
-    };
+    use super::{canonical_request, published_nbc05_parameters, solve_published_axial_truss};
     use crate::modal_bar::MassMatrixFormulation;
 
     const REFERENCE_RELATIVE_TOLERANCE: f64 = 1.0e-4;
@@ -190,14 +189,10 @@ mod tests {
     #[test]
     fn reported_nbc05_cs1_cs2_frequency_table_matches_analytic_two_dof_oracle() {
         let parameters = published_nbc05_parameters();
-        let consistent = solve_published_axial_truss(
-            parameters,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("consistent-mass axial truss");
-        let lumped =
-            solve_published_axial_truss(parameters, MassMatrixFormulation::Lumped)
-                .expect("lumped-mass axial truss");
+        let consistent = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)
+            .expect("consistent-mass axial truss");
+        let lumped = solve_published_axial_truss(parameters, MassMatrixFormulation::Lumped)
+            .expect("lumped-mass axial truss");
 
         assert!((consistent.member_lengths_m[0] - 1.0).abs() < 1.0e-14);
         assert!((consistent.member_lengths_m[1] - 2.0_f64.sqrt()).abs() < 1.0e-14);
@@ -222,18 +217,14 @@ mod tests {
     #[test]
     fn consistent_to_lumped_frequency_ratio_is_sqrt_two_thirds() {
         let parameters = published_nbc05_parameters();
-        let consistent = solve_published_axial_truss(
-            parameters,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("consistent");
-        let lumped = solve_published_axial_truss(parameters, MassMatrixFormulation::Lumped)
-            .expect("lumped");
+        let consistent = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)
+            .expect("consistent");
+        let lumped =
+            solve_published_axial_truss(parameters, MassMatrixFormulation::Lumped).expect("lumped");
         let expected_ratio = (2.0_f64 / 3.0).sqrt();
         for mode in 0..2 {
             assert!(
-                ((lumped.frequencies_hz[mode] / consistent.frequencies_hz[mode])
-                    - expected_ratio)
+                ((lumped.frequencies_hz[mode] / consistent.frequencies_hz[mode]) - expected_ratio)
                     .abs()
                     < 1.0e-12
             );
@@ -243,17 +234,11 @@ mod tests {
     #[test]
     fn uniform_area_change_does_not_change_axial_only_modes() {
         let mut parameters = published_nbc05_parameters();
-        let baseline = solve_published_axial_truss(
-            parameters,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("baseline");
+        let baseline = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)
+            .expect("baseline");
         parameters.section_radius_m *= 100.0;
-        let scaled = solve_published_axial_truss(
-            parameters,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("scaled section");
+        let scaled = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)
+            .expect("scaled section");
         for mode in 0..2 {
             assert!(
                 ((scaled.frequencies_hz[mode] - baseline.frequencies_hz[mode])
@@ -276,9 +261,13 @@ mod tests {
     fn invalid_geometry_and_material_domains_fail_closed() {
         let mut parameters = published_nbc05_parameters();
         parameters.top_span_m = 0.0;
-        assert!(solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent).is_err());
+        assert!(
+            solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent).is_err()
+        );
         parameters = published_nbc05_parameters();
         parameters.poisson_ratio = 0.5;
-        assert!(solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent).is_err());
+        assert!(
+            solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent).is_err()
+        );
     }
 }
