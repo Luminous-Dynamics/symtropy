@@ -640,7 +640,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         let mut run_catalog = catalog.clone();
         run_catalog.seed = *seed;
         run_catalog.replication_seeds.clear();
-        runs.push(evaluate_single_seed(&run_catalog)?);
+        runs.push(evaluate_single_seed(&run_catalog, runs.is_empty())?);
     }
     let reference = runs
         .first()
@@ -848,12 +848,12 @@ fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
     }
 }
 
-fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
-    let baseline = simulate(catalog, None)?;
+fn evaluate_single_seed(catalog: &Catalog, include_lifecycle_ledger: bool) -> Result<Report, String> {
+    let baseline = simulate(catalog, None, include_lifecycle_ledger)?;
     let mut scenarios = Vec::with_capacity(catalog.stations.len() + 1);
     scenarios.push(baseline.clone());
     for index in 0..catalog.stations.len() {
-        scenarios.push(simulate(catalog, Some(index))?);
+        scenarios.push(simulate(catalog, Some(index), false)?);
     }
 
     let baseline_rate = baseline.measured_good_units_per_hour;
@@ -916,7 +916,11 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
     })
 }
 
-fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<ScenarioResult, String> {
+fn simulate(
+    catalog: &Catalog,
+    extra_server_at: Option<usize>,
+    include_lifecycle_ledger: bool,
+) -> Result<ScenarioResult, String> {
     if let Some(index) = extra_server_at {
         if index >= catalog.stations.len() {
             return Err("intervention_station_index_out_of_bounds".into());
@@ -940,8 +944,18 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             }
         })
         .collect();
+    let scenario_id = match extra_server_at {
+        None => "baseline".to_string(),
+        Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
+    };
     let mut state = SimState {
         now: 0,
+        seed: catalog.seed,
+        scenario_id,
+        record_lifecycle_events: include_lifecycle_ledger && extra_server_at.is_none(),
+        next_lifecycle_sequence: 0,
+        lifecycle_events: Vec::new(),
+        job_records: BTreeMap::new(),
         next_event_sequence: 0,
         events: BinaryHeap::new(),
         supplier_rng: DeterministicRng::new(catalog.seed ^ 0x535550504c595f31),
@@ -980,10 +994,35 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let id = state.next_job_id;
                 state.next_job_id += 1;
                 state.released_jobs_total += 1;
+                let variant = ((id / catalog.variant_batch_size)
+                    % catalog.variant_count as u64) as usize;
+                state.job_records.insert(
+                    id,
+                    JobRecord {
+                        job_id: id,
+                        variant_id: variant,
+                        released_at_seconds: state.now,
+                        first_attempt_started_at_by_station: vec![None; catalog.stations.len()],
+                        first_attempt_outcome_by_station: vec![None; catalog.stations.len()],
+                        attempts_started_by_station: vec![0; catalog.stations.len()],
+                        final_good_at_seconds: None,
+                        scrapped_at_seconds: None,
+                    },
+                );
+                record_lifecycle_event(
+                    &mut state,
+                    catalog,
+                    JobLifecycleEventKind::JobRelease,
+                    id,
+                    variant,
+                    None,
+                    None,
+                    None,
+                    None,
+                );
                 state.supplier_backlog.push_back(Job {
                     id,
-                    variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
-                        as usize,
+                    variant,
                     queued_since_seconds: state.now,
                 });
                 state.supplier_backlog_peak = state
@@ -1082,12 +1121,12 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             .all(|buffer| buffer.peak_occupancy_units <= buffer.capacity_units)
         && state.source_buffer_peak <= catalog.source_buffer_capacity;
     let output_never_exceeds_released_input = state.good_units_total <= state.released_jobs_total;
-    let baseline_id = match extra_server_at {
-        None => "baseline".to_string(),
-        Some(index) => format!("add-one-server-{}", catalog.stations[index].station_id),
-    };
+    let baseline_id = state.scenario_id.clone();
+    let lifecycle_summary = build_job_lifecycle_summary(&state, catalog)?;
     Ok(ScenarioResult {
         scenario_id: baseline_id,
+        job_lifecycle_summary: lifecycle_summary,
+        job_lifecycle_events: std::mem::take(&mut state.lifecycle_events),
         intervention_station_id: extra_server_at
             .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
