@@ -16,7 +16,7 @@ The dedicated workflow pins Rust 1.96.0 and runs formatting, tests and Clippy of
 
 A disruption evaluator must answer more than whether the new plan passes a feasibility check. It should also report how much work changed, what changed outside the disturbance's scope, how much time/space was shifted, and how long affected work takes to finish. V0 deliberately emits separate metrics rather than hiding trade-offs in an arbitrary weighted scalar.
 
-The evaluator applies the same declared exclusion-zone and vehicle-outage evidence to both the baseline and proposed candidate. It derives affected placement IDs from new-zone intersections, affected transfer IDs from corridor-zone intersections or vehicle-outage overlap, then adds explicitly declared affected IDs. It runs the candidate through the independent space-time verifier; no planner-supplied feasibility assertion is accepted.
+The evaluator applies the same declared exclusion-zone, vehicle-outage, and delayed-clearance evidence to both the baseline and proposed candidate. A `PlacementOccupancyExtension` records that a block's old footprint cannot be assumed clear before an authoritative tick; the extension is applied to both plans, automatically marking the outgoing reservation and any intersecting future placement/corridor as affected. The candidate must preserve the same block, starting time and physical footprint for that extended reservation. An extension must be reported before the old scheduled end; V0 rejects retrospective extension of work already considered complete. New-zone intersections, corridor-zone intersections and vehicle-outage overlap also derive affected IDs. The evaluator runs the candidate through the independent space-time verifier; no planner-supplied feasibility assertion is accepted.
 
 The report separates:
 - baseline feasible before/after the disruption;
@@ -32,17 +32,21 @@ Already-completed reservations (end tick at or before the disruption observation
 
 ## Tests authored in V0
 
-Six unit tests cover:
+Ten unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
 4. prevention of historical reservation mutation;
 5. detection of a transfer corridor invalidated by a new exclusion zone, with recovery that avoids unaffected churn;
-6. measurement of churn on work outside the affected set.
+6. measurement of churn on work outside the affected set;
+7. a delayed block handoff that keeps the departing footprint occupied and requires relocation of the incoming block;
+8. rejection of clearance extensions received after the scheduled reservation is considered complete;
+9. rejection of unknown extension targets;
+10. rejection when a candidate removes or moves the physical footprint that is still occupied.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
-These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator currently models rectangle-zone intersections and exclusive vehicle outages only; it does not compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
+These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator models rectangle-zone intersections, exclusive vehicle outages and explicit occupied-until extensions for known placements; it does not infer crane/lift clearance from sensor signals, calculate the physical move, compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
 
 ## Benchmark protocol and targets
 
