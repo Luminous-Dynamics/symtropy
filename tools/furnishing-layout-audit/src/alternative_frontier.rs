@@ -1103,6 +1103,12 @@ mod tests {
         let report = compute_pareto_frontier(&candidates).expect("generated schema is valid");
         assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
         assert_report_witnesses_valid(&report, &candidates);
+        let mut reversed = candidates.clone();
+        reversed.reverse();
+        assert_eq!(
+            compute_pareto_frontier(&reversed).expect("reordered schema is valid"),
+            report
+        );
     }
 
     #[test]
