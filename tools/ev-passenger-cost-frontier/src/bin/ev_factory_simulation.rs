@@ -1628,8 +1628,15 @@ mod tests {
     fn changeover_policy_preserves_fifo_within_variant_and_bounds_skips() {
         let mut queue =
             VecDeque::from([test_job(10, 0, 0), test_job(11, 1, 0), test_job(12, 1, 0)]);
-        let first = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2, 0, 900)
-            .expect("oldest matching variant");
+        let first = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("oldest matching variant");
         assert_eq!(
             first.id, 11,
             "FIFO is preserved within the matching variant"
@@ -1637,17 +1644,30 @@ mod tests {
         assert_eq!(queue[0].id, 10);
         assert_eq!(queue[0].consecutive_skips, 1);
 
-        let second = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2, 0, 900)
-            .expect("next matching-variant job");
+        let second = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("next matching-variant job");
         assert_eq!(
             second.id, 12,
             "later same-variant job cannot overtake an earlier one of its variant"
         );
         assert_eq!(queue[0].consecutive_skips, 2);
 
-        let forced_oldest =
-            select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2, 0, 900)
-                .expect("max-skip aging forces the oldest job");
+        let forced_oldest = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("max-skip aging forces the oldest job");
         assert_eq!(forced_oldest.id, 10);
     }
 
@@ -1675,8 +1695,15 @@ mod tests {
     fn fifo_policy_and_no_match_fall_back_to_oldest_queue_entry() {
         let mut fifo = VecDeque::from([test_job(2, 1, 0), test_job(1, 0, 0)]);
         assert_eq!(
-            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3, 0, 900)
-                .expect("FIFO")
+            select_queued_job(
+                &mut fifo,
+                Some(0),
+                DispatchPolicy::Fifo,
+                3,
+                0,
+                900,
+            )
+            .expect("FIFO")
                 .id,
             2
         );
