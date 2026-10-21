@@ -21,4 +21,8 @@ path = "src/bin/planar-truss-reference.rs"
 name = "modal-bar-reference"
 path = "src/bin/modal-bar-reference.rs"
 
+[[bin]]
+name = "nafems-modal-truss-reference"
+path = "src/bin/nafems-modal-truss-reference.rs"
+
 [workspace]
