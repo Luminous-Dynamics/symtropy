@@ -5,6 +5,8 @@
 //! modal solver for the two-dimensional pin-jointed truss, and it does not
 //! model transverse member bending.
 
+#![allow(clippy::needless_range_loop)] // Matrix algorithms intentionally couple row/column indices.
+
 use super::Check;
 use std::f64::consts::PI;
 
@@ -74,7 +76,7 @@ pub fn fixed_free_axial_bar_frequencies(
     validate_positive("youngs_modulus_pa", youngs_modulus_pa)?;
     validate_positive("density_kg_m3", density_kg_m3)?;
 
-    if element_count == 0 || element_count > MAX_ELEMENTS {
+    if !(1..=MAX_ELEMENTS).contains(&element_count) {
         return Err(format!(
             "element_count must be between 1 and {MAX_ELEMENTS}"
         ));
@@ -291,7 +293,7 @@ fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
     let scale = matrix
         .iter()
         .flatten()
-        .map(|value| value.abs())
+        .map(f64::abs)
         .fold(0.0_f64, f64::max);
     if !scale.is_finite() || scale <= 0.0 {
         return Err("eigenproblem matrix has no finite positive scale".to_string());
