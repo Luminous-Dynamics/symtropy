@@ -1978,6 +1978,13 @@ mod tests {
         validate_catalog(&catalog).expect("fixture validates");
         assert_eq!(catalog.buffer_capacities.len(), catalog.stations.len() - 1);
         assert_eq!(catalog.stations.len() + 1, 6);
+        assert_eq!(catalog.replication_seeds.len(), 20);
+        assert_eq!(catalog.replication_seeds.first(), Some(&catalog.seed));
+        assert_eq!(
+            catalog.replication_seeds.iter().copied().collect::<BTreeSet<_>>().len(),
+            20,
+            "paired benchmark fixture must carry 20 unique, explicit seeds",
+        );
     }
 
     #[test]
