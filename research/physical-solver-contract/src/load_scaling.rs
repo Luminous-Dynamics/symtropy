@@ -1078,11 +1078,17 @@ mod tests {
     fn strain_energy_quadratic_relation_math_is_explicit() {
         let baseline = BTreeMap::from([(
             "total_strain_energy".to_owned(),
-            ObservedObservable { value: 0.01, unit: "J".to_owned() },
+            ObservedObservable {
+                value: 0.01,
+                unit: "J".to_owned(),
+            },
         )]);
         let scaled = BTreeMap::from([(
             "total_strain_energy".to_owned(),
-            ObservedObservable { value: 0.04, unit: "J".to_owned() },
+            ObservedObservable {
+                value: 0.04,
+                unit: "J".to_owned(),
+            },
         )]);
         let (results, violations, unresolved, count) =
             compare_observables(&baseline, &scaled, 2.0, 2, 1e-12, 1e-10);
