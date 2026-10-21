@@ -278,3 +278,37 @@ This adds an important split to the test plan:
 - Compare memory-only effects first; test stage verification as a separate factor; test their interaction only in a small predeclared factorial design.
 
 **New advancement criterion:** a memory system must improve both the correctness of its internal lifecycle operations and the external decision/task outcome. Passing the lifecycle microbench is necessary evidence of semantics, not sufficient evidence of robotic competence.
+
+
+## New current SOTA-style comparator: Mem4Act and causal memory use
+
+The research sweep on 2026-10-22 found the [Mem4Act preprint](https://arxiv.org/abs/2610.22323), submitted 2026-10-15, plus its [official project page](https://handsomeyun.github.io/Mem4Act/). It reports a fixed **512-latent-token** memory interface and:
+- **RoboMME:** 49.88% across 16 tasks; the paper reports a +5.37 percentage-point gain over FrameSamp+Modul (44.51%). Mem4Act leads overall and on Counting, Reference, and Imitation; MemER is stronger in Permanence, which is an important reminder not to hide suite-specific losses.
+- **RMBench:** 61.0% over nine dual-arm tasks, with one jointly trained policy; the paper reports 41.3% on its four longer-history M(n) tasks versus 14.8% for NativeMEM in its comparison, but notes that NativeMEM uses task-specific policies while Mem4Act is jointly trained. This is not a perfectly matched training setup.
+- **Four real-world task setups:** 81.5% average success in the preprint.
+
+These are paper-reported preprint results, not Symtropy results, an official universal leaderboard, or independent reproduction. The project page labels code and dataset as “coming soon” during this check, so no code/checkpoint parity is currently established. The results must be rerun with a matched evaluator and configuration when artifacts are released.
+
+### Architectural lesson: memory must be used, not merely stored
+
+Mem4Act explicitly studies *memory utilization*: it swaps the historical prefix with another rollout from the same task while keeping the current observation, proprioception, and instruction correct. Its reported two-stage policy shows a larger success drop under history swap, which the authors interpret as stronger reliance on history. This suggests adding an intervention diagnostic to Symtropy, while guarding against the opposite failure: an agent that is over-sensitive to irrelevant or stale history.
+
+Define two complementary tests over the same current observation and task instruction:
+
+1. **Relevant-memory intervention:** substitute a matched counterfactual history that changes a task-critical past fact while leaving current input fixed. The chosen action or task state should change when, and only when, the fact changes the correct decision.
+2. **Irrelevant-memory intervention:** add or replace unrelated history while preserving all task-relevant facts. The decision should stay invariant within a declared tolerance.
+3. **Stale/contradictory-memory intervention:** replace a current valid source revision with an older or superseded record. A provenance-aware controller must reject the stale substitution or reduce authority rather than silently changing to an obsolete answer.
+4. **Memory knockout:** remove persistent memory while retaining the exact current observation. Measure the success delta on tasks whose answer mathematically requires historical information; do not reward dependence on memory for tasks solvable from the current view.
+5. **Memory-reliance precision:** report both (a) required sensitivity to relevant changes and (b) invariance to irrelevant changes. A single “memory reliance” number is insufficient because brittle over-reliance can also produce a large history-swap performance drop.
+
+These interventions belong in the evaluator, offline counterfactual runs or controlled replay—not as oracle labels fed to the acting policy. Keep the policy state and current observation identical except for the declared history intervention. Use episode-level paired measures and task-stratified confidence intervals.
+
+### Consequence for the Symtropy experimental sequence
+
+Once the Rust lifecycle microbench is exact-head qualified:
+1. Add deterministic relevant/irrelevant/stale-history intervention tests to the synthetic memory evaluator.
+2. Use them to select memory semantics and admission policy without claiming native control gains.
+3. On the first eligible VLA baseline, reproduce RoboMME and run a history-channel ablation with the same checkpoint, prompt, image processing, executor and seeds.
+4. Add memory intervention and interference only as explicitly separate factors, then combine them in a small predeclared matrix.
+
+Mem4Act is the reference for learned fixed-size latent memory and causal utilization; HyMeS is the reference for executable memory strategy and stage verification; MEMOBench is the reference for process-level storage/update/compression. They should be compared on their native protocols, not ranked using a fabricated combined score.
