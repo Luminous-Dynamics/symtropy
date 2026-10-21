@@ -1324,6 +1324,9 @@ pub fn compare_runs(
     if left.environment != right.environment {
         return Err("cannot pair runs: environment differs".into());
     }
+    if baseline.report.seed != treatment.report.seed {
+        return Err("cannot pair runs: declared seed differs".into());
+    }
     if left.router.method_id == right.router.method_id {
         return Err("baseline and treatment method IDs must differ".into());
     }
