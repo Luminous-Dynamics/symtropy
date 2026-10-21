@@ -1336,6 +1336,135 @@ fn complete_operation(
     Ok(())
 }
 
+fn record_lifecycle_event(
+    state: &mut SimState,
+    catalog: &Catalog,
+    kind: JobLifecycleEventKind,
+    job_id: u64,
+    variant_id: usize,
+    station_index: Option<usize>,
+    server_index: Option<usize>,
+    buffer_id: Option<String>,
+    attempt_number: Option<u32>,
+) {
+    if !state.record_lifecycle_events {
+        return;
+    }
+    let station_id = station_index.map(|index| catalog.stations[index].station_id.clone());
+    let resource_id = match (station_id.as_deref(), server_index) {
+        (Some(station_id), Some(server_index)) => {
+            Some(format!("{station_id}-server-{:02}", server_index + 1))
+        }
+        _ => None,
+    };
+    let event = JobLifecycleEvent {
+        schema_version: "0.1.0".into(),
+        seed: state.seed,
+        scenario_id: state.scenario_id.clone(),
+        event_sequence: state.next_lifecycle_sequence,
+        timestamp_seconds: state.now,
+        kind,
+        job_id,
+        variant_id,
+        station_id,
+        resource_id,
+        buffer_id,
+        attempt_number,
+        evidence_class: "synthetic".into(),
+    };
+    state.next_lifecycle_sequence = state.next_lifecycle_sequence.saturating_add(1);
+    state.lifecycle_events.push(event);
+}
+
+fn build_job_lifecycle_summary(
+    state: &SimState,
+    catalog: &Catalog,
+) -> Result<JobLifecycleSummary, String> {
+    let mut eligible_released_jobs = 0_u64;
+    let mut accepted_good_jobs = 0_u64;
+    let mut scrapped_jobs = 0_u64;
+    let mut right_censored_jobs = 0_u64;
+    let mut lead_times = Vec::<f64>::new();
+    let mut first_pass: Vec<StationFirstPassYield> = catalog.stations.iter()
+        .map(|station| StationFirstPassYield {
+            station_id: station.station_id.clone(),
+            first_attempts_started_in_cohort: 0,
+            first_attempts_with_observed_outcome: 0,
+            first_attempt_passed: 0,
+            first_attempt_failed: 0,
+            unresolved_first_attempts_at_horizon: 0,
+            observed_first_pass_yield_fraction: None,
+        })
+        .collect();
+
+    for record in state.job_records.values() {
+        if record.released_at_seconds < catalog.warmup_seconds {
+            continue;
+        }
+        eligible_released_jobs += 1;
+        if let Some(completed_at) = record.final_good_at_seconds {
+            accepted_good_jobs += 1;
+            if completed_at >= record.released_at_seconds {
+                lead_times.push((completed_at - record.released_at_seconds) as f64);
+            } else {
+                return Err(format!("job_{}_final_good_timestamp_precedes_release", record.job_id));
+            }
+        } else if record.scrapped_at_seconds.is_some() {
+            scrapped_jobs += 1;
+        } else {
+            right_censored_jobs += 1;
+        }
+
+        for station_index in 0..catalog.stations.len() {
+            let Some(first_start) = record.first_attempt_started_at_by_station[station_index] else {
+                continue;
+            };
+            if first_start < catalog.warmup_seconds {
+                continue;
+            }
+            let station = &mut first_pass[station_index];
+            station.first_attempts_started_in_cohort += 1;
+            match record.first_attempt_outcome_by_station[station_index] {
+                Some(true) => {
+                    station.first_attempts_with_observed_outcome += 1;
+                    station.first_attempt_passed += 1;
+                }
+                Some(false) => {
+                    station.first_attempts_with_observed_outcome += 1;
+                    station.first_attempt_failed += 1;
+                }
+                None => station.unresolved_first_attempts_at_horizon += 1,
+            }
+        }
+    }
+    for station in &mut first_pass {
+        if station.first_attempts_with_observed_outcome > 0 {
+            station.observed_first_pass_yield_fraction = Some(
+                station.first_attempt_passed as f64
+                    / station.first_attempts_with_observed_outcome as f64
+            );
+        }
+    }
+    let (lead_time_summary, median, p95) = if lead_times.is_empty() {
+        (None, None, None)
+    } else {
+        let summary = summarize_distribution(&lead_times)?;
+        (Some(summary.clone()), Some(summary.median), Some(summary.p95))
+    };
+    Ok(JobLifecycleSummary {
+        cohort_definition: "jobs released at or after warmup_seconds; good-job lead time is final-good transfer timestamp minus release timestamp; jobs still nonterminal at horizon are right-censored; first-pass yield is based on observed first-attempt outcomes whose first attempt began at or after warm-up".into(),
+        eligible_released_jobs_after_warmup: eligible_released_jobs,
+        accepted_good_jobs_in_cohort: accepted_good_jobs,
+        scrapped_jobs_in_cohort: scrapped_jobs,
+        right_censored_jobs_at_horizon: right_censored_jobs,
+        good_job_lead_time_seconds: lead_time_summary,
+        median_good_job_lead_time_seconds: median,
+        p95_good_job_lead_time_seconds: p95,
+        station_first_pass_yield: first_pass,
+        event_count_in_ledger: state.lifecycle_events.len(),
+    })
+}
+
 fn record_output_transfer(
     metrics: &mut StationMetrics,
     last_output_job_id: &mut Option<u64>,
