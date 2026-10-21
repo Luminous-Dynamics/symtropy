@@ -660,12 +660,14 @@ mod tests {
 
         let mut duplicate = fixture_value();
         let first = duplicate["outcomes"][0].clone();
-        duplicate["outcomes"].as_array_mut().expect("outcomes").push(first);
+        let outcomes = duplicate["outcomes"].as_array_mut().expect("outcomes");
+        outcomes.pop();
+        outcomes.push(first);
         let duplicate_bytes = serde_json::to_vec(&duplicate).expect("serialize duplicate cell");
         assert!(
             parse_and_evaluate(&duplicate_bytes)
                 .expect_err("duplicate cell rejected")
-                .contains("outcome_catalog_incomplete")
+                .contains("duplicate_model_action_outcome")
         );
     }
 
