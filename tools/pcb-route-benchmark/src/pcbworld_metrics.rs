@@ -811,7 +811,12 @@ board-b,1,19,crashed,,,,,,,,,,,,,,,
         assert!((receipt.summary.success_rate_over_all_rows - 0.5).abs() < 1e-9);
         assert!((receipt.summary.clean_pass_rate_over_all_rows - 0.5).abs() < 1e-9);
         assert!(
-            (receipt.summary.success_rate_over_metric_reporting_rows.unwrap() - 2.0 / 3.0).abs()
+            (receipt
+                .summary
+                .success_rate_over_metric_reporting_rows
+                .unwrap()
+                - 2.0 / 3.0)
+                .abs()
                 < 1e-9
         );
         assert!(
