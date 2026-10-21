@@ -199,6 +199,8 @@ jobs:
                 normalized_force_residual_lt: 1.0e-12,
                 normalized_moment_residual_lt: 1.0e-12,
                 normalized_free_dof_residual_lt: 1.0e-12,
+                normalized_energy_residual_lt: 1.0e-12,
+                energy_oracle: "strain_energy_and_external_work_match_half_load_dot_displacement",
                 alternating_input_order_reversal: true
               },
               claim_ceiling: "synthetic static small-displacement linear-elastic 2D pin-jointed truss software reference only; no physical validation, code compliance, or structural safety claim"
@@ -216,6 +218,8 @@ jobs:
             and .acceptance.normalized_force_residual_lt == 1e-12
             and .acceptance.normalized_moment_residual_lt == 1e-12
             and .acceptance.normalized_free_dof_residual_lt == 1e-12
+            and .acceptance.normalized_energy_residual_lt == 1e-12
+            and .acceptance.energy_oracle == "strain_energy_and_external_work_match_half_load_dot_displacement"
           ' planar-truss-sweep-receipt.json
 
       - name: Upload deterministic reference receipts
