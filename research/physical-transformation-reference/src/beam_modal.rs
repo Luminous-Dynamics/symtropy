@@ -353,6 +353,26 @@ mod tests {
     }
 
     #[test]
+    fn negative_eigenvalues_are_reported_as_unstable_not_silently_dropped() {
+        let mut assembly = fixture();
+        let last_global = *assembly.free_dof_indices.last().expect("free DOF");
+        // Create a synthetic negative-stiffness direction while preserving a
+        // positive mass matrix. This is a classification test, not a physical
+        // post-buckling or stability calculation.
+        for row in 0..assembly.stiffness_global.len() {
+            assembly.stiffness_global[row][last_global] = 0.0;
+            assembly.stiffness_global[last_global][row] = 0.0;
+        }
+        assembly.stiffness_global[last_global][last_global] = -1.0e8;
+
+        let result = solve_beam_pin_assembly_modes(&assembly).expect("classified unstable mode");
+        assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
+        assert!(result.modes.iter().any(|mode| {
+            mode.class == BeamModeClass::NegativeOrUnstable && mode.frequency_hz.is_none()
+        }));
+    }
+
+    #[test]
     fn zero_eigenvalues_are_reported_not_silently_dropped() {
         let mut assembly = fixture();
         let free = assembly.free_dof_indices.clone();
