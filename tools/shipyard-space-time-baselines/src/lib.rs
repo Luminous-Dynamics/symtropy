@@ -722,7 +722,7 @@ pub fn first_fit_portfolio(
                         code: BaselineErrorCode::ExactSearchProvenInfeasible,
                         subject_id: "yard".to_owned(),
                         detail: format!(
-                            "complete exact search found no valid layout within the declared                              rectangle/time model after {nodes_examined} candidates"
+                            "exact search proved no layout exists for this bounded model after {nodes_examined} candidate tests"
                         ),
                     }])
                 }
@@ -731,7 +731,7 @@ pub fn first_fit_portfolio(
                         code: BaselineErrorCode::ExactSearchBudgetExceeded,
                         subject_id: "yard".to_owned(),
                         detail: format!(
-                            "exact fallback budget exhausted after {nodes_examined} candidates;                              this is not a proof of infeasibility"
+                            "exact fallback budget exhausted after {nodes_examined} candidates; result remains unknown"
                         ),
                     }])
                 }
