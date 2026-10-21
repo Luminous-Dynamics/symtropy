@@ -29,7 +29,38 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "neighborhood|wet-season-2026",
         "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
+    },
+    {
+      "case_id": "calibration-001",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.8,
+        "interval_level": 0.8,
+        "lower": -2.5,
+        "upper": -1,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -2,
+        "uncertainty_abs": 0.1,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
+      },
+      "evaluation_split": "calibration",
+      "independent_unit_id": "synthetic-site-calibration"
     },
     {
       "case_id": "heat-002",
@@ -56,7 +87,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "neighborhood|wet-season-2026",
         "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
     },
     {
       "case_id": "heat-003",
@@ -83,7 +116,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "neighborhood|wet-season-2026",
         "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
     },
     {
       "case_id": "water-001",
@@ -110,7 +145,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|wet-season-2026",
         "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
     },
     {
       "case_id": "water-002",
@@ -137,7 +174,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|wet-season-2026",
         "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
     },
     {
       "case_id": "water-003",
@@ -164,7 +203,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|wet-season-2026",
         "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
     },
     {
       "case_id": "ecology-001",
@@ -191,7 +232,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|12-month-follow-up",
         "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
     },
     {
       "case_id": "ecology-002",
@@ -218,7 +261,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|12-month-follow-up",
         "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
     },
     {
       "case_id": "ecology-003",
@@ -245,7 +290,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "site|12-month-follow-up",
         "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
     },
     {
       "case_id": "missing-001",
@@ -272,7 +319,9 @@
         "method_id": "not-collected",
         "scope_key": "neighborhood|wet-season-2026",
         "source_digest": null
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-missing"
     },
     {
       "case_id": "stale-001",
@@ -299,7 +348,9 @@
         "method_id": "expired-calibration-v0",
         "scope_key": "site|wet-season-2026",
         "source_digest": "13412e95971d81d83a19523356f1c1024ec5494c63acffb3bdeddbccb26e0c3c"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-stale"
     },
     {
       "case_id": "contradictory-001",
@@ -326,7 +377,9 @@
         "method_id": "conflicting-report-v0",
         "scope_key": "site|12-month-follow-up",
         "source_digest": null
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-contradictory"
     },
     {
       "case_id": "scope-mismatch-001",
@@ -353,7 +406,9 @@
         "method_id": "synthetic-reference-v0",
         "scope_key": "parcel|wet-season-2026",
         "source_digest": "a93fc5be7d6809a8a5188b12da8d81fce85d0481ccedca905d55732473e3a6b5"
-      }
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-scope"
     }
   ]
 }
