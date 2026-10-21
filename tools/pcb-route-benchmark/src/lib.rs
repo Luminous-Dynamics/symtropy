@@ -2408,6 +2408,41 @@ mod tests {
                 .unwrap_err()
                 .contains("hash-bound license-evidence path")
         );
+
+        // Evidence bytes and URLs must be pinned to a real commit, not a moving
+        // branch name or an unrelated SHA typed into a separate field.
+        for board in &mut manifest.boards {
+            board.license_evidence_relative_path =
+                Some(format!("license-evidence/{}.txt", board.board_id));
+            board.license_evidence_sha256 = Some("f".repeat(64));
+            board.license_evidence_source_commit_sha = Some("d".repeat(40));
+            board.license_evidence_url = Some(format!(
+                "https://github.com/example/{}/blob/{}/LICENSE",
+                board.board_id,
+                "e".repeat(40)
+            ));
+        }
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("URL must contain the pinned immutable source commit")
+        );
+
+        for board in &mut manifest.boards {
+            board.license_evidence_url = Some(format!(
+                "https://github.com/example/{}/blob/{}/LICENSE",
+                board.board_id,
+                "d".repeat(40)
+            ));
+        }
+        assert!(validate_manifest(&manifest).is_ok());
+
+        manifest.boards[0].license_evidence_source_commit_sha = None;
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("immutable license-source commit")
+        );
     }
 
     #[test]
