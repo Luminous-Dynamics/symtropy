@@ -742,6 +742,160 @@ jobs:
             and .physical_result_qualified == false
           ' "${root}-tampered/report.json"
 
+      - name: Verify restricted stock-CCX RF equivalence and deck mutation controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="solver-contract-restricted-rf"
+          rm -rf "$root" "${root}-dload"
+          mkdir -p "$root"
+
+          jq '
+            .request_id = "fixture:restricted-rf-cli"
+            | .loads[0].kind = "point_force"
+            | .loads[0].vector_xyz = [1000, 0, 0]
+            | .boundary_conditions[0].dofs = ["ux", "uy", "uz"]
+            | .required_outputs = ["reaction_force"]
+          ' schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json > "$root/request.json"
+          request_sha="$(sha256sum "$root/request.json" | cut -d ' ' -f 1)"
+          scene_sha="$(jq -r '.scene_sha256' "$root/request.json")"
+          scene_revision="$(jq -r '.scene_revision' "$root/request.json")"
+          request_id="$(jq -r '.request_id' "$root/request.json")"
+          frame="$(jq -r '.coordinate_frame_id' "$root/request.json")"
+
+          cat > "$root/model.inp" <<'DECK'
+          *HEADING
+          synthetic axial bar (test fixture; no external solver run)
+          *NODE
+          1,0,0,0
+          2,1,0,0
+          *ELEMENT,TYPE=T3D2,ELSET=BAR
+          1,1,2
+          *NSET,NSET=SUPPORT
+          1
+          *MATERIAL,NAME=STEEL
+          *ELASTIC
+          210000000000,0.3
+          *SOLID SECTION,ELSET=BAR,MATERIAL=STEEL
+          0.01
+          *BOUNDARY
+          1,1,3,0
+          *STEP
+          *STATIC
+          1.,1.,1.E-05,1.
+          *CLOAD
+          2,1,1000.
+          *NODE PRINT,NSET=SUPPORT
+          RF
+          *END STEP
+          DECK
+
+          cat > "$root/model.dat" <<'DAT'
+           forces (fx,fy,fz) for set SUPPORT and time 0.1000000E+01
+           1 -1.000000E+03 0.000000E+00 0.000000E+00
+
+          DAT
+          deck_sha="$(sha256sum "$root/model.inp" | cut -d ' ' -f 1)"
+          dat_sha="$(sha256sum "$root/model.dat" | cut -d ' ' -f 1)"
+
+          jq -n \
+            --arg case_id "restricted-rf-cli-synthetic" \
+            --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" \
+            --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" \
+            --arg deck_sha "$deck_sha" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-support-node-catalog-v0.1",
+              case_id:$case_id,
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              coordinate_frame_id:$frame,
+              deck_sha256:$deck_sha,
+              units:{length:"m"},
+              nodes:[{node_id:1,position_m:[0,0,0]}],
+              provenance:{
+                method:"independent-deck-node-inventory",
+                identity:"synthetic fixed support node",
+                source_ref:"fixture-only:restricted-rf-cli"
+              }
+            }' > "$root/node-catalog.json"
+          catalog_sha="$(sha256sum "$root/node-catalog.json" | cut -d ' ' -f 1)"
+
+          jq -n \
+            --arg case_id "restricted-rf-cli-synthetic" \
+            --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" \
+            --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" \
+            --arg deck_sha "$deck_sha" \
+            --arg catalog_sha "$catalog_sha" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"calculix-rf-restricted-proof-manifest-v0.1",
+              case_id:$case_id,
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              coordinate_frame_id:$frame,
+              node_set:"SUPPORT",
+              deck_sha256:$deck_sha,
+              node_catalog_sha256:$catalog_sha,
+              support_node_map:[{target_id:"bar-end-a",node_id:1}],
+              load_node_map:[{target_id:"bar-end-b",node_id:2}],
+              units:{length:"m",force:"N"},
+              provenance:{
+                method:"independent-request-deck-map",
+                identity:"synthetic axial bar support and load mapping",
+                source_ref:"fixture-only:restricted-rf-cli-v1"
+              }
+            }' > "$root/manifest.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$root/request.json" \
+            --deck "$root/model.inp" \
+            --dat "$root/model.dat" \
+            --node-catalog "$root/node-catalog.json" \
+            --restricted-rf-manifest "$root/manifest.json" \
+            > "$root/report.json"
+          jq -e '
+            .normalization_status == "PASS"
+            and .restricted_equivalence_proved == true
+            and .source_semantics == "RF_under_restricted_deck_equivalence"
+            and .normalized_output.reaction_forces[0].force_n[0] == -1000
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and .deck_sha256 != .dat_sha256
+          ' "$root/report.json"
+
+          cp -a "$root" "${root}-dload"
+          sed '/\*CLOAD/i *DLOAD\nBAR,GRAV,-9.81,0,0,-1' "${root}-dload/model.inp" > "${root}-dload/model-mutated.inp"
+          mv "${root}-dload/model-mutated.inp" "${root}-dload/model.inp"
+          bad_deck_sha="$(sha256sum "${root}-dload/model.inp" | cut -d ' ' -f 1)"
+          jq --arg deck_sha "$bad_deck_sha" '.deck_sha256 = $deck_sha' \
+            "${root}-dload/node-catalog.json" > "${root}-dload/node-catalog-mutated.json"
+          mv "${root}-dload/node-catalog-mutated.json" "${root}-dload/node-catalog.json"
+          bad_catalog_sha="$(sha256sum "${root}-dload/node-catalog.json" | cut -d ' ' -f 1)"
+          jq --arg deck_sha "$bad_deck_sha" --arg catalog_sha "$bad_catalog_sha" \
+            '.deck_sha256 = $deck_sha | .node_catalog_sha256 = $catalog_sha' \
+            "${root}-dload/manifest.json" > "${root}-dload/manifest-mutated.json"
+          mv "${root}-dload/manifest-mutated.json" "${root}-dload/manifest.json"
+          if cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "${root}-dload/request.json" \
+            --deck "${root}-dload/model.inp" \
+            --dat "${root}-dload/model.dat" \
+            --node-catalog "${root}-dload/node-catalog.json" \
+            --restricted-rf-manifest "${root}-dload/manifest.json" \
+            > "${root}-dload/report.json" 2> "${root}-dload/error.log"; then
+            echo "DLOAD mutation unexpectedly passed restricted RF normalization" >&2
+            exit 1
+          fi
+          grep -q "unsupported deck keyword '\*DLOAD'" "${root}-dload/error.log"
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
@@ -754,6 +908,8 @@ jobs:
             solver-contract-mesh-study*/report.json
             solver-contract-equilibrium*/manifest.json
             solver-contract-equilibrium*/report.json
+            solver-contract-restricted-rf*/manifest.json
+            solver-contract-restricted-rf*/report.json
           if-no-files-found: error
           retention-days: 90
 
