@@ -8,6 +8,7 @@
   "required": [
     "schema_version",
     "benchmark_id",
+    "case_definition",
     "source_commit",
     "evidence_class",
     "result",
@@ -25,6 +26,57 @@
   "properties": {
     "schema_version": { "const": "planar-truss-conditioning-receipt-v0.1" },
     "benchmark_id": { "const": "PHYS-TRUSS-CONDITION-001" },
+    "case_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "base_span_m",
+        "apex_x_m",
+        "axial_stiffness_a_n_per_m",
+        "axial_stiffness_b_n_per_m",
+        "youngs_modulus_pa",
+        "target_displacement_m",
+        "vertical_rhs_perturbation_relative_amplitude",
+        "apex_height_schedule_m"
+      ],
+      "properties": {
+        "model": { "const": "static_small_displacement_linear_elastic_planar_pin_jointed_truss" },
+        "base_span_m": { "const": 4.0 },
+        "apex_x_m": { "const": 1.0 },
+        "axial_stiffness_a_n_per_m": { "const": 1000000000 },
+        "axial_stiffness_b_n_per_m": { "const": 2000000000 },
+        "youngs_modulus_pa": { "const": 200000000000 },
+        "target_displacement_m": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "const": 0.000001 },
+            { "const": -0.000002 }
+          ],
+          "items": false
+        },
+        "vertical_rhs_perturbation_relative_amplitude": { "const": 0.0000000001 },
+        "apex_height_schedule_m": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "prefixItems": [
+            { "const": 1.0 },
+            { "const": 0.1 },
+            { "const": 0.01 },
+            { "const": 0.001 },
+            { "const": 0.0001 },
+            { "const": 0.00001 },
+            { "const": 0.000001 },
+            { "const": 0.0000001 },
+            { "const": 0.00000001 }
+          ],
+          "items": false
+        }
+      }
+    },
     "source_commit": { "$ref": "#/$defs/gitSha1" },
     "evidence_class": { "const": "software-test-run" },
     "result": { "const": "pass" },
