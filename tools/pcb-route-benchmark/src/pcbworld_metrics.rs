@@ -599,3 +599,158 @@ fn is_commit_sha(value: &str) -> bool {
     matches!(value.len(), 40 | 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MANIFEST: &str = r#"{
+      "schema":"pcb-route-dataset-manifest-v0.1",
+      "benchmark_id":"pcbworld",
+      "benchmark_version":"v1.1.1",
+      "dataset_id":"d3-pilot",
+      "split_id":"easy.test",
+      "evidence_class":"external_benchmark",
+      "source_url":"https://github.com/LGAI-Research/PCBWorld",
+      "source_split_config_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "source_split_commit_sha":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_split_name":"easy.test",
+      "intake_metadata_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "boards":[
+        {
+          "board_id":"board-a",
+          "input_board_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_nets":2,
+          "license":"MIT",
+          "source_url":"https://github.com/example/board-a",
+          "relative_path":"boards/board-a.kicad_pcb"
+        },
+        {
+          "board_id":"board-b",
+          "input_board_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "required_nets":3,
+          "license":"MIT",
+          "source_url":"https://github.com/example/board-b",
+          "relative_path":"boards/board-b.kicad_pcb"
+        }
+      ]
+    }"#;
+
+    const HEADER: &str = "board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations\n";
+
+    const CSV: &str = concat!(
+        "board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,",
+        "\"[{\\"severity_label\\":\\"warning\\",\\"severity\\":1,\\"error_code\\":12,\\"error_type\\":\\"tracks_crossing\\",\\"x_mm\\":1.0,\\"y_mm\\":2.0,\\"layer\\":0,\\"net_names\\":[\\"GND\\"],\\"is_error\\":false,\\"is_promoted\\":true}]\"\n",
+        "board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,\"\"\n",
+        "board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,\"[]\"\n"
+    );
+
+    const EVALUATOR_HEAD: &str = "ffffffffffffffffffffffffffffffffffffffff";
+
+    #[test]
+    fn imports_published_metric_semantics_and_keeps_promoted_warnings_separate() {
+        let receipt = import_pcbworld_per_rollout_csv(
+            CSV.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .expect("PCBWorld metrics CSV import");
+        assert_eq!(receipt.schema, PCBWORLD_CSV_RECEIPT_SCHEMA);
+        assert_eq!(receipt.row_count, 3);
+        assert_eq!(receipt.source_board_count, 2);
+        assert_eq!(receipt.summary.unique_boards, 2);
+        assert_eq!(receipt.summary.success_attempts, 2);
+        assert_eq!(receipt.summary.clean_pass_attempts, 2);
+        assert!((receipt.summary.success_rate_over_all_rows - 2.0 / 3.0).abs() < 1e-9);
+        assert!((receipt.summary.clean_pass_rate_over_all_rows - 2.0 / 3.0).abs() < 1e-9);
+        assert_eq!(receipt.summary.error_only_drc_total, 1);
+        assert_eq!(receipt.summary.error_and_promoted_drc_total, 3);
+        assert_eq!(receipt.summary.scoring_policy_variants, vec!["pcbworld_reward|check_angle=45"]);
+
+        let promoted_only = &receipt.rows[0].reference_metrics;
+        assert_eq!(promoted_only.success, Some(true));
+        assert_eq!(promoted_only.clean_pass, Some(true));
+        assert_eq!(promoted_only.drv_errors_only_count, Some(0));
+        assert_eq!(promoted_only.drv_errors_and_promoted_count, Some(1));
+        assert_eq!(promoted_only.drv_violations.as_ref().unwrap().len(), 1);
+        assert_eq!(promoted_only.drv_violations.as_ref().unwrap()[0].error_code, 12);
+        assert_eq!(promoted_only.potential_gain_consistent, Some(true));
+    }
+
+    #[test]
+    fn rejects_clean_pass_that_contradicts_upstream_error_only_definition() {
+        let tampered = CSV.replace(
+            "board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward",
+            "board-a,0,17,completed,true,true,1.0,10.0,0,8,1,1,2.0,1.0,1.0,pcbworld_reward",
+        );
+        assert!(import_pcbworld_per_rollout_csv(
+            tampered.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("clean_pass=true contradicts PCBWorld definition"));
+    }
+
+    #[test]
+    fn rejects_policy_mixing_and_missing_manifest_boards() {
+        let mixed_policy = CSV.replacen(
+            "pcbworld_reward,45,ok,\"\"",
+            "alternate_reward,45,ok,\"\"",
+            1,
+        );
+        assert!(import_pcbworld_per_rollout_csv(
+            mixed_policy.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("mixes DRC scoring policies"));
+
+        let one_board_only = format!(
+            "{HEADER}{}",
+            CSV.lines()
+                .filter(|line| !line.starts_with("board-b,"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        assert!(import_pcbworld_per_rollout_csv(
+            one_board_only.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("omits 1 pinned board"));
+    }
+
+    #[test]
+    fn rejects_invalid_routability_duplicate_attempts_and_schema_drift() {
+        let invalid_range = CSV.replace(",1.0,10.0,0,8,0,1,", ",1.2,10.0,0,8,0,1,");
+        assert!(import_pcbworld_per_rollout_csv(
+            invalid_range.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("routability must be within [0,1]"));
+
+        let duplicate = format!("{HEADER}{}{}", CSV.lines().nth(1).unwrap(), "\n");
+        assert!(import_pcbworld_per_rollout_csv(
+            duplicate.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("omits 1 pinned board"));
+
+        let missing_header = "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
+        assert!(import_pcbworld_per_rollout_csv(
+            missing_header.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .unwrap_err()
+        .contains("missing required columns"));
+    }
+}
