@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Emits a deterministic receipt for the synthetic fixed-free axial-bar modal fixture.
 
+#![allow(clippy::needless_range_loop)] // Modal mass inner products intentionally couple row/column indices.
+
 use physical_transformation_reference::modal_bar::{
     AxialBarMode, MassMatrixFormulation, analytical_fixed_free_axial_bar_frequencies,
     fixed_free_axial_bar_modes,
