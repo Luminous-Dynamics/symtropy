@@ -219,7 +219,7 @@ The development-only objective selected request cost `0.00000`, effectively disa
 
 ## VIS-ACT-009: Monte Carlo expected-value calibration and ranking
 
-**Status:** Monte Carlo diagnostic implemented; current exact-head qualification and result inspection pending. No result is claimed until the focused workflow passes and the current artifact is inspected.
+**Status:** qualified at source head `8efbceffef306c2d85d50bb491b3dbd7384b636f`; the focused report workflow passed and artifact [#12339984694](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39589593835/artifacts/12339984694) was inspected. This qualification applies to that exact source head; later edits require fresh qualification.
 
 The question is whether `expected_task_loss_reduction_scores` predicts decision-risk reduction under the simulator's actual observation process. The first-pass single-sample ranking was too noisy: it compared predictions to one potential outcome, making top-action agreement sensitive to ties and random corruption. The revised diagnostic estimates each candidate's **conditional expected** realized belief-risk change by drawing 64 evaluator-only candidate observations from the episode's hidden sensor profile at each of 12 fixed ticks across the 48-tick horizon.
 
@@ -241,7 +241,7 @@ The previous single-sample value report should be treated as a noisy exploratory
 
 ## VIS-ACT-010: online adaptation of observable nuisance priors
 
-**Status:** new policy and tests committed; exact-head qualification and results pending.
+**Status:** policy, tests and diagnostic report qualified at source head `8efbceffef306c2d85d50bb491b3dbd7384b636f`; focused workflow [#39589593835](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39589593835) passed. General CI was still queued for that head when last checked. Later edits require fresh exact-head qualification.
 
 ### Why this experiment is justified
 
@@ -275,3 +275,25 @@ This only learns nuisance rates that are observable from released data. It does 
 ### Online nuisance estimates are separately audited
 
 The follow-on `NUISANCE_ADAPTATION` table evaluates the adaptive policy's final estimates against the simulator profile **after each run**. It reports per-episode delay-distribution MAE, distractor-rate absolute error and signed bias, plus exact-delay sample counts and intervals bootstrapped over episodes. The true profile is used only by the evaluator for scoring; neither policy action nor prior update sees it. Delay samples clipped at source tick zero remain censored and do not enter the exact-delay histogram. This extra table prevents a task-loss difference from being misattributed to successful adaptation when the rate estimates themselves have not converged.
+
+### Qualified result — observable-prior adaptation (384 episodes per family)
+
+The exact-head artifact reports:
+
+| Held-out policy | Mean task loss ↓ | Answer rate | Accuracy when answered | Scoring-work units/episode |
+|---|---:|---:|---:|---:|
+| Round-robin | 0.1842 | 0.5026 | 0.8808 | 48 |
+| Fixed expected-loss scorer | 0.2207 | 0.5964 | 0.7991 | 5,328 |
+| Online-adaptive value | 0.1908 | 0.6120 | 0.8468 | 5,712 |
+
+The adaptive policy is **significantly better than the failed fixed expected-loss scorer** on held-out episodes: paired `adaptive - fixed` loss delta **−0.0299**, 95% CI **[−0.0475, −0.0137]**. This is evidence that adapting observable delay/distractor priors helps relative to that poorly calibrated baseline.
+
+It does **not** yet beat round-robin: paired loss delta **+0.0065**, 95% CI **[−0.0228, +0.0384]**, which includes zero. Development delta versus round-robin was **−0.0124** (95% CI **[−0.0371, +0.0130]**), also inconclusive. Keep the adaptive policy as a promising diagnostic candidate, not the preferred policy, until the held-out comparison beats round-robin under a predeclared gate.
+
+The nuisance-estimator audit showed:
+- Delay-distribution MAE: **0.0368** held out (95% CI **[0.0355, 0.0380]**), with an average of 45.331 uncensored delay samples from 48 responses per episode.
+- Distractor-rate absolute error: **0.0533** held out (95% CI **[0.0493, 0.0573]**); signed bias **−0.0068** (95% CI **[−0.0135, −0.0005]**).
+
+The policy uses 5,712 deterministic scoring-work units per episode, versus 48 for round-robin—about 119 times the operation-count proxy. This is not measured wall-clock cost, but it makes the resource trade-off visible. The current candidate has more coverage and lower answered accuracy than round-robin, and no significant overall task-loss improvement, so efficiency and decision quality still need work.
+
+**Decision:** retain online adaptation as a useful comparison, reject the claim that it beats the simple baseline, and investigate uncertainty-aware fallback/compute-efficient scoring next. Do not tune on held-out episodes.
