@@ -56,6 +56,16 @@ Every comparator sees the same permitted history, timestamps, sensor inventory, 
 
 A learned VOI model, Bayesian sampler, active learner, mechanistic method, or hybrid should not win by receiving more observations, extra tuning budget, future labels, unavailable channels, or a friendlier data split. Report both the actual site-incumbent comparator and the strongest pre-registered policy baseline.
 
+### Auditable value-of-information gate
+
+For each discretionary sample, express expected losses and costs in the same pre-registered decision-loss units. Record the estimated result-availability time and the current decision deadline. The sample should be eligible as a positive-value recommendation only when:
+
+`net_value = expected_loss_without_sample - expected_loss_with_sample - sampling_cost - delay_cost`
+
+is strictly positive, and the expected result arrives no later than the deadline for the decision it is supposed to inform. If the result is late, the policy may still request it for a future decision or investigation through a separately declared pathway, but it must not claim the sample reduces loss for the already-due decision.
+
+The terms are forecasts, not ground truth. The replay evaluator must score these forecasts against held-out outcomes and report calibration, decision regret and cost sensitivity. Value weights must be frozen before evaluation, published with sensitivity analyses, and must not compensate for required-test omissions, missed-event guardrails, or other hard limits. When the expected-loss terms cannot be defensibly estimated, the policy should abstain or fall back rather than fabricate precision.
+
 The policy output is a bounded decision object:
 
 - **SAMPLE:** request a named available channel or location, with reason, priority, expected turnaround, cost class, and expiry time;
