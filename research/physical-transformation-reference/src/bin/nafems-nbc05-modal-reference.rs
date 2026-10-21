@@ -44,7 +44,7 @@ fn run() -> Result<String, String> {
         concat!(
             "{{",
             "\"schema_version\":\"nafems-nbc05-axial-truss-receipt-v0.1\",",
-            "\"references\":{\"challenge\":\"https://www.nafems.org/downloads/nbc5_challenge.pdf\",\"solution\":\"https://www.nafems.org/downloads/nbr5v3.pdf\"},",
+            "\"references\":{{\"challenge\":\"https://www.nafems.org/downloads/nbc5_challenge.pdf\",\"solution\":\"https://www.nafems.org/downloads/nbr5v3.pdf\"}},",
             "\"benchmark_id\":\"PHYS-NAFEMS-NBC05-AXIAL-001\",",
             "\"source_commit\":{},",
             "\"request_canonical\":{},",
