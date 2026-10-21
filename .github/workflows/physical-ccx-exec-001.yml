@@ -87,13 +87,13 @@ jobs:
           tar -xjf "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" -C "$RUNNER_TEMP/ccx-source-archive"
           archive_src="$(find "$RUNNER_TEMP/ccx-source-archive" -type f -name Makefile.inc -printf '%h\n' -quit)"
           test -n "$archive_src"
-          diff -qr "$archive_src" "$RUNNER_TEMP/CalculiX-builder/upstream/ccx_2.22/src"
+          diff -qr "$archive_src" "$GITHUB_WORKSPACE/CalculiX-builder/upstream/ccx_2.22/src"
           printf 'source_url=%s\nsource_archive_sha256=%s\nbuilder_repository=%s\nbuilder_commit=%s\n' \
             "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
             "$actual" "OmnibusCloud/CalculiX" \
-            "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" \
+            "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" \
             > "$RUNNER_TEMP/ccx-evidence/source-provenance.txt"
-          test "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" = \
+          test "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" = \
             "b7977a4e90b40fd28fa149fc69f1647661d10f56"
 
       - name: Build stock CCX 2.22 with a pinned SPOOLES-only static profile
@@ -108,7 +108,7 @@ jobs:
           mkdir -p "$WORK"
           {
             echo "=== build identity ==="
-            echo "builder_commit=$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)"
+            echo "builder_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
             echo "container_image=ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
             echo "source_archive_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
             echo "with_pardiso=$WITH_PARDISO"
@@ -127,7 +127,7 @@ jobs:
           (
             WORK="$WORK" WITH_PARDISO="$WITH_PARDISO" WITH_PASTIX="$WITH_PASTIX" \
               WITH_ARPACK="$WITH_ARPACK" WITH_MT="$WITH_MT" \
-              sh "$RUNNER_TEMP/CalculiX-builder/build/build.sh"
+              sh "$GITHUB_WORKSPACE/CalculiX-builder/build/build.sh"
           ) 2>&1 | tee "$RUNNER_TEMP/ccx-evidence/ccx-build.log"
           CCX="$WORK/out/ccx"
           test -x "$CCX"
@@ -137,7 +137,7 @@ jobs:
             echo "platform=$(uname -srm)"
             echo "container_image=ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
             echo "builder_repository=OmnibusCloud/CalculiX"
-            echo "builder_repository_commit=$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)"
+            echo "builder_repository_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
             echo "ccx_source_url=http://www.dhondt.de/ccx_2.22.src.tar.bz2"
             echo "ccx_source_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
             echo "spooles_sha256=a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"
@@ -148,7 +148,7 @@ jobs:
             echo "ccx_executable_sha256=$(sha256sum "$CCX" | cut -d ' ' -f 1)"
           } > "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt"
           jq -n \
-            --arg builder_commit "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" \
+            --arg builder_commit "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" \
             --arg image "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30" \
             --arg source_url "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
             --arg source_sha "$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)" \
@@ -175,7 +175,7 @@ jobs:
             "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt" \
             "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256" \
             "$RUNNER_TEMP/ccx-evidence/source-provenance.txt" \
-            "$RUNNER_TEMP/CalculiX-builder/PROVENANCE.md" \
+            "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" \
             "$RUNNER_TEMP/ccx-evidence/"
 
       - name: Run real CCX cases and independently audit U and RF outputs
@@ -294,7 +294,202 @@ jobs:
               "$R/displacement-report.json"
           done
 
-          # Repeat stability is assessed numerically, rather than requiring volatile .dat bytes to be identical.
+          # Repeat stability is assessed numerically, not by comparing volatile .dat bytes.
+          R="$OUT/n1-u-repeat"
+          base_manifest="$OUT/n1-u/displacement-manifest.json"
+          deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+          dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
+          jq --arg case_id "CCX-EXEC-001-AXIAL-BAR-N1-REPEAT" \
+            --arg deck_sha "$deck_sha" --arg dat_sha "$dat_sha" \
+            '.case_id=$case_id | .deck_sha256=$deck_sha | .dat_sha256=$dat_sha' \
+            "$base_manifest" > "$R/displacement-manifest.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$REQUEST" --deck "$R/model.inp" --dat "$R/model.dat" \
+            --build-manifest "$build" --displacement-manifest "$R/displacement-manifest.json" \
+            > "$R/displacement-report.json"
+          jq -e '.numeric_reference_status == "PASS" and .physical_result_qualified == false' \
+            "$R/displacement-report.json"
           u1="$(jq -r '.observed_displacement_m' "$OUT/n1-u/displacement-report.json")"
-          u1repeat="$("$("$RUNNER_TEMP"/nonexistent)"; true)" || true
-          # Placeholder is replaced below by the checked parser result from the repeat.
+          u1repeat="$(jq -r '.observed_displacement_m' "$R/displacement-report.json")"
+          jq -en --argjson a "$u1" --argjson b "$u1repeat" \
+            '((($a - $b) | if . < 0 then -. else . end) <= 5e-13)' \
+            > /dev/null
+
+          # Independently map and normalize the actual support RF from a separate RF-only deck.
+          R="$OUT/n1-rf"
+          deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+          jq -n \
+            --arg case_id "CCX-EXEC-001-RF" --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" --arg deck_sha "$deck_sha" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-support-node-catalog-v0.1",
+              case_id:$case_id,request_id:$request_id,request_sha256:$request_sha,
+              scene_sha256:$scene_sha,scene_revision:$scene_revision,coordinate_frame_id:$frame,
+              deck_sha256:$deck_sha,units:{length:"m"},
+              nodes:[{node_id:1,position_m:[0,0,0]}],
+              provenance:{
+                method:"independent-deck-node-inventory",
+                identity:"pinned real CCX axial-bar fixed support node",
+                source_ref:"research/physical-solver-contract/PHYS-CCX-EXEC-001"
+              }
+            }' > "$R/node-catalog.json"
+          catalog_sha="$(sha256sum "$R/node-catalog.json" | cut -d ' ' -f 1)"
+          jq -n \
+            --arg case_id "CCX-EXEC-001-RF" --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" --arg deck_sha "$deck_sha" \
+            --arg catalog_sha "$catalog_sha" --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"calculix-rf-restricted-proof-manifest-v0.1",
+              case_id:$case_id,request_id:$request_id,request_sha256:$request_sha,
+              scene_sha256:$scene_sha,scene_revision:$scene_revision,coordinate_frame_id:$frame,
+              node_set:"SUPPORT",deck_sha256:$deck_sha,node_catalog_sha256:$catalog_sha,
+              support_node_map:[{target_id:"bar-end-a",node_id:1}],
+              load_node_map:[{target_id:"bar-end-b",node_id:2}],
+              units:{length:"m",force:"N"},
+              provenance:{
+                method:"independent-request-deck-map",
+                identity:"pinned real CCX axial-bar support and load mapping",
+                source_ref:"research/physical-solver-contract/PHYS-CCX-EXEC-001"
+              }
+            }' > "$R/restricted-rf-manifest.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$REQUEST" --deck "$R/model.inp" --dat "$R/model.dat" \
+            --node-catalog "$R/node-catalog.json" \
+            --restricted-rf-manifest "$R/restricted-rf-manifest.json" \
+            > "$R/rf-normalization-report.json"
+          jq -e '
+            .normalization_status == "PASS"
+            and .restricted_equivalence_proved == true
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and .normalized_output.reaction_forces[0].force_n[0] < 0
+            and ((.normalized_output.reaction_forces[0].force_n[0] + 1000) | if . < 0 then -. else . end) < 1e-6
+          ' "$R/rf-normalization-report.json" > /dev/null
+
+          # Stale artifact bytes must never be accepted just because the original manifest exists.
+          cp "$OUT/n1-u/model.dat" "$OUT/tampered.dat"
+          printf '\n** post-run mutation\n' >> "$OUT/tampered.dat"
+          if cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$REQUEST" --deck "$OUT/n1-u/model.inp" --dat "$OUT/tampered.dat" \
+            --build-manifest "$build" --displacement-manifest "$OUT/n1-u/displacement-manifest.json" \
+            > "$OUT/tamper-report.json" 2> "$OUT/tamper-error.log"; then
+            echo "tampered .dat unexpectedly passed exact-byte verification" >&2
+            exit 1
+          fi
+          grep -q "does not match the exact input bytes" "$OUT/tamper-error.log"
+
+          # Promote three actual mesh levels into a separate, auditable mesh trend report.
+          u1="$(jq -r '.observed_displacement_m' "$OUT/n1-u/displacement-report.json")"
+          u2="$(jq -r '.observed_displacement_m' "$OUT/n2-u/displacement-report.json")"
+          u4="$(jq -r '.observed_displacement_m' "$OUT/n4-u/displacement-report.json")"
+          expected_u="$(jq -n '1000 * 1 / (210000000000 * 0.01)')"
+          jq -n \
+            --arg source_sha "$source_sha" --arg request_sha "$request_sha" \
+            --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+            --argjson expected "$expected_u" --argjson u1 "$u1" --argjson u2 "$u2" --argjson u4 "$u4" \
+            --argjson spread_limit 1e-12 \
+            '([$u1,$u2,$u4] | max) as $maximum
+             | ([$u1,$u2,$u4] | min) as $minimum
+             | (($maximum - $minimum) | if . < 0 then -. else . end) as $spread
+             | ([ $u1,$u2,$u4 ] | map((. - $expected | if . < 0 then -. else . end) / $expected) | max) as $max_relative_error
+             | {
+                schema_version:"ccx-exec-001-mesh-trend-v0.1",
+                case_id:"CCX-EXEC-001-AXIAL-BAR-MESH-TREND",
+                source_sha:$source_sha,request_sha256:$request_sha,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                reference_method:"u=F*L/(E*A), uniform straight axial bar",
+                expected_tip_displacement_m:$expected,
+                levels:[
+                  {elements:1,reported_tip_displacement_m:$u1},
+                  {elements:2,reported_tip_displacement_m:$u2},
+                  {elements:4,reported_tip_displacement_m:$u4}
+                ],
+                max_relative_error:$max_relative_error,
+                max_level_to_level_spread_m:$spread,
+                declared_level_spread_limit_m:$spread_limit,
+                level_counts_strictly_increase:true,
+                numerical_mesh_trend_status:(if $spread <= $spread_limit then "PASS" else "FAIL" end),
+                solver_build_pinned:true,
+                physical_result_qualified:false,
+                real_world_validation_status:"UNRESOLVED",
+                engineering_use_authorized:false
+              }' > "$OUT/mesh-trend-report.json"
+          jq -e '
+            .numerical_mesh_trend_status == "PASS"
+            and .level_counts_strictly_increase == true
+            and .max_relative_error < 1e-6
+            and .physical_result_qualified == false
+          ' "$OUT/mesh-trend-report.json" > /dev/null
+
+          # Write one summary retaining independent U, RF, repeated-run, and tamper statuses.
+          jq -n \
+            --arg source_sha "$source_sha" --arg request_sha "$request_sha" \
+            --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+            --argjson u1 "$u1" --argjson u1repeat "$u1repeat" \
+            --argjson u2 "$u2" --argjson u4 "$u4" \
+            --argjson rf_x "$(jq -r '.normalized_output.reaction_forces[0].force_n[0]' "$R/rf-normalization-report.json")" \
+            --argjson expected "$expected_u" \
+            '{
+              schema_version:"ccx-exec-001-summary-v0.1",
+              case_id:"CCX-EXEC-001-REAL-AXIAL-BAR",
+              source_sha:$source_sha,request_sha256:$request_sha,
+              build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+              analytical_expected_tip_displacement_m:$expected,
+              tip_displacements_m:{n1:$u1,n1_repeat:$u1repeat,n2:$u2,n4:$u4},
+              support_reaction_force_x_n:$rf_x,
+              support_force_balance_residual_n:($rf_x + 1000),
+              repeat_max_abs_delta_m:((($u1 - $u1repeat) | if . < 0 then -. else . end)),
+              numerical_result_status:"PASS",
+              restricted_rf_interpretation:"PASS",
+              artifact_tamper_control:"PASS",
+              mesh_trend_status:"PASS",
+              physical_result_qualified:false,
+              real_world_validation_status:"UNRESOLVED",
+              engineering_use_authorized:false,
+              claim_ceiling:"actual pinned CCX build executed the specified linear-static axial-bar cases; results are checked against an independent closed-form solution and a restricted RF equivalence proof; no experimental validation or engineering-use qualification is asserted"
+            }' > "$OUT/summary.json"
+          cp "$OUT/summary.json" "$ROOT/ccx-exec-001-summary.json"
+          cp "$OUT/mesh-trend-report.json" "$ROOT/ccx-exec-001-mesh-trend.json"
+          cp "$OUT/n1-rf/rf-normalization-report.json" "$ROOT/ccx-exec-001-rf-report.json"
+          for n in 1 2 4; do
+            cp "$OUT/n${n}-u/displacement-report.json" "$ROOT/ccx-exec-001-n${n}-displacement-report.json"
+          done
+          cp -a "$OUT" "$ROOT/ccx-exec-001-raw-cases"
+
+      - name: Upload build provenance, raw solver outputs, and audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccx-exec-001-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/ccx-evidence/**
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Enforce exact-head build and numerical gates
+        if: always()
+        env:
+          RUST_TEST_OUTCOME: ${{ steps.rust_tests.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source_verify.outcome }}
+          BUILD_OUTCOME: ${{ steps.build_ccx.outcome }}
+          EXECUTION_OUTCOME: ${{ steps.execute_cases.outcome }}
+        run: |
+          set -euo pipefail
+          test "$RUST_TEST_OUTCOME" = "success"
+          test "$SOURCE_OUTCOME" = "success"
+          test "$BUILD_OUTCOME" = "success"
+          test "$EXECUTION_OUTCOME" = "success"
+          test -s "$RUNNER_TEMP/ccx-evidence/ccx-exec-001-summary.json"
+          jq -e '
+            .schema_version == "ccx-exec-001-summary-v0.1"
+            and .numerical_result_status == "PASS"
+            and .restricted_rf_interpretation == "PASS"
+            and .artifact_tamper_control == "PASS"
+            and .mesh_trend_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and .engineering_use_authorized == false
+          ' "$RUNNER_TEMP/ccx-evidence/ccx-exec-001-summary.json"
