@@ -203,6 +203,12 @@ pub struct RunSummary {
     pub upstream_nonrouting_drc_after_total: u64,
     pub median_elapsed_ms_all_attempts: Option<f64>,
     pub p90_elapsed_ms_all_attempts: Option<f64>,
+    pub cases_missing_cpu_ms: usize,
+    pub median_cpu_ms_all_attempts: Option<f64>,
+    pub p90_cpu_ms_all_attempts: Option<f64>,
+    pub cases_missing_peak_memory_bytes: usize,
+    pub median_peak_memory_bytes_all_attempts: Option<f64>,
+    pub p90_peak_memory_bytes_all_attempts: Option<f64>,
     pub median_wirelength_mm_valid_completions: Option<f64>,
     pub median_via_count_valid_completions: Option<f64>,
 }
@@ -1218,6 +1224,11 @@ fn summarize_cases(cases: &[EvaluatedCase], evidence_class: &str) -> RunSummary 
         }
     }
     let elapsed: Vec<f64> = cases.iter().map(|c| c.elapsed_ms as f64).collect();
+    let cpu: Vec<f64> = cases.iter().filter_map(|c| c.cpu_ms.map(|value| value as f64)).collect();
+    let peak_memory: Vec<f64> = cases
+        .iter()
+        .filter_map(|c| c.peak_memory_bytes.map(|value| value as f64))
+        .collect();
     let wirelength: Vec<f64> = valid.iter().filter_map(|c| c.total_wirelength_mm).collect();
     let vias: Vec<f64> = valid
         .iter()
@@ -1269,6 +1280,15 @@ fn summarize_cases(cases: &[EvaluatedCase], evidence_class: &str) -> RunSummary 
             .sum(),
         median_elapsed_ms_all_attempts: median(&elapsed),
         p90_elapsed_ms_all_attempts: percentile_nearest_rank(&elapsed, 0.90),
+        cases_missing_cpu_ms: cases.iter().filter(|c| c.cpu_ms.is_none()).count(),
+        median_cpu_ms_all_attempts: median(&cpu),
+        p90_cpu_ms_all_attempts: percentile_nearest_rank(&cpu, 0.90),
+        cases_missing_peak_memory_bytes: cases
+            .iter()
+            .filter(|c| c.peak_memory_bytes.is_none())
+            .count(),
+        median_peak_memory_bytes_all_attempts: median(&peak_memory),
+        p90_peak_memory_bytes_all_attempts: percentile_nearest_rank(&peak_memory, 0.90),
         median_wirelength_mm_valid_completions: median(&wirelength),
         median_via_count_valid_completions: median(&vias),
     }
@@ -2089,6 +2109,18 @@ mod tests {
                 .summary
                 .cases_missing_unconnected_item_count,
             2
+        );
+        assert_eq!(baseline.receipt.summary.cases_missing_cpu_ms, 2);
+        assert_eq!(baseline.receipt.summary.cases_missing_peak_memory_bytes, 2);
+        assert_eq!(baseline.receipt.summary.median_cpu_ms_all_attempts, Some(130.0));
+        assert_eq!(baseline.receipt.summary.p90_cpu_ms_all_attempts, Some(190.0));
+        assert_eq!(
+            baseline.receipt.summary.median_peak_memory_bytes_all_attempts,
+            Some(205_000_000.0)
+        );
+        assert_eq!(
+            baseline.receipt.summary.p90_peak_memory_bytes_all_attempts,
+            Some(220_000_000.0)
         );
     }
 
