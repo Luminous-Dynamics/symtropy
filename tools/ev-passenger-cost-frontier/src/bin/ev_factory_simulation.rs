@@ -1695,15 +1695,8 @@ mod tests {
     fn fifo_policy_and_no_match_fall_back_to_oldest_queue_entry() {
         let mut fifo = VecDeque::from([test_job(2, 1, 0), test_job(1, 0, 0)]);
         assert_eq!(
-            select_queued_job(
-                &mut fifo,
-                Some(0),
-                DispatchPolicy::Fifo,
-                3,
-                0,
-                900,
-            )
-            .expect("FIFO")
+            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3, 0, 900,)
+                .expect("FIFO")
                 .id,
             2
         );
