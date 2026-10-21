@@ -20,6 +20,10 @@ The initial model deliberately uses axis-aligned 2D rectangles and synthetic kno
 
 The frozen corpus covers a clear drawer, a blocked drawer, a front/service envelope rotated 90 degrees, unknown mandatory envelope evidence, and a known envelope that extends beyond the room. Adversarial mutations try to forge a passing collision, ignore a rotation transform, promote unknown evidence, hide an outside-room conflict, duplicate envelope identity, and use an unknown schema version.
 
+## v0.3 scaling work
+
+The stacked implementation in [FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md](FURNISHING_FUNCTIONAL_ENVELOPES_V0_3.md) adds a balanced BVH broad phase for sparse collision queries, indexed task/envelope lookups, brute-force equivalence tests, and a dependency-free 25/100/1,000/10,000 task benchmark. The first passing exact-head run reported p95 57.347 ms at 10,000 sparse synthetic items/tasks; see the [frozen run receipt](../interiors/evidence/FURNISHING_FUNCTIONAL_ENVELOPE_CI_RUN_39457699979.json). This is a single hosted-runner observation—not a performance SLA or SOTA comparison. The BVH narrows candidates only; exact rectangle overlap remains authoritative.
+
 ## Acceptance gates (proposed, not measured)
 
 - Zero false-safe outcomes on the frozen synthetic functional-envelope cases.

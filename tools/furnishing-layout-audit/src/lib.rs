@@ -65,10 +65,167 @@ impl Rect {
     }
 }
 
+#[derive(Clone, Debug)]
+struct SpatialEntry {
+    item_id: String,
+    rect: Rect,
+}
+
+#[derive(Clone, Debug)]
+enum SpatialNodeKind {
+    Leaf(Vec<usize>),
+    Branch {
+        left: Box<SpatialNode>,
+        right: Box<SpatialNode>,
+    },
+}
+
+#[derive(Clone, Debug)]
+struct SpatialNode {
+    bounds: Rect,
+    kind: SpatialNodeKind,
+}
+
+/// Immutable bounding-volume hierarchy used only as a broad phase. Exact
+/// rectangle intersection remains the narrow-phase predicate; leaf traversal
+/// cannot convert an approximation into a physical pass.
+#[derive(Clone, Debug)]
+struct SpatialIndex {
+    entries: Vec<SpatialEntry>,
+    root: Option<Box<SpatialNode>>,
+}
+
+impl SpatialIndex {
+    const LEAF_CAPACITY: usize = 8;
+
+    fn new(items: &[(String, Rect)]) -> Self {
+        let entries = items
+            .iter()
+            .map(|(item_id, rect)| SpatialEntry {
+                item_id: item_id.clone(),
+                rect: *rect,
+            })
+            .collect::<Vec<_>>();
+        let indices = (0..entries.len()).collect::<Vec<_>>();
+        let root = Self::build_node(indices, &entries);
+        Self { entries, root }
+    }
+
+    fn build_node(indices: Vec<usize>, entries: &[SpatialEntry]) -> Option<Box<SpatialNode>> {
+        let first = *indices.first()?;
+        let bounds = indices
+            .iter()
+            .skip(1)
+            .fold(entries[first].rect, |current, index| {
+                union_rect(current, entries[*index].rect)
+            });
+
+        if indices.len() <= Self::LEAF_CAPACITY {
+            return Some(Box::new(SpatialNode {
+                bounds,
+                kind: SpatialNodeKind::Leaf(indices),
+            }));
+        }
+
+        let split_x = bounds.width >= bounds.depth;
+        let mut sorted = indices;
+        sorted.sort_by(|left, right| {
+            let left_rect = entries[*left].rect;
+            let right_rect = entries[*right].rect;
+            let left_center = if split_x {
+                left_rect.x + left_rect.width * 0.5
+            } else {
+                left_rect.y + left_rect.depth * 0.5
+            };
+            let right_center = if split_x {
+                right_rect.x + right_rect.width * 0.5
+            } else {
+                right_rect.y + right_rect.depth * 0.5
+            };
+            left_center
+                .total_cmp(&right_center)
+                .then_with(|| left.cmp(right))
+        });
+        let right_indices = sorted.split_off(sorted.len() / 2);
+        let left = Self::build_node(sorted, entries)?;
+        let right = Self::build_node(right_indices, entries)?;
+        Some(Box::new(SpatialNode {
+            bounds,
+            kind: SpatialNodeKind::Branch { left, right },
+        }))
+    }
+
+    fn query_indices(&self, query: Rect) -> Vec<usize> {
+        let mut matches = Vec::new();
+        if let Some(root) = &self.root {
+            Self::query_node(root, query, &self.entries, &mut matches);
+        }
+        matches
+    }
+
+    fn query_node(
+        node: &SpatialNode,
+        query: Rect,
+        entries: &[SpatialEntry],
+        matches: &mut Vec<usize>,
+    ) {
+        if !node.bounds.overlaps(query) {
+            return;
+        }
+        match &node.kind {
+            SpatialNodeKind::Leaf(indices) => {
+                for index in indices {
+                    if entries[*index].rect.overlaps(query) {
+                        matches.push(*index);
+                    }
+                }
+            }
+            SpatialNodeKind::Branch { left, right } => {
+                Self::query_node(left, query, entries, matches);
+                Self::query_node(right, query, entries, matches);
+            }
+        }
+    }
+
+    /// Returns each overlapping pair once, ordered by original input index.
+    fn overlapping_pairs(&self) -> Vec<(usize, usize)> {
+        let mut pairs = Vec::new();
+        for left in 0..self.entries.len() {
+            let mut candidates = self.query_indices(self.entries[left].rect);
+            candidates.sort_unstable();
+            for right in candidates {
+                if right > left {
+                    pairs.push((left, right));
+                }
+            }
+        }
+        pairs
+    }
+}
+
+fn union_rect(left: Rect, right: Rect) -> Rect {
+    let min_x = left.x.min(right.x);
+    let min_y = left.y.min(right.y);
+    let max_x = (left.x + left.width).max(right.x + right.width);
+    let max_y = (left.y + left.depth).max(right.y + right.depth);
+    Rect {
+        x: min_x,
+        y: min_y,
+        width: max_x - min_x,
+        depth: max_y - min_y,
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct ItemSize {
     width: f64,
     depth: f64,
+}
+
+struct EnvelopeDefinition<'a> {
+    envelope: &'a Value,
+    owner_id: String,
+    owner_size: ItemSize,
 }
 
 fn unique_ids(
@@ -542,30 +699,6 @@ pub fn audit_document(document: &Value) -> Vec<String> {
     }
 }
 
-fn envelope_definition<'a>(
-    catalog: &'a [Value],
-    sizes: &BTreeMap<String, ItemSize>,
-    envelope_id: &str,
-) -> Option<(&'a Value, String, ItemSize)> {
-    for item in catalog {
-        let Some(item_id) = text(item, "item_id") else {
-            continue;
-        };
-        let Some(size) = sizes.get(item_id).copied() else {
-            continue;
-        };
-        let Some(envelopes) = array(item, "functional_envelopes") else {
-            continue;
-        };
-        for envelope in envelopes {
-            if text(envelope, "envelope_id") == Some(envelope_id) {
-                return Some((envelope, item_id.to_owned(), size));
-            }
-        }
-    }
-    None
-}
-
 /// The fixture's placement coordinates identify the lower-left corner of the
 /// quarter-turn-aligned footprint. Envelope rectangles are item-local, with
 /// their origin at the unrotated item's south-west corner, and rotate with it.
@@ -605,28 +738,27 @@ fn transformed_functional_envelope(
     Some(Rect { x, y, width, depth })
 }
 
+/// Compute a fixture outcome from indexed evidence and exact geometric checks.
+/// A BVH only reduces candidates; every candidate is tested with Rect::overlaps.
 fn expected_functional_envelope_outcome(
     scenario: &Value,
     requirement: &Value,
-    catalog: &[Value],
-    placements: &[Value],
-    sizes: &BTreeMap<String, ItemSize>,
+    envelope_definitions: &BTreeMap<String, EnvelopeDefinition<'_>>,
+    placements_by_id: &BTreeMap<String, &Value>,
+    footprint_index: &SpatialIndex,
 ) -> Option<&'static str> {
     let envelope_id = text(requirement, "target_envelope_id")?;
-    let (envelope, owner_id, owner_size) = envelope_definition(catalog, sizes, envelope_id)?;
+    let definition = envelope_definitions.get(envelope_id)?;
+    let envelope = definition.envelope;
     if text(envelope, "evidence_state") == Some("unknown") {
         return Some("indeterminate");
     }
     if text(envelope, "evidence_state") != Some("synthetic_known_truth") {
         return None;
     }
-    let Some(owner_placement) = placements
-        .iter()
-        .find(|placement| text(placement, "item_id") == Some(owner_id.as_str()))
-    else {
-        return Some("indeterminate");
-    };
-    let envelope_rect = transformed_functional_envelope(envelope, owner_size, owner_placement)?;
+    let owner_placement = *placements_by_id.get(&definition.owner_id)?;
+    let envelope_rect =
+        transformed_functional_envelope(envelope, definition.owner_size, owner_placement)?;
     let room = field(scenario, "room")?;
     let room_width = field(room, "width_m")?.as_f64()?;
     let room_depth = field(room, "depth_m")?.as_f64()?;
@@ -634,13 +766,9 @@ fn expected_functional_envelope_outcome(
     if !envelope_rect.is_valid() || !envelope_rect.inside_room(room_width, room_depth) {
         return Some("fail");
     }
-    for placement in placements {
-        let item_id = text(placement, "item_id")?;
-        if item_id == owner_id {
-            continue;
-        }
-        let (_, footprint) = placement_rect(placement, sizes)?;
-        if envelope_rect.overlaps(footprint) {
+    for candidate_index in footprint_index.query_indices(envelope_rect) {
+        let candidate = footprint_index.entries.get(candidate_index)?;
+        if candidate.item_id != definition.owner_id {
             return Some("fail");
         }
     }
@@ -733,6 +861,7 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
         let catalog_ids = unique_ids(catalog, "item_id", &format!("{label}.catalog"), &mut errors);
         let mut sizes = BTreeMap::new();
         let mut envelope_ids = BTreeSet::new();
+        let mut envelope_definitions: BTreeMap<String, EnvelopeDefinition<'_>> = BTreeMap::new();
         for item in catalog {
             let Some(item_id) = text(item, "item_id") else {
                 continue;
@@ -772,6 +901,13 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 if !envelope_ids.insert(envelope_id.to_owned()) {
                     errors.push(format!("{label}: duplicate envelope_id {envelope_id:?}"));
                 }
+                envelope_definitions
+                    .entry(envelope_id.to_owned())
+                    .or_insert_with(|| EnvelopeDefinition {
+                        envelope,
+                        owner_id: item_id.to_owned(),
+                        owner_size: size,
+                    });
                 if !matches!(
                     text(envelope, "task_kind"),
                     Some("drawer_open" | "chair_pull_back" | "service_access")
@@ -813,6 +949,13 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
             &format!("{label}.requirements"),
             &mut errors,
         );
+        let requirements_by_id: BTreeMap<String, &Value> = requirements
+            .iter()
+            .filter_map(|requirement| {
+                text(requirement, "requirement_id")
+                    .map(|requirement_id| (requirement_id.to_owned(), requirement))
+            })
+            .collect();
         let mut mandatory_unknown = false;
         for requirement in requirements {
             let Some(requirement_id) = text(requirement, "requirement_id") else {
@@ -829,12 +972,13 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 ));
                 continue;
             };
-            let Some((envelope, _, _)) = envelope_definition(catalog, &sizes, envelope_id) else {
+            let Some(definition) = envelope_definitions.get(envelope_id) else {
                 errors.push(format!(
                     "{label}.{requirement_id}: unknown target envelope {envelope_id:?}"
                 ));
                 continue;
             };
+            let envelope = definition.envelope;
             if field(requirement, "must_be_satisfied_to_advance")
                 .and_then(Value::as_bool)
                 .is_none()
@@ -879,6 +1023,12 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 &format!("{label}.{alternative_id}.placements"),
                 &mut errors,
             );
+            let placements_by_id: BTreeMap<String, &Value> = placements
+                .iter()
+                .filter_map(|placement| {
+                    text(placement, "item_id").map(|item_id| (item_id.to_owned(), placement))
+                })
+                .collect();
             let mut footprints = Vec::new();
             for placement in placements {
                 let Some(item_id) = text(placement, "item_id") else {
@@ -916,15 +1066,12 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 }
                 footprints.push((placed_id, rect));
             }
-            for left in 0..footprints.len() {
-                for right in (left + 1)..footprints.len() {
-                    if footprints[left].1.overlaps(footprints[right].1) {
-                        errors.push(format!(
-                            "{label}.{alternative_id}: physical footprints {} and {} overlap",
-                            footprints[left].0, footprints[right].0
-                        ));
-                    }
-                }
+            let footprint_index = SpatialIndex::new(&footprints);
+            for (left, right) in footprint_index.overlapping_pairs() {
+                errors.push(format!(
+                    "{label}.{alternative_id}: physical footprints {} and {} overlap",
+                    footprints[left].0, footprints[right].0
+                ));
             }
 
             let Some(checks) = array(alternative, "expected_checks") else {
@@ -945,17 +1092,15 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                     errors.push(format!("{label}.{alternative_id}: check references unknown requirement {requirement_id:?}"));
                     continue;
                 }
-                let Some(requirement) = requirements.iter().find(|requirement| {
-                    text(requirement, "requirement_id") == Some(requirement_id)
-                }) else {
+                let Some(requirement) = requirements_by_id.get(requirement_id) else {
                     continue;
                 };
                 let actual = expected_functional_envelope_outcome(
                     scenario,
                     requirement,
-                    catalog,
-                    placements,
-                    &sizes,
+                    &envelope_definitions,
+                    &placements_by_id,
+                    &footprint_index,
                 );
                 if let Some(actual) = actual
                     && text(check, "outcome") != Some(actual)
@@ -975,13 +1120,13 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
                 let Some(requirement_id) = text(check, "requirement_id") else {
                     return false;
                 };
-                requirements.iter().any(|requirement| {
-                    text(requirement, "requirement_id") == Some(requirement_id)
-                        && field(requirement, "must_be_satisfied_to_advance")
-                            .and_then(Value::as_bool)
+                requirements_by_id
+                    .get(requirement_id)
+                    .is_some_and(|requirement| {
+                        field(requirement, "must_be_satisfied_to_advance").and_then(Value::as_bool)
                             == Some(true)
-                        && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
-                })
+                            && matches!(text(check, "outcome"), Some("fail" | "indeterminate"))
+                    })
             });
             if mandatory_failure && text(alternative, "promotion_disposition") != Some("blocked") {
                 errors.push(format!(
@@ -1021,7 +1166,7 @@ pub fn audit_functional_envelopes(document: &Value) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{audit_document, audit_fixtures, audit_functional_envelopes};
+    use super::{Rect, SpatialIndex, audit_document, audit_fixtures, audit_functional_envelopes};
     use serde_json::{Value, json};
     use std::{fs, path::PathBuf};
 
@@ -1171,6 +1316,55 @@ mod tests {
             .join("../../fixtures/interiors/furnishing_functional_envelopes_v0_2.json");
         let bytes = fs::read(&path).expect("functional-envelope fixtures must exist");
         serde_json::from_slice(&bytes).expect("functional-envelope fixtures must be JSON")
+    }
+
+    #[test]
+    fn spatial_index_matches_brute_force_for_overlaps_and_queries() {
+        let mut items = Vec::new();
+        for row in 0..17 {
+            for column in 0..19 {
+                let width = 0.15 + f64::from((row + column) % 4) * 0.09;
+                let depth = 0.12 + f64::from((row * 3 + column) % 5) * 0.07;
+                let rect = Rect {
+                    x: f64::from(column) * 0.16,
+                    y: f64::from(row) * 0.18,
+                    width,
+                    depth,
+                };
+                items.push((format!("item-{row}-{column}"), rect));
+            }
+        }
+        let index = SpatialIndex::new(&items);
+        let actual_pairs = index.overlapping_pairs();
+        let mut expected_pairs = Vec::new();
+        for left in 0..items.len() {
+            for right in (left + 1)..items.len() {
+                if items[left].1.overlaps(items[right].1) {
+                    expected_pairs.push((left, right));
+                }
+            }
+        }
+        assert_eq!(actual_pairs, expected_pairs);
+
+        for query_row in 0..13 {
+            for query_column in 0..15 {
+                let query = Rect {
+                    x: f64::from(query_column) * 0.19 + 0.04,
+                    y: f64::from(query_row) * 0.21 + 0.03,
+                    width: 0.37,
+                    depth: 0.29,
+                };
+                let mut actual = index.query_indices(query);
+                actual.sort_unstable();
+                let expected = items
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, (_, rect))| rect.overlaps(query))
+                    .map(|(item_index, _)| item_index)
+                    .collect::<Vec<_>>();
+                assert_eq!(actual, expected);
+            }
+        }
     }
 
     #[test]

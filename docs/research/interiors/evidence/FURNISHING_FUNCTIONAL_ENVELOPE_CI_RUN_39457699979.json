@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_kind": "single_run_diagnostic_benchmark_receipt",
+  "benchmark_name": "functional_envelope_scaling",
+  "source": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "exact_head_sha": "fe742b6cdfd59600427cd9b5e9c772273093cb90",
+    "pull_request": 2364,
+    "base_branch": "feat/furnishing-functional-envelope-oracle-v0-2-20261020"
+  },
+  "workflow": {
+    "name": "Furnishing Layout Audit",
+    "run_id": 39457699979,
+    "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39457699979",
+    "conclusion": "success",
+    "runner_image": "ubuntu-24.04",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "hardware_details_recorded": true,
+    "hardware_details_recorded_in_observation_ids": [
+      39458884573
+    ]
+  },
+  "workload": {
+    "generated": true,
+    "synthetic_only": true,
+    "geometry": "axis_aligned_2d_rectangles",
+    "distribution": "sparse_grid",
+    "tasks_per_item": 1,
+    "construction_excluded_from_timed_region": true,
+    "timed_operation": "audit_functional_envelopes over preconstructed in-memory JSON Value",
+    "expected_findings": 0,
+    "memory_profiled": false,
+    "live_network_or_dht_included": false
+  },
+  "measurements": [
+    {
+      "items": 25,
+      "tasks": 25,
+      "iterations": 100,
+      "findings": 0,
+      "p50_ms": 0.028,
+      "p95_ms": 0.036
+    },
+    {
+      "items": 100,
+      "tasks": 100,
+      "iterations": 100,
+      "findings": 0,
+      "p50_ms": 0.138,
+      "p95_ms": 0.165
+    },
+    {
+      "items": 1000,
+      "tasks": 1000,
+      "iterations": 30,
+      "findings": 0,
+      "p50_ms": 2.364,
+      "p95_ms": 2.507
+    },
+    {
+      "items": 10000,
+      "tasks": 10000,
+      "iterations": 10,
+      "findings": 0,
+      "p50_ms": 50.631,
+      "p95_ms": 57.347
+    }
+  ],
+  "proposed_target": {
+    "measure": "p95 local audit time",
+    "items": 10000,
+    "target_ms": 100,
+    "below_target_in_this_run": true,
+    "target_is_provisional": true
+  },
+  "correctness_gates": {
+    "unit_tests": "19 passed, 0 failed",
+    "rustfmt": "passed",
+    "clippy_warnings_denied": "passed",
+    "bvh_vs_brute_force_equivalence_test": "passed"
+  },
+  "limitations": [
+    "Two hosted-runner observations; not stable-machine microbenchmark evidence.",
+    "The measured runs used sparse synthetic geometry only. Dense overlap-heavy scenes remain a distinct stress workload.",
+    "The two observations differ materially in wall-clock duration; reported p95 is a diagnostic, not a production SLA.",
+    "The benchmark does not measure geometric measurement error, UI render time, memory peak, live network/DHT work, accessibility, building code, biomechanics, physical safety, or resident outcomes."
+  ],
+  "observations": [
+    {
+      "execution_commit": "fe742b6cdfd59600427cd9b5e9c772273093cb90",
+      "workflow_run_id": 39457699979,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39457699979",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "hardware_details_recorded": false,
+      "measurements": [
+        {
+          "items": 25,
+          "tasks": 25,
+          "iterations": 100,
+          "findings": 0,
+          "p50_ms": 0.028,
+          "p95_ms": 0.036
+        },
+        {
+          "items": 100,
+          "tasks": 100,
+          "iterations": 100,
+          "findings": 0,
+          "p50_ms": 0.138,
+          "p95_ms": 0.165
+        },
+        {
+          "items": 1000,
+          "tasks": 1000,
+          "iterations": 30,
+          "findings": 0,
+          "p50_ms": 2.364,
+          "p95_ms": 2.507
+        },
+        {
+          "items": 10000,
+          "tasks": 10000,
+          "iterations": 10,
+          "findings": 0,
+          "p50_ms": 50.631,
+          "p95_ms": 57.347
+        }
+      ]
+    },
+    {
+      "execution_commit": "5cd63d924703d0eab3418d950567d352db660af9",
+      "oracle_and_benchmark_source_unchanged_from": "fe742b6cdfd59600427cd9b5e9c772273093cb90",
+      "workflow_run_id": 39458884573,
+      "url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/39458884573",
+      "runner_image": "ubuntu-24.04",
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "host_kernel": "Linux runnervm8k3b6 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026 x86_64",
+      "cpu_model": "AMD EPYC 7763 64-Core Processor",
+      "visible_vcpus": 4,
+      "reported_memory_gib": 15,
+      "findings_all_tiers": 0,
+      "measurements": [
+        {
+          "items": 25,
+          "tasks": 25,
+          "iterations": 100,
+          "findings": 0,
+          "p50_ms": 0.058,
+          "p95_ms": 0.088
+        },
+        {
+          "items": 100,
+          "tasks": 100,
+          "iterations": 100,
+          "findings": 0,
+          "p50_ms": 0.306,
+          "p95_ms": 0.341
+        },
+        {
+          "items": 1000,
+          "tasks": 1000,
+          "iterations": 30,
+          "findings": 0,
+          "p50_ms": 4.171,
+          "p95_ms": 4.367
+        },
+        {
+          "items": 10000,
+          "tasks": 10000,
+          "iterations": 10,
+          "findings": 0,
+          "p50_ms": 67.022,
+          "p95_ms": 67.45
+        }
+      ]
+    }
+  ]
+}
