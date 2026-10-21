@@ -137,7 +137,7 @@ impl fmt::Display for FrontierError {
                     f,
                     "candidate {candidate_id:?} has an objective schema incompatible with the ranking set"
                 )
-            },
+            }
         }
     }
 }
@@ -204,10 +204,7 @@ fn objective_exclusion_reasons(candidate: &AlternativeCandidate) -> Vec<String> 
             ));
         }
         if !objective.value.is_finite() {
-            reasons.push(format!(
-                "objective {:?} is not finite",
-                objective.dimension
-            ));
+            reasons.push(format!("objective {:?} is not finite", objective.dimension));
         }
         if objective.evidence != ObjectiveEvidence::AcceptedByPolicy {
             reasons.push(format!(
@@ -455,13 +452,28 @@ mod tests {
     #[test]
     fn returns_non_dominated_tradeoffs_without_scalar_weights() {
         let input = vec![
-            candidate("low-cost", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
-            candidate("high-coverage", VerificationStatus::Verified, two_objectives(12.0, 90.0)),
-            candidate("dominated", VerificationStatus::Verified, two_objectives(13.0, 60.0)),
+            candidate(
+                "low-cost",
+                VerificationStatus::Verified,
+                two_objectives(10.0, 70.0),
+            ),
+            candidate(
+                "high-coverage",
+                VerificationStatus::Verified,
+                two_objectives(12.0, 90.0),
+            ),
+            candidate(
+                "dominated",
+                VerificationStatus::Verified,
+                two_objectives(13.0, 60.0),
+            ),
         ];
         let report = compute_pareto_frontier(&input).expect("valid frontier");
         assert_eq!(report.frontier_ids, vec!["high-coverage", "low-cost"]);
-        assert_eq!(report.objective_dimensions, vec!["install_cost", "task_coverage"]);
+        assert_eq!(
+            report.objective_dimensions,
+            vec!["install_cost", "task_coverage"]
+        );
         assert_eq!(
             disposition(&report, "dominated"),
             &CandidateDisposition::DominatedBy("high-coverage".to_owned())
@@ -472,7 +484,11 @@ mod tests {
     #[test]
     fn blocked_and_indeterminate_never_enter_frontier() {
         let input = vec![
-            candidate("verified", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
+            candidate(
+                "verified",
+                VerificationStatus::Verified,
+                two_objectives(10.0, 70.0),
+            ),
             candidate(
                 "blocked-best-score",
                 VerificationStatus::Blocked,
@@ -507,7 +523,11 @@ mod tests {
         unknown.objectives[0].evidence = ObjectiveEvidence::Unknown;
         let input = vec![
             unknown,
-            candidate("known", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
+            candidate(
+                "known",
+                VerificationStatus::Verified,
+                two_objectives(10.0, 70.0),
+            ),
         ];
         let report = compute_pareto_frontier(&input).expect("partial frontier is explicit");
         assert_eq!(report.frontier_ids, vec!["known"]);
@@ -554,8 +574,16 @@ mod tests {
 
     #[test]
     fn result_is_invariant_to_candidate_and_objective_input_order() {
-        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
-        let mut b = candidate("b", VerificationStatus::Verified, two_objectives(12.0, 90.0));
+        let a = candidate(
+            "a",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
+        let mut b = candidate(
+            "b",
+            VerificationStatus::Verified,
+            two_objectives(12.0, 90.0),
+        );
         b.objectives.reverse();
         let left = compute_pareto_frontier(&[a.clone(), b.clone()]).expect("valid frontier");
         let right = compute_pareto_frontier(&[b, a]).expect("valid frontier");
@@ -564,7 +592,11 @@ mod tests {
 
     #[test]
     fn incompatible_objective_schemas_fail_closed() {
-        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let a = candidate(
+            "a",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
         let b = candidate(
             "b",
             VerificationStatus::Verified,
@@ -584,12 +616,22 @@ mod tests {
         let usd = candidate(
             "usd",
             VerificationStatus::Verified,
-            vec![objective_in_unit("cost", "USD", ObjectiveDirection::Minimize, 10.0)],
+            vec![objective_in_unit(
+                "cost",
+                "USD",
+                ObjectiveDirection::Minimize,
+                10.0,
+            )],
         );
         let zar = candidate(
             "zar",
             VerificationStatus::Verified,
-            vec![objective_in_unit("cost", "ZAR", ObjectiveDirection::Minimize, 190.0)],
+            vec![objective_in_unit(
+                "cost",
+                "ZAR",
+                ObjectiveDirection::Minimize,
+                190.0,
+            )],
         );
         assert!(matches!(
             compute_pareto_frontier(&[usd, zar]),
@@ -599,8 +641,16 @@ mod tests {
 
     #[test]
     fn tied_alternatives_are_both_preserved_on_frontier() {
-        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
-        let b = candidate("b", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let a = candidate(
+            "a",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
+        let b = candidate(
+            "b",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
         let report = compute_pareto_frontier(&[b, a]).expect("valid frontier");
         assert_eq!(report.frontier_ids, vec!["a", "b"]);
     }
@@ -613,16 +663,24 @@ mod tests {
             two_objectives(1.0, 100.0),
         );
         malformed.revision_sha256 = Some("not-a-digest".to_owned());
-        let good = candidate("good", VerificationStatus::Verified, two_objectives(10.0, 70.0));
-        let report = compute_pareto_frontier(&[malformed, good])
-            .expect("unrankable candidate is reported");
+        let good = candidate(
+            "good",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
+        let report =
+            compute_pareto_frontier(&[malformed, good]).expect("unrankable candidate is reported");
         assert_eq!(report.frontier_ids, vec!["good"]);
         assert!(!report.ranking_complete);
     }
 
     #[test]
     fn duplicate_candidate_ids_are_rejected() {
-        let a = candidate("duplicate", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let a = candidate(
+            "duplicate",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
         let b = candidate("duplicate", VerificationStatus::Blocked, Vec::new());
         assert_eq!(
             compute_pareto_frontier(&[a, b]),
@@ -637,8 +695,8 @@ mod tests {
             VerificationStatus::Verified,
             vec![objective("cost", ObjectiveDirection::Minimize, f64::NAN)],
         );
-        let report = compute_pareto_frontier(&[bad])
-            .expect("bad objective remains an explicit exclusion");
+        let report =
+            compute_pareto_frontier(&[bad]).expect("bad objective remains an explicit exclusion");
         assert!(report.frontier_ids.is_empty());
         assert!(!report.ranking_complete);
         assert!(matches!(
@@ -649,7 +707,10 @@ mod tests {
 
     #[test]
     fn empty_request_and_invalid_candidate_ids_are_rejected() {
-        assert_eq!(compute_pareto_frontier(&[]), Err(FrontierError::EmptyRequest));
+        assert_eq!(
+            compute_pareto_frontier(&[]),
+            Err(FrontierError::EmptyRequest)
+        );
         let bad = candidate(" padded ", VerificationStatus::Blocked, Vec::new());
         assert!(matches!(
             compute_pareto_frontier(&[bad]),
@@ -659,7 +720,11 @@ mod tests {
 
     #[test]
     fn no_verified_candidates_produce_no_frontier() {
-        let input = vec![candidate("blocked", VerificationStatus::Blocked, Vec::new())];
+        let input = vec![candidate(
+            "blocked",
+            VerificationStatus::Blocked,
+            Vec::new(),
+        )];
         let report = compute_pareto_frontier(&input).expect("exclusion report");
         assert!(report.frontier_ids.is_empty());
         assert!(!report.ranking_complete);
