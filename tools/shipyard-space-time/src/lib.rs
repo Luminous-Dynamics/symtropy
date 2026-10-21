@@ -207,11 +207,7 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn validate_footprint(
-    footprint: &Footprint,
-    subject_id: &str,
-    violations: &mut Vec<Violation>,
-) {
+fn validate_footprint(footprint: &Footprint, subject_id: &str, violations: &mut Vec<Violation>) {
     match footprint {
         Footprint::AxisAlignedRect(rect) if !rect.is_valid() => add_violation(
             violations,
@@ -227,11 +223,7 @@ fn validate_footprint(
     }
 }
 
-fn validate_time_range(
-    range: TimeRange,
-    subject_id: &str,
-    violations: &mut Vec<Violation>,
-) {
+fn validate_time_range(range: TimeRange, subject_id: &str, violations: &mut Vec<Violation>) {
     if !range.is_valid() {
         add_violation(
             violations,
@@ -273,8 +265,16 @@ pub fn verify(scenario: &Scenario) -> VerificationReport {
                 vec![placement.reservation_id.clone()],
             );
         }
-        validate_footprint(&placement.footprint, &placement.reservation_id, &mut violations);
-        validate_time_range(placement.occupied, &placement.reservation_id, &mut violations);
+        validate_footprint(
+            &placement.footprint,
+            &placement.reservation_id,
+            &mut violations,
+        );
+        validate_time_range(
+            placement.occupied,
+            &placement.reservation_id,
+            &mut violations,
+        );
     }
 
     for transfer in &scenario.transfers {
@@ -414,10 +414,7 @@ pub fn verify(scenario: &Scenario) -> VerificationReport {
                     vec![left.reservation_id.clone(), right.reservation_id.clone()],
                 );
             } else if left.block_id != right.block_id
-                && left
-                    .footprint
-                    .overlaps_supported(&right.footprint)
-                    == Some(true)
+                && left.footprint.overlaps_supported(&right.footprint) == Some(true)
             {
                 add_violation(
                     &mut violations,
@@ -564,7 +561,10 @@ mod tests {
     }
 
     fn has_code(report: &VerificationReport, code: ViolationCode) -> bool {
-        report.violations.iter().any(|violation| violation.code == code)
+        report
+            .violations
+            .iter()
+            .any(|violation| violation.code == code)
     }
 
     #[test]
