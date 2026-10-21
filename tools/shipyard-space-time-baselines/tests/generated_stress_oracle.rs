@@ -150,17 +150,21 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
                     "independent spatial verifier rejected portfolio output: {result:?}"
                 );
             }
-            Err(errors) if exact => {
-                portfolio_missed += 1;
+            Err(errors) => {
                 if case_index == 48 || case_index == 244 {
+                    assert!(exact, "pinned portfolio miss must remain exactly feasible");
                     assert_eq!(
                         errors[0].code.as_str(),
                         "AllPoliciesFailed",
                         "portfolio exhaustion must not be described as proven infeasibility"
                     );
                 }
-            }
-            Err(_) => portfolio_rejected_infeasible += 1,
+                if exact {
+                    portfolio_missed += 1;
+                } else {
+                    portfolio_rejected_infeasible += 1;
+                }
+            },
         }
     }
 
