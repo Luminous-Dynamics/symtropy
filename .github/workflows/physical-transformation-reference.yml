@@ -308,6 +308,8 @@ jobs:
               result: "pass",
               test: "planar_truss::tests::conditioning_sweep_separates_backward_residual_from_forward_error",
               case_count: 9,
+              expected_accepted_case_count: 7,
+              expected_fail_closed_case_count: 2,
               apex_height_schedule_m: [1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001],
               fixed_geometry: {base_span_m: 4.0, apex_x_m: 1.0},
               axial_stiffness_n_per_m: {bar_a: 1000000000, bar_b: 2000000000},
@@ -338,6 +340,8 @@ jobs:
             and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
             and .result == "pass"
             and .case_count == 9
+            and .expected_accepted_case_count == 7
+            and .expected_fail_closed_case_count == 2
             and (.apex_height_schedule_m | length == 9)
             and .independent_condition_oracle.norm == "infinity"
             and .acceptance.fail_closed_when_condition_times_machine_epsilon_gte == 0.001
