@@ -76,6 +76,30 @@ The proposed research target is a prospective pilot that reduces at least one pr
 
 BIER's April 2026 release reported aggregate 2020–2024 improvements of 3% in water-use ratio, 4% in energy-use ratio, and 11% in emissions ratio among participating beverage facilities; more than 60% faced at least medium water risk. Those sector-level values motivate comparison but are not a single-site causal baseline or directly comparable target. A fair pilot must use aligned meter boundaries, product mix, functional units, quality gates and uncertainty.
 
+## Facility-normalized resource benchmarking
+
+A resource benchmark must not rank plants by raw litres or kilowatt-hours per unit without controlling for the facility and production boundary. A South African brewery-industry study specifically investigated normalization using operating drivers and data from 64 SABMiller sites; it noted that comparisons can be deficient when differences between facilities are not normalized. BIER likewise categorizes normalized metrics by facility and beverage type.
+
+Use this comparison contract before calculating a headline improvement:
+
+| Dimension | Required treatment |
+|---|---|
+| Facility class | Compare breweries with breweries, wineries with wineries, distilleries with distilleries and bottling-only sites with their own stratum. Do not collapse unlike plant types into one leaderboard. |
+| Functional unit | Report both absolute totals and intensities per volume of *saleable, quality-conforming* product. Keep beer, wine and spirits as separate product-family strata unless an explicitly justified common functional basis exists. |
+| Production mix | Freeze product/style mix, alcohol-strength basis when relevant, throughput, batch size, packaging formats, shift pattern and line utilization, or adjust for them using a predeclared model. Report unadjusted and adjusted results. |
+| Meter boundary | Record whether utilities cover fermentation, refrigeration, boiler/steam, CIP, wastewater treatment, packaging, offices and external/shared services. Missing submeter coverage means not comparable—not zero consumption. |
+| Resource accounting | Preserve electricity and thermal energy separately, freshwater source, recycled/reused water, wastewater volume/treatment, and emissions boundary. Report allocation method and factor/source version. |
+| Local context | Stratify or report the local catchment's water scarcity/stress as contextual exposure. Do not normalize scarcity away: one litre consumed in a water-stressed catchment is not equivalent in social risk to one litre elsewhere. |
+| Quality and losses | Freeze product-quality gates, rejected volume, by-product/loss treatment, start/end inventory and saleable-yield basis. A resource ratio must not improve simply because rejected output or unmetered waste disappeared from its denominator. |
+| Uncertainty and change | Retain meter accuracy, missing intervals, estimated-vs-measured status, production mix and model uncertainty. Pre-register the comparison period, intervention date and exclusion rules; retain all failed batches in the evaluation record. |
+
+For a plant pilot, compare against a matched or pre-registered counterfactual under comparable production and quality conditions, and publish absolute totals alongside adjusted intensities. A 10% reduction target is only meaningful if the baseline, functional unit, meter coverage, product mix, quality constraints and uncertainty method were frozen before the intervention. A plant should not claim superiority from a sector-wide BIER trend, a one-off low-volume batch or a denominator that excludes non-saleable output.
+
+Research anchors:
+- Kirstein & Brent (2017), *An investigation into the normalisation of water and energy usage in the brewery industry*, South African Journal of Industrial Engineering 28(4), https://doi.org/10.7166/28-4-1726
+- BIER, *2025 Water, Energy, and Emissions Benchmarking Summary*, https://www.bieroundtable.com/2025-water-energy-and-emissions-benchmarking-summary-bier
+- BIER's methodology describes facility-level data and common boundary conditions: https://www.bieroundtable.com/energy-management/energy-management-benchmarking
+
 ## Scenario corpus and claim limits
 
 `beverage-process-scenarios-v1.json` contains synthetic regression scenarios covering nominal closure, explicit material losses, infeasible cooling, sensor bias, missing measurements, scale shift, hidden objective-weight changes, no-Pareto-candidate conditions, and future-module boundaries.
