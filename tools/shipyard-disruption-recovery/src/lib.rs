@@ -266,10 +266,15 @@ fn derive_affected_ids(
     }
 
     for transfer in &baseline.transfers {
-        if disruption.vehicle_outages.iter().any(|outage| {
+        let corridor_blocked = disruption.new_exclusion_zones.iter().any(|zone| {
+            transfer.interval.overlaps(zone.active)
+                && overlaps_rect(&transfer.corridor, &zone.footprint)
+        });
+        let vehicle_unavailable = disruption.vehicle_outages.iter().any(|outage| {
             transfer.vehicle_id == outage.vehicle_id
                 && transfer.interval.overlaps(outage.unavailable)
-        }) {
+        });
+        if corridor_blocked || vehicle_unavailable {
             affected.insert(transfer.id.clone());
         }
     }
