@@ -138,14 +138,19 @@ pub fn import_pcbworld_per_rollout_csv(
     evaluator_git_head: &str,
 ) -> Result<PcbWorldCsvImportReceipt, String> {
     if !is_commit_sha(evaluator_git_head) {
-        return Err("evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into());
+        return Err(
+            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
     }
 
     let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
         .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
     crate::validate_manifest(&manifest)?;
     if manifest.schema != MANIFEST_SCHEMA {
-        return Err(format!("unsupported dataset manifest schema: {}", manifest.schema));
+        return Err(format!(
+            "unsupported dataset manifest schema: {}",
+            manifest.schema
+        ));
     }
 
     let mut reader = csv::ReaderBuilder::new()
@@ -177,8 +182,11 @@ pub fn import_pcbworld_per_rollout_csv(
         ));
     }
 
-    let source_board_ids: BTreeSet<String> =
-        manifest.boards.iter().map(|board| board.board_id.clone()).collect();
+    let source_board_ids: BTreeSet<String> = manifest
+        .boards
+        .iter()
+        .map(|board| board.board_id.clone())
+        .collect();
     let mut seen_attempts: BTreeSet<(String, u32, Option<i64>)> = BTreeSet::new();
     let mut observed_board_ids = BTreeSet::new();
     let mut rows = Vec::new();
@@ -226,7 +234,12 @@ pub fn import_pcbworld_per_rollout_csv(
         return Err(format!(
             "PCBWorld CSV omits {} pinned board(s), e.g. {}",
             missing_boards.len(),
-            missing_boards.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+            missing_boards
+                .iter()
+                .take(5)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     }
 
@@ -235,11 +248,21 @@ pub fn import_pcbworld_per_rollout_csv(
     let mut policies = BTreeSet::new();
     for row in &rows {
         if row.reference_metrics.eval_status.as_deref() == Some("ok") {
-            let reward_config = row.reference_metrics.reward_config.as_deref().ok_or_else(|| {
-                format!("{} rollout {}: eval_status=ok but reward_config is missing", row.board_id, row.rollout_idx)
-            })?;
+            let reward_config =
+                row.reference_metrics
+                    .reward_config
+                    .as_deref()
+                    .ok_or_else(|| {
+                        format!(
+                            "{} rollout {}: eval_status=ok but reward_config is missing",
+                            row.board_id, row.rollout_idx
+                        )
+                    })?;
             let check_angle = row.reference_metrics.check_angle.ok_or_else(|| {
-                format!("{} rollout {}: eval_status=ok but check_angle is missing", row.board_id, row.rollout_idx)
+                format!(
+                    "{} rollout {}: eval_status=ok but check_angle is missing",
+                    row.board_id, row.rollout_idx
+                )
             })?;
             policies.insert(format!("{reward_config}|check_angle={check_angle}"));
         }
@@ -279,17 +302,21 @@ fn parse_reference_metrics(
     columns: &BTreeMap<String, usize>,
     row_number: usize,
 ) -> Result<PcbWorldReferenceMetrics, String> {
-    let value = |name: &str| -> Option<&str> {
-        columns.get(name).and_then(|index| record.get(*index))
-    };
+    let value =
+        |name: &str| -> Option<&str> { columns.get(name).and_then(|index| record.get(*index)) };
     let success = parse_optional_bool(value("success"), "success", row_number)?;
     let clean_pass = parse_optional_bool(value("clean_pass"), "clean_pass", row_number)?;
     let routability = parse_optional_f64(value("routability"), "routability", row_number)?;
     if routability.is_some_and(|number| !(0.0..=1.0).contains(&number)) {
-        return Err(format!("PCBWorld CSV row {row_number}: routability must be within [0,1]"));
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: routability must be within [0,1]"
+        ));
     }
-    let drv_errors_only_count =
-        parse_optional_u32(value("drv_errors_only_count"), "drv_errors_only_count", row_number)?;
+    let drv_errors_only_count = parse_optional_u32(
+        value("drv_errors_only_count"),
+        "drv_errors_only_count",
+        row_number,
+    )?;
     let drv_errors_and_promoted_count = parse_optional_u32(
         value("drv_errors_and_promoted_count"),
         "drv_errors_and_promoted_count",
@@ -309,9 +336,10 @@ fn parse_reference_metrics(
 
     let drv_violations = match value("drv_violations") {
         Some(cell) if !is_missing(cell) => {
-            let records: Vec<PcbWorldDrcViolation> = serde_json::from_str(cell).map_err(|error| {
-                format!("PCBWorld CSV row {row_number}: drv_violations JSON invalid: {error}")
-            })?;
+            let records: Vec<PcbWorldDrcViolation> =
+                serde_json::from_str(cell).map_err(|error| {
+                    format!("PCBWorld CSV row {row_number}: drv_violations JSON invalid: {error}")
+                })?;
             validate_violation_counts(
                 &records,
                 drv_errors_only_count,
@@ -323,28 +351,23 @@ fn parse_reference_metrics(
         _ => None,
     };
 
-    let final_potential = parse_optional_f64(value("final_potential"), "final_potential", row_number)?;
+    let final_potential =
+        parse_optional_f64(value("final_potential"), "final_potential", row_number)?;
     let initial_potential =
         parse_optional_f64(value("initial_potential"), "initial_potential", row_number)?;
     let potential_gain = parse_optional_f64(value("potential_gain"), "potential_gain", row_number)?;
     let potential_gain_consistent = match (final_potential, initial_potential, potential_gain) {
-        (Some(final_value), Some(initial_value), Some(gain)) => {
-            Some(
-                (gain - (final_value - initial_value)).abs()
-                    <= 1e-4_f64.max(
-                        final_value
-                            .abs()
-                            .max(initial_value.abs())
-                            .max(gain.abs())
-                            * 1e-6,
-                    ),
-            )
-        }
+        (Some(final_value), Some(initial_value), Some(gain)) => Some(
+            (gain - (final_value - initial_value)).abs()
+                <= 1e-4_f64.max(final_value.abs().max(initial_value.abs()).max(gain.abs()) * 1e-6),
+        ),
         _ => None,
     };
     let check_angle = parse_optional_u32(value("check_angle"), "check_angle", row_number)?;
     if check_angle.is_some_and(|angle| !matches!(angle, 45 | 90)) {
-        return Err(format!("PCBWorld CSV row {row_number}: check_angle must be 45 or 90"));
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: check_angle must be 45 or 90"
+        ));
     }
 
     Ok(PcbWorldReferenceMetrics {
@@ -373,7 +396,11 @@ fn parse_reference_metrics(
             "track_angle_drv_count",
             row_number,
         )?,
-        total_drv_count: parse_optional_u32(value("total_drv_count"), "total_drv_count", row_number)?,
+        total_drv_count: parse_optional_u32(
+            value("total_drv_count"),
+            "total_drv_count",
+            row_number,
+        )?,
         initial_unrouted_edges: parse_optional_u32(
             value("initial_unrouted_edges"),
             "initial_unrouted_edges",
@@ -424,20 +451,28 @@ fn summarize(rows: &[PcbWorldRolloutRow]) -> PcbWorldCsvSummary {
         .collect();
     let policies: BTreeSet<String> = rows
         .iter()
-        .filter_map(|row| match (
-            row.reference_metrics.reward_config.as_deref(),
-            row.reference_metrics.check_angle,
-        ) {
-            (Some(config), Some(angle)) if row.reference_metrics.eval_status.as_deref() == Some("ok") => {
-                Some(format!("{config}|check_angle={angle}"))
+        .filter_map(|row| {
+            match (
+                row.reference_metrics.reward_config.as_deref(),
+                row.reference_metrics.check_angle,
+            ) {
+                (Some(config), Some(angle))
+                    if row.reference_metrics.eval_status.as_deref() == Some("ok") =>
+                {
+                    Some(format!("{config}|check_angle={angle}"))
+                }
+                _ => None,
             }
-            _ => None,
         })
         .collect();
 
     PcbWorldCsvSummary {
         rows_attempted: rows.len(),
-        unique_boards: rows.iter().map(|row| row.board_id.as_str()).collect::<BTreeSet<_>>().len(),
+        unique_boards: rows
+            .iter()
+            .map(|row| row.board_id.as_str())
+            .collect::<BTreeSet<_>>()
+            .len(),
         rows_completed: rows.iter().filter(|row| row.status == "completed").count(),
         rows_crashed: rows.iter().filter(|row| row.status == "crashed").count(),
         rows_truncated: rows.iter().filter(|row| row.status == "truncated").count(),
@@ -449,16 +484,24 @@ fn summarize(rows: &[PcbWorldRolloutRow]) -> PcbWorldCsvSummary {
         rows_with_clean_pass_metric: clean_values.len(),
         success_attempts: success_values.iter().filter(|value| **value).count(),
         clean_pass_attempts: clean_values.iter().filter(|value| **value).count(),
-        success_rate_over_all_rows: success_values.iter().filter(|value| **value).count() as f64 / rows.len() as f64,
-        clean_pass_rate_over_all_rows: clean_values.iter().filter(|value| **value).count() as f64 / rows.len() as f64,
+        success_rate_over_all_rows: success_values.iter().filter(|value| **value).count() as f64
+            / rows.len() as f64,
+        clean_pass_rate_over_all_rows: clean_values.iter().filter(|value| **value).count() as f64
+            / rows.len() as f64,
         rows_with_routability: routability.len(),
         mean_routability_over_recorded_rows: mean(&routability),
         rows_with_error_only_drc_count: error_counts.len(),
         error_only_drc_total: error_counts.iter().map(|value| u64::from(*value)).sum(),
         rows_with_promoted_drc_count: promoted_counts.len(),
         error_and_promoted_drc_total: promoted_counts.iter().map(|value| u64::from(*value)).sum(),
-        rows_missing_reward_config: rows.iter().filter(|row| row.reference_metrics.reward_config.is_none()).count(),
-        rows_missing_check_angle: rows.iter().filter(|row| row.reference_metrics.check_angle.is_none()).count(),
+        rows_missing_reward_config: rows
+            .iter()
+            .filter(|row| row.reference_metrics.reward_config.is_none())
+            .count(),
+        rows_missing_check_angle: rows
+            .iter()
+            .filter(|row| row.reference_metrics.check_angle.is_none())
+            .count(),
         scoring_policy_variants: policies.into_iter().collect(),
         potential_gain_inconsistency_rows: rows
             .iter()
@@ -483,10 +526,13 @@ fn validate_violation_counts(
             || record.severity_label.trim().is_empty()
             || record.error_type.trim().is_empty()
     }) {
-        return Err(format!("PCBWorld CSV row {row_number}: DRC violation list contains invalid fields"));
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: DRC violation list contains invalid fields"
+        ));
     }
     let actual_error_only = records.iter().filter(|record| record.is_error).count() as u32;
-    let actual_error_and_promoted = records.iter().filter(|record| record.is_promoted).count() as u32;
+    let actual_error_and_promoted =
+        records.iter().filter(|record| record.is_promoted).count() as u32;
     if error_only.is_some_and(|value| value != actual_error_only) {
         return Err(format!("PCBWorld CSV row {row_number}: serialized DRC violation list disagrees with error-only count"));
     }
@@ -506,9 +552,20 @@ fn required_text(
         .ok_or_else(|| format!("PCBWorld CSV row {row_number}: {name} must not be empty"))
 }
 
-fn optional_text(record: &StringRecord, columns: &BTreeMap<String, usize>, name: &str) -> Option<String> {
-    let value = columns.get(name).and_then(|index| record.get(*index))?.trim();
-    if is_missing(value) { None } else { Some(value.to_string()) }
+fn optional_text(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    name: &str,
+) -> Option<String> {
+    let value = columns
+        .get(name)
+        .and_then(|index| record.get(*index))?
+        .trim();
+    if is_missing(value) {
+        None
+    } else {
+        Some(value.to_string())
+    }
 }
 
 fn required_u32(
@@ -527,7 +584,11 @@ fn optional_u32(
     name: &str,
     row_number: usize,
 ) -> Result<Option<u32>, String> {
-    parse_optional_u32(columns.get(name).and_then(|index| record.get(*index)), name, row_number)
+    parse_optional_u32(
+        columns.get(name).and_then(|index| record.get(*index)),
+        name,
+        row_number,
+    )
 }
 
 fn optional_i64(
@@ -539,7 +600,9 @@ fn optional_i64(
     let Some(value) = columns.get(name).and_then(|index| record.get(*index)) else {
         return Ok(None);
     };
-    if is_missing(value) { return Ok(None); }
+    if is_missing(value) {
+        return Ok(None);
+    }
     match value.trim().parse::<i64>() {
         Ok(parsed) => Ok(Some(parsed)),
         Err(_) => {
@@ -560,34 +623,62 @@ fn optional_i64(
     }
 }
 
-fn parse_optional_bool(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<bool>, String> {
-    let Some(value) = value else { return Ok(None); };
+fn parse_optional_bool(
+    value: Option<&str>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<bool>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
     let value = value.trim().to_ascii_lowercase();
-    if is_missing(&value) { return Ok(None); }
+    if is_missing(&value) {
+        return Ok(None);
+    }
     match value.as_str() {
         "true" | "1" => Ok(Some(true)),
         "false" | "0" => Ok(Some(false)),
-        _ => Err(format!("PCBWorld CSV row {row_number}: {name} boolean parse failed for {value:?}")),
+        _ => Err(format!(
+            "PCBWorld CSV row {row_number}: {name} boolean parse failed for {value:?}"
+        )),
     }
 }
 
-fn parse_optional_u32(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<u32>, String> {
-    let Some(value) = value else { return Ok(None); };
+fn parse_optional_u32(
+    value: Option<&str>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<u32>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
     let value = value.trim();
-    if is_missing(value) { return Ok(None); }
+    if is_missing(value) {
+        return Ok(None);
+    }
     let parsed = value.parse::<f64>().map_err(|error| {
         format!("PCBWorld CSV row {row_number}: {name} numeric parse failed for {value:?}: {error}")
     })?;
     if !parsed.is_finite() || parsed < 0.0 || parsed.fract() != 0.0 || parsed > u32::MAX as f64 {
-        return Err(format!("PCBWorld CSV row {row_number}: {name} must be a non-negative integer, got {value:?}"));
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: {name} must be a non-negative integer, got {value:?}"
+        ));
     }
     Ok(Some(parsed as u32))
 }
 
-fn parse_optional_f64(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<f64>, String> {
-    let Some(value) = value else { return Ok(None); };
+fn parse_optional_f64(
+    value: Option<&str>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<f64>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
     let value = value.trim();
-    if is_missing(value) { return Ok(None); }
+    if is_missing(value) {
+        return Ok(None);
+    }
     let parsed = value.parse::<f64>().map_err(|error| {
         format!("PCBWorld CSV row {row_number}: {name} numeric parse failed for {value:?}: {error}")
     })?;
@@ -599,10 +690,16 @@ fn parse_optional_f64(value: Option<&str>, name: &str, row_number: usize) -> Res
     Ok(Some(parsed))
 }
 
-fn nonnegative_f64(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<f64>, String> {
+fn nonnegative_f64(
+    value: Option<&str>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<f64>, String> {
     let parsed = parse_optional_f64(value, name, row_number)?;
     if parsed.is_some_and(|number| number < 0.0) {
-        return Err(format!("PCBWorld CSV row {row_number}: {name} cannot be negative"));
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: {name} cannot be negative"
+        ));
     }
     Ok(parsed)
 }
@@ -610,7 +707,10 @@ fn nonnegative_f64(value: Option<&str>, name: &str, row_number: usize) -> Result
 fn is_missing(value: &str) -> bool {
     let value = value.trim();
     value.is_empty()
-        || matches!(value.to_ascii_lowercase().as_str(), "nan" | "none" | "null" | "na")
+        || matches!(
+            value.to_ascii_lowercase().as_str(),
+            "nan" | "none" | "null" | "na"
+        )
 }
 
 fn mean(values: &[f64]) -> Option<f64> {
@@ -624,8 +724,6 @@ fn mean(values: &[f64]) -> Option<f64> {
 fn is_commit_sha(value: &str) -> bool {
     matches!(value.len(), 40 | 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -675,12 +773,9 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
 
     #[test]
     fn imports_published_metric_semantics_and_keeps_promoted_warnings_separate() {
-        let receipt = import_pcbworld_per_rollout_csv(
-            CSV.as_bytes(),
-            MANIFEST.as_bytes(),
-            EVALUATOR_HEAD,
-        )
-        .expect("PCBWorld metrics CSV import");
+        let receipt =
+            import_pcbworld_per_rollout_csv(CSV.as_bytes(), MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .expect("PCBWorld metrics CSV import");
         assert_eq!(receipt.schema, PCBWORLD_CSV_RECEIPT_SCHEMA);
         assert_eq!(receipt.row_count, 3);
         assert_eq!(receipt.source_board_count, 2);
@@ -691,7 +786,10 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         assert!((receipt.summary.clean_pass_rate_over_all_rows - 2.0 / 3.0).abs() < 1e-9);
         assert_eq!(receipt.summary.error_only_drc_total, 1);
         assert_eq!(receipt.summary.error_and_promoted_drc_total, 3);
-        assert_eq!(receipt.summary.scoring_policy_variants, vec!["pcbworld_reward|check_angle=45"]);
+        assert_eq!(
+            receipt.summary.scoring_policy_variants,
+            vec!["pcbworld_reward|check_angle=45"]
+        );
 
         let promoted_only = &receipt.rows[0].reference_metrics;
         assert_eq!(promoted_only.success, Some(true));
@@ -699,7 +797,10 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         assert_eq!(promoted_only.drv_errors_only_count, Some(0));
         assert_eq!(promoted_only.drv_errors_and_promoted_count, Some(1));
         assert_eq!(promoted_only.drv_violations.as_ref().unwrap().len(), 1);
-        assert_eq!(promoted_only.drv_violations.as_ref().unwrap()[0].error_code, 12);
+        assert_eq!(
+            promoted_only.drv_violations.as_ref().unwrap()[0].error_code,
+            12
+        );
         assert_eq!(promoted_only.potential_gain_consistent, Some(true));
     }
 
@@ -761,12 +862,7 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         .contains("routability must be within [0,1]"));
 
         let lines: Vec<&str> = CSV.lines().collect();
-        let duplicate = format!(
-            "{HEADER}{}\n{}\n{}\n",
-            lines[1],
-            lines[1],
-            lines[3]
-        );
+        let duplicate = format!("{HEADER}{}\n{}\n{}\n", lines[1], lines[1], lines[3]);
         assert!(import_pcbworld_per_rollout_csv(
             duplicate.as_bytes(),
             MANIFEST.as_bytes(),
@@ -775,7 +871,7 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         .unwrap_err()
         .contains("duplicate PCBWorld attempt key"));
 
-        let missing_header = "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
+        let missing_header =\n            "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
         assert!(import_pcbworld_per_rollout_csv(
             missing_header.as_bytes(),
             MANIFEST.as_bytes(),
