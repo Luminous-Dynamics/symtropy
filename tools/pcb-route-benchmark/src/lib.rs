@@ -375,7 +375,10 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
     }
     if let Some(commit) = manifest.source_split_commit_sha.as_deref() {
         if !is_commit_sha(commit) {
-            return Err("source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into());
+            return Err(
+                "source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID"
+                    .into(),
+            );
         }
     }
     if let Some(digest) = manifest.intake_metadata_sha256.as_deref() {
@@ -476,10 +479,15 @@ pub fn build_dataset_manifest(
         .map_err(|error| format!("intake specification JSON/schema invalid: {error}"))?;
 
     if intake.schema != "pcb-route-intake-spec-v0.1" {
-        return Err(format!("unsupported intake specification schema: {}", intake.schema));
+        return Err(format!(
+            "unsupported intake specification schema: {}",
+            intake.schema
+        ));
     }
     if !is_commit_sha(&intake.source_split_commit_sha) {
-        return Err("source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into());
+        return Err(
+            "source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
     }
     if intake.split_name.trim().is_empty()
         || intake.benchmark_id.trim().is_empty()
@@ -506,17 +514,26 @@ pub fn build_dataset_manifest(
         )
     })?;
     if !root.is_dir() {
-        return Err(format!("dataset root is not a directory: {}", root.display()));
+        return Err(format!(
+            "dataset root is not a directory: {}",
+            root.display()
+        ));
     }
 
     let mut seen = BTreeSet::new();
     let mut boards = Vec::with_capacity(intake.boards.len());
     for selection in &intake.boards {
         if !seen.insert(selection.board_id.as_str()) {
-            return Err(format!("duplicate selected board ID: {}", selection.board_id));
+            return Err(format!(
+                "duplicate selected board ID: {}",
+                selection.board_id
+            ));
         }
         if selection.required_nets == 0 {
-            return Err(format!("{}: required_nets must be positive", selection.board_id));
+            return Err(format!(
+                "{}: required_nets must be positive",
+                selection.board_id
+            ));
         }
         if selection.license.trim().is_empty()
             || matches!(
@@ -545,7 +562,10 @@ pub fn build_dataset_manifest(
                     selection.difficulty, intake.split_name
                 )
             })?;
-        if !candidate_ids.iter().any(|id| id.as_str() == Some(selection.board_id.as_str())) {
+        if !candidate_ids
+            .iter()
+            .any(|id| id.as_str() == Some(selection.board_id.as_str()))
+        {
             return Err(format!(
                 "{} is not a member of the pinned {}.{} split",
                 selection.board_id, selection.difficulty, intake.split_name
@@ -567,7 +587,10 @@ pub fn build_dataset_manifest(
             ));
         }
         let bytes = fs::read(&actual_path).map_err(|error| {
-            format!("{}: cannot read source board bytes: {error}", selection.board_id)
+            format!(
+                "{}: cannot read source board bytes: {error}",
+                selection.board_id
+            )
         })?;
         boards.push(BoardPin {
             board_id: selection.board_id.clone(),
@@ -1386,10 +1409,8 @@ mod tests {
             ],
         };
         let intake_bytes = serde_json::to_vec(&intake).unwrap();
-        let root = std::env::temp_dir().join(format!(
-            "pcb-route-manifest-build-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("pcb-route-manifest-build-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         for id in ["board-easy-1", "board-hard-1"] {
             std::fs::create_dir_all(root.join(id)).unwrap();
@@ -1416,9 +1437,11 @@ mod tests {
         let mut invalid = intake.clone();
         invalid.boards[0].board_id = "not-in-split".into();
         let invalid_bytes = serde_json::to_vec(&invalid).unwrap();
-        assert!(build_dataset_manifest(&split_config_bytes, &invalid_bytes, &root)
-            .unwrap_err()
-            .contains("is not a member of the pinned"));
+        assert!(
+            build_dataset_manifest(&split_config_bytes, &invalid_bytes, &root)
+                .unwrap_err()
+                .contains("is not a member of the pinned")
+        );
 
         let _ = std::fs::remove_dir_all(&root);
     }
