@@ -1182,7 +1182,7 @@ mod tests {
 
     #[test]
     fn deterministic_monte_carlo_calibrates_null_and_separated_winner_cases() {
-        const REPRESSIONS: usize = 20;
+        const REPLICATIONS: usize = 20;
         const NULL_TRIALS: usize = 2_000;
         const POWER_TRIALS: usize = 500;
         let mut state = 0xA17E_2026_10_21u64;
@@ -1190,11 +1190,11 @@ mod tests {
         let mut pointwise_false_winners = 0usize;
         let mut familywise_false_winners = 0usize;
         for _ in 0..NULL_TRIALS {
-            let samples = synthetic_paired_samples(&mut state, &null_means, REPRESSIONS);
+            let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
             pointwise_false_winners +=
-                usize::from(selected_robust_winner(&samples, false, 0.05).is_some());
+                if selected_robust_winner(&samples, false, 0.05).is_some() { 1 } else { 0 };
             familywise_false_winners +=
-                usize::from(selected_robust_winner(&samples, true, 0.05).is_some());
+                if selected_robust_winner(&samples, true, 0.05).is_some() { 1 } else { 0 };
         }
         let pointwise_rate = pointwise_false_winners as f64 / NULL_TRIALS as f64;
         let familywise_rate = familywise_false_winners as f64 / NULL_TRIALS as f64;
@@ -1212,9 +1212,9 @@ mod tests {
         let separated_means = [1.7, 0.0, 0.0, 0.0, 0.0];
         let mut correct_familywise_selections = 0usize;
         for _ in 0..POWER_TRIALS {
-            let samples = synthetic_paired_samples(&mut state, &separated_means, REPRESSIONS);
+            let samples = synthetic_paired_samples(&mut state, &separated_means, REPLICATIONS);
             correct_familywise_selections +=
-                usize::from(selected_robust_winner(&samples, true, 0.05) == Some(0));
+                if selected_robust_winner(&samples, true, 0.05) == Some(0) { 1 } else { 0 };
         }
         let correct_selection_rate =
             correct_familywise_selections as f64 / POWER_TRIALS as f64;
