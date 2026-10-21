@@ -492,8 +492,8 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     }
 
     let mut full_load_dot_displacement = 0.0_f64;
-    for dof in 0..dof_count {
-        let contribution = loads[dof] * displacement[dof];
+    for (&applied_load, &node_displacement) in loads.iter().zip(displacement.iter()) {
+        let contribution = applied_load * node_displacement;
         require_finite(contribution, "applied-load work contribution")?;
         full_load_dot_displacement += contribution;
         require_finite(full_load_dot_displacement, "applied load-displacement sum")?;
