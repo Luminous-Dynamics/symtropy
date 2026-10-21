@@ -749,7 +749,7 @@ fn run_report() {
     println!("META\tcapacities\t2,3,4,6");
     println!("META\tconfidence\tsampled independently of corruption");
     println!("META\ttruth_access\tevaluator only");
-    println!("METRIC_HEADER\tpolicy\tcapacity\tepisodes\tmean_task_loss\tanswer_rate\tstorage_rate\tupdate_rate\tcompression_retention\tstale_projection_error_rate\trevision_link_integrity\tquery_citation_rate\tmean_final_state_bytes\tmean_peak_state_bytes\tmean_logical_receipt_bytes");
+    println!("METRIC_HEADER\tpolicy\tcapacity\tepisodes\tmean_task_loss\tanswer_rate\tstorage_rate\tupdate_rate\tcompression_retention\tstale_projection_error_rate\trevision_link_integrity\tquery_citation_rate\tmean_final_state_bytes\tmean_peak_state_bytes\tmean_receipt_logical_bytes_per_episode");
     for policy in Policy::ALL {
         for capacity in CAPACITIES {
             let group: Vec<&RunSummary> = rows
