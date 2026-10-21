@@ -29,6 +29,7 @@ jobs:
       MKL_NUM_THREADS: "1"
     steps:
       - name: Pin apt to the frozen Ubuntu snapshot
+        shell: bash
         run: |
           set -euo pipefail
           . /etc/os-release
@@ -76,6 +77,7 @@ jobs:
       - name: Rust formatting, tests, and strict Clippy
         id: rust_tests
         working-directory: symtropy
+        shell: bash
         run: |
           set -euo pipefail
           cargo fmt --manifest-path research/physical-solver-contract/Cargo.toml -- --check
@@ -84,6 +86,7 @@ jobs:
 
       - name: Verify official CCX source archive against the pinned builder tree
         id: source_verify
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ccx-source-archive" "$RUNNER_TEMP/ccx-build" "$RUNNER_TEMP/ccx-evidence"
@@ -108,6 +111,7 @@ jobs:
 
       - name: Build stock CCX 2.22 with a pinned SPOOLES-only static profile
         id: build_ccx
+        shell: bash
         run: |
           set -euo pipefail
           export WORK="$RUNNER_TEMP/ccx-build"
@@ -191,6 +195,7 @@ jobs:
       - name: Run real CCX cases and independently audit U and RF outputs
         id: execute_cases
         working-directory: symtropy
+        shell: bash
         run: |
           set -euo pipefail
           ROOT="$RUNNER_TEMP/ccx-evidence"
@@ -487,6 +492,7 @@ jobs:
 
       - name: Collect failure-preserving evidence files
         if: always()
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p symtropy/.ccx-exec-001-evidence
@@ -514,6 +520,7 @@ jobs:
           SOURCE_OUTCOME: ${{ steps.source_verify.outcome }}
           BUILD_OUTCOME: ${{ steps.build_ccx.outcome }}
           EXECUTION_OUTCOME: ${{ steps.execute_cases.outcome }}
+        shell: bash
         run: |
           set -euo pipefail
           test "$RUST_TEST_OUTCOME" = "success"
