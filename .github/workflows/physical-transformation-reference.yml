@@ -523,9 +523,9 @@ jobs:
           cmp --silent beam-chain-modal-sweep-raw-a.json beam-chain-modal-sweep-raw-b.json
           request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_mode_match_request_v0_1.txt)"
           test "$(jq -r '.request_canonical' beam-chain-modal-sweep-raw-a.json)" = "$request_canonical"
-          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|sample_points_per_member=17|frequency_cluster_relative_gap=0.001|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap=0.25|isolated_mode_minimum_mac=0.7|isolated_assignment=hungarian-max-total-mac-with-abstention|isolated_mode_max_relative_frequency_gap=0.25|isolated_mode_minimum_mac=0.7|isolated_assignment=hungarian-max-total-mac-with-abstention"
+          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|sample_points_per_member=17|sample_metric=per-member-trapezoidal-rhoA-L-weighted-ux-uy|frequency_cluster_relative_gap=0.001|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap=0.25|isolated_mode_minimum_mac=0.7|isolated_assignment=hungarian-max-total-mac-with-abstention|isolated_mode_max_relative_frequency_gap=0.25|isolated_mode_minimum_mac=0.7|isolated_assignment=hungarian-max-total-mac-with-abstention"
           request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
-          test "$request_sha256" = "513bdfad91980dabb275e7a4fc63e73586f78c3d05daf394c159f155b07b196a"
+          test "$request_sha256" = "91af50bc5e139c92882f6dfba601148d84c95e49c6cd4613c90a53e04e9f9540"
           crate_tree_sha256="$(
             git ls-files research/physical-transformation-reference |
               LC_ALL=C sort |
@@ -570,6 +570,12 @@ jobs:
             and all(.mesh_results[1:][]; (.mode_shape_mac_low_six_from_previous_mesh | length) == 6)
             and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[]; length == 6))
             and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[][]; . >= 0 and . <= 1))
+            and .sample_points_per_member == 17
+            and .sample_metric == "per-member-trapezoidal-rhoA-L-weighted-ux-uy"
+            and .frequency_cluster_relative_gap == 0.001
+            and .isolated_mode_max_relative_frequency_gap == 0.25
+            and .isolated_mode_minimum_mac == 0.7
+            and .isolated_assignment_algorithm == "Hungarian max-total-MAC within hard gates"
             and (.mesh_results[0].clustered_mode_subspace_comparison_from_previous_mesh == null)
             and all(.mesh_results[1:][]; (
               .clustered_mode_subspace_comparison_from_previous_mesh.status == "compared"
