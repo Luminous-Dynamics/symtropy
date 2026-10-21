@@ -272,9 +272,7 @@ fn minimization_coordinate(objective: &ObjectiveObservation) -> f64 {
 /// maintain the smallest second coordinate seen in earlier coordinate groups.
 /// Equal first-coordinate points are processed as a group so identical points
 /// do not incorrectly dominate one another.
-fn two_dimensional_dominators(
-    rankable: &[RankableCandidate<'_>],
-) -> BTreeMap<String, String> {
+fn two_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<String, String> {
     let mut points = rankable
         .iter()
         .map(|candidate| {
@@ -457,9 +455,7 @@ pub fn compute_pareto_frontier(
         // Two-objective inputs use the sweep result; higher-dimensional inputs
         // retain the general pairwise verifier. Neither path invents weights.
         let first_dominator = if let Some(dominators) = &sweep_dominators {
-            dominators
-                .get(&candidate.candidate.candidate_id)
-                .cloned()
+            dominators.get(&candidate.candidate.candidate_id).cloned()
         } else {
             rankable
                 .iter()
@@ -800,11 +796,9 @@ mod tests {
                     .iter()
                     .find(|candidate| candidate.candidate_id == result.candidate_id)
                     .expect("reported subject must be a candidate");
-                let mut witness_objectives =
-                    witness.objectives.iter().collect::<Vec<_>>();
+                let mut witness_objectives = witness.objectives.iter().collect::<Vec<_>>();
                 witness_objectives.sort_by_key(|objective| objective.dimension.clone());
-                let mut subject_objectives =
-                    subject.objectives.iter().collect::<Vec<_>>();
+                let mut subject_objectives = subject.objectives.iter().collect::<Vec<_>>();
                 subject_objectives.sort_by_key(|objective| objective.dimension.clone());
                 assert!(dominates(
                     &RankableCandidate {
