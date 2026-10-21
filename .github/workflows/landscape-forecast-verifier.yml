@@ -72,7 +72,10 @@ jobs:
             ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mae_skill_score - 0.461538462 | abs) < 0.000001)] | length) == 1 and
             ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.mean_interval_score - 3.366666667 | abs) < 0.000001)] | length) == 1 and
             ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.mean_interval_score - 0.766666667 | abs) < 0.000001)] | length) == 1 and
-            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mean_interval_score - 22.666666667 | abs) < 0.000001)] | length) == 1
+            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mean_interval_score - 22.666666667 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.unit_macro_mae - 0.7 | abs) < 0.000001 and (.unit_macro_mae_skill_score - 0.5 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.unit_macro_mae - 0.166666667 | abs) < 0.000001 and (.unit_macro_mae_skill_score | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.unit_macro_mae - 4.666666667 | abs) < 0.000001 and (.unit_macro_mae_skill_score - 0.461538462 | abs) < 0.000001)] | length) == 1
           ' "$report"
           cat "$report" > "$RUNNER_TEMP/report-check.txt"
 
