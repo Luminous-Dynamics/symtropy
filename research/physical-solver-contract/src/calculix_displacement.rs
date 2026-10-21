@@ -131,6 +131,7 @@ pub fn compare_displacement_reference_bytes(
     let load_node_id = field_u64(&manifest, "load_node_id", "manifest")?;
     let node_set = token(field_string(&manifest, "node_set", "manifest")?, "node_set")?;
     let component = field_string(&manifest, "component", "manifest")?;
+    let nodes = parse_model_nodes(&manifest)?;
     if component != "ux" {
         return Err("v0.1 only supports the global axial displacement component ux".to_owned());
     }
@@ -209,16 +210,24 @@ pub fn compare_displacement_reference_bytes(
     }
 
     let boundaries = array_field(&request, "boundary_conditions", "request")?;
-    if boundaries.len() != 2 {
-        return Err("v0.1 requires one fixed support and one tip lateral-guide boundary".to_owned());
+    if boundaries.len() != nodes.len() {
+        return Err(format!(
+            "v0.1 requires one fixed support plus one zero-valued lateral guide per non-support mesh node (expected {} boundaries, observed {})",
+            nodes.len(),
+            boundaries.len()
+        ));
     }
+    let manifest_nodes = array_field(&manifest, "model_nodes", "manifest")?;
+    let mut observed_boundary_targets = BTreeSet::new();
     let mut support_boundary_seen = false;
-    let mut tip_lateral_guide_seen = false;
     for boundary in boundaries {
         if field_string(boundary, "kind", "boundary")? != "fixed" {
             return Err("v0.1 axial-bar boundaries must be zero-valued fixed constraints".to_owned());
         }
-        let target_id = field_string(boundary, "target_id", "boundary")?;
+        let target_id = token(field_string(boundary, "target_id", "boundary")?, "boundary.target_id")?;
+        if !observed_boundary_targets.insert(target_id) {
+            return Err(format!("duplicate request boundary target '{target_id}'"));
+        }
         let dofs: BTreeSet<&str> = array_field(boundary, "dofs", "boundary")?
             .iter()
             .map(|value| {
@@ -227,28 +236,30 @@ pub fn compare_displacement_reference_bytes(
                     .ok_or_else(|| "boundary.dofs must contain strings".to_owned())
             })
             .collect::<Check<BTreeSet<&str>>>()?;
-        if target_id == support_target_id
-            && dofs == ["ux", "uy", "uz"].into_iter().collect()
-            && !support_boundary_seen
-        {
+        if target_id == support_target_id {
+            if dofs != ["ux", "uy", "uz"].into_iter().collect() || support_boundary_seen {
+                return Err("v0.1 support boundary must fix ux, uy and uz exactly once".to_owned());
+            }
             support_boundary_seen = true;
-        } else if target_id == load_target_id
-            && dofs == ["uy", "uz"].into_iter().collect()
-            && !tip_lateral_guide_seen
-        {
-            tip_lateral_guide_seen = true;
         } else {
-            return Err(
-                "v0.1 boundaries must be fixed support ux/uy/uz and tip lateral-guide uy/uz only"
-                    .to_owned(),
-            );
+            let target_is_mesh_node = manifest_nodes.iter().any(|node| {
+                node.get("target_id").and_then(Value::as_str) == Some(target_id)
+            });
+            if !target_is_mesh_node || dofs != ["uy", "uz"].into_iter().collect() {
+                return Err(format!(
+                    "v0.1 non-support mesh boundary '{target_id}' must be a declared node target fixed only in uy/uz"
+                ));
+            }
         }
     }
-    if !support_boundary_seen || !tip_lateral_guide_seen {
-        return Err("the exact request must declare both support and tip lateral-guide constraints".to_owned());
+    let expected_boundary_targets: BTreeSet<&str> = manifest_nodes
+        .iter()
+        .filter_map(|node| node.get("target_id").and_then(Value::as_str))
+        .collect();
+    if !support_boundary_seen || observed_boundary_targets != expected_boundary_targets {
+        return Err("request boundaries must cover the support and exactly every model-node lateral guide".to_owned());
     }
 
-    let nodes = parse_model_nodes(&manifest)?;
     let support_pos = nodes
         .get(&support_node_id)
         .ok_or_else(|| "manifest model_nodes omit support_node_id".to_owned())?;
