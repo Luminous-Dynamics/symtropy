@@ -12,6 +12,7 @@ use furnishing_layout_audit::interval_frontier::{
     IntervalFrontierReport, IntervalObjectiveObservation, IntervalSemantics, IntervalSemanticsKind,
     compute_interval_frontier,
 };
+use std::collections::BTreeSet;
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
@@ -104,6 +105,67 @@ fn candidate(
     }
 }
 
+fn valid_sha256(value: Option<&str>) -> bool {
+    value.is_some_and(|digest| {
+        digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+    })
+}
+
+/// Match the public API's admission/schema work for this generated all-valid
+/// corpus, so pairwise timings include more than the ranking kernel.
+fn validate_rankable_inputs(candidates: &[IntervalAlternativeCandidate]) {
+    assert!(!candidates.is_empty());
+    let mut seen_ids = BTreeSet::new();
+    let mut expected_schema: Option<Vec<(String, String, ObjectiveDirection, IntervalSemantics)>> =
+        None;
+
+    for candidate in candidates {
+        assert!(!candidate.candidate_id.trim().is_empty());
+        assert_eq!(candidate.candidate_id, candidate.candidate_id.trim());
+        assert!(seen_ids.insert(candidate.candidate_id.as_str()));
+        assert!(valid_sha256(candidate.revision_sha256.as_deref()));
+        assert!(valid_sha256(candidate.verifier_receipt_sha256.as_deref()));
+        assert!(valid_sha256(candidate.verified_revision_sha256.as_deref()));
+        assert_eq!(
+            candidate.verified_revision_sha256.as_deref(),
+            candidate.revision_sha256.as_deref()
+        );
+        assert_eq!(candidate.verification, VerificationStatus::Verified);
+        assert!(!candidate.objectives.is_empty());
+
+        let mut objectives = candidate.objectives.iter().collect::<Vec<_>>();
+        objectives.sort_by_key(|item| item.dimension.clone());
+        let mut seen_dimensions = BTreeSet::new();
+        let schema = objectives
+            .iter()
+            .map(|item| {
+                assert!(!item.dimension.trim().is_empty());
+                assert_eq!(item.dimension, item.dimension.trim());
+                assert!(seen_dimensions.insert(item.dimension.as_str()));
+                assert!(!item.unit.trim().is_empty());
+                assert_eq!(item.unit, item.unit.trim());
+                assert_eq!(item.semantics.kind, IntervalSemanticsKind::DeterministicEnvelope);
+                assert!(!item.semantics.basis_id.trim().is_empty());
+                assert_eq!(item.semantics.basis_id, item.semantics.basis_id.trim());
+                assert_eq!(item.evidence, ObjectiveEvidence::AcceptedByPolicy);
+                assert!(item.lower.is_finite() && item.upper.is_finite());
+                assert!(item.lower <= item.upper);
+                (
+                    item.dimension.clone(),
+                    item.unit.clone(),
+                    item.direction,
+                    item.semantics.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        if let Some(expected) = &expected_schema {
+            assert_eq!(expected, &schema);
+        } else {
+            expected_schema = Some(schema);
+        }
+    }
+}
+
 fn guaranteed_dominates(
     left: &IntervalAlternativeCandidate,
     right: &IntervalAlternativeCandidate,
@@ -131,6 +193,7 @@ fn guaranteed_dominates(
 /// Independent O(n²) reference that produces a complete report, not just IDs.
 /// It may choose a different valid witness than the incremental implementation.
 fn pairwise_full_report(candidates: &[IntervalAlternativeCandidate]) -> IntervalFrontierReport {
+    validate_rankable_inputs(candidates);
     let mut ordered = candidates.iter().collect::<Vec<_>>();
     ordered.sort_by_key(|candidate| candidate.candidate_id.clone());
     let mut frontier_ids = Vec::new();
