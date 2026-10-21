@@ -771,11 +771,14 @@ pub fn compare_runs(
         left.input_report_sha256, right.input_report_sha256, left.dataset_manifest_sha256
     );
     let seed_hex = sha256_hex(seed_material.as_bytes());
-    let (completion_seed, completion_seed_sha) = derive_bootstrap_seed(&seed_hex, "completion_delta");
+    let (completion_seed, completion_seed_sha) =
+        derive_bootstrap_seed(&seed_hex, "completion_delta");
     let (elapsed_seed, elapsed_seed_sha) = derive_bootstrap_seed(&seed_hex, "elapsed_mean_delta");
-    let (wirelength_seed, wirelength_seed_sha) = derive_bootstrap_seed(&seed_hex, "wirelength_median_delta");
+    let (wirelength_seed, wirelength_seed_sha) =
+        derive_bootstrap_seed(&seed_hex, "wirelength_median_delta");
     let (via_seed, via_seed_sha) = derive_bootstrap_seed(&seed_hex, "via_median_delta");
-    let (completion_lower, completion_upper) = bootstrap_mean_ci(&completion_delta, completion_seed);
+    let (completion_lower, completion_upper) =
+        bootstrap_mean_ci(&completion_delta, completion_seed);
     let (elapsed_lower, elapsed_upper) = bootstrap_mean_ci(&elapsed_delta, elapsed_seed);
     let wirelength_ci = bootstrap_median_ci(&wire_delta, wirelength_seed);
     let via_ci = bootstrap_median_ci(&via_delta, via_seed);
@@ -1002,7 +1005,9 @@ mod tests {
             .find(|c| c.board_id == "easy-001")
             .unwrap();
         assert_eq!(case.disposition, Disposition::EvidenceIncomplete);
-        assert!(case.reason_codes.contains(&"DRC_REPORT_DIGEST_MISSING".to_string()));
+        assert!(case
+            .reason_codes
+            .contains(&"DRC_REPORT_DIGEST_MISSING".to_string()));
         assert!(!case.valid_route_completion);
     }
 
@@ -1099,11 +1104,20 @@ mod tests {
                 .resamples,
             BOOTSTRAP_RESAMPLES
         );
-        assert!(comparison.summary.median_wirelength_delta_95_ci_mm.is_some());
+        assert!(comparison
+            .summary
+            .median_wirelength_delta_95_ci_mm
+            .is_some());
         assert!(comparison.summary.median_via_delta_95_ci.is_some());
         assert_ne!(
-            comparison.summary.completion_delta_95_ci_percentage_points.bootstrap_seed_sha256,
-            comparison.summary.mean_elapsed_delta_95_ci_ms.bootstrap_seed_sha256
+            comparison
+                .summary
+                .completion_delta_95_ci_percentage_points
+                .bootstrap_seed_sha256,
+            comparison
+                .summary
+                .mean_elapsed_delta_95_ci_ms
+                .bootstrap_seed_sha256
         );
 
         let mut value: serde_json::Value = serde_json::from_str(TREATMENT).unwrap();
