@@ -91,3 +91,20 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
+
+## Modal mechanics slice: fixed-free axial bar
+
+The `modal_bar` module adds a separate, deliberately small generalized-eigenvalue reference for a uniform 1D axial bar fixed at one end and free at the other. It assembles the reduced axial stiffness matrix and offers both consistent and row-sum-lumped mass formulations, then solves the small symmetric generalized eigenproblem through a Cholesky reduction and Jacobi eigensolver. The model is capped at 32 elements.
+
+For the continuum model, the mode-n frequency is
+
+`f_n = (2n - 1) / (4 L) * sqrt(E / rho)`.
+
+For the NAFEMS Challenge 5 bar parameters (`L=1 m`, `r=0.01 m`, `E=210 GPa`, `rho=7800 kg/m^3`), the one-element test has independently derived frequency ratios `2*sqrt(3)/pi` for consistent mass and `2*sqrt(2)/pi` for row-sum-lumped mass. These bracket the continuum frequency from opposite sides. The tests sweep 1, 2, 4, 8 and 16 elements, check first- and second-mode convergence, and exercise area invariance, common E/rho scaling, inverse-length scaling, and unsupported inputs.
+
+**External benchmark boundary:** this is the analytical 1D axial-bar subproblem discussed in [NAFEMS Benchmark Challenge 5](https://www.nafems.org/downloads/nbr5v3.pdf), not a reproduction of the full planar modal truss in that challenge. NAFEMS explicitly highlights that consistent and lumped mass matrices can differ significantly on coarse meshes and converge with refinement. The full challenge also raises mode-shape fidelity and the limitations of single bar elements for real truss dynamics; the present module does not resolve those limitations or calculate a general 2D truss's natural modes.
+
+Do not confuse this modal benchmark with [SOFiSTiK BE1](https://docs.sofistik.com/2026/en/verification/_static/verification/pdf/be1.pdf), which is a separate static 13-member plane-truss deflection case. The external reference reports a vertical deflection of about 69.09 mm at free node 8; no BE1 reproduction is claimed by the current two-bar static oracle or this modal bar module.
+
+The initial modal acceptance contract is software verification only: exact analytical subproblem, expected consistent/lumped bracketing, monotone convergence on the frozen mesh ladder, deterministic results, and fail-closed invalid domains. No hardware timing, commercial solver comparison, experimental validation or engineering certification is claimed. The next external step is to pin the complete NAFEMS Challenge 5 geometry, restraints, member data, mass-matrix convention and target frequencies in a rights-aware manifest before comparing modal results.
+
