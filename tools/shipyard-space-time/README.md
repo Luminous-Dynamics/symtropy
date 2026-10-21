@@ -32,7 +32,7 @@ Unsupported geometry is first-class and **not feasible**. A polygon profile, unk
 
 The frozen fixture at `tests/fixtures/space-time-v0.tsv` has raw-byte SHA-256:
 
-`fb3021523403f88f9573ce563f71778074a441ca817d220edc6fd1c8075617a9`
+`7a1b65b926ad7417902ef38f69040a7757dc89fd038801d93afaee881298df00`
 
 It contains 14 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry and invalid inputs. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
 
