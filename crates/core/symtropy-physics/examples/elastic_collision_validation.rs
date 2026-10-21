@@ -28,6 +28,44 @@ struct CollisionCase {
     velocity_a_initial: f64,
     velocity_b_initial: f64,
     restitution: f64,
+    #[test]
+    fn deterministic_mass_velocity_restitution_sweep_matches_closed_form() {
+        // All relative approach speeds exceed the engine's 1 m/s restitution
+        // threshold, so the requested coefficient is active for every fixture.
+        // The sweep checks the analytical velocity and energy relation across
+        // 30 frozen combinations instead of one hand-picked collision.
+        let masses = [(0.75, 1.0), (1.0, 2.0), (3.0, 5.0)];
+        let velocities = [(2.0, -1.0), (1.25, -0.25)];
+        let restitutions = [0.0, 0.25, 0.5, 0.75, 1.0];
+
+        let mut case_count = 0usize;
+        for (mass_a, mass_b) in masses {
+            for (velocity_a_initial, velocity_b_initial) in velocities {
+                for restitution in restitutions {
+                    let case = CollisionCase {
+                        name: "deterministic_sweep",
+                        mass_a,
+                        mass_b,
+                        velocity_a_initial,
+                        velocity_b_initial,
+                        restitution,
+                    };
+                    let result = run_case(case).expect("sweep collision should occur");
+                    assert!(
+                        result.passed,
+                        "closed-form mismatch for {case:?}: {result:?}"
+                    );
+                    assert!(
+                        (result.momentum_final - result.momentum_initial).abs()
+                            <= MOMENTUM_TOLERANCE
+                    );
+                    case_count += 1;
+                }
+            }
+        }
+        assert_eq!(case_count, 30);
+    }
+
 }
 
 const CASES: [CollisionCase; 3] = [
@@ -147,7 +185,7 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     let energy_regime_ok = if is_elastic {
         (final_state.kinetic_energy - initial.kinetic_energy).abs() <= ENERGY_TOLERANCE
     } else {
-        final_state.kinetic_energy < initial.kinetic_energy - 0.5
+        final_state.kinetic_energy < initial.kinetic_energy - ENERGY_TOLERANCE
     };
     let finite = [
         observed_a,
