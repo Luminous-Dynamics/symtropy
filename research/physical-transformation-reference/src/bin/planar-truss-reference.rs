@@ -131,9 +131,16 @@ fn run() -> Result<String, String> {
             "\"max_free_dof_residual_n\":{},",
             "\"normalized_free_dof_residual\":{}",
             "}},",
+            "\"energy\":{{",
+            "\"strain_energy_j\":{},",
+            "\"external_work_j\":{},",
+            "\"residual_j\":{},",
+            "\"normalized_residual\":{}",
+            "}},",
             "\"verification\":{{",
             "\"independent_known_answer\":\"pass\",",
             "\"equilibrium_gate\":\"pass\",",
+            "\"energy_balance\":\"pass\",",
             "\"physical_validation\":\"not_performed\"",
             "}},",
             "\"claim_ceiling\":{}",
@@ -155,6 +162,10 @@ fn run() -> Result<String, String> {
         number(e.normalized_moment_residual),
         number(e.max_free_dof_residual_n),
         number(e.normalized_free_dof_residual),
+        number(result.energy.strain_energy_j),
+        number(result.energy.external_work_j),
+        number(result.energy.residual_j),
+        number(result.energy.normalized_residual),
         quote(result.claim_ceiling)
     ))
 }
@@ -195,6 +206,7 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
 
     let expected_apex_y = -1_000.0 * 2.0_f64.sqrt() / (0.01 * 200.0e9);
     let expected_bar_force = -1_000.0 / 2.0_f64.sqrt();
+    let expected_energy_j = 0.5 * 1_000.0 * expected_apex_y.abs();
     close(apex.displacement_x_m, 0.0, 1.0e-14, "apex x displacement")?;
     close(
         apex.displacement_y_m,
@@ -257,6 +269,33 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
         1.0e-8,
         "right support y reaction",
     )?;
+
+    close(
+        result.energy.strain_energy_j,
+        expected_energy_j,
+        expected_energy_j.abs() * 1.0e-10,
+        "strain energy",
+    )?;
+    close(
+        result.energy.external_work_j,
+        expected_energy_j,
+        expected_energy_j.abs() * 1.0e-10,
+        "external work",
+    )?;
+    close(
+        result.energy.residual_j,
+        0.0,
+        expected_energy_j.abs() * 1.0e-10,
+        "energy residual",
+    )?;
+    if !result.energy.normalized_residual.is_finite()
+        || result.energy.normalized_residual >= 1.0e-12
+    {
+        return Err(format!(
+            "normalized energy residual exceeds receipt gate: {:.17e}",
+            result.energy.normalized_residual
+        ));
+    }
 
     for (label, value) in [
         (
