@@ -473,14 +473,83 @@ mod tests {
 
     #[test]
     fn overlapping_intervals_are_not_collapsed_to_midpoints() {
+        // A midpoint-only ranking would claim a dominates b in both objectives,
+        // but neither interval is separated enough to guarantee that relation.
         let input = vec![
-            candidate("a", VerificationStatus::Verified, (10.0, 20.0), (70.0, 90.0)),
-            candidate("b", VerificationStatus::Verified, (15.0, 25.0), (75.0, 95.0)),
+            candidate("a", VerificationStatus::Verified, (10.0, 20.0), (80.0, 100.0)),
+            candidate("b", VerificationStatus::Verified, (15.0, 25.0), (75.0, 85.0)),
         ];
         let report = compute_interval_frontier(&input).expect("valid interval schema");
         assert_eq!(report.frontier_ids, vec!["a", "b"]);
         assert_eq!(result(&report, "a"), &IntervalCandidateDisposition::OnFrontier);
         assert_eq!(result(&report, "b"), &IntervalCandidateDisposition::OnFrontier);
+    }
+
+    #[test]
+    fn every_guaranteed_dominance_holds_for_all_interval_endpoints() {
+        let bounds = [
+            (0.0, 0.0),
+            (0.0, 1.0),
+            (1.0, 1.0),
+            (-1.0, 2.0),
+            (2.0, 3.0),
+        ];
+        for cost_left in bounds {
+            for cost_right in bounds {
+                for coverage_left in bounds {
+                    for coverage_right in bounds {
+                        let left = candidate(
+                            "left",
+                            VerificationStatus::Verified,
+                            cost_left,
+                            coverage_left,
+                        );
+                        let right = candidate(
+                            "right",
+                            VerificationStatus::Verified,
+                            cost_right,
+                            coverage_right,
+                        );
+                        let mut left_objectives = left.objectives.iter().collect::<Vec<_>>();
+                        left_objectives.sort_by_key(|objective| objective.dimension.clone());
+                        let mut right_objectives = right.objectives.iter().collect::<Vec<_>>();
+                        right_objectives.sort_by_key(|objective| objective.dimension.clone());
+                        let left_rankable = RankableIntervalCandidate {
+                            candidate: &left,
+                            objectives: left_objectives,
+                        };
+                        let right_rankable = RankableIntervalCandidate {
+                            candidate: &right,
+                            objectives: right_objectives,
+                        };
+                        if !guaranteed_interval_dominates(&left_rankable, &right_rankable) {
+                            continue;
+                        }
+
+                        for a_cost in [cost_left.0, cost_left.1] {
+                            for b_cost in [cost_right.0, cost_right.1] {
+                                for a_coverage in [coverage_left.0, coverage_left.1] {
+                                    for b_coverage in [coverage_right.0, coverage_right.1] {
+                                        assert!(
+                                            a_cost <= b_cost,
+                                            "guaranteed minimize relation violated: {cost_left:?} vs {cost_right:?}"
+                                        );
+                                        assert!(
+                                            a_coverage >= b_coverage,
+                                            "guaranteed maximize relation violated: {coverage_left:?} vs {coverage_right:?}"
+                                        );
+                                        assert!(
+                                            a_cost < b_cost || a_coverage > b_coverage,
+                                            "strict separation must hold for every endpoint realization"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
