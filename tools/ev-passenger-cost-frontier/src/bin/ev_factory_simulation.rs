@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
-    collections::{BTreeSet, BinaryHeap, VecDeque},
+    collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque},
     env, fs, process,
 };
 
@@ -123,6 +123,8 @@ struct Report {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct ScenarioResult {
     scenario_id: String,
+    job_lifecycle_summary: JobLifecycleSummary,
+    job_lifecycle_events: Vec<JobLifecycleEvent>,
     intervention_station_id: Option<String>,
     added_servers: usize,
     released_jobs_total: u64,
@@ -168,6 +170,89 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+    per_seed_median_good_job_lead_time_seconds: Option<DistributionSummary>,
+    per_seed_p95_good_job_lead_time_seconds: Option<DistributionSummary>,
+    right_censored_jobs_at_horizon: DistributionSummary,
+    station_first_pass_yield_by_station: Vec<StationFirstPassYieldStatistics>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationFirstPassYieldStatistics {
+    station_id: String,
+    observed_first_attempts: DistributionSummary,
+    first_attempt_passed: DistributionSummary,
+    first_attempt_failed: DistributionSummary,
+    unresolved_first_attempts_at_horizon: DistributionSummary,
+    observed_first_pass_yield_fraction: Option<DistributionSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationFirstPassYield {
+    station_id: String,
+    first_attempts_started_in_cohort: u64,
+    first_attempts_with_observed_outcome: u64,
+    first_attempt_passed: u64,
+    first_attempt_failed: u64,
+    unresolved_first_attempts_at_horizon: u64,
+    observed_first_pass_yield_fraction: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct JobLifecycleSummary {
+    cohort_definition: String,
+    eligible_released_jobs_after_warmup: u64,
+    accepted_good_jobs_in_cohort: u64,
+    scrapped_jobs_in_cohort: u64,
+    right_censored_jobs_at_horizon: u64,
+    good_job_lead_time_seconds: Option<DistributionSummary>,
+    median_good_job_lead_time_seconds: Option<f64>,
+    p95_good_job_lead_time_seconds: Option<f64>,
+    station_first_pass_yield: Vec<StationFirstPassYield>,
+    event_count_in_ledger: usize,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum JobLifecycleEventKind {
+    JobRelease,
+    BufferEnter,
+    BufferExit,
+    StationStart,
+    StationEnd,
+    QualityPass,
+    QualityFail,
+    ReworkStart,
+    JobScrapped,
+    FinalGoodCompletion,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct JobLifecycleEvent {
+    schema_version: String,
+    seed: u64,
+    scenario_id: String,
+    event_sequence: u64,
+    timestamp_seconds: u64,
+    kind: JobLifecycleEventKind,
+    job_id: u64,
+    variant_id: usize,
+    station_id: Option<String>,
+    resource_id: Option<String>,
+    buffer_id: Option<String>,
+    attempt_number: Option<u32>,
+    evidence_class: String,
+}
+
+#[derive(Debug, Clone)]
+struct JobRecord {
+    job_id: u64,
+    variant_id: usize,
+    released_at_seconds: u64,
+    first_attempt_started_at_by_station: Vec<Option<u64>>,
+    first_attempt_outcome_by_station: Vec<Option<bool>>,
+    attempts_started_by_station: Vec<u32>,
+    final_good_at_seconds: Option<u64>,
+    scrapped_at_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -270,6 +355,12 @@ struct StationRuntime {
 #[derive(Debug, Clone)]
 struct SimState {
     now: u64,
+    seed: u64,
+    scenario_id: String,
+    record_lifecycle_events: bool,
+    next_lifecycle_sequence: u64,
+    lifecycle_events: Vec<JobLifecycleEvent>,
+    job_records: BTreeMap<u64, JobRecord>,
     next_event_sequence: u64,
     events: BinaryHeap<TimedEvent>,
     supplier_rng: DeterministicRng,
