@@ -1442,11 +1442,12 @@ fn complete_operation(
     if !passed && station_attempts <= station.max_rework_attempts {
         let rework_attempt = station_attempts + 1;
         let rework_seconds = sample_service_seconds(catalog, station, job.id, rework_attempt);
-        let record = state
-            .job_records
-            .get_mut(&job.id)
-            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_rework", job.id))?;
-        record.attempts_started_by_station[station_index] += 1;
+        if !state.job_records.contains_key(&job.id) {
+            return Err(format!(
+                "job_{}_lifecycle_record_missing_at_rework",
+                job.id
+            ));
+        }
         record_lifecycle_event(
             state,
             catalog,
