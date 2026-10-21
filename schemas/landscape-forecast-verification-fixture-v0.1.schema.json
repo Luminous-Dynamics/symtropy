@@ -51,6 +51,8 @@
         "unit",
         "spatial_scope",
         "temporal_stratum",
+        "independent_unit_id",
+        "evaluation_split",
         "prediction",
         "baseline",
         "reference"
@@ -79,6 +81,16 @@
         },
         "reference": {
           "$ref": "#/$defs/reference"
+        },
+        "independent_unit_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "evaluation_split": {
+          "enum": [
+            "training",
+            "calibration",
+            "held_out"
+          ]
         }
       }
     },
