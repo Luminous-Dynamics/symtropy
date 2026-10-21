@@ -765,12 +765,14 @@ mod tests {
                 .contains("option_effect_unknown")
         );
         let mut noncanonical_pair_fixture = fixture();
-        noncanonical_pair_fixture.interaction_effects.push(InteractionEffect {
-            scenario_id: "body-prep-constrained".into(),
-            option_a_id: "add-eol-test".into(),
-            option_b_id: "add-body-prep".into(),
-            incremental_good_units_per_hour: 0.5,
-        });
+        noncanonical_pair_fixture
+            .interaction_effects
+            .push(InteractionEffect {
+                scenario_id: "body-prep-constrained".into(),
+                option_a_id: "add-eol-test".into(),
+                option_b_id: "add-body-prep".into(),
+                incremental_good_units_per_hour: 0.5,
+            });
         assert!(
             validate_fixture(&noncanonical_pair_fixture)
                 .expect_err("noncanonical pair rejected")
