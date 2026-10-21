@@ -844,7 +844,12 @@ mod tests {
                 vec![
                     objective_in_unit("install_cost", "USD", ObjectiveDirection::Minimize, cost),
                     objective_in_unit("occupied_area", "m2", ObjectiveDirection::Minimize, area),
-                    objective_in_unit("task_coverage", "ratio", ObjectiveDirection::Maximize, coverage),
+                    objective_in_unit(
+                        "task_coverage",
+                        "ratio",
+                        ObjectiveDirection::Maximize,
+                        coverage,
+                    ),
                 ],
             )
         };
