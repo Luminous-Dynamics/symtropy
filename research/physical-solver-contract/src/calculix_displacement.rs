@@ -1083,8 +1083,12 @@ mod tests {
                 "provenance":{{"evidence_class":"synthetic","source_ref":"fixture-only","uncertainty_relative":null}}}}],
               "loads":[{{"load_id":"axial-force","kind":"point_force","target_id":"tip","vector_xyz":[{F},0,0],"coordinate_frame_id":"fixture:global-xyz",
                 "provenance":{{"evidence_class":"synthetic","source_ref":"fixture-only","uncertainty_relative":null}}}}],
-              "boundary_conditions":[{{"condition_id":"fixed-support","target_id":"support","kind":"fixed","dofs":["ux","uy","uz"],
-                "provenance":{{"evidence_class":"synthetic","source_ref":"fixture-only","uncertainty_relative":null}}}}],
+              "boundary_conditions":[
+                {{"condition_id":"fixed-support","target_id":"support","kind":"fixed","dofs":["ux","uy","uz"],
+                  "provenance":{{"evidence_class":"synthetic","source_ref":"fixture-only","uncertainty_relative":null}}}},
+                {{"condition_id":"tip-lateral-guide","target_id":"tip","kind":"fixed","dofs":["uy","uz"],
+                  "provenance":{{"evidence_class":"synthetic","source_ref":"fixture-only","uncertainty_relative":null}}}}
+              ],
               "required_outputs":["displacement","reaction_force"],
               "acceptance":{{"relative_tolerance":1e-6,"absolute_tolerance":5e-13,"require_convergence":true,"max_iterations":1}}
             }}"#
