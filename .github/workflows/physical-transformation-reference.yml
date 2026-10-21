@@ -325,7 +325,7 @@ jobs:
                 cargo_toml: $cargo_manifest_sha256,
                 conditioning_receipt_schema_json: $conditioning_schema_sha256
               },
-              source_digest_algorithm: "SHA-256 of each exact listed UTF-8 source/manifest file",
+              source_digest_algorithm: "SHA-256 of each exact listed UTF-8 source, manifest, or schema file",
               duplicate_run_bytes_identical: true
             }
           ' planar-truss-conditioning-raw-a.json > planar-truss-conditioning-receipt.json
