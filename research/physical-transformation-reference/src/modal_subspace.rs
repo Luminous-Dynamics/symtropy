@@ -8,6 +8,8 @@
 //! module does not decide which frequencies belong to a cluster; callers must
 //! match a frequency cluster and its multiplicity before comparing subspaces.
 
+use std::ops::Range;
+
 use crate::Check;
 use crate::modal_bar::{Matrix, generalized_symmetric_eigenpairs};
 
@@ -24,6 +26,51 @@ pub struct ModalSubspaceComparison {
     pub principal_mac_values: Vec<f64>,
     pub mean_principal_mac: f64,
     pub worst_principal_mac: f64,
+}
+
+/// Group already-sorted positive frequencies into clusters by consecutive
+/// relative gaps. The caller chooses the relative-gap tolerance explicitly;
+/// there is no universal threshold for every model or measurement precision.
+///
+/// The returned half-open ranges index the input array. This is single-linkage
+/// grouping: every adjacent pair inside a cluster meets the threshold, even if
+/// the first and last frequencies differ by more than the threshold.
+pub fn cluster_mode_frequencies_hz(
+    frequencies_hz: &[f64],
+    relative_gap_tolerance: f64,
+) -> Check<Vec<Range<usize>>> {
+    if frequencies_hz.is_empty() {
+        return Err("at least one frequency is required for clustering".to_owned());
+    }
+    if !relative_gap_tolerance.is_finite()
+        || relative_gap_tolerance < 0.0
+        || relative_gap_tolerance >= 1.0
+    {
+        return Err("relative frequency-gap tolerance must be finite and in [0, 1)".to_owned());
+    }
+    if frequencies_hz
+        .iter()
+        .any(|frequency| !frequency.is_finite() || *frequency <= 0.0)
+    {
+        return Err("cluster frequencies must be finite and positive".to_owned());
+    }
+    if frequencies_hz.windows(2).any(|pair| pair[0] > pair[1]) {
+        return Err("cluster frequencies must be sorted in nondecreasing order".to_owned());
+    }
+
+    let mut clusters = Vec::new();
+    let mut start = 0;
+    for index in 1..frequencies_hz.len() {
+        let previous = frequencies_hz[index - 1];
+        let current = frequencies_hz[index];
+        let relative_gap = (current - previous).abs() / current.abs().max(previous.abs());
+        if relative_gap > relative_gap_tolerance {
+            clusters.push(start..index);
+            start = index;
+        }
+    }
+    clusters.push(start..frequencies_hz.len());
+    Ok(clusters)
 }
 
 /// Compare two modal subspaces under the same symmetric positive-definite
@@ -360,6 +407,35 @@ mod tests {
         // e1^T M e2 = 1; each squared M-norm is 2; MAC_M = 1/(2*2).
         assert!((comparison.worst_principal_mac - 0.25).abs() < 1.0e-12);
         assert!((comparison.mean_principal_mac - 0.25).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn frequency_clusters_use_scale_invariant_predeclared_relative_gap() {
+        let frequencies = [10.0, 10.005, 40.0, 40.02, 120.0];
+        let clusters = super::cluster_mode_frequencies_hz(&frequencies, 1.0e-3)
+            .expect("relative frequency clusters");
+        assert_eq!(clusters, vec![0..2, 2..4, 4..5]);
+
+        let scaled = frequencies.map(|frequency| frequency * 1.0e6);
+        assert_eq!(
+            super::cluster_mode_frequencies_hz(&scaled, 1.0e-3)
+                .expect("scale-invariant clusters"),
+            clusters
+        );
+        assert_eq!(
+            super::cluster_mode_frequencies_hz(&frequencies, 1.0e-4)
+                .expect("tighter frequency clusters"),
+            vec![0..1, 1..2, 2..3, 3..4, 4..5]
+        );
+    }
+
+    #[test]
+    fn frequency_clustering_rejects_unsorted_invalid_and_ambiguous_inputs() {
+        assert!(super::cluster_mode_frequencies_hz(&[], 1.0e-3).is_err());
+        assert!(super::cluster_mode_frequencies_hz(&[10.0, 9.0], 1.0e-3).is_err());
+        assert!(super::cluster_mode_frequencies_hz(&[10.0, f64::INFINITY], 1.0e-3).is_err());
+        assert!(super::cluster_mode_frequencies_hz(&[10.0], f64::NAN).is_err());
+        assert!(super::cluster_mode_frequencies_hz(&[10.0], 1.0).is_err());
     }
 
     #[test]
