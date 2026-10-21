@@ -1,0 +1,114 @@
+name: EV Factory Evidence-Aware KPI Contract
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_kpi_contract.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_KPI_CONTRACT_V0_1.md"
+      - ".github/workflows/ev-factory-kpi-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_kpi_contract.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_KPI_CONTRACT_V0_1.md"
+      - ".github/workflows/ev-factory-kpi-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kpi-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate synthetic source catalog
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .dispatch_policy == "fifo"
+            and (.replication_seeds | length) == 20
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate simulation and evidence-aware KPI report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-simulation-report.json
+          EXPECTED_CATALOG_SHA="$(sha256sum tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json | cut -d' ' -f1)"
+          jq -e --arg digest "$EXPECTED_CATALOG_SHA" '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .source_catalog_sha256 == $digest
+            and .replication_count == 20
+            and (.replication_outcomes | length) == 120
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+          ' ev-factory-simulation-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_kpi_contract -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            ev-factory-simulation-report.json > ev-factory-kpi-report.json
+          jq -e --arg digest "$EXPECTED_CATALOG_SHA" '
+            .benchmark_id == "EV-FACTORY-KPI-001"
+            and .source_catalog_sha256 == $digest
+            and (.source_simulation_report_sha256 | length) == 64
+            and .source_evidence_class == "synthetic"
+            and .replication_count == 20
+            and (.metrics | length) >= 50
+            and (.metrics | map(.kpi_id) | unique | length) == (.metrics | length)
+            and (.metrics | any(.kpi_id == "good_units_per_hour" and .computability == "computed" and .value > 0 and .distribution.sample_count == 20))
+            and (.metrics | any(.kpi_id == "annualized_good_units_at_declared_hours" and .computability == "computed" and .distribution.sample_count == 20))
+            and (.metrics | any(.kpi_id == "station.inbound-kitting.busy_fraction" and .computability == "computed" and .distribution.sample_count == 1 and .distribution.mean_confidence_95_lower == null))
+            and (.metrics | any(.kpi_id == "overall_equipment_effectiveness" and .computability == "not_estimable" and .value == null and .distribution == null and (.unavailable_reason | length) > 0))
+            and (.metrics | any(.kpi_id == "energy_per_good_unit" and .computability == "not_estimable" and .value == null and .distribution == null))
+            and all(.metrics[] | select(.computability == "computed"); .evidence_class == "synthetic" and (.source_fields | length) > 0 and (.formula_id | length) > 0 and (.unit | length) > 0)
+            and all(.metrics[] | select(.computability == "not_estimable"); .value == null and .distribution == null and (.unavailable_reason | length) > 0)
+            and all(.iso_22400_informative_crosswalk[]; .conformance_claim == false)
+            and (.model_safety_quality_compliance_release_authorized == false)
+            and (.production_release_authorized == false)
+          ' ev-factory-kpi-report.json
+      - name: Verify deterministic KPI output
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_kpi_contract -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            ev-factory-simulation-report.json > ev-factory-kpi-repeat.json
+          cmp ev-factory-kpi-report.json ev-factory-kpi-repeat.json
+      - name: Negative control - reject a report cross-wired to another catalog
+        run: |
+          jq '.mean_supply_interarrival_seconds *= 1.1' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-kpi-invalid-catalog.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_kpi_contract -- \
+            ev-factory-kpi-invalid-catalog.json ev-factory-simulation-report.json >/dev/null 2>&1; then
+            echo "KPI contract unexpectedly accepted a report generated from different catalog bytes"
+            exit 1
+          fi
+      - name: Hash inputs, outputs and protocol
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_kpi_contract.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_KPI_CONTRACT_V0_1.md \
+            ev-factory-simulation-report.json \
+            ev-factory-kpi-report.json > ev-factory-kpi-report.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-kpi-contract-report
+          path: |
+            ev-factory-simulation-report.json
+            ev-factory-kpi-report.json
+            ev-factory-kpi-report.sha256
+          if-no-files-found: error
