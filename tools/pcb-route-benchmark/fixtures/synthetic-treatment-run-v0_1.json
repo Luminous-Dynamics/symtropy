@@ -48,7 +48,8 @@
       "cpu_ms": 70,
       "peak_memory_bytes": 210000000,
       "output_board_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-      "drc_report_sha256": "7070707070707070707070707070707070707070707070707070707070707070"
+      "drc_report_sha256": "7070707070707070707070707070707070707070707070707070707070707070",
+      "unconnected_item_count": 0
     },
     {
       "board_id": "gridless-002",
@@ -68,7 +69,8 @@
       "cpu_ms": 145,
       "peak_memory_bytes": 250000000,
       "output_board_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
-      "drc_report_sha256": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c"
+      "drc_report_sha256": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
+      "unconnected_item_count": 0
     },
     {
       "board_id": "crossing-003",
@@ -91,7 +93,8 @@
       "cpu_ms": 95,
       "peak_memory_bytes": 210000000,
       "output_board_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
-      "drc_report_sha256": "2828282828282828282828282828282828282828282828282828282828282828"
+      "drc_report_sha256": "2828282828282828282828282828282828282828282828282828282828282828",
+      "unconnected_item_count": 0
     },
     {
       "board_id": "congestion-004",
@@ -111,7 +114,8 @@
       "cpu_ms": 880,
       "peak_memory_bytes": 400000000,
       "output_board_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "drc_report_sha256": "fafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafa"
+      "drc_report_sha256": "fafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafa",
+      "unconnected_item_count": 1
     },
     {
       "board_id": "router-error-005",
@@ -131,7 +135,8 @@
       "cpu_ms": 80,
       "peak_memory_bytes": 230000000,
       "output_board_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "drc_report_sha256": "babababababababababababababababababababababababababababababababa"
+      "drc_report_sha256": "babababababababababababababababababababababababababababababababa",
+      "unconnected_item_count": 0
     },
     {
       "board_id": "upstream-drc-006",
@@ -151,7 +156,8 @@
       "cpu_ms": 40,
       "peak_memory_bytes": 180000000,
       "output_board_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "drc_report_sha256": "9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a"
+      "drc_report_sha256": "9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a",
+      "unconnected_item_count": 0
     }
   ]
 }
