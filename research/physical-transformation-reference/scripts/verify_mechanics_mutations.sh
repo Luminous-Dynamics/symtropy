@@ -40,6 +40,7 @@ run_mutation() {
   local test_name="$3"
   local mutant_dir="$tmp_root/$label"
   local mechanics="$mutant_dir/src/mechanics.rs"
+  local units="$mutant_dir/src/units.rs"
   local log="$tmp_root/$label.log"
 
   mkdir -p "$mutant_dir"
@@ -75,6 +76,36 @@ run_mutation() {
       grep -Fq 'maximum_bending_moment * outer_fiber_distance_m / second_moment_area_m4;' "$mechanics"
       perl -0pi -e 's/maximum_bending_moment \* outer_fiber_distance_m \/ second_moment_area_m4;/maximum_bending_moment * outer_fiber_distance_m \/ (second_moment_area_m4 * youngs_modulus_pa);/' "$mechanics"
       grep -Fq 'maximum_bending_moment * outer_fiber_distance_m / (second_moment_area_m4 * youngs_modulus_pa);' "$mechanics"
+      ;;
+    unit_length_mm_factor_1000)
+      grep -Fq 'const MILLIMETERS_TO_METERS: f64 = 1.0e-3;' "$units"
+      perl -0pi -e 's/const MILLIMETERS_TO_METERS: f64 = 1\.0e-3;/const MILLIMETERS_TO_METERS: f64 = 1.0;/' "$units"
+      grep -Fq 'const MILLIMETERS_TO_METERS: f64 = 1.0;' "$units"
+      ;;
+    unit_force_kn_factor_1000)
+      grep -Fq 'const KILONEWTONS_TO_NEWTONS: f64 = 1.0e3;' "$units"
+      perl -0pi -e 's/const KILONEWTONS_TO_NEWTONS: f64 = 1\.0e3;/const KILONEWTONS_TO_NEWTONS: f64 = 1.0;/' "$units"
+      grep -Fq 'const KILONEWTONS_TO_NEWTONS: f64 = 1.0;' "$units"
+      ;;
+    unit_area_mm2_exponent)
+      grep -Fq 'const SQUARE_MILLIMETERS_TO_SQUARE_METERS: f64 = 1.0e-6;' "$units"
+      perl -0pi -e 's/const SQUARE_MILLIMETERS_TO_SQUARE_METERS: f64 = 1\.0e-6;/const SQUARE_MILLIMETERS_TO_SQUARE_METERS: f64 = 1.0e-3;/' "$units"
+      grep -Fq 'const SQUARE_MILLIMETERS_TO_SQUARE_METERS: f64 = 1.0e-3;' "$units"
+      ;;
+    unit_modulus_gpa_factor)
+      grep -Fq 'const GIGAPASCALS_TO_PASCALS: f64 = 1.0e9;' "$units"
+      perl -0pi -e 's/const GIGAPASCALS_TO_PASCALS: f64 = 1\.0e9;/const GIGAPASCALS_TO_PASCALS: f64 = 1.0;/' "$units"
+      grep -Fq 'const GIGAPASCALS_TO_PASCALS: f64 = 1.0;' "$units"
+      ;;
+    unit_second_moment_mm4_exponent)
+      grep -Fq 'const MILLIMETERS4_TO_METERS4: f64 = 1.0e-12;' "$units"
+      perl -0pi -e 's/const MILLIMETERS4_TO_METERS4: f64 = 1\.0e-12;/const MILLIMETERS4_TO_METERS4: f64 = 1.0e-6;/' "$units"
+      grep -Fq 'const MILLIMETERS4_TO_METERS4: f64 = 1.0e-6;' "$units"
+      ;;
+    unit_distributed_load_kn_per_m_factor)
+      grep -Fq 'const KILONEWTONS_PER_METER_TO_NEWTONS_PER_METER: f64 = 1.0e3;' "$units"
+      perl -0pi -e 's/const KILONEWTONS_PER_METER_TO_NEWTONS_PER_METER: f64 = 1\.0e3;/const KILONEWTONS_PER_METER_TO_NEWTONS_PER_METER: f64 = 1.0;/' "$units"
+      grep -Fq 'const KILONEWTONS_PER_METER_TO_NEWTONS_PER_METER: f64 = 1.0;' "$units"
       ;;
     *)
       printf 'Unknown mutation: %s\n' "$mutant" >&2
