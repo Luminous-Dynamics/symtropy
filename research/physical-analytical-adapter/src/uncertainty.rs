@@ -188,6 +188,8 @@ pub struct PlanarTrussEnclosure {
     pub determinant_n2_per_m2: Interval,
     pub displacement_x_m: Interval,
     pub displacement_y_m: Interval,
+    pub stiffness_a_n_per_m: Interval,
+    pub stiffness_b_n_per_m: Interval,
     pub length_a_m: Interval,
     pub length_b_m: Interval,
     pub condition_infinity_upper: f64,
@@ -198,8 +200,8 @@ const PLANAR_TRUSS_INPUT_KEYS: &[&str] = &[
     "span_m",
     "apex_x_m",
     "apex_height_m",
-    "axial_stiffness_a_n_per_m",
-    "axial_stiffness_b_n_per_m",
+    "axial_rigidity_a_n",
+    "axial_rigidity_b_n",
     "force_x_n",
     "force_y_n",
 ];
@@ -241,8 +243,8 @@ pub fn propagate_planar_truss_two_bar(
     for key in [
         "span_m",
         "apex_height_m",
-        "axial_stiffness_a_n_per_m",
-        "axial_stiffness_b_n_per_m",
+        "axial_rigidity_a_n",
+        "axial_rigidity_b_n",
     ] {
         bounds[key].require_positive(key)?;
     }
@@ -250,8 +252,8 @@ pub fn propagate_planar_truss_two_bar(
     let span = bounds["span_m"];
     let apex_x = bounds["apex_x_m"];
     let height = bounds["apex_height_m"];
-    let stiffness_a = bounds["axial_stiffness_a_n_per_m"];
-    let stiffness_b = bounds["axial_stiffness_b_n_per_m"];
+    let rigidity_a = bounds["axial_rigidity_a_n"];
+    let rigidity_b = bounds["axial_rigidity_b_n"];
     let force_x = bounds["force_x_n"];
     let force_y = bounds["force_y_n"];
 
@@ -272,6 +274,8 @@ pub fn propagate_planar_truss_two_bar(
     let sine_a = height.divide(length_a)?;
     let cosine_b = dx_b.divide(length_b)?;
     let sine_b = height.divide(length_b)?;
+    let stiffness_a = rigidity_a.divide(length_a)?;
+    let stiffness_b = rigidity_b.divide(length_b)?;
 
     let kxx = stiffness_a
         .multiply(cosine_a.square()?)?
@@ -345,6 +349,8 @@ pub fn propagate_planar_truss_two_bar(
         determinant_n2_per_m2: determinant,
         displacement_x_m: displacement_x,
         displacement_y_m: displacement_y,
+        stiffness_a_n_per_m: stiffness_a,
+        stiffness_b_n_per_m: stiffness_b,
         length_a_m: length_a,
         length_b_m: length_b,
         condition_infinity_upper,
@@ -356,7 +362,7 @@ pub fn propagate_planar_truss_two_bar(
 /// Input keys and units match propagate_planar_truss_two_bar.
 pub fn evaluate_planar_truss_two_bar_point(
     inputs: &BTreeMap<String, f64>,
-) -> Check<[f64; 10]> {
+) -> Check<[f64; 12]> {
     exact_keys(inputs, PLANAR_TRUSS_INPUT_KEYS, "point truss inputs")?;
     for key in PLANAR_TRUSS_INPUT_KEYS {
         if !inputs[key].is_finite() {
@@ -366,15 +372,15 @@ pub fn evaluate_planar_truss_two_bar_point(
     let span = inputs["span_m"];
     let apex_x = inputs["apex_x_m"];
     let height = inputs["apex_height_m"];
-    let stiffness_a = inputs["axial_stiffness_a_n_per_m"];
-    let stiffness_b = inputs["axial_stiffness_b_n_per_m"];
+    let rigidity_a = inputs["axial_rigidity_a_n"];
+    let rigidity_b = inputs["axial_rigidity_b_n"];
     let force_x = inputs["force_x_n"];
     let force_y = inputs["force_y_n"];
     for (key, value) in [
         ("span_m", span),
         ("apex_height_m", height),
-        ("axial_stiffness_a_n_per_m", stiffness_a),
-        ("axial_stiffness_b_n_per_m", stiffness_b),
+        ("axial_rigidity_a_n", rigidity_a),
+        ("axial_rigidity_b_n", rigidity_b),
     ] {
         if value <= 0.0 {
             return Err(format!("point truss input {key} must be positive"));
@@ -387,6 +393,8 @@ pub fn evaluate_planar_truss_two_bar_point(
     if !length_a.is_finite() || !length_b.is_finite() || length_a <= 0.0 || length_b <= 0.0 {
         return Err("point truss geometry has invalid member lengths".to_owned());
     }
+    let stiffness_a = rigidity_a / length_a;
+    let stiffness_b = rigidity_b / length_b;
     let cosine_a = apex_x / length_a;
     let sine_a = height / length_a;
     let cosine_b = dx_b / length_b;
@@ -436,6 +444,8 @@ pub fn evaluate_planar_truss_two_bar_point(
         uy,
         length_a,
         length_b,
+        stiffness_a,
+        stiffness_b,
         condition_inf,
         condition_times_epsilon,
     ])
@@ -489,8 +499,8 @@ pub fn propagate(
             &[
                 "span_m",
                 "apex_height_m",
-                "axial_stiffness_a_n_per_m",
-                "axial_stiffness_b_n_per_m",
+                "axial_rigidity_a_n",
+                "axial_rigidity_b_n",
             ],
         ),
         other => return Err(format!("unsupported analytical case '{other}'")),
@@ -1073,8 +1083,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), (height_bounds.0 + height_bounds.1) / 2.0),
-            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
-            ("axial_stiffness_b_n_per_m".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -500.0),
         ]);
@@ -1083,12 +1093,12 @@ mod tests {
             ("apex_x_m".to_owned(), Interval::new(0.99, 1.01).unwrap()),
             ("apex_height_m".to_owned(), Interval::new(height_bounds.0, height_bounds.1).unwrap()),
             (
-                "axial_stiffness_a_n_per_m".to_owned(),
-                Interval::new(0.99e9, 1.01e9).unwrap(),
+                "axial_rigidity_a_n".to_owned(),
+                Interval::new(1.2375e9, 1.2625e9).unwrap(),
             ),
             (
-                "axial_stiffness_b_n_per_m".to_owned(),
-                Interval::new(1.98e9, 2.02e9).unwrap(),
+                "axial_rigidity_b_n".to_owned(),
+                Interval::new(6.122e9, 6.247e9).unwrap(),
             ),
             ("force_x_n".to_owned(), Interval::new(990.0, 1_010.0).unwrap()),
             ("force_y_n".to_owned(), Interval::new(-510.0, -490.0).unwrap()),
@@ -1102,8 +1112,8 @@ mod tests {
             ("span_m".to_owned(), 2.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 1.0),
-            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
-            ("axial_stiffness_b_n_per_m".to_owned(), 1.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.4142135623730951e9),
+            ("axial_rigidity_b_n".to_owned(), 1.4142135623730951e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -2_000.0),
         ]);
@@ -1114,8 +1124,8 @@ mod tests {
         assert_near(exact[3], 1.0e18);
         assert_near(exact[4], 1.0e-6);
         assert_near(exact[5], -2.0e-6);
-        assert_near(exact[8], 1.0);
-        assert_near(exact[9], f64::EPSILON);
+        assert_near(exact[10], 1.0);
+        assert_near(exact[11], f64::EPSILON);
 
         let bounds: BTreeMap<String, Interval> = point
             .iter()
@@ -1138,6 +1148,8 @@ mod tests {
         assert_enclosed(enclosure.kxy_n_per_m, exact[1]);
         assert_enclosed(enclosure.kyy_n_per_m, exact[2]);
         assert_enclosed(enclosure.determinant_n2_per_m2, exact[3]);
+        assert_enclosed(enclosure.stiffness_a_n_per_m, exact[8]);
+        assert_enclosed(enclosure.stiffness_b_n_per_m, exact[9]);
         assert_enclosed(enclosure.displacement_x_m, exact[4]);
         assert_enclosed(enclosure.displacement_y_m, exact[5]);
         assert!(enclosure.condition_infinity_upper.is_finite());
@@ -1151,8 +1163,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 0.75),
-            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
-            ("axial_stiffness_b_n_per_m".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.0e9),
+            ("axial_rigidity_b_n".to_owned(), 2.0e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -500.0),
         ]);
@@ -1160,8 +1172,8 @@ mod tests {
             ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
             ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
             ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
-            ("axial_stiffness_a_n_per_m".to_owned(), Interval::new(0.9e9, 1.1e9).unwrap()),
-            ("axial_stiffness_b_n_per_m".to_owned(), Interval::new(1.8e9, 2.2e9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.125e9, 1.375e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(5.5e9, 6.9e9).unwrap()),
             ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
             ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
         ]);
@@ -1198,8 +1210,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 0.75),
-            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
-            ("axial_stiffness_b_n_per_m".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.0e9),
+            ("axial_rigidity_b_n".to_owned(), 2.0e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -500.0),
         ]);
@@ -1207,8 +1219,8 @@ mod tests {
             ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
             ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
             ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
-            ("axial_stiffness_a_n_per_m".to_owned(), Interval::new(0.9e9, 1.1e9).unwrap()),
-            ("axial_stiffness_b_n_per_m".to_owned(), Interval::new(1.8e9, 2.2e9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(0.9e9, 1.1e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(1.8e9, 2.2e9).unwrap()),
             ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
             ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
         ]);
@@ -1235,8 +1247,8 @@ mod tests {
             assert_enclosed(enclosure.displacement_y_m, exact[5]);
             assert_enclosed(enclosure.length_a_m, exact[6]);
             assert_enclosed(enclosure.length_b_m, exact[7]);
-            assert!(exact[8] <= enclosure.condition_infinity_upper);
-            assert!(exact[9] <= enclosure.condition_times_machine_epsilon_upper);
+            assert!(exact[10] <= enclosure.condition_infinity_upper);
+            assert!(exact[11] <= enclosure.condition_times_machine_epsilon_upper);
         }
     }
 
@@ -1254,7 +1266,7 @@ mod tests {
 
         let (_, mut bad_stiffness) = truss_fixture((0.01, 0.02));
         bad_stiffness.insert(
-            "axial_stiffness_a_n_per_m".to_owned(),
+            "axial_rigidity_a_n".to_owned(),
             Interval::new(0.0, 1.01e9).unwrap(),
         );
         assert!(propagate_planar_truss_two_bar(&nominal, &bad_stiffness).is_err());
@@ -1266,8 +1278,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 1.0e-320),
-            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
-            ("axial_stiffness_b_n_per_m".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.0e9),
+            ("axial_rigidity_b_n".to_owned(), 2.0e9),
             ("force_x_n".to_owned(), 1.0),
             ("force_y_n".to_owned(), -2.0),
         ]);
@@ -1275,8 +1287,8 @@ mod tests {
             ("span_m".to_owned(), Interval::new(4.0, 4.0).unwrap()),
             ("apex_x_m".to_owned(), Interval::new(1.0, 1.0).unwrap()),
             ("apex_height_m".to_owned(), Interval::new(1.0e-320, 1.1e-320).unwrap()),
-            ("axial_stiffness_a_n_per_m".to_owned(), Interval::new(1.0e9, 1.0e9).unwrap()),
-            ("axial_stiffness_b_n_per_m".to_owned(), Interval::new(2.0e9, 2.0e9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.0e9, 1.0e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(2.0e9, 2.0e9).unwrap()),
             ("force_x_n".to_owned(), Interval::new(1.0, 1.0).unwrap()),
             ("force_y_n".to_owned(), Interval::new(-2.0, -2.0).unwrap()),
         ]);
@@ -1296,8 +1308,8 @@ mod tests {
         let (narrow_nominal, mut narrow_bounds) = truss_fixture((0.74, 0.76));
         narrow_bounds.insert("span_m".to_owned(), Interval::new(3.995, 4.005).unwrap());
         narrow_bounds.insert("apex_x_m".to_owned(), Interval::new(0.995, 1.005).unwrap());
-        narrow_bounds.insert("axial_stiffness_a_n_per_m".to_owned(), Interval::new(0.995e9, 1.005e9).unwrap());
-        narrow_bounds.insert("axial_stiffness_b_n_per_m".to_owned(), Interval::new(1.99e9, 2.01e9).unwrap());
+        narrow_bounds.insert("axial_rigidity_a_n".to_owned(), Interval::new(1.24375e9, 1.25625e9).unwrap());
+        narrow_bounds.insert("axial_rigidity_b_n".to_owned(), Interval::new(6.153e9, 6.216e9).unwrap());
         narrow_bounds.insert("force_x_n".to_owned(), Interval::new(995.0, 1_005.0).unwrap());
         narrow_bounds.insert("force_y_n".to_owned(), Interval::new(-505.0, -495.0).unwrap());
         let narrow = propagate_planar_truss_two_bar(&narrow_nominal, &narrow_bounds).unwrap();
