@@ -136,6 +136,8 @@ fn run() -> Result<String, String> {
             "\"evidence_class\":\"deterministic-synthetic-mesh-sweep\",",
             "\"result\":\"pass\",",
             "\"element_counts_per_member\":[1,2,4,8],",
+            "\"modal_participation_metric\":\"global-x-y-effective-modal-mass-v0.1\",",
+            "\"total_mass_basis\":\"full-global-assembled-mass-including-restrained-translations\",",
             "\"mesh_results\":[{}],",
             "\"claim_ceiling\":\"one-element to eight-elements-per-member synthetic Euler-Bernoulli model only; not a mesh-converged NBC05 200-element beam model, physical validation, structural safety or code compliance\"",
             "}}"
