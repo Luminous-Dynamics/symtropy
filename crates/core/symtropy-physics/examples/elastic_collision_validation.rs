@@ -301,8 +301,7 @@ mod tests {
                     let observed_energy_loss =
                         result.kinetic_energy_initial - result.kinetic_energy_final;
                     assert!(
-                        (observed_energy_loss - expected_energy_loss).abs()
-                            <= ENERGY_TOLERANCE,
+                        (observed_energy_loss - expected_energy_loss).abs() <= ENERGY_TOLERANCE,
                         "energy-loss identity mismatch for {case:?}: expected={expected_energy_loss:.12e}, observed={observed_energy_loss:.12e}"
                     );
                     assert!(
@@ -344,14 +343,16 @@ mod tests {
                 break;
             }
         }
-        assert!(contact_observed, "below-threshold collision was not detected");
+        assert!(
+            contact_observed,
+            "below-threshold collision was not detected"
+        );
 
         let velocity_a = world.body(body_a).expect("body A remains").linear_velocity[0];
         let velocity_b = world.body(body_b).expect("body B remains").linear_velocity[0];
         let final_state = world.invariant_snapshot();
         assert!(
-            velocity_a.abs() <= VELOCITY_TOLERANCE
-                && velocity_b.abs() <= VELOCITY_TOLERANCE,
+            velocity_a.abs() <= VELOCITY_TOLERANCE && velocity_b.abs() <= VELOCITY_TOLERANCE,
             "low-speed restitution suppression should not reverse the pair: va={velocity_a}, vb={velocity_b}"
         );
         assert!(
@@ -361,5 +362,4 @@ mod tests {
             final_state.kinetic_energy
         );
     }
-
 }
