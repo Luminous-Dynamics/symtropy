@@ -217,22 +217,24 @@ The development-only objective selected request cost `0.00000`, effectively disa
 
 **Decision: reject `marginal_value_stop` as the preferred policy.** This also indicates that threshold selection is not the central failure: the underlying estimated value/action policy is not improving held-out decisions.
 
-## VIS-ACT-009: predicted-value calibration diagnostic
+## VIS-ACT-009: Monte Carlo expected-value calibration and ranking
 
-**Status:** diagnostic added; the exact-head results are pending after code changes. No calibration result is claimed until the focused workflow passes and its artifact is inspected.
+**Status:** Monte Carlo diagnostic implemented; current exact-head qualification and result inspection pending. No result is claimed until the focused workflow passes and the current artifact is inspected.
 
-The next question is whether `expected_task_loss_reduction_scores` predict any reduction in the belief-risk objective actually used by this simulator. The new `VALUE_CALIBRATION` report samples 12 fixed ticks across the 48-tick horizon while an `ExpectedTaskLossReduction` reference policy runs. At each sampled information state, the evaluator (not the policy) inspects the candidate values for all three query actions, clones that state, and applies only the pre-generated potential observation for one candidate. It records predicted risk reduction and realized one-step change in the same terminal belief-risk function. Candidate outcomes are never supplied to policy choice or future policy state.
+The question is whether `expected_task_loss_reduction_scores` predicts decision-risk reduction under the simulator's actual observation process. The first-pass single-sample ranking was too noisy: it compared predictions to one potential outcome, making top-action agreement sensitive to ties and random corruption. The revised diagnostic estimates each candidate's **conditional expected** realized belief-risk change by drawing 64 evaluator-only candidate observations from the episode's hidden sensor profile at each of 12 fixed ticks across the 48-tick horizon.
 
-The report separates development and held-out families and includes (empty strata are printed as `NA`, not a measured zero; for example, development has no delay greater than two ticks by construction):
-- all candidates;
-- relevant versus distractor observations;
-- source delays up to 2 versus greater than 2;
-- high versus lower confidence;
-- per-episode-clustered bootstrap intervals for the mean prediction-minus-realized-risk-drop difference.
+For each sampled pre-action information state:
+- The running reference controller is `ExpectedTaskLossReduction`; only its selected pre-generated observation changes its state.
+- For each of the three query candidates, the evaluator uses a separately seeded Monte Carlo sample from the actual hidden episode profile (delay range, distractor frequency and corruption rate), applies each draw to a cloned state, and averages the resulting terminal belief-risk drops.
+- Those hidden-profile draws and all counterfactual outcomes are evaluator-only; they are never passed to policy selection or the reference trajectory.
+- The model's three predicted values are compared with three Monte Carlo estimated expected values for calibration, top-action agreement, pairwise ranking concordance and regret versus the Monte Carlo-best action.
+- Repeated outcomes are aggregated within episode; bootstrap intervals resample episodes rather than treating correlated candidate draws as independent.
 
-This is a post-hoc simulator diagnostic, not task-loss improvement, a claim about correctness calibration in the physical world, or evidence that the candidate selector should be used. Negative realized risk drops are possible and retained. Because confidence/delay/corruption distributions differ by family, a growing gap in held-out strata would support focusing on sensor/world model mismatch before attempting more policy tuning. Results are bootstrapped across episodes rather than treating multiple observations from the same episode as independent samples.
+The report emits three tables:
+- `VALUE_CALIBRATION`: two rows, development and held-out, showing mean predicted value versus Monte Carlo expected value, paired episode-level error interval and mean absolute gap.
+- `VALUE_REALIZED_STRATA`: realized belief-risk drop by relevant/distractor outcome, source delay and confidence. These are descriptive conditional outcome strata; they do **not** compare an unconditional score against a conditional outcome as though they were the same estimand. Empty strata are explicitly `NA`, not zero.
+- `VALUE_RANKING`: top-action agreement, pairwise ranking concordance and nonnegative Monte Carlo one-step regret. The Monte Carlo-best action is an evaluator-only reference under the known synthetic generator, not a policy available at deployment.
 
-The report also emits a separate `VALUE_RANKING` audit per family: how often the highest-predicted candidate is also the best candidate under the sampled realized belief-risk drop, pairwise ranking concordance, and realized one-step regret relative to that hindsight-best candidate. Intervals resample episodes, each of which contributes its mean across the 12 fixed states. Since a single sampled observation can be noisy, this is a ranking diagnostic—not an oracle value function, expected action utility, or deployable policy baseline.
+This remains a synthetic model audit, not task-loss improvement, real-world confidence calibration, or evidence that any active policy should be preferred. A lower average calibration gap alone is not sufficient: the action-ranking metrics must also show useful separation, and final task loss must still beat round-robin in a held-out policy experiment. If predictions are calibrated in magnitude but do not rank candidate value, investigate decision-relevant complementarity or scoring ties; if predictions are biased under held-out profiles, fix the sensor/delay/hazard model before another policy sweep.
 
-The protocol deliberately uses the **same belief-risk function** in predicted and realized values to test whether the expected-value calculation matches observed risk changes under the generated stream. It does not pretend that this score is the environment's true task loss.
-
+The previous single-sample value report should be treated as a noisy exploratory diagnostic and is superseded by this Monte Carlo protocol, not pooled with it.
