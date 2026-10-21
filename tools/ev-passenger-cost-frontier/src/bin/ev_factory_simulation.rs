@@ -103,6 +103,7 @@ struct Report {
     scenario_statistics: Vec<ScenarioStatistics>,
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    station_operating_statistics: Vec<StationOperatingStatistics>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -176,6 +177,18 @@ struct ReplicationOutcome {
     good_units_per_hour: f64,
     baseline_good_units_per_hour: f64,
     paired_good_units_per_hour_delta_vs_baseline: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StationOperatingStatistics {
+    scenario_id: String,
+    station_id: String,
+    server_count: usize,
+    busy_fraction: DistributionSummary,
+    blocked_fraction: DistributionSummary,
+    starved_fraction: DistributionSummary,
+    down_fraction: DistributionSummary,
+    accounted_fraction: DistributionSummary,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -663,6 +676,44 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         }
     }
     report.station_sequence_statistics = station_statistics;
+    let mut operating_statistics = Vec::new();
+    for scenario_index in 0..report.scenario_count {
+        for station_index in 0..runs[0].scenarios[scenario_index].stations.len() {
+            let reference_station = &runs[0].scenarios[scenario_index].stations[station_index];
+            let mut busy = Vec::with_capacity(runs.len());
+            let mut blocked = Vec::with_capacity(runs.len());
+            let mut starved = Vec::with_capacity(runs.len());
+            let mut down = Vec::with_capacity(runs.len());
+            let mut accounted = Vec::with_capacity(runs.len());
+            for run in &runs {
+                let station = &run.scenarios[scenario_index].stations[station_index];
+                if station.station_id != reference_station.station_id
+                    || station.server_count != reference_station.server_count
+                {
+                    return Err(
+                        "replications_returned_inconsistent_station_identity_or_server_count"
+                            .into(),
+                    );
+                }
+                busy.push(station.busy_fraction);
+                blocked.push(station.blocked_fraction);
+                starved.push(station.starved_fraction);
+                down.push(station.down_fraction);
+                accounted.push(station.accounted_fraction);
+            }
+            operating_statistics.push(StationOperatingStatistics {
+                scenario_id: runs[0].scenarios[scenario_index].scenario_id.clone(),
+                station_id: reference_station.station_id.clone(),
+                server_count: reference_station.server_count,
+                busy_fraction: summarize_distribution(&busy)?,
+                blocked_fraction: summarize_distribution(&blocked)?,
+                starved_fraction: summarize_distribution(&starved)?,
+                down_fraction: summarize_distribution(&down)?,
+                accounted_fraction: summarize_distribution(&accounted)?,
+            });
+        }
+    }
+    report.station_operating_statistics = operating_statistics;
     report.output_never_exceeds_released_input = runs
         .iter()
         .all(|run| run.output_never_exceeds_released_input);
@@ -805,6 +856,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_statistics: Vec::new(),
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        station_operating_statistics: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -1648,6 +1700,41 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn operating_state_summaries_cover_each_station_and_scenario_across_seeds() {
+        let report = evaluate_catalog(&fixture()).expect("replicated simulation");
+        assert_eq!(
+            report.station_operating_statistics.len(),
+            report.scenario_count * 5
+        );
+        assert!(report.station_operating_statistics.iter().all(|item| {
+            item.busy_fraction.sample_count == 20
+                && item.blocked_fraction.sample_count == 20
+                && item.starved_fraction.sample_count == 20
+                && item.down_fraction.sample_count == 20
+                && item.accounted_fraction.sample_count == 20
+                && (0.0..=1.0).contains(&item.busy_fraction.mean)
+                && (0.0..=1.0).contains(&item.blocked_fraction.mean)
+                && (0.0..=1.0).contains(&item.starved_fraction.mean)
+                && (0.0..=1.0).contains(&item.down_fraction.mean)
+                && item.server_count > 0
+        }));
+        let baseline_eol = report
+            .station_operating_statistics
+            .iter()
+            .find(|item| item.scenario_id == "baseline" && item.station_id == "end-of-line-test")
+            .expect("baseline EOL operating statistics");
+        let added_eol = report
+            .station_operating_statistics
+            .iter()
+            .find(|item| {
+                item.scenario_id == "add-one-server-end-of-line-test"
+                    && item.station_id == "end-of-line-test"
+            })
+            .expect("intervention EOL operating statistics");
+        assert_eq!(baseline_eol.server_count + 1, added_eol.server_count);
     }
 
     #[test]
