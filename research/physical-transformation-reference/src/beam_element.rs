@@ -630,8 +630,8 @@ mod tests {
         let angle_rad = 0.713;
         let dx = LENGTH_M * angle_rad.cos();
         let dy = LENGTH_M * angle_rad.sin();
-        let global = super::transform_element_to_global(&local, dx, dy)
-            .expect("inclined transform");
+        let global =
+            super::transform_element_to_global(&local, dx, dy).expect("inclined transform");
         let translations = [[0.4, -0.7, 0.0, 0.4, -0.7, 0.0]];
         let rotation = 0.015;
         let rotations = [[0.0, 0.0, rotation, -rotation * dy, rotation * dx, rotation]];
