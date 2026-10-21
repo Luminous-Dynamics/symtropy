@@ -114,6 +114,10 @@ run_mutation \
   supported_beam_stress_depends_on_modulus \
   simply_supported_beam_obeys_load_span_and_stiffness_scaling
 
+# Prove the actual checkout's source and test files were not changed by any mutant run.
+test "$mechanics_sha256" = "$(sha256sum "$crate_dir/src/mechanics.rs" | awk '{print $1}')"
+test "$metamorphic_sha256" = "$(sha256sum "$crate_dir/tests/metamorphic.rs" | awk '{print $1}')"
+
 # Stable field order and no timestamps make the receipt reproducible at a fixed commit/toolchain.
 jq -n \
   --arg source_commit "$source_commit" \
