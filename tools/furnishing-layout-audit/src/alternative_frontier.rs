@@ -74,8 +74,8 @@ pub struct AlternativeCandidate {
 pub enum CandidateDisposition {
     /// Eligible and not dominated by another eligible candidate.
     OnFrontier,
-    /// At least one eligible candidate is no worse in every objective and better in one.
-    DominatedBy(Vec<String>),
+    /// A deterministic witness eligible candidate dominates this alternative.
+    DominatedBy(String),
     /// The independent verifier rejected one or more mandatory conditions.
     ExcludedBlocked,
     /// A mandatory condition remained unresolved in the independent verifier.
@@ -256,6 +256,10 @@ fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> boo
 /// this function invents neither weights nor tolerances. Callers must define
 /// units, evidence-admission rules, and any justified normalization upstream.
 ///
+/// The algorithm uses worst-case quadratic comparison time for arbitrary
+/// objective vectors, but stores only one dominance witness per excluded
+/// candidate so output memory remains linear in candidate count.
+/// 
 /// This function checks digest shape but does not authenticate digests or
 /// receipts. The claim of independent verification originates outside this
 /// module and must be bound by the caller to the exact candidate revision.
@@ -339,21 +343,21 @@ pub fn compute_pareto_frontier(
 
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        let mut dominators = rankable
+        // Rankable candidates are sorted by ID, so the first witness is stable.
+        // Keeping one witness bounds report storage even for heavily dominated sets.
+        let first_dominator = rankable
             .iter()
-            .filter(|other| {
+            .find(|other| {
                 other.candidate.candidate_id != candidate.candidate.candidate_id
                     && dominates(other, candidate)
             })
-            .map(|other| other.candidate.candidate_id.clone())
-            .collect::<Vec<_>>();
-        dominators.sort();
+            .map(|other| other.candidate.candidate_id.clone());
 
-        let disposition = if dominators.is_empty() {
+        let disposition = if let Some(witness) = first_dominator {
+            CandidateDisposition::DominatedBy(witness)
+        } else {
             frontier_ids.push(candidate.candidate.candidate_id.clone());
             CandidateDisposition::OnFrontier
-        } else {
-            CandidateDisposition::DominatedBy(dominators)
         };
         results.push(CandidateResult {
             candidate_id: candidate.candidate.candidate_id.clone(),
@@ -460,10 +464,7 @@ mod tests {
         assert_eq!(report.objective_dimensions, vec!["install_cost", "task_coverage"]);
         assert_eq!(
             disposition(&report, "dominated"),
-            &CandidateDisposition::DominatedBy(vec![
-                "high-coverage".to_owned(),
-                "low-cost".to_owned()
-            ])
+            &CandidateDisposition::DominatedBy("high-coverage".to_owned())
         );
         assert!(report.ranking_complete);
     }
