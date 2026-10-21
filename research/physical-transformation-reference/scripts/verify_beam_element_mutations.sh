@@ -65,6 +65,16 @@ run_mutation() {
       perl -0pi -e 's/\[-sine, cosine, 0\.0, 0\.0, 0\.0, 0\.0\],/[sine, -cosine, 0.0, 0.0, 0.0, 0.0],/' "$source"
       grep -Fq '[sine, -cosine, 0.0, 0.0, 0.0, 0.0],' "$source"
       ;;
+    transverse_mass_factor)
+      grep -Fq 'let transverse_mass_factor = density_kg_m3 * area_m2 * length_m / 420.0;' "$source"
+      perl -0pi -e 's/let transverse_mass_factor = density_kg_m3 \* area_m2 \* length_m \/ 420\.0;/let transverse_mass_factor = density_kg_m3 * area_m2 * length_m \/ 400.0;/' "$source"
+      grep -Fq 'let transverse_mass_factor = density_kg_m3 * area_m2 * length_m / 400.0;' "$source"
+      ;;
+    rotary_mass_offdiagonal_sign)
+      grep -Fq '[36.0, 3.0 * length_m, -36.0, 3.0 * length_m],' "$source"
+      perl -0pi -e 's/\[36\.0, 3\.0 \* length_m, -36\.0, 3\.0 \* length_m\],/[36.0, -3.0 * length_m, -36.0, 3.0 * length_m],/' "$source"
+      grep -Fq '[36.0, -3.0 * length_m, -36.0, 3.0 * length_m],' "$source"
+      ;;
     *)
       printf 'Unknown beam-element mutation: %s\n' "$mutation" >&2
       return 2
@@ -90,6 +100,8 @@ run_mutation "axial-stiffness-area-omitted" axial_stiffness_omits_area axial_sti
 run_mutation "rotary-inertia-omitted" rotary_inertia_omitted rotary_inertia_is_separate_and_scales_with_density_and_second_moment
 run_mutation "rotary-inertia-length-exponent" rotary_inertia_wrong_length_exponent rotary_inertia_is_separate_and_scales_with_density_and_second_moment
 run_mutation "local-to-global-transverse-sign" local_to_global_transverse_sign rigid_body_translation_and_rotation_have_zero_internal_force
+run_mutation "transverse-mass-factor" transverse_mass_factor transverse_translational_mass_matches_closed_form_entrywise
+run_mutation "rotary-mass-offdiagonal-sign" rotary_mass_offdiagonal_sign rotary_inertia_mass_matches_closed_form_entrywise
 
 test "$beam_sha256" = "$(sha256sum "$crate_dir/src/beam_element.rs" | awk '{print $1}')"
 
@@ -136,6 +148,17 @@ jq -n \
       {
         id: "PHYS-BEAM-MUT-GLOBAL-TRANSVERSE-SIGN-001",
         expected_test: "rigid_body_translation_and_rotation_have_zero_internal_force",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MUT-TRANSVERSE-MASS-FACTOR-001",
+        expected_test: "transverse_translational_mass_matches_closed_form_entrywise",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-BEAM-MUT-ROTARY-MASS-SIGN-001",
+        expected_test: "rotary_inertia_mass_matches_closed_form_entrywise",
         disposition: "detected"
       }
     ],
