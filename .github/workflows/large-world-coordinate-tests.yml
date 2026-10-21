@@ -2,7 +2,7 @@ name: Large-World Coordinate Tests
 
 on:
   pull_request:
-    branches: ["main", "feat/solar-system-world-coordinates-001", "feat/solar-system-apparent-scale-policy-003"]
+    branches: ["main", "feat/solar-system-world-coordinates-001", "feat/solar-system-apparent-scale-policy-003", "feat/solar-system-hierarchy-selection-004"]
     paths:
       - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
       - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
@@ -11,6 +11,8 @@ on:
       - "docs/research/RENDER_SOLAR_SCALE_001.md"
       - "docs/research/RENDER_HIERARCHY_004.md"
       - "benchmarks/render/SOLAR-SCALE-01.json"
+      - "benchmarks/render/SOLAR-SCALE-COMPARISON-01.json"
+      - "docs/research/SOLAR-SCALE-COMPARISON-01.md"
       - ".github/workflows/large-world-coordinate-tests.yml"
   workflow_dispatch:
 
@@ -33,6 +35,32 @@ jobs:
       - name: Validate solar-scale fixture contract
         run: |
           python3 -c 'import json; p=json.load(open("benchmarks/render/SOLAR-SCALE-01.json")); assert p["fixture_id"] == "SOLAR-SCALE-01"; assert len(p["traversal_stages"]) == 7; assert len(p["coordinate_precision_ladder"]) == 7; assert len(p["apparent_size_known_answers"]) == 2; assert len(p["hierarchy_selection_cases"]) == 8; assert len(p["camera_waypoints"]) == 7; assert all(s["stage_id"] for s in p["traversal_stages"])'
+      - name: Validate matched solar-scale benchmark contract
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          path = Path("benchmarks/render/SOLAR-SCALE-COMPARISON-01.json")
+          contract = json.loads(path.read_text(encoding="utf-8"))
+          assert contract["fixture_id"] == "SOLAR-SCALE-COMPARISON-01"
+          assert contract["status"] == "proposed_unmeasured"
+          assert [profile["screen_space_error_px"] for profile in contract["comparison_tracks"][0]["compared_profiles"]] == [8, 16, 32, 64]
+          assert contract["comparison_tracks"][1]["status"] == "blocked_until_common_dataset_adapter_exists"
+          assert all(gate["limit"] == 0 for gate in contract["hard_acceptance_gates"])
+          assert contract["measurement_protocol"]["rendered_runs"]["measured_frames_per_repeat"] >= 1000
+          assert contract["measurement_protocol"]["rendered_runs"]["minimum_repeats"] >= 5
+          source = contract["source_workload"]
+          actual_blob = subprocess.run(
+              ["git", "hash-object", source["path"]],
+              check=True, capture_output=True, text=True,
+          ).stdout.strip()
+          assert actual_blob == source["expected_git_blob_sha"], (
+              f"source workload blob changed: expected {source['expected_git_blob_sha']}, got {actual_blob}"
+          )
+          print("SOLAR-SCALE-COMPARISON-01: PASS; exact source-workload blob pinned; no measurements implied")
+          PY
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run render bridge library tests
