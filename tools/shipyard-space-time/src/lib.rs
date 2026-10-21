@@ -676,6 +676,38 @@ mod tests {
     }
 
     #[test]
+    fn exclusion_zones_outside_yard_bounds_fail_closed() {
+        let scenario = Scenario {
+            yard_bounds: Some(Rect {
+                min_x: 0,
+                min_y: 0,
+                max_x: 10,
+                max_y: 10,
+            }),
+            placements: vec![placement(
+                "p-1",
+                "block-1",
+                rect(0, 0, 1, 1),
+                0,
+                2,
+            )],
+            exclusion_zones: vec![ExclusionZone {
+                id: "zone-outside".to_owned(),
+                footprint: rect(9, 1, 11, 2),
+                active: TimeRange {
+                    start_tick: 0,
+                    end_tick: 2,
+                },
+            }],
+            ..Scenario::default()
+        };
+        assert!(has_code(
+            &verify(&scenario),
+            ViolationCode::OutOfBoundsExclusionZone
+        ));
+    }
+
+    #[test]
     fn empty_scenario_is_not_mistaken_for_a_qualified_yard_plan() {
         let report = verify(&Scenario::default());
         assert!(!report.is_feasible());
