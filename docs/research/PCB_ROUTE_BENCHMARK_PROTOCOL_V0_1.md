@@ -234,3 +234,25 @@ The new regression fixture includes an explicit crashed attempt with no `success
 In addition to the paired bootstrap confidence interval, the Rust evaluator now reports a two-sided **exact paired sign-test p-value** for completion outcomes. For a single-seed comparison, only discordant board pairs contribute: boards completed by the treatment but not baseline count in one direction, and boards completed by baseline but not treatment count in the other. For replicated comparisons, the sign test uses board-clustered completion-rate deltas; repeated seeds on one board do not inflate the independent sample count.
 
 The p-value is reported as a supplement to effect size and the bootstrap interval—not a replacement for board-level results, stratification, practical effect thresholds or independent test sets. If both methods have the same completion result on every board, the sign-test p-value is `null` (no discordant pairs), not 1.0. The six-board synthetic 2/6 versus 4/6 fixture has two treatment-only completions and zero baseline-only completions, yielding an exact two-sided (p=0.5); it is deliberately not statistically persuasive.
+
+
+## Native KiCad DRC bytes are now an independent verification input
+
+The new `tools/pcb-route-benchmark/src/kicad_drc.rs` parser uses the actual KiCad DRC report layout from the official `drc.v1.json` schema and the violation-type taxonomy extracted from the **KiCad 9.0.9 tag**, not the current development branch. Source pins checked on 2026-10-21:
+
+- DRC JSON schema blob: `3db8d82fc807c0690fd231eea9aefdb562576ce4`, [source](https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/resources/schemas/drc.v1.json).
+- Violation identifier taxonomy: `f6822d5faf1ad17f859d6c8eb13eb85c917f1f61`, [source](https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/pcbnew/drc/drc_item.cpp).
+- Policy: `tools/pcb-route-benchmark/fixtures/kicad-drc-routing-policy-v0_1.json`, pinned to KiCad `9.0.9`; its raw bytes are hashed into each run's `drc_policy_sha256`.
+
+The new `verify-kicad-run-artifacts` CLI wraps actual-byte run artifact verification and adds a strict raw-report check. For every completed attempt it requires report source filename and KiCad version to match the verified board and engine pin; the report must include every severity the policy claims to block; every DRC rule type must be explicitly classified by the pinned policy; normalized routing-violation types and unconnected-item counts must exactly match the raw JSON; and the normalized post-route non-routing finding count must match the raw report. It rejects an unknown future rule type instead of silently treating it as non-routing.
+
+Usage:
+
+    PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)" \
+      cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+      verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ARTIFACT_ROOT \
+      tools/pcb-route-benchmark/fixtures/kicad-drc-routing-policy-v0_1.json
+
+The receipt includes the raw DRC report digest, policy digest, exact reported version/source, counts by severity/type, routing and non-routing finding types, unconnected-item count and schematic-parity count. The run verifier cross-checks those derived facts against normalized per-board rows; a fabricated normalized `routing_drc_violation_types: []` can no longer hide a real `tracks_crossing` finding when the raw artifact is present.
+
+This is a software evidence gate against the pinned KiCad output format—not a claim that the taxonomy is sufficient for every board class, nor a substitute for source netlist parity, design signoff, physical measurement or manufacturing qualification.
