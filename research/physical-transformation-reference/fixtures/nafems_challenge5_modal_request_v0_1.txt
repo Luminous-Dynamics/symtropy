@@ -1,0 +1,1 @@
+schema=modal-truss-request-v0.1|fixture=NAFEMS-C5-ORIGINAL-TRUSS|node=lower-support,0,0,true,true|node=upper-support,0,1,true,true|node=free,1,1,false,false|bar=diagonal,lower-support,free,0.01,210000000000,7800|bar=horizontal,upper-support,free,0.01,210000000000,7800
