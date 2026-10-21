@@ -37,7 +37,7 @@ fn run() -> Result<String, String> {
     let rotation_indices = assembly
         .dof_descriptors
         .iter()
-        .filter_map(|descriptor| match descriptor.kind {
+        .filter_map(|descriptor| match &descriptor.kind {
             BeamPinDofKind::MemberEndRotation { .. } => Some(descriptor.index),
             _ => None,
         })
