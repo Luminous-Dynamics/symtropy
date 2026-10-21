@@ -102,6 +102,10 @@ Do not equate:
 
 This protocol does not assert conformance to an industrial digital-twin standard and does not claim measured cost, schedule, labor, quality or emissions improvements.
 
+## 4A. Spatial feasibility composition
+
+The separate [space-time reservation verifier PR #2548](https://github.com/Luminous-Dynamics/symtropy/pull/2548) covers finite-yard bounds, rectangular block occupancy, declared transfer/access corridors, exclusion zones and exclusive vehicle timing. It is a feasibility oracle, not a planner. Keep its supported geometry/time profile and independent constraint receipt separate from this ledger's cost arithmetic. A proposed schedule should qualify only if both independent layers accept their respective inputs; then actual normalized work/financial records can be reconciled against the plan. A passing space-time verifier does not prove crane/lift safety or the physical yard geometry, and a passing cost ledger does not prove the schedule feasible.
+
 ## 5. Cross-repository ownership (provisional)
 
 - **Symthaea** owns vessel requirements, model assumptions/applicability, physical-model evidence, uncertainty, and comparable source-pinned acquisition/lifecycle-cost inputs. It must not infer certified structural, stability, hydrodynamic or fire-safety facts from schedule output.
