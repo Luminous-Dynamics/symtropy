@@ -799,7 +799,6 @@ pub fn verify_dataset_files(
     })
 }
 
-
 pub fn verify_run_artifacts(
     report_bytes: &[u8],
     manifest_bytes: &[u8],
@@ -815,7 +814,10 @@ pub fn verify_run_artifacts(
         )
     })?;
     if !root.is_dir() {
-        return Err(format!("run-artifact root is not a directory: {}", root.display()));
+        return Err(format!(
+            "run-artifact root is not a directory: {}",
+            root.display()
+        ));
     }
 
     let mut seen_relative = BTreeSet::new();
@@ -848,13 +850,22 @@ pub fn verify_run_artifacts(
                 continue;
             }
             let relative_path = relative_path.ok_or_else(|| {
-                format!("{}: {role} digest is supplied but its file path is missing", case.board_id)
+                format!(
+                    "{}: {role} digest is supplied but its file path is missing",
+                    case.board_id
+                )
             })?;
             let expected_sha256 = expected_sha256.ok_or_else(|| {
-                format!("{}: {role} path is supplied but its SHA-256 is missing", case.board_id)
+                format!(
+                    "{}: {role} path is supplied but its SHA-256 is missing",
+                    case.board_id
+                )
             })?;
             validate_artifact_relative_path(relative_path, &case.board_id)?;
-            require_sha256(expected_sha256, &format!("{} {role} SHA-256", case.board_id))?;
+            require_sha256(
+                expected_sha256,
+                &format!("{} {role} SHA-256", case.board_id),
+            )?;
 
             if !seen_relative.insert(relative_path.to_string()) {
                 return Err(format!("duplicate run-artifact path: {relative_path}"));
@@ -884,9 +895,8 @@ pub fn verify_run_artifacts(
                 ));
             }
 
-            let bytes = fs::read(&actual_path).map_err(|error| {
-                format!("{}: cannot read {role} file: {error}", case.board_id)
-            })?;
+            let bytes = fs::read(&actual_path)
+                .map_err(|error| format!("{}: cannot read {role} file: {error}", case.board_id))?;
             let actual_sha256 = sha256_hex(&bytes);
             if actual_sha256 != expected_sha256 {
                 return Err(format!(
@@ -1224,7 +1234,10 @@ fn summarize_cases(cases: &[EvaluatedCase], evidence_class: &str) -> RunSummary 
         }
     }
     let elapsed: Vec<f64> = cases.iter().map(|c| c.elapsed_ms as f64).collect();
-    let cpu: Vec<f64> = cases.iter().filter_map(|c| c.cpu_ms.map(|value| value as f64)).collect();
+    let cpu: Vec<f64> = cases
+        .iter()
+        .filter_map(|c| c.cpu_ms.map(|value| value as f64))
+        .collect();
     let peak_memory: Vec<f64> = cases
         .iter()
         .filter_map(|c| c.peak_memory_bytes.map(|value| value as f64))
@@ -1489,7 +1502,6 @@ pub fn compare_runs(
     })
 }
 
-
 pub fn compare_replicated_runs(
     baseline_runs: &[ValidatedRun],
     treatment_runs: &[ValidatedRun],
@@ -1501,7 +1513,9 @@ pub fn compare_replicated_runs(
         );
     }
     if baseline_runs.is_empty() || treatment_runs.is_empty() {
-        return Err("replicated comparison requires non-empty baseline and treatment series".into());
+        return Err(
+            "replicated comparison requires non-empty baseline and treatment series".into(),
+        );
     }
 
     let baseline_by_seed = index_replicated_runs(baseline_runs, "baseline")?;
@@ -1510,8 +1524,14 @@ pub fn compare_replicated_runs(
         return Err("replicated comparison requires identical declared seed sets".into());
     }
 
-    let baseline_first = *baseline_by_seed.values().next().expect("non-empty baseline");
-    let treatment_first = *treatment_by_seed.values().next().expect("non-empty treatment");
+    let baseline_first = *baseline_by_seed
+        .values()
+        .next()
+        .expect("non-empty baseline");
+    let treatment_first = *treatment_by_seed
+        .values()
+        .next()
+        .expect("non-empty treatment");
     if baseline_first.receipt.router.method_id == treatment_first.receipt.router.method_id {
         return Err("baseline and treatment method IDs must differ".into());
     }
@@ -1596,13 +1616,14 @@ pub fn compare_replicated_runs(
             if baseline_case.input_board_sha256 != treatment_case.input_board_sha256
                 || baseline_case.required_nets != treatment_case.required_nets
             {
-                return Err(format!("paired input identity differs for board {board_id}"));
+                return Err(format!(
+                    "paired input identity differs for board {board_id}"
+                ));
             }
 
             baseline_valid += usize::from(baseline_case.valid_route_completion);
             treatment_valid += usize::from(treatment_case.valid_route_completion);
-            let elapsed_delta =
-                treatment_case.elapsed_ms as f64 - baseline_case.elapsed_ms as f64;
+            let elapsed_delta = treatment_case.elapsed_ms as f64 - baseline_case.elapsed_ms as f64;
             elapsed_deltas.push(elapsed_delta);
             all_elapsed_deltas.push(elapsed_delta);
 
@@ -1695,13 +1716,19 @@ pub fn compare_replicated_runs(
     } else {
         let (seed, seed_sha) =
             derive_bootstrap_seed(&master_seed_sha, "board_cluster_wirelength_mm");
-        (Some(bootstrap_mean_ci(&wirelength_cluster_deltas, seed)), Some(seed_sha))
+        (
+            Some(bootstrap_mean_ci(&wirelength_cluster_deltas, seed)),
+            Some(seed_sha),
+        )
     };
     let (via_ci, via_seed_sha) = if via_cluster_deltas.is_empty() {
         (None, None)
     } else {
         let (seed, seed_sha) = derive_bootstrap_seed(&master_seed_sha, "board_cluster_vias");
-        (Some(bootstrap_mean_ci(&via_cluster_deltas, seed)), Some(seed_sha))
+        (
+            Some(bootstrap_mean_ci(&via_cluster_deltas, seed)),
+            Some(seed_sha),
+        )
     };
 
     Ok(ReplicatedComparisonReceipt {
@@ -2112,8 +2139,14 @@ mod tests {
         );
         assert_eq!(baseline.receipt.summary.cases_missing_cpu_ms, 2);
         assert_eq!(baseline.receipt.summary.cases_missing_peak_memory_bytes, 2);
-        assert_eq!(baseline.receipt.summary.median_cpu_ms_all_attempts, Some(130.0));
-        assert_eq!(baseline.receipt.summary.p90_cpu_ms_all_attempts, Some(190.0));
+        assert_eq!(
+            baseline.receipt.summary.median_cpu_ms_all_attempts,
+            Some(130.0)
+        );
+        assert_eq!(
+            baseline.receipt.summary.p90_cpu_ms_all_attempts,
+            Some(190.0)
+        );
         assert_eq!(
             baseline.receipt.summary.median_peak_memory_bytes_all_attempts,
             Some(205_000_000.0)
@@ -2301,7 +2334,6 @@ mod tests {
             .contains("DRC engine pin differs"));
     }
 
-
     #[test]
     fn replicated_comparison_bootstraps_boards_not_repeated_attempts() {
         let seeds = [17_u64, 23, 31];
@@ -2314,43 +2346,45 @@ mod tests {
             .map(|seed| valid_run_with_seed(TREATMENT, *seed))
             .collect();
 
-        let comparison =
-            compare_replicated_runs(&baseline, &treatment, EVALUATOR_HEAD).unwrap();
+        let comparison = compare_replicated_runs(&baseline, &treatment, EVALUATOR_HEAD).unwrap();
         assert_eq!(comparison.summary.board_count, 6);
         assert_eq!(comparison.summary.seed_count, 3);
         assert_eq!(comparison.summary.paired_attempt_count, 18);
         assert_eq!(comparison.summary.baseline_valid_attempts, 6);
         assert_eq!(comparison.summary.treatment_valid_attempts, 12);
-        assert!(
-            (comparison.summary.baseline_completion_rate - 1.0 / 3.0).abs() < 1e-9
+        assert!((comparison.summary.baseline_completion_rate - 1.0 / 3.0).abs() < 1e-9);
+        assert!((comparison.summary.treatment_completion_rate - 2.0 / 3.0).abs() < 1e-9);
+        assert!((comparison.summary.completion_delta_percentage_points - 100.0 / 3.0).abs() < 1e-8);
+        assert_eq!(
+            comparison
+                .summary
+                .completion_delta_95_ci_board_clustered
+                .resamples,
+            10_000
         );
-        assert!(
-            (comparison.summary.treatment_completion_rate - 2.0 / 3.0).abs() < 1e-9
-        );
-        assert!(
-            (comparison.summary.completion_delta_percentage_points - 100.0 / 3.0).abs()
-                < 1e-8
-        );
-        assert_eq!(comparison.summary.completion_delta_95_ci_board_clustered.resamples, 10_000);
         assert_eq!(comparison.boards.len(), 6);
         assert_eq!(comparison.seed_pairs.len(), 3);
-        assert!(comparison
-            .summary
-            .completion_delta_95_ci_board_clustered
-            .bootstrap_seed_sha256
-            != comparison
+        assert!(
+            comparison
                 .summary
-                .mean_elapsed_delta_95_ci_board_clustered_ms
-                .bootstrap_seed_sha256);
+                .completion_delta_95_ci_board_clustered
+                .bootstrap_seed_sha256
+                != comparison
+                    .summary
+                    .mean_elapsed_delta_95_ci_board_clustered_ms
+                    .bootstrap_seed_sha256
+        );
 
         let mismatched = vec![
             valid_run_with_seed(TREATMENT, 17),
             valid_run_with_seed(TREATMENT, 99),
             valid_run_with_seed(TREATMENT, 31),
         ];
-        assert!(compare_replicated_runs(&baseline, &mismatched, EVALUATOR_HEAD)
-            .unwrap_err()
-            .contains("identical declared seed sets"));
+        assert!(
+            compare_replicated_runs(&baseline, &mismatched, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("identical declared seed sets")
+        );
 
         let duplicate = vec![
             valid_run_with_seed(BASELINE, 17),
@@ -2361,7 +2395,6 @@ mod tests {
             .contains("duplicate seed"));
     }
 
-
     #[test]
     fn commit_id_validation_supports_sha1_and_sha256_lengths() {
         assert!(is_commit_sha(&"a".repeat(40)));
@@ -2369,15 +2402,15 @@ mod tests {
         assert!(!is_commit_sha(&"g".repeat(40)));
         assert!(!is_commit_sha(&"a".repeat(39)));
     }
+
     #[test]
     fn run_artifact_verifier_binds_actual_output_and_drc_bytes() {
-        let mut value: serde_json::Value = serde_json::from_str(BASELINE).expect("baseline fixture");
+        let mut value: serde_json::Value =
+            serde_json::from_str(BASELINE).expect("baseline fixture");
         value["dataset_manifest_sha256"] =
             serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
-        let root = std::env::temp_dir().join(format!(
-            "pcb-route-run-artifacts-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("pcb-route-run-artifacts-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("outputs")).unwrap();
         std::fs::create_dir_all(root.join("drc")).unwrap();
@@ -2392,9 +2425,7 @@ mod tests {
             let output_relative = format!("outputs/{board_id}.kicad_pcb");
             let drc_relative = format!("drc/{board_id}.json");
             let output_bytes = format!("synthetic output board bytes for {board_id}\n");
-            let drc_bytes = format!(
-                "{{\"synthetic_fixture\":true,\"board_id\":\"{board_id}\"}}\n"
-            );
+            let drc_bytes = format!("{{\"synthetic_fixture\":true,\"board_id\":\"{board_id}\"}}\n");
             std::fs::write(root.join(&output_relative), output_bytes.as_bytes()).unwrap();
             std::fs::write(root.join(&drc_relative), drc_bytes.as_bytes()).unwrap();
             case["output_board_sha256"] =
@@ -2405,13 +2436,9 @@ mod tests {
         }
 
         let report_bytes = serde_json::to_vec(&value).unwrap();
-        let receipt = verify_run_artifacts(
-            &report_bytes,
-            MANIFEST.as_bytes(),
-            &root,
-            EVALUATOR_HEAD,
-        )
-        .expect("all declared output/DRC bytes verify");
+        let receipt =
+            verify_run_artifacts(&report_bytes, MANIFEST.as_bytes(), &root, EVALUATOR_HEAD)
+                .expect("all declared output/DRC bytes verify");
         assert_eq!(receipt.verified_artifact_count, 8);
         assert_eq!(receipt.entries.len(), 8);
         assert!(receipt.entries.iter().all(|entry| entry.byte_len > 0));
@@ -2450,5 +2477,4 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(&root);
     }
-
 }
