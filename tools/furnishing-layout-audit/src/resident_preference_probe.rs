@@ -755,6 +755,66 @@ mod tests {
     }
 
     #[test]
+    fn generated_question_frontiers_match_an_independent_pairwise_oracle() {
+        for seed in 0..40_u32 {
+            let mut input = request();
+            input.alternatives = (0..6)
+                .map(|index| {
+                    let first = ((seed * 97 + index * 1_337 + 71) % 10_001) as u16;
+                    let second = ((seed * 211 + index * 811 + 19) % 10_001) as u16;
+                    alternative(&format!("alternative-{index}"), &[first, second])
+                })
+                .collect();
+            input.scenarios = vec![
+                PreferenceScenario {
+                    scenario_id: "affordability".to_owned(),
+                    weights_bps: vec![10_000, 0],
+                },
+                PreferenceScenario {
+                    scenario_id: "task-support".to_owned(),
+                    weights_bps: vec![0, 10_000],
+                },
+                PreferenceScenario {
+                    scenario_id: "balanced".to_owned(),
+                    weights_bps: vec![5_000, 5_000],
+                },
+            ];
+            input.questions.clear();
+            for left in 0..input.alternatives.len() {
+                for right in (left + 1)..input.alternatives.len() {
+                    input.questions.push(question(
+                        &format!("q-{left}-{right}"),
+                        &input.alternatives[left].candidate_id,
+                        &input.alternatives[right].candidate_id,
+                        (seed + (left * 7 + right * 3) as u32) % 9,
+                        (seed * 3 + (left * 5 + right * 11) as u32) % 13,
+                    ));
+                }
+            }
+            let report = compute_resident_preference_probe(&input).expect("valid generated request");
+            let expected_frontier = report
+                .questions
+                .iter()
+                .filter(|candidate| {
+                    !report.questions.iter().any(|other| {
+                        let no_worse = other.worst_case_regret_reduction_units
+                            >= candidate.worst_case_regret_reduction_units
+                            && other.query_cost_units <= candidate.query_cost_units
+                            && other.query_duration_units <= candidate.query_duration_units;
+                        let strictly_better = other.worst_case_regret_reduction_units
+                            > candidate.worst_case_regret_reduction_units
+                            || other.query_cost_units < candidate.query_cost_units
+                            || other.query_duration_units < candidate.query_duration_units;
+                        other.question_id != candidate.question_id && no_worse && strictly_better
+                    })
+                })
+                .map(|question| question.question_id.clone())
+                .collect::<Vec<_>>();
+            assert_eq!(report.frontier_question_ids, expected_frontier);
+        }
+    }
+
+    #[test]
     fn expanding_the_admissible_model_set_cannot_lower_baseline_minimax_regret() {
         let base = ResidentPreferenceProbeRequest {
             criterion_ids: vec![
