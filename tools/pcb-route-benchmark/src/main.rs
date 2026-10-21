@@ -1,6 +1,7 @@
 use pcb_route_benchmark::{
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
-    verify_dataset_files, verify_run_artifacts, ValidatedRun,
+    pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files,
+    verify_run_artifacts, ValidatedRun,
 };
 use std::{
     env, fs,
@@ -65,6 +66,19 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&receipt)
                 .map_err(|error| format!("cannot serialize run-artifact verification receipt: {error}"))
         }
+        [command, csv_path, manifest_path] if command == "import-pcbworld-csv" => {
+            let csv_bytes = fs::read(csv_path)
+                .map_err(|error| format!("cannot read {csv_path}: {error}"))?;
+            let manifest_bytes = fs::read(manifest_path)
+                .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
+            let receipt = import_pcbworld_per_rollout_csv(
+                &csv_bytes,
+                &manifest_bytes,
+                &evaluator_head,
+            )?;
+            serde_json::to_vec_pretty(&receipt)
+                .map_err(|error| format!("cannot serialize PCBWorld CSV receipt: {error}"))
+        }
         [command, report_path, manifest_path] if command == "validate" => {
             let report = fs::read(report_path)
                 .map_err(|error| format!("cannot read {report_path}: {error}"))?;
@@ -96,7 +110,7 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json".into()),
+        _ => Err("usage: pcb-route-benchmark build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json".into()),
     }
 }
 
@@ -131,9 +145,8 @@ fn load_report_series(
     paths
         .into_iter()
         .map(|path| {
-            let report_bytes = fs::read(&path).map_err(|error| {
-                format!("cannot read run report {}: {error}", path.display())
-            })?;
+            let report_bytes = fs::read(&path)
+                .map_err(|error| format!("cannot read run report {}: {error}", path.display()))?;
             evaluate_report_bytes(&report_bytes, manifest_bytes, evaluator_git_head)
                 .map_err(|error| format!("run report {} rejected: {error}", path.display()))
         })
