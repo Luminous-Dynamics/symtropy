@@ -7,8 +7,7 @@
 use std::collections::BTreeMap;
 
 use shipyard_space_time::{
-    ExclusionZone, Footprint, Placement, Rect, Scenario, TimeRange, Transfer, ViolationCode,
-    verify,
+    ExclusionZone, Footprint, Placement, Rect, Scenario, TimeRange, Transfer, ViolationCode, verify,
 };
 
 const FIXTURE: &str = include_str!("fixtures/space-time-v0.tsv");
@@ -78,7 +77,9 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
     let mut lines = FIXTURE.lines();
     assert_eq!(
         lines.next(),
-        Some("case_id\tkind\tid\towner_id\tfootprint\tstart_tick\tend_tick\tvehicle_id\tpredecessor_ids\texpected_violation_counts"),
+        Some(
+            "case_id\tkind\tid\towner_id\tfootprint\tstart_tick\tend_tick\tvehicle_id\tpredecessor_ids\texpected_violation_counts"
+        ),
         "frozen fixture header"
     );
 
@@ -128,7 +129,10 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
                 );
                 case.expected_counts = Some(parse_expected(fields[9]));
             }
-            other => panic!("unknown fixture record type on row {}: {other}", line_offset + 2),
+            other => panic!(
+                "unknown fixture record type on row {}: {other}",
+                line_offset + 2
+            ),
         }
     }
 
@@ -184,5 +188,8 @@ fn frozen_corpus_covers_both_rejection_and_feasible_cases() {
             "frozen corpus lacks required negative control {required}"
         );
     }
-    assert!(feasible_cases >= 3, "include feasible and half-open boundary controls");
+    assert!(
+        feasible_cases >= 3,
+        "include feasible and half-open boundary controls"
+    );
 }
