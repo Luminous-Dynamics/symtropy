@@ -677,10 +677,49 @@ fn json_quote(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_source_commit;
+    use super::{isolated_mode_assignment_json, parse_source_commit};
 
     #[test]
     fn source_commit_argument_is_required_and_strict() {
         assert!(parse_source_commit().is_err());
+    }
+
+    #[test]
+    fn sweep_assignment_tracks_an_isolated_mode_rank_crossing() {
+        let previous = [10.0, 10.2, 40.0, 80.0, 160.0, 320.0];
+        let current = [10.05, 10.15, 40.1, 79.9, 160.1, 319.9];
+        let mut mac = vec![vec![0.0; 6]; 6];
+        mac[0][1] = 0.98;
+        mac[1][0] = 0.99;
+        for index in 2..6 {
+            mac[index][index] = 0.95;
+        }
+
+        let receipt = isolated_mode_assignment_json(&previous, &current, &mac)
+            .expect("valid isolated-mode sweep");
+        assert!(receipt.contains("\\\"status\\\":\\\"matched\\\""));
+        assert!(receipt.contains("\\\"reference_mode_index\\\":0,\\\"candidate_mode_index\\\":1"));
+        assert!(receipt.contains("\\\"reference_mode_index\\\":1,\\\"candidate_mode_index\\\":0"));
+    }
+
+    #[test]
+    fn sweep_assignment_abstains_when_cluster_partition_changes() {
+        let previous = [10.0, 10.005, 20.0, 40.0, 80.0, 160.0];
+        let current = [10.0, 10.02, 20.0, 40.0, 80.0, 160.0];
+        let mac = vec![vec![1.0; 6]; 6];
+        let receipt = isolated_mode_assignment_json(&previous, &current, &mac)
+            .expect("cluster partition change is an abstention");
+        assert!(receipt.contains("abstain-cluster-partition-changed"));
+        assert!(receipt.contains("\\\"matches\\\":[]"));
+    }
+
+    #[test]
+    fn sweep_assignment_reports_when_all_low_modes_are_clustered() {
+        let frequencies = [10.0, 10.005, 20.0, 20.005, 30.0, 30.005];
+        let mac = vec![vec![1.0; 6]; 6];
+        let receipt = isolated_mode_assignment_json(&frequencies, &frequencies, &mac)
+            .expect("clustered modes should not use scalar assignment");
+        assert!(receipt.contains("no-isolated-modes"));
+        assert!(receipt.contains("\\\"matches\\\":[]"));
     }
 }
