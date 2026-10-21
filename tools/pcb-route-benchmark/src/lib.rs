@@ -417,14 +417,18 @@ pub fn verify_dataset_files(
         )
     })?;
     if !root.is_dir() {
-        return Err(format!("dataset root is not a directory: {}", root.display()));
+        return Err(format!(
+            "dataset root is not a directory: {}",
+            root.display()
+        ));
     }
 
     let mut entries = Vec::with_capacity(manifest.boards.len());
     for board in &manifest.boards {
-        let relative_path = board.relative_path.as_deref().ok_or_else(|| {
-            format!("{}: dataset-relative source path missing", board.board_id)
-        })?;
+        let relative_path = board
+            .relative_path
+            .as_deref()
+            .ok_or_else(|| format!("{}: dataset-relative source path missing", board.board_id))?;
         validate_relative_path(relative_path, &board.board_id)?;
         let actual_path = root.join(relative_path).canonicalize().map_err(|error| {
             format!(
@@ -1109,10 +1113,8 @@ mod tests {
     fn dataset_intake_hashes_actual_bytes_and_rejects_path_escape() {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
         manifest.evidence_class = "external_benchmark".into();
-        let root = std::env::temp_dir().join(format!(
-            "pcb-route-benchmark-intake-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("pcb-route-benchmark-intake-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
 
@@ -1124,8 +1126,8 @@ mod tests {
             board.relative_path = Some(relative_path);
         }
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
-        let receipt =
-            verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD).expect("source files verify");
+        let receipt = verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+            .expect("source files verify");
         assert_eq!(receipt.verified_board_count, 6);
         assert_eq!(receipt.entries.len(), 6);
         assert_eq!(receipt.dataset_manifest_sha256, sha256_hex(&manifest_bytes));
@@ -1138,9 +1140,11 @@ mod tests {
 
         manifest.boards[0].relative_path = Some("../outside.kicad_pcb".into());
         let escaped_manifest = serde_json::to_vec(&manifest).unwrap();
-        assert!(verify_dataset_files(&escaped_manifest, &root, EVALUATOR_HEAD)
-            .unwrap_err()
-            .contains("unsafe dataset-relative source path"));
+        assert!(
+            verify_dataset_files(&escaped_manifest, &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("unsafe dataset-relative source path")
+        );
 
         let _ = std::fs::remove_dir_all(&root);
     }
