@@ -135,7 +135,13 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
                 evidence.nonrouting_blocking_violation_types.len()
             ));
         }
-        if case.valid_route_completion && !evidence.route_drc_pass {
+        let evaluated_case = validated
+            .receipt
+            .cases
+            .iter()
+            .find(|evaluated| evaluated.board_id == case.board_id)
+            .ok_or_else(|| format!("{}: evaluated case is missing", case.board_id))?;
+        if evaluated_case.valid_route_completion && !evidence.route_drc_pass {
             return Err(format!(
                 "{}: normalized report claims valid completion but raw KiCad DRC policy fails",
                 case.board_id
@@ -476,6 +482,8 @@ fn sha256_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const EVALUATOR_HEAD: &str = "abababababababababababababababababababab";
 
     const POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
