@@ -8,8 +8,8 @@
 //! decide a structure is safe, include geometric nonlinearity, or perform a
 //! complete NAFEMS NBC05 beam-model reproduction.
 
-use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
 use crate::Check;
+use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_NODES: usize = 128;
@@ -90,11 +90,7 @@ pub fn canonical_assembly_request(
     for node in ordered_nodes {
         fields.push(format!(
             "node|{}|{}|{}|{}|{}",
-            node.id,
-            node.x_m,
-            node.y_m,
-            node.restrain_x,
-            node.restrain_y
+            node.id, node.x_m, node.y_m, node.restrain_x, node.restrain_y
         ));
     }
     for member in ordered_members {
@@ -452,7 +448,14 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(rotation_indices.len(), 4);
-        assert_eq!(rotation_indices.iter().copied().collect::<BTreeSet<_>>().len(), 4);
+        assert_eq!(
+            rotation_indices
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len(),
+            4
+        );
         for index in rotation_indices {
             assert!(result.stiffness_global[index][index] > 0.0);
             assert!(result.mass_global[index][index] > 0.0);
@@ -511,12 +514,11 @@ mod tests {
 
     #[test]
     fn canonical_request_matches_frozen_fixture_and_input_permutation() {
-        let first = canonical_assembly_request(&nodes(), &members())
-            .expect("canonical valid request");
+        let first =
+            canonical_assembly_request(&nodes(), &members()).expect("canonical valid request");
         assert_eq!(
             first,
-            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt")
-                .trim_end_matches('\n')
+            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt").trim_end_matches('\n')
         );
 
         let mut reversed_nodes = nodes();
