@@ -229,7 +229,8 @@ fn mesh_json(
         .map(float_json)
         .unwrap_or_else(|| "null".to_owned());
     let mac_matrix_json = mac_matrix
-        .map(f64_matrix_json)
+        .as_ref()
+        .map(|matrix| f64_matrix_json(matrix))
         .unwrap_or_else(|| "null".to_owned());
     format!(
         concat!(
