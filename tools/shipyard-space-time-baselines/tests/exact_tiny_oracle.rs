@@ -147,7 +147,7 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
                     Err(_) if exact => baseline_missed_feasible += 1,
                     Err(_) => baseline_rejected_infeasible += 1,
                 }
-                
+
                 match first_fit_decreasing_bottom_left(yard, &requests, &[]) {
                     Ok(plan) => {
                         decreasing_solved += 1;
