@@ -56,6 +56,7 @@ pub enum RecoveryViolationCode {
     UnknownOccupancyExtensionReservation,
     InvalidOccupancyExtension,
     OccupancyExtensionAfterCompletion,
+    OccupancyExtensionTargetMismatch,
     HistoricalPlacementChanged,
     HistoricalTransferChanged,
     VehicleUnavailable,
@@ -76,6 +77,7 @@ impl RecoveryViolationCode {
             Self::UnknownOccupancyExtensionReservation => "UnknownOccupancyExtensionReservation",
             Self::InvalidOccupancyExtension => "InvalidOccupancyExtension",
             Self::OccupancyExtensionAfterCompletion => "OccupancyExtensionAfterCompletion",
+            Self::OccupancyExtensionTargetMismatch => "OccupancyExtensionTargetMismatch",
             Self::HistoricalPlacementChanged => "HistoricalPlacementChanged",
             Self::HistoricalTransferChanged => "HistoricalTransferChanged",
             Self::VehicleUnavailable => "VehicleUnavailable",
@@ -199,6 +201,7 @@ fn outage_violations(scenario: &Scenario, outages: &[VehicleOutage]) -> Vec<Reco
 
 fn valid_occupancy_extensions(
     baseline: &Scenario,
+    candidate: &Scenario,
     disruption: &Disruption,
     violations: &mut Vec<RecoveryViolation>,
 ) -> bool {
@@ -261,6 +264,37 @@ fn valid_occupancy_extensions(
             push_violation(
                 violations,
                 RecoveryViolationCode::InvalidOccupancyExtension,
+                vec![extension.reservation_id.clone()],
+                None,
+            );
+        }
+
+        let candidate_matches: Vec<&Placement> = candidate
+            .placements
+            .iter()
+            .filter(|candidate_placement| {
+                candidate_placement.reservation_id == extension.reservation_id
+            })
+            .collect();
+        let [candidate_placement] = candidate_matches.as_slice() else {
+            valid = false;
+            push_violation(
+                violations,
+                RecoveryViolationCode::OccupancyExtensionTargetMismatch,
+                vec![extension.reservation_id.clone()],
+                None,
+            );
+            continue;
+        };
+        if candidate_placement.block_id != placement.block_id
+            || candidate_placement.footprint != placement.footprint
+            || candidate_placement.occupied.start_tick != placement.occupied.start_tick
+            || candidate_placement.occupied.end_tick < placement.occupied.end_tick
+        {
+            valid = false;
+            push_violation(
+                violations,
+                RecoveryViolationCode::OccupancyExtensionTargetMismatch,
                 vec![extension.reservation_id.clone()],
                 None,
             );
@@ -604,8 +638,12 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
     }
 
     let outages_valid = valid_outages(&input.disruption.vehicle_outages, &mut violations);
-    let occupancy_extensions_valid =
-        valid_occupancy_extensions(&input.baseline, &input.disruption, &mut violations);
+    let occupancy_extensions_valid = valid_occupancy_extensions(
+        &input.baseline,
+        &input.candidate,
+        &input.disruption,
+        &mut violations,
+    );
     let affected = derive_affected_ids(&input.baseline, &input.disruption, &mut violations);
     let baseline_after = apply_disruption(&input.baseline, &input.disruption);
     let candidate_after = apply_disruption(&input.candidate, &input.disruption);
@@ -1030,6 +1068,36 @@ mod tests {
         assert!(!report.accepted);
         assert!(report.violations.iter().any(|violation| {
             violation.code == RecoveryViolationCode::OccupancyExtensionAfterCompletion
+        }));
+    }
+
+    #[test]
+    fn candidate_cannot_remove_or_move_block_whose_old_footprint_is_not_clear() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5)],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("outgoing", "block-out", rect(2, 0, 4, 2), 0, 5)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: 7,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::OccupancyExtensionTargetMismatch
         }));
     }
 
