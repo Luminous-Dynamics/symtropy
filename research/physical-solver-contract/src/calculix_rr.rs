@@ -800,7 +800,15 @@ mod tests {
         );
     }
 
-    fn make_normalization_bundle() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
+    struct NormalizationBundle {
+        request: Vec<u8>,
+        deck: Vec<u8>,
+        dat: Vec<u8>,
+        manifest: Vec<u8>,
+        catalog: Vec<u8>,
+    }
+
+    fn make_normalization_bundle() -> NormalizationBundle {
         let mut request: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
@@ -854,18 +862,24 @@ mod tests {
             }
         });
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
-        (
-            request_bytes,
-            deck_bytes,
-            RR_ONLY_OUTPUT.as_bytes().to_vec(),
-            manifest_bytes,
-            catalog_bytes,
-        )
+        NormalizationBundle {
+            request: request_bytes,
+            deck: deck_bytes,
+            dat: RR_ONLY_OUTPUT.as_bytes().to_vec(),
+            manifest: manifest_bytes,
+            catalog: catalog_bytes,
+        }
     }
 
     #[test]
     fn normalizer_joins_rr_reactions_to_exact_deck_bound_node_positions() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let report =
             normalize_reaction_only_rr_bytes(&request, &deck, &dat, &manifest, &catalog).unwrap();
         assert_eq!(report["normalization_status"], "PASS");
@@ -900,7 +914,13 @@ mod tests {
 
     #[test]
     fn normalizer_rejects_stale_node_catalogue_digest_and_wrong_frame() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
         manifest_value["node_catalog_sha256"] = json!("d".repeat(64));
         let stale_manifest = serde_json::to_vec(&manifest_value).unwrap();
@@ -928,7 +948,13 @@ mod tests {
 
     #[test]
     fn normalizer_rejects_non_si_request_units() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let mut request_value: Value = serde_json::from_slice(&request).unwrap();
         request_value["units"]["force"] = json!("kN");
         let request_knew = serde_json::to_vec(&request_value).unwrap();
