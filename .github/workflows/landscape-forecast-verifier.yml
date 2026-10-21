@@ -60,11 +60,12 @@ jobs:
             .input_sha256 == $digest and
             .data_origin == "synthetic_fixture" and
             .claim_ceiling == "SYNTHETIC_CONTRACT_TEST_ONLY" and
-            .case_count == 13 and
+            .case_count == 14 and
             .scored_case_count == 9 and
-            .excluded_case_count == 4 and
+            .excluded_case_count == 5 and
             (.metric_summaries | length) == 3 and
-            ([.excluded_cases[].reason] | sort) == ["contradictory_reference", "missing_reference", "scope_mismatch", "stale_reference"] and
+            ([.metric_summaries[] | select(.independent_unit_count == 3)] | length) == 3 and
+            ([.excluded_cases[].reason] | sort) == ["contradictory_reference", "missing_reference", "not_held_out", "scope_mismatch", "stale_reference"] and
             ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.mae - 0.7 | abs) < 0.000001)] | length) == 1 and
             ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.mae_skill_score | abs) < 0.000001)] | length) == 1 and
             ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mae_skill_score - 0.461538462 | abs) < 0.000001)] | length) == 1
