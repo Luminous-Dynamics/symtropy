@@ -671,6 +671,17 @@ mod tests {
         close(heat.mean_interval_score, 3.366666667);
         close(water.mean_interval_score, 0.766666667);
         close(ecology.mean_interval_score, 22.666666667);
+        close(heat.unit_macro_mae, 0.7);
+        close(heat.unit_macro_rmse, 0.7);
+        close(heat.unit_macro_baseline_mae, 1.4);
+        close(heat.unit_macro_mae_skill_score.unwrap(), 0.5);
+        close(heat.unit_macro_interval_coverage, 2.0 / 3.0);
+        close(heat.unit_macro_interval_score, 3.366666667);
+        close(water.unit_macro_mae, 1.0 / 6.0);
+        close(water.unit_macro_mae_skill_score.unwrap(), 0.0);
+        close(ecology.unit_macro_mae, 14.0 / 3.0);
+        close(ecology.unit_macro_rmse, 14.0 / 3.0);
+        close(ecology.unit_macro_mae_skill_score.unwrap(), 6.0 / 13.0);
     }
 
     #[test]
