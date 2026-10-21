@@ -12,6 +12,7 @@ pub type Check<T> = Result<T, String>;
 pub mod deconstruction;
 pub mod mechanics;
 pub mod modal_bar;
+pub mod modal_truss;
 pub mod planar_truss;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
