@@ -645,6 +645,26 @@ mod tests {
     }
 
     #[test]
+    fn canonical_request_matches_frozen_bytes_and_ignores_input_order() {
+        let original = symmetric_two_bar_truss();
+        let expected = include_str!("../fixtures/planar_truss_request_v0_1.txt")
+            .trim_end_matches('\n');
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-V-001", &original).expect("canonical request"),
+            expected
+        );
+
+        let mut permuted = original;
+        permuted.nodes.reverse();
+        permuted.bars.reverse();
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-V-001", &permuted).expect("permuted request"),
+            expected
+        );
+        assert!(canonical_request("bad|fixture", &permuted).is_err());
+    }
+
+    #[test]
     fn symmetric_two_bar_truss_matches_independent_closed_form_oracle() {
         // For L=sqrt(2) m, theta=45 deg and P=1000 N:
         // ux(apex)=0; uy(apex)=-P*L/(EA) because 2*sin^2(theta)=1;
