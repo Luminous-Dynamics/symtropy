@@ -7,7 +7,9 @@
 //! damping, geometric stiffness, nonlinear kinematics and joint-release
 //! assembly are outside this module.
 
-#![allow(clippy::needless_range_loop)] // Matrix assembly deliberately indexes coupled DOFs.\n\nuse crate::Check;
+#![allow(clippy::needless_range_loop)] // Matrix assembly deliberately indexes coupled DOFs.
+
+use crate::Check;
 
 pub type Matrix6 = [[f64; 6]; 6];
 
@@ -170,7 +172,10 @@ pub fn euler_bernoulli_frame_element(
     add_two_dof_block(
         &mut stiffness,
         [0, 3],
-        [[axial_stiffness, -axial_stiffness], [-axial_stiffness, axial_stiffness]],
+        [
+            [axial_stiffness, -axial_stiffness],
+            [-axial_stiffness, axial_stiffness],
+        ],
     );
 
     // Euler-Bernoulli bending stiffness in [v1, theta1, v2, theta2] order.
@@ -329,10 +334,30 @@ mod tests {
         let matrices = matrices();
         for row in 0..6 {
             for col in 0..6 {
-                close(matrices.stiffness_local[row][col], matrices.stiffness_local[col][row], 1.0e-13, "stiffness symmetry");
-                close(matrices.translational_mass_local[row][col], matrices.translational_mass_local[col][row], 1.0e-13, "translational mass symmetry");
-                close(matrices.rotary_inertia_mass_local[row][col], matrices.rotary_inertia_mass_local[col][row], 1.0e-13, "rotary mass symmetry");
-                close(matrices.mass_local[row][col], matrices.mass_local[col][row], 1.0e-13, "total mass symmetry");
+                close(
+                    matrices.stiffness_local[row][col],
+                    matrices.stiffness_local[col][row],
+                    1.0e-13,
+                    "stiffness symmetry",
+                );
+                close(
+                    matrices.translational_mass_local[row][col],
+                    matrices.translational_mass_local[col][row],
+                    1.0e-13,
+                    "translational mass symmetry",
+                );
+                close(
+                    matrices.rotary_inertia_mass_local[row][col],
+                    matrices.rotary_inertia_mass_local[col][row],
+                    1.0e-13,
+                    "rotary mass symmetry",
+                );
+                close(
+                    matrices.mass_local[row][col],
+                    matrices.mass_local[col][row],
+                    1.0e-13,
+                    "total mass symmetry",
+                );
             }
         }
     }
@@ -342,10 +367,30 @@ mod tests {
         let matrices = matrices();
         let axial_stiffness = YOUNGS_MODULUS_PA * AREA_M2 / LENGTH_M;
         let axial_mass = DENSITY_KG_M3 * AREA_M2 * LENGTH_M / 6.0;
-        close(matrices.stiffness_local[0][0], axial_stiffness, 1.0e-13, "axial stiffness diagonal");
-        close(matrices.stiffness_local[0][3], -axial_stiffness, 1.0e-13, "axial stiffness coupling");
-        close(matrices.translational_mass_local[0][0], 2.0 * axial_mass, 1.0e-13, "axial mass diagonal");
-        close(matrices.translational_mass_local[0][3], axial_mass, 1.0e-13, "axial mass coupling");
+        close(
+            matrices.stiffness_local[0][0],
+            axial_stiffness,
+            1.0e-13,
+            "axial stiffness diagonal",
+        );
+        close(
+            matrices.stiffness_local[0][3],
+            -axial_stiffness,
+            1.0e-13,
+            "axial stiffness coupling",
+        );
+        close(
+            matrices.translational_mass_local[0][0],
+            2.0 * axial_mass,
+            1.0e-13,
+            "axial mass diagonal",
+        );
+        close(
+            matrices.translational_mass_local[0][3],
+            axial_mass,
+            1.0e-13,
+            "axial mass coupling",
+        );
     }
 
     #[test]
@@ -354,9 +399,19 @@ mod tests {
         let factor = YOUNGS_MODULUS_PA * SECOND_MOMENT_M4 / LENGTH_M.powi(3);
         let expected = [
             [12.0, 6.0 * LENGTH_M, -12.0, 6.0 * LENGTH_M],
-            [6.0 * LENGTH_M, 4.0 * LENGTH_M.powi(2), -6.0 * LENGTH_M, 2.0 * LENGTH_M.powi(2)],
+            [
+                6.0 * LENGTH_M,
+                4.0 * LENGTH_M.powi(2),
+                -6.0 * LENGTH_M,
+                2.0 * LENGTH_M.powi(2),
+            ],
             [-12.0, -6.0 * LENGTH_M, 12.0, -6.0 * LENGTH_M],
-            [6.0 * LENGTH_M, 2.0 * LENGTH_M.powi(2), -6.0 * LENGTH_M, 4.0 * LENGTH_M.powi(2)],
+            [
+                6.0 * LENGTH_M,
+                2.0 * LENGTH_M.powi(2),
+                -6.0 * LENGTH_M,
+                4.0 * LENGTH_M.powi(2),
+            ],
         ];
         let indices = [1, 2, 4, 5];
         for row in 0..4 {
@@ -387,8 +442,18 @@ mod tests {
             tip_load_n * LENGTH_M.powi(3) / (3.0 * YOUNGS_MODULUS_PA * SECOND_MOMENT_M4);
         let expected_rotation =
             tip_load_n * LENGTH_M.powi(2) / (2.0 * YOUNGS_MODULUS_PA * SECOND_MOMENT_M4);
-        close(tip_displacement_m, expected_displacement, 1.0e-12, "cantilever tip displacement");
-        close(tip_rotation_rad, expected_rotation, 1.0e-12, "cantilever tip rotation");
+        close(
+            tip_displacement_m,
+            expected_displacement,
+            1.0e-12,
+            "cantilever tip displacement",
+        );
+        close(
+            tip_rotation_rad,
+            expected_rotation,
+            1.0e-12,
+            "cantilever tip rotation",
+        );
     }
 
     #[test]
@@ -589,29 +654,35 @@ mod tests {
 
     #[test]
     fn invalid_domains_fail_closed() {
-        assert!(euler_bernoulli_frame_element(
-            0.0,
-            AREA_M2,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            SECOND_MOMENT_M4,
-        )
-        .is_err());
-        assert!(euler_bernoulli_frame_element(
-            LENGTH_M,
-            AREA_M2,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            0.0,
-        )
-        .is_err());
-        assert!(euler_bernoulli_frame_element(
-            LENGTH_M,
-            AREA_M2,
-            f64::INFINITY,
-            DENSITY_KG_M3,
-            SECOND_MOMENT_M4,
-        )
-        .is_err());
+        assert!(
+            euler_bernoulli_frame_element(
+                0.0,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                SECOND_MOMENT_M4,
+            )
+            .is_err()
+        );
+        assert!(
+            euler_bernoulli_frame_element(
+                LENGTH_M,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                0.0,
+            )
+            .is_err()
+        );
+        assert!(
+            euler_bernoulli_frame_element(
+                LENGTH_M,
+                AREA_M2,
+                f64::INFINITY,
+                DENSITY_KG_M3,
+                SECOND_MOMENT_M4,
+            )
+            .is_err()
+        );
     }
 }
