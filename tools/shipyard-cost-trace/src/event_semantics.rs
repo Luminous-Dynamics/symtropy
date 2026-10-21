@@ -370,7 +370,12 @@ pub fn normalize_quantities(
             StreamMode::Snapshot => {
                 let latest = records_for_identity
                     .iter()
-                    .filter(|record| matches!(&record.kind, QuantityRecordKind::CumulativeSnapshot { .. }))
+                    .filter(|record| {
+                        matches!(
+                            &record.kind,
+                            QuantityRecordKind::CumulativeSnapshot { .. }
+                        )
+                    })
                     .max_by_key(|record| record.sequence)
                     .expect("snapshot identity has at least one eligible snapshot");
                 for record in &records_for_identity {
@@ -409,7 +414,8 @@ pub fn normalize_quantities(
                         QuantityRecordKind::CumulativeSnapshot { .. } => {
                             unreachable!("delta identity has no snapshot records")
                         }
-                        QuantityRecordKind::Correction { .. } | QuantityRecordKind::Reversal { .. } => {
+                        QuantityRecordKind::Correction { .. }
+                        | QuantityRecordKind::Reversal { .. } => {
                             0.0
                         }
                     };
@@ -482,8 +488,20 @@ mod tests {
     #[test]
     fn cumulative_snapshots_select_latest_value_instead_of_summing() {
         let records = vec![
-            record("snapshot-1", 1, 100, 100, QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 }),
-            record("snapshot-2", 2, 200, 200, QuantityRecordKind::CumulativeSnapshot { quantity: 14.0 }),
+            record(
+                "snapshot-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 },
+            ),
+            record(
+                "snapshot-2",
+                2,
+                200,
+                200,
+                QuantityRecordKind::CumulativeSnapshot { quantity: 14.0 },
+            ),
         ];
         let normalized = normalize_quantities(&records, cutoff()).unwrap();
         assert_eq!(normalized.len(), 1);
@@ -560,7 +578,13 @@ mod tests {
     #[test]
     fn mixed_snapshot_and_delta_semantics_fail_closed() {
         let records = vec![
-            record("snapshot", 1, 100, 100, QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 }),
+            record(
+                "snapshot",
+                1,
+                100,
+                100,
+                QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 },
+            ),
             record("delta", 2, 200, 200, QuantityRecordKind::Delta { quantity: 2.0 }),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
@@ -571,8 +595,20 @@ mod tests {
     #[test]
     fn snapshot_sequence_time_contradiction_fails_closed() {
         let records = vec![
-            record("snapshot-1", 1, 200, 200, QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 }),
-            record("snapshot-2", 2, 100, 300, QuantityRecordKind::CumulativeSnapshot { quantity: 14.0 }),
+            record(
+                "snapshot-1",
+                1,
+                200,
+                200,
+                QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 },
+            ),
+            record(
+                "snapshot-2",
+                2,
+                100,
+                300,
+                QuantityRecordKind::CumulativeSnapshot { quantity: 14.0 },
+            ),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("snapshot event time does not increase")));
@@ -592,7 +628,9 @@ mod tests {
             }),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("multiple applicable corrections/reversals")));
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("multiple applicable corrections/reversals")));
     }
 
     #[test]
