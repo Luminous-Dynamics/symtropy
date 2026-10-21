@@ -880,8 +880,8 @@ mod tests {
     #[test]
     fn asymmetric_request_matches_frozen_bytes_and_ignores_input_order() {
         let original = asymmetric_two_bar_truss();
-        let expected = include_str!("../fixtures/planar_truss_asymmetric_request_v0_1.txt")
-            .trim_end_matches('\n');
+        let expected =
+            include_str!("../fixtures/planar_truss_asymmetric_request_v0_1.txt").trim_end_matches('\n');
         assert_eq!(
             canonical_request("PHYS-TRUSS-ASYM-001", &original).expect("canonical asymmetric request"),
             expected
