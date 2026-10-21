@@ -300,6 +300,9 @@ jobs:
           conditioning_bin_sha256="$(sha256sum research/physical-transformation-reference/src/bin/planar-truss-conditioning.rs | awk '{print $1}')"
           lib_source_sha256="$(sha256sum research/physical-transformation-reference/src/lib.rs | awk '{print $1}')"
           cargo_manifest_sha256="$(sha256sum research/physical-transformation-reference/Cargo.toml | awk '{print $1}')"
+          cargo_lock_sha256="$(sha256sum research/physical-transformation-reference/Cargo.lock | awk '{print $1}')"
+          workflow_source_sha256="$(sha256sum .github/workflows/physical-transformation-reference.yml | awk '{print $1}')"
+          mutation_script_sha256="$(sha256sum research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh | awk '{print $1}')"
           conditioning_schema_sha256="$(sha256sum research/physical-transformation-reference/schemas/planar-truss-conditioning-receipt-v0.1.schema.json | awk '{print $1}')"
           rustc_version="$(rustc --version)"
           cargo_version="$(cargo --version)"
@@ -319,6 +322,9 @@ jobs:
             --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
             --arg lib_source_sha256 "$lib_source_sha256" \
             --arg cargo_manifest_sha256 "$cargo_manifest_sha256" \
+            --arg cargo_lock_sha256 "$cargo_lock_sha256" \
+            --arg workflow_source_sha256 "$workflow_source_sha256" \
+            --arg mutation_script_sha256 "$mutation_script_sha256" \
             --arg conditioning_schema_sha256 "$conditioning_schema_sha256" \
             --arg rustc_version "$rustc_version" \
             --arg cargo_version "$cargo_version" \
@@ -335,6 +341,9 @@ jobs:
                 planar_truss_conditioning_bin_rs: $conditioning_bin_sha256,
                 lib_rs: $lib_source_sha256,
                 cargo_toml: $cargo_manifest_sha256,
+                cargo_lock: $cargo_lock_sha256,
+                workflow_yml: $workflow_source_sha256,
+                mutation_script_sh: $mutation_script_sha256,
                 conditioning_receipt_schema_json: $conditioning_schema_sha256
               },
               source_digest_algorithm: "SHA-256 of each exact listed UTF-8 source, manifest, or schema file",
@@ -349,6 +358,9 @@ jobs:
             --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
             --arg lib_source_sha256 "$lib_source_sha256" \
             --arg cargo_manifest_sha256 "$cargo_manifest_sha256" \
+            --arg cargo_lock_sha256 "$cargo_lock_sha256" \
+            --arg workflow_source_sha256 "$workflow_source_sha256" \
+            --arg mutation_script_sha256 "$mutation_script_sha256" \
             --arg conditioning_schema_sha256 "$conditioning_schema_sha256" \
             --arg rustc_version "$rustc_version" \
             --arg cargo_version "$cargo_version" \
@@ -364,6 +376,9 @@ jobs:
             and .source_sha256.planar_truss_conditioning_bin_rs == $conditioning_bin_sha256
             and .source_sha256.lib_rs == $lib_source_sha256
             and .source_sha256.cargo_toml == $cargo_manifest_sha256
+            and .source_sha256.cargo_lock == $cargo_lock_sha256
+            and .source_sha256.workflow_yml == $workflow_source_sha256
+            and .source_sha256.mutation_script_sh == $mutation_script_sha256
             and .source_sha256.conditioning_receipt_schema_json == $conditioning_schema_sha256
             and (.source_sha256 | all(.[]; type == "string" and test("^[0-9a-f]{64}$")))
             and .evidence_class == "software-test-run"
