@@ -257,7 +257,9 @@ fn validate_source_and_method(record: &Value, prefix: &str, state: &str, errors:
     let method = text(record, "method");
     if state == "unknown" {
         if method.is_some_and(|method| method != "unavailable") {
-            errors.push(format!("{prefix}: unknown state may only use method unavailable"));
+            errors.push(format!(
+                "{prefix}: unknown state may only use method unavailable"
+            ));
         }
     } else if !nonblank(method) {
         errors.push(format!("{prefix}: known state requires method"));
@@ -337,7 +339,6 @@ mod tests {
                 .any(|error| error.contains("strictly positive minimum"))
         );
     }
-
 
     #[test]
     fn unknown_dimension_cannot_claim_a_measurement_method() {
