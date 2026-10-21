@@ -716,6 +716,27 @@ mod tests {
             .find(|design| design.design_id == report.minimax_regret_design_id)
             .expect("minimax regret choice");
         assert!(nominal.feasible && interval.feasible && minimax.feasible);
+        assert_eq!(
+            report.nominal_scenario_robust_best_design_id,
+            "add-body-prep+add-eol-test+improve-yield"
+        );
+        assert_eq!(report.interval_robust_best_design_id, "extend-buffer");
+        assert_eq!(
+            report.minimax_regret_design_id,
+            "add-body-prep+add-eol-test+improve-yield"
+        );
+        assert!((report.nominal_scenario_robust_best_gain_units_per_hour - 2.5).abs() < EPSILON);
+        assert!(
+            (interval.interval_lower_bound_worst_case_gain_units_per_hour - 0.18).abs() < EPSILON
+        );
+        assert!(
+            (nominal.interval_lower_bound_worst_case_gain_units_per_hour + 0.11).abs() < EPSILON
+        );
+        assert!(
+            (minimax.interval_robust_regret_upper_bound_units_per_hour - 6.41).abs() < EPSILON
+        );
+        assert!(report.nominal_choice_and_interval_robust_choice_differ);
+        assert!(!report.nominal_choice_and_minimax_regret_choice_differ);
         assert!(interval.interval_lower_bound_worst_case_gain_units_per_hour
             >= nominal.interval_lower_bound_worst_case_gain_units_per_hour - EPSILON);
         assert!(minimax.interval_robust_regret_upper_bound_units_per_hour
@@ -739,6 +760,9 @@ mod tests {
             .map(|gain| gain.interval_lower_bound_incremental_good_units_per_hour)
             .fold(0.0_f64, f64::max);
         assert!(candidate.interval_robust_regret_upper_bound_units_per_hour >= expected - EPSILON);
+        assert!(
+            (candidate.interval_robust_regret_upper_bound_units_per_hour - 8.88).abs() < EPSILON
+        );
     }
 
     #[test]
