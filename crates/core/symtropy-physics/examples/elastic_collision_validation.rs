@@ -237,7 +237,9 @@ mod tests {
         assert!(result.passed, "{result:?}");
         assert!((result.velocity_a_observed + 1.0).abs() <= VELOCITY_TOLERANCE);
         assert!((result.velocity_b_observed - 1.0).abs() <= VELOCITY_TOLERANCE);
-        assert!((result.kinetic_energy_final - result.kinetic_energy_initial).abs() <= ENERGY_TOLERANCE);
+        assert!(
+            (result.kinetic_energy_final - result.kinetic_energy_initial).abs() <= ENERGY_TOLERANCE
+        );
     }
 
     #[test]
