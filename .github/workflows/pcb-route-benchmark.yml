@@ -125,7 +125,6 @@ jobs:
           cp "$MANIFEST" "$OUT/synthetic-dataset-manifest.json"
           cp "$TMP/baseline.json" "$OUT/synthetic-baseline-run.json"
           cp "$TMP/treatment.json" "$OUT/synthetic-treatment-run.json"
-          cp "$OUT/replicated-comparison.json" "$OUT/replicated-comparison.json"
           mkdir -p "$OUT/replicates"
           cp "$TMP"/series-baseline/*.json "$OUT/replicates/"
           cp "$TMP"/series-treatment/*.json "$OUT/replicates/"
