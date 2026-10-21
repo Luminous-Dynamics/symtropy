@@ -19,10 +19,10 @@
     "span_m": 4,
     "apex_x_m": 1,
     "apex_height_m": 1.05e-320,
-    "axial_stiffness_a_n_per_m": 1000000000,
-    "axial_stiffness_b_n_per_m": 2000000000,
     "force_x_n": 1,
-    "force_y_n": -2
+    "force_y_n": -2,
+    "axial_rigidity_a_n": 1000000000,
+    "axial_rigidity_b_n": 2000000000
   },
   "input_bounds": {
     "schema_version": "physical-input-bounds-v0.1",
@@ -48,20 +48,6 @@
         "basis": "scenario_bound",
         "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
       },
-      "axial_stiffness_a_n_per_m": {
-        "lower": 1000000000,
-        "upper": 1000000000,
-        "unit": "N/m",
-        "basis": "scenario_bound",
-        "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
-      },
-      "axial_stiffness_b_n_per_m": {
-        "lower": 2000000000,
-        "upper": 2000000000,
-        "unit": "N/m",
-        "basis": "scenario_bound",
-        "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
-      },
       "force_x_n": {
         "lower": 1,
         "upper": 1,
@@ -72,6 +58,20 @@
       "force_y_n": {
         "lower": -2,
         "upper": -2,
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
+      },
+      "axial_rigidity_a_n": {
+        "lower": 1000000000,
+        "upper": 1000000000,
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
+      },
+      "axial_rigidity_b_n": {
+        "lower": 2000000000,
+        "upper": 2000000000,
         "unit": "N",
         "basis": "scenario_bound",
         "source_ref": "fixture-only:planar-truss-two-bar-v0.1"
