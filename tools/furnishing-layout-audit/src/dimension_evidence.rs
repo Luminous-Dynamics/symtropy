@@ -53,7 +53,10 @@ fn method_matches_state(state: &str, method: &str) -> bool {
             matches!(method, "manufacturer_specification" | "catalog_import")
         }
         "seller_estimated" => {
-            matches!(method, "seller_estimate" | "seller_dimension_note" | "photo_estimate")
+            matches!(
+                method,
+                "seller_estimate" | "seller_dimension_note" | "photo_estimate"
+            )
         }
         "nominal" => matches!(method, "design_nominal" | "catalog_nominal"),
         "unknown" => method == "unavailable",
@@ -92,7 +95,10 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
     if !nonblank(text(document, "benchmark_id")) {
         errors.push("document: missing or blank benchmark_id".to_owned());
     }
-    if !matches!(text(document, "status"), Some("synthetic_fixture" | "evidence_snapshot")) {
+    if !matches!(
+        text(document, "status"),
+        Some("synthetic_fixture" | "evidence_snapshot")
+    ) {
         errors.push("document: status must be synthetic_fixture or evidence_snapshot".to_owned());
     }
     if text(field(document, "units").unwrap_or(&Value::Null), "length") != Some("m") {
@@ -128,15 +134,21 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
         let subject_kind = text(subject, "kind");
         let subject_id = text(subject, "subject_id");
         if !matches!(subject_kind, Some("room" | "product" | "placement")) {
-            errors.push(format!("{prefix}: subject.kind must be room, product, or placement"));
+            errors.push(format!(
+                "{prefix}: subject.kind must be room, product, or placement"
+            ));
         }
         if !nonblank(subject_id) {
-            errors.push(format!("{prefix}: subject.subject_id must be a nonblank string"));
+            errors.push(format!(
+                "{prefix}: subject.subject_id must be a nonblank string"
+            ));
         }
 
         let axis = text(record, "axis");
         if !axis.is_some_and(recognized_axis) {
-            errors.push(format!("{prefix}: axis must be x, y, width, depth, or height"));
+            errors.push(format!(
+                "{prefix}: axis must be x, y, width, depth, or height"
+            ));
         }
 
         let state = text(record, "state");
@@ -173,9 +185,7 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
                         ));
                     }
                 }
-                _ => errors.push(format!(
-                    "{prefix}: bounds_m requires finite min_m <= max_m"
-                )),
+                _ => errors.push(format!("{prefix}: bounds_m requires finite min_m <= max_m")),
             }
             validate_source_and_method(record, &prefix, state, &mut errors);
         }
@@ -198,18 +208,15 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
     errors
 }
 
-fn validate_source_and_method(
-    record: &Value,
-    prefix: &str,
-    state: &str,
-    errors: &mut Vec<String>,
-) {
+fn validate_source_and_method(record: &Value, prefix: &str, state: &str, errors: &mut Vec<String>) {
     let Some(source) = field(record, "source") else {
         if state != "unknown" {
             errors.push(format!("{prefix}: known state requires source"));
             errors.push(format!("{prefix}: known state requires method"));
         } else if text(record, "method").is_some_and(|method| method != "unavailable") {
-            errors.push(format!("{prefix}: unknown state may only use method unavailable"));
+            errors.push(format!(
+                "{prefix}: unknown state may only use method unavailable"
+            ));
         }
         return;
     };
@@ -232,7 +239,10 @@ fn validate_source_and_method(
     }
 
     if let Some(digest) = text(source, "content_sha256")
-        && !(digest.len() == 64 && digest.chars().all(|character| character.is_ascii_hexdigit()))
+        && !(digest.len() == 64
+            && digest
+                .chars()
+                .all(|character| character.is_ascii_hexdigit()))
     {
         errors.push(format!(
             "{prefix}: source.content_sha256 must be 64 hexadecimal characters"
@@ -279,7 +289,11 @@ mod tests {
         let mut doc = fixture();
         doc["records"][3]["bounds_m"] = json!({"min_m": 0.5, "max_m": 0.7});
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("unknown dimensions must not contain bounds_m")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown dimensions must not contain bounds_m"))
+        );
     }
 
     #[test]
@@ -287,7 +301,11 @@ mod tests {
         let mut doc = fixture();
         doc["records"][2]["source"]["source_kind"] = json!("manufacturer_document");
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("inconsistent with state")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("inconsistent with state"))
+        );
     }
 
     #[test]
@@ -296,7 +314,11 @@ mod tests {
         let first_id = doc["records"][0]["evidence_id"].clone();
         doc["records"][1]["evidence_id"] = first_id;
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("duplicate evidence_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate evidence_id"))
+        );
     }
 
     #[test]
@@ -304,7 +326,11 @@ mod tests {
         let mut doc = fixture();
         doc["records"][0]["bounds_m"]["min_m"] = json!(0.0);
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("strictly positive minimum")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("strictly positive minimum"))
+        );
     }
 
 
@@ -313,7 +339,11 @@ mod tests {
         let mut doc = fixture();
         doc["records"][3]["method"] = json!("seller_estimate");
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("unknown state may only use method unavailable")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown state may only use method unavailable"))
+        );
     }
 
     #[test]
@@ -321,7 +351,11 @@ mod tests {
         let mut doc = fixture();
         doc["units"]["length"] = json!("feet");
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("units.length must be m")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("units.length must be m"))
+        );
     }
 
     #[test]
@@ -329,6 +363,10 @@ mod tests {
         let mut doc = fixture();
         doc["records"][0]["source"]["content_sha256"] = json!("not-a-sha256");
         let errors = audit_dimension_evidence(&doc);
-        assert!(errors.iter().any(|error| error.contains("64 hexadecimal characters")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("64 hexadecimal characters"))
+        );
     }
 }
