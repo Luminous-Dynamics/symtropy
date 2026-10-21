@@ -20,7 +20,7 @@ Let `best(s)` be the highest alternative utility in scenario `s`. For any non-em
 
 `R(S) = min_a max_{s in S} [best(s) - U_s(a)]`.
 
-For a pairwise question, scenarios are divided into left-preferred, right-preferred and indifferent groups according to the supplied model. The post-answer worst-case regret is the largest `R(S_k)` across the non-empty groups. Gross reduction is the pre-question regret minus this post-answer value. The partition cannot increase regret because each possible answer leaves a subset of the original scenario set and the decision can be re-optimized.
+For a pairwise question, scenarios are divided into left-preferred, right-preferred and indifferent groups according to the supplied model and an explicit indifference margin expressed in the same integer utility-numerator units. A zero margin means only exact utility ties are indifferent; a non-zero margin deliberately treats near-ties as indifferent. The margin is validated against the 100,000,000 maximum utility numerator and is recorded in the report—no hidden epsilon is added. The post-answer worst-case regret is the largest `R(S_k)` across the non-empty groups. Gross reduction is the pre-question regret minus this post-answer value. The partition cannot increase regret because each possible answer leaves a subset of the original scenario set and the decision can be re-optimized.
 
 The report also computes an exact Pareto frontier over:
 - maximize worst-case regret reduction;
@@ -35,14 +35,15 @@ It does not scalarize these into one score or declare one question universally b
 - Candidate revision SHA-256 syntax, receipt SHA-256 syntax and receipt-to-revision equality are checked. The receipt is not authenticated or recomputed here.
 - Criterion IDs, candidate IDs, scenario IDs and question IDs must be unique and stable.
 - Candidate scores and scenario weights must fit the declared basis-point range. Scenario weights must sum exactly to 10,000.
+- The explicitly declared indifference margin must be between zero and 100,000,000 utility-numerator units.
 - Dimensions must match, questions must reference two distinct known alternatives, and duplicate unordered pairs are rejected.
 - The finite problem has explicit bounds for objective, alternative, scenario and question counts.
 
-The model assumes answers consistent with one of the provided utility scenarios. Human answers can be noisy, context-sensitive, inconsistent, or outside the model set; v0.1 does not learn or authenticate preferences. Production use would require explicit consent, opt-in data handling, an indifference/noise policy, preference drift handling, and an appeal/change mechanism.
+The model assumes answers consistent with one of the provided utility scenarios and classifies near-ties according to the declared margin. Human answers can be noisy, context-sensitive, inconsistent, or outside the model set; v0.1 does not learn or authenticate preferences. Production use would require explicit consent, opt-in data handling, an indifference/noise policy, preference drift handling, and an appeal/change mechanism.
 
 ## Test and benchmark protocol
 
-Unit tests include a known-answer minimax-regret case, no-information cases, fail-closed verification and receipt controls, weight and dimension validation, input-order invariance and generated small instances. A separate direct reference recomputes utilities instead of reusing the production cache; every generated question's answer partition, baseline regret, post-answer regret and reduction is compared against that reference.
+Unit tests include a known-answer minimax-regret case, no-information cases, fail-closed verification and receipt controls, weight and dimension validation, input-order invariance, model-set expansion monotonicity, near-tie boundary cases and generated small instances. A separate direct reference recomputes utilities instead of reusing the production cache; every generated question's answer partition, baseline regret, post-answer regret and reduction is compared against that reference. Generated question frontiers are also checked against a separate pairwise dominance oracle.
 
 The scaling probe covers these synthetic workloads:
 
@@ -53,7 +54,7 @@ The scaling probe covers these synthetic workloads:
 | 32 | 64 | 8 | 496 |
 | 48 | 128 | 16 | 1,128 |
 
-Input generation is outside the timed region; the timed API includes validation, scenario utility construction, question evaluation, Pareto-frontier assembly and report generation. It reports p50/p95/max, sample counts, query count, minimax regret and frontier cardinality. These synthetic timings are not latency guarantees and do not measure cognitive load, preference accuracy or field outcomes. Peak memory should be added before operational scaling claims.
+The benchmark pins a non-zero explicit indifference margin. Input generation is outside the timed region; the timed API includes validation, scenario utility construction, question evaluation, Pareto-frontier assembly and report generation. It reports p50/p95/max, sample counts, query count, minimax regret and frontier cardinality. These synthetic timings are not latency guarantees and do not measure cognitive load, preference accuracy or field outcomes. Peak memory should be added before operational scaling claims.
 
 ## Research and industry comparison
 
@@ -75,4 +76,4 @@ The novelty claim here is intentionally limited: a dependency-light, exact finit
 
 ## Claim ceiling
 
-The probe computes the exact consequences of an explicit finite utility-model set. It does not establish that those models are adequate, recover any person's true values, prove layout safety/accessibility, establish a human outcome, or show external SOTA superiority. These must be evaluated separately under [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766) and [INTERIOR-E2E-EVAL-001 #2516](https://github.com/Luminous-Dynamics/symtropy/issues/2516).
+The probe computes the exact consequences of an explicit finite utility-model set and declared indifference margin. It does not establish that those models are adequate, recover any person's true values, prove layout safety/accessibility, establish a human outcome, or show external SOTA superiority. These must be evaluated separately under [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766) and [INTERIOR-E2E-EVAL-001 #2516](https://github.com/Luminous-Dynamics/symtropy/issues/2516).
