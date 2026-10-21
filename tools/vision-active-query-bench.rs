@@ -713,6 +713,12 @@ struct Outcome {
 struct RunResult {
     outcome: Outcome,
     actions: Vec<usize>,
+    // Post-run estimates are evaluator-readable only after the policy finishes.
+    // They are not present in action-selection inputs.
+    estimated_delay_distribution: [f64; 6],
+    estimated_distractor_probability: f64,
+    total_nuisance_observations: u64,
+    exact_delay_samples: u64,
 }
 
 fn run_policy(episode: &ActiveEpisode, kind: PolicyKind, seed: u64) -> RunResult {
@@ -789,6 +795,10 @@ fn run_policy_with_budget_and_stop_cost(
             estimated_scoring_work_units: policy.estimated_scoring_work_units,
         },
         actions,
+        estimated_delay_distribution: policy.adaptive_delay_priors().map(|(_, probability)| probability),
+        estimated_distractor_probability: policy.adaptive_distractor_probability(),
+        total_nuisance_observations: policy.observed_response_count,
+        exact_delay_samples: policy.observed_delay_samples,
     }
 }
 
@@ -1516,12 +1526,78 @@ fn report_value_calibration() {
     }
 }
 
+fn report_nuisance_adaptation() {
+    println!("NUISANCE_ADAPTATION\tfamily\tepisodes\tmean_exact_delay_samples\tmean_total_responses\tdelay_distribution_mae\tdelay_mae_bootstrap95_lo\tdelay_mae_bootstrap95_hi\tdistractor_rate_abs_error\tdistractor_abs_bootstrap95_lo\tdistractor_abs_bootstrap95_hi\tdistractor_rate_signed_bias\tdistractor_bias_bootstrap95_lo\tdistractor_bias_bootstrap95_hi");
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        let mut delay_mae_by_episode = Vec::new();
+        let mut distractor_abs_error_by_episode = Vec::new();
+        let mut distractor_signed_error_by_episode = Vec::new();
+        let mut exact_delay_samples = Vec::new();
+        let mut total_observations = Vec::new();
+
+        for replicate in 0..REPLICATES {
+            for pair in 0..PAIRS {
+                let seed = seed_for(replicate, pair, family);
+                let episode = ActiveEpisode::generate(seed, family);
+                let run = run_policy(
+                    &episode,
+                    PolicyKind::OnlineAdaptiveValue,
+                    mix64(seed ^ 0x4E55_4953_414E_4345),
+                );
+                let target_delays: [f64; 6] = std::array::from_fn(|delay| {
+                    if delay <= episode.profile.max_delay {
+                        1.0 / (episode.profile.max_delay as f64 + 1.0)
+                    } else {
+                        0.0
+                    }
+                });
+                let delay_mae = run.estimated_delay_distribution.iter()
+                    .zip(target_delays.iter())
+                    .map(|(estimated, target)| (estimated - target).abs())
+                    .sum::<f64>() / 6.0;
+                let true_distractor = episode.profile.distractor_rate as f64 / 1_000.0;
+                delay_mae_by_episode.push(delay_mae);
+                distractor_signed_error_by_episode.push(
+                    run.estimated_distractor_probability - true_distractor
+                );
+                distractor_abs_error_by_episode.push(
+                    (run.estimated_distractor_probability - true_distractor).abs()
+                );
+                exact_delay_samples.push(run.exact_delay_samples as f64);
+                total_observations.push(run.total_nuisance_observations as f64);
+            }
+        }
+
+        let episodes = delay_mae_by_episode.len();
+        let delay_mae = delay_mae_by_episode.iter().sum::<f64>() / episodes.max(1) as f64;
+        let distractor_abs = distractor_abs_error_by_episode.iter().sum::<f64>()
+            / episodes.max(1) as f64;
+        let distractor_bias = distractor_signed_error_by_episode.iter().sum::<f64>()
+            / episodes.max(1) as f64;
+        let mean_exact = exact_delay_samples.iter().sum::<f64>() / episodes.max(1) as f64;
+        let mean_total = total_observations.iter().sum::<f64>() / episodes.max(1) as f64;
+        let seed = mix64(ROOT_SEED ^ 0x4E55_4953_414E_4345
+            ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB));
+        let (delay_lo, delay_hi) = bootstrap_ci(&delay_mae_by_episode, seed);
+        let (abs_lo, abs_hi) = bootstrap_ci(
+            &distractor_abs_error_by_episode, mix64(seed ^ 0xD1B5_4A32_D192_ED03)
+        );
+        let (bias_lo, bias_hi) = bootstrap_ci(
+            &distractor_signed_error_by_episode, mix64(seed ^ 0xBF58_476D_1CE4_E5B9)
+        );
+        println!("NUISANCE_ADAPTATION\t{}\t{}\t{:.3}\t{:.3}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}",
+            family.name(), episodes, mean_exact, mean_total, delay_mae, delay_lo, delay_hi,
+            distractor_abs, abs_lo, abs_hi, distractor_bias, bias_lo, bias_hi);
+    }
+}
+
 fn main() {
     report();
     report_budget_frontier();
     report_stop_cost_sensitivity();
     report_marginal_value_stop();
     report_value_calibration();
+    report_nuisance_adaptation();
 }
 
 #[cfg(test)]
