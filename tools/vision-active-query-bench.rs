@@ -1252,10 +1252,17 @@ fn report_value_calibration() {
             let realizations = &realized_by_episode[stratum];
             let errors = &errors_by_episode[stratum];
             let abs_gaps = &abs_gap_by_episode[stratum];
-            let mean_predicted = predictions.iter().sum::<f64>() / predictions.len().max(1) as f64;
-            let mean_realized = realizations.iter().sum::<f64>() / realizations.len().max(1) as f64;
-            let mean_error = errors.iter().sum::<f64>() / errors.len().max(1) as f64;
-            let mean_abs_gap = abs_gaps.iter().sum::<f64>() / abs_gaps.len().max(1) as f64;
+            if errors.is_empty() {
+                // Some strata are impossible by design in a family, e.g. delay > 2
+                // in development. Emit NA, never a synthetic zero or empty bootstrap.
+                println!("VALUE_CALIBRATION\t{}\t{}\t0\t0\tNA\tNA\tNA\tNA\tNA\tNA",
+                    family.name(), VALUE_CALIBRATION_STRATA[stratum]);
+                continue;
+            }
+            let mean_predicted = predictions.iter().sum::<f64>() / predictions.len() as f64;
+            let mean_realized = realizations.iter().sum::<f64>() / realizations.len() as f64;
+            let mean_error = errors.iter().sum::<f64>() / errors.len() as f64;
+            let mean_abs_gap = abs_gaps.iter().sum::<f64>() / abs_gaps.len() as f64;
             let ci_seed = mix64(ROOT_SEED
                 ^ 0x5641_4C43_414C_4942
                 ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
