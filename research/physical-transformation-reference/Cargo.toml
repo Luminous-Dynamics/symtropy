@@ -25,4 +25,8 @@ path = "src/bin/modal-bar-reference.rs"
 name = "nafems-nbc05-modal-reference"
 path = "src/bin/nafems-nbc05-modal-reference.rs"
 
+[[bin]]
+name = "beam-pin-modal-reference"
+path = "src/bin/beam-pin-modal-reference.rs"
+
 [workspace]
