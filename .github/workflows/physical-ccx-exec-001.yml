@@ -53,7 +53,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             build-essential gfortran make curl tar bzip2 ca-certificates \
-            diffutils file binutils jq perl python3 coreutils
+            diffutils file binutils jq perl python3 coreutils git patch
 
       - name: Checkout exact Symtropy source head
         uses: actions/checkout@v4
@@ -219,6 +219,18 @@ jobs:
           jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
             "$OUT/request-validation.json" >/dev/null
 
+          # Validate each exact request independently. Validation is a preflight, not solver evidence.
+          for n in 2 4; do
+            CASE_REQUEST="$FIX/request-n${n}.json"
+            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+              --request "$CASE_REQUEST" --validator-revision "$source_sha" \
+              > "$OUT/request-validation-n${n}.json"
+            jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
+              "$OUT/request-validation-n${n}.json" >/dev/null
+            cp "$CASE_REQUEST" "$OUT/request-n${n}.json"
+          done
+          cp "$FIX/request.json" "$OUT/request-n1.json"
+
           run_ccx() {
             local name="$1"
             local deck="$2"
@@ -260,8 +272,25 @@ jobs:
               cat "$run_dir/process.log" >&2
               return 1
             fi
-            test -s "$run_dir/model.dat"
-            test -s "$run_dir/model.frd"
+            if [ ! -s "$run_dir/model.dat" ] || [ ! -s "$run_dir/model.frd" ]; then
+              jq -n --arg name "$name" --arg source_sha "$source_sha" \
+                --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
+                --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
+                --argjson dat_present "$(test -s "$run_dir/model.dat" && echo true || echo false)" \
+                --argjson frd_present "$(test -s "$run_dir/model.frd" && echo true || echo false)" \
+                '{
+                  schema_version:"calculix-process-receipt-v0.1",
+                  case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
+                  solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
+                  process_exit_status:0,dat_output_present:$dat_present,
+                  frd_output_present:$frd_present,process_status:"FAIL",
+                  failure_reason:"successful exit without required .dat and .frd outputs",
+                  solver_execution_attested_by_this_receipt:false,
+                  physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
+                }' > "$run_dir/failure-process-receipt.json"
+              echo "CCX case $name exited zero but lacked required outputs" >&2
+              return 1
+            fi
             jq -n --arg name "$name" --arg source_sha "$source_sha" \
               --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
               --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
@@ -288,18 +317,6 @@ jobs:
           # An independent execution repeat and RF-only execution use the exact one-element request.
           run_ccx "n1-u-repeat" "$FIX/bar-n1-u.inp" "$FIX/request.json"
           run_ccx "n1-rf" "$FIX/bar-n1-rf.inp" "$FIX/request.json"
-
-          # Validate each exact request independently. Validation is a preflight, not solver evidence.
-          for n in 2 4; do
-            CASE_REQUEST="$FIX/request-n${n}.json"
-            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
-              --request "$CASE_REQUEST" --validator-revision "$source_sha" \
-              > "$OUT/request-validation-n${n}.json"
-            jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
-              "$OUT/request-validation-n${n}.json" >/dev/null
-            cp "$CASE_REQUEST" "$OUT/request-n${n}.json"
-          done
-          cp "$FIX/request.json" "$OUT/request-n1.json"
 
           build="$ROOT/build-manifest.json"
           for n in 1 2 4; do
