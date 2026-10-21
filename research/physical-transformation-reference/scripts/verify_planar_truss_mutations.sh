@@ -52,7 +52,7 @@ run_mutation() {
       ;;
     truss_energy_omits_half_factor)
       grep -Fq 'let contribution = 0.5 * bar.axial_force_n * bar.axial_extension_m;' "$source"
-      perl -0pi -e 's/let contribution = 0.5 \\* bar\\.axial_force_n \\* bar\\.axial_extension_m;/let contribution = bar.axial_force_n * bar.axial_extension_m;/' "$source"
+      perl -0pi -e 's/let contribution = 0.5 \* bar\.axial_force_n \* bar\.axial_extension_m;/let contribution = bar.axial_force_n * bar.axial_extension_m;/' "$source"
       grep -Fq 'let contribution = bar.axial_force_n * bar.axial_extension_m;' "$source"
       ;;
     support_reaction_sign)
