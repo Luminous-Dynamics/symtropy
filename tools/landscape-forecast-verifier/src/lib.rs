@@ -148,6 +148,13 @@ pub struct MetricSummary {
     pub interval_coverage: f64,
     pub mean_interval_width: f64,
     pub mean_interval_score: f64,
+    pub unit_macro_bias: f64,
+    pub unit_macro_mae: f64,
+    pub unit_macro_rmse: f64,
+    pub unit_macro_baseline_mae: f64,
+    pub unit_macro_mae_skill_score: Option<f64>,
+    pub unit_macro_interval_coverage: f64,
+    pub unit_macro_interval_score: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -478,11 +485,46 @@ pub fn evaluate_fixture(
         let interval_coverage = covered_count as f64 / n;
         let mean_interval_width = rows.iter().map(|row| row.7).sum::<f64>() / n;
         let mean_interval_score = rows.iter().map(|row| row.8).sum::<f64>() / n;
-        let independent_unit_count = rows
-            .iter()
-            .map(|row| row.1.as_str())
-            .collect::<BTreeSet<_>>()
-            .len();
+        let mut by_unit: BTreeMap<&str, Vec<&GroupRow>> = BTreeMap::new();
+        for row in &rows {
+            by_unit.entry(row.1.as_str()).or_default().push(row);
+        }
+        let independent_unit_count = by_unit.len();
+        let unit_count = independent_unit_count as f64;
+        let unit_macro_bias = by_unit
+            .values()
+            .map(|unit_rows| unit_rows.iter().map(|row| row.2).sum::<f64>() / unit_rows.len() as f64)
+            .sum::<f64>()
+            / unit_count;
+        let unit_macro_mae = by_unit
+            .values()
+            .map(|unit_rows| unit_rows.iter().map(|row| row.3).sum::<f64>() / unit_rows.len() as f64)
+            .sum::<f64>()
+            / unit_count;
+        let unit_macro_rmse = by_unit
+            .values()
+            .map(|unit_rows| {
+                (unit_rows.iter().map(|row| row.4).sum::<f64>() / unit_rows.len() as f64).sqrt()
+            })
+            .sum::<f64>()
+            / unit_count;
+        let unit_macro_baseline_mae = by_unit
+            .values()
+            .map(|unit_rows| unit_rows.iter().map(|row| row.6).sum::<f64>() / unit_rows.len() as f64)
+            .sum::<f64>()
+            / unit_count;
+        let unit_macro_interval_coverage = by_unit
+            .values()
+            .map(|unit_rows| {
+                unit_rows.iter().filter(|row| row.5).count() as f64 / unit_rows.len() as f64
+            })
+            .sum::<f64>()
+            / unit_count;
+        let unit_macro_interval_score = by_unit
+            .values()
+            .map(|unit_rows| unit_rows.iter().map(|row| row.8).sum::<f64>() / unit_rows.len() as f64)
+            .sum::<f64>()
+            / unit_count;
         let interval_level = key.interval_level_micros as f64 / 1_000_000.0;
 
         metric_summaries.push(MetricSummary {
@@ -508,6 +550,17 @@ pub fn evaluate_fixture(
             interval_coverage: rounded(interval_coverage),
             mean_interval_width: rounded(mean_interval_width),
             mean_interval_score: rounded(mean_interval_score),
+            unit_macro_bias: rounded(unit_macro_bias),
+            unit_macro_mae: rounded(unit_macro_mae),
+            unit_macro_rmse: rounded(unit_macro_rmse),
+            unit_macro_baseline_mae: rounded(unit_macro_baseline_mae),
+            unit_macro_mae_skill_score: if unit_macro_baseline_mae > f64::EPSILON {
+                Some(rounded(1.0 - unit_macro_mae / unit_macro_baseline_mae))
+            } else {
+                None
+            },
+            unit_macro_interval_coverage: rounded(unit_macro_interval_coverage),
+            unit_macro_interval_score: rounded(unit_macro_interval_score),
         });
     }
 
@@ -618,6 +671,36 @@ mod tests {
         close(heat.mean_interval_score, 3.366666667);
         close(water.mean_interval_score, 0.766666667);
         close(ecology.mean_interval_score, 22.666666667);
+    }
+
+    #[test]
+    fn independent_unit_macro_metrics_prevent_oversampled_sites_from_domination() {
+        let mut fixture = fixture();
+        let mut repeated = fixture
+            .cases
+            .iter()
+            .find(|case| case.case_id == "heat-001")
+            .expect("known heat case")
+            .clone();
+        repeated.case_id = "heat-004-oversampled-site".to_owned();
+        repeated.independent_unit_id = "synthetic-site-a".to_owned();
+        repeated.prediction.mean = 8.0;
+        repeated.prediction.lower = 7.0;
+        repeated.prediction.upper = 9.0;
+        fixture.cases.push(repeated);
+
+        let bytes = serde_json::to_vec(&fixture).expect("serialize repeated-unit fixture");
+        let report = evaluate_fixture(&fixture, &bytes).expect("repeated-unit fixture is valid");
+        let heat = report
+            .metric_summaries
+            .iter()
+            .find(|summary| summary.metric_id == "surface_temperature_delta")
+            .expect("heat summary");
+        assert_eq!(heat.sample_count, 4);
+        assert_eq!(heat.independent_unit_count, 3);
+        close(heat.mae, 3.025);
+        close(heat.unit_macro_mae, 7.0 / 3.0);
+        assert!(heat.unit_macro_mae < heat.mae);
     }
 
     #[test]
