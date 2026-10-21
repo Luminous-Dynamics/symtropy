@@ -483,12 +483,20 @@ impl PolicyState {
                 }
             }
             PolicyKind::MarginalValueStop => {
-                let scores = self.expected_task_loss_reduction_scores(tick);
-                let best_marginal_value = scores.iter().copied().fold(0.0_f64, f64::max);
-                if best_marginal_value <= self.stop_cost_per_observation {
-                    QUERY_COUNT // stop if the best estimated next-observation value does not pay its cost
+                // A majority query has complementary information value: one claim can
+                // look non-pivotal while the other claims remain completely unknown.
+                // Guarantee one relevant observation per query claim before testing the
+                // myopic stop rule, rather than stopping immediately at the symmetric prior.
+                if let Some(index) = self.relevant_counts.iter().position(|count| *count == 0) {
+                    index
                 } else {
-                    Self::tie_break(scores, tick)
+                    let scores = self.expected_task_loss_reduction_scores(tick);
+                    let best_marginal_value = scores.iter().copied().fold(0.0_f64, f64::max);
+                    if best_marginal_value <= self.stop_cost_per_observation {
+                        QUERY_COUNT // stop if the best estimated next-observation value does not pay its cost
+                    } else {
+                        Self::tie_break(scores, tick)
+                    }
                 }
             }
         };
@@ -1199,6 +1207,7 @@ mod tests {
     #[test]
     fn marginal_value_stop_uses_a_counterfactual_value_cost_rule() {
         let mut state = PolicyState::new(PolicyKind::MarginalValueStop, 18);
+        state.relevant_counts = [1; QUERY_COUNT];
         state.stop_cost_per_observation = 0.25;
         assert_eq!(state.choose_action(0), QUERY_COUNT);
 
