@@ -43,15 +43,21 @@ The tests use an explicitly declared comparison rule: relative tolerance (10^{-1
 
 ## Mutation-sensitivity gate
 
-The CI script `research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh` tests whether selected metamorphic cases can detect concrete defects. It makes temporary copies of the crate and applies one source mutation per copy:
+The CI script `research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh` checks whether selected metamorphic cases detect six concrete formula defects. It first runs the unmodified metamorphic suite as a passing control, then makes a fresh temporary copy of the crate for each single source mutation:
 
 | Mutation | Expected detecting test | Failure mechanism |
 |---|---|---|
-| Axial extension uses force times length-squared instead of force times length | `axial_bar_obeys_force_homogeneity_and_geometric_scaling` | Geometric-similarity extension ratio no longer matches the inverse length scale. |
-| Cantilever tip deflection uses length-squared instead of length-cubed | `cantilever_obeys_force_span_and_stiffness_scaling` | Span-doubling response no longer scales cubically. |
-| Simply-supported beam deflection uses length-cubed instead of length-to-the-fourth | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Span-doubling response no longer scales to the fourth power. |
+| Axial extension uses force times length-squared instead of force times length | `axial_bar_obeys_force_homogeneity_and_geometric_scaling` | Geometric-similarity extension no longer has the expected inverse length scaling. |
+| Axial stress divides by area-squared instead of area | `axial_bar_obeys_force_homogeneity_and_geometric_scaling` | Stress no longer scales inversely with area under geometric similarity. |
+| Cantilever tip deflection uses length-squared instead of length-cubed | `cantilever_obeys_force_span_and_stiffness_scaling` | Span response no longer scales cubically. |
+| Cantilever deflection omits Young's modulus from the flexural denominator | `cantilever_obeys_force_span_and_stiffness_scaling` | Doubling modulus and second moment no longer reduces deflection by the expected factor. |
+| Simply-supported beam deflection uses length-cubed instead of length-to-the-fourth | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Span response no longer scales to the fourth power. |
+| Simply-supported beam stress is incorrectly divided by Young's modulus | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Stress changes when modulus changes, violating the model's stress/modulus independence relation. |
 
-The script passes only when each named test is observed to fail in its deliberately mutated copy. Compilation errors or unrelated cargo failures do not count as killing a mutation. All mutations are confined to temporary copies and are deleted on exit. This is a small targeted mutation set, not a general mutation score: it does not show every possible defect is detected, does not validate physical assumptions, and does not replace the frozen independent known-answer tests.
+A mutation counts as detected only if the specifically named test is reported as failed. A passing mutant, compile failure, unrelated Cargo failure, or missing expected failure marker fails the audit. Every mutation is confined to a temporary copy; the unmodified working tree remains authoritative.
+
+The script writes `mutation-sensitivity-receipt.json` with the exact source commit, SHA-256 hashes for the tested mechanics and metamorphic files, Rust/Cargo versions, passing baseline-control disposition, stable mutation IDs and individual dispositions. CI publishes it beside the existing synthetic reference receipt. The summary counters apply only to this six-mutant set: they are not a general mutation score and do not establish that all plausible defects are detectable. This layer remains software-test sensitivity, not physical validation; it does not replace frozen independent known-answer tests.
+
 
 ## Acceptance and claim limits
 
