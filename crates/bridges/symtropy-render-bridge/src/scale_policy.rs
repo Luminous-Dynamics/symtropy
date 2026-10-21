@@ -368,6 +368,60 @@ mod tests {
     }
 
     #[test]
+    fn projected_diameter_is_invariant_under_uniform_unit_rescaling() {
+        let reference_perspective = projected_sphere_diameter_px(
+            1.0,
+            ApparentSizeProjection::Perspective {
+                viewport_height_px: 2_160,
+                vertical_fov_radians: 0.9,
+                centre_distance: 100.0,
+            },
+        )
+        .expect("reference perspective projection");
+        let reference_orthographic = projected_sphere_diameter_px(
+            1.0,
+            ApparentSizeProjection::Orthographic {
+                viewport_height_px: 2_160,
+                vertical_span: 200.0,
+            },
+        )
+        .expect("reference orthographic projection");
+
+        // The same geometry expressed in very small or very large units must
+        // project to the same pixels. The extremes deliberately make raw
+        // radius/distance squaring underflow or overflow in f64.
+        for exponent in [-180, -120, -60, 0, 60, 120, 180] {
+            let unit_scale = 10.0_f64.powi(exponent);
+            let perspective = projected_sphere_diameter_px(
+                unit_scale,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 2_160,
+                    vertical_fov_radians: 0.9,
+                    centre_distance: 100.0 * unit_scale,
+                },
+            )
+            .expect("rescaled perspective projection");
+            let orthographic = projected_sphere_diameter_px(
+                unit_scale,
+                ApparentSizeProjection::Orthographic {
+                    viewport_height_px: 2_160,
+                    vertical_span: 200.0 * unit_scale,
+                },
+            )
+            .expect("rescaled orthographic projection");
+
+            assert!(
+                (perspective - reference_perspective).abs() / reference_perspective < 1e-12,
+                "perspective result changed at 10^{exponent}: {perspective} vs {reference_perspective}"
+            );
+            assert!(
+                (orthographic - reference_orthographic).abs() / reference_orthographic < 1e-12,
+                "orthographic result changed at 10^{exponent}: {orthographic} vs {reference_orthographic}"
+            );
+        }
+    }
+
+    #[test]
     fn orthographic_diameter_matches_known_answer() {
         let diameter = projected_sphere_diameter_px(
             25.0,
