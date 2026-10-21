@@ -2354,6 +2354,18 @@ mod tests {
         assert!(validate_manifest(&manifest)
             .unwrap_err()
             .contains("source_url must use HTTPS"));
+
+        for board in &mut manifest.boards {
+            board.source_url = format!("https://example.invalid/{}", board.board_id);
+            board.license_evidence_relative_path = None;
+            board.license_evidence_url = None;
+            board.license_evidence_sha256 = None;
+        }
+        assert!(
+            validate_manifest(&manifest)
+                .unwrap_err()
+                .contains("hash-bound license-evidence path")
+        );
     }
 
     #[test]
