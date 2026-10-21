@@ -541,6 +541,7 @@ fn exact_tiny_search_recursive(
     placements: &mut Vec<Placement>,
     zones: &[ExclusionZone],
     nodes_examined: &mut usize,
+    node_budget: usize,
 ) -> ExactSearchProgress {
     if index == requests.len() {
         return ExactSearchProgress::Found;
@@ -560,7 +561,7 @@ fn exact_tiny_search_recursive(
 
     for min_y in yard.min_y..=yard.max_y - request.height {
         for min_x in yard.min_x..=yard.max_x - request.width {
-            if *nodes_examined >= EXACT_TINY_NODE_BUDGET {
+            if *nodes_examined >= node_budget {
                 return ExactSearchProgress::BudgetExceeded;
             }
             *nodes_examined += 1;
@@ -609,6 +610,7 @@ fn exact_tiny_search_recursive(
                 placements,
                 zones,
                 nodes_examined,
+                node_budget,
             ) {
                 ExactSearchProgress::Found => return ExactSearchProgress::Found,
                 ExactSearchProgress::BudgetExceeded => return ExactSearchProgress::BudgetExceeded,
@@ -625,6 +627,20 @@ fn exact_tiny_search(
     yard_bounds: Rect,
     requests: &[PlacementRequest],
     exclusion_zones: &[ExclusionZone],
+) -> Option<ExactSearchOutcome> {
+    exact_tiny_search_with_budget(
+        yard_bounds,
+        requests,
+        exclusion_zones,
+        EXACT_TINY_NODE_BUDGET,
+    )
+}
+
+fn exact_tiny_search_with_budget(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+    node_budget: usize,
 ) -> Option<ExactSearchOutcome> {
     let yard_width = i128::from(yard_bounds.max_x) - i128::from(yard_bounds.min_x);
     let yard_height = i128::from(yard_bounds.max_y) - i128::from(yard_bounds.min_y);
@@ -647,6 +663,7 @@ fn exact_tiny_search(
         &mut placements,
         exclusion_zones,
         &mut nodes_examined,
+        node_budget,
     ) {
         ExactSearchProgress::Found => {
             let mut scenario = Scenario {
@@ -1067,6 +1084,53 @@ mod tests {
         let reverse = first_fit_decreasing_bottom_left(yard(), &reversed, &[]).unwrap();
         assert_eq!(forward, reverse);
         assert!(verify(&forward).is_feasible());
+    }
+
+    #[test]
+    fn exact_fallback_distinguishes_budget_exhaustion_from_infeasibility() {
+        let requests = [
+            request("r-a", "block-a", 3, 3, 0, 10),
+            request("r-b", "block-b", 3, 3, 0, 10),
+        ];
+        let outcome = exact_tiny_search_with_budget(yard(), &requests, &[], 1).unwrap();
+        assert!(matches!(outcome, ExactSearchOutcome::BudgetExceeded(1)));
+    }
+
+    #[test]
+    fn exact_fallback_proves_tiny_impossibility_only_after_complete_search() {
+        let small_yard = Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 5,
+            max_y: 5,
+        };
+        let requests = [
+            request("r-a", "block-a", 3, 3, 0, 10),
+            request("r-b", "block-b", 3, 3, 0, 10),
+        ];
+        let errors = first_fit_portfolio(small_yard, &requests, &[]).unwrap_err();
+        assert_eq!(
+            errors[0].code,
+            BaselineErrorCode::ExactSearchProvenInfeasible
+        );
+    }
+
+    #[test]
+    fn exhausted_heuristics_outside_exact_domain_do_not_claim_infeasibility() {
+        let larger_yard = Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 6,
+            max_y: 6,
+        };
+        let requests = [
+            request("r-a", "block-a", 4, 4, 0, 10),
+            request("r-b", "block-b", 4, 4, 0, 10),
+            request("r-c", "block-c", 4, 4, 0, 10),
+            request("r-d", "block-d", 4, 4, 0, 10),
+        ];
+        let errors = first_fit_portfolio(larger_yard, &requests, &[]).unwrap_err();
+        assert_eq!(errors[0].code, BaselineErrorCode::AllPoliciesFailed);
     }
 
     #[test]
