@@ -184,6 +184,8 @@ pub struct EvaluatedCase {
     pub upstream_nonrouting_drc_after: u32,
     pub total_wirelength_mm: Option<f64>,
     pub via_count: Option<u32>,
+    pub cpu_ms: Option<u64>,
+    pub peak_memory_bytes: Option<u64>,
     pub elapsed_ms: u64,
 }
 
@@ -1228,6 +1230,8 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
         upstream_nonrouting_drc_after: case.upstream_nonrouting_drc_after,
         total_wirelength_mm: case.total_wirelength_mm,
         via_count: case.via_count,
+        cpu_ms: case.cpu_ms,
+        peak_memory_bytes: case.peak_memory_bytes,
         elapsed_ms: case.elapsed_ms,
     }
 }
@@ -2188,6 +2192,14 @@ mod tests {
         );
         assert_eq!(baseline.receipt.summary.cases_missing_cpu_ms, 2);
         assert_eq!(baseline.receipt.summary.cases_missing_peak_memory_bytes, 2);
+        let easy = baseline
+            .receipt
+            .cases
+            .iter()
+            .find(|case| case.board_id == "easy-001")
+            .expect("easy board case");
+        assert_eq!(easy.cpu_ms, Some(90));
+        assert_eq!(easy.peak_memory_bytes, Some(200_000_000));
         assert_eq!(
             baseline.receipt.summary.median_cpu_ms_all_attempts,
             Some(130.0)
