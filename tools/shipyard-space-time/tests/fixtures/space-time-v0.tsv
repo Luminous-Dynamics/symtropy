@@ -66,3 +66,11 @@ out-of-bounds-zone	yard	yard	-	rect:0,0,10,10	-	-	-	-	-
 out-of-bounds-zone	placement	p-a	block-a	rect:0,0,1,1	0	2	-	-	-
 out-of-bounds-zone	zone	zone-a	-	rect:9,1,11,2	0	2	-	-	-
 out-of-bounds-zone	expected	-	-	-	-	-	-	-	OutOfBoundsExclusionZone=1
+handoff-blocked	yard	yard	-	rect:0,0,10,10	-	-	-	-	-
+handoff-blocked	placement	p-out	block-out	rect:0,0,2,2	0	8	-	-	-
+handoff-blocked	placement	p-in	block-in	rect:0,0,2,2	5	10	-	-	-
+handoff-blocked	expected	-	-	-	-	-	-	-	BlockFootprintOverlap=1
+handoff-confirmed	yard	yard	-	rect:0,0,10,10	-	-	-	-	-
+handoff-confirmed	placement	p-out	block-out	rect:0,0,2,2	0	5	-	-	-
+handoff-confirmed	placement	p-in	block-in	rect:0,0,2,2	5	10	-	-	-
+handoff-confirmed	expected	-	-	-	-	-	-	-	-
