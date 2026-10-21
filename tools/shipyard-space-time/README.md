@@ -14,7 +14,7 @@ This is a separate nested Cargo workspace with no external dependencies. CI chec
 
 ## Paradigm shift: verify space-time feasibility from evidence, not planner assertions
 
-The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule. An empty reservation set emits `NoOperationalReservations`, so vacuous truth cannot be reported as a qualified yard plan. Missing or invalid finite yard bounds are rejected; every supported block footprint and transfer/access corridor must fit entirely inside the declared yard rectangle.
+The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule. An empty reservation set emits `NoOperationalReservations`, so vacuous truth cannot be reported as a qualified yard plan. Missing or invalid finite yard bounds are rejected; every supported block footprint, transfer/access corridor and exclusion zone must fit entirely inside the declared yard rectangle.
 
 V0 supports:
 - one explicit finite yard boundary and axis-aligned rectangular footprints on an integer coordinate lattice;
@@ -32,9 +32,9 @@ Unsupported geometry is first-class and **not feasible**. A polygon profile, unk
 
 The frozen fixture at `tests/fixtures/space-time-v0.tsv` has raw-byte SHA-256:
 
-`73b51779e5264983ae60ca1c46b7446aa4c0fd3874185daddee9327d801472c2`
+`7dc5602f8222a78926e7b3ce5386387b12e22125fd0c9b2ddbb7deecc817f1dd`
 
-It contains 18 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry, invalid time/rectangle, missing/invalid yard bounds, and out-of-bounds blocks/corridors. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
+It contains 19 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry, invalid time/rectangle, missing/invalid yard bounds, out-of-bounds blocks/corridors, and an out-of-bounds exclusion zone. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
 
 These checks provide bounded correctness evidence, not proof of arbitrary polygon geometry, general optimizer correctness, production shipyard safety or real-world throughput. The test suite must pass on the exact PR head before the milestone can be called verified.
 
