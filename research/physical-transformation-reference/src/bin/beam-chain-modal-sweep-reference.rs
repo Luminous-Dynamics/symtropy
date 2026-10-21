@@ -11,11 +11,17 @@ use physical_transformation_reference::beam_pin_assembly::{
     BeamMemberChain, BeamPinNode, assemble_released_joint_beam_chains,
     canonical_beam_chain_sweep_request,
 };
+use physical_transformation_reference::modal_subspace::{
+    cluster_mode_frequencies_hz, mass_weighted_modal_subspace_comparison,
+};
 use std::env;
 use std::process::ExitCode;
 
-const FROZEN_REQUEST: &str = include_str!("../../fixtures/beam_chain_sweep_request_v0_1.txt");
+const FROZEN_REQUEST: &str =
+    include_str!("../../fixtures/beam_chain_subspace_sweep_request_v0_1.txt");
 const ELEMENT_COUNTS: [usize; 4] = [1, 2, 4, 8];
+const SAMPLE_POINTS_PER_MEMBER: usize = 17;
+const FREQUENCY_CLUSTER_RELATIVE_GAP: f64 = 1.0e-3;
 
 fn main() -> ExitCode {
     match run() {
@@ -34,10 +40,14 @@ fn run() -> Result<String, String> {
     let source_commit = parse_source_commit()?;
     let nodes = fixture_nodes();
     let templates = fixture_members(1);
-    let request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
+    let base_request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
+    let request = format!(
+        "{base_request}|sample_points_per_member={SAMPLE_POINTS_PER_MEMBER}|frequency_cluster_relative_gap={FREQUENCY_CLUSTER_RELATIVE_GAP:.3}|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches"
+    );
     if request != FROZEN_REQUEST.trim_end_matches('\n') {
-        return Err("canonical mesh-sweep request differs from frozen fixture".to_owned());
+        return Err("canonical mesh-sweep/subspace request differs from frozen fixture".to_owned());
     }
+    let sampled_mass = sampled_shape_mass_matrix(&nodes, &templates, SAMPLE_POINTS_PER_MEMBER)?;
 
     let mut mesh_receipts = Vec::with_capacity(ELEMENT_COUNTS.len());
     let mut previous_frequencies: Option<Vec<f64>> = None;
@@ -83,7 +93,13 @@ fn run() -> Result<String, String> {
             .modes
             .iter()
             .take(6)
-            .map(|mode| sample_beam_chain_mode_on_fixed_grid(&nodes, &members, &assembly, mode, 17))
+            .map(|mode| sample_beam_chain_mode_on_fixed_grid(
+                    &nodes,
+                    &members,
+                    &assembly,
+                    mode,
+                    SAMPLE_POINTS_PER_MEMBER,
+                ))
             .collect::<Result<Vec<_>, _>>()?;
         if current_sampled_modes.len() != 6 {
             return Err("each mesh must provide six modes for the low-mode MAC grid".to_owned());
@@ -105,6 +121,18 @@ fn run() -> Result<String, String> {
         } else {
             None
         };
+        let cluster_comparison = match (&previous_frequencies, &previous_sampled_modes) {
+            (Some(previous_frequency_values), Some(previous_modes)) => Some(
+                cluster_subspace_comparison_json(
+                    &previous_frequency_values[..6],
+                    &current_frequencies[..6],
+                    previous_modes,
+                    &current_sampled_modes,
+                    &sampled_mass,
+                )?,
+            ),
+            _ => None,
+        };
         mesh_receipts.push(mesh_json(
             elements_per_member,
             assembly.stiffness_global.len(),
@@ -112,6 +140,7 @@ fn run() -> Result<String, String> {
             &result,
             previous_frequencies.as_deref(),
             mac_matrix.as_deref(),
+            cluster_comparison.as_deref(),
         ));
         previous_frequencies = Some(current_frequencies);
         previous_sampled_modes = Some(current_sampled_modes);
@@ -186,6 +215,7 @@ fn mesh_json(
     result: &physical_transformation_reference::beam_modal::BeamModalResult,
     previous_frequencies: Option<&[f64]>,
     mac_matrix: Option<&[Vec<f64>]>,
+    cluster_comparison: Option<&str>,
 ) -> String {
     let frequencies = result
         .modes
@@ -229,9 +259,9 @@ fn mesh_json(
         .map(float_json)
         .unwrap_or_else(|| "null".to_owned());
     let mac_matrix_json = mac_matrix
-        .as_ref()
-        .map(|matrix| f64_matrix_json(matrix))
+        .map(f64_matrix_json)
         .unwrap_or_else(|| "null".to_owned());
+    let cluster_comparison_json = cluster_comparison.unwrap_or("null");
     format!(
         concat!(
             "{{",
@@ -245,7 +275,8 @@ fn mesh_json(
             "\"frequencies_hz\":[{}],",
             "\"common_low_mode_frequency_relative_changes_from_previous_mesh\":{},",
             "\"max_common_low_mode_frequency_relative_change\":{},",
-            "\"mode_shape_mac_low_six_from_previous_mesh\":{}",
+            "\"mode_shape_mac_low_six_from_previous_mesh\":{},",
+            "\"clustered_mode_subspace_comparison_from_previous_mesh\":{}",
             "}}"
         ),
         elements_per_member,
@@ -259,6 +290,164 @@ fn mesh_json(
         relative_changes_json,
         maximum_relative_change_json,
         mac_matrix_json,
+        cluster_comparison_json,
+    )
+}
+
+fn sampled_shape_mass_matrix(
+    nodes: &[BeamPinNode],
+    members: &[BeamMemberChain],
+    sample_points_per_member: usize,
+) -> Result<Vec<Vec<f64>>, String> {
+    if sample_points_per_member < 2 {
+        return Err("shape-mass quadrature requires at least two sample points".to_owned());
+    }
+    let mut ordered_members = members.to_vec();
+    ordered_members.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut diagonal = Vec::with_capacity(ordered_members.len() * sample_points_per_member * 2);
+    for member in &ordered_members {
+        let start = nodes
+            .iter()
+            .find(|node| node.id == member.start_node_id)
+            .ok_or_else(|| format!("missing start node {}", member.start_node_id))?;
+        let end = nodes
+            .iter()
+            .find(|node| node.id == member.end_node_id)
+            .ok_or_else(|| format!("missing end node {}", member.end_node_id))?;
+        let length_m = (end.x_m - start.x_m).hypot(end.y_m - start.y_m);
+        let total_mass_kg = member.density_kg_m3 * member.area_m2 * length_m;
+        if !length_m.is_finite()
+            || length_m <= 0.0
+            || !total_mass_kg.is_finite()
+            || total_mass_kg <= 0.0
+        {
+            return Err(format!("invalid sampled line-mass inputs for member {}", member.id));
+        }
+        for sample_index in 0..sample_points_per_member {
+            let endpoint_weight = if sample_index == 0 || sample_index + 1 == sample_points_per_member {
+                0.5
+            } else {
+                1.0
+            };
+            let weight =
+                total_mass_kg * endpoint_weight / (sample_points_per_member - 1) as f64;
+            diagonal.push(weight);
+            diagonal.push(weight);
+        }
+    }
+
+    if diagonal.iter().any(|weight| !weight.is_finite() || *weight <= 0.0) {
+        return Err("sampled shape-mass quadrature generated an invalid weight".to_owned());
+    }
+    let size = diagonal.len();
+    let mut mass = vec![vec![0.0; size]; size];
+    for (index, weight) in diagonal.into_iter().enumerate() {
+        mass[index][index] = weight;
+    }
+    Ok(mass)
+}
+
+fn cluster_subspace_comparison_json(
+    previous_frequencies: &[f64],
+    current_frequencies: &[f64],
+    previous_sampled_modes: &[Vec<f64>],
+    current_sampled_modes: &[Vec<f64>],
+    sampled_mass: &[Vec<f64>],
+) -> Result<String, String> {
+    if previous_frequencies.len() != 6
+        || current_frequencies.len() != 6
+        || previous_sampled_modes.len() != 6
+        || current_sampled_modes.len() != 6
+    {
+        return Err("cluster comparison expects exactly six common low modes".to_owned());
+    }
+    let previous_clusters = cluster_mode_frequencies_hz(
+        previous_frequencies,
+        FREQUENCY_CLUSTER_RELATIVE_GAP,
+    )?;
+    let current_clusters = cluster_mode_frequencies_hz(
+        current_frequencies,
+        FREQUENCY_CLUSTER_RELATIVE_GAP,
+    )?;
+    let previous_json = cluster_ranges_json(&previous_clusters);
+    let current_json = cluster_ranges_json(&current_clusters);
+    if previous_clusters != current_clusters {
+        return Ok(format!(
+            concat!(
+                "{{",
+                "\"status\":\"abstain-cluster-partition-changed\",",
+                "\"relative_gap_tolerance\":{},",
+                "\"previous_clusters\":{},",
+                "\"current_clusters\":{},",
+                "\"comparisons\":[]",
+                "}}"
+            ),
+            float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+            previous_json,
+            current_json,
+        ));
+    }
+
+    let mut comparisons = Vec::with_capacity(previous_clusters.len());
+    for range in &previous_clusters {
+        let comparison = mass_weighted_modal_subspace_comparison(
+            &previous_sampled_modes[range.clone()].to_vec(),
+            &current_sampled_modes[range.clone()].to_vec(),
+            sampled_mass,
+        )?;
+        let values_json = format!(
+            "[{}]",
+            comparison
+                .principal_mac_values
+                .iter()
+                .map(|value| float_json(*value))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        comparisons.push(format!(
+            concat!(
+                "{{",
+                "\"mode_indices\":[{},{}],",
+                "\"multiplicity\":{},",
+                "\"principal_mac_values\":{},",
+                "\"worst_principal_mac\":{},",
+                "\"mean_principal_mac\":{}",
+                "}}"
+            ),
+            range.start,
+            range.end,
+            range.len(),
+            values_json,
+            float_json(comparison.worst_principal_mac),
+            float_json(comparison.mean_principal_mac),
+        ));
+    }
+    Ok(format!(
+        concat!(
+            "{{",
+            "\"status\":\"compared\",",
+            "\"relative_gap_tolerance\":{},",
+            "\"previous_clusters\":{},",
+            "\"current_clusters\":{},",
+            "\"matching_policy\":\"same sorted-rank ranges only; abstain if partition changes\",",
+            "\"comparisons\":[{}]",
+            "}}"
+        ),
+        float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+        previous_json,
+        current_json,
+        comparisons.join(","),
+    ))
+}
+
+fn cluster_ranges_json(ranges: &[std::ops::Range<usize>]) -> String {
+    format!(
+        "[{}]",
+        ranges
+            .iter()
+            .map(|range| format!("[{},{}]", range.start, range.end))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
