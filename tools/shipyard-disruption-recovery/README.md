@@ -32,7 +32,7 @@ Already-completed reservations (end tick at or before the disruption observation
 
 ## Tests authored in V0
 
-Ten unit tests cover:
+Eleven unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -42,7 +42,8 @@ Ten unit tests cover:
 7. a delayed block handoff that keeps the departing footprint occupied and requires relocation of the incoming block;
 8. rejection of clearance extensions received after the scheduled reservation is considered complete;
 9. rejection of unknown extension targets;
-10. rejection when a candidate removes or moves the physical footprint that is still occupied.
+10. rejection when a candidate removes or moves the physical footprint that is still occupied;
+11. computing makespan and recovery horizon from the clearance-extended effective state, not the stale planned end time.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
