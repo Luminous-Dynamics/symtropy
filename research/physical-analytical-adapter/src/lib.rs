@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Executes only three qualified closed-form reference cases.
+//! Executes a bounded set of closed-form analytical reference cases, including
+//! a reduced two-degree-of-freedom planar-truss interval oracle.
 //!
 //! PASS means that the named formula evaluated under its declared assumptions.
 //! It is not a finding about the safety of a real structure.
@@ -31,6 +32,7 @@ enum CaseKind {
     AxialBar,
     CantileverTipLoad,
     SimplySupportedUniformLoad,
+    PlanarTrussTwoBar,
 }
 
 impl CaseKind {
@@ -39,6 +41,7 @@ impl CaseKind {
             "axial_bar" => Ok(Self::AxialBar),
             "cantilever_tip_load" => Ok(Self::CantileverTipLoad),
             "simply_supported_uniform_load" => Ok(Self::SimplySupportedUniformLoad),
+            "planar_truss_two_bar" => Ok(Self::PlanarTrussTwoBar),
             _ => Err(format!("unsupported analytical case '{id}'")),
         }
     }
@@ -48,6 +51,7 @@ impl CaseKind {
             Self::AxialBar => "axial_bar",
             Self::CantileverTipLoad => "cantilever_tip_load",
             Self::SimplySupportedUniformLoad => "simply_supported_uniform_load",
+            Self::PlanarTrussTwoBar => "planar_truss_two_bar",
         }
     }
 
@@ -58,6 +62,7 @@ impl CaseKind {
             Self::SimplySupportedUniformLoad => {
                 "small_deflection_euler_bernoulli_simply_supported_uniform_load"
             }
+            Self::PlanarTrussTwoBar => "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss",
         }
     }
 
@@ -78,6 +83,15 @@ impl CaseKind {
                 "second_moment_area_m4",
                 "outer_fiber_distance_m",
             ],
+            Self::PlanarTrussTwoBar => &[
+                "span_m",
+                "apex_x_m",
+                "apex_height_m",
+                "axial_stiffness_a_n_per_m",
+                "axial_stiffness_b_n_per_m",
+                "force_x_n",
+                "force_y_n",
+            ],
         }
     }
 
@@ -96,6 +110,18 @@ impl CaseKind {
                 "midspan_deflection_m": "m",
                 "maximum_bending_stress_pa": "Pa"
             }),
+            Self::PlanarTrussTwoBar => json!({
+                "stiffness_kxx_n_per_m": "N/m",
+                "stiffness_kxy_n_per_m": "N/m",
+                "stiffness_kyy_n_per_m": "N/m",
+                "determinant_n2_per_m2": "N^2/m^2",
+                "displacement_x_m": "m",
+                "displacement_y_m": "m",
+                "bar_a_length_m": "m",
+                "bar_b_length_m": "m",
+                "condition_infinity": "dimensionless",
+                "condition_times_machine_epsilon": "dimensionless"
+            }),
         }
     }
 
@@ -109,6 +135,9 @@ impl CaseKind {
             }
             Self::SimplySupportedUniformLoad => {
                 "Static, small-deflection, linear-elastic Euler-Bernoulli simply supported prismatic beam with constant section and uniform load across the full span. Load sign determines deflection direction; maximum bending stress is reported as a non-negative magnitude."
+            }
+            Self::PlanarTrussTwoBar => {
+                "Two-dimensional pin-jointed two-bar truss with both base supports restrained and a free apex; small-displacement linear axial elasticity; point loads applied at the free apex; the reduced free-apex 2x2 stiffness model is used. This is an analytical interval model, not a continuum finite-element or buckling model."
             }
         }
     }
@@ -305,6 +334,30 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
             Ok(json!({
                 "midspan_deflection_m": result.midspan_deflection_m,
                 "maximum_bending_stress_pa": result.maximum_bending_stress_pa
+            }))
+        }
+        CaseKind::PlanarTrussTwoBar => {
+            let point = BTreeMap::from([
+                ("span_m".to_owned(), number("span_m")?),
+                ("apex_x_m".to_owned(), number("apex_x_m")?),
+                ("apex_height_m".to_owned(), number("apex_height_m")?),
+                ("axial_stiffness_a_n_per_m".to_owned(), number("axial_stiffness_a_n_per_m")?),
+                ("axial_stiffness_b_n_per_m".to_owned(), number("axial_stiffness_b_n_per_m")?),
+                ("force_x_n".to_owned(), number("force_x_n")?),
+                ("force_y_n".to_owned(), number("force_y_n")?),
+            ]);
+            let result = uncertainty::evaluate_planar_truss_two_bar_point(&point)?;
+            Ok(json!({
+                "stiffness_kxx_n_per_m": result[0],
+                "stiffness_kxy_n_per_m": result[1],
+                "stiffness_kyy_n_per_m": result[2],
+                "determinant_n2_per_m2": result[3],
+                "displacement_x_m": result[4],
+                "displacement_y_m": result[5],
+                "bar_a_length_m": result[6],
+                "bar_b_length_m": result[7],
+                "condition_infinity": result[8],
+                "condition_times_machine_epsilon": result[9]
             }))
         }
     }
@@ -530,6 +583,9 @@ fn input_unit(key: &str) -> Option<&'static str> {
         "youngs_modulus_pa" => Some("Pa"),
         "second_moment_area_m4" => Some("m^4"),
         "outer_fiber_distance_m" => Some("m"),
+        "span_m" | "apex_x_m" | "apex_height_m" => Some("m"),
+        "axial_stiffness_a_n_per_m" | "axial_stiffness_b_n_per_m" => Some("N/m"),
+        "force_x_n" | "force_y_n" => Some("N"),
         _ => None,
     }
 }
@@ -542,6 +598,10 @@ fn is_positive_input(key: &str) -> bool {
             | "youngs_modulus_pa"
             | "second_moment_area_m4"
             | "outer_fiber_distance_m"
+            | "span_m"
+            | "apex_height_m"
+            | "axial_stiffness_a_n_per_m"
+            | "axial_stiffness_b_n_per_m"
     )
 }
 
