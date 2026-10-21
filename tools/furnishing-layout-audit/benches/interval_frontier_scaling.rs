@@ -232,8 +232,8 @@ fn run_profile(count: usize, dimensions: usize, profile: &str) {
     for (actual, expected) in initial.candidates.iter().zip(&oracle.candidates) {
         assert_eq!(actual.candidate_id, expected.candidate_id);
         assert_eq!(
-            matches!(actual.disposition, IntervalCandidateDisposition::OnFrontier),
-            matches!(expected.disposition, IntervalCandidateDisposition::OnFrontier),
+            matches!(&actual.disposition, &IntervalCandidateDisposition::OnFrontier),
+            matches!(&expected.disposition, &IntervalCandidateDisposition::OnFrontier),
             "disposition mismatch for {}",
             actual.candidate_id
         );
