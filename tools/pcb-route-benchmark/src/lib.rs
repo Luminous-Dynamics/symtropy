@@ -12,8 +12,8 @@ pub const RECEIPT_SCHEMA: &str = "pcb-route-validation-receipt-v0.1";
 pub const COMPARISON_SCHEMA: &str = "pcb-route-paired-comparison-v0.1";
 pub const BOOTSTRAP_RESAMPLES: usize = 10_000;
 
-pub mod pcbworld_metrics;
 pub mod kicad_drc;
+pub mod pcbworld_metrics;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
