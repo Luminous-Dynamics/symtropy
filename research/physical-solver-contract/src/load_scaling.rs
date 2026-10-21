@@ -702,7 +702,12 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
         let at = format!("manifest.output_pairs[{index}]");
         exact_keys(
             pair,
-            &["output_kind", "baseline_output_id", "scaled_output_id", "scaling_exponent"],
+            &[
+                "output_kind",
+                "baseline_output_id",
+                "scaled_output_id",
+                "scaling_exponent",
+            ],
             &at,
         )?;
         let kind = req_token(pair, "output_kind")?;
@@ -897,7 +902,11 @@ mod tests {
         make_bundle_with_exponent(alpha, scaled_output_multiplier, 1)
     }
 
-    fn make_bundle_with_exponent(alpha: f64, scaled_output_multiplier: f64, exponent: i32) -> Bundle {
+    fn make_bundle_with_exponent(
+        alpha: f64,
+        scaled_output_multiplier: f64,
+        exponent: i32,
+    ) -> Bundle {
         let mut baseline: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
@@ -1062,8 +1071,13 @@ mod tests {
     fn quadratic_observable_uses_explicit_squared_load_factor() {
         let report = assess(&make_bundle_with_exponent(2.0, 1.0, 2));
         assert_eq!(report["relation_status"], "PASS");
-        let results = report["output_results"][0]["observable_results"].as_array().unwrap();
-        let scaled = results.iter().find(|value| value["observable_id"] == "tip_ux").unwrap();
+        let results = report["output_results"][0]["observable_results"]
+            .as_array()
+            .unwrap();
+        let scaled = results
+            .iter()
+            .find(|value| value["observable_id"] == "tip_ux")
+            .unwrap();
         assert_eq!(scaled["expected_scaled_value"], 0.04);
         assert_eq!(scaled["status"], "PASS");
     }
