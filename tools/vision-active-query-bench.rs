@@ -1161,6 +1161,7 @@ fn report_marginal_value_stop() {
 
 fn report_value_calibration() {
     println!("VALUE_CALIBRATION\tfamily\tstratum\tepisodes\tcandidate_observations\tmean_predicted_risk_reduction\tmean_realized_belief_risk_drop\tmean_prediction_minus_realized\tbootstrap95_lo\tbootstrap95_hi\tmean_absolute_gap");
+    println!("VALUE_RANKING\tfamily\tepisodes\tdecision_states\tmean_top_action_agreement\tbootstrap95_lo\tbootstrap95_hi\tmean_pairwise_concordance\tmean_realized_one_step_regret\tregret_bootstrap95_lo\tregret_bootstrap95_hi");
     for (family_index, family) in Family::ALL.iter().copied().enumerate() {
         let mut predicted_by_episode: Vec<Vec<f64>> =
             (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
@@ -1171,6 +1172,9 @@ fn report_value_calibration() {
         let mut abs_gap_by_episode: Vec<Vec<f64>> =
             (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
         let mut observations_by_stratum = [0_u64; 7];
+        let mut top_agreement_by_episode = Vec::new();
+        let mut pairwise_concordance_by_episode = Vec::new();
+        let mut realized_regret_by_episode = Vec::new();
 
         for replicate in 0..REPLICATES {
             for pair in 0..PAIRS {
@@ -1183,6 +1187,9 @@ fn report_value_calibration() {
                     (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
                 let mut realized: Vec<Vec<f64>> =
                     (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+                let mut episode_top_matches = Vec::new();
+                let mut episode_pairwise_concordance = Vec::new();
+                let mut episode_realized_regret = Vec::new();
 
                 for tick in 0..HORIZON {
                     if VALUE_CALIBRATION_TICKS.contains(&tick) {
@@ -1191,6 +1198,7 @@ fn report_value_calibration() {
                         // after the fact; none of these alternatives are exposed to policy.
                         let scores = policy.expected_task_loss_reduction_scores(tick);
                         let before = terminal_decision_risk(policy.probabilities(HORIZON - 1));
+                        let mut realized_drops = [0.0_f64; QUERY_COUNT];
                         for action in 0..QUERY_COUNT {
                             let evidence = episode.observations[tick][action];
                             let mut counterfactual = policy.clone();
@@ -1199,6 +1207,7 @@ fn report_value_calibration() {
                                 counterfactual.probabilities(HORIZON - 1)
                             );
                             let realized_drop = before - after;
+                            realized_drops[action] = realized_drop;
                             let delay = usize::from(evidence.arrival_tick)
                                 .saturating_sub(usize::from(evidence.source_tick));
                             let relevant = evidence.key() as usize == QUERY_KEYS[action];
@@ -1219,6 +1228,38 @@ fn report_value_calibration() {
                                 }
                             }
                         }
+
+                        // Post-hoc ranking audit: which candidate actually reduced this
+                        // belief-risk proxy the most after its one sampled observation?
+                        // This is noisy realized counterfactual evidence, not an oracle
+                        // policy or an environment-task-loss estimate.
+                        let predicted_top = PolicyState::tie_break(scores, tick);
+                        let realized_top = PolicyState::tie_break(realized_drops, tick);
+                        episode_top_matches.push(f64::from(predicted_top == realized_top));
+                        episode_realized_regret.push(
+                            (realized_drops[realized_top] - realized_drops[predicted_top]).max(0.0)
+                        );
+                        let mut concordance_sum = 0.0;
+                        let mut pair_count = 0_u64;
+                        for left in 0..QUERY_COUNT {
+                            for right in (left + 1)..QUERY_COUNT {
+                                let predicted_difference = scores[left] - scores[right];
+                                let realized_difference = realized_drops[left] - realized_drops[right];
+                                let concordance = if predicted_difference.abs() <= 1e-12
+                                    || realized_difference.abs() <= 1e-12 {
+                                    0.5
+                                } else if predicted_difference * realized_difference > 0.0 {
+                                    1.0
+                                } else {
+                                    0.0
+                                };
+                                concordance_sum += concordance;
+                                pair_count += 1;
+                            }
+                        }
+                        episode_pairwise_concordance.push(
+                            concordance_sum / pair_count.max(1) as f64
+                        );
                     }
 
                     // Advance the reference policy using only its selected observation.
@@ -1227,6 +1268,19 @@ fn report_value_calibration() {
                         policy.observe(action, episode.observations[tick][action]);
                     }
                 }
+
+                top_agreement_by_episode.push(
+                    episode_top_matches.iter().sum::<f64>()
+                        / episode_top_matches.len().max(1) as f64
+                );
+                pairwise_concordance_by_episode.push(
+                    episode_pairwise_concordance.iter().sum::<f64>()
+                        / episode_pairwise_concordance.len().max(1) as f64
+                );
+                realized_regret_by_episode.push(
+                    episode_realized_regret.iter().sum::<f64>()
+                        / episode_realized_regret.len().max(1) as f64
+                );
 
                 for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
                     if predicted[stratum].is_empty() { continue; }
@@ -1273,6 +1327,28 @@ fn report_value_calibration() {
                 observations_by_stratum[stratum], mean_predicted, mean_realized,
                 mean_error, lo, hi, mean_abs_gap);
         }
+
+        let top_agreement = top_agreement_by_episode.iter().sum::<f64>()
+            / top_agreement_by_episode.len().max(1) as f64;
+        let pairwise_concordance = pairwise_concordance_by_episode.iter().sum::<f64>()
+            / pairwise_concordance_by_episode.len().max(1) as f64;
+        let realized_regret = realized_regret_by_episode.iter().sum::<f64>()
+            / realized_regret_by_episode.len().max(1) as f64;
+        let (agreement_lo, agreement_hi) = bootstrap_ci(
+            &top_agreement_by_episode,
+            mix64(ROOT_SEED ^ 0x5241_4E4B_4147_5245
+                ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)),
+        );
+        let (regret_lo, regret_hi) = bootstrap_ci(
+            &realized_regret_by_episode,
+            mix64(ROOT_SEED ^ 0x5241_4E4B_5245_4752
+                ^ (family_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)),
+        );
+        println!("VALUE_RANKING\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.6}\t{:.6}\t{:.6}",
+            family.name(), top_agreement_by_episode.len(),
+            VALUE_CALIBRATION_TICKS.len() * top_agreement_by_episode.len(),
+            top_agreement, agreement_lo, agreement_hi,
+            pairwise_concordance, realized_regret, regret_lo, regret_hi);
     }
 }
 
