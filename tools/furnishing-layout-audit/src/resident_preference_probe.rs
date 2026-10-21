@@ -755,6 +755,53 @@ mod tests {
     }
 
     #[test]
+    fn expanding_the_admissible_model_set_cannot_lower_baseline_minimax_regret() {
+        let base = ResidentPreferenceProbeRequest {
+            criterion_ids: vec![
+                "affordability".to_owned(),
+                "task_support".to_owned(),
+                "privacy".to_owned(),
+            ],
+            query_cost_unit: "effort_points".to_owned(),
+            query_duration_unit: "seconds".to_owned(),
+            alternatives: vec![
+                alternative("a-cost", &[10_000, 0, 0]),
+                alternative("b-support", &[0, 10_000, 0]),
+                alternative("c-privacy", &[0, 0, 10_000]),
+                alternative("d-balanced", &[5_000, 5_000, 0]),
+            ],
+            scenarios: vec![
+                PreferenceScenario {
+                    scenario_id: "cost".to_owned(),
+                    weights_bps: vec![10_000, 0, 0],
+                },
+                PreferenceScenario {
+                    scenario_id: "support".to_owned(),
+                    weights_bps: vec![0, 10_000, 0],
+                },
+            ],
+            questions: vec![question("ask-a-vs-b", "a-cost", "b-support", 1, 1)],
+        };
+        let base_report = compute_resident_preference_probe(&base).expect("valid base set");
+
+        let mut expanded = base.clone();
+        expanded.scenarios.push(PreferenceScenario {
+            scenario_id: "privacy".to_owned(),
+            weights_bps: vec![0, 0, 10_000],
+        });
+        let expanded_report =
+            compute_resident_preference_probe(&expanded).expect("valid expanded model set");
+
+        assert_eq!(base_report.baseline_minimax_regret_units, 50_000_000);
+        assert_eq!(expanded_report.baseline_minimax_regret_units, 100_000_000);
+        assert!(
+            expanded_report.baseline_minimax_regret_units
+                >= base_report.baseline_minimax_regret_units,
+            "adding an admissible preference model cannot reduce worst-case regret"
+        );
+    }
+
+    #[test]
     fn blocked_indeterminate_and_stale_receipts_fail_closed() {
         let mut blocked = request();
         blocked.alternatives[0].hard_feasibility = VerificationStatus::Blocked;
