@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/furnishing-spatial-index-benchmark-v0-3-20261020
+      - feat/interior-counterfactual-repair-v0-1-20261021-ready
   pull_request:
     branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020"]
     types: [opened, synchronize, reopened, ready_for_review]

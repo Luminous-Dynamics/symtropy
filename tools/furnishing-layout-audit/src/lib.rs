@@ -65,6 +65,8 @@ impl Rect {
     }
 }
 
+pub mod repair_suggestions;
+
 #[derive(Clone, Debug)]
 struct SpatialEntry {
     item_id: String,
