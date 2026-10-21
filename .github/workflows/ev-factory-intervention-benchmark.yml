@@ -4,9 +4,12 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_value_of_information.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json"
       - "tools/ev-passenger-cost-frontier/Cargo.toml"
       - "docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md"
+      - "docs/research/EV_FACTORY_VALUE_OF_INFORMATION_V0_1.md"
       - "docs/research/EV_FACTORY_PAIRED_INTERVENTION_EFFECTS_V0_1.md"
       - ".github/workflows/ev-factory-intervention-benchmark.yml"
   push:
@@ -14,9 +17,12 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_value_of_information.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json"
       - "tools/ev-passenger-cost-frontier/Cargo.toml"
       - "docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md"
+      - "docs/research/EV_FACTORY_VALUE_OF_INFORMATION_V0_1.md"
       - ".github/workflows/ev-factory-intervention-benchmark.yml"
   workflow_dispatch:
 
@@ -44,6 +50,43 @@ jobs:
         run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
       - name: Full Rust package tests
         run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Evaluate synthetic set-based measurement value
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_value_of_information -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json > ev-factory-voi-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-VOI-001"
+            and .scenario_count == 4
+            and .action_count == 4
+            and .measurement_count == 4
+            and .source_fixture_sha256 != null
+            and .no_information_policy.worst_case_regret_units_per_hour > 0
+            and .scenario_probabilities_used == false
+            and .expected_value_reported == false
+            and .roi_computed == false
+            and .production_release_authorized == false
+            and all(.measurements[]; .post_measurement_worst_case_regret_units_per_hour <= .current_worst_case_regret_units_per_hour + 0.000000001 and .gross_worst_case_regret_reduction_units_per_hour >= 0)
+            and ([.measurements[] | select(.measurement_id == "cycle-time-study" and .frontier_member == true)] | length) == 1
+            and ([.measurements[] | select(.measurement_id == "supplier-delivery-audit" and .frontier_member == true)] | length) == 1
+            and ([.measurements[] | select(.measurement_id == "line-side-visual-audit" and .frontier_member == false)] | length) == 1
+          ' ev-factory-voi-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_value_of_information -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json > ev-factory-voi-repeat.json
+          cmp ev-factory-voi-report.json ev-factory-voi-repeat.json
+      - name: Value-of-information negative controls fail closed
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json
+          jq '.scenarios[0].action_effects += [.scenarios[0].action_effects[0]]' "$FIXTURE" > invalid-voi-duplicate-action.json
+          jq '.measurements[0].observations |= .[1:]' "$FIXTURE" > invalid-voi-missing-observation.json
+          jq '.measurements[0].evidence_class = "measured"' "$FIXTURE" > invalid-voi-evidence.json
+          jq '.measurements[0].cost_amount = -1' "$FIXTURE" > invalid-voi-cost.json
+          for invalid in invalid-voi-duplicate-action.json invalid-voi-missing-observation.json invalid-voi-evidence.json invalid-voi-cost.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_value_of_information -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid value-of-information fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
       - name: Generate paired DES source report
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
@@ -129,9 +172,13 @@ jobs:
             tools/ev-passenger-cost-frontier/Cargo.toml \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_value_of_information.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json \
             docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md \
             docs/research/EV_FACTORY_PAIRED_INTERVENTION_EFFECTS_V0_1.md \
+            docs/research/EV_FACTORY_VALUE_OF_INFORMATION_V0_1.md \
+            ev-factory-voi-report.json \
             ev-factory-simulation-report.json \
             ev-factory-intervention-ranking-report.json \
             ev-factory-intervention-margin-001.json \
@@ -140,6 +187,7 @@ jobs:
         with:
           name: ev-factory-intervention-ranking-report
           path: |
+            ev-factory-voi-report.json
             ev-factory-simulation-report.json
             ev-factory-intervention-ranking-report.json
             ev-factory-intervention-margin-001.json
