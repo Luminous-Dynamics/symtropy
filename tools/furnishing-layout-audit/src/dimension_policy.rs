@@ -464,7 +464,10 @@ mod tests {
         let report = assess_dimensions(&document, &[requirement]);
         assert!(report.structural_errors.is_empty());
         assert_eq!(report.disposition, PromotionDisposition::Indeterminate);
-        assert_eq!(report.dimensions[0].disposition, EvidenceDisposition::Indeterminate);
+        assert_eq!(
+            report.dimensions[0].disposition,
+            EvidenceDisposition::Indeterminate
+        );
         assert_eq!(report.dimensions[0].evidence_ids.len(), 2);
         assert_eq!(report.dimensions[0].accepted_bounds_m(), None);
     }
