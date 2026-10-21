@@ -636,11 +636,20 @@ mod tests {
         let reordered_bytes = serde_json::to_vec(&value).expect("serialize reordered fixture");
         let reordered = parse_and_evaluate(&reordered_bytes).expect("reordered catalogue");
         assert_ne!(original.fixture_sha256, reordered.fixture_sha256);
-        assert_eq!(original.reference_model_best_action_id, reordered.reference_model_best_action_id);
+        assert_eq!(
+            original.reference_model_best_action_id,
+            reordered.reference_model_best_action_id
+        );
         assert_eq!(original.maximin_action_id, reordered.maximin_action_id);
-        assert_eq!(original.maximin_minimum_gain_units_per_hour, reordered.maximin_minimum_gain_units_per_hour);
+        assert_eq!(
+            original.maximin_minimum_gain_units_per_hour,
+            reordered.maximin_minimum_gain_units_per_hour
+        );
         assert_eq!(original.minimax_regret_action_id, reordered.minimax_regret_action_id);
-        assert_eq!(original.minimax_regret_upper_bound_units_per_hour, reordered.minimax_regret_upper_bound_units_per_hour);
+        assert_eq!(
+            original.minimax_regret_upper_bound_units_per_hour,
+            reordered.minimax_regret_upper_bound_units_per_hour
+        );
         assert_eq!(original.action_scores, reordered.action_scores);
         assert_eq!(original.family_winners, reordered.family_winners);
         assert_eq!(original.pairwise_rankings, reordered.pairwise_rankings);
