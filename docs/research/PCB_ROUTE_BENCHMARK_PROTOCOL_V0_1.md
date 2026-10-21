@@ -196,6 +196,19 @@ These are **separate reference measurements, not a shared leaderboard**. Record 
 | [ProtoFlow public benchmark page](https://www.protoflow.ai/benchmarks) | Vendor reports 98/99 D3-A small boards KiCad-clean; D3-B report 30/30 attempts clean across 10 boards × 3 attempts; also provides a router-only figure | A valuable recent external point of comparison on PCBWorld D3-A/B | Vendor-produced results and tool/agent stack need independent reproduction under pinned identical rules and timeouts |
 | [PUNKFAB four-router case study](https://punkfab.com/blog/route-evals/) | On one 4-layer, 42-component board, the post reports different trade-offs across four methods and that none of the tested outputs was directly orderable | End-to-end DFM: routing success is not equivalent to fabrication readiness | One board, author-specific manufacturing rules, and no broad statistical generalization |
 
+### Pinned PCBWorld RQ2 paper snapshot (historical reference only)
+
+The published baseline table at PCBWorld commit `1989a9325796b73cca793a0c8f222dd1509256e8` (table blob `215b59030eaab5130b50a94867f8ed07ed84ea47`) reports the following D3-A / PCBench fair-95 means:
+
+| Historical method | Routability (all boards) | DRV | Wirelength | Vias | Time |
+|---|---:|---:|---:|---:|---:|
+| FreeRouting | 0.98 | 0.09 | 158.82 mm | 0.72 | 3.90 s |
+| OrthoRoute | 0.99 | 111.93 | 294.04 mm | 21.86 | 2.20 s |
+| KiCadRoutingTools (KRT) | 0.94 | 1.01 | 156.01 mm | 3.74 | 0.65 s |
+
+Source: [pinned RQ2 table](https://github.com/LGAI-Research/PCBWorld/blob/1989a9325796b73cca793a0c8f222dd1509256e8/methods/baselines/rule_based/eval/RQ2_TABLE.md). In that table, routability is averaged over the full set, while DRV/wirelength/vias are averaged only on boards with routability exactly 1.0; FreeRouting uses four seeds and sample standard deviation, and time comes from a per-tool wall-clock CSV. These are **author-reported historical figures**, not measurements from this PR and not the same as our strict valid-completion rate.
+
+There is a concrete reproducibility trap: the current pinned `methods/baselines/rule_based/README.md` says its OrthoRoute commit lays routing tracks on inner layers only, so a two-layer board ends at `No edges` with an error row. Consequently the historical `0.99` D3-A mean must not be treated as a current runnable baseline until the matching historical engine/source and data recipe are restored and verified. For the current tree, count each method as available only when an exact-head smoke run demonstrably parses inputs, produces a loadable routed board, and passes the same post-hoc DRC evaluator. A timeout/error remains in the denominator.
 Sources: FreeRouting's page separates "fully routed" from "clean (0 DRC)" and records its generation date; FastRoute describes a 20-board parity-mode timing comparison; ProtoFlow labels its public benchmark metrics and attempt counts; PUNKFAB describes its single-board four-router experiment. These details are reported by each source, not independently reproduced by this project.
 
 ### Strongest next benchmark, in order
