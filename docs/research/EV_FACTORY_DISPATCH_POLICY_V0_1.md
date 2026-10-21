@@ -45,6 +45,12 @@ A finite maximum consecutive-skip rule bounds how many later jobs can bypass an 
 
 A changeover-aware policy may reduce setups and still worsen output, waiting-time fairness or starvation under some mixes. The candidate is allowed to lose. Results must be reported without selecting a favorable seed or turning a synthetic improvement into a physical production claim.
 
+## Prespecified age-threshold sensitivity
+
+The benchmark sweep is fixed in advance at **300, 900, 1,800 and 3,600 seconds**. Each changeover-aware arm is paired against the identical FIFO replication seeds and scenario keys. The generated report retains seed-level deltas for good units/hour, total good units, scrap, rework, per-variant mean/p95/maximum queue wait, and station changeovers, transfers and output-order inversions. The 900-second arm reuses the current comparison report; the other arms change only the queue-age threshold.
+
+The 20-seed paired 95% t intervals are **unadjusted for multiple comparisons**. This is a sensitivity screen, not confirmatory evidence and not a process for choosing a “best” threshold. Keep the grid fixed. A later validation/holdout design with additional replications and multiplicity-aware inference is required before selecting a policy for site-specific evaluation. All results remain synthetic and cannot establish a real factory waiting-time target.
+
 ## Claim ceiling
 
 This is deterministic, stochastic-replication software testing over synthetic assumptions. It does not validate a real plant's cycle times, changeover rules, workforce, quality, HV/battery safety, regulatory compliance or production readiness. The policy is not authorized for dispatch to a MES/PLC and is not an investment recommendation.

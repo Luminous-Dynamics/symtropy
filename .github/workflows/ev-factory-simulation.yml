@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -18,6 +19,7 @@ on:
     branches: [main]
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -321,6 +323,53 @@ jobs:
             and all(.linewide_paired_totals[]; .paired_total_changeovers_delta_ci95.sample_count == 20 and .paired_total_order_inversions_delta_ci95.sample_count == 20)
           ' ev-factory-dispatch-policy-comparison.json
 
+      - name: Sweep elapsed queue-age thresholds on paired seeds
+        run: |
+          for age in 300 1800 3600; do
+            fixture="ev-factory-age-${age}.json"
+            report="ev-factory-age-${age}-report.json"
+            jq --argjson age "$age" '
+              .dispatch_policy = "minimize_changeover"
+              | .maximum_queue_age_seconds = $age
+            ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > "$fixture"
+            cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$fixture" > "$report"
+            jq -e --argjson age "$age" '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .dispatch_policy == "minimize_changeover"
+              and .maximum_queue_age_seconds == $age
+              and .replication_count == 20
+              and (.replication_seeds | length) == 20
+              and (.replication_scenario_records | length) == 120
+              and .scenario_count == 6
+              and .release_ready == false
+              and .output_never_exceeds_released_input
+              and .all_buffers_respected_capacity
+              and .station_time_accounting_within_horizon
+              and all(.replication_scenario_records[]; .good_units_total <= .released_jobs_total and (.variant_wait_statistics | length) == 3 and (.stations | length) == 5)
+            ' "$report"
+          done
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_dispatch_threshold_report -- \
+            ev-factory-simulation-report.json \
+            300=ev-factory-age-300-report.json \
+            900=ev-factory-variant-aware-report.json \
+            1800=ev-factory-age-1800-report.json \
+            3600=ev-factory-age-3600-report.json \
+            > ev-factory-age-threshold-sensitivity.json
+          jq -e '
+            .schema_version == "ev-factory-age-threshold-sensitivity/0.1"
+            and .benchmark_id == "EV-FACTORY-SIM-001"
+            and .baseline_policy == "fifo"
+            and .candidate_policy == "minimize_changeover"
+            and .thresholds_seconds == [300, 900, 1800, 3600]
+            and .replication_count == 20
+            and .paired_seed_scenario_keys_match
+            and (.threshold_results | length) == 4
+            and all(.threshold_results[]; (.scenario_deltas | length) == 6 and (.station_deltas | length) == 30)
+            and all(.threshold_results[]; all(.scenario_deltas[]; .good_units_per_hour_delta.sample_count == 20 and .good_units_total_delta.sample_count == 20 and .scrapped_jobs_delta.sample_count == 20 and .rework_attempts_delta.sample_count == 20 and (.per_variant_wait_deltas | length) == 3))
+            and all(.threshold_results[]; all(.station_deltas[]; .changeovers_delta.sample_count == 20 and .out_of_order_output_transfers_delta.sample_count == 20))
+            and (.multiplicity_adjustment | contains("none"))
+          ' ev-factory-age-threshold-sensitivity.json
+
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -400,6 +449,11 @@ jobs:
             docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md \
             docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs \
+            ev-factory-age-300.json ev-factory-age-300-report.json \
+            ev-factory-age-1800.json ev-factory-age-1800-report.json \
+            ev-factory-age-3600.json ev-factory-age-3600-report.json \
+            ev-factory-age-threshold-sensitivity.json \
             ev-factory-simulation-report.json \
             ev-factory-variant-aware.json \
             ev-factory-variant-aware-report.json \
@@ -415,6 +469,13 @@ jobs:
             ev-factory-variant-aware.json
             ev-factory-variant-aware-report.json
             ev-factory-dispatch-policy-comparison.json
+            ev-factory-age-300.json
+            ev-factory-age-300-report.json
+            ev-factory-age-1800.json
+            ev-factory-age-1800-report.json
+            ev-factory-age-3600.json
+            ev-factory-age-3600-report.json
+            ev-factory-age-threshold-sensitivity.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
             ev-factory-simulation-report.sha256
