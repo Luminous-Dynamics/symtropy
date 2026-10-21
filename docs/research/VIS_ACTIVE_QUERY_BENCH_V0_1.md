@@ -192,7 +192,7 @@ This is deliberately a **myopic counterfactual estimator**, not an optimal stopp
 
 ### Avoiding a symmetric-prior trap
 
-A majority decision can have complementary information value: with all three claims unknown, the modeled marginal decision-loss reduction of observing only one claim may be exactly zero because the other two remain at 0.5. A naive marginal stop policy would stop before acquiring any evidence. This implementation therefore enforces an explicit exploration floor: request until at least one **relevant** observation has been acquired for each query claim before applying the marginal-value stopping rule. Distractor responses do not satisfy the floor. This is a declared heuristic that will be ablated later, not a guarantee that three observations are sufficient.
+A majority decision can have complementary information value: with all three claims unknown, the modeled marginal decision-loss reduction of observing only one claim may be exactly zero because the other two remain at 0.5. A naive marginal stop policy would stop before acquiring any evidence. This implementation therefore enforces an explicit exploration floor: request until at least one **relevant** observation has been acquired for each query claim before applying the marginal-value stopping rule. It first tries claims not yet requested, then retries the least-requested claim still missing relevant evidence; this prevents repeated distractors from starving other claims. A regression test locks this behavior. Distractor responses do not satisfy the floor. This is a declared heuristic that will be ablated later, not a guarantee that three observations are sufficient.
 
 ### Qualification and rejection rules
 
