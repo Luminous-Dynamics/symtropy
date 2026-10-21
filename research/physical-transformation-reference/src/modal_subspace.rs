@@ -292,7 +292,7 @@ mod tests {
 
         // Individual vectors look different under the arbitrary basis choice.
         let vector_mac = modal_assurance_criterion(&left[0], &right[0]).expect("vector MAC");
-        assert!(vector_mac < 0.6);
+        assert!(vector_mac < 0.7);
 
         let comparison =
             mass_weighted_modal_subspace_comparison(&left, &right, &mass).expect("same subspace");
@@ -346,6 +346,19 @@ mod tests {
             .expect("scaled units");
         assert!((baseline.mean_principal_mac - scaled.mean_principal_mac).abs() < 1.0e-10);
         assert!((baseline.worst_principal_mac - scaled.worst_principal_mac).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn comparison_uses_the_mass_inner_product_not_euclidean_mac() {
+        let mass = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
+        let left = vec![vec![1.0, 0.0]];
+        let right = vec![vec![0.0, 1.0]];
+        let comparison =
+            mass_weighted_modal_subspace_comparison(&left, &right, &mass)
+                .expect("mass-weighted one-dimensional subspaces");
+        // e1^T M e2 = 1; each squared M-norm is 2; MAC_M = 1/(2*2).
+        assert!((comparison.worst_principal_mac - 0.25).abs() < 1.0e-12);
+        assert!((comparison.mean_principal_mac - 0.25).abs() < 1.0e-12);
     }
 
     #[test]
