@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+#![allow(clippy::needless_range_loop)] // Assignment updates couple indexed rows and columns.
 //! Fail-closed one-to-one matching of isolated modes across two model runs.
 //!
 //! Frequency rank is not mode identity when modes cross. This module maximizes
@@ -70,8 +71,7 @@ pub fn assign_isolated_modes(
         return Err("frequency arrays must be sorted in nondecreasing order".to_owned());
     }
     if !maximum_relative_frequency_gap.is_finite()
-        || maximum_relative_frequency_gap < 0.0
-        || maximum_relative_frequency_gap >= 1.0
+        || !(0.0..1.0).contains(&maximum_relative_frequency_gap)
     {
         return Err("maximum relative frequency gap must be finite and in [0, 1)".to_owned());
     }
