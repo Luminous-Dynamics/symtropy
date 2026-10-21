@@ -171,7 +171,10 @@ fn nonempty(value: &str) -> bool {
 pub fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     if fixture.schema_version != FIXTURE_SCHEMA {
-        errors.push(format!("unsupported schema_version: {}", fixture.schema_version));
+        errors.push(format!(
+            "unsupported schema_version: {}",
+            fixture.schema_version
+        ));
     }
     if fixture.suite_id != FIXTURE_SUITE {
         errors.push(format!("unexpected suite_id: {}", fixture.suite_id));
@@ -218,42 +221,69 @@ pub fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
             ("baseline.mean", case.baseline.mean),
         ] {
             if !bounded_finite(value) {
-                errors.push(format!("{}: {name} must be finite and within ±{MAX_ABS_VALUE:e}", case.case_id));
+                errors.push(format!(
+                    "{}: {name} must be finite and within ±{MAX_ABS_VALUE:e}",
+                    case.case_id
+                ));
             }
         }
         if !p.interval_level.is_finite() || !(0.0 < p.interval_level && p.interval_level < 1.0) {
-            errors.push(format!("{}: prediction.interval_level must be strictly between 0 and 1", case.case_id));
+            errors.push(format!(
+                "{}: prediction.interval_level must be strictly between 0 and 1",
+                case.case_id
+            ));
         }
         if p.lower > p.mean || p.mean > p.upper {
-            errors.push(format!("{}: prediction interval must satisfy lower <= mean <= upper", case.case_id));
+            errors.push(format!(
+                "{}: prediction interval must satisfy lower <= mean <= upper",
+                case.case_id
+            ));
         }
 
         let r = &case.reference;
         if let Some(digest) = &r.source_digest {
             if !valid_digest(digest) {
-                errors.push(format!("{}: reference.source_digest must be 64 lowercase hexadecimal characters", case.case_id));
+                errors.push(format!(
+                    "{}: reference.source_digest must be 64 lowercase hexadecimal characters",
+                    case.case_id
+                ));
             }
         }
         match r.status {
             ReferenceStatus::Valid => {
                 match r.value {
                     Some(value) if bounded_finite(value) => {}
-                    _ => errors.push(format!("{}: valid reference requires a finite value", case.case_id)),
+                    _ => errors.push(format!(
+                        "{}: valid reference requires a finite value",
+                        case.case_id
+                    )),
                 }
                 match r.uncertainty_abs {
                     Some(value) if bounded_finite(value) && value >= 0.0 => {}
-                    _ => errors.push(format!("{}: valid reference requires non-negative finite uncertainty_abs", case.case_id)),
+                    _ => errors.push(format!(
+                        "{}: valid reference requires non-negative finite uncertainty_abs",
+                        case.case_id
+                    )),
                 }
-                if r.source_digest.as_deref().is_none_or(|digest| !valid_digest(digest)) {
+                if r.source_digest
+                    .as_deref()
+                    .is_none_or(|digest| !valid_digest(digest))
+                {
                     errors.push(format!("{}: valid reference requires a 64-character lowercase SHA-256 source_digest", case.case_id));
                 }
             }
             ReferenceStatus::Missing | ReferenceStatus::Stale | ReferenceStatus::Contradictory => {
                 if r.value.is_some() || r.uncertainty_abs.is_some() {
-                    errors.push(format!("{}: non-valid reference status must not select a value or uncertainty", case.case_id));
+                    errors.push(format!(
+                        "{}: non-valid reference status must not select a value or uncertainty",
+                        case.case_id
+                    ));
                 }
                 if r.status == ReferenceStatus::Missing && r.source_digest.is_some() {
-                    errors.push(format!("{}: missing reference must not claim a source_digest", case.case_id));
+                    errors.push(format!(
+                        "{}: missing reference must not claim a source_digest",
+                        case.case_id
+                    ));
                 }
             }
         }
@@ -279,38 +309,56 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<EvaluationReport, Vec<Stri
     evaluate_fixture(&fixture, bytes)
 }
 
-pub fn evaluate_fixture(fixture: &Fixture, input_bytes: &[u8]) -> Result<EvaluationReport, Vec<String>> {
+pub fn evaluate_fixture(
+    fixture: &Fixture,
+    input_bytes: &[u8],
+) -> Result<EvaluationReport, Vec<String>> {
     validate_fixture(fixture)?;
 
     let mut scored_cases = Vec::new();
     let mut excluded_cases = Vec::new();
-    let mut groups: BTreeMap<GroupKey, Vec<(String, f64, f64, f64, bool, f64, f64)>> = BTreeMap::new();
+    let mut groups: BTreeMap<GroupKey, Vec<(String, f64, f64, f64, bool, f64, f64)>> =
+        BTreeMap::new();
 
     for case in &fixture.cases {
         let r = &case.reference;
         match r.status {
             ReferenceStatus::Missing => {
-                excluded_cases.push(ExcludedCase { case_id: case.case_id.clone(), reason: "missing_reference".to_owned() });
+                excluded_cases.push(ExcludedCase {
+                    case_id: case.case_id.clone(),
+                    reason: "missing_reference".to_owned(),
+                });
                 continue;
             }
             ReferenceStatus::Stale => {
-                excluded_cases.push(ExcludedCase { case_id: case.case_id.clone(), reason: "stale_reference".to_owned() });
+                excluded_cases.push(ExcludedCase {
+                    case_id: case.case_id.clone(),
+                    reason: "stale_reference".to_owned(),
+                });
                 continue;
             }
             ReferenceStatus::Contradictory => {
-                excluded_cases.push(ExcludedCase { case_id: case.case_id.clone(), reason: "contradictory_reference".to_owned() });
+                excluded_cases.push(ExcludedCase {
+                    case_id: case.case_id.clone(),
+                    reason: "contradictory_reference".to_owned(),
+                });
                 continue;
             }
             ReferenceStatus::Valid => {}
         }
 
         if case.prediction.scope_key != r.scope_key {
-            excluded_cases.push(ExcludedCase { case_id: case.case_id.clone(), reason: "scope_mismatch".to_owned() });
+            excluded_cases.push(ExcludedCase {
+                case_id: case.case_id.clone(),
+                reason: "scope_mismatch".to_owned(),
+            });
             continue;
         }
 
         let reference_value = r.value.expect("validated valid reference has a value");
-        let reference_uncertainty_abs = r.uncertainty_abs.expect("validated valid reference has uncertainty");
+        let reference_uncertainty_abs = r
+            .uncertainty_abs
+            .expect("validated valid reference has uncertainty");
         let prediction = &case.prediction;
         let baseline = &case.baseline;
         let signed_error = prediction.mean - reference_value;
@@ -424,7 +472,10 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64) {
-        assert!((actual - expected).abs() < 1.0e-8, "actual={actual}, expected={expected}");
+        assert!(
+            (actual - expected).abs() < 1.0e-8,
+            "actual={actual}, expected={expected}"
+        );
     }
 
     #[test]
@@ -445,16 +496,30 @@ mod tests {
         assert_eq!(report.data_origin, "synthetic_fixture");
         assert_eq!(report.claim_ceiling, CLAIM_CEILING);
         assert_eq!(report.input_sha256, sha256_hex(FIXTURE_BYTES));
-        let reasons: BTreeSet<&str> = report.excluded_cases.iter().map(|case| case.reason.as_str()).collect();
-        assert_eq!(reasons, BTreeSet::from([
-            "contradictory_reference", "missing_reference", "scope_mismatch", "stale_reference"
-        ]));
+        let reasons: BTreeSet<&str> = report
+            .excluded_cases
+            .iter()
+            .map(|case| case.reason.as_str())
+            .collect();
+        assert_eq!(
+            reasons,
+            BTreeSet::from([
+                "contradictory_reference",
+                "missing_reference",
+                "scope_mismatch",
+                "stale_reference"
+            ])
+        );
     }
 
     #[test]
     fn grouped_error_metrics_match_independent_known_answers() {
         let report = evaluate_fixture_bytes(FIXTURE_BYTES).expect("fixture is valid");
-        let heat = report.metric_summaries.iter().find(|s| s.metric_id == "surface_temperature_delta").unwrap();
+        let heat = report
+            .metric_summaries
+            .iter()
+            .find(|s| s.metric_id == "surface_temperature_delta")
+            .unwrap();
         assert_eq!(heat.sample_count, 3);
         close(heat.mean_bias, 0.433333333);
         close(heat.mae, 0.7);
@@ -463,13 +528,21 @@ mod tests {
         assert_eq!(heat.interval_covered_count, 2);
         close(heat.interval_coverage, 2.0 / 3.0);
 
-        let water = report.metric_summaries.iter().find(|s| s.metric_id == "runoff_volume_delta").unwrap();
+        let water = report
+            .metric_summaries
+            .iter()
+            .find(|s| s.metric_id == "runoff_volume_delta")
+            .unwrap();
         assert_eq!(water.sample_count, 3);
         close(water.mae, 1.0 / 6.0);
         close(water.baseline_mae, 1.0 / 6.0);
         close(water.mae_skill_score.unwrap(), 0.0);
 
-        let ecology = report.metric_summaries.iter().find(|s| s.metric_id == "native_plant_survival_delta").unwrap();
+        let ecology = report
+            .metric_summaries
+            .iter()
+            .find(|s| s.metric_id == "native_plant_survival_delta")
+            .unwrap();
         assert_eq!(ecology.sample_count, 3);
         close(ecology.mae, 14.0 / 3.0);
         close(ecology.rmse, 6.0);
@@ -481,7 +554,12 @@ mod tests {
     fn no_cross_metric_scalar_is_emitted() {
         let report = evaluate_fixture_bytes(FIXTURE_BYTES).expect("fixture is valid");
         assert_eq!(report.metric_summaries.len(), 3);
-        assert!(report.metric_summaries.iter().all(|summary| summary.sample_count == 3));
+        assert!(
+            report
+                .metric_summaries
+                .iter()
+                .all(|summary| summary.sample_count == 3)
+        );
     }
 
     #[test]
