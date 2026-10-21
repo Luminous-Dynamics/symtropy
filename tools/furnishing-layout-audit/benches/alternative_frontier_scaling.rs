@@ -6,8 +6,8 @@
 //! memory when most candidates are dominated.
 
 use furnishing_layout_audit::alternative_frontier::{
-    compute_pareto_frontier, AlternativeCandidate, ObjectiveDirection, ObjectiveEvidence,
-    ObjectiveObservation, VerificationStatus,
+    AlternativeCandidate, ObjectiveDirection, ObjectiveEvidence, ObjectiveObservation,
+    VerificationStatus, compute_pareto_frontier,
 };
 use std::hint::black_box;
 use std::time::{Duration, Instant};
