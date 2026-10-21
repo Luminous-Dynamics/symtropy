@@ -33,6 +33,8 @@ The additional `asymmetric_two_bar_truss_matches_closed_form_oracle` case uses a
 
 The (cs=0) mutation is specifically assigned to the 128-case asymmetric parameter sweep: it should catch a defect that the symmetric known-answer alone can miss, across a range of geometry, unequal axial stiffness, and mixed-sign off-axis loads. The sweep receipt uses seed `0x4153594D54525553`, 128 cases, 21 scalar output checks per case (2,688 total), and independently defined parameter bounds; its evidence class is test execution, not physical validation.
 
+The asymmetric sweep bounds are: span 2–6 m; apex x between 20% and 80% of span; apex height 0.5–3 m; Young's modulus 50–210 GPa; bar axial stiffnesses 1e7–1e10 and 7e6–1.3e10 N/m; and both apex force components from −3,000 to +3,000 N. The fixed LCG seed and constants are checked into the test; the CI metadata receipt names the independent 2x2 inverse oracle and its source hash. These bounds are deterministic regression coverage, not a distributional uncertainty model.
+
 ## Named mutation set
 
 The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies the crate manifest, lockfile, source files and frozen input fixture into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
