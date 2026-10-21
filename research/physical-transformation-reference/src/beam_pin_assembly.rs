@@ -692,7 +692,11 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
+    use super::{
+        BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode,
+        assemble_released_joint_beam_chains, assemble_released_joint_pin_truss,
+        canonical_beam_chain_request,
+    };
 
     fn nodes() -> Vec<BeamPinNode> {
         vec![
@@ -741,6 +745,22 @@ mod tests {
                 second_moment_m4: 7.853981633974483e-9,
             },
         ]
+    }
+
+    fn chains(elements_per_member: usize) -> Vec<BeamMemberChain> {
+        members()
+            .into_iter()
+            .map(|member| BeamMemberChain {
+                id: member.id,
+                start_node_id: member.start_node_id,
+                end_node_id: member.end_node_id,
+                area_m2: member.area_m2,
+                youngs_modulus_pa: member.youngs_modulus_pa,
+                density_kg_m3: member.density_kg_m3,
+                second_moment_m4: member.second_moment_m4,
+                elements_per_member,
+            })
+            .collect()
     }
 
     #[test]
@@ -863,6 +883,106 @@ mod tests {
                 .expect("canonical reversed request"),
             first
         );
+    }
+
+    #[test]
+    fn one_element_per_chain_matches_original_released_joint_assembly() {
+        let original = assemble_released_joint_pin_truss(&nodes(), &members())
+            .expect("single-element pin assembly");
+        let chain = assemble_released_joint_beam_chains(&nodes(), &chains(1))
+            .expect("one-element member chains");
+        assert_eq!(original.ordered_node_ids, chain.ordered_node_ids);
+        assert_eq!(original.ordered_member_ids, chain.ordered_member_ids);
+        assert_eq!(original.dof_descriptors, chain.dof_descriptors);
+        assert_eq!(original.fixed_dof_indices, chain.fixed_dof_indices);
+        assert_eq!(original.free_dof_indices, chain.free_dof_indices);
+        assert_eq!(original.stiffness_global, chain.stiffness_global);
+        assert_eq!(original.mass_global, chain.mass_global);
+        assert_eq!(
+            original.translational_mass_global,
+            chain.translational_mass_global
+        );
+        assert_eq!(
+            original.rotary_inertia_mass_global,
+            chain.rotary_inertia_mass_global
+        );
+    }
+
+    #[test]
+    fn mesh_refinement_shares_interior_rotations_without_creating_artificial_pins() {
+        for elements_per_member in [2_usize, 4, 8, 16] {
+            let assembly =
+                assemble_released_joint_beam_chains(&nodes(), &chains(elements_per_member))
+                    .expect("valid refined member-chain mesh");
+            assert_eq!(assembly.free_dof_indices.len(), 6 * elements_per_member);
+            assert_eq!(
+                assembly.ordered_node_ids.len(),
+                3 + 2 * (elements_per_member - 1)
+            );
+
+            let interior_rotations = assembly
+                .dof_descriptors
+                .iter()
+                .filter_map(|descriptor| match &descriptor.kind {
+                    BeamPinDofKind::MemberInteriorRotation {
+                        member_id,
+                        station_index,
+                    } => Some((member_id.clone(), *station_index, descriptor.index)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(interior_rotations.len(), 2 * (elements_per_member - 1));
+            let unique_stations = interior_rotations
+                .iter()
+                .map(|(member_id, station_index, _)| (member_id.clone(), *station_index))
+                .collect::<BTreeSet<_>>();
+            assert_eq!(unique_stations.len(), interior_rotations.len());
+
+            for (_, _, index) in interior_rotations {
+                assert!(assembly.stiffness_global[index][index] > 0.0);
+                assert!(assembly.mass_global[index][index] > 0.0);
+            }
+            assert_eq!(
+                assembly
+                    .dof_descriptors
+                    .iter()
+                    .filter(|descriptor| matches!(
+                        descriptor.kind,
+                        BeamPinDofKind::MemberEndRotation { .. }
+                    ))
+                    .count(),
+                4
+            );
+        }
+    }
+
+    #[test]
+    fn member_chain_request_is_frozen_and_storage_order_invariant() {
+        let expected = include_str!("../fixtures/beam_chain_request_v0_1.txt")
+            .trim_end_matches('\n');
+        let first =
+            canonical_beam_chain_request(&nodes(), &chains(4)).expect("canonical beam-chain request");
+        assert_eq!(first, expected);
+
+        let mut reversed_nodes = nodes();
+        reversed_nodes.reverse();
+        let mut reversed_chains = chains(4);
+        reversed_chains.reverse();
+        assert_eq!(
+            canonical_beam_chain_request(&reversed_nodes, &reversed_chains)
+                .expect("canonical reversed beam-chain request"),
+            first
+        );
+    }
+
+    #[test]
+    fn member_chain_invalid_mesh_envelope_fails_closed() {
+        assert!(assemble_released_joint_beam_chains(&nodes(), &chains(0)).is_err());
+        assert!(assemble_released_joint_beam_chains(&nodes(), &chains(33)).is_err());
+
+        let mut missing_joint = chains(2);
+        missing_joint[0].end_node_id = "unknown".to_owned();
+        assert!(assemble_released_joint_beam_chains(&nodes(), &missing_joint).is_err());
     }
 
     #[test]
