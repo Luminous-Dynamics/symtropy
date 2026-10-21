@@ -1,0 +1,124 @@
+name: EV Factory Adaptive Policy Holdout Validation
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_lifecycle_policies.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_policy_validation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_ADAPTIVE_POLICY_VALIDATION_V0_1.md"
+      - ".github/workflows/ev-factory-adaptive-policy-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_lifecycle_policies.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_policy_validation.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_ADAPTIVE_POLICY_VALIDATION_V0_1.md"
+      - ".github/workflows/ev-factory-adaptive-policy-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adaptive-policy-holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate synthetic lifecycle catalog
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+          jq -e '
+            .schema_version == "0.1.0"
+            and .benchmark_id == "EV-FACTORY-LIFECYCLE-001"
+            and .evidence_class == "synthetic"
+            and (.families | length) == 5
+            and (.strategies | length) == 4
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate lifecycle and adaptive-policy reports
+        run: |
+          CATALOG=tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_lifecycle_frontier -- "$CATALOG" > ev-factory-lifecycle-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_adaptive_lifecycle_policies -- "$CATALOG" ev-factory-lifecycle-report.json > ev-factory-adaptive-lifecycle-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-OPTIONS-001"
+            and .family_count == 5
+            and .policy_count == 9
+            and (.family_policy_results | length) == 45
+            and .economic_recommendation_authorized == false
+          ' ev-factory-adaptive-lifecycle-report.json
+      - name: Run five-fold leave-one-family-out policy selection
+        run: |
+          CATALOG=tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_adaptive_policy_validation -- \
+            "$CATALOG" ev-factory-lifecycle-report.json ev-factory-adaptive-lifecycle-report.json \
+            > ev-factory-adaptive-policy-validation.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-ADAPTIVE-VALIDATION-001"
+            and .evidence_class == "synthetic"
+            and (.family_count == 5)
+            and (.fold_results | length) == 5
+            and (.family_ids | unique | length) == 5
+            and (.fold_results | map(.held_out_family_id) | unique | length) == 5
+            and all(.fold_results[]; (.training_family_ids | length) == 4 and (.training_family_ids | index(.held_out_family_id)) == null and .selection_was_independent_of_held_out_cost)
+            and .policy_count == 9
+            and .deployable_policy_count == 8
+            and .oracle_is_non_deployable
+            and (.held_out_costs_used_in_policy_selection == false)
+            and all(.policy_selection_counts[] | select(.policy_id == "perfect_information_family_oracle_non_deployable"); .selected_for_held_out_folds == 0 and .deployable == false)
+            and .economic_recommendation_authorized == false
+            and .production_release_authorized == false
+          ' ev-factory-adaptive-policy-validation.json
+      - name: Verify byte-identical validation output
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_adaptive_policy_validation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json \
+            ev-factory-lifecycle-report.json ev-factory-adaptive-lifecycle-report.json \
+            > ev-factory-adaptive-policy-validation-repeat.json
+          cmp ev-factory-adaptive-policy-validation.json ev-factory-adaptive-policy-validation-repeat.json
+      - name: Negative controls - stale catalog, corrupted lifecycle digest, unknown policy row
+        run: |
+          jq '.families[0].active_fraction = 0.1' tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json > invalid-lofo-catalog.json
+          jq '.source_catalog_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"' ev-factory-lifecycle-report.json > invalid-lofo-lifecycle-report.json
+          jq '.family_policy_results[0].selected_strategy_id = "unreviewed-strategy"' ev-factory-adaptive-lifecycle-report.json > invalid-lofo-adaptive-report.json
+          for args in \
+            "invalid-lofo-catalog.json ev-factory-lifecycle-report.json ev-factory-adaptive-lifecycle-report.json" \
+            "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json invalid-lofo-lifecycle-report.json ev-factory-adaptive-lifecycle-report.json" \
+            "tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json ev-factory-lifecycle-report.json invalid-lofo-adaptive-report.json"; do
+            set -- $args
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_adaptive_policy_validation -- "$1" "$2" "$3" >/dev/null 2>&1; then
+              echo "invalid LOFO input unexpectedly accepted: $args"
+              exit 1
+            fi
+          done
+      - name: Hash exact inputs and reports
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_lifecycle_frontier.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_lifecycle_policies.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_adaptive_policy_validation.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_lifecycle_v0_1.json \
+            docs/research/EV_FACTORY_ADAPTIVE_POLICY_VALIDATION_V0_1.md \
+            ev-factory-lifecycle-report.json \
+            ev-factory-adaptive-lifecycle-report.json \
+            ev-factory-adaptive-policy-validation.json > ev-factory-adaptive-policy-validation.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-adaptive-policy-validation-report
+          path: |
+            ev-factory-adaptive-policy-validation.json
+            ev-factory-adaptive-policy-validation.sha256
+            ev-factory-lifecycle-report.json
+            ev-factory-adaptive-lifecycle-report.json
+          if-no-files-found: error
