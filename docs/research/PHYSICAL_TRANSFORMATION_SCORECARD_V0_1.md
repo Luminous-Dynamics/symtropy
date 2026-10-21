@@ -126,6 +126,14 @@ Proposed software gates for well-conditioned analytic cases (targets, not claime
 
 Do not universalize these tight software gates to an experimental structure. Real measurements require uncertainty-aware tolerances, a predeclared error budget, mesh/time-step convergence, model-form sensitivity and independent validation data.
 
+### 4.2 Tracking isolated modes through crossings without hiding uncertainty
+
+Frequency-rank identity is fragile when modes cross or bunch together. ANSYS' own modal-optimization guidance includes a “Robust Frequencies” criterion specifically to handle mode-crossing effects, rather than optimizing only one frequency by rank ([ANSYS documentation](https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/wb_sim/ds_user_def_criteria_modal.html)). OpenSees independently warns that close/repeated eigenvalues can leave scalar eigenvalue results apparently correct even when the eigenvectors are incorrect ([OpenSees eigen command](https://opensees.github.io/OpenSeesDocumentation/user/manual/analysis/eigen.html)).
+
+The follow-on [isolated-mode assignment prototype](https://github.com/Luminous-Dynamics/symtropy/pull/2583) adds an explicit one-to-one Hungarian assignment for pre-classified isolated modes. An edge is admissible only when both predeclared constraints hold: relative frequency gap below a caller-set maximum and scalar MAC above a caller-set minimum. Within the admissible graph it maximizes total MAC. If no complete one-to-one assignment satisfies every gate, it returns an abstention instead of silently picking the least-bad result. Repeated/clustered modes are deliberately excluded and routed to the principal-angle subspace comparison above.
+
+This enables a stronger validation report: frequency shifts, mode-identity assignment, pairwise MAC, rejected candidate edges, cluster/subspace comparisons, and an explicit “not comparable” count. It does **not** claim superiority over ANSYS/OpenSees. A valid comparison must still use the same DOFs, mass formulation, model fidelity, solver precision, convergence level and external reference.
+
 ## 5. Metrics that must remain separate
 
 - Exact state-transition correctness and false acceptance rate.
