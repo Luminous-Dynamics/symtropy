@@ -60,6 +60,11 @@ run_mutation() {
       perl -0pi -e 's/value -= lower\[col\]\[row\] \* solution\[col\];/value -= lower[row][col] * solution[col];/' "$source"
       grep -Fq 'value -= lower[row][col] * solution[col];' "$source"
       ;;
+    axial_stiffness_wrong_length_exponent)
+      grep -Fq 'let element_stiffness = youngs_modulus_pa * area_m2 / element_length;' "$source"
+      perl -0pi -e 's/let element_stiffness = youngs_modulus_pa \* area_m2 \/ element_length;/let element_stiffness = youngs_modulus_pa * area_m2 \/ (element_length * element_length);/' "$source"
+      grep -Fq 'let element_stiffness = youngs_modulus_pa * area_m2 / (element_length * element_length);' "$source"
+      ;;
     *)
       printf 'Unknown modal-bar mutation: %s\n' "$mutation" >&2
       return 2
@@ -99,6 +104,11 @@ run_mutation \
   "transposed-cholesky-backsolve" \
   transposed_cholesky_backsolve \
   modes_report_small_eigen_residual_and_mass_normalization_error
+
+run_mutation \
+  "axial-stiffness-length-exponent" \
+  axial_stiffness_wrong_length_exponent \
+  fixed_seed_128_case_modal_sweep_matches_discrete_oracle_and_scale_laws
 
 test "$modal_sha256" = "$(sha256sum "$crate_dir/src/modal_bar.rs" | awk '{print $1}')"
 
