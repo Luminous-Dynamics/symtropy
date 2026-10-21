@@ -304,6 +304,10 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
     {
         return Err("simulation_report_failed_synthetic_credibility_contract".into());
     }
+    let mut unique_seeds = BTreeSet::new();
+    if simulation.replication_seeds.iter().any(|seed| *seed == 0 || !unique_seeds.insert(*seed)) {
+        return Err("simulation_seed_list_must_be_positive_and_unique".into());
+    }
     let mut seeds = BTreeSet::new();
     if simulation.replication_seeds.iter().any(|seed| *seed == 0 || !seeds.insert(*seed)) {
         return Err("simulation_seed_list_must_be_positive_and_unique".into());
@@ -378,6 +382,18 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
         .collect();
     if baseline_stations != station_ids {
         return Err("station_economic_profiles_must_match_simulator_station_ids_exactly".into());
+    }
+    for row in simulation.scenario_statistics.iter().filter(|row| row.scenario_id != "baseline") {
+        let gain = row.paired_good_units_per_hour_delta_vs_baseline.as_ref()
+            .ok_or_else(|| "intervention_paired_gain_distribution_missing".to_string())?;
+        if row.intervention_station_id.is_none()
+            || gain.sample_count != simulation.replication_count
+            || !gain.mean.is_finite()
+            || gain.mean_confidence_95_lower.is_some_and(|value| !value.is_finite())
+            || gain.mean_confidence_95_upper.is_some_and(|value| !value.is_finite())
+        {
+            return Err("intervention_gain_distribution_failed_numeric_or_seed_count_checks".into());
+        }
     }
     let expected_outcome_count = simulation.replication_count * (station_ids.len() + 1);
     if simulation.station_operating_statistics.len() !=
@@ -630,6 +646,74 @@ mod tests {
         assert_eq!(row.annual_incremental_opex_local, 51228.0);
         assert_eq!(row.annual_incremental_good_units_mean, 3200.0);
         assert_eq!(row.capex_per_incremental_annual_good_unit_local, Some(0.0625));
+    }
+
+    #[test]
+    fn nonpositive_confidence_lower_bound_blocks_unit_cost_and_pareto_eligibility() {
+        let site = SiteProfile {
+            site_id: "site".into(),
+            country_or_region: "test".into(),
+            local_currency: "XYZ".into(),
+            local_currency_per_usd: 2.0,
+            operating_days_per_year: 200,
+            shifts_per_day: 2,
+            paid_hours_per_shift: 8.0,
+            fully_loaded_labor_cost_per_hour_local: 10.0,
+            electricity_cost_per_kwh_local: 3.0,
+            building_lease_cost_per_sqm_year_local: 4.0,
+            grid_kgco2e_per_kwh: 0.5,
+            evidence_class: "synthetic".into(),
+        };
+        let profile = StationCostProfile {
+            station_id: "station".into(),
+            capex_usd_per_added_server: 100.0,
+            operators_per_added_server_per_shift: 1.0,
+            standby_kw_per_added_server: 1.0,
+            active_kw_per_added_server: 3.0,
+            annual_maintenance_fraction_of_capex: 0.1,
+            incremental_floor_area_sqm: 2.0,
+            evidence_class: "synthetic".into(),
+        };
+        let uncertain_gain = DistributionSummary {
+            sample_count: 20,
+            mean: 0.1,
+            sample_standard_deviation: Some(0.2),
+            minimum: -0.3,
+            p05: -0.2,
+            median: 0.1,
+            p95: 0.3,
+            maximum: 0.4,
+            mean_confidence_95_lower: Some(-0.05),
+            mean_confidence_95_upper: Some(0.25),
+        };
+        let duty = DistributionSummary {
+            sample_count: 20,
+            mean: 0.5,
+            sample_standard_deviation: Some(0.1),
+            minimum: 0.3,
+            p05: 0.35,
+            median: 0.5,
+            p95: 0.65,
+            maximum: 0.7,
+            mean_confidence_95_lower: Some(0.45),
+            mean_confidence_95_upper: Some(0.55),
+        };
+        let operating = StationOperatingStatistics {
+            scenario_id: "intervention".into(),
+            station_id: "station".into(),
+            server_count: 2,
+            busy_fraction: duty.clone(),
+            blocked_fraction: duty.clone(),
+            starved_fraction: duty.clone(),
+            down_fraction: duty.clone(),
+            accounted_fraction: duty,
+        };
+        let row = calculate_candidate(&site, &profile, &uncertain_gain, &operating, 2, "intervention").unwrap();
+        assert!(!row.output_gain_confidently_positive_under_simulation);
+        assert!(!row.pareto_eligible_under_declared_model);
+        assert!(row.capex_per_incremental_annual_good_unit_local.is_none());
+        assert!(row.annual_opex_per_incremental_good_unit_local.is_none());
+        assert!(!row.deployment_authorized);
     }
 
     #[test]
