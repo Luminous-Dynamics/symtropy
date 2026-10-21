@@ -1,0 +1,618 @@
+//! Evidence-qualified Pareto ranking for furnishing alternatives.
+//!
+//! This module ranks only candidates reported as verified by an independent
+//! layout oracle. It never lets preference, price, aesthetics, or another
+//! objective compensate for a blocked or indeterminate hard constraint.
+//!
+//! Digest validation here checks syntax and preserves identifiers; it does not
+//! authenticate a source, recompute a digest, or validate a verifier receipt.
+
+use std::collections::BTreeSet;
+use std::fmt;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VerificationStatus {
+    /// The independent verifier accepted this exact candidate revision.
+    Verified,
+    /// At least one mandatory condition failed.
+    Blocked,
+    /// A mandatory condition could not be resolved.
+    Indeterminate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ObjectiveDirection {
+    /// Smaller values are preferred.
+    Minimize,
+    /// Larger values are preferred.
+    Maximize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ObjectiveEvidence {
+    /// A caller's explicit policy allows this observation for comparison.
+    AcceptedByPolicy,
+    /// The observation is not yet eligible for ranking.
+    Provisional,
+    /// The observation is unavailable or outside its scope.
+    Unknown,
+    /// Multiple incompatible claims remain unresolved.
+    Conflicting,
+    /// Policy explicitly disallows this observation.
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObjectiveObservation {
+    /// Stable objective key, such as install_cost or task_coverage.
+    pub dimension: String,
+    /// Whether the objective is minimized or maximized.
+    pub direction: ObjectiveDirection,
+    /// Finite numeric observation in the dimension's declared units.
+    pub value: f64,
+    /// Evidence admission state supplied by the caller's policy layer.
+    pub evidence: ObjectiveEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AlternativeCandidate {
+    /// Stable, unique identifier for this alternative in the request.
+    pub candidate_id: String,
+    /// SHA-256 digest of the exact candidate revision, if available.
+    pub revision_sha256: Option<String>,
+    /// SHA-256 digest identifying the independent verifier receipt, if available.
+    pub verifier_receipt_sha256: Option<String>,
+    /// Result from the independent hard-constraint verifier.
+    pub verification: VerificationStatus,
+    /// Objective observations; all rankable candidates must share the same schema.
+    pub objectives: Vec<ObjectiveObservation>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CandidateDisposition {
+    /// Eligible and not dominated by another eligible candidate.
+    OnFrontier,
+    /// At least one eligible candidate is no worse in every objective and better in one.
+    DominatedBy(Vec<String>),
+    /// The independent verifier rejected one or more mandatory conditions.
+    ExcludedBlocked,
+    /// A mandatory condition remained unresolved in the independent verifier.
+    ExcludedIndeterminate,
+    /// The alternative cannot safely join the ranking (with reasons).
+    ExcludedUnrankable(Vec<String>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CandidateResult {
+    /// Stable candidate identifier from the request.
+    pub candidate_id: String,
+    /// Candidate revision digest passed through for traceability.
+    pub revision_sha256: Option<String>,
+    /// Independent verifier receipt digest passed through for traceability.
+    pub verifier_receipt_sha256: Option<String>,
+    /// Ranking or exclusion result; never a substitute for the independent verifier.
+    pub disposition: CandidateDisposition,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FrontierReport {
+    /// Non-dominated, independently verified candidate IDs in stable order.
+    pub frontier_ids: Vec<String>,
+    /// One result for every input candidate, sorted by candidate ID.
+    pub candidates: Vec<CandidateResult>,
+    /// False when a verified candidate was unrankable or no complete frontier exists.
+    pub ranking_complete: bool,
+    /// Objective dimensions used for this comparison, in stable order.
+    pub objective_dimensions: Vec<String>,
+    /// Explicit limit on what this report establishes.
+    pub claim_ceiling: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FrontierError {
+    /// A ranking request must contain at least one candidate.
+    EmptyRequest,
+    /// Candidate IDs must be nonblank and have no surrounding whitespace.
+    InvalidCandidateId { index: usize },
+    /// Candidate IDs must be unique within a request.
+    DuplicateCandidateId(String),
+    /// Rankable candidates must declare identical objective keys and directions.
+    IncompatibleObjectiveSchemas { candidate_id: String },
+}
+
+impl fmt::Display for FrontierError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyRequest => write!(f, "frontier request contains no candidates"),
+            Self::InvalidCandidateId { index } => {
+                write!(f, "candidate at index {index} has an invalid identifier")
+            }
+            Self::DuplicateCandidateId(id) => {
+                write!(f, "candidate identifier {id:?} occurs more than once")
+            }
+            Self::IncompatibleObjectiveSchemas { candidate_id } => {
+                write!(
+                    f,
+                    "candidate {candidate_id:?} has an objective schema incompatible with the ranking set"
+                )
+            },
+        }
+    }
+}
+
+impl std::error::Error for FrontierError {}
+
+#[derive(Clone, Debug)]
+struct RankableCandidate<'a> {
+    candidate: &'a AlternativeCandidate,
+    /// Sorted by objective dimension for order-independent comparison.
+    objectives: Vec<&'a ObjectiveObservation>,
+}
+
+impl RankableCandidate<'_> {
+    fn schema(&self) -> Vec<(&str, ObjectiveDirection)> {
+        self.objectives
+            .iter()
+            .map(|objective| (objective.dimension.as_str(), objective.direction))
+            .collect()
+    }
+}
+
+fn valid_sha256(value: Option<&str>) -> bool {
+    value.is_some_and(|digest| {
+        digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+    })
+}
+
+fn objective_exclusion_reasons(candidate: &AlternativeCandidate) -> Vec<String> {
+    let mut reasons = Vec::new();
+    if !valid_sha256(candidate.revision_sha256.as_deref()) {
+        reasons.push("missing or malformed exact revision SHA-256 digest".to_owned());
+    }
+    if !valid_sha256(candidate.verifier_receipt_sha256.as_deref()) {
+        reasons.push("missing or malformed independent verifier receipt SHA-256 digest".to_owned());
+    }
+    if candidate.objectives.is_empty() {
+        reasons.push("no objective observations supplied".to_owned());
+        return reasons;
+    }
+
+    let mut dimensions = BTreeSet::new();
+    for objective in &candidate.objectives {
+        if objective.dimension.trim().is_empty()
+            || objective.dimension != objective.dimension.trim()
+        {
+            reasons.push("objective dimension is blank or has surrounding whitespace".to_owned());
+        } else if !dimensions.insert(objective.dimension.as_str()) {
+            reasons.push(format!(
+                "duplicate objective dimension {:?}",
+                objective.dimension
+            ));
+        }
+        if !objective.value.is_finite() {
+            reasons.push(format!(
+                "objective {:?} is not finite",
+                objective.dimension
+            ));
+        }
+        if objective.evidence != ObjectiveEvidence::AcceptedByPolicy {
+            reasons.push(format!(
+                "objective {:?} has non-admitted evidence state {:?}",
+                objective.dimension, objective.evidence
+            ));
+        }
+    }
+    reasons.sort();
+    reasons.dedup();
+    reasons
+}
+
+fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> bool {
+    let mut strictly_better = false;
+    for (left_value, right_value) in left.objectives.iter().zip(&right.objectives) {
+        match left_value.direction {
+            ObjectiveDirection::Minimize => {
+                if left_value.value > right_value.value {
+                    return false;
+                }
+                strictly_better |= left_value.value < right_value.value;
+            }
+            ObjectiveDirection::Maximize => {
+                if left_value.value < right_value.value {
+                    return false;
+                }
+                strictly_better |= left_value.value > right_value.value;
+            }
+        }
+    }
+    strictly_better
+}
+
+/// Compute a Pareto frontier without scalarizing objectives.
+///
+/// Only alternatives marked Verified by the caller's independent verifier can
+/// enter the ranking. Blocked and indeterminate alternatives are always
+/// excluded, regardless of how attractive their objective values look.
+/// Verified alternatives with unknown or disallowed objective evidence are
+/// excluded and make the report incomplete, rather than being silently treated
+/// as worse or better.
+///
+/// All rankable alternatives must use the same objective dimensions and
+/// directions. Numeric comparisons use the supplied finite f64 values directly;
+/// this function invents neither weights nor tolerances. Callers must define
+/// units, evidence-admission rules, and any justified normalization upstream.
+///
+/// This function checks digest shape but does not authenticate digests or
+/// receipts. The claim of independent verification originates outside this
+/// module and must be bound by the caller to the exact candidate revision.
+pub fn compute_pareto_frontier(
+    candidates: &[AlternativeCandidate],
+) -> Result<FrontierReport, FrontierError> {
+    if candidates.is_empty() {
+        return Err(FrontierError::EmptyRequest);
+    }
+
+    let mut seen = BTreeSet::new();
+    for (index, candidate) in candidates.iter().enumerate() {
+        if candidate.candidate_id.trim().is_empty()
+            || candidate.candidate_id != candidate.candidate_id.trim()
+        {
+            return Err(FrontierError::InvalidCandidateId { index });
+        }
+        if !seen.insert(candidate.candidate_id.as_str()) {
+            return Err(FrontierError::DuplicateCandidateId(
+                candidate.candidate_id.clone(),
+            ));
+        }
+    }
+
+    let mut results = Vec::with_capacity(candidates.len());
+    let mut rankable = Vec::new();
+    let mut ranking_complete = true;
+
+    for candidate in candidates {
+        match candidate.verification {
+            VerificationStatus::Blocked => results.push(CandidateResult {
+                candidate_id: candidate.candidate_id.clone(),
+                revision_sha256: candidate.revision_sha256.clone(),
+                verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                disposition: CandidateDisposition::ExcludedBlocked,
+            }),
+            VerificationStatus::Indeterminate => results.push(CandidateResult {
+                candidate_id: candidate.candidate_id.clone(),
+                revision_sha256: candidate.revision_sha256.clone(),
+                verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                disposition: CandidateDisposition::ExcludedIndeterminate,
+            }),
+            VerificationStatus::Verified => {
+                let reasons = objective_exclusion_reasons(candidate);
+                if !reasons.is_empty() {
+                    ranking_complete = false;
+                    results.push(CandidateResult {
+                        candidate_id: candidate.candidate_id.clone(),
+                        revision_sha256: candidate.revision_sha256.clone(),
+                        verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                        disposition: CandidateDisposition::ExcludedUnrankable(reasons),
+                    });
+                    continue;
+                }
+
+                let mut objectives = candidate.objectives.iter().collect::<Vec<_>>();
+                objectives.sort_by_key(|objective| objective.dimension.clone());
+                rankable.push(RankableCandidate {
+                    candidate,
+                    objectives,
+                });
+            }
+        }
+    }
+
+    rankable.sort_by(|left, right| {
+        left.candidate
+            .candidate_id
+            .cmp(&right.candidate.candidate_id)
+    });
+    if let Some(first) = rankable.first() {
+        let expected_schema = first.schema();
+        for candidate in rankable.iter().skip(1) {
+            if candidate.schema() != expected_schema {
+                return Err(FrontierError::IncompatibleObjectiveSchemas {
+                    candidate_id: candidate.candidate.candidate_id.clone(),
+                });
+            }
+        }
+    }
+
+    let mut frontier_ids = Vec::new();
+    for candidate in &rankable {
+        let mut dominators = rankable
+            .iter()
+            .filter(|other| {
+                other.candidate.candidate_id != candidate.candidate.candidate_id
+                    && dominates(other, candidate)
+            })
+            .map(|other| other.candidate.candidate_id.clone())
+            .collect::<Vec<_>>();
+        dominators.sort();
+
+        let disposition = if dominators.is_empty() {
+            frontier_ids.push(candidate.candidate.candidate_id.clone());
+            CandidateDisposition::OnFrontier
+        } else {
+            CandidateDisposition::DominatedBy(dominators)
+        };
+        results.push(CandidateResult {
+            candidate_id: candidate.candidate.candidate_id.clone(),
+            revision_sha256: candidate.candidate.revision_sha256.clone(),
+            verifier_receipt_sha256: candidate.candidate.verifier_receipt_sha256.clone(),
+            disposition,
+        });
+    }
+
+    results.sort_by_key(|result| result.candidate_id.clone());
+    frontier_ids.sort();
+    let objective_dimensions = rankable
+        .first()
+        .map(|candidate| {
+            candidate
+                .objectives
+                .iter()
+                .map(|objective| objective.dimension.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(FrontierReport {
+        frontier_ids,
+        candidates: results,
+        ranking_complete: ranking_complete && !rankable.is_empty(),
+        objective_dimensions,
+        claim_ceiling: "A deterministic Pareto comparison of caller-supplied finite objective observations among candidates labelled verified by an independent caller. This report does not authenticate evidence, establish source accuracy, prove global optimality, certify safety/accessibility/code compliance, or measure resident benefit.",
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn objective(
+        dimension: &str,
+        direction: ObjectiveDirection,
+        value: f64,
+    ) -> ObjectiveObservation {
+        ObjectiveObservation {
+            dimension: dimension.to_owned(),
+            direction,
+            value,
+            evidence: ObjectiveEvidence::AcceptedByPolicy,
+        }
+    }
+
+    fn candidate(
+        id: &str,
+        verification: VerificationStatus,
+        objectives: Vec<ObjectiveObservation>,
+    ) -> AlternativeCandidate {
+        AlternativeCandidate {
+            candidate_id: id.to_owned(),
+            revision_sha256: Some("a".repeat(64)),
+            verifier_receipt_sha256: Some("b".repeat(64)),
+            verification,
+            objectives,
+        }
+    }
+
+    fn two_objectives(cost: f64, coverage: f64) -> Vec<ObjectiveObservation> {
+        vec![
+            objective("install_cost", ObjectiveDirection::Minimize, cost),
+            objective("task_coverage", ObjectiveDirection::Maximize, coverage),
+        ]
+    }
+
+    fn disposition(report: &FrontierReport, id: &str) -> &CandidateDisposition {
+        &report
+            .candidates
+            .iter()
+            .find(|result| result.candidate_id == id)
+            .expect("candidate result must be present")
+            .disposition
+    }
+
+    #[test]
+    fn returns_non_dominated_tradeoffs_without_scalar_weights() {
+        let input = vec![
+            candidate("low-cost", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
+            candidate("high-coverage", VerificationStatus::Verified, two_objectives(12.0, 90.0)),
+            candidate("dominated", VerificationStatus::Verified, two_objectives(13.0, 60.0)),
+        ];
+        let report = compute_pareto_frontier(&input).expect("valid frontier");
+        assert_eq!(report.frontier_ids, vec!["high-coverage", "low-cost"]);
+        assert_eq!(report.objective_dimensions, vec!["install_cost", "task_coverage"]);
+        assert_eq!(
+            disposition(&report, "dominated"),
+            &CandidateDisposition::DominatedBy(vec![
+                "high-coverage".to_owned(),
+                "low-cost".to_owned()
+            ])
+        );
+        assert!(report.ranking_complete);
+    }
+
+    #[test]
+    fn blocked_and_indeterminate_never_enter_frontier() {
+        let input = vec![
+            candidate("verified", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
+            candidate(
+                "blocked-best-score",
+                VerificationStatus::Blocked,
+                two_objectives(0.0, 100.0),
+            ),
+            candidate(
+                "unknown-hard-gate",
+                VerificationStatus::Indeterminate,
+                two_objectives(0.0, 100.0),
+            ),
+        ];
+        let report = compute_pareto_frontier(&input).expect("valid frontier");
+        assert_eq!(report.frontier_ids, vec!["verified"]);
+        assert_eq!(
+            disposition(&report, "blocked-best-score"),
+            &CandidateDisposition::ExcludedBlocked
+        );
+        assert_eq!(
+            disposition(&report, "unknown-hard-gate"),
+            &CandidateDisposition::ExcludedIndeterminate
+        );
+        assert!(report.ranking_complete);
+    }
+
+    #[test]
+    fn non_admitted_objective_evidence_excludes_candidate_and_marks_incomplete() {
+        let mut unknown = candidate(
+            "unknown-cost",
+            VerificationStatus::Verified,
+            two_objectives(1.0, 100.0),
+        );
+        unknown.objectives[0].evidence = ObjectiveEvidence::Unknown;
+        let input = vec![
+            unknown,
+            candidate("known", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
+        ];
+        let report = compute_pareto_frontier(&input).expect("partial frontier is explicit");
+        assert_eq!(report.frontier_ids, vec!["known"]);
+        assert!(!report.ranking_complete);
+        assert!(matches!(
+            disposition(&report, "unknown-cost"),
+            CandidateDisposition::ExcludedUnrankable(reasons)
+                if reasons.iter().any(|reason| reason.contains("Unknown"))
+        ));
+    }
+
+    #[test]
+    fn every_non_admitted_objective_state_is_excluded() {
+        for evidence in [
+            ObjectiveEvidence::Provisional,
+            ObjectiveEvidence::Unknown,
+            ObjectiveEvidence::Conflicting,
+            ObjectiveEvidence::Blocked,
+        ] {
+            let mut uncertain = candidate(
+                "uncertain",
+                VerificationStatus::Verified,
+                two_objectives(1.0, 100.0),
+            );
+            uncertain.objectives[0].evidence = evidence;
+            let admitted = candidate(
+                "admitted",
+                VerificationStatus::Verified,
+                two_objectives(10.0, 70.0),
+            );
+            let report = compute_pareto_frontier(&[uncertain, admitted])
+                .expect("non-admitted values must be reported as exclusions");
+            assert_eq!(report.frontier_ids, vec!["admitted"], "{evidence:?}");
+            assert!(!report.ranking_complete, "{evidence:?}");
+            assert!(
+                matches!(
+                    disposition(&report, "uncertain"),
+                    CandidateDisposition::ExcludedUnrankable(_)
+                ),
+                "{evidence:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn result_is_invariant_to_candidate_and_objective_input_order() {
+        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let mut b = candidate("b", VerificationStatus::Verified, two_objectives(12.0, 90.0));
+        b.objectives.reverse();
+        let left = compute_pareto_frontier(&[a.clone(), b.clone()]).expect("valid frontier");
+        let right = compute_pareto_frontier(&[b, a]).expect("valid frontier");
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn incompatible_objective_schemas_fail_closed() {
+        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let b = candidate(
+            "b",
+            VerificationStatus::Verified,
+            vec![
+                objective("install_cost", ObjectiveDirection::Minimize, 9.0),
+                objective("aesthetics", ObjectiveDirection::Maximize, 99.0),
+            ],
+        );
+        assert!(matches!(
+            compute_pareto_frontier(&[a, b]),
+            Err(FrontierError::IncompatibleObjectiveSchemas { .. })
+        ));
+    }
+
+    #[test]
+    fn tied_alternatives_are_both_preserved_on_frontier() {
+        let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let b = candidate("b", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let report = compute_pareto_frontier(&[b, a]).expect("valid frontier");
+        assert_eq!(report.frontier_ids, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn malformed_digest_is_not_eligible_for_ranking() {
+        let mut malformed = candidate(
+            "bad-digest",
+            VerificationStatus::Verified,
+            two_objectives(1.0, 100.0),
+        );
+        malformed.revision_sha256 = Some("not-a-digest".to_owned());
+        let good = candidate("good", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let report = compute_pareto_frontier(&[malformed, good])
+            .expect("unrankable candidate is reported");
+        assert_eq!(report.frontier_ids, vec!["good"]);
+        assert!(!report.ranking_complete);
+    }
+
+    #[test]
+    fn duplicate_candidate_ids_are_rejected() {
+        let a = candidate("duplicate", VerificationStatus::Verified, two_objectives(10.0, 70.0));
+        let b = candidate("duplicate", VerificationStatus::Blocked, Vec::new());
+        assert_eq!(
+            compute_pareto_frontier(&[a, b]),
+            Err(FrontierError::DuplicateCandidateId("duplicate".to_owned()))
+        );
+    }
+
+    #[test]
+    fn non_finite_objective_is_never_ranked() {
+        let bad = candidate(
+            "non-finite",
+            VerificationStatus::Verified,
+            vec![objective("cost", ObjectiveDirection::Minimize, f64::NAN)],
+        );
+        let report = compute_pareto_frontier(&[bad])
+            .expect("bad objective remains an explicit exclusion");
+        assert!(report.frontier_ids.is_empty());
+        assert!(!report.ranking_complete);
+        assert!(matches!(
+            disposition(&report, "non-finite"),
+            CandidateDisposition::ExcludedUnrankable(_)
+        ));
+    }
+
+    #[test]
+    fn empty_request_and_invalid_candidate_ids_are_rejected() {
+        assert_eq!(compute_pareto_frontier(&[]), Err(FrontierError::EmptyRequest));
+        let bad = candidate(" padded ", VerificationStatus::Blocked, Vec::new());
+        assert!(matches!(
+            compute_pareto_frontier(&[bad]),
+            Err(FrontierError::InvalidCandidateId { index: 0 })
+        ));
+    }
+
+    #[test]
+    fn no_verified_candidates_produce_no_frontier() {
+        let input = vec![candidate("blocked", VerificationStatus::Blocked, Vec::new())];
+        let report = compute_pareto_frontier(&input).expect("exclusion report");
+        assert!(report.frontier_ids.is_empty());
+        assert!(!report.ranking_complete);
+    }
+}
