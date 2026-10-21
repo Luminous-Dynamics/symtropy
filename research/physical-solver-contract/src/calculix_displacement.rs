@@ -353,7 +353,7 @@ pub fn compare_displacement_reference_bytes(
     if deck.printed_set != node_set {
         return Err("deck U output node set differs from manifest.node_set".to_owned());
     }
-    if deck.node_sets.get(&node_set) != Some(&[load_node_id].into_iter().collect()) {
+    if deck.node_sets.get(node_set) != Some(&[load_node_id].into_iter().collect()) {
         return Err("tip output set must contain exactly the declared load node".to_owned());
     }
     if deck.point_loads.len() != 1 {
@@ -1021,7 +1021,7 @@ fn parse_displacement_section(
         .find(marker)
         .ok_or_else(|| "displacement header is missing the time field".to_owned())?;
     let observed_set = rest[..marker_index].trim().to_owned();
-    validate_token(&observed_set, "observed node set")?;
+    validate_displacement_set_token(&observed_set, "observed node set")?;
     if !observed_set.eq_ignore_ascii_case(expected_set) {
         return Err(format!(
             "observed displacement set '{observed_set}' does not match '{expected_set}'"
@@ -1221,6 +1221,18 @@ fn token<'a>(value: &'a str, label: &str) -> Check<&'a str> {
     Ok(value)
 }
 
+fn validate_displacement_set_token(value: &str, label: &str) -> Check<()> {
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
+    {
+        return Err(format!("{label} is not a valid stable token"));
+    }
+    Ok(())
+}
+
 fn csv_fields(text: &str) -> Vec<&str> {
     text.split(',').map(str::trim).collect()
 }
@@ -1329,7 +1341,7 @@ U
         .into_bytes()
     }
 
-    fn dat(u: f64) -> Vec<u8> {
+    fn dat_output(u: f64) -> Vec<u8> {
         format!(
             "displacements (vx,vy,vz) for set TIP and time 0.1000000E+01
 2 {u:.6E} 0.000000E+00 0.000000E+00
@@ -1357,7 +1369,7 @@ U
         .to_vec()
     }
 
-    fn manifest(request: &[u8], deck: &[u8], dat: &[u8], build: &[u8]) -> Vec<u8> {
+    fn manifest_bytes(request: &[u8], deck: &[u8], dat: &[u8], build: &[u8]) -> Vec<u8> {
         let req: Value = serde_json::from_slice(request).unwrap();
         let source_ref = "research/physical-solver-contract/PHYS-CCX-EXEC-001";
         let value = json!({
@@ -1398,9 +1410,9 @@ U
     fn exact_axial_bar_displacement_matches_independent_closed_form() {
         let request = request();
         let deck = deck();
-        let dat = dat(U);
+        let dat = dat_output(U);
         let build = build_manifest();
-        let manifest = manifest(&request, &deck, &dat, &build);
+        let manifest = manifest_bytes(&request, &deck, &dat, &build);
         let report =
             compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
         assert_eq!(report["numeric_reference_status"], "PASS");
@@ -1413,16 +1425,16 @@ U
     fn changed_deck_or_output_bytes_reject_stale_manifest() {
         let request = request();
         let deck = deck();
-        let dat = dat(U);
+        let dat = dat_output(U);
         let build = build_manifest();
-        let manifest = manifest(&request, &deck, &dat, &build);
+        let manifest = manifest_bytes(&request, &deck, &dat, &build);
         let mut changed_deck = deck.clone();
         changed_deck.extend_from_slice(b"** changed\n");
         assert!(
             compare_displacement_reference_bytes(&request, &changed_deck, &dat, &manifest, &build)
                 .is_err()
         );
-        let changed_dat = dat(U * 2.0);
+        let changed_dat = dat_output(U * 2.0);
         assert!(
             compare_displacement_reference_bytes(&request, &deck, &changed_dat, &manifest, &build)
                 .is_err()
@@ -1441,7 +1453,7 @@ U
             b"displacements (vx,vy,vz) for set TIP and time 1.0\n2 1 0 0\n2 1 0 0\n\n".to_vec(),
             b"displacements (vx,vy,vz) for set TIP and time 1.0\n2 1 0 0\n\n displacements (vx,vy,vz) for set TIP and time 1.0\n2 1 0 0\n".to_vec(),
         ] {
-            let manifest = manifest(&request, &deck, &dat, &build);
+            let manifest = manifest_bytes(&request, &deck, &dat, &build);
             assert!(compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).is_err());
         }
     }
@@ -1450,9 +1462,9 @@ U
     fn a_numeric_mismatch_is_reported_as_fail_not_pass() {
         let request = request();
         let deck = deck();
-        let dat = dat(U * 2.0);
+        let dat = dat_output(U * 2.0);
         let build = build_manifest();
-        let manifest = manifest(&request, &deck, &dat, &build);
+        let manifest = manifest_bytes(&request, &deck, &dat, &build);
         let report =
             compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
         assert_eq!(report["numeric_reference_status"], "FAIL");
@@ -1463,12 +1475,12 @@ U
     fn unknown_deck_keywords_and_wrong_build_identity_are_rejected() {
         let request = request();
         let deck = deck();
-        let dat = dat(U);
+        let dat = dat_output(U);
         let build = build_manifest();
-        let manifest = manifest(&request, &deck, &dat, &build);
+        let manifest = manifest_bytes(&request, &deck, &dat, &build);
         let mut unsupported_deck = deck.clone();
         unsupported_deck.extend_from_slice(b"*DLOAD\nBAR,P,1.0\n");
-        let unsupported_manifest = manifest(&request, &unsupported_deck, &dat, &build);
+        let unsupported_manifest = manifest_bytes(&request, &unsupported_deck, &dat, &build);
         assert!(
             compare_displacement_reference_bytes(
                 &request,
@@ -1485,7 +1497,7 @@ U
             .unwrap()
             .replace("1,1,2\\n", "1,,2\\n");
         let malformed_deck = malformed_deck_text.into_bytes();
-        let malformed_manifest = manifest(&request, &malformed_deck, &dat, &build);
+        let malformed_manifest = manifest_bytes(&request, &malformed_deck, &dat, &build);
         let error = compare_displacement_reference_bytes(
             &request,
             &malformed_deck,
@@ -1500,7 +1512,7 @@ U
             .unwrap()
             .replace("*STEP\\n", "*STEP,NLGEOM=YES\\n");
         let changed_step = changed_step_text.into_bytes();
-        let changed_step_manifest = manifest(&request, &changed_step, &dat, &build);
+        let changed_step_manifest = manifest_bytes(&request, &changed_step, &dat, &build);
         let step_error = compare_displacement_reference_bytes(
             &request,
             &changed_step,
@@ -1518,7 +1530,7 @@ U
             .unwrap()
             .replace("1.,1.,1.E-05,1.\\n", "1.,2.,1.E-05,1.\\n");
         let changed_time = changed_time_text.into_bytes();
-        let changed_time_manifest = manifest(&request, &changed_time, &dat, &build);
+        let changed_time_manifest = manifest_bytes(&request, &changed_time, &dat, &build);
         let time_error = compare_displacement_reference_bytes(
             &request,
             &changed_time,
@@ -1537,7 +1549,7 @@ U
         changed_build["builder_repository_commit"] =
             json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let changed_build = serde_json::to_vec(&changed_build).unwrap();
-        let manifest = manifest(&request, &deck, &dat, &changed_build);
+        let manifest = manifest_bytes(&request, &deck, &dat, &changed_build);
         assert!(
             compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &changed_build)
                 .is_err()
