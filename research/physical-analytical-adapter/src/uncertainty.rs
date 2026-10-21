@@ -188,6 +188,8 @@ pub struct PlanarTrussEnclosure {
     pub determinant_n2_per_m2: Interval,
     pub displacement_x_m: Interval,
     pub displacement_y_m: Interval,
+    pub length_a_m: Interval,
+    pub length_b_m: Interval,
     pub condition_infinity_upper: f64,
     pub condition_times_machine_epsilon_upper: f64,
 }
@@ -343,6 +345,8 @@ pub fn propagate_planar_truss_two_bar(
         determinant_n2_per_m2: determinant,
         displacement_x_m: displacement_x,
         displacement_y_m: displacement_y,
+        length_a_m: length_a,
+        length_b_m: length_b,
         condition_infinity_upper,
         condition_times_machine_epsilon_upper,
     })
@@ -352,7 +356,7 @@ pub fn propagate_planar_truss_two_bar(
 /// Input keys and units match propagate_planar_truss_two_bar.
 pub fn evaluate_planar_truss_two_bar_point(
     inputs: &BTreeMap<String, f64>,
-) -> Check<[f64; 8]> {
+) -> Check<[f64; 10]> {
     exact_keys(inputs, PLANAR_TRUSS_INPUT_KEYS, "point truss inputs")?;
     for key in PLANAR_TRUSS_INPUT_KEYS {
         if !inputs[key].is_finite() {
@@ -396,26 +400,45 @@ pub fn evaluate_planar_truss_two_bar_point(
         + stiffness_b * sine_b * sine_b;
     let direction_cross = span * height / (length_a * length_b);
     let determinant = stiffness_a * stiffness_b * direction_cross * direction_cross;
-    if ![
-        kxx,
-        kxy,
-        kyy,
-        determinant,
-        force_x,
-        force_y,
-    ]
-    .iter()
-    .all(|value| value.is_finite())
+    if ![kxx, kxy, kyy, determinant, force_x, force_y]
+        .iter()
+        .all(|value| value.is_finite())
         || determinant <= 0.0
     {
         return Err("point truss stiffness/determinant is non-finite or singular".to_owned());
     }
     let ux = (kyy * force_x - kxy * force_y) / determinant;
     let uy = (kxx * force_y - kxy * force_x) / determinant;
-    if !ux.is_finite() || !uy.is_finite() {
-        return Err("point truss displacement is non-finite".to_owned());
+    let matrix_inf_norm = (kxx.abs() + kxy.abs()).max(kxy.abs() + kyy.abs());
+    let inverse_inf_norm = ((kyy.abs() + kxy.abs()) / determinant)
+        .max((kxx.abs() + kxy.abs()) / determinant);
+    let condition_inf = matrix_inf_norm * inverse_inf_norm;
+    let condition_times_epsilon = condition_inf * f64::EPSILON;
+    if ![
+        ux,
+        uy,
+        matrix_inf_norm,
+        inverse_inf_norm,
+        condition_inf,
+        condition_times_epsilon,
+    ]
+    .iter()
+    .all(|value| value.is_finite())
+    {
+        return Err("point truss displacement or condition estimate is non-finite".to_owned());
     }
-    Ok([kxx, kxy, kyy, determinant, ux, uy, length_a, length_b])
+    Ok([
+        kxx,
+        kxy,
+        kyy,
+        determinant,
+        ux,
+        uy,
+        length_a,
+        length_b,
+        condition_inf,
+        condition_times_epsilon,
+    ])
 }
 
 /// Propagate independent bounds through the named formula. The nominal map is
@@ -459,6 +482,15 @@ pub fn propagate(
                 "youngs_modulus_pa",
                 "second_moment_area_m4",
                 "outer_fiber_distance_m",
+            ],
+        ),
+        "planar_truss_two_bar" => (
+            PLANAR_TRUSS_INPUT_KEYS,
+            &[
+                "span_m",
+                "apex_height_m",
+                "axial_stiffness_a_n_per_m",
+                "axial_stiffness_b_n_per_m",
             ],
         ),
         other => return Err(format!("unsupported analytical case '{other}'")),
@@ -549,6 +581,21 @@ pub fn propagate(
             Ok(BTreeMap::from([
                 ("midspan_deflection_m".to_owned(), deflection),
                 ("maximum_bending_stress_pa".to_owned(), stress),
+            ]))
+        }
+        "planar_truss_two_bar" => {
+            let enclosure = propagate_planar_truss_two_bar(nominal, bounds)?;
+            Ok(BTreeMap::from([
+                ("stiffness_kxx_n_per_m".to_owned(), enclosure.kxx_n_per_m),
+                ("stiffness_kxy_n_per_m".to_owned(), enclosure.kxy_n_per_m),
+                ("stiffness_kyy_n_per_m".to_owned(), enclosure.kyy_n_per_m),
+                ("determinant_n2_per_m2".to_owned(), enclosure.determinant_n2_per_m2),
+                ("displacement_x_m".to_owned(), enclosure.displacement_x_m),
+                ("displacement_y_m".to_owned(), enclosure.displacement_y_m),
+                ("bar_a_length_m".to_owned(), enclosure.length_a_m),
+                ("bar_b_length_m".to_owned(), enclosure.length_b_m),
+                ("condition_infinity".to_owned(), Interval::new(1.0, enclosure.condition_infinity_upper)?),
+                ("condition_times_machine_epsilon".to_owned(), Interval::new(0.0, enclosure.condition_times_machine_epsilon_upper)?),
             ]))
         }
         _ => unreachable!("case id was checked before evaluation"),
