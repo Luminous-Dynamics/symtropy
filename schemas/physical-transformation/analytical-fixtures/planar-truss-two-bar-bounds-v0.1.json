@@ -1,0 +1,81 @@
+{
+  "schema_version": "physical-analytical-request-v0.1",
+  "request_id": "planar-truss-two-bar-bounds-fixture",
+  "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "case_id": "planar_truss_two_bar",
+  "assumption_profile": "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss",
+  "requested_physics": [
+    "static_linear_elastic"
+  ],
+  "units": {
+    "length": "m",
+    "force": "N",
+    "area": "m^2",
+    "stress": "Pa",
+    "second_moment": "m^4",
+    "distributed_load": "N/m"
+  },
+  "inputs": {
+    "span_m": 4,
+    "apex_x_m": 1,
+    "apex_height_m": 0.75,
+    "axial_stiffness_a_n_per_m": 1000000000,
+    "axial_stiffness_b_n_per_m": 2000000000,
+    "force_x_n": 1000,
+    "force_y_n": -500
+  },
+  "input_bounds": {
+    "schema_version": "physical-input-bounds-v0.1",
+    "inputs": {
+      "span_m": {
+        "lower": 3.99,
+        "upper": 4.01,
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "apex_x_m": {
+        "lower": 0.99,
+        "upper": 1.01,
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "apex_height_m": {
+        "lower": 0.74,
+        "upper": 0.76,
+        "unit": "m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "axial_stiffness_a_n_per_m": {
+        "lower": 990000000,
+        "upper": 1010000000,
+        "unit": "N/m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "axial_stiffness_b_n_per_m": {
+        "lower": 1980000000,
+        "upper": 2020000000,
+        "unit": "N/m",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "force_x_n": {
+        "lower": 990,
+        "upper": 1010,
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      },
+      "force_y_n": {
+        "lower": -510,
+        "upper": -490,
+        "unit": "N",
+        "basis": "scenario_bound",
+        "source_ref": "fixture-only:planar-truss-two-bar-bounds-v0.1"
+      }
+    }
+  }
+}
