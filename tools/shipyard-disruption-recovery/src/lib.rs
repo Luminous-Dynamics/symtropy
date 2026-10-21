@@ -38,7 +38,7 @@ pub struct Disruption {
     pub vehicle_outages: Vec<VehicleOutage>,
     /// Observed delayed-clearance events; applied to both old and candidate plans.
     pub placement_occupancy_extensions: Vec<PlacementOccupancyExtension>,
-    /// Known work that requires reconsideration; geometry/outage/occupancy impacts are also derived.
+    /// Known work that requires reconsideration; other affected work is derived automatically.
     pub explicitly_affected_reservation_ids: Vec<String>,
 }
 
@@ -701,7 +701,7 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
         baseline_feasible_after_disruption,
         candidate_feasible_after_disruption,
         affected_reservation_count: affected.len(),
-        candidate_makespan_tick: makespan(&input.candidate),
+        candidate_makespan_tick: makespan(&candidate_after),
         ..RecoveryMetrics::default()
     };
 
@@ -728,7 +728,7 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
         }
     }
 
-    metrics.recovery_completion_tick = recovery_completion(&input.candidate, &changed_ids);
+    metrics.recovery_completion_tick = recovery_completion(&candidate_after, &changed_ids);
     metrics.recovery_horizon_ticks = metrics
         .recovery_completion_tick
         .map(|tick| tick.saturating_sub(input.disruption.observed_at_tick));
@@ -1044,6 +1044,31 @@ mod tests {
             .baseline_spatial_violations
             .iter()
             .any(|violation| violation.code == ViolationCode::BlockFootprintOverlap));
+    }
+
+    #[test]
+    fn clearance_extension_updates_candidate_makespan_and_recovery_horizon() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            candidate: baseline.clone(),
+            baseline,
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: 7,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+
+        assert!(report.accepted, "{:?}", report.violations);
+        assert_eq!(report.metrics.candidate_makespan_tick, Some(7));
+        assert_eq!(report.metrics.recovery_completion_tick, Some(7));
+        assert_eq!(report.metrics.recovery_horizon_ticks, Some(3));
     }
 
     #[test]
