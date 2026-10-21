@@ -15,7 +15,7 @@ This utility is downstream of verification. It does not implement or replace the
 
 ## Contract
 
-- Every verified candidate must carry SHA-256-shaped identifiers for the exact design revision and the independent verifier receipt. This module validates their shape and passes the identifiers through; it **does not authenticate or recompute either digest**.
+- Every verified candidate must carry SHA-256-shaped identifiers for the exact design revision, the independent verifier receipt, and the revision digest that the receipt claims to cover. The revision digest on the candidate must equal the receipt-bound revision digest, or the candidate is excluded and the report is incomplete. This prevents accidental reuse of a receipt after editing a layout, but the module only checks caller-provided binding values: it **does not authenticate or recompute the receipt or either digest**.
 - Each objective names a stable dimension, explicit unit or normalized scale, minimize/maximize direction, finite numeric value, and evidence-admission state. Dimension, unit, and direction must match exactly across the ranking set; this utility performs no currency conversion or hidden normalization.
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
 - Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
@@ -40,7 +40,7 @@ The unit tests cover:
 - invariance to candidate/objective input order;
 - mismatched objective schemas;
 - equal alternatives retained on the frontier;
-- malformed digest shapes and non-finite values;
+- malformed digest shapes, stale receipt-to-revision bindings, and non-finite values;
 - duplicate/invalid candidate IDs; and
 - empty input / no verified candidate cases.
 
