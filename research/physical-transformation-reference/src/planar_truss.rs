@@ -682,6 +682,62 @@ mod tests {
         symmetric_two_bar_reference_fixture()
     }
 
+    fn asymmetric_two_bar_truss() -> PlanarTrussInput {
+        let youngs_modulus_pa = 200.0e9;
+        let length_ac = 10.0_f64.sqrt();
+        let length_bc = 18.0_f64.sqrt();
+        let axial_stiffness_ac = 1.0e9;
+        let axial_stiffness_bc = 2.0e9;
+
+        PlanarTrussInput {
+            nodes: vec![
+                TrussNode {
+                    id: "A".to_owned(),
+                    x_m: 0.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "B".to_owned(),
+                    x_m: 4.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "C".to_owned(),
+                    x_m: 1.0,
+                    y_m: 3.0,
+                    restrained_x: false,
+                    restrained_y: false,
+                    force_x_n: 600.0,
+                    force_y_n: -1_200.0,
+                },
+            ],
+            bars: vec![
+                TrussBar {
+                    id: "AC".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: axial_stiffness_ac * length_ac / youngs_modulus_pa,
+                    youngs_modulus_pa,
+                },
+                TrussBar {
+                    id: "BC".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: axial_stiffness_bc * length_bc / youngs_modulus_pa,
+                    youngs_modulus_pa,
+                },
+            ],
+        }
+    }
+
     fn close(actual: f64, expected: f64, tolerance: f64, label: &str) {
         assert!(
             (actual - expected).abs() <= tolerance,
@@ -815,6 +871,103 @@ mod tests {
             result.energy.normalized_residual < 1.0e-12,
             "normalized energy residual={:.17e}",
             result.energy.normalized_residual
+        );
+    }
+
+    #[test]
+    fn asymmetric_two_bar_truss_matches_closed_form_oracle() {
+        // Geometry A=(0,0), B=(4,0), C=(1,3), with EA/L=1e9 and 2e9 N/m.
+        // For the free apex, K = 1e9 [[1.1,-0.7],[-0.7,1.9]] and F=(600,-1200) N.
+        // This exercises off-diagonal coupling that cancels in the symmetric oracle.
+        let result = solve(&asymmetric_two_bar_truss()).expect("stable asymmetric truss");
+        let apex = node(&result, "C");
+        close(apex.displacement_x_m, 1.875e-7, 1.0e-15, "asymmetric apex x");
+        close(apex.displacement_y_m, -5.625e-7, 1.0e-15, "asymmetric apex y");
+
+        let left = node(&result, "A");
+        let right = node(&result, "B");
+        close(
+            left.reaction_x_n.expect("A x reaction"),
+            150.0,
+            1.0e-6,
+            "A x reaction",
+        );
+        close(
+            left.reaction_y_n.expect("A y reaction"),
+            450.0,
+            1.0e-6,
+            "A y reaction",
+        );
+        close(
+            right.reaction_x_n.expect("B x reaction"),
+            -750.0,
+            1.0e-6,
+            "B x reaction",
+        );
+        close(
+            right.reaction_y_n.expect("B y reaction"),
+            750.0,
+            1.0e-6,
+            "B y reaction",
+        );
+
+        let ac = result
+            .bar_results
+            .iter()
+            .find(|bar| bar.bar_id == "AC")
+            .expect("AC member");
+        let bc = result
+            .bar_results
+            .iter()
+            .find(|bar| bar.bar_id == "BC")
+            .expect("BC member");
+        let expected_ac_force = -1_500.0 / 10.0_f64.sqrt();
+        let expected_bc_force = -1_500.0 / 2.0_f64.sqrt();
+        close(ac.axial_force_n, expected_ac_force, 1.0e-6, "AC force");
+        close(bc.axial_force_n, expected_bc_force, 1.0e-6, "BC force");
+        close(ac.axial_stress_pa, -30_000.0, 1.0e-6, "AC stress");
+        close(bc.axial_stress_pa, -25_000.0, 1.0e-6, "BC stress");
+        close(ac.axial_strain, -1.5e-7, 1.0e-15, "AC strain");
+        close(bc.axial_strain, -1.25e-7, 1.0e-15, "BC strain");
+        close(
+            ac.axial_extension_m,
+            -1.5e-7 * 10.0_f64.sqrt(),
+            1.0e-15,
+            "AC extension",
+        );
+        close(
+            bc.axial_extension_m,
+            -1.25e-7 * 18.0_f64.sqrt(),
+            1.0e-15,
+            "BC extension",
+        );
+
+        for (label, residual) in [
+            ("force", result.equilibrium.normalized_force_residual),
+            ("moment", result.equilibrium.normalized_moment_residual),
+            ("free-DOF", result.equilibrium.normalized_free_dof_residual),
+            ("energy", result.energy.normalized_residual),
+        ] {
+            assert!(residual < 1.0e-12, "asymmetric normalized {label} residual={residual:.17e}");
+        }
+        let expected_energy_j = 3.9375e-4;
+        close(
+            result.energy.strain_energy_j,
+            expected_energy_j,
+            1.0e-12,
+            "asymmetric strain energy",
+        );
+        close(
+            result.energy.external_work_j,
+            expected_energy_j,
+            1.0e-12,
+            "asymmetric external work",
+        );
+        close(
+            result.energy.residual_j,
+            0.0,
+            1.0e-12,
+            "asymmetric energy residual",
         );
     }
 
