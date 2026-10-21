@@ -30,11 +30,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["output_kind", "baseline_output_id", "scaled_output_id"],
+        "required": ["output_kind", "baseline_output_id", "scaled_output_id", "scaling_exponent"],
         "properties": {
           "output_kind": { "$ref": "#/$defs/token" },
           "baseline_output_id": { "$ref": "#/$defs/token" },
-          "scaled_output_id": { "$ref": "#/$defs/token" }
+          "scaled_output_id": { "$ref": "#/$defs/token" },
+          "scaling_exponent": { "type": "integer", "enum": [1, 2] }
         }
       }
     }
