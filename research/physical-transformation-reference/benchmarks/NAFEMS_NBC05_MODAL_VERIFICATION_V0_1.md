@@ -77,7 +77,7 @@ Create a tiny, analytically solvable \(K\phi=\lambda M\phi\) known-answer fixtur
 
 The implementation candidate now pins a machine-readable case manifest and independently derives the two eigenvalues of the reduced 2×2 model; it emits a request/source-bound receipt and checks the reported CS1/CS2 frequencies at the tolerance declared above. Count this only as a reproduction of the *published axial-bar table*. The exact-head CI and mutation-audit gates must pass before the new result is counted as a software-qualified reproduction.
 
-A subsequent M2b/M3 must add subdivided member centreline constraints and zero/mechanism-mode classification; then use a released-joint beam model with second moment of area and appropriate rotary inertia to test physical modal completeness. Do not call the current axial-only model the real structure's modal solution.
+A subsequent M2b/M3 must add subdivided member centreline constraints and zero/mechanism-mode classification; then use a released-joint beam model with second moment of area and appropriate rotary inertia to test physical modal completeness. The dedicated contract is [NAFEMS_NBC05_BEAM_FIDELITY_V0_1.md](NAFEMS_NBC05_BEAM_FIDELITY_V0_1.md). Do not call the current axial-only model the real structure's modal solution.
 
 ### M3 — Subdivision and mechanism tests
 
