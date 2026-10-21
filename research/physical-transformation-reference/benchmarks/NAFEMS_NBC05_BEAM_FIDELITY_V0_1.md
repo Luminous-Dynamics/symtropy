@@ -50,6 +50,9 @@ A static stiffness matrix or a correct axial-bar frequency does not qualify beam
 
 ### B1 — Pin releases at all three truss joints
 
+The first global-assembly prototype is in draft [PR #2561](https://github.com/Luminous-Dynamics/symtropy/pull/2561). It sorts nodes and members by stable ID, shares only x/y translations at a joint, and assigns distinct member-end rotations keyed by (member ID, start/end). It builds deterministic global stiffness, total mass, translational mass and rotary-inertia mass matrices, plus explicit fixed/free DOF and descriptor lists. Its mutation gate intentionally ties rotations at the shared apex and requires the named DOF-ownership test to catch that defect. This verifies the assembly contract only; an eigen-solver and modal results are not implemented by that PR.
+
+
 Do not simulate a pin simply by fixing the node's shared rotation to zero. At an ideal pin the connected member end rotations are not shared and no end moment is transmitted. Represent released member-end rotations explicitly, while the translational DOFs at the joint remain connected. At the two supported joints, restrain translations per the source model while preserving the intended moment release.
 
 Add negative controls proving that:
@@ -57,6 +60,8 @@ Add negative controls proving that:
 - fixing release rotations to zero is not silently accepted as an ideal pin;
 - the reduced model has the expected rigid/mechanism mode count;
 - no eigenvalues are silently dropped merely because they are near zero.
+
+The first assembly prototype verifies the translational-sharing / private-rotation mapping, deterministic input-order invariance, separate mass terms, and global matrix symmetry. It does **not** yet classify rigid/mechanism eigenmodes or qualify a beam spectrum; those are separate acceptance gates.
 
 ### B2 — Mass matrix and rotary inertia
 
