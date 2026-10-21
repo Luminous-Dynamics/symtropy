@@ -759,7 +759,7 @@ mod tests {
             (80.0, 85.0),
         );
         statistical.objectives[0].semantics = IntervalSemantics {
-            kind: IntervalSemanticsKind::ConfidenceInterval,
+            kind: IntervalSemanticsKind::StatisticalInterval,
             basis_id: "bootstrap-95pct-v1".to_owned(),
         };
         let report = compute_interval_frontier(&[statistical])
