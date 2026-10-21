@@ -588,6 +588,15 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                 format!("{}: external board lacks license-evidence SHA-256", board.board_id)
             })?;
             require_sha256(license_sha, "license_evidence_sha256")?;
+            let git_blob_sha1 = board.license_evidence_git_blob_sha1.as_deref().ok_or_else(|| {
+                format!("{}: external board lacks license-evidence Git blob SHA-1", board.board_id)
+            })?;
+            if !is_git_blob_sha1(git_blob_sha1) {
+                return Err(format!(
+                    "{}: license-evidence Git blob SHA-1 must be 40 hexadecimal characters",
+                    board.board_id
+                ));
+            }
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
@@ -737,6 +746,18 @@ pub fn build_dataset_manifest(
             .ok_or_else(|| {
                 format!("{}: license-evidence source commit is required", selection.board_id)
             })?;
+        let expected_license_blob = selection
+            .license_evidence_git_blob_sha1
+            .as_deref()
+            .ok_or_else(|| {
+                format!("{}: license-evidence Git blob SHA-1 is required", selection.board_id)
+            })?;
+        if !is_git_blob_sha1(expected_license_blob) {
+            return Err(format!(
+                "{}: license-evidence Git blob SHA-1 must be 40 hexadecimal characters",
+                selection.board_id
+            ));
+        }
         if !is_commit_sha(license_source_commit) {
             return Err(format!(
                 "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
@@ -816,6 +837,13 @@ pub fn build_dataset_manifest(
                 selection.board_id
             ));
         }
+        let observed_license_blob = git_blob_sha1(&license_bytes);
+        if observed_license_blob != expected_license_blob {
+            return Err(format!(
+                "{}: license-evidence bytes do not match the source repository Git blob SHA-1",
+                selection.board_id
+            ));
+        }
 
         boards.push(BoardPin {
             board_id: selection.board_id.clone(),
@@ -828,6 +856,7 @@ pub fn build_dataset_manifest(
             license_evidence_sha256: Some(sha256_hex(&license_bytes)),
             license_evidence_url: Some(license_url.to_string()),
             license_evidence_source_commit_sha: Some(license_source_commit.to_ascii_lowercase()),
+            license_evidence_git_blob_sha1: Some(observed_license_blob),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
