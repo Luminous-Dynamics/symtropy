@@ -435,7 +435,8 @@ fn parse_support_catalog(
         || field_sha(catalog, "request_sha256", "node catalogue")? != context.request_sha256
         || field_sha(catalog, "scene_sha256", "node catalogue")? != context.scene_sha256
         || field_u64(catalog, "scene_revision", "node catalogue")? != context.scene_revision
-        || field_str(catalog, "coordinate_frame_id", "node catalogue")? != context.coordinate_frame_id
+        || field_str(catalog, "coordinate_frame_id", "node catalogue")?
+            != context.coordinate_frame_id
         || field_sha(catalog, "deck_sha256", "node catalogue")? != context.deck_sha256
     {
         return Err("support-node catalogue identity/frame/deck digest mismatch".to_owned());
