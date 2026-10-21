@@ -553,8 +553,8 @@ pub fn build_dataset_manifest(
             ));
         }
         let candidate_ids = split_config
-            .get(&selection.difficulty)
-            .and_then(|difficulty| difficulty.get(&intake.split_name))
+            .get(selection.difficulty.as_str())
+            .and_then(|difficulty| difficulty.get(intake.split_name.as_str()))
             .and_then(serde_json::Value::as_array)
             .ok_or_else(|| {
                 format!(
@@ -1462,6 +1462,10 @@ mod tests {
     fn external_manifest_rejects_unverified_license_and_non_https_source() {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
         manifest.evidence_class = "external_benchmark".into();
+        manifest.source_split_config_sha256 = Some("a".repeat(64));
+        manifest.source_split_commit_sha = Some("b".repeat(40));
+        manifest.source_split_name = Some("test".into());
+        manifest.intake_metadata_sha256 = Some("c".repeat(64));
         for board in &mut manifest.boards {
             board.relative_path = Some(format!("boards/{}.kicad_pcb", board.board_id));
             board.license = "unknown".into();
