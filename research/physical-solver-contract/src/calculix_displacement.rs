@@ -40,7 +40,6 @@ struct ParsedDeck {
     nodes: BTreeMap<u64, [f64; 3]>,
     elements: Vec<[u64; 2]>,
     node_sets: BTreeMap<String, BTreeSet<u64>>,
-    boundary_dofs: BTreeSet<(u64, u8)>,
     point_loads: Vec<(u64, u8, f64)>,
     youngs_modulus_pa: f64,
     poisson_ratio: f64,
@@ -446,11 +445,6 @@ fn parse_model_nodes(manifest: &Value) -> Check<BTreeMap<u64, [f64; 3]>> {
         if nodes.insert(id, coordinate).is_some() {
             return Err(format!("duplicate model node ID {id}"));
         }
-        if target != field_string(&manifest["provenance"], "source_ref", "provenance")?
-            && target.is_empty()
-        {
-            return Err("model node target ID must not be empty".to_owned());
-        }
     }
     let support_id = field_u64(manifest, "support_node_id", "manifest")?;
     let load_id = field_u64(manifest, "load_node_id", "manifest")?;
@@ -741,7 +735,6 @@ fn parse_and_validate_deck(
         nodes,
         elements,
         node_sets,
-        boundary_dofs,
         point_loads,
         youngs_modulus_pa,
         poisson_ratio,
@@ -928,7 +921,7 @@ fn field_string<'a>(value: &'a Value, key: &str, label: &str) -> Check<&'a str> 
         .ok_or_else(|| format!("{label}.{key} must be a string"))
 }
 
-fn field_sha(value: &Value, key: &str, label: &str) -> Check<&str> {
+fn field_sha<'a>(value: &'a Value, key: &str, label: &str) -> Check<&'a str> {
     let text = field_string(value, key, label)?;
     validate_hex(text, 64, &format!("{label}.{key}"))?;
     Ok(text)
@@ -1029,7 +1022,7 @@ fn parse_u64(text: &str, line: usize, label: &str) -> Check<u64> {
 }
 
 fn parse_finite(text: &str, line: usize) -> Check<f64> {
-    let normalized = text.trim().replace(['D', 'd'], "E");
+    let normalized = text.trim().replace('D', "E").replace('d', "E");
     let value = normalized
         .parse::<f64>()
         .map_err(|_| format!("invalid numeric value at line {line}"))?;
@@ -1242,7 +1235,14 @@ U
         let manifest = manifest(&request, &deck, &dat, &build);
         let mut unsupported_deck = deck.clone();
         unsupported_deck.extend_from_slice(b"*DLOAD\nBAR,P,1.0\n");
-        assert!(compare_displacement_reference_bytes(&request, &unsupported_deck, &dat, &manifest, &build).is_err());
+        let unsupported_manifest = manifest(&request, &unsupported_deck, &dat, &build);
+        assert!(compare_displacement_reference_bytes(
+            &request,
+            &unsupported_deck,
+            &dat,
+            &unsupported_manifest,
+            &build
+        ).is_err());
         let wrong_build = build_manifest().into_iter().collect::<Vec<_>>();
         let mut changed_build: Value = serde_json::from_slice(&wrong_build).unwrap();
         changed_build["builder_repository_commit"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
