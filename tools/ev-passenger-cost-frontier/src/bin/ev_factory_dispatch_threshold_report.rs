@@ -6,6 +6,12 @@ use std::{
 
 const THRESHOLDS: [u64; 4] = [300, 900, 1_800, 3_600];
 const T_CRITICAL_DF_19: f64 = 2.093;
+// For the fixed primary family (4 thresholds x 6 scenarios = 24 tests),
+// t(1 - 0.05/(2*24), df=19) ~= 3.562. Round upward to 4.0 so the
+// Bonferroni simultaneous intervals remain conservative without a runtime
+// statistics dependency. This constant is valid only for this frozen design.
+const T_CRITICAL_DF_19_BONFERRONI_24_CONSERVATIVE: f64 = 4.0;
+const PRIMARY_COMPARISON_COUNT: usize = 24;
 
 #[derive(Debug, Deserialize)]
 struct Report {
@@ -93,6 +99,18 @@ struct ThresholdResult {
     station_deltas: Vec<StationDelta>,
 }
 #[derive(Debug, serde::Serialize)]
+struct ThroughputFamilywiseInterval {
+    maximum_queue_age_seconds: u64,
+    scenario_id: String,
+    sample_count: usize,
+    mean_delta_units_per_hour: f64,
+    sample_standard_deviation: f64,
+    confidence_95_lower_bonferroni: f64,
+    confidence_95_upper_bonferroni: f64,
+    family_size: usize,
+    t_critical_conservative: f64,
+}
+#[derive(Debug, serde::Serialize)]
 struct SensitivityReport {
     schema_version: String,
     benchmark_id: String,
@@ -103,6 +121,10 @@ struct SensitivityReport {
     replication_seeds: Vec<u64>,
     paired_seed_scenario_keys_match: bool,
     confidence_interval_method: String,
+    primary_metric_family: String,
+    primary_comparison_count: usize,
+    primary_familywise_interval_method: String,
+    primary_throughput_familywise_intervals: Vec<ThroughputFamilywiseInterval>,
     multiplicity_adjustment: String,
     threshold_results: Vec<ThresholdResult>,
     claim_ceiling: String,
@@ -146,16 +168,22 @@ fn run() -> Result<(), String> {
     for (age, r) in &candidates {
         results.push(compare(*age, &base_ix, r, &index(r)?)?);
     }
+    let primary_throughput_familywise_intervals =
+        build_primary_familywise_intervals(&results, PRIMARY_COMPARISON_COUNT)?;
     let out = SensitivityReport {
-        schema_version:"ev-factory-age-threshold-sensitivity/0.1".into(),
+        schema_version:"ev-factory-age-threshold-sensitivity/0.2".into(),
         benchmark_id:base.benchmark_id.clone(), baseline_policy:"fifo".into(),
         candidate_policy:"minimize_changeover".into(), thresholds_seconds:ages,
         replication_count:base.replication_count, replication_seeds:base.replication_seeds.clone(),
         paired_seed_scenario_keys_match:true,
-        confidence_interval_method:format!("paired t interval over same-seed deltas; 95%, df=19, t-critical={T_CRITICAL_DF_19}; unadjusted"),
-        multiplicity_adjustment:"none; sensitivity screen only; do not select a winner from unadjusted intervals".into(),
+        confidence_interval_method:format!("secondary paired t intervals over same-seed deltas; 95%, df=19, t-critical={T_CRITICAL_DF_19}; unadjusted"),
+        primary_metric_family:"good units/hour delta vs FIFO across all four thresholds and six fixed scenarios; two-sided family size 24".into(),
+        primary_comparison_count:PRIMARY_COMPARISON_COUNT,
+        primary_familywise_interval_method:format!("Bonferroni simultaneous 95% intervals for primary throughput family only; paired t, df=19; conservative t-critical={T_CRITICAL_DF_19_BONFERRONI_24_CONSERVATIVE}; all secondary metrics remain unadjusted and descriptive"),
+        primary_throughput_familywise_intervals,
+        multiplicity_adjustment:"Bonferroni-conservative family-wise intervals apply only to the predeclared 24 throughput comparisons; all secondary metrics are unadjusted sensitivity measures; no threshold winner is selected".into(),
         threshold_results:results,
-        claim_ceiling:"Synthetic discrete-event sensitivity analysis over a frozen fixture and 20 seeds only; no plant calibration, hard maximum-wait guarantee, production recommendation, or state-of-the-art claim.".into(),
+        claim_ceiling:"Synthetic discrete-event sensitivity analysis over a frozen fixture and 20 seeds only; primary throughput intervals are Bonferroni-conservative for the fixed 24-comparison family; no plant calibration, hard maximum-wait guarantee, production recommendation, or state-of-the-art claim.".into(),
     };
     println!(
         "{}",
@@ -163,6 +191,56 @@ fn run() -> Result<(), String> {
     );
     Ok(())
 }
+fn build_primary_familywise_intervals(
+    results: &[ThresholdResult],
+    family_size: usize,
+) -> Result<Vec<ThroughputFamilywiseInterval>, String> {
+    if results.len() != THRESHOLDS.len() || family_size != PRIMARY_COMPARISON_COUNT {
+        return Err("primary_throughput_family_size_or_threshold_count_mismatch".into());
+    }
+    let expected = results.len() * 6;
+    if expected != family_size || results.iter().any(|r| r.scenario_deltas.len() != 6) {
+        return Err("primary_throughput_family_requires_four_thresholds_and_six_scenarios".into());
+    }
+    let mut intervals = Vec::with_capacity(family_size);
+    for result in results {
+        if !THRESHOLDS.contains(&result.maximum_queue_age_seconds) {
+            return Err("unexpected_threshold_in_primary_family".into());
+        }
+        for scenario in &result.scenario_deltas {
+            let summary = &scenario.good_units_per_hour_delta;
+            if summary.sample_count != 20
+                || !summary.mean.is_finite()
+                || !summary.sample_standard_deviation.is_finite()
+                || summary.sample_standard_deviation < 0.0
+            {
+                return Err("primary_throughput_interval_requires_twenty_finite_paired_deltas".into());
+            }
+            let half_width = T_CRITICAL_DF_19_BONFERRONI_24_CONSERVATIVE
+                * summary.sample_standard_deviation
+                / (summary.sample_count as f64).sqrt();
+            if !half_width.is_finite() {
+                return Err("non_finite_primary_familywise_interval".into());
+            }
+            intervals.push(ThroughputFamilywiseInterval {
+                maximum_queue_age_seconds: result.maximum_queue_age_seconds,
+                scenario_id: scenario.scenario_id.clone(),
+                sample_count: summary.sample_count,
+                mean_delta_units_per_hour: summary.mean,
+                sample_standard_deviation: summary.sample_standard_deviation,
+                confidence_95_lower_bonferroni: summary.mean - half_width,
+                confidence_95_upper_bonferroni: summary.mean + half_width,
+                family_size,
+                t_critical_conservative: T_CRITICAL_DF_19_BONFERRONI_24_CONSERVATIVE,
+            });
+        }
+    }
+    if intervals.len() != family_size {
+        return Err("primary_familywise_interval_count_mismatch".into());
+    }
+    Ok(intervals)
+}
+
 fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
     let s = fs::read_to_string(path).map_err(|e| format!("read_{path}:{e}"))?;
     serde_json::from_str(&s).map_err(|e| format!("parse_{path}:{e}"))
@@ -459,6 +537,53 @@ mod tests {
         assert_eq!(s.confidence_95_upper_unadjusted, 2.0);
         assert_eq!(s.paired_seed_deltas.len(), 20);
     }
+    fn synthetic_summary(offset: f64) -> Summary {
+        summarize(
+            (1..=20)
+                .map(|seed| Pair {
+                    seed,
+                    delta: offset + (seed as f64) / 7.0,
+                })
+                .collect(),
+        )
+        .expect("twenty finite pairs")
+    }
+
+    #[test]
+    fn bonferroni_primary_family_covers_all_24_throughput_comparisons() {
+        let results = THRESHOLDS
+            .iter()
+            .map(|age| ThresholdResult {
+                maximum_queue_age_seconds: *age,
+                scenario_deltas: (0..6)
+                    .map(|scenario| ScenarioDelta {
+                        scenario_id: format!("scenario-{scenario}"),
+                        good_units_per_hour_delta: synthetic_summary(scenario as f64),
+                        good_units_total_delta: synthetic_summary(0.0),
+                        scrapped_jobs_delta: synthetic_summary(0.0),
+                        rework_attempts_delta: synthetic_summary(0.0),
+                        per_variant_wait_deltas: Vec::new(),
+                    })
+                    .collect(),
+                station_deltas: Vec::new(),
+            })
+            .collect::<Vec<_>>();
+        let intervals = build_primary_familywise_intervals(&results, PRIMARY_COMPARISON_COUNT)
+            .expect("exactly 4 x 6 primary comparisons");
+        assert_eq!(intervals.len(), 24);
+        assert!(intervals.iter().all(|x| {
+            x.family_size == 24
+                && x.sample_count == 20
+                && x.t_critical_conservative == 4.0
+        }));
+        let unadjusted = &results[0].scenario_deltas[0].good_units_per_hour_delta;
+        assert!(intervals[0].confidence_95_lower_bonferroni <= unadjusted.confidence_95_lower_unadjusted);
+        assert!(intervals[0].confidence_95_upper_bonferroni >= unadjusted.confidence_95_upper_unadjusted);
+        assert!(T_CRITICAL_DF_19_BONFERRONI_24_CONSERVATIVE > T_CRITICAL_DF_19);
+        assert!(build_primary_familywise_intervals(&results[..3], PRIMARY_COMPARISON_COUNT).is_err());
+        assert!(build_primary_familywise_intervals(&results, PRIMARY_COMPARISON_COUNT - 1).is_err());
+    }
+
     #[test]
     fn summary_rejects_nineteen_pairs() {
         let xs = (1..=19)
