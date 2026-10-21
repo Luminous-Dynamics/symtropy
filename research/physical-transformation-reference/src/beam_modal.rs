@@ -272,9 +272,13 @@ mod tests {
         }
         let result = solve_beam_pin_assembly_modes(&assembly).expect("classified mechanism");
         assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
-        assert!(result
-            .modes
-            .iter()
-            .any(|mode| mode.class == BeamModeClass::NearZeroOrMechanism && mode.frequency_hz.is_none()));
+        assert!(
+            result
+                .modes
+                .iter()
+                .any(|mode| {
+                    mode.class == BeamModeClass::NearZeroOrMechanism && mode.frequency_hz.is_none()
+                })
+        );
     }
 }
