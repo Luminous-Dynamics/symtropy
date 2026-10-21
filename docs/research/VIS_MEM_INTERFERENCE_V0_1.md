@@ -317,3 +317,14 @@ Mem4Act is the reference for learned fixed-size latent memory and causal utiliza
 ### Leaderboard reconciliation note (2026-10-22)
 
 The [official RoboMME leaderboard](https://robomme.github.io/leaderboard.html), whose page reports data updated 2026-09-29, lists PonderPounce-9B at 60.83% overall and FrameSamp+Modul at 44.51%. Mem4Act's 49.88% is the best among the baselines reported in its own October preprint, but Mem4Act is not listed on the leaderboard page inspected during this pass. These are different reports and potentially different checkpoints/training/evaluation configurations; do not describe 49.88% as the highest official RoboMME leaderboard score or directly declare superiority over PonderPounce-9B. Before head-to-head claims, pin identical official task configs/evaluator/seeds and reproduce both eligible systems, or restrict the wording to each paper's own evaluation table.
+
+
+### Mem4Act ablation signals for design (paper-reported, not reproduced)
+
+The paper's ablations make the architectural target more precise:
+- With the same (32\rightarrow16\rightarrow8) temporal hierarchy, 128 / 256 / 512 / 1024 latent tokens score 40.13% / 44.25% / 49.88% / 42.75%. Increasing capacity is therefore **non-monotonic**; 1024 tokens are worse than 512.
+- With a fixed 512-token budget, unmasked full-history attention reports 33.25%, repeated single-scale (32\rightarrow32\rightarrow32) 36.88%, two-scale (32\rightarrow8) 43.13%, and the default (32\rightarrow16\rightarrow8) 49.88%. Temporal organization matters, not just token count.
+- The structured 128-token hierarchy outperforms the 512-token unmasked-history setting in the reported ablation (40.13% versus 33.25%). This comparison is internal to that paper's setup, not a claim against a separately trained or official leaderboard model.
+- For the paper's history-swap reliance test, the correctly conditioned two-stage (0.1\times)-learning-rate model scores 49.88%, versus 16.13% with a same-task but mismatched history. This is a 33.75-point drop. We should test both relevant-history sensitivity and irrelevant-history invariance; a large drop alone could reward excessive context sensitivity.
+
+Source: [Mem4Act paper](https://arxiv.org/abs/2610.22323) and [official project page](https://handsomeyun.github.io/Mem4Act/). This page currently marks code/dataset as coming soon, so these numbers remain paper-reported until an exact runnable release can be pinned.
