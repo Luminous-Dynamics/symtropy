@@ -92,6 +92,12 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
     if !nonblank(text(document, "benchmark_id")) {
         errors.push("document: missing or blank benchmark_id".to_owned());
     }
+    if !matches!(text(document, "status"), Some("synthetic_fixture" | "evidence_snapshot")) {
+        errors.push("document: status must be synthetic_fixture or evidence_snapshot".to_owned());
+    }
+    if text(field(document, "units").unwrap_or(&Value::Null), "length") != Some("m") {
+        errors.push("document: units.length must be m".to_owned());
+    }
 
     let Some(records) = field(document, "records").and_then(Value::as_array) else {
         errors.push("document: records must be an array".to_owned());
@@ -148,6 +154,9 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
                     "{prefix}: unknown dimensions must not contain bounds_m"
                 ));
             }
+            if field(record, "source").is_some() || field(record, "method").is_some() {
+                validate_source_and_method(record, &prefix, state, &mut errors);
+            }
         } else {
             let Some(bounds) = bounds else {
                 errors.push(format!("{prefix}: known state requires bounds_m"));
@@ -198,9 +207,9 @@ fn validate_source_and_method(
     let Some(source) = field(record, "source") else {
         if state != "unknown" {
             errors.push(format!("{prefix}: known state requires source"));
-        }
-        if state != "unknown" {
             errors.push(format!("{prefix}: known state requires method"));
+        } else if text(record, "method").is_some_and(|method| method != "unavailable") {
+            errors.push(format!("{prefix}: unknown state may only use method unavailable"));
         }
         return;
     };
@@ -231,7 +240,11 @@ fn validate_source_and_method(
     }
 
     let method = text(record, "method");
-    if state != "unknown" && !nonblank(method) {
+    if state == "unknown" {
+        if method.is_some_and(|method| method != "unavailable") {
+            errors.push(format!("{prefix}: unknown state may only use method unavailable"));
+        }
+    } else if !nonblank(method) {
         errors.push(format!("{prefix}: known state requires method"));
     } else if let Some(method) = method
         && !method_matches_state(state, method)
