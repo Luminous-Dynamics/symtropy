@@ -227,7 +227,9 @@ pub struct PairedSummary {
     pub mean_elapsed_delta_95_ci_ms: ConfidenceInterval,
     pub jointly_valid_board_count: usize,
     pub median_wirelength_delta_mm_treatment_minus_baseline: Option<f64>,
+    pub median_wirelength_delta_95_ci_mm: Option<ConfidenceInterval>,
     pub median_via_delta_treatment_minus_baseline: Option<f64>,
+    pub median_via_delta_95_ci: Option<ConfidenceInterval>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -769,10 +771,14 @@ pub fn compare_runs(
         left.input_report_sha256, right.input_report_sha256, left.dataset_manifest_sha256
     );
     let seed_hex = sha256_hex(seed_material.as_bytes());
-    let seed = u64::from_str_radix(&seed_hex[..16], 16).unwrap_or(0xA5A5_5A5A);
-    let (completion_lower, completion_upper) =
-        bootstrap_mean_ci(&completion_delta, seed ^ 0xA53C_9E1D);
-    let (elapsed_lower, elapsed_upper) = bootstrap_mean_ci(&elapsed_delta, seed ^ 0x9E37_79B9);
+    let (completion_seed, completion_seed_sha) = derive_bootstrap_seed(&seed_hex, "completion_delta");
+    let (elapsed_seed, elapsed_seed_sha) = derive_bootstrap_seed(&seed_hex, "elapsed_mean_delta");
+    let (wirelength_seed, wirelength_seed_sha) = derive_bootstrap_seed(&seed_hex, "wirelength_median_delta");
+    let (via_seed, via_seed_sha) = derive_bootstrap_seed(&seed_hex, "via_median_delta");
+    let (completion_lower, completion_upper) = bootstrap_mean_ci(&completion_delta, completion_seed);
+    let (elapsed_lower, elapsed_upper) = bootstrap_mean_ci(&elapsed_delta, elapsed_seed);
+    let wirelength_ci = bootstrap_median_ci(&wire_delta, wirelength_seed);
+    let via_ci = bootstrap_median_ci(&via_delta, via_seed);
     let n = pairs.len();
     let baseline_valid = left.summary.valid_completions;
     let treatment_valid = right.summary.valid_completions;
@@ -800,7 +806,7 @@ pub fn compare_runs(
                 lower_95: completion_lower * 100.0,
                 upper_95: completion_upper * 100.0,
                 resamples: BOOTSTRAP_RESAMPLES,
-                bootstrap_seed_sha256: seed_hex.clone(),
+                bootstrap_seed_sha256: completion_seed_sha,
             },
             median_elapsed_delta_ms_treatment_minus_baseline: median(&elapsed_delta),
             mean_elapsed_delta_ms_treatment_minus_baseline: mean(&elapsed_delta),
@@ -808,11 +814,13 @@ pub fn compare_runs(
                 lower_95: elapsed_lower,
                 upper_95: elapsed_upper,
                 resamples: BOOTSTRAP_RESAMPLES,
-                bootstrap_seed_sha256: seed_hex,
+                bootstrap_seed_sha256: elapsed_seed_sha,
             },
             jointly_valid_board_count: wire_delta.len(),
             median_wirelength_delta_mm_treatment_minus_baseline: median(&wire_delta),
+            median_wirelength_delta_95_ci_mm: interval_option(wirelength_ci, &wirelength_seed_sha),
             median_via_delta_treatment_minus_baseline: median(&via_delta),
+            median_via_delta_95_ci: interval_option(via_ci, &via_seed_sha),
         },
         board_pairs: pairs,
         authority: "paired_geometric_routing_metrics_only_no_physical_or_production_release_authority".into(),
@@ -826,6 +834,30 @@ fn bool_as_f64(value: bool) -> f64 {
     } else {
         0.0
     }
+}
+
+fn derive_bootstrap_seed(base_seed_sha256: &str, metric: &str) -> (u64, String) {
+    let seed_sha256 = sha256_hex(format!("{base_seed_sha256}|{metric}").as_bytes());
+    let seed = u64::from_str_radix(&seed_sha256[..16], 16).unwrap_or(0xA5A5_5A5A);
+    (seed, seed_sha256)
+}
+
+fn bootstrap_median_ci(values: &[f64], seed: u64) -> Option<(f64, f64)> {
+    if values.is_empty() {
+        return None;
+    }
+    let mut state = seed;
+    let mut samples = Vec::with_capacity(BOOTSTRAP_RESAMPLES);
+    let mut sample = Vec::with_capacity(values.len());
+    for _ in 0..BOOTSTRAP_RESAMPLES {
+        sample.clear();
+        for _ in 0..values.len() {
+            sample.push(values[(next_random(&mut state) % values.len() as u64) as usize]);
+        }
+        samples.push(median(&sample).unwrap_or(0.0));
+    }
+    samples.sort_by(f64::total_cmp);
+    Some((quantile(&samples, 0.025), quantile(&samples, 0.975)))
 }
 
 fn bootstrap_mean_ci(values: &[f64], seed: u64) -> (f64, f64) {
@@ -1066,6 +1098,12 @@ mod tests {
                 .completion_delta_95_ci_percentage_points
                 .resamples,
             BOOTSTRAP_RESAMPLES
+        );
+        assert!(comparison.summary.median_wirelength_delta_95_ci_mm.is_some());
+        assert!(comparison.summary.median_via_delta_95_ci.is_some());
+        assert_ne!(
+            comparison.summary.completion_delta_95_ci_percentage_points.bootstrap_seed_sha256,
+            comparison.summary.mean_elapsed_delta_95_ci_ms.bootstrap_seed_sha256
         );
 
         let mut value: serde_json::Value = serde_json::from_str(TREATMENT).unwrap();
