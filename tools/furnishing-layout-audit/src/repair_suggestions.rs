@@ -623,7 +623,7 @@ pub fn suggest_single_item_zone_repairs(
         ) else {
             return outcome_report(
                 RepairDisposition::SearchCapped,
-            target,
+                target,
                 blockers,
                 0,
                 Vec::new(),
@@ -636,7 +636,7 @@ pub fn suggest_single_item_zone_repairs(
         if candidate_tests.saturating_add(positions.len()) > MAX_CANDIDATE_TESTS {
             return outcome_report(
                 RepairDisposition::SearchCapped,
-            target,
+                target,
                 blockers,
                 0,
                 Vec::new(),
