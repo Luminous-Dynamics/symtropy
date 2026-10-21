@@ -768,8 +768,8 @@ mod tests {
         let h = length_m / element_count as f64;
         (1..=element_count)
             .map(|mode| {
-                let theta = (2 * mode - 1) as f64 * std::f64::consts::PI
-                    / (2.0 * element_count as f64);
+                let theta =
+                    (2 * mode - 1) as f64 * std::f64::consts::PI / (2.0 * element_count as f64);
                 let cosine = theta.cos();
                 let eigenvalue = match formulation {
                     MassMatrixFormulation::Consistent => {
@@ -777,8 +777,7 @@ mod tests {
                             * (6.0 * (1.0 - cosine) / (2.0 + cosine))
                     }
                     MassMatrixFormulation::Lumped => {
-                        (youngs_modulus_pa / (density_kg_m3 * h * h))
-                            * (2.0 * (1.0 - cosine))
+                        (youngs_modulus_pa / (density_kg_m3 * h * h)) * (2.0 * (1.0 - cosine))
                     }
                 };
                 eigenvalue.sqrt() / (2.0 * std::f64::consts::PI)
@@ -800,11 +799,9 @@ mod tests {
         for case_index in 0..128 {
             let length_m = 0.2 + 4.8 * next_sweep_unit(&mut state);
             let area_m2 = 10.0_f64.powf(-8.0 + 6.0 * next_sweep_unit(&mut state));
-            let youngs_modulus_pa =
-                30.0e9 + 180.0e9 * next_sweep_unit(&mut state);
+            let youngs_modulus_pa = 30.0e9 + 180.0e9 * next_sweep_unit(&mut state);
             let density_kg_m3 = 1000.0 + 15_000.0 * next_sweep_unit(&mut state);
-            let element_count =
-                1 + ((next_sweep_unit(&mut state) * 16.0) as usize).min(15);
+            let element_count = 1 + ((next_sweep_unit(&mut state) * 16.0) as usize).min(15);
 
             for formulation in [
                 MassMatrixFormulation::Consistent,
@@ -902,9 +899,7 @@ mod tests {
                 "\"max_inverse_length_scaling_relative_error\":{:.17e}",
                 "}}"
             ),
-            maximum_oracle_error,
-            maximum_area_scaling_error,
-            maximum_length_scaling_error
+            maximum_oracle_error, maximum_area_scaling_error, maximum_length_scaling_error
         );
     }
 
