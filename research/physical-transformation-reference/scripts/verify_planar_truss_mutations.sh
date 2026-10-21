@@ -61,7 +61,7 @@ run_mutation() {
       ;;
   esac
 
-  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" --lib "$test_name" -- --exact >"$log" 2>&1; then
+  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" --lib "planar_truss::tests::$test_name" -- --exact >"$log" 2>&1; then
     printf 'ERROR: planar-truss mutation survived: %s\n' "$label" >&2
     cat "$log" >&2
     return 1
