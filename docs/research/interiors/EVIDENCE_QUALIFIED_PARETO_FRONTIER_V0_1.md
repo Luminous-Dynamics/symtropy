@@ -16,9 +16,9 @@ This utility is downstream of verification. It does not implement or replace the
 ## Contract
 
 - Every verified candidate must carry SHA-256-shaped identifiers for the exact design revision and the independent verifier receipt. This module validates their shape and passes the identifiers through; it **does not authenticate or recompute either digest**.
-- Each objective names a stable dimension, minimize/maximize direction, finite numeric value, and evidence-admission state.
+- Each objective names a stable dimension, explicit unit or normalized scale, minimize/maximize direction, finite numeric value, and evidence-admission state. Dimension, unit, and direction must match exactly across the ranking set; this utility performs no currency conversion or hidden normalization.
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
-- Every rankable candidate must use the same objective dimensions and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
+- Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
 - Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative.
 - Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier.
 - The resident retains final choice. Pareto membership is not a statement that an alternative is universally best.
