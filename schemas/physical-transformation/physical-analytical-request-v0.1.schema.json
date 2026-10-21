@@ -503,7 +503,16 @@
                         "unit": {
                           "const": "m"
                         }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     },
                     "apex_x_m": {
                       "$ref": "#/$defs/inputBound",
@@ -519,7 +528,16 @@
                         "unit": {
                           "const": "m"
                         }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     },
                     "axial_stiffness_a_n_per_m": {
                       "$ref": "#/$defs/inputBound",
@@ -527,7 +545,16 @@
                         "unit": {
                           "const": "N/m"
                         }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     },
                     "axial_stiffness_b_n_per_m": {
                       "$ref": "#/$defs/inputBound",
@@ -535,7 +562,16 @@
                         "unit": {
                           "const": "N/m"
                         }
-                      }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     },
                     "force_x_n": {
                       "$ref": "#/$defs/inputBound",
