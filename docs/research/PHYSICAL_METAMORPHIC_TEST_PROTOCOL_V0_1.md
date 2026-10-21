@@ -2,7 +2,7 @@
 
 **Tracking:** [PHYS-TRANSFORM-001 #2209](https://github.com/Luminous-Dynamics/symtropy/issues/2209)  
 **Implementation:** [reference kernel PR #2238](https://github.com/Luminous-Dynamics/symtropy/pull/2238), `research/physical-transformation-reference/tests/metamorphic.rs`  
-**Status:** software-level invariance checks; not physical validation or an executed test result.
+**Status:** software-level invariance checks plus a CI mutation-sensitivity gate; neither is physical validation. Report pass/fail only for the exact commit that ran.
 
 ## Why add metamorphic tests?
 
@@ -40,6 +40,18 @@ The tests use an explicitly declared comparison rule: relative tolerance (10^{-1
 4. Add mutation checks for intentionally wrong exponents or omitted parameters, and require the suite to detect those mutations before treating the metamorphic layer as strong regression evidence.
 5. Once a unit-aware boundary exists, test conversion there directly with dimensional types and invalid-dimension negative controls; do not retrofit the current SI-only functions as if they already implement this capability.
 6. Keep physical validation separate: compare a qualified solver against independently measured, rights-cleared test cases with pinned uncertainty, blind holdouts, and a named baseline.
+
+## Mutation-sensitivity gate
+
+The CI script `research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh` tests whether selected metamorphic cases can detect concrete defects. It makes temporary copies of the crate and applies one source mutation per copy:
+
+| Mutation | Expected detecting test | Failure mechanism |
+|---|---|---|
+| Axial extension uses force times length-squared instead of force times length | `axial_bar_obeys_force_homogeneity_and_geometric_scaling` | Geometric-similarity extension ratio no longer matches the inverse length scale. |
+| Cantilever tip deflection uses length-squared instead of length-cubed | `cantilever_obeys_force_span_and_stiffness_scaling` | Span-doubling response no longer scales cubically. |
+| Simply-supported beam deflection uses length-cubed instead of length-to-the-fourth | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Span-doubling response no longer scales to the fourth power. |
+
+The script passes only when each named test is observed to fail in its deliberately mutated copy. Compilation errors or unrelated cargo failures do not count as killing a mutation. All mutations are confined to temporary copies and are deleted on exit. This is a small targeted mutation set, not a general mutation score: it does not show every possible defect is detected, does not validate physical assumptions, and does not replace the frozen independent known-answer tests.
 
 ## Acceptance and claim limits
 
