@@ -39,6 +39,17 @@ A design is feasible only if it respects every declared hard constraint on CAPEX
 
 The synthetic fixture deliberately creates a complementarity case: the best single intervention and the greedy design are inferior to the exact oracle. This is an oracle test, not evidence that the greedy policy or any specific factory intervention behaves that way in practice.
 
+## Frozen fixture oracle values
+
+The current fixture has 5 binary options (32 possible designs) across 4 named stress scenarios. Its independently calculated hand-check values are:
+- 28 feasible designs and 4 infeasible designs under the declared resource limits;
+- exact robust-best design: add-body-prep + add-eol-test + improve-yield;
+- exact robust minimum gain: 2.5 good units/hour;
+- best single option: extend-buffer, with 0.3 good units/hour worst-case gain;
+- greedy marginal-gain result: add-body-prep + extend-buffer + improve-yield + reduce-changeovers, with 1.8 good units/hour worst-case gain and 0.7 units/hour regret to the exact oracle.
+
+These are only expected values of this explicit deterministic fixture. CI will enforce them as a regression oracle; they are not statistical estimates or physical production outcomes.
+
 ## Fail-closed contract
 
 - Strict schema; synthetic evidence class and claim ceiling required.
