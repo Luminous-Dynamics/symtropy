@@ -108,7 +108,7 @@ run_mutation \
 run_mutation \
   "asymmetric-offdiagonal-coupling" \
   truss_offdiagonal_coupling_zero \
-  asymmetric_two_bar_truss_matches_closed_form_oracle
+  fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle
 run_mutation \
   "vertical-support-reaction-sign" \
   support_reaction_sign \
@@ -156,7 +156,7 @@ jq -n \
       },
       {
         id: "PHYS-TRUSS-MUT-OFFDIAGONAL-CS-001",
-        expected_test: "asymmetric_two_bar_truss_matches_closed_form_oracle",
+        expected_test: "fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle",
         disposition: "detected"
       },
       {
