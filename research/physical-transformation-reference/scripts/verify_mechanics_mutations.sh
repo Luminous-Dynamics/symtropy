@@ -5,8 +5,24 @@
 set -euo pipefail
 
 crate_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(git -C "$crate_dir" rev-parse --show-toplevel)"
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "$tmp_root"' EXIT
+receipt_path="${GITHUB_WORKSPACE:-$repo_root}/mutation-sensitivity-receipt.json"
+source_commit="$(git -C "$repo_root" rev-parse HEAD)"
+mechanics_sha256="$(sha256sum "$crate_dir/src/mechanics.rs" | awk '{print $1}')"
+metamorphic_sha256="$(sha256sum "$crate_dir/tests/metamorphic.rs" | awk '{print $1}')"
+rustc_version="$(rustc --version)"
+cargo_version="$(cargo --version)"
+
+# Control: the unmutated metamorphic suite must pass before we interpret any mutant.
+control_log="$tmp_root/unmutated-control.log"
+if ! cargo test --locked --manifest-path "$crate_dir/Cargo.toml" --test metamorphic >"$control_log" 2>&1; then
+  printf 'ERROR: unmutated metamorphic control failed.\n' >&2
+  cat "$control_log" >&2
+  exit 1
+fi
+printf 'PASS control: unmutated metamorphic suite\n'
 
 run_mutation() {
   local label="$1"
@@ -73,4 +89,63 @@ run_mutation \
   supported_beam_deflection_length_cubed \
   simply_supported_beam_obeys_load_span_and_stiffness_scaling
 
-printf 'Mutation sensitivity: 3/3 selected formula defects detected.\n'
+# Stable field order and no timestamps make the receipt reproducible at a fixed commit/toolchain.
+jq -n \
+  --arg source_commit "$source_commit" \
+  --arg mechanics_sha256 "$mechanics_sha256" \
+  --arg metamorphic_sha256 "$metamorphic_sha256" \
+  --arg rustc_version "$rustc_version" \
+  --arg cargo_version "$cargo_version" \
+  '{
+    schema_version: "physical-transform-mutation-receipt-v0.1",
+    benchmark_id: "PHYS-MUTATION-001",
+    evidence_class: "software-test-sensitivity",
+    source_commit: $source_commit,
+    source_sha256: {
+      mechanics_rs: $mechanics_sha256,
+      metamorphic_rs: $metamorphic_sha256
+    },
+    toolchain: {
+      rustc: $rustc_version,
+      cargo: $cargo_version
+    },
+    baseline_control: {
+      suite: "tests/metamorphic.rs",
+      disposition: "pass"
+    },
+    mutations: [
+      {
+        id: "PHYS-MUT-AXIAL-LENGTH-001",
+        expected_test: "axial_bar_obeys_force_homogeneity_and_geometric_scaling",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-MUT-CANTILEVER-SPAN-001",
+        expected_test: "cantilever_obeys_force_span_and_stiffness_scaling",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-MUT-SUPPORTED-BEAM-SPAN-001",
+        expected_test: "simply_supported_beam_obeys_load_span_and_stiffness_scaling",
+        disposition: "detected"
+      }
+    ],
+    summary: {
+      detected: 3,
+      undetected: 0,
+      invalid_mutant: 0,
+      equivalent_mutant: 0,
+      control_passed: true
+    }
+  }' > "$receipt_path"
+
+jq -e '
+  .schema_version == "physical-transform-mutation-receipt-v0.1"
+  and .source_commit | type == "string" and length == 40
+  and .baseline_control.disposition == "pass"
+  and .summary.detected == 3
+  and .summary.undetected == 0
+  and ([.mutations[].disposition] | all(. == "detected"))
+' "$receipt_path" >/dev/null
+
+printf 'Mutation sensitivity: 3/3 selected formula defects detected. Receipt: %s\n' "$receipt_path"
