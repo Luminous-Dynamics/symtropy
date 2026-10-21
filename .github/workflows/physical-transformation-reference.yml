@@ -77,6 +77,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify Euler-Bernoulli beam element mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_element_mutations.sh
+
+      - name: Re-verify beam element production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_element.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -369,5 +382,6 @@ jobs:
             modal-bar-mutation-receipt.json
             nafems-nbc05-modal-reference-receipt.json
             nafems-nbc05-mutation-receipt.json
+            beam-element-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
