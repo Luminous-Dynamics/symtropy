@@ -327,7 +327,7 @@ jobs:
             and .duplicate_run_bytes_identical == true
             and (.cases | all(.[]; 
                   (.vertical_rhs_perturbation_n | type == "number" and isfinite and . > 0)
-                  and (.vertical_rhs_perturbation_relative_amplitude | type == "number" and isfinite and . > 0)
+                  and (.vertical_rhs_perturbation_relative_amplitude | type == "number" and isfinite and . > 9.999999e-11 and . < 1.0000001e-10)
                   and (.vertical_rhs_plus_relative_displacement_change | type == "number" and isfinite and . >= 0)
                   and (.vertical_rhs_minus_relative_displacement_change | type == "number" and isfinite and . >= 0)
                   and (.vertical_rhs_plus_amplification | type == "number" and isfinite and . >= 0)
@@ -355,6 +355,10 @@ jobs:
             and (.cases[-1].vertical_rhs_plus_amplification > .cases[0].vertical_rhs_plus_amplification)
             and ([.cases[].condition_infinity] as $conditions
               | all(range(0; ($conditions | length) - 1); $conditions[.] < $conditions[. + 1]))
+            and ([.cases[].vertical_rhs_plus_amplification] as $plus_sensitivity
+              | all(range(0; ($plus_sensitivity | length) - 1); $plus_sensitivity[.] < $plus_sensitivity[. + 1]))
+            and ([.cases[].vertical_rhs_minus_amplification] as $minus_sensitivity
+              | all(range(0; ($minus_sensitivity | length) - 1); $minus_sensitivity[.] < $minus_sensitivity[. + 1]))
             and (.condition_reject_threshold as $threshold
               | (
                   ([.cases[] | select(.condition_times_machine_epsilon >= $threshold) | .disposition] | length == 2)
