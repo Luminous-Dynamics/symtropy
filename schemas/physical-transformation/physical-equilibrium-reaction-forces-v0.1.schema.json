@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-equilibrium-reaction-forces-v0.1.schema.json",
+  "title": "Physical Equilibrium Reaction Forces v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
+    "scene_revision", "coordinate_frame_id", "units", "reaction_forces"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-equilibrium-reaction-forces-v0.1" },
+    "case_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "coordinate_frame_id": { "$ref": "#/$defs/id" },
+    "units": {
+      "type": "object", "additionalProperties": false, "required": ["length", "force"],
+      "properties": { "length": { "const": "m" }, "force": { "const": "N" } }
+    },
+    "reaction_forces": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["reaction_id", "force_n", "position_m"],
+        "properties": {
+          "reaction_id": { "$ref": "#/$defs/id" },
+          "force_n": { "$ref": "#/$defs/vector3" },
+          "position_m": { "$ref": "#/$defs/vector3" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "vector3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

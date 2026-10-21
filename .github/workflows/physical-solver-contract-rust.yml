@@ -551,6 +551,197 @@ jobs:
             and .physical_result_qualified == false
           ' solver-contract-mesh-study-tampered-output/report.json
 
+      - name: Audit receipt-bound equilibrium and reject tampered reaction bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="solver-contract-equilibrium"
+          rm -rf "$root" "${root}-tampered"
+          mkdir -p "$root/artifacts"
+
+          base_request="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          jq '
+            .loads[0].target_id = "cantilever-tip"
+            | .loads[0].vector_xyz = [0, -1000, 0]
+            | .required_outputs = ["reaction_force", "reaction_moment"]
+          ' "$base_request" > "$root/request.json"
+
+          request_sha="$(sha256sum "$root/request.json" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$root/request.json")"
+          source_revision="$(jq -r '.source_revision' "$root/request.json")"
+          scene_sha="$(jq -r '.scene_sha256' "$root/request.json")"
+          scene_revision="$(jq -r '.scene_revision' "$root/request.json")"
+          frame="$(jq -r '.coordinate_frame_id' "$root/request.json")"
+          case_id="synthetic-cantilever-equilibrium-cli"
+
+          jq -n \
+            --arg case_id "$case_id" \
+            --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" \
+            --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-equilibrium-reaction-forces-v0.1",
+              case_id:$case_id,
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              coordinate_frame_id:$frame,
+              units:{length:"m",force:"N"},
+              reaction_forces:[{
+                reaction_id:"fixed-support",
+                force_n:[0,1000,0],
+                position_m:[0,0,0]
+              }]
+            }' > "$root/artifacts/reaction-forces.json"
+
+          jq -n \
+            --arg case_id "$case_id" \
+            --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" \
+            --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-equilibrium-reaction-moments-v0.1",
+              case_id:$case_id,
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              coordinate_frame_id:$frame,
+              units:{length:"m",moment:"N*m"},
+              reaction_moments:[{
+                reaction_id:"fixed-support",
+                moment_nm:[0,0,2000]
+              }]
+            }' > "$root/artifacts/reaction-moments.json"
+
+          force_sha="$(sha256sum "$root/artifacts/reaction-forces.json" | cut -d ' ' -f 1)"
+          moment_sha="$(sha256sum "$root/artifacts/reaction-moments.json" | cut -d ' ' -f 1)"
+          jq -n \
+            --slurpfile request "$root/request.json" \
+            --arg request_sha "$request_sha" \
+            --arg request_id "$request_id" \
+            --arg source_revision "$source_revision" \
+            --arg force_sha "$force_sha" \
+            --arg moment_sha "$moment_sha" \
+            '{
+              schema_version:"physical-solver-receipt-v0.1",
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              source_revision:$source_revision,
+              adapter:{
+                adapter_id:"synthetic-equilibrium-cli-fixture",
+                version:"0.1.0",
+                executable_sha256:("b" * 64),
+                configuration_sha256:("c" * 64),
+                solver_name:"synthetic-test-only",
+                solver_version:"0.1.0",
+                solver_build_ref:"fixture-only:no-solver-executed"
+              },
+              status:"PASS",
+              evidence_class:"synthetic",
+              physics_evaluated:$request[0].requested_physics,
+              physics_omitted:[],
+              convergence:{
+                state:"not_applicable",
+                iterations:null,
+                residual:null,
+                mesh_refinement_evaluated:false,
+                details:"Synthetic CLI control; no FEM solver executed."
+              },
+              outputs:[
+                {output_id:"reaction-forces",kind:"reaction_force",sha256:$force_sha,media_type:"application/json",unit:"N",artifact_ref:"reaction-forces.json"},
+                {output_id:"reaction-moments",kind:"reaction_moment",sha256:$moment_sha,media_type:"application/json",unit:"N*m",artifact_ref:"reaction-moments.json"}
+              ],
+              uncertainty:{state:"unknown",method:null,summary:"Synthetic control only."},
+              validity_envelope:{
+                supported_geometry:"synthetic fixture only",
+                supported_material_model:"synthetic fixture only",
+                load_regime:"synthetic fixture only",
+                limitations:["No external solver executed."]
+              },
+              claim_ceiling:"Synthetic CLI control only; not physical qualification.",
+              diagnostics:[]
+            }' > "$root/receipt.json"
+
+          jq -n \
+            --arg request_id "$request_id" \
+            --arg request_sha "$request_sha" \
+            --arg scene_sha "$scene_sha" \
+            --arg frame "$frame" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-equilibrium-manifest-v0.1",
+              audit_id:"synthetic-equilibrium-cli-audit",
+              case_id:"synthetic-cantilever-equilibrium-cli",
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              coordinate_frame_id:$frame,
+              origin_m:[0,0,0],
+              units:{length:"m",force:"N",moment:"N*m"},
+              reference:{
+                method:"hand_calculated_synthetic_free_body",
+                identity:"tip force balanced by fixed support reaction and couple",
+                source_ref:"fixture-only:equilibrium-cli-v1"
+              },
+              applied_loads:[{
+                load_id:"tension-001",
+                target_id:"cantilever-tip",
+                force_n:[0,-1000,0],
+                position_m:[2,0,0],
+                couple_nm:[0,0,0]
+              }],
+              required_reaction_force_ids:["fixed-support"],
+              required_reaction_moment_ids:["fixed-support"],
+              tolerances:{
+                force_absolute_n:0.000000001,
+                force_relative:0.000000000001,
+                moment_absolute_nm:0.000000001,
+                moment_relative:0.000000000001
+              }
+            }' > "$root/manifest.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$root/request.json" \
+            --receipt "$root/receipt.json" \
+            --artifact-root "$root/artifacts" \
+            --equilibrium-manifest "$root/manifest.json" \
+            --reaction-force-output-id reaction-forces \
+            --reaction-moment-output-id reaction-moments \
+            > "$root/report.json"
+          jq -e '
+            .audit_status == "PASS"
+            and .force_balance.residual_norm == 0
+            and .moment_balance.residual_norm == 0
+            and .artifact_verification_status == "PASS"
+            and .output_artifact_bytes_verified == true
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+          ' "$root/report.json"
+
+          cp -a "$root" "${root}-tampered"
+          printf 'deliberately mutated reaction bytes\n' > "${root}-tampered/artifacts/reaction-forces.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "${root}-tampered/request.json" \
+            --receipt "${root}-tampered/receipt.json" \
+            --artifact-root "${root}-tampered/artifacts" \
+            --equilibrium-manifest "${root}-tampered/manifest.json" \
+            --reaction-force-output-id reaction-forces \
+            --reaction-moment-output-id reaction-moments \
+            > "${root}-tampered/report.json"
+          jq -e '
+            .audit_status == "UNRESOLVED"
+            and .artifact_verification_status == "FAIL"
+            and .output_artifact_bytes_verified == false
+            and .physical_result_qualified == false
+          ' "${root}-tampered/report.json"
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
@@ -561,6 +752,8 @@ jobs:
             solver-contract-numerical-comparison-*.json
             solver-contract-mesh-study*/study.json
             solver-contract-mesh-study*/report.json
+            solver-contract-equilibrium*/manifest.json
+            solver-contract-equilibrium*/report.json
           if-no-files-found: error
           retention-days: 90
 

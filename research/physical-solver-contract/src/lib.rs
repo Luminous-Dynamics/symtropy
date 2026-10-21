@@ -4,6 +4,7 @@
 //! Every receipt produced here has physical_result_status=UNRESOLVED because
 //! this crate does not invoke a qualified mechanics solver.
 
+pub mod equilibrium;
 pub mod mesh_convergence;
 pub mod reference_compare;
 
@@ -35,6 +36,7 @@ const OUTPUTS: &[&str] = &[
     "displacement",
     "stress",
     "reaction_force",
+    "reaction_moment",
     "crack_path",
     "fragment_state",
     "energy_balance",

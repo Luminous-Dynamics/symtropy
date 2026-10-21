@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-equilibrium-reaction-moments-v0.1.schema.json",
+  "title": "Physical Equilibrium Reaction Moments v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
+    "scene_revision", "coordinate_frame_id", "units", "reaction_moments"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-equilibrium-reaction-moments-v0.1" },
+    "case_id": { "$ref": "#/$defs/id" },
+    "request_id": { "$ref": "#/$defs/id" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "coordinate_frame_id": { "$ref": "#/$defs/id" },
+    "units": {
+      "type": "object", "additionalProperties": false, "required": ["length", "moment"],
+      "properties": { "length": { "const": "m" }, "moment": { "const": "N*m" } }
+    },
+    "reaction_moments": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["reaction_id", "moment_nm"],
+        "properties": {
+          "reaction_id": { "$ref": "#/$defs/id" },
+          "moment_nm": { "$ref": "#/$defs/vector3" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "vector3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

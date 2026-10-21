@@ -89,6 +89,7 @@
           "displacement",
           "stress",
           "reaction_force",
+          "reaction_moment",
           "crack_path",
           "fragment_state",
           "energy_balance"
