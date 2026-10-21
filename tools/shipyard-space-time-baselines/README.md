@@ -39,4 +39,8 @@ This is a transparent baseline, not a globally optimal bottom-left solver. It do
 
 ## Benchmark role
 
+The six-policy portfolio is the next deterministic baseline: run caller-order, decreasing-area, maximum-side, height, width and perimeter orderings, independently verify each complete result, and select the most compact time-integrated placement envelope. Its score does not model transfer access, irregular polygons or unplanned future blocks. The generated exact oracle currently pins 203/205 feasible cases found in one 512-case 4-block family; this is still an expected result until exact-head Rust CI passes.
+
+For a directly relevant published comparison, see [PUBLISHED-BASELINES.md](PUBLISHED-BASELINES.md). Wang et al. report 0.775 yard-utilisation score, 308.0 seconds algorithm time, and 2,339 minutes vehicle time for Case9_50_4 with their hybrid ABC/ALNS/recovery algorithm. Our rectangle-only verifier/heuristics do not reproduce that irregular-polygon problem; the numbers are a pinned target to reconstruct, not a head-to-head result.
+
 Use the baseline with the frozen finite-yard corpus, then add versioned generated instances and exact tiny-instance solutions. Report feasibility, usable area-time utilization, re-handles, vehicle travel, makespan/tardiness, recovery time, schedule churn, runtime and memory separately. Compare against exact or bounded solvers and published methods only when the same model assumptions, objective definitions, input data and stopping budgets are reproducible.
