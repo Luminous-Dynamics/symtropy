@@ -796,7 +796,7 @@ mod tests {
         assert!(validate_fixture(&incomplete).expect_err("incomplete interactions").contains("must_cover_every_scenario_pair"));
 
         let mut oversized = fixture();
-        oversized.options = (0..21).map(|index| DesignOption {
+        oversized.options = (0..11).map(|index| DesignOption {
             option_id: format!("option-{index:02}"),
             label: "synthetic".into(),
             capex: 0.0,
