@@ -8,9 +8,9 @@ use furnishing_layout_audit::alternative_frontier::{
     ObjectiveDirection, ObjectiveEvidence, VerificationStatus,
 };
 use furnishing_layout_audit::interval_frontier::{
-    compute_interval_frontier, IntervalAlternativeCandidate, IntervalCandidateDisposition,
-    IntervalCandidateResult, IntervalFrontierReport, IntervalObjectiveObservation,
-    IntervalSemantics, IntervalSemanticsKind,
+    IntervalAlternativeCandidate, IntervalCandidateDisposition, IntervalCandidateResult,
+    IntervalFrontierReport, IntervalObjectiveObservation, IntervalSemantics, IntervalSemanticsKind,
+    compute_interval_frontier,
 };
 use std::hint::black_box;
 use std::time::{Duration, Instant};
@@ -85,7 +85,12 @@ fn candidate(
             ("tradeoff-heavy", _) => (100.0, 102.0),
             _ => unreachable!("only fixed benchmark profiles are used"),
         };
-        objectives.push(objective(&format!("objective_{axis}"), direction, lower, upper));
+        objectives.push(objective(
+            &format!("objective_{axis}"),
+            direction,
+            lower,
+            upper,
+        ));
     }
 
     let revision = format!("{:064x}", index + 1);
@@ -125,9 +130,7 @@ fn guaranteed_dominates(
 
 /// Independent O(n²) reference that produces a complete report, not just IDs.
 /// It may choose a different valid witness than the incremental implementation.
-fn pairwise_full_report(
-    candidates: &[IntervalAlternativeCandidate],
-) -> IntervalFrontierReport {
+fn pairwise_full_report(candidates: &[IntervalAlternativeCandidate]) -> IntervalFrontierReport {
     let mut ordered = candidates.iter().collect::<Vec<_>>();
     ordered.sort_by_key(|candidate| candidate.candidate_id.clone());
     let mut frontier_ids = Vec::new();
@@ -165,13 +168,9 @@ fn pairwise_full_report(
     }
 }
 
-fn validate_witnesses(
-    input: &[IntervalAlternativeCandidate],
-    report: &IntervalFrontierReport,
-) {
+fn validate_witnesses(input: &[IntervalAlternativeCandidate], report: &IntervalFrontierReport) {
     for result in &report.candidates {
-        if let IntervalCandidateDisposition::GuaranteedDominatedBy(witness_id) =
-            &result.disposition
+        if let IntervalCandidateDisposition::GuaranteedDominatedBy(witness_id) = &result.disposition
         {
             let witness = input
                 .iter()
@@ -232,8 +231,14 @@ fn run_profile(count: usize, dimensions: usize, profile: &str) {
     for (actual, expected) in initial.candidates.iter().zip(&oracle.candidates) {
         assert_eq!(actual.candidate_id, expected.candidate_id);
         assert_eq!(
-            matches!(&actual.disposition, &IntervalCandidateDisposition::OnFrontier),
-            matches!(&expected.disposition, &IntervalCandidateDisposition::OnFrontier),
+            matches!(
+                &actual.disposition,
+                &IntervalCandidateDisposition::OnFrontier
+            ),
+            matches!(
+                &expected.disposition,
+                &IntervalCandidateDisposition::OnFrontier
+            ),
             "disposition mismatch for {}",
             actual.candidate_id
         );
