@@ -139,7 +139,9 @@ struct Report {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 13 {
-        eprintln!("usage: ev_factory_parameter_sensitivity nominal=nominal:catalog.json:report.json factor_low=factor:low:catalog.json:report.json ... (nominal plus 6 low/high pairs)");
+        eprintln!(
+            "usage: ev_factory_parameter_sensitivity nominal=nominal:catalog.json:report.json factor_low=factor:low:catalog.json:report.json ... (nominal plus 6 low/high pairs)"
+        );
         process::exit(2);
     }
     let mut cases = BTreeMap::<String, Case>::new();
@@ -226,27 +228,34 @@ fn parse_case(case_id: &str, specification: &str) -> Result<Case, String> {
 }
 
 fn value_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{key}_missing_or_not_string"))
 }
 
 fn value_bool(value: &Value, key: &str) -> Result<bool, String> {
-    value.get(key).and_then(Value::as_bool)
+    value
+        .get(key)
+        .and_then(Value::as_bool)
         .ok_or_else(|| format!("{key}_missing_or_not_bool"))
 }
 
 fn value_u64(value: &Value, key: &str) -> Result<u64, String> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{key}_missing_or_not_u64"))
 }
 
 fn value_usize(value: &Value, key: &str) -> Result<usize, String> {
-    usize::try_from(value_u64(value, key)?)
-        .map_err(|_| format!("{key}_out_of_range"))
+    usize::try_from(value_u64(value, key)?).map_err(|_| format!("{key}_out_of_range"))
 }
 
 fn value_f64(value: &Value, key: &str) -> Result<f64, String> {
-    let number = value.get(key).and_then(Value::as_f64)
+    let number = value
+        .get(key)
+        .and_then(Value::as_f64)
         .ok_or_else(|| format!("{key}_missing_or_not_number"))?;
     if !number.is_finite() {
         return Err(format!("{key}_must_be_finite"));
@@ -258,12 +267,15 @@ fn validate_and_extract(
     catalog: &Value,
     report: &Value,
     expected_catalog_sha256: &str,
-) -> Result<(
-    Vec<u64>,
-    Vec<String>,
-    BTreeMap<u64, f64>,
-    BTreeMap<String, BTreeMap<u64, f64>>,
-), String> {
+) -> Result<
+    (
+        Vec<u64>,
+        Vec<String>,
+        BTreeMap<u64, f64>,
+        BTreeMap<String, BTreeMap<u64, f64>>,
+    ),
+    String,
+> {
     if value_str(catalog, "schema_version")? != "0.1.0"
         || value_str(catalog, "benchmark_id")? != "EV-FACTORY-SIM-001"
     {
@@ -301,11 +313,16 @@ fn validate_and_extract(
     {
         return Err("catalog_report_annualization_hours_mismatch".into());
     }
-    let catalog_seeds: Vec<u64> = catalog.get("replication_seeds")
+    let catalog_seeds: Vec<u64> = catalog
+        .get("replication_seeds")
         .and_then(Value::as_array)
         .ok_or_else(|| "catalog_replication_seeds_missing".to_string())?
         .iter()
-        .map(|value| value.as_u64().ok_or_else(|| "catalog_seed_not_u64".to_string()))
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "catalog_seed_not_u64".to_string())
+        })
         .collect::<Result<_, _>>()?;
     if catalog_seeds.is_empty() || catalog_seeds.iter().any(|seed| *seed == 0) {
         return Err("catalog_seed_list_must_be_nonempty_and_positive".into());
@@ -314,11 +331,16 @@ fn validate_and_extract(
     if unique_seeds.len() != catalog_seeds.len() {
         return Err("catalog_seeds_must_be_unique".into());
     }
-    let report_seeds: Vec<u64> = report.get("replication_seeds")
+    let report_seeds: Vec<u64> = report
+        .get("replication_seeds")
         .and_then(Value::as_array)
         .ok_or_else(|| "report_replication_seeds_missing".to_string())?
         .iter()
-        .map(|value| value.as_u64().ok_or_else(|| "report_seed_not_u64".to_string()))
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "report_seed_not_u64".to_string())
+        })
         .collect::<Result<_, _>>()?;
     if report_seeds != catalog_seeds
         || value_usize(report, "replication_count")? != catalog_seeds.len()
@@ -327,7 +349,9 @@ fn validate_and_extract(
     {
         return Err("catalog_report_ordered_seed_list_mismatch".into());
     }
-    let stations_value = catalog.get("stations").and_then(Value::as_array)
+    let stations_value = catalog
+        .get("stations")
+        .and_then(Value::as_array)
         .ok_or_else(|| "catalog_stations_missing".to_string())?;
     if stations_value.len() < 2 {
         return Err("catalog_requires_at_least_two_stations".into());
@@ -344,7 +368,9 @@ fn validate_and_extract(
     if value_usize(report, "scenario_count")? != expected_scenario_count {
         return Err("report_scenario_count_mismatch".into());
     }
-    let outcomes = report.get("replication_outcomes").and_then(Value::as_array)
+    let outcomes = report
+        .get("replication_outcomes")
+        .and_then(Value::as_array)
         .ok_or_else(|| "replication_outcomes_missing".to_string())?;
     if outcomes.len() != catalog_seeds.len() * expected_scenario_count {
         return Err("replication_outcome_count_mismatch".into());
@@ -361,39 +387,49 @@ fn validate_and_extract(
         let scenario_id = value_str(row, "scenario_id")?.to_string();
         let good_rate = value_f64(row, "good_units_per_hour")?;
         let base_rate = value_f64(row, "baseline_good_units_per_hour")?;
-        if !seed_set.contains(&seed) || good_rate < 0.0 || base_rate < 0.0
+        if !seed_set.contains(&seed)
+            || good_rate < 0.0
+            || base_rate < 0.0
             || !seen.insert((seed, scenario_id.clone()))
         {
             return Err("replication_outcome_invalid_seed_rate_or_duplicate".into());
         }
         if scenario_id == "baseline" {
             if (good_rate - base_rate).abs() > 1e-9
-                || row.get("paired_good_units_per_hour_delta_vs_baseline")
+                || row
+                    .get("paired_good_units_per_hour_delta_vs_baseline")
                     .is_some_and(|value| !value.is_null())
             {
                 return Err("baseline_outcome_arithmetic_invalid".into());
             }
             baseline_by_seed.insert(seed, good_rate);
         } else {
-            let station_id = row.get("intervention_station_id").and_then(Value::as_str)
+            let station_id = row
+                .get("intervention_station_id")
+                .and_then(Value::as_str)
                 .ok_or_else(|| "intervention_outcome_station_id_missing".to_string())?;
             if !station_ids.iter().any(|id| id == station_id)
                 || scenario_id != format!("add-one-server-{station_id}")
             {
                 return Err("intervention_outcome_scenario_station_mismatch".into());
             }
-            let delta = row.get("paired_good_units_per_hour_delta_vs_baseline")
+            let delta = row
+                .get("paired_good_units_per_hour_delta_vs_baseline")
                 .and_then(Value::as_f64)
                 .ok_or_else(|| "intervention_delta_missing_or_not_number".to_string())?;
             if !delta.is_finite() || (delta - (good_rate - base_rate)).abs() > 1e-9 {
                 return Err("intervention_delta_arithmetic_mismatch".into());
             }
-            gains_by_station.get_mut(station_id).expect("known station")
+            gains_by_station
+                .get_mut(station_id)
+                .expect("known station")
                 .insert(seed, delta);
         }
     }
     if baseline_by_seed.len() != seed_set.len()
-        || gains_by_station.values().any(|rows| rows.len() != seed_set.len())
+        || gains_by_station
+            .values()
+            .any(|rows| rows.len() != seed_set.len())
     {
         return Err("per_seed_baseline_or_intervention_coverage_incomplete".into());
     }
@@ -404,9 +440,12 @@ fn validate_and_extract(
                     return Err("per_seed_intervention_pair_missing".into());
                 }
             }
-            let baseline_rows: Vec<_> = outcomes.iter()
-                .filter(|row| row.get("seed").and_then(Value::as_u64) == Some(*seed)
-                    && row.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+            let baseline_rows: Vec<_> = outcomes
+                .iter()
+                .filter(|row| {
+                    row.get("seed").and_then(Value::as_u64) == Some(*seed)
+                        && row.get("scenario_id").and_then(Value::as_str) == Some("baseline")
+                })
                 .collect();
             if baseline_rows.len() != 1
                 || (value_f64(baseline_rows[0], "good_units_per_hour")? - *base).abs() > 1e-9
@@ -423,24 +462,46 @@ fn validate_and_extract(
             }
         }
     }
-    Ok((catalog_seeds, station_ids, baseline_by_seed, gains_by_station))
+    Ok((
+        catalog_seeds,
+        station_ids,
+        baseline_by_seed,
+        gains_by_station,
+    ))
 }
 
 fn factor_paths(factor_id: &str, nominal_catalog: &Value) -> Result<Vec<String>, String> {
-    let stations = nominal_catalog.get("stations").and_then(Value::as_array)
+    let stations = nominal_catalog
+        .get("stations")
+        .and_then(Value::as_array)
         .ok_or_else(|| "nominal_station_array_missing".to_string())?;
     let paths = match factor_id {
         "supplier_interarrival" => vec!["/mean_supply_interarrival_seconds".to_string()],
-        "cycle_time_scale" => stations.iter().enumerate()
-            .map(|(index, _)| format!("/stations/{index}/mean_cycle_seconds")).collect(),
-        "yield_envelope" => stations.iter().enumerate()
-            .map(|(index, _)| format!("/stations/{index}/good_yield_fraction")).collect(),
-        "changeover_scale" => stations.iter().enumerate()
-            .map(|(index, _)| format!("/stations/{index}/changeover_seconds")).collect(),
-        "mtbf_scale" => stations.iter().enumerate()
-            .map(|(index, _)| format!("/stations/{index}/mean_time_between_failures_seconds")).collect(),
-        "mttr_scale" => stations.iter().enumerate()
-            .map(|(index, _)| format!("/stations/{index}/mean_time_to_repair_seconds")).collect(),
+        "cycle_time_scale" => stations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("/stations/{index}/mean_cycle_seconds"))
+            .collect(),
+        "yield_envelope" => stations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("/stations/{index}/good_yield_fraction"))
+            .collect(),
+        "changeover_scale" => stations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("/stations/{index}/changeover_seconds"))
+            .collect(),
+        "mtbf_scale" => stations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("/stations/{index}/mean_time_between_failures_seconds"))
+            .collect(),
+        "mttr_scale" => stations
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("/stations/{index}/mean_time_to_repair_seconds"))
+            .collect(),
         _ => return Err(format!("unknown_factor_{factor_id}")),
     };
     Ok(paths)
@@ -450,7 +511,8 @@ fn path_segments(pointer: &str) -> Result<Vec<String>, String> {
     if !pointer.starts_with('/') {
         return Err("json_pointer_must_start_with_slash".into());
     }
-    Ok(pointer[1..].split('/')
+    Ok(pointer[1..]
+        .split('/')
         .map(|segment| segment.replace("~1", "/").replace("~0", "~"))
         .collect())
 }
@@ -459,12 +521,15 @@ fn value_at_pointer<'a>(root: &'a Value, pointer: &str) -> Result<&'a Value, Str
     let mut current = root;
     for segment in path_segments(pointer)? {
         current = match current {
-            Value::Object(map) => map.get(&segment)
+            Value::Object(map) => map
+                .get(&segment)
                 .ok_or_else(|| format!("json_pointer_object_path_missing_{pointer}"))?,
             Value::Array(items) => {
-                let index = segment.parse::<usize>()
+                let index = segment
+                    .parse::<usize>()
                     .map_err(|_| format!("json_pointer_array_index_invalid_{pointer}"))?;
-                items.get(index)
+                items
+                    .get(index)
                     .ok_or_else(|| format!("json_pointer_array_path_missing_{pointer}"))?
             }
             _ => return Err(format!("json_pointer_crosses_scalar_{pointer}")),
@@ -474,24 +539,29 @@ fn value_at_pointer<'a>(root: &'a Value, pointer: &str) -> Result<&'a Value, Str
 }
 
 fn number_at_pointer(root: &Value, pointer: &str) -> Result<f64, String> {
-    value_at_pointer(root, pointer)?.as_f64()
+    value_at_pointer(root, pointer)?
+        .as_f64()
         .filter(|value| value.is_finite())
         .ok_or_else(|| format!("json_pointer_value_not_finite_number_{pointer}"))
 }
 
 fn set_pointer(root: &mut Value, pointer: &str, replacement: Value) -> Result<(), String> {
     let segments = path_segments(pointer)?;
-    let (last, parents) = segments.split_last()
+    let (last, parents) = segments
+        .split_last()
         .ok_or_else(|| "json_pointer_empty".to_string())?;
     let mut current = root;
     for segment in parents {
         current = match current {
-            Value::Object(map) => map.get_mut(segment)
+            Value::Object(map) => map
+                .get_mut(segment)
                 .ok_or_else(|| format!("json_pointer_object_path_missing_{pointer}"))?,
             Value::Array(items) => {
-                let index = segment.parse::<usize>()
+                let index = segment
+                    .parse::<usize>()
                     .map_err(|_| format!("json_pointer_array_index_invalid_{pointer}"))?;
-                items.get_mut(index)
+                items
+                    .get_mut(index)
                     .ok_or_else(|| format!("json_pointer_array_path_missing_{pointer}"))?
             }
             _ => return Err(format!("json_pointer_crosses_scalar_{pointer}")),
@@ -505,9 +575,11 @@ fn set_pointer(root: &mut Value, pointer: &str, replacement: Value) -> Result<()
             map.insert(last.clone(), replacement);
         }
         Value::Array(items) => {
-            let index = last.parse::<usize>()
+            let index = last
+                .parse::<usize>()
                 .map_err(|_| format!("json_pointer_array_index_invalid_{pointer}"))?;
-            let slot = items.get_mut(index)
+            let slot = items
+                .get_mut(index)
                 .ok_or_else(|| format!("json_pointer_array_leaf_missing_{pointer}"))?;
             *slot = replacement;
         }
@@ -519,14 +591,20 @@ fn set_pointer(root: &mut Value, pointer: &str, replacement: Value) -> Result<()
 fn mask_paths(catalog: &Value, paths: &[String]) -> Result<Value, String> {
     let mut masked = catalog.clone();
     for path in paths {
-        set_pointer(&mut masked, path, Value::String("__DECLARED_FACTOR_PATH__".into()))?;
+        set_pointer(
+            &mut masked,
+            path,
+            Value::String("__DECLARED_FACTOR_PATH__".into()),
+        )?;
     }
     Ok(masked)
 }
 
 fn validate_factor_design(nominal: &Case, low: &Case, high: &Case) -> Result<Vec<String>, String> {
-    if low.factor_id != high.factor_id || low.factor_id == "nominal"
-        || low.level != "low" || high.level != "high"
+    if low.factor_id != high.factor_id
+        || low.factor_id == "nominal"
+        || low.level != "low"
+        || high.level != "high"
     {
         return Err("factor_low_high_labels_do_not_match".into());
     }
@@ -534,7 +612,10 @@ fn validate_factor_design(nominal: &Case, low: &Case, high: &Case) -> Result<Vec
     if mask_paths(&nominal.catalog, &paths)? != mask_paths(&low.catalog, &paths)?
         || mask_paths(&nominal.catalog, &paths)? != mask_paths(&high.catalog, &paths)?
     {
-        return Err(format!("factor_{}_changed_undeclared_catalog_paths", low.factor_id));
+        return Err(format!(
+            "factor_{}_changed_undeclared_catalog_paths",
+            low.factor_id
+        ));
     }
     let mut changed_values = false;
     for path in &paths {
@@ -542,28 +623,42 @@ fn validate_factor_design(nominal: &Case, low: &Case, high: &Case) -> Result<Vec
         let low_value = number_at_pointer(&low.catalog, path)?;
         let high_value = number_at_pointer(&high.catalog, path)?;
         if !(low_value < nominal_value && nominal_value < high_value) {
-            return Err(format!("factor_{}_low_nominal_high_values_not_strictly_ordered_at_{}", low.factor_id, path));
+            return Err(format!(
+                "factor_{}_low_nominal_high_values_not_strictly_ordered_at_{}",
+                low.factor_id, path
+            ));
         }
         if (low_value - nominal_value).abs() > 1e-12 || (high_value - nominal_value).abs() > 1e-12 {
             changed_values = true;
         }
     }
     if !changed_values {
-        return Err(format!("factor_{}_endpoints_do_not_change_any_value", low.factor_id));
+        return Err(format!(
+            "factor_{}_endpoints_do_not_change_any_value",
+            low.factor_id
+        ));
     }
     for case in [low, high] {
         if case.seed_order != nominal.seed_order || case.station_ids != nominal.station_ids {
-            return Err(format!("factor_{}_report_does_not_share_nominal_seed_or_station_order", low.factor_id));
+            return Err(format!(
+                "factor_{}_report_does_not_share_nominal_seed_or_station_order",
+                low.factor_id
+            ));
         }
     }
     Ok(paths)
 }
 
 fn parameter_values(catalog: &Value, paths: &[String]) -> Result<Vec<ParameterValue>, String> {
-    paths.iter().map(|path| Ok(ParameterValue {
-        path: path.clone(),
-        value: number_at_pointer(catalog, path)?,
-    })).collect()
+    paths
+        .iter()
+        .map(|path| {
+            Ok(ParameterValue {
+                path: path.clone(),
+                value: number_at_pointer(catalog, path)?,
+            })
+        })
+        .collect()
 }
 
 fn summarize(values: &[f64]) -> Result<DistributionSummary, String> {
@@ -575,7 +670,14 @@ fn summarize(values: &[f64]) -> Result<DistributionSummary, String> {
     let count = sorted.len();
     let mean = sorted.iter().sum::<f64>() / count as f64;
     let sd = if count > 1 {
-        Some((sorted.iter().map(|value| (value - mean).powi(2)).sum::<f64>() / (count - 1) as f64).sqrt())
+        Some(
+            (sorted
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
+                / (count - 1) as f64)
+                .sqrt(),
+        )
     } else {
         None
     };
@@ -646,12 +748,20 @@ fn pairwise(
     gains: &BTreeMap<String, BTreeMap<u64, f64>>,
     seed_order: &[u64],
 ) -> Result<PairwiseLevelComparison, String> {
-    let left = gains.get(left_station).ok_or_else(|| format!("gains_missing_{left_station}"))?;
-    let right = gains.get(right_station).ok_or_else(|| format!("gains_missing_{right_station}"))?;
+    let left = gains
+        .get(left_station)
+        .ok_or_else(|| format!("gains_missing_{left_station}"))?;
+    let right = gains
+        .get(right_station)
+        .ok_or_else(|| format!("gains_missing_{right_station}"))?;
     let mut difference = Vec::with_capacity(seed_order.len());
     for seed in seed_order {
-        let a = left.get(seed).ok_or_else(|| format!("station_{left_station}_seed_{seed}_missing"))?;
-        let b = right.get(seed).ok_or_else(|| format!("station_{right_station}_seed_{seed}_missing"))?;
+        let a = left
+            .get(seed)
+            .ok_or_else(|| format!("station_{left_station}_seed_{seed}_missing"))?;
+        let b = right
+            .get(seed)
+            .ok_or_else(|| format!("station_{right_station}_seed_{seed}_missing"))?;
         difference.push(a - b);
     }
     let summary = summarize(&difference)?;
@@ -667,24 +777,45 @@ fn pairwise(
 }
 
 fn paired_decision(summary: &DistributionSummary, margin: f64) -> &'static str {
-    match (summary.mean_confidence_95_lower, summary.mean_confidence_95_upper) {
-        (Some(lower), Some(upper)) if lower > margin => "station_a_meaningfully_better_under_paired_model",
-        (Some(lower), Some(upper)) if upper < -margin => "station_b_meaningfully_better_under_paired_model",
-        (Some(lower), Some(upper)) if lower >= -margin && upper <= margin => "practically_equivalent_within_declared_margin",
+    match (
+        summary.mean_confidence_95_lower,
+        summary.mean_confidence_95_upper,
+    ) {
+        (Some(lower), Some(upper)) if lower > margin => {
+            "station_a_meaningfully_better_under_paired_model"
+        }
+        (Some(lower), Some(upper)) if upper < -margin => {
+            "station_b_meaningfully_better_under_paired_model"
+        }
+        (Some(lower), Some(upper)) if lower >= -margin && upper <= margin => {
+            "practically_equivalent_within_declared_margin"
+        }
         _ => "inconclusive_under_paired_interval",
     }
 }
 
 fn level_result(case: &Case, label: &str, paths: &[String]) -> Result<LevelResult, String> {
-    let baseline_values: Vec<f64> = case.seed_order.iter()
-        .map(|seed| *case.baseline_by_seed.get(seed).expect("validated baseline seed"))
+    let baseline_values: Vec<f64> = case
+        .seed_order
+        .iter()
+        .map(|seed| {
+            *case
+                .baseline_by_seed
+                .get(seed)
+                .expect("validated baseline seed")
+        })
         .collect();
     let baseline_summary = summarize(&baseline_values)?;
 
     let mut gains_summary = Vec::new();
     for station_id in &case.station_ids {
-        let rows = case.gains_by_station.get(station_id).expect("validated station");
-        let values: Vec<f64> = case.seed_order.iter()
+        let rows = case
+            .gains_by_station
+            .get(station_id)
+            .expect("validated station");
+        let values: Vec<f64> = case
+            .seed_order
+            .iter()
             .map(|seed| *rows.get(seed).expect("validated station seed"))
             .collect();
         gains_summary.push(StationLevelResult {
@@ -695,14 +826,18 @@ fn level_result(case: &Case, label: &str, paths: &[String]) -> Result<LevelResul
         });
     }
     gains_summary.sort_by(|a, b| {
-        b.mean_paired_gain_units_per_hour.total_cmp(&a.mean_paired_gain_units_per_hour)
+        b.mean_paired_gain_units_per_hour
+            .total_cmp(&a.mean_paired_gain_units_per_hour)
             .then_with(|| a.station_id.cmp(&b.station_id))
     });
     for (rank, station) in gains_summary.iter_mut().enumerate() {
         station.point_estimate_rank = rank + 1;
     }
     let point_best = if gains_summary.len() > 1
-        && (gains_summary[0].mean_paired_gain_units_per_hour - gains_summary[1].mean_paired_gain_units_per_hour).abs() <= 1e-9
+        && (gains_summary[0].mean_paired_gain_units_per_hour
+            - gains_summary[1].mean_paired_gain_units_per_hour)
+            .abs()
+            <= 1e-9
     {
         None
     } else {
@@ -716,23 +851,42 @@ fn level_result(case: &Case, label: &str, paths: &[String]) -> Result<LevelResul
     let mut comparisons = Vec::new();
     for i in 0..case.station_ids.len() {
         for j in i + 1..case.station_ids.len() {
-            comparisons.push(pairwise(&case.station_ids[i], &case.station_ids[j], &gain_map, &case.seed_order)?);
+            comparisons.push(pairwise(
+                &case.station_ids[i],
+                &case.station_ids[j],
+                &gain_map,
+                &case.seed_order,
+            )?);
         }
     }
-    let robust_best = case.station_ids.iter().find(|candidate| {
-        case.station_ids.iter().filter(|other| *other != *candidate).all(|other| {
-            comparisons.iter().find(|comparison| {
-                (comparison.station_a_id == **candidate && comparison.station_b_id == **other)
-                    || (comparison.station_a_id == **other && comparison.station_b_id == **candidate)
-            }).is_some_and(|comparison| {
-                if comparison.station_a_id == **candidate {
-                    comparison.decision == "station_a_meaningfully_better_under_paired_model"
-                } else {
-                    comparison.decision == "station_b_meaningfully_better_under_paired_model"
-                }
-            })
+    let robust_best = case
+        .station_ids
+        .iter()
+        .find(|candidate| {
+            case.station_ids
+                .iter()
+                .filter(|other| *other != *candidate)
+                .all(|other| {
+                    comparisons
+                        .iter()
+                        .find(|comparison| {
+                            (comparison.station_a_id == **candidate
+                                && comparison.station_b_id == **other)
+                                || (comparison.station_a_id == **other
+                                    && comparison.station_b_id == **candidate)
+                        })
+                        .is_some_and(|comparison| {
+                            if comparison.station_a_id == **candidate {
+                                comparison.decision
+                                    == "station_a_meaningfully_better_under_paired_model"
+                            } else {
+                                comparison.decision
+                                    == "station_b_meaningfully_better_under_paired_model"
+                            }
+                        })
+                })
         })
-    }).cloned();
+        .cloned();
 
     Ok(LevelResult {
         level: label.to_string(),
@@ -749,7 +903,9 @@ fn level_result(case: &Case, label: &str, paths: &[String]) -> Result<LevelResul
 }
 
 fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
-    let nominal = cases.get("nominal").ok_or_else(|| "nominal_case_missing".to_string())?;
+    let nominal = cases
+        .get("nominal")
+        .ok_or_else(|| "nominal_case_missing".to_string())?;
     if nominal.factor_id != "nominal" || nominal.level != "nominal" {
         return Err("nominal_case_label_invalid".into());
     }
@@ -773,32 +929,44 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
         return Err("sensitivity_case_ids_do_not_match_versioned_design".into());
     }
     let mut case_digests = BTreeMap::new();
-    case_digests.insert("nominal".into(), CaseDigest {
-        catalog_sha256: nominal.catalog_sha256.clone(),
-        simulation_report_sha256: nominal.report_sha256.clone(),
-    });
+    case_digests.insert(
+        "nominal".into(),
+        CaseDigest {
+            catalog_sha256: nominal.catalog_sha256.clone(),
+            simulation_report_sha256: nominal.report_sha256.clone(),
+        },
+    );
     let mut factors = Vec::new();
 
     for factor in FACTORS {
-        let low = cases.get(&format!("{factor}_low")).expect("validated low case");
-        let high = cases.get(&format!("{factor}_high")).expect("validated high case");
+        let low = cases
+            .get(&format!("{factor}_low"))
+            .expect("validated low case");
+        let high = cases
+            .get(&format!("{factor}_high"))
+            .expect("validated high case");
         let paths = validate_factor_design(nominal, low, high)?;
         if low.factor_id != factor || high.factor_id != factor {
             return Err(format!("factor_case_id_mismatch_{factor}"));
         }
         let nominal_paths = factor_paths(factor, &nominal.catalog)?;
         for case in [low, high] {
-            case_digests.insert(case.case_id.clone(), CaseDigest {
-                catalog_sha256: case.catalog_sha256.clone(),
-                simulation_report_sha256: case.report_sha256.clone(),
-            });
+            case_digests.insert(
+                case.case_id.clone(),
+                CaseDigest {
+                    catalog_sha256: case.catalog_sha256.clone(),
+                    simulation_report_sha256: case.report_sha256.clone(),
+                },
+            );
         }
         let low_result = level_result(low, "low", &paths)?;
         let nominal_result = level_result(nominal, "nominal", &paths)?;
         let high_result = level_result(high, "high", &paths)?;
-        let baseline_differences: Vec<f64> = nominal.seed_order.iter().map(|seed| {
-            low.baseline_by_seed[seed] - high.baseline_by_seed[seed]
-        }).collect();
+        let baseline_differences: Vec<f64> = nominal
+            .seed_order
+            .iter()
+            .map(|seed| low.baseline_by_seed[seed] - high.baseline_by_seed[seed])
+            .collect();
         let baseline_low_minus_high = summarize(&baseline_differences)?;
         let low_point = low_result.point_estimate_best_station_id.clone();
         let nominal_point = nominal_result.point_estimate_best_station_id.clone();
@@ -810,23 +978,39 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
             let low_gain = &low.gains_by_station[station_id];
             let nominal_gain = &nominal.gains_by_station[station_id];
             let high_gain = &high.gains_by_station[station_id];
-            let differences: Vec<f64> = nominal.seed_order.iter().map(|seed| {
-                high_gain[seed] - low_gain[seed]
-            }).collect();
+            let differences: Vec<f64> = nominal
+                .seed_order
+                .iter()
+                .map(|seed| high_gain[seed] - low_gain[seed])
+                .collect();
             let swing = summarize(&differences)?;
-            let low_mean = low_result.station_intervention_gains.iter()
-                .find(|row| row.station_id == *station_id).expect("low candidate").mean_paired_gain_units_per_hour;
-            let nominal_mean = nominal_result.station_intervention_gains.iter()
-                .find(|row| row.station_id == *station_id).expect("nominal candidate").mean_paired_gain_units_per_hour;
-            let high_mean = high_result.station_intervention_gains.iter()
-                .find(|row| row.station_id == *station_id).expect("high candidate").mean_paired_gain_units_per_hour;
+            let low_mean = low_result
+                .station_intervention_gains
+                .iter()
+                .find(|row| row.station_id == *station_id)
+                .expect("low candidate")
+                .mean_paired_gain_units_per_hour;
+            let nominal_mean = nominal_result
+                .station_intervention_gains
+                .iter()
+                .find(|row| row.station_id == *station_id)
+                .expect("nominal candidate")
+                .mean_paired_gain_units_per_hour;
+            let high_mean = high_result
+                .station_intervention_gains
+                .iter()
+                .find(|row| row.station_id == *station_id)
+                .expect("high candidate")
+                .mean_paired_gain_units_per_hour;
             let relative = if nominal_mean.abs() > 1e-9 {
                 Some((high_mean - low_mean) / nominal_mean.abs())
             } else {
                 None
             };
             let rank_at = |level: &LevelResult| {
-                level.station_intervention_gains.iter()
+                level
+                    .station_intervention_gains
+                    .iter()
                     .find(|row| row.station_id == *station_id)
                     .map(|row| row.point_estimate_rank)
             };
@@ -842,19 +1026,25 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
                 ranking_changed_across_levels: rank_changed,
             });
         }
-        let robust_winner = [ &low_result, &nominal_result, &high_result ]
+        let robust_winner = [&low_result, &nominal_result, &high_result]
             .iter()
             .map(|result| result.robust_best_station_id.clone())
             .reduce(|left, right| if left == right { left } else { None })
             .flatten();
-        let maximum_gain_swing = station_sensitivities.iter()
+        let maximum_gain_swing = station_sensitivities
+            .iter()
             .map(|row| row.high_minus_low_paired_gain_units_per_hour.mean.abs())
             .fold(0.0_f64, f64::max);
-        let max_relative = station_sensitivities.iter()
+        let max_relative = station_sensitivities
+            .iter()
             .filter_map(|row| row.relative_endpoint_swing_fraction_of_nominal_magnitude)
             .map(f64::abs)
             .fold(0.0_f64, f64::max);
-        let priority = if ranking_changed { maximum_gain_swing + 1.0 } else { maximum_gain_swing };
+        let priority = if ranking_changed {
+            maximum_gain_swing + 1.0
+        } else {
+            maximum_gain_swing
+        };
         factors.push(FactorSensitivity {
             factor_id: factor.into(),
             changed_parameter_paths: paths.clone(),
@@ -872,17 +1062,28 @@ fn evaluate(cases: BTreeMap<String, Case>) -> Result<Report, String> {
             measurement_priority_note: "heuristic only: higher when a point-estimate winner changes or candidate gains move materially across the declared endpoint settings; not formal value-of-information and not weighted by real-world factor likelihood or measurement cost".into(),
         });
     }
-    factors.sort_by(|a, b| b.measurement_priority_proxy.total_cmp(&a.measurement_priority_proxy)
-        .then_with(|| a.factor_id.cmp(&b.factor_id)));
-    let measurement_priority_order = factors.iter().map(|factor| factor.factor_id.clone()).collect();
+    factors.sort_by(|a, b| {
+        b.measurement_priority_proxy
+            .total_cmp(&a.measurement_priority_proxy)
+            .then_with(|| a.factor_id.cmp(&b.factor_id))
+    });
+    let measurement_priority_order = factors
+        .iter()
+        .map(|factor| factor.factor_id.clone())
+        .collect();
     let candidate_ids = nominal.station_ids.clone();
-    let global_robust_best = candidate_ids.iter().find(|candidate| {
-        factors.iter().all(|factor| {
-            [&factor.low, &factor.nominal, &factor.high].iter().all(|level| {
-                level.robust_best_station_id.as_deref() == Some(candidate.as_str())
+    let global_robust_best = candidate_ids
+        .iter()
+        .find(|candidate| {
+            factors.iter().all(|factor| {
+                [&factor.low, &factor.nominal, &factor.high]
+                    .iter()
+                    .all(|level| {
+                        level.robust_best_station_id.as_deref() == Some(candidate.as_str())
+                    })
             })
         })
-    }).cloned();
+        .cloned();
     let status = if global_robust_best.is_some() {
         "unique_station_intervention_robust_across_all_declared_one_factor_envelopes"
     } else {
@@ -925,36 +1126,61 @@ mod tests {
     #[test]
     fn paired_decision_has_advantage_equivalence_and_inconclusive_states() {
         let clear = summarize(&[0.8, 0.8, 0.8, 0.8, 0.8]).unwrap();
-        assert_eq!(paired_decision(&clear, 0.05), "station_a_meaningfully_better_under_paired_model");
+        assert_eq!(
+            paired_decision(&clear, 0.05),
+            "station_a_meaningfully_better_under_paired_model"
+        );
         let equal = summarize(&[0.01, 0.02, 0.0, 0.01, 0.02]).unwrap();
-        assert_eq!(paired_decision(&equal, 0.05), "practically_equivalent_within_declared_margin");
+        assert_eq!(
+            paired_decision(&equal, 0.05),
+            "practically_equivalent_within_declared_margin"
+        );
         let variable = summarize(&[-0.2, 0.1, 0.3, -0.1, 0.0]).unwrap();
-        assert_eq!(paired_decision(&variable, 0.05), "inconclusive_under_paired_interval");
+        assert_eq!(
+            paired_decision(&variable, 0.05),
+            "inconclusive_under_paired_interval"
+        );
     }
 
     #[test]
     fn masked_catalog_preserves_all_undeclared_fields() {
-        let nominal: Value = serde_json::from_str(r#"{"x":1,"nested":{"target":2,"stay":3}}"#).unwrap();
+        let nominal: Value =
+            serde_json::from_str(r#"{"x":1,"nested":{"target":2,"stay":3}}"#).unwrap();
         let mut low = nominal.clone();
         low["nested"]["target"] = Value::from(1);
         let mut high = nominal.clone();
         high["nested"]["target"] = Value::from(4);
         let paths = vec!["/nested/target".to_string()];
-        assert_eq!(mask_paths(&nominal, &paths).unwrap(), mask_paths(&low, &paths).unwrap());
-        assert_eq!(mask_paths(&nominal, &paths).unwrap(), mask_paths(&high, &paths).unwrap());
+        assert_eq!(
+            mask_paths(&nominal, &paths).unwrap(),
+            mask_paths(&low, &paths).unwrap()
+        );
+        assert_eq!(
+            mask_paths(&nominal, &paths).unwrap(),
+            mask_paths(&high, &paths).unwrap()
+        );
         assert_ne!(nominal, low);
     }
 
     #[test]
     fn factor_catalog_changes_outside_declared_paths_are_rejected() {
-        let nominal: Value = serde_json::from_str(r#"{"mean_supply_interarrival_seconds":235,"horizon_seconds":100,"stations":[]}"#).unwrap();
+        let nominal: Value = serde_json::from_str(
+            r#"{"mean_supply_interarrival_seconds":235,"horizon_seconds":100,"stations":[]}"#,
+        )
+        .unwrap();
         let mut low = nominal.clone();
         low["mean_supply_interarrival_seconds"] = Value::from(200);
         let mut high = nominal.clone();
         high["mean_supply_interarrival_seconds"] = Value::from(260);
         high["horizon_seconds"] = Value::from(90);
         let paths = vec!["/mean_supply_interarrival_seconds".to_string()];
-        assert_eq!(mask_paths(&nominal, &paths).unwrap(), mask_paths(&low, &paths).unwrap());
-        assert_ne!(mask_paths(&nominal, &paths).unwrap(), mask_paths(&high, &paths).unwrap());
+        assert_eq!(
+            mask_paths(&nominal, &paths).unwrap(),
+            mask_paths(&low, &paths).unwrap()
+        );
+        assert_ne!(
+            mask_paths(&nominal, &paths).unwrap(),
+            mask_paths(&high, &paths).unwrap()
+        );
     }
 }
