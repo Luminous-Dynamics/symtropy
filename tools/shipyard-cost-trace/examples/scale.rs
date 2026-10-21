@@ -1,5 +1,6 @@
 use shipyard_cost_trace::{
-    EventKind, EvidencePermission, LedgerEvent, QuantityEvent, Stage, audit,
+    EventKind, EvidencePermission, LedgerEvent, QuantityAggregationSemantics, QuantityEvent,
+    Stage, audit,
 };
 use std::time::Instant;
 
@@ -28,6 +29,7 @@ fn workload(size: usize) -> Vec<LedgerEvent> {
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: "labor.fitter.hours".to_owned(),
                 quantity: 1.0,
+                aggregation_semantics: QuantityAggregationSemantics::AdditiveContribution,
                 unit: "hour".to_owned(),
                 rate: None,
             }),
