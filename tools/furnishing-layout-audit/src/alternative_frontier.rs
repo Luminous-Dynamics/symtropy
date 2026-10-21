@@ -1083,7 +1083,7 @@ mod tests {
         let report = compute_pareto_frontier(&candidates).expect("valid adversarial fixture");
         assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
         assert_report_witnesses_valid(&report, &candidates);
-        assert!(report.frontier_ids.contains(&"zero".to_owned()) == false);
+        assert!(!report.frontier_ids.contains(&"zero".to_owned()));
     }
 
     #[test]
