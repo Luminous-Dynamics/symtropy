@@ -12,8 +12,8 @@ use std::f64::consts::PI;
 
 const MAX_ELEMENTS: usize = 128;
 
-type Matrix = Vec<Vec<f64>>;
-type Eigenpair = (f64, Vec<f64>);
+pub(crate) type Matrix = Vec<Vec<f64>>;
+pub(crate) type Eigenpair = (f64, Vec<f64>);
 
 /// The element mass approximation is part of the model contract, not a solver
 /// implementation detail. The two formulations can differ materially on
@@ -229,7 +229,10 @@ fn ensure_finite_matrix(name: &str, matrix: &Matrix) -> Check<()> {
 
 /// Solve K x = lambda M x by a Cholesky reduction followed by a symmetric
 /// Jacobi eigensolve. The reduced M must be positive definite.
-fn generalized_symmetric_eigenpairs(stiffness: &Matrix, mass: &Matrix) -> Check<Vec<Eigenpair>> {
+pub(crate) fn generalized_symmetric_eigenpairs(
+    stiffness: &Matrix,
+    mass: &Matrix,
+) -> Check<Vec<Eigenpair>> {
     let lower = cholesky_lower(mass)?;
     let inverse_lower = inverse_lower_triangular(&lower)?;
     let transformed_left = matrix_multiply(&inverse_lower, stiffness);
@@ -313,7 +316,7 @@ fn matrix_vector_product(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
     }
 }
 
-fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> Check<f64> {
+pub(crate) fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> Check<f64> {
     let product = matrix_vector_product(matrix, vector)?;
     let value: f64 = vector.iter().zip(product).map(|(a, b)| a * b).sum();
     if value.is_finite() && value > 0.0 {
@@ -323,7 +326,7 @@ fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> Check<f64> {
     }
 }
 
-fn normalized_eigen_residual(
+pub(crate) fn normalized_eigen_residual(
     stiffness: &Matrix,
     mass: &Matrix,
     eigenvalue: f64,
