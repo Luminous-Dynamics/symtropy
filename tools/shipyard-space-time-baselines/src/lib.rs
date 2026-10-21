@@ -386,6 +386,7 @@ fn order_requests(
                 })
                 .then_with(|| left.reservation_id.cmp(&right.reservation_id))
         }),
+        PortfolioPolicy::ExactTinySearch => {},
     }
     ordered
 }
