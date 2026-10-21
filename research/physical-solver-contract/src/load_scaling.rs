@@ -338,7 +338,8 @@ pub fn assess_load_scaling_relation_bytes(
         let (results, violations, unresolved, count) = compare_observables(
             &baseline_observables,
             &scaled_observables,
-            manifest.scale_factor.powi(pair.scaling_exponent),
+            manifest.scale_factor,
+            pair.scaling_exponent,
             manifest.absolute_tolerance,
             manifest.relative_tolerance,
         );
@@ -391,7 +392,8 @@ pub fn assess_load_scaling_relation_bytes(
 fn compare_observables(
     baseline: &BTreeMap<String, ObservedObservable>,
     scaled: &BTreeMap<String, ObservedObservable>,
-    alpha: f64,
+    load_scale_factor: f64,
+    scaling_exponent: i32,
     absolute_tolerance: f64,
     relative_tolerance: f64,
 ) -> (Vec<Value>, usize, usize, usize) {
@@ -410,7 +412,8 @@ fn compare_observables(
             unresolved += 1;
             continue;
         }
-        let expected = original.value * alpha;
+        let effective_scale_factor = load_scale_factor.powi(scaling_exponent);
+        let expected = original.value * effective_scale_factor;
         let error = (actual.value - expected).abs();
         let allowed = absolute_tolerance + relative_tolerance * expected.abs();
         if !expected.is_finite() || !error.is_finite() || !allowed.is_finite() {
@@ -446,7 +449,9 @@ fn compare_observables(
             "observable_id": id,
             "unit": original.unit,
             "baseline_value": original.value,
-            "scale_factor": alpha,
+            "load_scale_factor": load_scale_factor,
+            "scaling_exponent": scaling_exponent,
+            "effective_scale_factor": effective_scale_factor,
             "expected_scaled_value": expected,
             "scaled_observed_value": actual.value,
             "absolute_error": error,
@@ -1012,7 +1017,7 @@ mod tests {
             "load_scale_factor":alpha,
             "absolute_tolerance":1e-12,
             "relative_tolerance":1e-10,
-            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement","scaling_exponent":1}]
+            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement","scaling_exponent":exponent}]
         });
         Bundle {
             root,
