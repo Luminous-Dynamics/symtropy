@@ -312,3 +312,8 @@ Once the Rust lifecycle microbench is exact-head qualified:
 4. Add memory intervention and interference only as explicitly separate factors, then combine them in a small predeclared matrix.
 
 Mem4Act is the reference for learned fixed-size latent memory and causal utilization; HyMeS is the reference for executable memory strategy and stage verification; MEMOBench is the reference for process-level storage/update/compression. They should be compared on their native protocols, not ranked using a fabricated combined score.
+
+
+### Leaderboard reconciliation note (2026-10-22)
+
+The [official RoboMME leaderboard](https://robomme.github.io/leaderboard.html), whose page reports data updated 2026-09-29, lists PonderPounce-9B at 60.83% overall and FrameSamp+Modul at 44.51%. Mem4Act's 49.88% is the best among the baselines reported in its own October preprint, but Mem4Act is not listed on the leaderboard page inspected during this pass. These are different reports and potentially different checkpoints/training/evaluation configurations; do not describe 49.88% as the highest official RoboMME leaderboard score or directly declare superiority over PonderPounce-9B. Before head-to-head claims, pin identical official task configs/evaluator/seeds and reproduce both eligible systems, or restrict the wording to each paper's own evaluation table.
