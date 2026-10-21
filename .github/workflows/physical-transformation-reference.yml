@@ -322,6 +322,7 @@ jobs:
             and .case_count == 9
             and .accepted_case_count == 7
             and .rejected_case_count == 2
+            and .condition_reject_threshold == 0.001
             and (.cases | length == 9)
             and .duplicate_run_bytes_identical == true
             and (.cases | all(.[]; if .disposition == "accepted" then
@@ -346,8 +347,12 @@ jobs:
                 else false end))
             and ([.cases[].condition_infinity] as $conditions
               | all(range(0; ($conditions | length) - 1); $conditions[.] < $conditions[. + 1]))
-            and ([.cases[] | select(.condition_times_machine_epsilon >= .condition_reject_threshold) | .disposition]
-              | all(.[]; . == "rejected_numerically_unresolved"))
+            and (.condition_reject_threshold as $threshold
+              | (
+                  ([.cases[] | select(.condition_times_machine_epsilon >= $threshold) | .disposition] | length == 2)
+                  and ([.cases[] | select(.condition_times_machine_epsilon >= $threshold) | .disposition]
+                    | all(.[]; . == "rejected_numerically_unresolved"))
+                ))
             and .claim_ceiling
               == "synthetic static small-displacement linear-elastic 2D pin-jointed truss conditioning test only; no physical validation, external FEM qualification, or structural safety claim"
           ' planar-truss-conditioning-receipt.json
