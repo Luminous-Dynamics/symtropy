@@ -45,7 +45,7 @@ fn run() -> Result<String, String> {
     let templates = fixture_members(1);
     let base_request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
     let request = format!(
-        "{base_request}|sample_points_per_member={SAMPLE_POINTS_PER_MEMBER}|frequency_cluster_relative_gap={FREQUENCY_CLUSTER_RELATIVE_GAP:.3}|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap={ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP:.2}|isolated_mode_minimum_mac={ISOLATED_MODE_MINIMUM_MAC:.1}|isolated_assignment=hungarian-max-total-mac-with-abstention"
+        "{base_request}|sample_points_per_member={SAMPLE_POINTS_PER_MEMBER}|sample_metric=per-member-trapezoidal-rhoA-L-weighted-ux-uy|frequency_cluster_relative_gap={FREQUENCY_CLUSTER_RELATIVE_GAP:.3}|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap={ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP:.2}|isolated_mode_minimum_mac={ISOLATED_MODE_MINIMUM_MAC:.1}|isolated_assignment=hungarian-max-total-mac-with-abstention"
     );
     if request != FROZEN_REQUEST.trim_end_matches('\n') {
         return Err("canonical mesh-sweep/subspace request differs from frozen fixture".to_owned());
@@ -170,12 +170,21 @@ fn run() -> Result<String, String> {
             "\"evidence_class\":\"deterministic-synthetic-mesh-sweep\",",
             "\"result\":\"pass\",",
             "\"element_counts_per_member\":[1,2,4,8],",
-            "\"mesh_results\":[{}],",
+            "\"sample_points_per_member\":17,",
+            "\"sample_metric\":\"per-member-trapezoidal-rhoA-L-weighted-ux-uy\",",
+            "\"frequency_cluster_relative_gap\":{},",
+            "\"isolated_mode_max_relative_frequency_gap\":{},",
+            "\"isolated_mode_minimum_mac\":{},",
+            "\"isolated_assignment_algorithm\":\"Hungarian max-total-MAC within hard gates\",",
+            "\"mesh_results\":[{}],
             "\"claim_ceiling\":\"one-element to eight-elements-per-member synthetic Euler-Bernoulli model only; not a mesh-converged NBC05 200-element beam model, physical validation, structural safety or code compliance\"",
             "}}"
         ),
         json_quote(&source_commit),
         json_quote(&request),
+        float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+        float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+        float_json(ISOLATED_MODE_MINIMUM_MAC),
         mesh_receipts.join(","),
     ))
 }
