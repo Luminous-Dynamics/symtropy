@@ -1,7 +1,7 @@
 # Modal Truss Verification Contract v0.1
 
 **Tracking:** [PHYS-MODAL-TRUSS-001 #2531](https://github.com/Luminous-Dynamics/symtropy/issues/2531)  
-**Status:** benchmark intake and implementation contract; no modal solver or NBC05 reproduction is qualified by this document.  
+**Status:** benchmark intake contract plus a first axial-bar frequency prototype; no modal truss solver or NBC05 reproduction is qualified.  
 **Model class:** undamped, linear, small-motion free vibration. Separate from the static planar-truss reference.
 
 ## Why this is a model-class boundary
@@ -49,7 +49,9 @@ If one of these changes the mathematical problem and is unresolved, the adapter 
 
 ## Verification ladder
 
-### M0 — Analytical axial bar (the first implementation target)
+### M0 — Analytical axial bar (first implementation slice)
+
+The current prototype assembles and solves only the one-dimensional fixed-free axial bar described below. It returns sorted frequencies for explicitly selected consistent or lumped mass; it does not yet return mode shapes, eigen-residuals, or mass-orthogonality diagnostics. Those are still required before the M0 evidence receipt can be considered complete. It is not an NBC05 truss solve.
 
 For a uniform one-dimensional axial bar fixed at one end and free at the other, the analytical longitudinal frequencies are
 
@@ -59,11 +61,10 @@ f_n=\frac{2n-1}{4L}\sqrt{\frac{E}{\rho}}, \quad n=1,2,\ldots
 
 For the 1 m, 210 GPa, 7800 kg/m³ values displayed in NBC05, the fundamental is about 1.297 kHz. This analytical bar test is a **separate subproblem**, not an assertion that the whole truss has that frequency.
 
-- Add element-level stiffness and mass matrices with explicit SI units.
-- Support consistent and lumped mass as distinct named options; never silently change the default formulation across releases.
-- Run 1, 2, 4, 8, and 16 equal elements and report the frequency error for each requested mode.
-- Independently check the generalized-eigenpair residual and mass-normalization/orthogonality.
-- Confirm the published convergence observations before pinning exact acceptance values: the solution reports that roughly 2 elements meet 5% error for the first mode while roughly 8 are needed for the second.
+- [Implemented prototype] Assemble reduced axial-bar stiffness and consistent or row-sum lumped mass matrices in SI units; solve the small generalized symmetric eigenproblem through Cholesky reduction and a Jacobi eigensolve.
+- [Implemented tests] Compare the single-element consistent/lumped frequencies with closed-form frequency ratios, check first-mode convergence across 1, 2, 4, 8, and 16 elements, and check that the second mode is within 5% at 8 elements for this bar test.
+- [Remaining] Return mode vectors and independently check generalized-eigenpair residuals and mass-normalization/orthogonality.
+- [Remaining] Freeze a request-bound M0 receipt, its canonical input hash and solver/mass-formulation metadata. The current prototype is an API test slice rather than an independently qualified receipt.
 
 ### M1 — Independent small-matrix eigenproblem
 
