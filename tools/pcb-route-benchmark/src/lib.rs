@@ -249,7 +249,9 @@ pub fn evaluate_report_bytes(
     evaluator_git_head: &str,
 ) -> Result<ValidatedRun, String> {
     if !is_commit_sha(evaluator_git_head) {
-        return Err("evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into());
+        return Err(
+            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
     }
     let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
         .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
@@ -299,7 +301,10 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             return Err(format!("manifest {field} must not be empty"));
         }
     }
-    if !matches!(manifest.evidence_class.as_str(), "synthetic" | "external_benchmark") {
+    if !matches!(
+        manifest.evidence_class.as_str(),
+        "synthetic" | "external_benchmark"
+    ) {
         return Err("evidence_class must be synthetic or external_benchmark".into());
     }
     if manifest.boards.is_empty() {
@@ -307,21 +312,34 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
     }
     let mut ids = BTreeSet::new();
     for board in &manifest.boards {
-        if board.board_id.trim().is_empty() || board.license.trim().is_empty() || board.source_url.trim().is_empty() {
+        if board.board_id.trim().is_empty()
+            || board.license.trim().is_empty()
+            || board.source_url.trim().is_empty()
+        {
             return Err("each board requires a non-empty ID, license and source URL".into());
         }
         if !ids.insert(board.board_id.as_str()) {
-            return Err(format!("duplicate board ID in manifest: {}", board.board_id));
+            return Err(format!(
+                "duplicate board ID in manifest: {}",
+                board.board_id
+            ));
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
-            return Err(format!("{}: required_nets must be positive", board.board_id));
+            return Err(format!(
+                "{}: required_nets must be positive",
+                board.board_id
+            ));
         }
     }
     Ok(())
 }
 
-fn validate_report(report: &RunReport, manifest: &DatasetManifest, manifest_bytes: &[u8]) -> Result<(), String> {
+fn validate_report(
+    report: &RunReport,
+    manifest: &DatasetManifest,
+    manifest_bytes: &[u8],
+) -> Result<(), String> {
     if report.schema != RUN_SCHEMA {
         return Err(format!("unsupported run schema: {}", report.schema));
     }
@@ -350,23 +368,38 @@ fn validate_report(report: &RunReport, manifest: &DatasetManifest, manifest_byte
         return Err("OS, architecture, CPU, logical-core count and memory must be declared".into());
     }
     if report.cases.len() != manifest.boards.len() {
-        return Err(format!("attempt count mismatch: report={}, manifest={}", report.cases.len(), manifest.boards.len()));
+        return Err(format!(
+            "attempt count mismatch: report={}, manifest={}",
+            report.cases.len(),
+            manifest.boards.len()
+        ));
     }
 
-    let pins: BTreeMap<&str, &BoardPin> = manifest.boards.iter().map(|b| (b.board_id.as_str(), b)).collect();
+    let pins: BTreeMap<&str, &BoardPin> = manifest
+        .boards
+        .iter()
+        .map(|b| (b.board_id.as_str(), b))
+        .collect();
     let mut seen = BTreeSet::new();
     for case in &report.cases {
         if !seen.insert(case.board_id.as_str()) {
             return Err(format!("duplicate board attempt: {}", case.board_id));
         }
-        let pin = pins.get(case.board_id.as_str())
+        let pin = pins
+            .get(case.board_id.as_str())
             .ok_or_else(|| format!("board not in pinned dataset: {}", case.board_id))?;
         validate_case(case)?;
         if case.input_board_sha256 != pin.input_board_sha256 {
-            return Err(format!("{}: input board digest differs from pinned manifest", case.board_id));
+            return Err(format!(
+                "{}: input board digest differs from pinned manifest",
+                case.board_id
+            ));
         }
         if case.required_nets != pin.required_nets {
-            return Err(format!("{}: required_nets differs from pinned manifest", case.board_id));
+            return Err(format!(
+                "{}: required_nets differs from pinned manifest",
+                case.board_id
+            ));
         }
     }
     if seen.len() != pins.len() {
@@ -376,11 +409,17 @@ fn validate_report(report: &RunReport, manifest: &DatasetManifest, manifest_byte
 }
 
 fn validate_router(router: &RouterPin) -> Result<(), String> {
-    if router.method_id.trim().is_empty() || router.family.trim().is_empty() || router.version.trim().is_empty() {
+    if router.method_id.trim().is_empty()
+        || router.family.trim().is_empty()
+        || router.version.trim().is_empty()
+    {
         return Err("router method_id, family and version are required".into());
     }
     require_sha256(&router.config_sha256, "router config_sha256")?;
-    validate_optional_commit(router.source_commit_sha.as_deref(), "router source_commit_sha")?;
+    validate_optional_commit(
+        router.source_commit_sha.as_deref(),
+        "router source_commit_sha",
+    )?;
     if let Some(hash) = router.binary_sha256.as_deref() {
         require_sha256(hash, "router binary_sha256")?;
     }
@@ -394,7 +433,10 @@ fn validate_engine(engine: &EnginePin) -> Result<(), String> {
     if engine.name.trim().is_empty() || engine.version.trim().is_empty() {
         return Err("DRC engine name and version are required".into());
     }
-    validate_optional_commit(engine.source_commit_sha.as_deref(), "engine source_commit_sha")?;
+    validate_optional_commit(
+        engine.source_commit_sha.as_deref(),
+        "engine source_commit_sha",
+    )?;
     if let Some(hash) = engine.binary_sha256.as_deref() {
         require_sha256(hash, "engine binary_sha256")?;
     }
@@ -407,7 +449,9 @@ fn validate_engine(engine: &EnginePin) -> Result<(), String> {
 fn validate_optional_commit(value: Option<&str>, label: &str) -> Result<(), String> {
     if let Some(value) = value {
         if !is_commit_sha(value) {
-            return Err(format!("{label} must be a 40- or 64-character hexadecimal commit ID"));
+            return Err(format!(
+                "{label} must be a 40- or 64-character hexadecimal commit ID"
+            ));
         }
     }
     Ok(())
@@ -416,24 +460,41 @@ fn validate_optional_commit(value: Option<&str>, label: &str) -> Result<(), Stri
 fn validate_case(case: &BoardAttempt) -> Result<(), String> {
     require_sha256(&case.input_board_sha256, "input_board_sha256")?;
     if case.required_nets == 0 || case.connected_nets > case.required_nets {
-        return Err(format!("{}: invalid required/connected net count", case.board_id));
+        return Err(format!(
+            "{}: invalid required/connected net count",
+            case.board_id
+        ));
     }
     if case.elapsed_ms == 0 {
         return Err(format!("{}: elapsed_ms must be positive", case.board_id));
     }
     if let Some(value) = case.total_wirelength_mm {
         if !value.is_finite() || value < 0.0 {
-            return Err(format!("{}: wirelength must be finite and non-negative", case.board_id));
+            return Err(format!(
+                "{}: wirelength must be finite and non-negative",
+                case.board_id
+            ));
         }
     }
     if let Some(hash) = case.output_board_sha256.as_deref() {
         require_sha256(hash, "output_board_sha256")?;
     }
-    if case.routing_drc_violation_types.iter().any(|v| v.trim().is_empty()) {
+    if case
+        .routing_drc_violation_types
+        .iter()
+        .any(|v| v.trim().is_empty())
+    {
         return Err(format!("{}: empty DRC violation type", case.board_id));
     }
-    if !case.drc_evaluated && (!case.routing_drc_violation_types.is_empty() || case.dangling_track_count > 0 || case.dangling_via_count > 0) {
-        return Err(format!("{}: cannot report DRC findings when DRC was not evaluated", case.board_id));
+    if !case.drc_evaluated
+        && (!case.routing_drc_violation_types.is_empty()
+            || case.dangling_track_count > 0
+            || case.dangling_via_count > 0)
+    {
+        return Err(format!(
+            "{}: cannot report DRC findings when DRC was not evaluated",
+            case.board_id
+        ));
     }
     Ok(())
 }
@@ -471,11 +532,18 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
             if case.via_count.is_none() {
                 reasons.push("VIA_COUNT_MISSING".into());
             }
-            if !case.routing_drc_violation_types.is_empty() || case.dangling_track_count > 0 || case.dangling_via_count > 0 {
+            if !case.routing_drc_violation_types.is_empty()
+                || case.dangling_track_count > 0
+                || case.dangling_via_count > 0
+            {
                 Disposition::InvalidRoute
             } else if case.connected_nets < case.required_nets {
                 Disposition::IncompleteNets
-            } else if !case.drc_evaluated || case.output_board_sha256.is_none() || case.total_wirelength_mm.is_none() || case.via_count.is_none() {
+            } else if !case.drc_evaluated
+                || case.output_board_sha256.is_none()
+                || case.total_wirelength_mm.is_none()
+                || case.via_count.is_none()
+            {
                 Disposition::EvidenceIncomplete
             } else {
                 Disposition::ValidComplete
@@ -513,21 +581,45 @@ fn summarize_cases(cases: &[EvaluatedCase], evidence_class: &str) -> RunSummary 
     }
     let elapsed: Vec<f64> = cases.iter().map(|c| c.elapsed_ms as f64).collect();
     let wirelength: Vec<f64> = valid.iter().filter_map(|c| c.total_wirelength_mm).collect();
-    let vias: Vec<f64> = valid.iter().filter_map(|c| c.via_count.map(|n| n as f64)).collect();
+    let vias: Vec<f64> = valid
+        .iter()
+        .filter_map(|c| c.via_count.map(|n| n as f64))
+        .collect();
     let n = cases.len();
     RunSummary {
         evidence_class: evidence_class.to_string(),
         cases_attempted: n,
         valid_completions: valid.len(),
         completion_rate: valid.len() as f64 / n as f64,
-        invalid_route_cases: cases.iter().filter(|c| c.disposition == Disposition::InvalidRoute).count(),
-        incomplete_net_cases: cases.iter().filter(|c| c.disposition == Disposition::IncompleteNets).count(),
-        evidence_incomplete_cases: cases.iter().filter(|c| c.disposition == Disposition::EvidenceIncomplete).count(),
-        timeout_cases: cases.iter().filter(|c| c.disposition == Disposition::Timeout).count(),
-        tool_error_cases: cases.iter().filter(|c| c.disposition == Disposition::ToolError).count(),
+        invalid_route_cases: cases
+            .iter()
+            .filter(|c| c.disposition == Disposition::InvalidRoute)
+            .count(),
+        incomplete_net_cases: cases
+            .iter()
+            .filter(|c| c.disposition == Disposition::IncompleteNets)
+            .count(),
+        evidence_incomplete_cases: cases
+            .iter()
+            .filter(|c| c.disposition == Disposition::EvidenceIncomplete)
+            .count(),
+        timeout_cases: cases
+            .iter()
+            .filter(|c| c.disposition == Disposition::Timeout)
+            .count(),
+        tool_error_cases: cases
+            .iter()
+            .filter(|c| c.disposition == Disposition::ToolError)
+            .count(),
         routing_drc_violation_histogram: histogram,
-        upstream_nonrouting_drc_before_total: cases.iter().map(|c| c.upstream_nonrouting_drc_before as u64).sum(),
-        upstream_nonrouting_drc_after_total: cases.iter().map(|c| c.upstream_nonrouting_drc_after as u64).sum(),
+        upstream_nonrouting_drc_before_total: cases
+            .iter()
+            .map(|c| c.upstream_nonrouting_drc_before as u64)
+            .sum(),
+        upstream_nonrouting_drc_after_total: cases
+            .iter()
+            .map(|c| c.upstream_nonrouting_drc_after as u64)
+            .sum(),
         median_elapsed_ms_all_attempts: median(&elapsed),
         p90_elapsed_ms_all_attempts: percentile_nearest_rank(&elapsed, 0.90),
         median_wirelength_mm_valid_completions: median(&wirelength),
@@ -541,17 +633,39 @@ pub fn compare_runs(
     evaluator_git_head: &str,
 ) -> Result<ComparisonReceipt, String> {
     if !is_commit_sha(evaluator_git_head) {
-        return Err("evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into());
+        return Err(
+            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
     }
     let left = &baseline.receipt;
     let right = &treatment.receipt;
     for (name, a, b) in [
-        ("benchmark_id", left.benchmark_id.as_str(), right.benchmark_id.as_str()),
-        ("benchmark_version", left.benchmark_version.as_str(), right.benchmark_version.as_str()),
-        ("dataset_id", left.dataset_id.as_str(), right.dataset_id.as_str()),
+        (
+            "benchmark_id",
+            left.benchmark_id.as_str(),
+            right.benchmark_id.as_str(),
+        ),
+        (
+            "benchmark_version",
+            left.benchmark_version.as_str(),
+            right.benchmark_version.as_str(),
+        ),
+        (
+            "dataset_id",
+            left.dataset_id.as_str(),
+            right.dataset_id.as_str(),
+        ),
         ("split_id", left.split_id.as_str(), right.split_id.as_str()),
-        ("manifest digest", left.dataset_manifest_sha256.as_str(), right.dataset_manifest_sha256.as_str()),
-        ("DRC policy", left.drc_policy_sha256.as_str(), right.drc_policy_sha256.as_str()),
+        (
+            "manifest digest",
+            left.dataset_manifest_sha256.as_str(),
+            right.dataset_manifest_sha256.as_str(),
+        ),
+        (
+            "DRC policy",
+            left.drc_policy_sha256.as_str(),
+            right.drc_policy_sha256.as_str(),
+        ),
     ] {
         if a != b {
             return Err(format!("cannot pair runs: {name} differs"));
@@ -567,8 +681,13 @@ pub fn compare_runs(
         return Err("baseline and treatment method IDs must differ".into());
     }
 
-    let base: BTreeMap<String, &EvaluatedCase> = left.cases.iter().map(|c| (c.board_id.clone(), c)).collect();
-    let treat: BTreeMap<String, &EvaluatedCase> = right.cases.iter().map(|c| (c.board_id.clone(), c)).collect();
+    let base: BTreeMap<String, &EvaluatedCase> =
+        left.cases.iter().map(|c| (c.board_id.clone(), c)).collect();
+    let treat: BTreeMap<String, &EvaluatedCase> = right
+        .cases
+        .iter()
+        .map(|c| (c.board_id.clone(), c))
+        .collect();
     if base.keys().ne(treat.keys()) {
         return Err("cannot pair runs: board ID sets differ".into());
     }
@@ -578,7 +697,8 @@ pub fn compare_runs(
     let mut elapsed_delta = Vec::with_capacity(base.len());
     let mut wire_delta = Vec::new();
     let mut via_delta = Vec::new();
-    let (mut treatment_only, mut baseline_only, mut both, mut neither) = (0usize, 0usize, 0usize, 0usize);
+    let (mut treatment_only, mut baseline_only, mut both, mut neither) =
+        (0usize, 0usize, 0usize, 0usize);
 
     for (board_id, b) in base.iter() {
         let b = *b;
@@ -595,14 +715,31 @@ pub fn compare_runs(
             (true, true) => both += 1,
             (false, false) => neither += 1,
         }
-        completion_delta.push(bool_as_f64(t.valid_route_completion) - bool_as_f64(b.valid_route_completion));
+        completion_delta
+            .push(bool_as_f64(t.valid_route_completion) - bool_as_f64(b.valid_route_completion));
         elapsed_delta.push(t.elapsed_ms as f64 - b.elapsed_ms as f64);
-        let wire = match (b.valid_route_completion.then_some(b.total_wirelength_mm).flatten(), t.valid_route_completion.then_some(t.total_wirelength_mm).flatten()) {
-            (Some(bw), Some(tw)) => { wire_delta.push(tw - bw); Some(tw - bw) }
+        let wire = match (
+            b.valid_route_completion
+                .then_some(b.total_wirelength_mm)
+                .flatten(),
+            t.valid_route_completion
+                .then_some(t.total_wirelength_mm)
+                .flatten(),
+        ) {
+            (Some(bw), Some(tw)) => {
+                wire_delta.push(tw - bw);
+                Some(tw - bw)
+            }
             _ => None,
         };
-        let vias = match (b.valid_route_completion.then_some(b.via_count).flatten(), t.valid_route_completion.then_some(t.via_count).flatten()) {
-            (Some(bv), Some(tv)) => { via_delta.push(tv as f64 - bv as f64); Some(tv as i64 - bv as i64) }
+        let vias = match (
+            b.valid_route_completion.then_some(b.via_count).flatten(),
+            t.valid_route_completion.then_some(t.via_count).flatten(),
+        ) {
+            (Some(bv), Some(tv)) => {
+                via_delta.push(tv as f64 - bv as f64);
+                Some(tv as i64 - bv as i64)
+            }
             _ => None,
         };
         pairs.push(BoardPair {
@@ -617,10 +754,14 @@ pub fn compare_runs(
         });
     }
 
-    let seed_material = format!("{}|{}|{}|pcb-route-bootstrap-v0.1", left.input_report_sha256, right.input_report_sha256, left.dataset_manifest_sha256);
+    let seed_material = format!(
+        "{}|{}|{}|pcb-route-bootstrap-v0.1",
+        left.input_report_sha256, right.input_report_sha256, left.dataset_manifest_sha256
+    );
     let seed_hex = sha256_hex(seed_material.as_bytes());
     let seed = u64::from_str_radix(&seed_hex[..16], 16).unwrap_or(0xA5A5_5A5A);
-    let (completion_lower, completion_upper) = bootstrap_mean_ci(&completion_delta, seed ^ 0xA53C_9E1D);
+    let (completion_lower, completion_upper) =
+        bootstrap_mean_ci(&completion_delta, seed ^ 0xA53C_9E1D);
     let (elapsed_lower, elapsed_upper) = bootstrap_mean_ci(&elapsed_delta, seed ^ 0x9E37_79B9);
     let n = pairs.len();
     let baseline_valid = left.summary.valid_completions;
@@ -670,7 +811,11 @@ pub fn compare_runs(
 }
 
 fn bool_as_f64(value: bool) -> f64 {
-    if value { 1.0 } else { 0.0 }
+    if value {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 fn bootstrap_mean_ci(values: &[f64], seed: u64) -> (f64, f64) {
@@ -701,15 +846,23 @@ fn mean(values: &[f64]) -> f64 {
 }
 
 fn median(values: &[f64]) -> Option<f64> {
-    if values.is_empty() { return None; }
+    if values.is_empty() {
+        return None;
+    }
     let mut values = values.to_vec();
     values.sort_by(f64::total_cmp);
     let middle = values.len() / 2;
-    if values.len() % 2 == 1 { Some(values[middle]) } else { Some((values[middle - 1] + values[middle]) / 2.0) }
+    if values.len() % 2 == 1 {
+        Some(values[middle])
+    } else {
+        Some((values[middle - 1] + values[middle]) / 2.0)
+    }
 }
 
 fn percentile_nearest_rank(values: &[f64], percentile: f64) -> Option<f64> {
-    if values.is_empty() { return None; }
+    if values.is_empty() {
+        return None;
+    }
     let mut values = values.to_vec();
     values.sort_by(f64::total_cmp);
     let rank = ((percentile * values.len() as f64).ceil() as usize).max(1);
@@ -720,11 +873,17 @@ fn quantile(values: &[f64], percentile: f64) -> f64 {
     let position = percentile.clamp(0.0, 1.0) * (values.len() - 1) as f64;
     let low = position.floor() as usize;
     let high = position.ceil() as usize;
-    if low == high { values[low] } else { values[low] + (position - low as f64) * (values[high] - values[low]) }
+    if low == high {
+        values[low]
+    } else {
+        values[low] + (position - low as f64) * (values[high] - values[low])
+    }
 }
 
 fn require_sha256(value: &str, name: &str) -> Result<(), String> {
-    if !is_sha256(value) { return Err(format!("{name} must be a 64-character hexadecimal SHA-256")); }
+    if !is_sha256(value) {
+        return Err(format!("{name} must be a 64-character hexadecimal SHA-256"));
+    }
     Ok(())
 }
 
@@ -757,7 +916,8 @@ mod tests {
 
     fn valid_run(raw: &str) -> ValidatedRun {
         let mut value: serde_json::Value = serde_json::from_str(raw).expect("fixture JSON");
-        value["dataset_manifest_sha256"] = serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         let bytes = serde_json::to_vec(&value).expect("canonical fixture run");
         evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).expect("run validates")
     }
@@ -775,7 +935,12 @@ mod tests {
     #[test]
     fn connected_net_with_crossing_is_not_a_valid_route() {
         let baseline = valid_run(BASELINE);
-        let crossing = baseline.receipt.cases.iter().find(|c| c.board_id == "crossing-003").unwrap();
+        let crossing = baseline
+            .receipt
+            .cases
+            .iter()
+            .find(|c| c.board_id == "crossing-003")
+            .unwrap();
         assert_eq!(crossing.disposition, Disposition::InvalidRoute);
         assert!(!crossing.valid_route_completion);
     }
@@ -783,26 +948,50 @@ mod tests {
     #[test]
     fn nonrouting_upstream_drc_is_reported_separately() {
         let baseline = valid_run(BASELINE);
-        let upstream = baseline.receipt.cases.iter().find(|c| c.board_id == "upstream-drc-006").unwrap();
+        let upstream = baseline
+            .receipt
+            .cases
+            .iter()
+            .find(|c| c.board_id == "upstream-drc-006")
+            .unwrap();
         assert!(upstream.valid_route_completion);
-        assert_eq!(baseline.receipt.summary.upstream_nonrouting_drc_before_total, 3);
-        assert_eq!(baseline.receipt.summary.upstream_nonrouting_drc_after_total, 3);
+        assert_eq!(
+            baseline
+                .receipt
+                .summary
+                .upstream_nonrouting_drc_before_total,
+            3
+        );
+        assert_eq!(
+            baseline.receipt.summary.upstream_nonrouting_drc_after_total,
+            3
+        );
     }
 
     #[test]
     fn missing_or_duplicate_board_rows_reject() {
         let mut value: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
         value["cases"].as_array_mut().unwrap().pop();
-        value["dataset_manifest_sha256"] = serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap_err().contains("attempt count mismatch"));
+        assert!(
+            evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("attempt count mismatch")
+        );
 
         value = serde_json::from_str(BASELINE).unwrap();
         let duplicate = value["cases"][0].clone();
         value["cases"][1] = duplicate;
-        value["dataset_manifest_sha256"] = serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap_err().contains("duplicate board attempt"));
+        assert!(
+            evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("duplicate board attempt")
+        );
     }
 
     #[test]
@@ -810,13 +999,22 @@ mod tests {
         let mut value: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
         value["dataset_manifest_sha256"] = serde_json::Value::String("0".repeat(64));
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap_err().contains("dataset_manifest_sha256"));
+        assert!(
+            evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("dataset_manifest_sha256")
+        );
 
         value = serde_json::from_str(BASELINE).unwrap();
-        value["dataset_manifest_sha256"] = serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         value["cases"][0]["input_board_sha256"] = serde_json::Value::String("f".repeat(64));
         let bytes = serde_json::to_vec(&value).unwrap();
-        assert!(evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap_err().contains("input board digest differs"));
+        assert!(
+            evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("input board digest differs")
+        );
     }
 
     #[test]
@@ -827,18 +1025,29 @@ mod tests {
         assert_eq!(comparison.summary.paired_board_count, 6);
         assert_eq!(comparison.summary.baseline_valid_completions, 2);
         assert_eq!(comparison.summary.treatment_valid_completions, 4);
-        assert!((comparison.summary.completion_delta_percentage_points - (100.0 / 3.0)).abs() < 1e-8);
+        assert!(
+            (comparison.summary.completion_delta_percentage_points - (100.0 / 3.0)).abs() < 1e-8
+        );
         assert_eq!(comparison.summary.treatment_only_valid_completions, 2);
         assert_eq!(comparison.summary.baseline_only_valid_completions, 0);
         assert_eq!(comparison.summary.jointly_valid_board_count, 2);
-        assert_eq!(comparison.summary.completion_delta_95_ci_percentage_points.resamples, BOOTSTRAP_RESAMPLES);
+        assert_eq!(
+            comparison
+                .summary
+                .completion_delta_95_ci_percentage_points
+                .resamples,
+            BOOTSTRAP_RESAMPLES
+        );
 
         let mut value: serde_json::Value = serde_json::from_str(TREATMENT).unwrap();
-        value["dataset_manifest_sha256"] = serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
         value["drc_engine"]["version"] = serde_json::Value::String("different-engine".into());
         let bytes = serde_json::to_vec(&value).unwrap();
         let altered = evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap();
-        assert!(compare_runs(&baseline, &altered, EVALUATOR_HEAD).unwrap_err().contains("DRC engine pin differs"));
+        assert!(compare_runs(&baseline, &altered, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("DRC engine pin differs"));
     }
 
     #[test]

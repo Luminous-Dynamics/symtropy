@@ -22,8 +22,9 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<Vec<u8>, String> {
-    let evaluator_head = env::var("PCB_ROUTE_BENCHMARK_GIT_HEAD")
-        .map_err(|_| "PCB_ROUTE_BENCHMARK_GIT_HEAD must bind the exact evaluator commit".to_string())?;
+    let evaluator_head = env::var("PCB_ROUTE_BENCHMARK_GIT_HEAD").map_err(|_| {
+        "PCB_ROUTE_BENCHMARK_GIT_HEAD must bind the exact evaluator commit".to_string()
+    })?;
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
         [command, report_path, manifest_path] if command == "validate" => {
