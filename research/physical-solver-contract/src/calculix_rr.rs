@@ -276,7 +276,7 @@ fn validate_token(value: &str, label: &str) -> Check<()> {
         || value.len() > 128
         || !value
             .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
     {
         return Err(format!("{label} is not a valid stable token"));
     }
@@ -328,7 +328,9 @@ pub fn normalize_reaction_only_rr_bytes(
         "RR normalization manifest",
     )?;
     if string_field(&manifest, "schema_version", "manifest")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal '{MANIFEST_SCHEMA}'"));
+        return Err(format!(
+            "manifest.schema_version must equal '{MANIFEST_SCHEMA}'"
+        ));
     }
     let case_id = token_field(&manifest, "case_id", "manifest")?;
     let request_id = string_field(&manifest, "request_id", "manifest")?;
@@ -343,14 +345,19 @@ pub fn normalize_reaction_only_rr_bytes(
         || manifest_deck_sha != deck_sha256
         || manifest_catalog_sha != node_catalog_sha256
     {
-        return Err("manifest request/deck/node-catalogue digest binding does not match exact input bytes".to_owned());
+        return Err(
+            "manifest request/deck/node-catalogue digest binding does not match exact input bytes"
+                .to_owned(),
+        );
     }
     if string_field(&request, "request_id", "request")? != request_id
         || string_field(&request, "scene_sha256", "request")? != scene_sha256
         || integer_field(&request, "scene_revision", "request")? != scene_revision
         || string_field(&request, "coordinate_frame_id", "request")? != coordinate_frame_id
     {
-        return Err("manifest request/scene/frame identity differs from the exact request".to_owned());
+        return Err(
+            "manifest request/scene/frame identity differs from the exact request".to_owned(),
+        );
     }
     let fidelity = string_field(&request, "model_fidelity", "request")?;
     if !["analytical_linear_elastic", "continuum_linear_elastic"].contains(&fidelity) {
@@ -361,25 +368,35 @@ pub fn normalize_reaction_only_rr_bytes(
         return Err("RR normalization v0.1 only supports static_linear_elastic".to_owned());
     }
     if !string_array_field(&request, "required_outputs", "request")?
-        .iter().any(|kind| kind == "reaction_force")
+        .iter()
+        .any(|kind| kind == "reaction_force")
     {
         return Err("request must explicitly require reaction_force output".to_owned());
     }
-    let request_units = request.get("units").ok_or_else(|| "request.units is required".to_owned())?;
+    let request_units = request
+        .get("units")
+        .ok_or_else(|| "request.units is required".to_owned())?;
     if string_field(request_units, "length", "request.units")? != "m"
         || string_field(request_units, "force", "request.units")? != "N"
     {
         return Err("RR normalization v0.1 requires request units m and N".to_owned());
     }
 
-    let units = manifest.get("units").ok_or_else(|| "manifest.units is required".to_owned())?;
+    let units = manifest
+        .get("units")
+        .ok_or_else(|| "manifest.units is required".to_owned())?;
     exact_object_keys(units, &["length", "force"], "manifest.units")?;
     if string_field(units, "length", "manifest.units")? != "m"
         || string_field(units, "force", "manifest.units")? != "N"
     {
         return Err("manifest units must be exactly m and N".to_owned());
     }
-    validate_provenance(manifest.get("provenance").ok_or_else(|| "manifest.provenance is required".to_owned())?, "manifest.provenance")?;
+    validate_provenance(
+        manifest
+            .get("provenance")
+            .ok_or_else(|| "manifest.provenance is required".to_owned())?,
+        "manifest.provenance",
+    )?;
 
     let expected_node_ids = id_array_u64(&manifest, "expected_node_ids", "manifest")?;
     if expected_node_ids.is_empty() {
@@ -418,16 +435,27 @@ pub fn normalize_reaction_only_rr_bytes(
         || string_field(&catalog, "coordinate_frame_id", "node catalogue")? != coordinate_frame_id
         || string_field(&catalog, "deck_sha256", "node catalogue")? != deck_sha256
     {
-        return Err("support-node catalogue identity/frame/deck does not match exact inputs".to_owned());
+        return Err(
+            "support-node catalogue identity/frame/deck does not match exact inputs".to_owned(),
+        );
     }
-    let catalog_units = catalog.get("units").ok_or_else(|| "node catalogue.units is required".to_owned())?;
+    let catalog_units = catalog
+        .get("units")
+        .ok_or_else(|| "node catalogue.units is required".to_owned())?;
     exact_object_keys(catalog_units, &["length"], "node catalogue.units")?;
     if string_field(catalog_units, "length", "node catalogue.units")? != "m" {
         return Err("support-node catalogue length unit must be m".to_owned());
     }
-    validate_provenance(catalog.get("provenance").ok_or_else(|| "node catalogue.provenance is required".to_owned())?, "node catalogue.provenance")?;
+    validate_provenance(
+        catalog
+            .get("provenance")
+            .ok_or_else(|| "node catalogue.provenance is required".to_owned())?,
+        "node catalogue.provenance",
+    )?;
 
-    let catalog_nodes = catalog.get("nodes").and_then(Value::as_array)
+    let catalog_nodes = catalog
+        .get("nodes")
+        .and_then(Value::as_array)
         .ok_or_else(|| "node catalogue.nodes must be an array".to_owned())?;
     let mut positions = BTreeMap::<u64, [f64; 3]>::new();
     for (index, node) in catalog_nodes.iter().enumerate() {
@@ -443,7 +471,9 @@ pub fn normalize_reaction_only_rr_bytes(
     if catalog_ids != expected_ids {
         let missing: Vec<u64> = expected_ids.difference(&catalog_ids).copied().collect();
         let extra: Vec<u64> = catalog_ids.difference(&expected_ids).copied().collect();
-        return Err(format!("support-node catalogue inventory mismatch; missing={missing:?}, extra={extra:?}"));
+        return Err(format!(
+            "support-node catalogue inventory mismatch; missing={missing:?}, extra={extra:?}"
+        ));
     }
 
     let parsed =
@@ -770,7 +800,15 @@ mod tests {
         );
     }
 
-    fn make_normalization_bundle() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
+    struct NormalizationBundle {
+        request: Vec<u8>,
+        deck: Vec<u8>,
+        dat: Vec<u8>,
+        manifest: Vec<u8>,
+        catalog: Vec<u8>,
+    }
+
+    fn make_normalization_bundle() -> NormalizationBundle {
         let mut request: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
@@ -824,18 +862,24 @@ mod tests {
             }
         });
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
-        (
-            request_bytes,
-            deck_bytes,
-            RR_ONLY_OUTPUT.as_bytes().to_vec(),
-            manifest_bytes,
-            catalog_bytes,
-        )
+        NormalizationBundle {
+            request: request_bytes,
+            deck: deck_bytes,
+            dat: RR_ONLY_OUTPUT.as_bytes().to_vec(),
+            manifest: manifest_bytes,
+            catalog: catalog_bytes,
+        }
     }
 
     #[test]
     fn normalizer_joins_rr_reactions_to_exact_deck_bound_node_positions() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let report =
             normalize_reaction_only_rr_bytes(&request, &deck, &dat, &manifest, &catalog).unwrap();
         assert_eq!(report["normalization_status"], "PASS");
@@ -870,7 +914,13 @@ mod tests {
 
     #[test]
     fn normalizer_rejects_stale_node_catalogue_digest_and_wrong_frame() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
         manifest_value["node_catalog_sha256"] = json!("d".repeat(64));
         let stale_manifest = serde_json::to_vec(&manifest_value).unwrap();
@@ -898,7 +948,13 @@ mod tests {
 
     #[test]
     fn normalizer_rejects_non_si_request_units() {
-        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let NormalizationBundle {
+            request,
+            deck,
+            dat,
+            manifest,
+            catalog,
+        } = make_normalization_bundle();
         let mut request_value: Value = serde_json::from_slice(&request).unwrap();
         request_value["units"]["force"] = json!("kN");
         let request_knew = serde_json::to_vec(&request_value).unwrap();
@@ -920,5 +976,4 @@ mod tests {
             .is_err()
         );
     }
-
 }
