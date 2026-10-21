@@ -1,0 +1,132 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-ECON-001",
+  "input_evidence_class": "synthetic",
+  "source_note": "Synthetic incremental-server sensitivity profile. Regional calendars, wages, electricity, lease, FX and all station equipment/resource assumptions are illustrative values aligned to the EV factory automation sensitivity fixture; no quotes or measured plant data are used.",
+  "annualization_note": "Good-units/hour effects from the DES are multiplied by each site’s nominal scheduled annual operating hours. This assumes the modeled rate persists across the calendar and shift schedule; it is a sensitivity calculation, not forecast validation.",
+  "energy_duty_basis": "Intervention scenario mean station busy fraction is used as an exchangeable-server duty proxy for the incremental cell. It is not per-server metered data.",
+  "carbon_factor_evidence_class": "synthetic",
+  "pareto_objectives": [
+    {
+      "field": "annual_incremental_good_units_mean",
+      "direction": "maximize"
+    },
+    {
+      "field": "incremental_capex_local",
+      "direction": "minimize"
+    },
+    {
+      "field": "annual_incremental_opex_local",
+      "direction": "minimize"
+    },
+    {
+      "field": "annual_incremental_energy_kwh",
+      "direction": "minimize"
+    },
+    {
+      "field": "annual_incremental_emissions_kgco2e",
+      "direction": "minimize"
+    },
+    {
+      "field": "incremental_floor_area_sqm",
+      "direction": "minimize"
+    }
+  ],
+  "sites": [
+    {
+      "site_id": "south-africa-example",
+      "country_or_region": "South Africa (illustrative)",
+      "local_currency": "ZAR",
+      "local_currency_per_usd": 16.4,
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "fully_loaded_labor_cost_per_hour_local": 120,
+      "electricity_cost_per_kwh_local": 2.8,
+      "building_lease_cost_per_sqm_year_local": 950,
+      "grid_kgco2e_per_kwh": 0.9,
+      "evidence_class": "synthetic"
+    },
+    {
+      "site_id": "india-example",
+      "country_or_region": "India (illustrative)",
+      "local_currency": "INR",
+      "local_currency_per_usd": 85,
+      "operating_days_per_year": 260,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "fully_loaded_labor_cost_per_hour_local": 850,
+      "electricity_cost_per_kwh_local": 9,
+      "building_lease_cost_per_sqm_year_local": 800,
+      "grid_kgco2e_per_kwh": 0.72,
+      "evidence_class": "synthetic"
+    },
+    {
+      "site_id": "brazil-example",
+      "country_or_region": "Brazil (illustrative)",
+      "local_currency": "BRL",
+      "local_currency_per_usd": 5.5,
+      "operating_days_per_year": 240,
+      "shifts_per_day": 2,
+      "paid_hours_per_shift": 8,
+      "fully_loaded_labor_cost_per_hour_local": 48,
+      "electricity_cost_per_kwh_local": 0.95,
+      "building_lease_cost_per_sqm_year_local": 550,
+      "grid_kgco2e_per_kwh": 0.1,
+      "evidence_class": "synthetic"
+    }
+  ],
+  "station_profiles": [
+    {
+      "station_id": "inbound-kitting",
+      "capex_usd_per_added_server": 12000,
+      "operators_per_added_server_per_shift": 2,
+      "standby_kw_per_added_server": 0.15,
+      "active_kw_per_added_server": 0.6,
+      "annual_maintenance_fraction_of_capex": 0.05,
+      "incremental_floor_area_sqm": 22,
+      "evidence_class": "synthetic"
+    },
+    {
+      "station_id": "body-preparation",
+      "capex_usd_per_added_server": 18000,
+      "operators_per_added_server_per_shift": 1,
+      "standby_kw_per_added_server": 0.2,
+      "active_kw_per_added_server": 0.9,
+      "annual_maintenance_fraction_of_capex": 0.05,
+      "incremental_floor_area_sqm": 25,
+      "evidence_class": "synthetic"
+    },
+    {
+      "station_id": "battery-module-install",
+      "capex_usd_per_added_server": 35000,
+      "operators_per_added_server_per_shift": 2,
+      "standby_kw_per_added_server": 0.5,
+      "active_kw_per_added_server": 2.2,
+      "annual_maintenance_fraction_of_capex": 0.07,
+      "incremental_floor_area_sqm": 28,
+      "evidence_class": "synthetic"
+    },
+    {
+      "station_id": "final-assembly",
+      "capex_usd_per_added_server": 20000,
+      "operators_per_added_server_per_shift": 2,
+      "standby_kw_per_added_server": 0.4,
+      "active_kw_per_added_server": 1.5,
+      "annual_maintenance_fraction_of_capex": 0.06,
+      "incremental_floor_area_sqm": 30,
+      "evidence_class": "synthetic"
+    },
+    {
+      "station_id": "end-of-line-test",
+      "capex_usd_per_added_server": 50000,
+      "operators_per_added_server_per_shift": 1,
+      "standby_kw_per_added_server": 0.8,
+      "active_kw_per_added_server": 3.5,
+      "annual_maintenance_fraction_of_capex": 0.08,
+      "incremental_floor_area_sqm": 32,
+      "evidence_class": "synthetic"
+    }
+  ],
+  "claim_ceiling": "All station and regional economic values, including electricity carbon factors, are synthetic sensitivity inputs; they are not vendor quotes, current verified country grid factors or plant-level cost estimates."
+}
