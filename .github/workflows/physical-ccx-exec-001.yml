@@ -1,0 +1,300 @@
+name: PHYS-CCX-EXEC-001 Real Analytical Qualification
+
+on:
+  pull_request:
+    paths:
+      - "research/physical-solver-contract/**"
+      - "schemas/physical-transformation/fixtures/ccx-exec-001/**"
+      - ".github/workflows/physical-ccx-exec-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phys-ccx-exec-001-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-ccx:
+    name: Build pinned CCX and run axial-bar reference cases
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
+    timeout-minutes: 45
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - name: Pin apt to the frozen Ubuntu snapshot
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "${VERSION_CODENAME}" = "noble"
+          rm -f /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list
+          cat > /etc/apt/sources.list.d/phys-ccx-snapshot.list <<'EOF'
+          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble main universe
+          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-updates main universe
+          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-security main universe
+          EOF
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential gfortran make curl tar bzip2 ca-certificates \
+            diffutils file binutils jq perl python3 coreutils
+
+      - name: Checkout exact Symtropy source head
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: symtropy
+
+      - name: Checkout pinned CalculiX build recipe
+        uses: actions/checkout@v4
+        with:
+          repository: OmnibusCloud/CalculiX
+          ref: b7977a4e90b40fd28fa149fc69f1647661d10f56
+          path: CalculiX-builder
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust formatting, tests, and strict Clippy
+        id: rust_tests
+        working-directory: symtropy
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/physical-solver-contract/Cargo.toml -- --check
+          cargo test --locked --manifest-path research/physical-solver-contract/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify official CCX source archive against the pinned builder tree
+        id: source_verify
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ccx-source-archive" "$RUNNER_TEMP/ccx-build" "$RUNNER_TEMP/ccx-evidence"
+          curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
+            --connect-timeout 20 --max-time 900 \
+            -o "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" \
+            http://www.dhondt.de/ccx_2.22.src.tar.bz2
+          actual="$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+          expected="3a94dcc775a31f570229734b341d6b06301ebdc759863df901c8b9bf1854c0bc"
+          test "$actual" = "$expected"
+          tar -xjf "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" -C "$RUNNER_TEMP/ccx-source-archive"
+          archive_src="$(find "$RUNNER_TEMP/ccx-source-archive" -type f -name Makefile.inc -printf '%h\n' -quit)"
+          test -n "$archive_src"
+          diff -qr "$archive_src" "$RUNNER_TEMP/CalculiX-builder/upstream/ccx_2.22/src"
+          printf 'source_url=%s\nsource_archive_sha256=%s\nbuilder_repository=%s\nbuilder_commit=%s\n' \
+            "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
+            "$actual" "OmnibusCloud/CalculiX" \
+            "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" \
+            > "$RUNNER_TEMP/ccx-evidence/source-provenance.txt"
+          test "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" = \
+            "b7977a4e90b40fd28fa149fc69f1647661d10f56"
+
+      - name: Build stock CCX 2.22 with a pinned SPOOLES-only static profile
+        id: build_ccx
+        run: |
+          set -euo pipefail
+          export WORK="$RUNNER_TEMP/ccx-build"
+          export WITH_PARDISO=0
+          export WITH_PASTIX=0
+          export WITH_ARPACK=0
+          export WITH_MT=1
+          mkdir -p "$WORK"
+          {
+            echo "=== build identity ==="
+            echo "builder_commit=$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)"
+            echo "container_image=ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
+            echo "source_archive_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+            echo "with_pardiso=$WITH_PARDISO"
+            echo "with_pastix=$WITH_PASTIX"
+            echo "with_arpack=$WITH_ARPACK"
+            echo "with_mt=$WITH_MT"
+            echo "=== compiler and linker ==="
+            cc --version | head -n 1
+            gfortran --version | head -n 1
+            make --version | head -n 1
+            ld --version | head -n 1
+            echo "=== package inventory ==="
+            dpkg-query -W -f='${binary:Package}=${Version}\n' | sort
+            echo "=== build log ==="
+          } > "$RUNNER_TEMP/ccx-evidence/build-identity.log"
+          (
+            WORK="$WORK" WITH_PARDISO="$WITH_PARDISO" WITH_PASTIX="$WITH_PASTIX" \
+              WITH_ARPACK="$WITH_ARPACK" WITH_MT="$WITH_MT" \
+              sh "$RUNNER_TEMP/CalculiX-builder/build/build.sh"
+          ) 2>&1 | tee "$RUNNER_TEMP/ccx-evidence/ccx-build.log"
+          CCX="$WORK/out/ccx"
+          test -x "$CCX"
+          ldd "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt"
+          sha256sum "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256"
+          {
+            echo "platform=$(uname -srm)"
+            echo "container_image=ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
+            echo "builder_repository=OmnibusCloud/CalculiX"
+            echo "builder_repository_commit=$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)"
+            echo "ccx_source_url=http://www.dhondt.de/ccx_2.22.src.tar.bz2"
+            echo "ccx_source_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+            echo "spooles_sha256=a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"
+            echo "with_pardiso=$WITH_PARDISO"
+            echo "with_pastix=$WITH_PASTIX"
+            echo "with_arpack=$WITH_ARPACK"
+            echo "with_mt=$WITH_MT"
+            echo "ccx_executable_sha256=$(sha256sum "$CCX" | cut -d ' ' -f 1)"
+          } > "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt"
+          jq -n \
+            --arg builder_commit "$(git -C "$RUNNER_TEMP/CalculiX-builder" rev-parse HEAD)" \
+            --arg image "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30" \
+            --arg source_url "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
+            --arg source_sha "$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)" \
+            --arg spooles_sha "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd" \
+            --arg exe_sha "$(sha256sum "$CCX" | cut -d ' ' -f 1)" \
+            --arg toolchain_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt" | cut -d ' ' -f 1)" \
+            --arg build_log_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/ccx-build.log" | cut -d ' ' -f 1)" \
+            '{
+              schema_version:"calculix-build-manifest-v0.1",
+              builder_repository:"OmnibusCloud/CalculiX",
+              builder_repository_commit:$builder_commit,
+              container_image:$image,
+              ccx_source_url:$source_url,
+              ccx_source_sha256:$source_sha,
+              spooles_sha256:$spooles_sha,
+              arpack_enabled:false,
+              ccx_executable_sha256:$exe_sha,
+              toolchain_manifest_sha256:$toolchain_sha,
+              build_log_sha256:$build_log_sha,
+              build_config:{with_pardiso:false,with_pastix:false,with_arpack:false,with_mt:true}
+            }' > "$RUNNER_TEMP/ccx-evidence/build-manifest.json"
+          cp "$RUNNER_TEMP/ccx-evidence/build-manifest.json" \
+            "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt" \
+            "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt" \
+            "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256" \
+            "$RUNNER_TEMP/ccx-evidence/source-provenance.txt" \
+            "$RUNNER_TEMP/CalculiX-builder/PROVENANCE.md" \
+            "$RUNNER_TEMP/ccx-evidence/"
+
+      - name: Run real CCX cases and independently audit U and RF outputs
+        id: execute_cases
+        working-directory: symtropy
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/ccx-evidence"
+          CCX="$RUNNER_TEMP/ccx-build/out/ccx"
+          FIX="research/physical-solver-contract/fixtures/ccx-exec-001"
+          OUT="$ROOT/cases"
+          mkdir -p "$OUT"
+          REQUEST="$FIX/request.json"
+          source_sha="$(git rev-parse HEAD)"
+          request_sha="$(sha256sum "$REQUEST" | cut -d ' ' -f 1)"
+          scene_sha="$(jq -r '.scene_sha256' "$REQUEST")"
+          scene_revision="$(jq -r '.scene_revision' "$REQUEST")"
+          request_id="$(jq -r '.request_id' "$REQUEST")"
+          frame="$(jq -r '.coordinate_frame_id' "$REQUEST")"
+          exe_sha="$(sha256sum "$CCX" | cut -d ' ' -f 1)"
+          build_sha="$(sha256sum "$ROOT/build-manifest.json" | cut -d ' ' -f 1)"
+          cp "$REQUEST" "$OUT/request.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$REQUEST" --validator-revision "$source_sha" > "$OUT/request-validation.json"
+          jq -e '.valid == true or .request_status == "PASS" or .status == "PASS"' \
+            "$OUT/request-validation.json" >/dev/null
+
+          run_ccx() {
+            name="$1"
+            deck="$2"
+            run_dir="$OUT/$name"
+            mkdir -p "$run_dir"
+            cp "$deck" "$run_dir/model.inp"
+            start_epoch="$(date +%s)"
+            set +e
+            (cd "$run_dir" && timeout 120s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+              "$CCX" model) > "$run_dir/process.log" 2>&1
+            status=$?
+            set -e
+            end_epoch="$(date +%s)"
+            test "$status" -eq 0 || {
+              echo "CCX case $name exited $status" >&2
+              cat "$run_dir/process.log" >&2
+              return 1
+            }
+            test -s "$run_dir/model.dat"
+            test -s "$run_dir/model.frd"
+            jq -n --arg name "$name" --arg source_sha "$source_sha" \
+              --arg request_sha "$request_sha" --arg exe_sha "$exe_sha" \
+              --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
+              --arg dat_sha "$(sha256sum "$run_dir/model.dat" | cut -d ' ' -f 1)" \
+              --arg frd_sha "$(sha256sum "$run_dir/model.frd" | cut -d ' ' -f 1)" \
+              --argjson exit_status "$status" --argjson started "$start_epoch" --argjson ended "$end_epoch" \
+              '{
+                schema_version:"calculix-process-receipt-v0.1",
+                case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
+                solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
+                dat_sha256:$dat_sha,frd_sha256:$frd_sha,process_exit_status:$exit_status,
+                started_epoch_s:$started,ended_epoch_s:$ended,
+                thread_policy:{omp_num_threads:1,openblas_num_threads:1,mkl_num_threads:1},
+                output_validated_by:"physical-solver-contract analytical displacement/RF parser",
+                solver_execution_attested_by_this_receipt:false,
+                physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
+              }' > "$run_dir/process-receipt.json"
+          }
+
+          # U output: the same request, model, load and material at three resolutions.
+          for n in 1 2 4; do
+            run_ccx "n${n}-u" "$FIX/bar-n${n}-u.inp"
+          done
+          # An independent execution repeat on the one-element U fixture.
+          run_ccx "n1-u-repeat" "$FIX/bar-n1-u.inp"
+          # RF is emitted in a separate deck so the restricted RF parser sees exactly one RF section.
+          run_ccx "n1-rf" "$FIX/bar-n1-rf.inp"
+
+          build="$ROOT/build-manifest.json"
+          for n in 1 2 4; do
+            case "$n" in
+              1) node_ids='[{"node_id":1,"target_id":"bar-end-a","position_m":[0,0,0]},{"node_id":2,"target_id":"bar-end-b","position_m":[1,0,0}]}' ;;
+              2) node_ids='[{"node_id":1,"target_id":"bar-end-a","position_m":[0,0,0]},{"node_id":2,"target_id":"internal-1","position_m":[0.5,0,0]},{"node_id":3,"target_id":"bar-end-b","position_m":[1,0,0}]}' ;;
+              4) node_ids='[{"node_id":1,"target_id":"bar-end-a","position_m":[0,0,0]},{"node_id":2,"target_id":"internal-1","position_m":[0.25,0,0]},{"node_id":3,"target_id":"internal-2","position_m":[0.5,0,0]},{"node_id":4,"target_id":"internal-3","position_m":[0.75,0,0]},{"node_id":5,"target_id":"bar-end-b","position_m":[1,0,0]}]' ;;
+            esac
+            case "$n" in 1) tip_node=2 ;; 2) tip_node=3 ;; 4) tip_node=5 ;; esac
+            R="$OUT/n${n}-u"
+            deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+            dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg request_id "$request_id" --arg request_sha "$request_sha" \
+              --arg scene_sha "$scene_sha" --arg frame "$frame" \
+              --arg deck_sha "$deck_sha" --arg dat_sha "$dat_sha" \
+              --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+              --arg case_id "CCX-EXEC-001-AXIAL-BAR-N${n}" \
+              --argjson scene_revision "$scene_revision" --argjson support_node 1 \
+              --argjson tip_node "$tip_node" --argjson nodes "$node_ids" \
+              '{
+                schema_version:"calculix-displacement-qoi-manifest-v0.1",
+                case_id:$case_id,request_id:$request_id,request_sha256:$request_sha,
+                scene_sha256:$scene_sha,scene_revision:$scene_revision,coordinate_frame_id:$frame,
+                deck_sha256:$deck_sha,dat_sha256:$dat_sha,build_manifest_sha256:$build_sha,
+                solver_executable_sha256:$exe_sha,support_target_id:"bar-end-a",
+                load_target_id:"bar-end-b",support_node_id:$support_node,load_node_id:$tip_node,
+                node_set:"TIP",component:"ux",absolute_tolerance_m:5e-13,
+                relative_tolerance:1e-6,target_time:1.0,model_nodes:$nodes,
+                provenance:{
+                  evidence_class:"derived_analytical",
+                  method:"linear_axial_bar_u_FL_EA",
+                  source_ref:"research/physical-solver-contract/PHYS-CCX-EXEC-001"
+                }
+              }' > "$R/displacement-manifest.json"
+            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+              --request "$REQUEST" --deck "$R/model.inp" --dat "$R/model.dat" \
+              --build-manifest "$build" --displacement-manifest "$R/displacement-manifest.json" \
+              > "$R/displacement-report.json"
+            jq -e '.numeric_reference_status == "PASS" and .physical_result_qualified == false and .real_world_validation_status == "UNRESOLVED"' \
+              "$R/displacement-report.json"
+          done
+
+          # Repeat stability is assessed numerically, rather than requiring volatile .dat bytes to be identical.
+          u1="$(jq -r '.observed_displacement_m' "$OUT/n1-u/displacement-report.json")"
+          u1repeat="$("$("$RUNNER_TEMP"/nonexistent)"; true)" || true
+          # Placeholder is replaced below by the checked parser result from the repeat.
