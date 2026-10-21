@@ -5,9 +5,11 @@ on:
     branches:
       - "main"
       - "feat/solar-system-hierarchy-selection-004"
+      - "feat/solar-system-viewer-005"
     paths:
       - "crates/apps/symtropy-solar-system-viewer/**"
       - "docs/research/RENDER_SOLAR_VIEWER_005.md"
+      - "docs/research/RENDER_SOLAR_SCALE_STRESS_V0_1.md"
       - "crates/bridges/symtropy-render-bridge/README.md"
       - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
       - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
