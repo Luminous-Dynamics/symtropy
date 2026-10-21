@@ -181,7 +181,10 @@ fn mass_inner_product(mass: &Matrix, left: &[f64], right: &[f64]) -> Check<f64> 
 
 #[cfg(test)]
 mod tests {
-    use crate::beam_pin_assembly::{BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
+    use crate::beam_pin_assembly::{
+        BeamMemberChain, BeamPinMember, BeamPinNode, assemble_released_joint_beam_chains,
+        assemble_released_joint_pin_truss,
+    };
 
     use super::{BeamModeClass, solve_beam_pin_assembly_modes};
 
@@ -288,6 +291,64 @@ mod tests {
             for fixed_dof in &assembly.fixed_dof_indices {
                 assert_eq!(mode.shape_global_dofs[*fixed_dof], 0.0);
             }
+        }
+    }
+
+    #[test]
+    fn refined_beam_chains_preserve_modes_and_diagnostics_at_multiple_mesh_levels() {
+        let nodes = vec![
+            BeamPinNode {
+                id: "A".to_owned(),
+                x_m: 0.0,
+                y_m: 1.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "B".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "C".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrain_x: false,
+                restrain_y: false,
+            },
+        ];
+
+        for elements_per_member in [1_usize, 2, 4, 8] {
+            let members = ["AC", "BC"]
+                .into_iter()
+                .map(|id| BeamMemberChain {
+                    id: id.to_owned(),
+                    start_node_id: if id == "AC" { "A" } else { "B" }.to_owned(),
+                    end_node_id: "C".to_owned(),
+                    area_m2: 3.141592653589793e-4,
+                    youngs_modulus_pa: 210.0e9,
+                    density_kg_m3: 7800.0,
+                    second_moment_m4: 7.853981633974483e-9,
+                    elements_per_member,
+                })
+                .collect::<Vec<_>>();
+            let assembly =
+                assemble_released_joint_beam_chains(&nodes, &members).expect("refined assembly");
+            let result =
+                solve_beam_pin_assembly_modes(&assembly).expect("refined mesh modal result");
+
+            assert_eq!(assembly.free_dof_indices.len(), 6 * elements_per_member);
+            assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
+            assert!(result.modes.iter().all(|mode| mode.class == BeamModeClass::Elastic));
+            assert!(result.modes.windows(2).all(|pair| {
+                pair[0].frequency_hz.expect("elastic mode")
+                    < pair[1].frequency_hz.expect("elastic mode")
+            }));
+            assert!(result.maximum_normalized_eigen_residual < 1.0e-9);
+            assert!(result.maximum_mass_norm_residual < 1.0e-9);
+            assert!(result.maximum_off_diagonal_mass_orthogonality_residual < 1.0e-9);
         }
     }
 
