@@ -198,9 +198,10 @@ A majority decision can have complementary information value: with all three cla
 
 The exact-head Rust workflow checks deterministic replay, all policy invariance tests, the nine-policy report schema, all 90 budget-frontier rows, risk-stop cost sensitivity, the marginal-cost sensitivity table, the development calibration row, and SHA-256 report integrity.
 
-The marginal report includes both:
-- raw paired task-loss delta versus round-robin, to show quality/coverage trade-offs; and
-- paired cost-adjusted objective delta versus round-robin, where round-robin pays for all 48 requests.
+The marginal report includes:
+- raw paired task-loss delta versus round-robin, to show quality/coverage trade-offs;
+- paired cost-adjusted objective delta versus round-robin, where round-robin pays for all 48 requests; and
+- mean deterministic scoring-work units per episode, so extra evaluation complexity is visible even when requests fall. This remains an operation-count proxy, not a runtime measurement.
 
 The candidate advances only if the **development-selected** threshold has (a) a held-out cost-adjusted objective delta whose paired 95% interval is entirely below zero and (b) a raw task-loss degradation whose paired 95% upper bound is no greater than +0.01 absolute. The cost grid is an explicit synthetic preference, not a measured sensor-cost calibration. Also report answer rate, requests used and per-episode uncertainty; lower spend is not a win if quality fails the non-inferiority gate. Reject the policy as preferred if either gate fails. Estimated scoring-work units are a deterministic operation-count proxy, not measured wall-clock latency, GPU time, RAM, energy or robotics efficiency.
 
