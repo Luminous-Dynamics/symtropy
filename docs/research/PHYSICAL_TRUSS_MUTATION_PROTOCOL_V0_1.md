@@ -16,6 +16,17 @@ These tests give different kinds of evidence:
 
 No one layer establishes that the 2D axial-bar model represents a real structure.
 
+## Energy consistency is a separate gate
+
+For the current static, linear-elastic truss with proportional loading and zero-displacement supports, the solver now reports:
+- Member strain energy: (U = \frac{1}{2}\sum_e N_e\delta_e).
+- External work: (W = \frac{1}{2}\sum_i \mathbf{F}_i\cdot\mathbf{u}_i).
+- Absolute residual (U-W) in joules and a scale-normalized residual.
+
+Support reactions participate in the force/moment equilibrium calculation, but are not included in external work because restrained degrees of freedom have zero prescribed displacement. The frozen V-truss test compares (U) and (W) with the independent closed-form value (\frac{1}{2}P|u_y|); all 128 parameter-sweep cases also check energy agreement and the normalized residual gate. The request-bound truss receipt cannot report PASS if the known-answer energy or normalized energy gate fails.
+
+Energy agreement is a separate software/numerical consistency invariant, not an external physical observation. It can detect certain defects that force equilibrium alone may miss, but the two invariants still share the same model and implementation. Neither establishes a real structure's physical validity.
+
 ## Named mutation set
 
 The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies the crate manifest, lockfile, source files and frozen input fixture into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
@@ -26,14 +37,15 @@ The CI script `research/physical-transformation-reference/scripts/verify_planar_
 | `PHYS-TRUSS-MUT-STIFFNESS-LENGTH-001` | Divide assembled axial stiffness by (L^2) instead of (L) | `fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form` |
 | `PHYS-TRUSS-MUT-MEMBER-FORCE-AREA-001` | Omit area from recovered axial force (N=EAepsilon) | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
 | `PHYS-TRUSS-MUT-REACTION-SIGN-001` | Reverse the sign of vertical support-reaction recovery | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
+| `PHYS-TRUSS-MUT-ENERGY-HALF-FACTOR-001` | Omit the one-half factor from member strain-energy accumulation | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
 | `PHYS-TRUSS-MUT-PIVOT-SCALE-001` | Reintroduce an absolute `max(1.0)` floor in the pivot tolerance | `uniform_stiffness_and_load_rescaling_does_not_change_displacement` |
 
 A mutant counts as detected only when its named test appears as FAILED. A compile failure, unrelated Cargo failure, failed source transform, or surviving mutant invalidates the audit. After the isolated runs, the script re-checks the source hash. CI then checks the entire production source remains unchanged, re-runs formatting, the full crate suite and Clippy, and uploads the JSON mutation receipt with the reference receipt.
 
 ## Receipt fields and interpretation
 
-The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these five deliberately selected mutations. The fifth mutation targets the new 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1` by CI after the full suite passes. It must not be represented as a global mutation score or a physical-accuracy metric.
+The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these six deliberately selected mutations. The fifth mutation targets the 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1`; the sixth mutation targets the strain-energy half-factor and must be detected by the independent energy oracle. It must not be represented as a global mutation score or a physical-accuracy metric.
 
 ## Claim boundary
 
-The solver handles only static small-displacement linear-elastic 2D pin-jointed axial bars under its declared input contract. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture, dynamics, and structural code/safety checks. Passing this audit shows only software-test sensitivity for the five named defects; it neither reproduces a proprietary catalog case nor establishes sim-to-real validity.
+The solver handles only static small-displacement linear-elastic 2D pin-jointed axial bars under its declared input contract. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture, dynamics, and structural code/safety checks. Passing this audit shows only software-test sensitivity for the six named defects; it neither reproduces a proprietary catalog case nor establishes sim-to-real validity.
