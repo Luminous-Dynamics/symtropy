@@ -520,10 +520,10 @@ mod tests {
 
     #[test]
     fn non_synthetic_measurements_and_negative_costs_are_rejected() {
-        let mut fixture = fixture();
-        fixture.measurements[0].evidence_class = "measured".into();
+        let mut evidence_fixture = fixture();
+        evidence_fixture.measurements[0].evidence_class = "measured".into();
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&evidence_fixture)
                 .expect_err("evidence label rejected")
                 .contains("evidence_invalid")
         );
