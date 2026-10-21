@@ -1163,8 +1163,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 0.75),
-            ("axial_rigidity_a_n".to_owned(), 1.0e9),
-            ("axial_rigidity_b_n".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -500.0),
         ]);
@@ -1219,8 +1219,8 @@ mod tests {
             ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
             ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
             ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
-            ("axial_rigidity_a_n".to_owned(), Interval::new(0.9e9, 1.1e9).unwrap()),
-            ("axial_rigidity_b_n".to_owned(), Interval::new(1.8e9, 2.2e9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.125e9, 1.375e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(5.5e9, 6.9e9).unwrap()),
             ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
             ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
         ]);
