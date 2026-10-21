@@ -332,7 +332,9 @@ fn independent_reference_evaluator_matches_frozen_mixed_shipyard_ledger() {
     let aluminium_actual_rate = actual
         .rate_card_costs
         .iter()
-        .find(|row| row.quantity_key == "material.aluminium.issued.kg" && row.stage == Stage::Observed)
+        .find(|row| {
+            row.quantity_key == "material.aluminium.issued.kg" && row.stage == Stage::Observed
+        })
         .expect("observed aluminium issue estimate");
     assert_eq!(aluminium_actual_rate.amount, 31_250.0);
 
