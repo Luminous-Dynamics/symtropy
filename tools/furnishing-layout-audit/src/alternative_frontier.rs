@@ -130,10 +130,12 @@ impl fmt::Display for FrontierError {
             Self::DuplicateCandidateId(id) => {
                 write!(f, "candidate identifier {id:?} occurs more than once")
             }
-            Self::IncompatibleObjectiveSchemas { candidate_id } => write!(
-                f,
-                "candidate {candidate_id:?} has an objective schema incompatible with the ranking set"
-            ),
+            Self::IncompatibleObjectiveSchemas { candidate_id } => {
+                write!(
+                    f,
+                    "candidate {candidate_id:?} has an objective schema incompatible with the ranking set"
+                )
+            },
         }
     }
 }
@@ -296,7 +298,7 @@ pub fn compute_pareto_frontier(
                 }
 
                 let mut objectives = candidate.objectives.iter().collect::<Vec<_>>();
-                objectives.sort_by(|left, right| left.dimension.cmp(&right.dimension));
+                objectives.sort_by_key(|objective| objective.dimension.clone());
                 rankable.push(RankableCandidate {
                     candidate,
                     objectives,
@@ -347,7 +349,7 @@ pub fn compute_pareto_frontier(
         });
     }
 
-    results.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    results.sort_by_key(|result| result.candidate_id.clone());
     frontier_ids.sort();
     let objective_dimensions = rankable
         .first()
@@ -440,19 +442,37 @@ mod tests {
     fn blocked_and_indeterminate_never_enter_frontier() {
         let input = vec![
             candidate("verified", VerificationStatus::Verified, two_objectives(10.0, 70.0)),
-            candidate("blocked-best-score", VerificationStatus::Blocked, two_objectives(0.0, 100.0)),
-            candidate("unknown-hard-gate", VerificationStatus::Indeterminate, two_objectives(0.0, 100.0)),
+            candidate(
+                "blocked-best-score",
+                VerificationStatus::Blocked,
+                two_objectives(0.0, 100.0),
+            ),
+            candidate(
+                "unknown-hard-gate",
+                VerificationStatus::Indeterminate,
+                two_objectives(0.0, 100.0),
+            ),
         ];
         let report = compute_pareto_frontier(&input).expect("valid frontier");
         assert_eq!(report.frontier_ids, vec!["verified"]);
-        assert_eq!(disposition(&report, "blocked-best-score"), &CandidateDisposition::ExcludedBlocked);
-        assert_eq!(disposition(&report, "unknown-hard-gate"), &CandidateDisposition::ExcludedIndeterminate);
+        assert_eq!(
+            disposition(&report, "blocked-best-score"),
+            &CandidateDisposition::ExcludedBlocked
+        );
+        assert_eq!(
+            disposition(&report, "unknown-hard-gate"),
+            &CandidateDisposition::ExcludedIndeterminate
+        );
         assert!(report.ranking_complete);
     }
 
     #[test]
     fn non_admitted_objective_evidence_excludes_candidate_and_marks_incomplete() {
-        let mut unknown = candidate("unknown-cost", VerificationStatus::Verified, two_objectives(1.0, 100.0));
+        let mut unknown = candidate(
+            "unknown-cost",
+            VerificationStatus::Verified,
+            two_objectives(1.0, 100.0),
+        );
         unknown.objectives[0].evidence = ObjectiveEvidence::Unknown;
         let input = vec![
             unknown,
@@ -505,10 +525,15 @@ mod tests {
 
     #[test]
     fn malformed_digest_is_not_eligible_for_ranking() {
-        let mut malformed = candidate("bad-digest", VerificationStatus::Verified, two_objectives(1.0, 100.0));
+        let mut malformed = candidate(
+            "bad-digest",
+            VerificationStatus::Verified,
+            two_objectives(1.0, 100.0),
+        );
         malformed.revision_sha256 = Some("not-a-digest".to_owned());
         let good = candidate("good", VerificationStatus::Verified, two_objectives(10.0, 70.0));
-        let report = compute_pareto_frontier(&[malformed, good]).expect("unrankable candidate is reported");
+        let report = compute_pareto_frontier(&[malformed, good])
+            .expect("unrankable candidate is reported");
         assert_eq!(report.frontier_ids, vec!["good"]);
         assert!(!report.ranking_complete);
     }
@@ -530,7 +555,8 @@ mod tests {
             VerificationStatus::Verified,
             vec![objective("cost", ObjectiveDirection::Minimize, f64::NAN)],
         );
-        let report = compute_pareto_frontier(&[bad]).expect("bad objective remains an explicit exclusion");
+        let report = compute_pareto_frontier(&[bad])
+            .expect("bad objective remains an explicit exclusion");
         assert!(report.frontier_ids.is_empty());
         assert!(!report.ranking_complete);
         assert!(matches!(
