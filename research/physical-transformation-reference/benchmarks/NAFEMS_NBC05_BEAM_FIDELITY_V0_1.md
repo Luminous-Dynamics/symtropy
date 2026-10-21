@@ -61,7 +61,7 @@ Add negative controls proving that:
 - the reduced model has the expected rigid/mechanism mode count;
 - no eigenvalues are silently dropped merely because they are near zero.
 
-The first assembly prototype verifies the translational-sharing / private-rotation mapping, deterministic input-order invariance, separate mass terms, and global matrix symmetry. It does **not** yet classify rigid/mechanism eigenmodes or qualify a beam spectrum; those are separate acceptance gates.
+The first assembly prototype verifies the translational-sharing / private-rotation mapping, deterministic input-order invariance, separate mass terms, and global matrix symmetry. A further draft increment in [PR #2562](https://github.com/Luminous-Dynamics/symtropy/pull/2562) uses the verified generalized eigenpair kernel to solve the assembled free-DOF problem, retains all modes, and explicitly classifies near-zero/mechanism and negative/unstable eigenvalues. It reports frequency, global mode shape, normalized eigen-residual, modal mass-normalization error and inter-mode mass-orthogonality error. Its synthetic tests also zero one stiffness row/column and require the resulting mechanism to remain present in the output. These are algebra/model-contract checks only; they do **not** qualify the complete NAFEMS beam spectrum.
 
 ### B2 — Mass matrix and rotary inertia
 
