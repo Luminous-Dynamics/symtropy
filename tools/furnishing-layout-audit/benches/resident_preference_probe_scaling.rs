@@ -17,8 +17,8 @@ fn candidate(index: usize, criteria: usize, count: usize) -> PreferenceAlternati
     let revision = format!("{:064x}", index + 1);
     let criterion_scores_bps = (0..criteria)
         .map(|criterion| {
-            ((index * 1_973 + criterion * 3_821 + (index + 1) * (criterion + 3) * 101)
-                % 10_001) as u16
+            ((index * 1_973 + criterion * 3_821 + (index + 1) * (criterion + 3) * 101) % 10_001)
+                as u16
         })
         .collect();
     PreferenceAlternative {
@@ -40,9 +40,14 @@ fn scenario(index: usize, criteria: usize) -> PreferenceScenario {
         .iter()
         .map(|weight| ((weight * 10_000) / sum) as u16)
         .collect::<Vec<_>>();
-    let assigned = weights_bps.iter().map(|weight| u32::from(*weight)).sum::<u32>();
+    let assigned = weights_bps
+        .iter()
+        .map(|weight| u32::from(*weight))
+        .sum::<u32>();
     let residual = 10_000_u32 - assigned;
-    let last = weights_bps.last_mut().expect("benchmark criteria are non-empty");
+    let last = weights_bps
+        .last_mut()
+        .expect("benchmark criteria are non-empty");
     *last = (u32::from(*last) + residual) as u16;
     PreferenceScenario {
         scenario_id: format!("scenario-{index:03}"),
@@ -104,7 +109,10 @@ fn run_case(alternatives: usize, scenarios: usize, criteria: usize, samples: usi
         let report = black_box(compute_resident_preference_probe(black_box(&request)))
             .expect("same frozen request must remain valid");
         timings.push(start.elapsed());
-        assert_eq!(report, expected, "frozen request must replay deterministically");
+        assert_eq!(
+            report, expected,
+            "frozen request must replay deterministically"
+        );
     }
 
     let p50 = percentile(&timings, 1, 2);
