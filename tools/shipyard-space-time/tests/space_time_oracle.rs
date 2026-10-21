@@ -95,6 +95,15 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
         let case = cases.entry(fields[0].to_owned()).or_default();
 
         match fields[1] {
+            "yard" => {
+                let bounds = parse_footprint(fields[4]);
+                match bounds {
+                    Footprint::AxisAlignedRect(rect) => case.scenario.yard_bounds = Some(rect),
+                    Footprint::Unsupported { .. } => {
+                        panic!("frozen yard boundary must use the supported rectangle profile")
+                    }
+                }
+            }
             "placement" => case.scenario.placements.push(Placement {
                 reservation_id: fields[2].to_owned(),
                 block_id: fields[3].to_owned(),
@@ -136,7 +145,7 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
         }
     }
 
-    assert_eq!(cases.len(), 14, "frozen scenario inventory changed");
+    assert_eq!(cases.len(), 17, "frozen scenario inventory changed");
     for (case_id, case) in cases {
         let expected = case
             .expected_counts
@@ -182,6 +191,9 @@ fn frozen_corpus_covers_both_rejection_and_feasible_cases() {
         ViolationCode::UnsupportedFootprint.as_str(),
         ViolationCode::InvalidTimeRange.as_str(),
         ViolationCode::InvalidFootprint.as_str(),
+        ViolationCode::OutOfBoundsPlacement.as_str(),
+        ViolationCode::OutOfBoundsTransferCorridor.as_str(),
+        ViolationCode::MissingYardBounds.as_str(),
     ] {
         assert!(
             expected_codes.contains(&required),
