@@ -179,6 +179,7 @@ struct ScenarioStatistics {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 struct StationFirstPassYieldStatistics {
     station_id: String,
+    first_attempts_started_in_cohort: DistributionSummary,
     observed_first_attempts: DistributionSummary,
     first_attempt_passed: DistributionSummary,
     first_attempt_failed: DistributionSummary,
@@ -666,6 +667,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         let mut relative_deltas = Vec::with_capacity(runs.len());
         let mut scrapped = Vec::with_capacity(runs.len());
         let mut rework = Vec::with_capacity(runs.len());
+        let mut per_seed_lead_medians = Vec::new();
+        let mut per_seed_lead_p95 = Vec::new();
+        let mut right_censored = Vec::with_capacity(runs.len());
         for (run, baseline_rate) in runs.iter().zip(baseline_rates.iter()) {
             let scenario = &run.scenarios[scenario_index];
             if scenario.scenario_id != first_scenario.scenario_id {
@@ -674,6 +678,13 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             good_rates.push(scenario.measured_good_units_per_hour);
             scrapped.push(scenario.scrapped_jobs_total as f64);
             rework.push(scenario.measured_rework_attempts as f64);
+            right_censored.push(scenario.job_lifecycle_summary.right_censored_jobs_at_horizon as f64);
+            if let Some(median) = scenario.job_lifecycle_summary.median_good_job_lead_time_seconds {
+                per_seed_lead_medians.push(median);
+            }
+            if let Some(p95) = scenario.job_lifecycle_summary.p95_good_job_lead_time_seconds {
+                per_seed_lead_p95.push(p95);
+            }
             if scenario_index > 0 {
                 delta_rates.push(scenario.measured_good_units_per_hour - baseline_rate);
                 if *baseline_rate > 0.0 {
@@ -682,6 +693,44 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     );
                 }
             }
+        }
+        let mut station_first_pass_yield_by_station = Vec::new();
+        for station_index in 0..catalog.stations.len() {
+            let mut starts = Vec::with_capacity(runs.len());
+            let mut observed = Vec::with_capacity(runs.len());
+            let mut passed = Vec::with_capacity(runs.len());
+            let mut failed = Vec::with_capacity(runs.len());
+            let mut unresolved = Vec::with_capacity(runs.len());
+            let mut yields = Vec::new();
+            for run in &runs {
+                let rows = &run.scenarios[scenario_index].job_lifecycle_summary.station_first_pass_yield;
+                let row = rows.get(station_index)
+                    .ok_or_else(|| "per_seed_station_first_pass_summary_missing".to_string())?;
+                if row.station_id != catalog.stations[station_index].station_id {
+                    return Err("replications_returned_inconsistent_first_pass_station_order".into());
+                }
+                starts.push(row.first_attempts_started_in_cohort as f64);
+                observed.push(row.first_attempts_with_observed_outcome as f64);
+                passed.push(row.first_attempt_passed as f64);
+                failed.push(row.first_attempt_failed as f64);
+                unresolved.push(row.unresolved_first_attempts_at_horizon as f64);
+                if let Some(value) = row.observed_first_pass_yield_fraction {
+                    yields.push(value);
+                }
+            }
+            station_first_pass_yield_by_station.push(StationFirstPassYieldStatistics {
+                station_id: catalog.stations[station_index].station_id.clone(),
+                first_attempts_started_in_cohort: summarize_distribution(&starts)?,
+                observed_first_attempts: summarize_distribution(&observed)?,
+                first_attempt_passed: summarize_distribution(&passed)?,
+                first_attempt_failed: summarize_distribution(&failed)?,
+                unresolved_first_attempts_at_horizon: summarize_distribution(&unresolved)?,
+                observed_first_pass_yield_fraction: if yields.is_empty() {
+                    None
+                } else {
+                    Some(summarize_distribution(&yields)?)
+                },
+            });
         }
         statistics.push(ScenarioStatistics {
             scenario_id: first_scenario.scenario_id.clone(),
@@ -701,6 +750,18 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             },
             scrapped_jobs_total: summarize_distribution(&scrapped)?,
             measured_rework_attempts: summarize_distribution(&rework)?,
+            per_seed_median_good_job_lead_time_seconds: if per_seed_lead_medians.is_empty() {
+                None
+            } else {
+                Some(summarize_distribution(&per_seed_lead_medians)?)
+            },
+            per_seed_p95_good_job_lead_time_seconds: if per_seed_lead_p95.is_empty() {
+                None
+            } else {
+                Some(summarize_distribution(&per_seed_lead_p95)?)
+            },
+            right_censored_jobs_at_horizon: summarize_distribution(&right_censored)?,
+            station_first_pass_yield_by_station,
         });
     }
 
