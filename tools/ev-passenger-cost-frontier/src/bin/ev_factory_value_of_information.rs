@@ -502,12 +502,22 @@ mod tests {
             .iter()
             .find(|measurement| measurement.measurement_id == "cycle-time-study")
             .expect("cycle-time result");
-        let dominated = report
+        let supplier_audit = report
             .measurements
             .iter()
-            .find(|measurement| measurement.measurement_id == "quality-rework-audit")
-            .expect("quality audit result");
+            .find(|measurement| measurement.measurement_id == "supplier-delivery-audit")
+            .expect("supplier audit result");
+        let redundant_audit = report
+            .measurements
+            .iter()
+            .find(|measurement| measurement.measurement_id == "line-side-visual-audit")
+            .expect("line-side audit result");
         assert!(best.frontier_member);
-        assert!(!dominated.frontier_member);
+        assert!(supplier_audit.frontier_member);
+        assert_eq!(
+            supplier_audit.gross_worst_case_regret_reduction_units_per_hour,
+            redundant_audit.gross_worst_case_regret_reduction_units_per_hour
+        );
+        assert!(!redundant_audit.frontier_member);
     }
 }
