@@ -1219,6 +1219,22 @@ fn field_sha<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
     Ok(text)
 }
 
+fn field_string_array(value: &Value, key: &str, at: &str) -> Check<Vec<String>> {
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be an array"))?;
+    array
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))
+        })
+        .collect()
+}
+
 fn field_u64(value: &Value, key: &str, at: &str) -> Check<u64> {
     value
         .get(key)
