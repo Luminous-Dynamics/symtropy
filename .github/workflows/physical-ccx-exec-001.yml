@@ -260,17 +260,22 @@ jobs:
             if [ "$status" -ne 0 ]; then
               jq -n --arg name "$name" --arg source_sha "$source_sha" \
                 --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
+                --arg build_sha "$build_sha" \
+                --arg log_sha "$(sha256sum "$run_dir/process.log" | cut -d ' ' -f 1)" \
+                --arg executable "$CCX" \
                 --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
-                --argjson exit_status "$status" \
+                --argjson exit_status "$status" --argjson started "$start_epoch" --argjson ended "$end_epoch" \
                 --argjson dat_present "$(test -s "$run_dir/model.dat" && echo true || echo false)" \
                 --argjson frd_present "$(test -s "$run_dir/model.frd" && echo true || echo false)" \
                 '{
                   schema_version:"calculix-process-receipt-v0.1",
                   case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
-                  solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
+                  build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                  executable_path:$executable,argv:[$executable,"model"],working_directory_case:$name,
+                  input_deck_sha256:$deck_sha,process_log_sha256:$log_sha,
                   process_exit_status:$exit_status,dat_output_present:$dat_present,
                   frd_output_present:$frd_present,process_status:"FAIL",
-                  timeout_exit_status:124,
+                  started_epoch_s:$started,ended_epoch_s:$ended,timeout_exit_status:124,
                   solver_execution_attested_by_this_receipt:false,
                   physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
                 }' > "$run_dir/failure-process-receipt.json"
@@ -281,16 +286,23 @@ jobs:
             if [ ! -s "$run_dir/model.dat" ] || [ ! -s "$run_dir/model.frd" ]; then
               jq -n --arg name "$name" --arg source_sha "$source_sha" \
                 --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
+                --arg build_sha "$build_sha" \
+                --arg log_sha "$(sha256sum "$run_dir/process.log" | cut -d ' ' -f 1)" \
+                --arg executable "$CCX" \
                 --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
+                --argjson started "$start_epoch" --argjson ended "$end_epoch" \
                 --argjson dat_present "$(test -s "$run_dir/model.dat" && echo true || echo false)" \
                 --argjson frd_present "$(test -s "$run_dir/model.frd" && echo true || echo false)" \
                 '{
                   schema_version:"calculix-process-receipt-v0.1",
                   case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
-                  solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
+                  build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                  executable_path:$executable,argv:[$executable,"model"],working_directory_case:$name,
+                  input_deck_sha256:$deck_sha,process_log_sha256:$log_sha,
                   process_exit_status:0,dat_output_present:$dat_present,
                   frd_output_present:$frd_present,process_status:"FAIL",
                   failure_reason:"successful exit without required .dat and .frd outputs",
+                  started_epoch_s:$started,ended_epoch_s:$ended,
                   solver_execution_attested_by_this_receipt:false,
                   physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
                 }' > "$run_dir/failure-process-receipt.json"
@@ -299,6 +311,9 @@ jobs:
             fi
             jq -n --arg name "$name" --arg source_sha "$source_sha" \
               --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
+              --arg build_sha "$build_sha" \
+              --arg log_sha "$(sha256sum "$run_dir/process.log" | cut -d ' ' -f 1)" \
+              --arg executable "$CCX" \
               --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
               --arg dat_sha "$(sha256sum "$run_dir/model.dat" | cut -d ' ' -f 1)" \
               --arg frd_sha "$(sha256sum "$run_dir/model.frd" | cut -d ' ' -f 1)" \
@@ -306,11 +321,12 @@ jobs:
               '{
                 schema_version:"calculix-process-receipt-v0.1",
                 case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
-                solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
-                dat_sha256:$dat_sha,frd_sha256:$frd_sha,process_exit_status:$exit_status,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                executable_path:$executable,argv:[$executable,"model"],working_directory_case:$name,
+                input_deck_sha256:$deck_sha,dat_sha256:$dat_sha,frd_sha256:$frd_sha,
+                process_log_sha256:$log_sha,process_exit_status:$exit_status,process_status:"PASS",
                 started_epoch_s:$started,ended_epoch_s:$ended,
                 thread_policy:{omp_num_threads:1,openblas_num_threads:1,mkl_num_threads:1},
-                output_validated_by:"physical-solver-contract analytical displacement/RF parser",
                 solver_execution_attested_by_this_receipt:false,
                 physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
               }' > "$run_dir/process-receipt.json"
