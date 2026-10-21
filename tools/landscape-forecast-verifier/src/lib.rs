@@ -31,6 +31,8 @@ pub struct EvaluationCase {
     pub unit: String,
     pub spatial_scope: String,
     pub temporal_stratum: String,
+    pub independent_unit_id: String,
+    pub evaluation_split: EvaluationSplit,
     pub prediction: Prediction,
     pub baseline: BaselineForecast,
     pub reference: ReferenceValue,
@@ -45,6 +47,14 @@ pub struct Prediction {
     pub lower: f64,
     pub upper: f64,
     pub scope_key: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvaluationSplit {
+    Training,
+    Calibration,
+    HeldOut,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +106,8 @@ pub struct ScoredCase {
     pub unit: String,
     pub spatial_scope: String,
     pub temporal_stratum: String,
+    pub independent_unit_id: String,
+    pub evaluation_split: EvaluationSplit,
     pub model_id: String,
     pub baseline_model_id: String,
     pub reference_value: f64,
@@ -125,6 +137,7 @@ pub struct MetricSummary {
     pub baseline_model_id: String,
     pub prediction_interval_level: f64,
     pub sample_count: usize,
+    pub independent_unit_count: usize,
     pub mean_bias: f64,
     pub mae: f64,
     pub rmse: f64,
@@ -145,6 +158,8 @@ struct GroupKey {
     baseline_model_id: String,
     interval_level_micros: u64,
 }
+
+type GroupRow = (String, String, f64, f64, f64, bool, f64, f64);
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
@@ -202,6 +217,7 @@ pub fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
             ("unit", case.unit.as_str()),
             ("spatial_scope", case.spatial_scope.as_str()),
             ("temporal_stratum", case.temporal_stratum.as_str()),
+            ("independent_unit_id", case.independent_unit_id.as_str()),
             ("prediction.model_id", case.prediction.model_id.as_str()),
             ("prediction.scope_key", case.prediction.scope_key.as_str()),
             ("baseline.model_id", case.baseline.model_id.as_str()),
@@ -324,10 +340,17 @@ pub fn evaluate_fixture(
 
     let mut scored_cases = Vec::new();
     let mut excluded_cases = Vec::new();
-    let mut groups: BTreeMap<GroupKey, Vec<(String, f64, f64, f64, bool, f64, f64)>> =
-        BTreeMap::new();
+    let mut groups: BTreeMap<GroupKey, Vec<GroupRow>> = BTreeMap::new();
 
     for case in &fixture.cases {
+        if case.evaluation_split != EvaluationSplit::HeldOut {
+            excluded_cases.push(ExcludedCase {
+                case_id: case.case_id.clone(),
+                reason: "not_held_out".to_owned(),
+            });
+            continue;
+        }
+
         let r = &case.reference;
         match r.status {
             ReferenceStatus::Missing => {
@@ -377,6 +400,8 @@ pub fn evaluate_fixture(
             unit: case.unit.clone(),
             spatial_scope: case.spatial_scope.clone(),
             temporal_stratum: case.temporal_stratum.clone(),
+            independent_unit_id: case.independent_unit_id.clone(),
+            evaluation_split: case.evaluation_split,
             model_id: prediction.model_id.clone(),
             baseline_model_id: baseline.model_id.clone(),
             interval_level_micros: (prediction.interval_level * 1_000_000.0).round() as u64,
@@ -403,6 +428,7 @@ pub fn evaluate_fixture(
 
         groups.entry(key).or_default().push((
             case.case_id.clone(),
+            case.independent_unit_id.clone(),
             signed_error,
             absolute_error,
             signed_error * signed_error,
@@ -419,13 +445,14 @@ pub fn evaluate_fixture(
     for (key, mut rows) in groups {
         rows.sort_by(|a, b| a.0.cmp(&b.0));
         let n = rows.len() as f64;
-        let mean_bias = rows.iter().map(|row| row.1).sum::<f64>() / n;
-        let mae = rows.iter().map(|row| row.2).sum::<f64>() / n;
-        let rmse = (rows.iter().map(|row| row.3).sum::<f64>() / n).sqrt();
-        let baseline_mae = rows.iter().map(|row| row.5).sum::<f64>() / n;
-        let covered_count = rows.iter().filter(|row| row.4).count();
+        let mean_bias = rows.iter().map(|row| row.2).sum::<f64>() / n;
+        let mae = rows.iter().map(|row| row.3).sum::<f64>() / n;
+        let rmse = (rows.iter().map(|row| row.4).sum::<f64>() / n).sqrt();
+        let baseline_mae = rows.iter().map(|row| row.6).sum::<f64>() / n;
+        let covered_count = rows.iter().filter(|row| row.5).count();
         let interval_coverage = covered_count as f64 / n;
-        let mean_interval_width = rows.iter().map(|row| row.6).sum::<f64>() / n;
+        let mean_interval_width = rows.iter().map(|row| row.7).sum::<f64>() / n;
+        let independent_unit_count = rows.iter().map(|row| row.1.as_str()).collect::<BTreeSet<_>>().len();
         let interval_level = key.interval_level_micros as f64 / 1_000_000.0;
 
         metric_summaries.push(MetricSummary {
@@ -437,6 +464,7 @@ pub fn evaluate_fixture(
             baseline_model_id: key.baseline_model_id,
             prediction_interval_level: rounded(interval_level),
             sample_count: rows.len(),
+            independent_unit_count,
             mean_bias: rounded(mean_bias),
             mae: rounded(mae),
             rmse: rounded(rmse),
@@ -496,9 +524,9 @@ mod tests {
     #[test]
     fn frozen_fixture_has_expected_disposition_counts() {
         let report = evaluate_fixture_bytes(FIXTURE_BYTES).expect("fixture is valid");
-        assert_eq!(report.case_count, 13);
+        assert_eq!(report.case_count, 14);
         assert_eq!(report.scored_case_count, 9);
-        assert_eq!(report.excluded_case_count, 4);
+        assert_eq!(report.excluded_case_count, 5);
         assert_eq!(report.metric_summaries.len(), 3);
         assert_eq!(report.data_origin, "synthetic_fixture");
         assert_eq!(report.claim_ceiling, CLAIM_CEILING);
@@ -513,6 +541,7 @@ mod tests {
             BTreeSet::from([
                 "contradictory_reference",
                 "missing_reference",
+                "not_held_out",
                 "scope_mismatch",
                 "stale_reference"
             ])
@@ -565,8 +594,10 @@ mod tests {
             report
                 .metric_summaries
                 .iter()
-                .all(|summary| summary.sample_count == 3)
+                .all(|summary| summary.sample_count == 3 && summary.independent_unit_count == 3)
         );
+        assert!(report.scored_cases.iter().all(|case| case.evaluation_split == EvaluationSplit::HeldOut));
+        assert!(report.excluded_cases.iter().any(|case| case.case_id == "calibration-001" && case.reason == "not_held_out"));
     }
 
     #[test]
