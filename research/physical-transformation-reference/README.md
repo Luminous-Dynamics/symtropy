@@ -89,7 +89,7 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 
 ## Modal dynamics: separate verification contract
 
-The static planar-truss solver does **not** implement free-vibration or modal analysis. [NAFEMS NBC05 modal verification contract](benchmarks/NAFEMS_NBC05_MODAL_VERIFICATION_V0_1.md) records the next research ladder: analytical axial-bar spectrum; independent generalized-eigenvalue known answer; explicitly labelled consistent/lumped mass; mode-shape and eigen-residual checks; constraint/mechanism classification; and only then a carefully reconstructed external benchmark comparison. Its published solver values are comparators, not ground truth, and the benchmark is not yet reproduced.
+The static planar-truss solver does **not** implement free-vibration or modal analysis. A separate experimental `modal_bar` module now solves the longitudinal frequencies of a uniform one-dimensional fixed-free axial bar using explicitly selected consistent or lumped mass matrices. Its tests check closed-form single-element ratios and mesh convergence; it is not a modal truss solver and does not yet emit mode shapes or an evidence receipt. [NAFEMS NBC05 modal verification contract](benchmarks/NAFEMS_NBC05_MODAL_VERIFICATION_V0_1.md) defines the next ladder: independent generalized-eigenpair checks; residual/orthogonality diagnostics; zero/mechanism-mode classification for subdivided bars; and only then a carefully reconstructed external benchmark comparison. The published NBC05 solver values are comparators, not ground truth, and NBC05 is not reproduced.
 
 ## Safety and claim ceiling
 
