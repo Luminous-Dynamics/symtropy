@@ -4,6 +4,7 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -20,6 +21,7 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
@@ -356,19 +358,40 @@ jobs:
             3600=ev-factory-age-3600-report.json \
             > ev-factory-age-threshold-sensitivity.json
           jq -e '
-            .schema_version == "ev-factory-age-threshold-sensitivity/0.1"
+            .schema_version == "ev-factory-age-threshold-sensitivity/0.2"
             and .benchmark_id == "EV-FACTORY-SIM-001"
             and .baseline_policy == "fifo"
             and .candidate_policy == "minimize_changeover"
             and .thresholds_seconds == [300, 900, 1800, 3600]
             and .replication_count == 20
             and .paired_seed_scenario_keys_match
+            and .primary_comparison_count == 24
+            and (.primary_throughput_familywise_intervals | length) == 24
+            and (.primary_familywise_interval_method | contains("Bonferroni"))
+            and all(.primary_throughput_familywise_intervals[];
+              .sample_count == 20
+              and .family_size == 24
+              and .t_critical_conservative == 4.0
+              and .confidence_95_lower_bonferroni <= .mean_delta_units_per_hour
+              and .confidence_95_upper_bonferroni >= .mean_delta_units_per_hour)
+            and (.multiplicity_adjustment | contains("Bonferroni"))
+            and (.multiplicity_adjustment | contains("secondary metrics are unadjusted"))
             and (.threshold_results | length) == 4
             and all(.threshold_results[]; (.scenario_deltas | length) == 6 and (.station_deltas | length) == 30)
             and all(.threshold_results[]; all(.scenario_deltas[]; .good_units_per_hour_delta.sample_count == 20 and .good_units_total_delta.sample_count == 20 and .scrapped_jobs_delta.sample_count == 20 and .rework_attempts_delta.sample_count == 20 and (.per_variant_wait_deltas | length) == 3))
             and all(.threshold_results[]; all(.station_deltas[]; .changeovers_delta.sample_count == 20 and .out_of_order_output_transfers_delta.sample_count == 20))
             and (.multiplicity_adjustment | contains("none"))
           ' ev-factory-age-threshold-sensitivity.json
+
+      - name: Independently recompute primary threshold intervals from raw reports
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_dispatch_threshold_verify -- \
+            ev-factory-simulation-report.json \
+            ev-factory-age-threshold-sensitivity.json \
+            300=ev-factory-age-300-report.json \
+            900=ev-factory-variant-aware-report.json \
+            1800=ev-factory-age-1800-report.json \
+            3600=ev-factory-age-3600-report.json
 
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
@@ -450,6 +473,7 @@ jobs:
             docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_report.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_dispatch_threshold_verify.rs \
             ev-factory-age-300.json ev-factory-age-300-report.json \
             ev-factory-age-1800.json ev-factory-age-1800-report.json \
             ev-factory-age-3600.json ev-factory-age-3600-report.json \
