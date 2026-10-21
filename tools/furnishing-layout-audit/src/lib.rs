@@ -3,6 +3,8 @@
 //! This crate audits known-truth synthetic geometry; it does not establish
 //! building-code compliance, physical safety, measured-site truth, or usability.
 
+pub mod repair_suggestions;
+
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
