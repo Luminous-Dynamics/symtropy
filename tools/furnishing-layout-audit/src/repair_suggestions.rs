@@ -121,11 +121,16 @@ fn rect_from_value(value: &Value) -> Option<Rect> {
     })
 }
 
+#[derive(Clone, Copy)]
+struct RepairTarget<'a> {
+    scenario_id: &'a str,
+    alternative_id: &'a str,
+    requirement_id: &'a str,
+}
+
 fn outcome_report(
     disposition: RepairDisposition,
-    scenario_id: &str,
-    alternative_id: &str,
-    requirement_id: &str,
+    target: RepairTarget<'_>,
     blocking_item_ids: Vec<String>,
     candidate_count_before_limit: usize,
     suggestions: Vec<RepairSuggestion>,
@@ -133,9 +138,9 @@ fn outcome_report(
 ) -> RepairReport {
     RepairReport {
         disposition,
-        scenario_id: scenario_id.to_owned(),
-        alternative_id: alternative_id.to_owned(),
-        requirement_id: requirement_id.to_owned(),
+        scenario_id: target.scenario_id.to_owned(),
+        alternative_id: target.alternative_id.to_owned(),
+        requirement_id: target.requirement_id.to_owned(),
         blocking_item_ids,
         candidate_count_before_limit,
         suggestions,
@@ -145,7 +150,7 @@ fn outcome_report(
 }
 
 fn push_coordinate(values: &mut Vec<f64>, value: f64) {
-    if value.is_finite() && !values.iter().any(|existing| *existing == value) {
+    if value.is_finite() && !values.contains(&value) {
         values.push(value);
     }
 }
@@ -348,12 +353,15 @@ pub fn suggest_single_item_zone_repairs(
     requirement_id: &str,
     limit: usize,
 ) -> RepairReport {
+    let target = RepairTarget {
+        scenario_id,
+        alternative_id,
+        requirement_id,
+    };
     if limit == 0 {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -365,9 +373,7 @@ pub fn suggest_single_item_zone_repairs(
     if !structural_errors.is_empty() {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -377,9 +383,7 @@ pub fn suggest_single_item_zone_repairs(
     if string(document, "schema_version") != Some("0.1.0") {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -398,9 +402,7 @@ pub fn suggest_single_item_zone_repairs(
     }) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -411,9 +413,7 @@ pub fn suggest_single_item_zone_repairs(
     if !hard_evidence_is_known(scenario) {
         return outcome_report(
             RepairDisposition::Indeterminate,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -424,9 +424,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(requirements) = scenario.get("requirements").and_then(Value::as_array) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -439,9 +437,7 @@ pub fn suggest_single_item_zone_repairs(
     else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -456,9 +452,7 @@ pub fn suggest_single_item_zone_repairs(
     {
         return outcome_report(
             RepairDisposition::Indeterminate,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -472,9 +466,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(zone) = target_zone(scenario, requirement) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -484,9 +476,7 @@ pub fn suggest_single_item_zone_repairs(
     if string(zone, "evidence_state") != Some("synthetic_known_truth") {
         return outcome_report(
             RepairDisposition::Indeterminate,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -496,9 +486,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(zone_rect) = zone.get("rect").and_then(rect_from_value) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -509,9 +497,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(alternatives) = scenario.get("alternatives").and_then(Value::as_array) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -524,9 +510,7 @@ pub fn suggest_single_item_zone_repairs(
     else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -537,9 +521,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(room) = scenario.get("room") else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -550,9 +532,7 @@ pub fn suggest_single_item_zone_repairs(
     else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -562,9 +542,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(catalog) = scenario.get("catalog").and_then(Value::as_array) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -574,9 +552,7 @@ pub fn suggest_single_item_zone_repairs(
     let Some(placements_json) = alternative.get("placements").and_then(Value::as_array) else {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -591,9 +567,7 @@ pub fn suggest_single_item_zone_repairs(
     if placements.len() != placements_json.len() {
         return outcome_report(
             RepairDisposition::Blocked,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             Vec::new(),
             0,
             Vec::new(),
@@ -608,9 +582,7 @@ pub fn suggest_single_item_zone_repairs(
     if blockers.is_empty() {
         return outcome_report(
             RepairDisposition::NoBlockingItem,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             blockers,
             0,
             Vec::new(),
@@ -624,10 +596,9 @@ pub fn suggest_single_item_zone_repairs(
             if matches!(
                 string(candidate_zone, "kind"),
                 Some("keep_clear" | "service_access" | "no_place")
-            ) {
-                if let Some(rect) = candidate_zone.get("rect").and_then(rect_from_value) {
-                    protected_zones.push(rect);
-                }
+            ) && let Some(rect) = candidate_zone.get("rect").and_then(rect_from_value)
+            {
+                protected_zones.push(rect);
             }
         }
     }
@@ -652,9 +623,7 @@ pub fn suggest_single_item_zone_repairs(
         ) else {
             return outcome_report(
                 RepairDisposition::SearchCapped,
-                scenario_id,
-                alternative_id,
-                requirement_id,
+            target,
                 blockers,
                 0,
                 Vec::new(),
@@ -667,9 +636,7 @@ pub fn suggest_single_item_zone_repairs(
         if candidate_tests.saturating_add(positions.len()) > MAX_CANDIDATE_TESTS {
             return outcome_report(
                 RepairDisposition::SearchCapped,
-                scenario_id,
-                alternative_id,
-                requirement_id,
+            target,
                 blockers,
                 0,
                 Vec::new(),
@@ -745,9 +712,7 @@ pub fn suggest_single_item_zone_repairs(
     if candidates.is_empty() {
         outcome_report(
             RepairDisposition::NoRepairFound,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             blockers,
             candidate_count_before_limit,
             candidates,
@@ -758,9 +723,7 @@ pub fn suggest_single_item_zone_repairs(
     } else {
         outcome_report(
             RepairDisposition::SuggestionsAvailable,
-            scenario_id,
-            alternative_id,
-            requirement_id,
+            target,
             blockers,
             candidate_count_before_limit,
             candidates,
