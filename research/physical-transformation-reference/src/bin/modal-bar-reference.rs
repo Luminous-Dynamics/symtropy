@@ -222,10 +222,14 @@ fn verify_known_answers(
             return Err(format!("{formulation} model did not return 16 axial modes"));
         }
         if (ratios[0] > 1.0) != greater {
-            return Err(format!("{formulation} first-mode ratio violates expected bracketing"));
+            return Err(format!(
+                "{formulation} first-mode ratio violates expected bracketing"
+            ));
         }
         if (ratios[1] > 1.0) != greater {
-            return Err(format!("{formulation} second-mode ratio violates expected bracketing"));
+            return Err(format!(
+                "{formulation} second-mode ratio violates expected bracketing"
+            ));
         }
     }
     for formulation in ["consistent", "row-sum-lumped"] {
@@ -258,7 +262,9 @@ fn verify_known_answers(
         || (consistent.normalized_frequencies[1] - 1.0).abs() >= second_limit
         || (lumped.normalized_frequencies[1] - 1.0).abs() >= second_limit
     {
-        return Err("final mesh does not meet the declared first-/second-mode error limits".to_owned());
+        return Err(
+            "final mesh does not meet the declared first-/second-mode error limits".to_owned(),
+        );
     }
     Ok(())
 }
@@ -289,7 +295,11 @@ fn formulation_json(result: &ModalFrequencies) -> String {
 fn number_array(values: &[f64]) -> String {
     format!(
         "[{}]",
-        values.iter().map(|value| format_number(*value)).collect::<Vec<_>>().join(",")
+        values
+            .iter()
+            .map(|value| format_number(*value))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
