@@ -86,6 +86,7 @@ pub struct BoardAttempt {
     pub input_board_sha256: String,
     pub execution_status: ExecutionStatus,
     pub drc_evaluated: bool,
+    pub drc_report_sha256: Option<String>,
     pub required_nets: u32,
     pub connected_nets: u32,
     pub routing_drc_violation_types: Vec<String>,
@@ -125,6 +126,7 @@ pub struct EvaluatedCase {
     pub board_id: String,
     pub input_board_sha256: String,
     pub output_board_sha256: Option<String>,
+    pub drc_report_sha256: Option<String>,
     pub disposition: Disposition,
     pub valid_route_completion: bool,
     pub reason_codes: Vec<String>,
@@ -479,6 +481,9 @@ fn validate_case(case: &BoardAttempt) -> Result<(), String> {
     if let Some(hash) = case.output_board_sha256.as_deref() {
         require_sha256(hash, "output_board_sha256")?;
     }
+    if let Some(hash) = case.drc_report_sha256.as_deref() {
+        require_sha256(hash, "drc_report_sha256")?;
+    }
     if case
         .routing_drc_violation_types
         .iter()
@@ -523,6 +528,9 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
             if !case.drc_evaluated {
                 reasons.push("ROUTE_DRC_NOT_EVALUATED".into());
             }
+            if case.drc_report_sha256.is_none() {
+                reasons.push("DRC_REPORT_DIGEST_MISSING".into());
+            }
             if case.output_board_sha256.is_none() {
                 reasons.push("OUTPUT_BOARD_DIGEST_MISSING".into());
             }
@@ -540,6 +548,7 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
             } else if case.connected_nets < case.required_nets {
                 Disposition::IncompleteNets
             } else if !case.drc_evaluated
+                || case.drc_report_sha256.is_none()
                 || case.output_board_sha256.is_none()
                 || case.total_wirelength_mm.is_none()
                 || case.via_count.is_none()
@@ -555,6 +564,7 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
         board_id: case.board_id.clone(),
         input_board_sha256: case.input_board_sha256.clone(),
         output_board_sha256: case.output_board_sha256.clone(),
+        drc_report_sha256: case.drc_report_sha256.clone(),
         disposition,
         valid_route_completion: disposition == Disposition::ValidComplete,
         reason_codes: reasons,
