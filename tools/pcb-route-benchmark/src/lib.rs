@@ -567,8 +567,8 @@ pub fn compare_runs(
         return Err("baseline and treatment method IDs must differ".into());
     }
 
-    let base: BTreeMap<&str, &EvaluatedCase> = left.cases.iter().map(|c| (c.board_id.as_str(), c)).collect();
-    let treat: BTreeMap<&str, &EvaluatedCase> = right.cases.iter().map(|c| (c.board_id.as_str(), c)).collect();
+    let base: BTreeMap<String, &EvaluatedCase> = left.cases.iter().map(|c| (c.board_id.clone(), c)).collect();
+    let treat: BTreeMap<String, &EvaluatedCase> = right.cases.iter().map(|c| (c.board_id.clone(), c)).collect();
     if base.keys().ne(treat.keys()) {
         return Err("cannot pair runs: board ID sets differ".into());
     }
@@ -583,7 +583,7 @@ pub fn compare_runs(
     for (board_id, b) in base.iter() {
         let b = *b;
         let t = treat
-            .get(*board_id)
+            .get(board_id)
             .copied()
             .ok_or_else(|| format!("paired result missing board {board_id}"))?;
         if b.input_board_sha256 != t.input_board_sha256 || b.required_nets != t.required_nets {
@@ -606,7 +606,7 @@ pub fn compare_runs(
             _ => None,
         };
         pairs.push(BoardPair {
-            board_id: board_id.to_string(),
+            board_id: board_id.clone(),
             baseline_disposition: b.disposition,
             treatment_disposition: t.disposition,
             baseline_valid: b.valid_route_completion,
