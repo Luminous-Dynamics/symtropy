@@ -40,6 +40,7 @@ fn run() -> Result<String, String> {
     }
 
     let mut mesh_receipts = Vec::with_capacity(ELEMENT_COUNTS.len());
+    let mut previous_frequencies: Option<Vec<f64>> = None;
     for elements_per_member in ELEMENT_COUNTS {
         let members = fixture_members(elements_per_member);
         let assembly = assemble_released_joint_beam_chains(&nodes, &members)?;
@@ -69,12 +70,19 @@ fn run() -> Result<String, String> {
                 "modal diagnostic gate failed at mesh {elements_per_member}"
             ));
         }
+        let current_frequencies = result
+            .modes
+            .iter()
+            .map(|mode| mode.frequency_hz.expect("elastic mode"))
+            .collect::<Vec<_>>();
         mesh_receipts.push(mesh_json(
             elements_per_member,
             assembly.stiffness_global.len(),
             assembly.free_dof_indices.len(),
             &result,
+            previous_frequencies.as_deref(),
         ));
+        previous_frequencies = Some(current_frequencies);
     }
 
     Ok(format!(
@@ -144,6 +152,7 @@ fn mesh_json(
     global_dof_count: usize,
     free_dof_count: usize,
     result: &physical_transformation_reference::beam_modal::BeamModalResult,
+    previous_frequencies: Option<&[f64]>,
 ) -> String {
     let frequencies = result
         .modes
@@ -153,6 +162,30 @@ fn mesh_json(
         })
         .collect::<Vec<_>>()
         .join(",");
+    let relative_changes = previous_frequencies.map(|previous| {
+        previous
+            .iter()
+            .zip(result.modes.iter())
+            .map(|(previous, mode)| {
+                let current = mode.frequency_hz.expect("receipt only includes elastic modes");
+                ((current - previous) / previous).abs()
+            })
+            .collect::<Vec<_>>()
+    });
+    let relative_changes_json = relative_changes
+        .as_ref()
+        .map(|values| {
+            format!(
+                "[{}]",
+                values.iter().map(|value| float_json(*value)).collect::<Vec<_>>().join(",")
+            )
+        })
+        .unwrap_or_else(|| "null".to_owned());
+    let maximum_relative_change_json = relative_changes
+        .as_ref()
+        .and_then(|values| values.iter().copied().reduce(f64::max))
+        .map(float_json)
+        .unwrap_or_else(|| "null".to_owned());
     format!(
         concat!(
             "{{",
@@ -163,7 +196,9 @@ fn mesh_json(
             "\"maximum_normalized_eigen_residual\":{},",
             "\"maximum_mass_norm_residual\":{},",
             "\"maximum_off_diagonal_mass_orthogonality_residual\":{},",
-            "\"frequencies_hz\":[{}]",
+            "\"frequencies_hz\":[{}],",
+            "\"common_low_mode_frequency_relative_changes_from_previous_mesh\":{},",
+            "\"max_common_low_mode_frequency_relative_change\":{}",
             "}}"
         ),
         elements_per_member,
@@ -174,6 +209,8 @@ fn mesh_json(
         float_json(result.maximum_mass_norm_residual),
         float_json(result.maximum_off_diagonal_mass_orthogonality_residual),
         frequencies,
+        relative_changes_json,
+        maximum_relative_change_json,
     )
 }
 
