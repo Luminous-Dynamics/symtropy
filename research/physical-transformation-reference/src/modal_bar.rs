@@ -74,47 +74,20 @@ pub fn analyze_fixed_free_bar(
 
     // The first node is fixed. The reduced matrices contain the n free nodes.
     let mut stiffness = vec![vec![0.0; n]; n];
-    let mut mass = vec![vec![0.0; n]; n];
     for element in 0..n {
-        let left = element;
-        let right = element + 1;
+        // Physical node 0 is fixed. Reduced degree i represents physical node
+        // i+1, so element e connects reduced nodes e-1 and e (when e > 0).
+        let right = element;
         let k = element_stiffness;
-        stiffness[left][left] += k;
-        if right < n {
-            stiffness[right][right] += k;
+        stiffness[right][right] += k;
+        if element > 0 {
+            let left = element - 1;
+            stiffness[left][left] += k;
             stiffness[left][right] -= k;
             stiffness[right][left] -= k;
         }
-
-        match formulation {
-            MassFormulation::Consistent => {
-                let m = element_mass / 6.0;
-                mass[left][left] += 2.0 * m;
-                if right < n {
-                    mass[right][right] += 2.0 * m;
-                    mass[left][right] += m;
-                    mass[right][left] += m;
-                } else {
-                    // The fixed endpoint's row/column is eliminated. Its
-                    // consistent-mass coupling to the last free node vanishes.
-                    mass[left][left] += 0.0;
-                }
-            }
-            MassFormulation::RowSumLumped => {
-                let half_mass = element_mass / 2.0;
-                mass[left][left] += half_mass;
-                if right < n {
-                    mass[right][right] += half_mass;
-                }
-            }
-        }
     }
-
-    // Consistent element assembly contributes 2m/6 to each node before
-    // constraints. The free endpoint's diagonal term was already added above.
-    // Assemble mass once more with the exact local matrix form to avoid any
-    // ambiguity from the constrained endpoint bookkeeping.
-    mass = assemble_mass(n, element_mass, formulation);
+    let mass = assemble_mass(n, element_mass, formulation);
 
     let lower = cholesky_lower(&mass)?;
     let inverse_lower = invert_lower(&lower)?;
@@ -192,21 +165,22 @@ fn assemble_mass(
 ) -> Vec<Vec<f64>> {
     let mut mass = vec![vec![0.0; elements]; elements];
     for element in 0..elements {
-        let left = element;
-        let right = element + 1;
+        // Reduced node element is the physical right endpoint, e+1.
+        let right = element;
         match formulation {
             MassFormulation::Consistent => {
-                mass[left][left] += element_mass / 3.0;
-                if right < elements {
-                    mass[right][right] += element_mass / 3.0;
+                mass[right][right] += element_mass / 3.0;
+                if element > 0 {
+                    let left = element - 1;
+                    mass[left][left] += element_mass / 3.0;
                     mass[left][right] += element_mass / 6.0;
                     mass[right][left] += element_mass / 6.0;
                 }
             }
             MassFormulation::RowSumLumped => {
-                mass[left][left] += element_mass / 2.0;
-                if right < elements {
-                    mass[right][right] += element_mass / 2.0;
+                mass[right][right] += element_mass / 2.0;
+                if element > 0 {
+                    mass[element - 1][element - 1] += element_mass / 2.0;
                 }
             }
         }
