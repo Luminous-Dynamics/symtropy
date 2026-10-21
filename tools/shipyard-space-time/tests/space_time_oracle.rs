@@ -145,7 +145,7 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
         }
     }
 
-    assert_eq!(cases.len(), 19, "frozen scenario inventory changed");
+    assert_eq!(cases.len(), 21, "frozen scenario inventory changed");
     for (case_id, case) in cases {
         let expected = case
             .expected_counts
