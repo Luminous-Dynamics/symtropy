@@ -98,8 +98,14 @@ pub struct PcbWorldCsvSummary {
     pub rows_with_clean_pass_metric: usize,
     pub success_attempts: usize,
     pub clean_pass_attempts: usize,
+    /// Explicitly true outcomes divided by all attempts; missing metrics stay in the denominator.
     pub success_rate_over_all_rows: f64,
+    /// Explicitly clean outcomes divided by all attempts; missing metrics stay in the denominator.
     pub clean_pass_rate_over_all_rows: f64,
+    /// Success among rows where the upstream CSV actually reports the metric.
+    pub success_rate_over_metric_reporting_rows: Option<f64>,
+    /// Clean pass among rows where the upstream CSV actually reports the metric.
+    pub clean_pass_rate_over_metric_reporting_rows: Option<f64>,
     pub rows_with_routability: usize,
     pub mean_routability_over_recorded_rows: Option<f64>,
     pub rows_with_error_only_drc_count: usize,
@@ -488,6 +494,22 @@ fn summarize(rows: &[PcbWorldRolloutRow]) -> PcbWorldCsvSummary {
             / rows.len() as f64,
         clean_pass_rate_over_all_rows: clean_values.iter().filter(|value| **value).count() as f64
             / rows.len() as f64,
+        success_rate_over_metric_reporting_rows: if success_values.is_empty() {
+            None
+        } else {
+            Some(
+                success_values.iter().filter(|value| **value).count() as f64
+                    / success_values.len() as f64,
+            )
+        },
+        clean_pass_rate_over_metric_reporting_rows: if clean_values.is_empty() {
+            None
+        } else {
+            Some(
+                clean_values.iter().filter(|value| **value).count() as f64
+                    / clean_values.len() as f64,
+            )
+        },
         rows_with_routability: routability.len(),
         mean_routability_over_recorded_rows: mean(&routability),
         rows_with_error_only_drc_count: error_counts.len(),
@@ -767,6 +789,7 @@ mod tests {
 board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,"[{""severity_label"":""warning"",""severity"":1,""error_code"":12,""error_type"":""tracks_crossing"",""x_mm"":1.0,""y_mm"":2.0,""layer"":0,""net_names"":[""GND""],""is_error"":false,""is_promoted"":true}]"
 board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,""
 board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,"[]"
+board-b,1,19,crashed,,,,,,,,,,,,,,,
 "#;
 
     const EVALUATOR_HEAD: &str = "ffffffffffffffffffffffffffffffffffffffff";
@@ -777,13 +800,29 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
             import_pcbworld_per_rollout_csv(CSV.as_bytes(), MANIFEST.as_bytes(), EVALUATOR_HEAD)
                 .expect("PCBWorld metrics CSV import");
         assert_eq!(receipt.schema, PCBWORLD_CSV_RECEIPT_SCHEMA);
-        assert_eq!(receipt.row_count, 3);
+        assert_eq!(receipt.row_count, 4);
         assert_eq!(receipt.source_board_count, 2);
         assert_eq!(receipt.summary.unique_boards, 2);
         assert_eq!(receipt.summary.success_attempts, 2);
         assert_eq!(receipt.summary.clean_pass_attempts, 2);
-        assert!((receipt.summary.success_rate_over_all_rows - 2.0 / 3.0).abs() < 1e-9);
-        assert!((receipt.summary.clean_pass_rate_over_all_rows - 2.0 / 3.0).abs() < 1e-9);
+        assert_eq!(receipt.summary.rows_crashed, 1);
+        assert_eq!(receipt.summary.rows_with_success_metric, 3);
+        assert_eq!(receipt.summary.rows_with_clean_pass_metric, 3);
+        assert!((receipt.summary.success_rate_over_all_rows - 0.5).abs() < 1e-9);
+        assert!((receipt.summary.clean_pass_rate_over_all_rows - 0.5).abs() < 1e-9);
+        assert!(
+            (receipt.summary.success_rate_over_metric_reporting_rows.unwrap() - 2.0 / 3.0).abs()
+                < 1e-9
+        );
+        assert!(
+            (receipt
+                .summary
+                .clean_pass_rate_over_metric_reporting_rows
+                .unwrap()
+                - 2.0 / 3.0)
+                .abs()
+                < 1e-9
+        );
         assert_eq!(receipt.summary.error_only_drc_total, 1);
         assert_eq!(receipt.summary.error_and_promoted_drc_total, 3);
         assert_eq!(
