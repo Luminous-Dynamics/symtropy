@@ -209,21 +209,43 @@ pub fn compare_displacement_reference_bytes(
     }
 
     let boundaries = array_field(&request, "boundary_conditions", "request")?;
-    if boundaries.len() != 1 {
-        return Err("v0.1 requires exactly one fixed support boundary".to_owned());
+    if boundaries.len() != 2 {
+        return Err("v0.1 requires one fixed support and one tip lateral-guide boundary".to_owned());
     }
-    let boundary = &boundaries[0];
-    if field_string(boundary, "kind", "boundary")? != "fixed"
-        || field_string(boundary, "target_id", "boundary")? != support_target_id
-    {
-        return Err("manifest support target differs from the exact request".to_owned());
+    let mut support_boundary_seen = false;
+    let mut tip_lateral_guide_seen = false;
+    for boundary in boundaries {
+        if field_string(boundary, "kind", "boundary")? != "fixed" {
+            return Err("v0.1 axial-bar boundaries must be zero-valued fixed constraints".to_owned());
+        }
+        let target_id = field_string(boundary, "target_id", "boundary")?;
+        let dofs: BTreeSet<&str> = array_field(boundary, "dofs", "boundary")?
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .ok_or_else(|| "boundary.dofs must contain strings".to_owned())
+            })
+            .collect::<Check<BTreeSet<&str>>>()?;
+        if target_id == support_target_id
+            && dofs == ["ux", "uy", "uz"].into_iter().collect()
+            && !support_boundary_seen
+        {
+            support_boundary_seen = true;
+        } else if target_id == load_target_id
+            && dofs == ["uy", "uz"].into_iter().collect()
+            && !tip_lateral_guide_seen
+        {
+            tip_lateral_guide_seen = true;
+        } else {
+            return Err(
+                "v0.1 boundaries must be fixed support ux/uy/uz and tip lateral-guide uy/uz only"
+                    .to_owned(),
+            );
+        }
     }
-    let dofs: BTreeSet<&str> = array_field(boundary, "dofs", "boundary")?
-        .iter()
-        .map(|value| value.as_str().ok_or_else(|| "boundary.dofs must contain strings".to_owned()))
-        .collect::<Check<BTreeSet<&str>>>()?;
-    if dofs != ["ux", "uy", "uz"].into_iter().collect() {
-        return Err("v0.1 axial-bar fixture requires fixed support DOFs ux, uy, uz only".to_owned());
+    if !support_boundary_seen || !tip_lateral_guide_seen {
+        return Err("the exact request must declare both support and tip lateral-guide constraints".to_owned());
     }
 
     let nodes = parse_model_nodes(&manifest)?;
