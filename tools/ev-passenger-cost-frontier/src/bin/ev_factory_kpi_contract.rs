@@ -1,0 +1,917 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::{env, fs, process};
+
+const BENCHMARK_ID: &str = "EV-FACTORY-KPI-001";
+const SCHEMA_VERSION: &str = "0.1.0";
+const CLAIM_CEILING: &str = "Evidence-aware KPI envelope generated from a synthetic factory DES report. ISO 22400 is used as an informative vocabulary crosswalk only; this output does not claim standards conformance, calibrated plant performance, commercial SOTA, or production/safety/quality/legal release.";
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Computability {
+    Computed,
+    NotEstimable,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+struct DistributionSummary {
+    sample_count: usize,
+    mean: f64,
+    sample_standard_deviation: Option<f64>,
+    minimum: f64,
+    p05: f64,
+    median: f64,
+    p95: f64,
+    maximum: f64,
+    mean_confidence_95_lower: Option<f64>,
+    mean_confidence_95_upper: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct KpiMetric {
+    kpi_id: String,
+    name: String,
+    formula_id: String,
+    formula_definition: String,
+    unit: String,
+    computability: Computability,
+    value: Option<f64>,
+    distribution: Option<DistributionSummary>,
+    reference_window: String,
+    numerator_definition: Option<String>,
+    denominator_definition: Option<String>,
+    source_fields: Vec<String>,
+    evidence_class: String,
+    unavailable_reason: Option<String>,
+    interpretation: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct CrosswalkItem {
+    metric_family: String,
+    informative_iso_22400_concept: String,
+    implementation_note: String,
+    conformance_claim: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct KpiReport {
+    schema_version: String,
+    benchmark_id: String,
+    source_catalog_sha256: String,
+    source_simulation_report_sha256: String,
+    source_evidence_class: String,
+    replication_count: usize,
+    replication_seeds: Vec<u64>,
+    dispatch_policy: String,
+    metrics: Vec<KpiMetric>,
+    iso_22400_informative_crosswalk: Vec<CrosswalkItem>,
+    model_safety_quality_compliance_release_authorized: bool,
+    production_release_authorized: bool,
+    claim_ceiling: String,
+}
+
+fn main() {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.len() != 2 {
+        eprintln!("usage: ev_factory_kpi_contract <catalog.json> <simulation-report.json>");
+        process::exit(2);
+    }
+    let catalog_bytes = match fs::read(&args[0]) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("cannot read catalog {}: {error}", args[0]);
+            process::exit(2);
+        }
+    };
+    let report_bytes = match fs::read(&args[1]) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("cannot read simulation report {}: {error}", args[1]);
+            process::exit(2);
+        }
+    };
+    let catalog: Value = match serde_json::from_slice(&catalog_bytes) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid catalog JSON: {error}");
+            process::exit(2);
+        }
+    };
+    let simulation: Value = match serde_json::from_slice(&report_bytes) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid simulation report JSON: {error}");
+            process::exit(2);
+        }
+    };
+    let catalog_sha = sha256(&catalog_bytes);
+    let report_sha = sha256(&report_bytes);
+    let report = match build_report(&catalog, &simulation, &catalog_sha, &report_sha) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("KPI envelope rejected input: {error}");
+            process::exit(2);
+        }
+    };
+    match serde_json::to_string_pretty(&report) {
+        Ok(value) => println!("{value}"),
+        Err(error) => {
+            eprintln!("cannot serialize KPI report: {error}");
+            process::exit(2);
+        }
+    }
+}
+
+fn sha256(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn field_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| format!("{key}_missing_or_not_string"))
+}
+
+fn field_bool(value: &Value, key: &str) -> Result<bool, String> {
+    value
+        .get(key)
+        .and_then(Value::as_bool)
+        .ok_or_else(|| format!("{key}_missing_or_not_bool"))
+}
+
+fn field_u64(value: &Value, key: &str) -> Result<u64, String> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| format!("{key}_missing_or_not_u64"))
+}
+
+fn field_usize(value: &Value, key: &str) -> Result<usize, String> {
+    usize::try_from(field_u64(value, key)?).map_err(|_| format!("{key}_out_of_range"))
+}
+
+fn field_f64(value: &Value, key: &str) -> Result<f64, String> {
+    let result = value
+        .get(key)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| format!("{key}_missing_or_not_number"))?;
+    if !result.is_finite() {
+        return Err(format!("{key}_must_be_finite"));
+    }
+    Ok(result)
+}
+
+fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or_else(|| format!("{key}_missing_or_not_array"))
+}
+
+fn get_distribution(
+    value: &Value,
+    key: &str,
+    expected_count: Option<usize>,
+) -> Result<DistributionSummary, String> {
+    let distribution: DistributionSummary = serde_json::from_value(
+        value
+            .get(key)
+            .cloned()
+            .ok_or_else(|| format!("{key}_missing"))?,
+    )
+    .map_err(|error| format!("{key}_invalid_distribution:{error}"))?;
+    if distribution.sample_count == 0
+        || !distribution.mean.is_finite()
+        || distribution.minimum > distribution.maximum
+        || expected_count.is_some_and(|count| count != distribution.sample_count)
+    {
+        return Err(format!("{key}_distribution_invariants_failed"));
+    }
+    Ok(distribution)
+}
+
+fn summarize(values: &[f64]) -> Result<DistributionSummary, String> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err("summary_requires_nonempty_finite_values".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let count = sorted.len();
+    let mean = sorted.iter().sum::<f64>() / count as f64;
+    let sd = if count > 1 {
+        Some(
+            (sorted
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
+                / (count - 1) as f64)
+                .sqrt(),
+        )
+    } else {
+        None
+    };
+    let ci = sd.map(|sample_sd| {
+        let margin = student_t_critical_95((count - 1) as u32) * sample_sd / (count as f64).sqrt();
+        (mean - margin, mean + margin)
+    });
+    Ok(DistributionSummary {
+        sample_count: count,
+        mean,
+        sample_standard_deviation: sd,
+        minimum: sorted[0],
+        p05: quantile(&sorted, 0.05),
+        median: quantile(&sorted, 0.5),
+        p95: quantile(&sorted, 0.95),
+        maximum: sorted[count - 1],
+        mean_confidence_95_lower: ci.map(|bounds| bounds.0),
+        mean_confidence_95_upper: ci.map(|bounds| bounds.1),
+    })
+}
+
+fn quantile(sorted: &[f64], p: f64) -> f64 {
+    let pos = p.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
+    let lo = pos.floor() as usize;
+    let hi = pos.ceil() as usize;
+    let fraction = pos - lo as f64;
+    sorted[lo] * (1.0 - fraction) + sorted[hi] * fraction
+}
+
+fn student_t_critical_95(df: u32) -> f64 {
+    match df {
+        0 => f64::NAN,
+        1 => 12.706,
+        2 => 4.303,
+        3 => 3.182,
+        4 => 2.776,
+        5 => 2.571,
+        6 => 2.447,
+        7 => 2.365,
+        8 => 2.306,
+        9 => 2.262,
+        10 => 2.228,
+        11 => 2.201,
+        12 => 2.179,
+        13 => 2.160,
+        14 => 2.145,
+        15 => 2.131,
+        16 => 2.120,
+        17 => 2.110,
+        18 => 2.101,
+        19 => 2.093,
+        20 => 2.086,
+        21 => 2.080,
+        22 => 2.074,
+        23 => 2.069,
+        24 => 2.064,
+        25 => 2.060,
+        26 => 2.056,
+        27 => 2.052,
+        28 => 2.048,
+        29 => 2.045,
+        _ => 1.960,
+    }
+}
+
+fn computed_distribution_metric(
+    id: &str,
+    name: &str,
+    formula_id: &str,
+    formula: &str,
+    unit: &str,
+    summary: DistributionSummary,
+    reference_window: &str,
+    numerator: &str,
+    denominator: &str,
+    source_fields: Vec<String>,
+    interpretation: &str,
+) -> KpiMetric {
+    KpiMetric {
+        kpi_id: id.into(),
+        name: name.into(),
+        formula_id: formula_id.into(),
+        formula_definition: formula.into(),
+        unit: unit.into(),
+        computability: Computability::Computed,
+        value: Some(summary.mean),
+        distribution: Some(summary),
+        reference_window: reference_window.into(),
+        numerator_definition: Some(numerator.into()),
+        denominator_definition: Some(denominator.into()),
+        source_fields,
+        evidence_class: "synthetic".into(),
+        unavailable_reason: None,
+        interpretation: interpretation.into(),
+    }
+}
+
+fn computed_scalar_metric(
+    id: &str,
+    name: &str,
+    formula_id: &str,
+    formula: &str,
+    unit: &str,
+    value: f64,
+    reference_window: &str,
+    source_fields: Vec<String>,
+    interpretation: &str,
+) -> KpiMetric {
+    let summary = DistributionSummary {
+        sample_count: 1,
+        mean: value,
+        sample_standard_deviation: None,
+        minimum: value,
+        p05: value,
+        median: value,
+        p95: value,
+        maximum: value,
+        mean_confidence_95_lower: None,
+        mean_confidence_95_upper: None,
+    };
+    computed_distribution_metric(
+        id,
+        name,
+        formula_id,
+        formula,
+        unit,
+        summary,
+        reference_window,
+        "Single value from the primary-seed baseline scenario",
+        "One primary-seed simulation setting; no replication interval is implied",
+        source_fields,
+        interpretation,
+    )
+}
+
+fn not_estimable_metric(
+    id: &str,
+    name: &str,
+    formula_id: &str,
+    formula: &str,
+    unit: &str,
+    reference_window: &str,
+    required_fields: Vec<String>,
+    reason: &str,
+) -> KpiMetric {
+    KpiMetric {
+        kpi_id: id.into(),
+        name: name.into(),
+        formula_id: formula_id.into(),
+        formula_definition: formula.into(),
+        unit: unit.into(),
+        computability: Computability::NotEstimable,
+        value: None,
+        distribution: None,
+        reference_window: reference_window.into(),
+        numerator_definition: None,
+        denominator_definition: None,
+        source_fields: required_fields,
+        evidence_class: "not_available".into(),
+        unavailable_reason: Some(reason.into()),
+        interpretation:
+            "A null/not-estimable result is intentional; it is not zero and must not be imputed."
+                .into(),
+    }
+}
+
+fn baseline_scenario<'a>(report: &'a Value) -> Result<&'a Value, String> {
+    let scenarios = array(report, "scenarios")?;
+    scenarios
+        .iter()
+        .find(|scenario| scenario.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+        .ok_or_else(|| "primary_seed_baseline_scenario_missing".to_string())
+}
+
+fn build_report(
+    catalog: &Value,
+    simulation: &Value,
+    catalog_sha: &str,
+    report_sha: &str,
+) -> Result<KpiReport, String> {
+    if field_str(catalog, "schema_version")? != SCHEMA_VERSION
+        || field_str(catalog, "benchmark_id")? != "EV-FACTORY-SIM-001"
+        || field_str(simulation, "schema_version")? != SCHEMA_VERSION
+        || field_str(simulation, "benchmark_id")? != "EV-FACTORY-SIM-001"
+    {
+        return Err("unsupported_catalog_or_simulation_schema".into());
+    }
+    if field_str(catalog, "input_evidence_class")? != "synthetic"
+        || field_str(simulation, "input_evidence_class")? != "synthetic"
+    {
+        return Err("KPI_envelope_requires_explicit_synthetic_input".into());
+    }
+    if field_str(simulation, "source_catalog_sha256")? != catalog_sha {
+        return Err("simulation_report_is_not_bound_to_exact_catalog_bytes".into());
+    }
+    if field_bool(simulation, "release_ready")?
+        || !field_bool(simulation, "output_never_exceeds_released_input")?
+        || !field_bool(simulation, "all_buffers_respected_capacity")?
+        || !field_bool(simulation, "station_time_accounting_within_horizon")?
+    {
+        return Err("simulation_report_failed_invariants_or_claims_release_ready".into());
+    }
+    if field_str(simulation, "dispatch_policy")? != field_str(catalog, "dispatch_policy")? {
+        return Err("simulation_catalog_dispatch_policy_mismatch".into());
+    }
+    let seeds: Vec<u64> = array(simulation, "replication_seeds")?
+        .iter()
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "replication_seed_not_u64".to_string())
+        })
+        .collect::<Result<_, _>>()?;
+    let catalog_seeds: Vec<u64> = array(catalog, "replication_seeds")?
+        .iter()
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "catalog_seed_not_u64".to_string())
+        })
+        .collect::<Result<_, _>>()?;
+    if seeds != catalog_seeds
+        || seeds.is_empty()
+        || field_usize(simulation, "replication_count")? != seeds.len()
+    {
+        return Err("catalog_simulation_seed_order_or_count_mismatch".into());
+    }
+    let replication_count = seeds.len();
+    let baseline = baseline_scenario(simulation)?;
+    let scenarios = array(simulation, "scenarios")?;
+    if scenarios.len() != field_usize(simulation, "scenario_count")? {
+        return Err("scenario_count_does_not_match_report_array".into());
+    }
+    let baseline_outcomes: Vec<f64> = array(simulation, "replication_outcomes")?
+        .iter()
+        .filter(|row| row.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+        .map(|row| field_f64(row, "good_units_per_hour"))
+        .collect::<Result<_, _>>()?;
+    if baseline_outcomes.len() != replication_count {
+        return Err("baseline_output_samples_do_not_match_replications".into());
+    }
+    let throughput = summarize(&baseline_outcomes)?;
+    let productive_seconds_per_year = field_u64(simulation, "productive_seconds_per_year")?;
+    let annualized: Vec<f64> = baseline_outcomes
+        .iter()
+        .map(|rate| rate * productive_seconds_per_year as f64 / 3600.0)
+        .collect();
+    let annualized_summary = summarize(&annualized)?;
+
+    let scenario_statistics = array(simulation, "scenario_statistics")?;
+    let baseline_stats = scenario_statistics
+        .iter()
+        .find(|item| item.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+        .ok_or_else(|| "baseline_scenario_statistics_missing".to_string())?;
+    let scrap_distribution = get_distribution(
+        baseline_stats,
+        "scrapped_jobs_total",
+        Some(replication_count),
+    )?;
+    let rework_distribution = get_distribution(
+        baseline_stats,
+        "measured_rework_attempts",
+        Some(replication_count),
+    )?;
+
+    let mut metrics = Vec::new();
+    metrics.push(computed_distribution_metric(
+        "good_units_per_hour",
+        "Good units per hour",
+        "throughput.good-units-per-hour.v1",
+        "For each replication, measured good final units divided by the post-warm-up measurement seconds, multiplied by 3600; the reported distribution summarizes the 20 per-seed values.",
+        "good_units/hour",
+        throughput,
+        "Measured horizon after warm-up; 20 synthetic replications",
+        "Good final units accepted after warm-up",
+        "Post-warm-up measured seconds / 3600 seconds per hour",
+        vec![
+            "replication_outcomes[scenario_id=baseline].good_units_per_hour".into(),
+            "measured_horizon_seconds".into(),
+            "replication_seeds".into(),
+        ],
+        "Conditional simulation output rate under the exact synthetic catalog and seed list; not a plant forecast.",
+    ));
+    metrics.push(computed_distribution_metric(
+        "annualized_good_units_at_declared_hours",
+        "Linearly annualized good units at declared operating hours",
+        "throughput.linearized-annualization.v1",
+        "Good units/hour for each seed multiplied by productive_seconds_per_year / 3600; assumes the measured rate persists for the declared annual productive seconds.",
+        "good_units/year",
+        annualized_summary,
+        "Linearized projection from the post-warm-up measured rate",
+        "Good units/hour × declared productive seconds/year",
+        "3600 seconds/hour",
+        vec![
+            "replication_outcomes[scenario_id=baseline].good_units_per_hour".into(),
+            "productive_seconds_per_year".into(),
+        ],
+        "A transparent sensitivity projection only; not capacity assurance, a sales plan, or a demand forecast.",
+    ));
+    metrics.push(computed_distribution_metric(
+        "scrapped_jobs_total_full_horizon",
+        "Scrapped jobs over full simulation horizon",
+        "quality.scrap-count.v1",
+        "Per-replication total scrapped jobs over the full simulated horizon, including warm-up.",
+        "jobs",
+        scrap_distribution,
+        "Full simulation horizon including warm-up; 20 synthetic replications",
+        "Scrapped jobs counted by the simulator",
+        "One full simulated horizon per replication",
+        vec!["scenario_statistics[scenario_id=baseline].scrapped_jobs_total".into()],
+        "Count only; not a standard quality yield ratio, and counts include warm-up events.",
+    ));
+    metrics.push(computed_distribution_metric(
+        "rework_attempts_measured_horizon",
+        "Rework attempts after warm-up",
+        "quality.rework-count.v1",
+        "Per-replication rework attempts that start at or after the warm-up boundary.",
+        "attempts",
+        rework_distribution,
+        "Measured horizon after warm-up; 20 synthetic replications",
+        "Rework attempts recorded by the simulator after warm-up",
+        "One measured horizon per replication",
+        vec!["scenario_statistics[scenario_id=baseline].measured_rework_attempts".into()],
+        "Count only; it is not a first-pass-yield measure and does not define an industry quality KPI by itself.",
+    ));
+
+    let station_rows = array(baseline, "stations")?;
+    let baseline_station_count = array(catalog, "stations")?.len();
+    if station_rows.len() != baseline_station_count {
+        return Err("primary_seed_station_metrics_do_not_match_catalog_station_count".into());
+    }
+    for station in station_rows {
+        let station_id = field_str(station, "station_id")?;
+        for (suffix, name, field, definition) in [
+            (
+                "busy_fraction",
+                "Busy fraction of server-seconds",
+                "busy_fraction",
+                "Busy server-seconds / total measured server-seconds",
+            ),
+            (
+                "blocked_fraction",
+                "Blocked fraction of server-seconds",
+                "blocked_fraction",
+                "Server-seconds waiting to transfer completed output / total measured server-seconds",
+            ),
+            (
+                "starved_fraction",
+                "Starved fraction of server-seconds",
+                "starved_fraction",
+                "Idle server-seconds while the immediately upstream input queue is empty / total measured server-seconds",
+            ),
+            (
+                "down_fraction",
+                "Down fraction of server-seconds",
+                "down_fraction",
+                "Server-seconds in the simulator's down state / total measured server-seconds",
+            ),
+        ] {
+            let val = field_f64(station, field)?;
+            if !(0.0..=1.0).contains(&val) {
+                return Err(format!(
+                    "station_{station_id}_{field}_outside_fraction_range"
+                ));
+            }
+            metrics.push(computed_scalar_metric(
+                &format!("station.{station_id}.{suffix}"),
+                &format!("{name}: {station_id}"),
+                &format!("equipment-state.{suffix}.v1"),
+                definition,
+                "fraction of server-seconds",
+                val,
+                "Primary-seed baseline scenario; measured horizon after warm-up",
+                vec![
+                    format!("scenarios[scenario_id=baseline].stations[station_id={station_id}].{field}"),
+                    "measured_horizon_seconds".into(),
+                    format!("scenarios[scenario_id=baseline].stations[station_id={station_id}].server_count"),
+                ],
+                "Simulator state ratio for one primary seed. This is not ISO 22400 equipment availability or OEE.",
+            ));
+        }
+    }
+
+    for key in [
+        "supplier_backlog_average_units",
+        "source_buffer_average_units",
+    ] {
+        let value = field_f64(baseline, key)?;
+        if value < 0.0 {
+            return Err(format!("{key}_must_be_nonnegative"));
+        }
+        metrics.push(computed_scalar_metric(
+            key,
+            if key == "supplier_backlog_average_units" {
+                "Average supplier backlog"
+            } else {
+                "Average source-buffer occupancy"
+            },
+            &format!("logistics.{key}.v1"),
+            "WIP-area integral over the post-warm-up measurement window divided by measured seconds.",
+            "units",
+            value,
+            "Primary-seed baseline scenario; measured horizon after warm-up",
+            vec![format!("scenarios[scenario_id=baseline].{key}"), "measured_horizon_seconds".into()],
+            "Time-average inventory/queue level from one primary-seed run; the report currently does not aggregate this metric over all seeds.",
+        ));
+    }
+
+    for buffer in array(baseline, "interstation_buffers")? {
+        let after = field_str(buffer, "after_station_id")?;
+        let occupancy = field_f64(buffer, "average_occupancy_units")?;
+        let capacity = field_usize(buffer, "capacity_units")?;
+        if occupancy < 0.0 || occupancy > capacity as f64 + 1e-9 {
+            return Err(format!("buffer_after_{after}_average_occupancy_invalid"));
+        }
+        metrics.push(computed_scalar_metric(
+            &format!("buffer.after_{after}.average_occupancy"),
+            &format!("Average occupancy after {after}"),
+            "logistics.average-buffer-occupancy.v1",
+            "Buffer WIP-area integral over the measured window divided by measured seconds.",
+            "units",
+            occupancy,
+            "Primary-seed baseline scenario; measured horizon after warm-up",
+            vec![
+                format!("scenarios[scenario_id=baseline].interstation_buffers[after_station_id={after}].average_occupancy_units"),
+                format!("scenarios[scenario_id=baseline].interstation_buffers[after_station_id={after}].capacity_units"),
+            ],
+            "Time-average WIP in a finite interstation buffer, primary seed only.",
+        ));
+    }
+
+    for station in array(simulation, "station_sequence_statistics")?
+        .iter()
+        .filter(|item| item.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+    {
+        let station_id = field_str(station, "station_id")?;
+        for (suffix, name, field, unit, formula) in [
+            (
+                "changeovers_started",
+                "Changeovers started",
+                "changeovers_started",
+                "changeovers",
+                "Count of starts that incur a variant changeover per replication.",
+            ),
+            (
+                "output_transfers",
+                "Output transfers",
+                "output_transfers",
+                "transfers",
+                "Count of accepted output transfers during the measured window per replication.",
+            ),
+            (
+                "out_of_order_output_transfers",
+                "Out-of-order output transfers (job-ID proxy)",
+                "out_of_order_output_transfers",
+                "transfers",
+                "Count of transfers where job ID is below the station's prior transfer high-water ID.",
+            ),
+        ] {
+            let summary = get_distribution(station, field, Some(replication_count))?;
+            metrics.push(computed_distribution_metric(
+                &format!("station.{station_id}.{suffix}"),
+                &format!("{name}: {station_id}"),
+                &format!("flow.{suffix}.v1"),
+                formula,
+                unit,
+                summary,
+                "Measured horizon after warm-up; 20 synthetic replications",
+                formula,
+                "One post-warm-up measured horizon per replication",
+                vec![
+                    format!("station_sequence_statistics[scenario_id=baseline,station_id={station_id}].{field}"),
+                    "replication_seeds".into(),
+                ],
+                "Synthetic diagnostic counter; the job-ID inversion metric is a coarse sequence-order proxy, not a delivery-order/tardiness KPI.",
+            ));
+        }
+    }
+
+    metrics.extend(not_estimable_metrics());
+    let crosswalk = vec![
+        CrosswalkItem {
+            metric_family: "Throughput and output quantity".into(),
+            informative_iso_22400_concept: "Manufacturing production quantity / rate indicators".into(),
+            implementation_note: "Our good-units/hour metric uses simulation post-warm-up time and a final-good-unit count; validate production-order scope and reference-time semantics before mapping to a plant KPI.".into(),
+            conformance_claim: false,
+        },
+        CrosswalkItem {
+            metric_family: "Equipment state fractions".into(),
+            informative_iso_22400_concept: "Equipment and production-time indicators".into(),
+            implementation_note: "Busy/blocked/starved/down ratios divide by all available simulated server-seconds and do not substitute for planned-time availability or OEE.".into(),
+            conformance_claim: false,
+        },
+        CrosswalkItem {
+            metric_family: "Buffers and backlog".into(),
+            informative_iso_22400_concept: "Logistical / inventory indicators".into(),
+            implementation_note: "Queue WIP is available for selected simulated buffers, but the present report only exposes primary-seed buffer time averages; it is not a complete inventory valuation.".into(),
+            conformance_claim: false,
+        },
+        CrosswalkItem {
+            metric_family: "Quality and maintenance".into(),
+            informative_iso_22400_concept: "Quality, scrap/rework and maintenance indicators".into(),
+            implementation_note: "Counts and state fractions are exposed where simulated; first-pass yield, MTBF/MTTR observed distributions and schedule-adjusted availability are not-estimable without additional event/count definitions.".into(),
+            conformance_claim: false,
+        },
+        CrosswalkItem {
+            metric_family: "Energy, labor and economics".into(),
+            informative_iso_22400_concept: "Energy and organizational/economic indicators".into(),
+            implementation_note: "The DES does not currently ingest meter readings, paid labor hours, audited costs or price/FX evidence; missing values must not become zeros.".into(),
+            conformance_claim: false,
+        },
+    ];
+    Ok(KpiReport {
+        schema_version: SCHEMA_VERSION.into(),
+        benchmark_id: BENCHMARK_ID.into(),
+        source_catalog_sha256: catalog_sha.into(),
+        source_simulation_report_sha256: report_sha.into(),
+        source_evidence_class: "synthetic".into(),
+        replication_count,
+        replication_seeds: seeds,
+        dispatch_policy: field_str(simulation, "dispatch_policy")?.into(),
+        metrics,
+        iso_22400_informative_crosswalk: crosswalk,
+        model_safety_quality_compliance_release_authorized: false,
+        production_release_authorized: false,
+        claim_ceiling: CLAIM_CEILING.into(),
+    })
+}
+
+fn not_estimable_metrics() -> Vec<KpiMetric> {
+    vec![
+        not_estimable_metric(
+            "overall_equipment_effectiveness",
+            "Overall equipment effectiveness (OEE)",
+            "oee.availability-performance-quality.v1",
+            "Availability × performance efficiency × quality ratio using a common defined reference-time model.",
+            "fraction",
+            "Plant-shift or production-order reference time",
+            vec![
+                "planned_production_time".into(),
+                "ideal_cycle_time_by_product_and_station".into(),
+                "total_units_processed_in_common_window".into(),
+                "good_units_processed_in_common_window".into(),
+            ],
+            "Planned production-time denominator, approved ideal cycle-time reference and common-window total/good counts are not jointly supplied by this simulator report.",
+        ),
+        not_estimable_metric(
+            "scheduled_time_equipment_availability",
+            "Scheduled-time equipment availability",
+            "equipment.availability.planned-time.v1",
+            "Operating time / planned production time under a declared calendar and maintenance inclusion rule.",
+            "fraction",
+            "Shift or production-order planned time",
+            vec![
+                "planned_production_time".into(),
+                "equipment_operating_time".into(),
+                "planned_maintenance_calendar".into(),
+            ],
+            "The simulator provides state fractions over a synthetic measurement window, but no planned-time calendar or declared treatment of planned maintenance.",
+        ),
+        not_estimable_metric(
+            "performance_efficiency_against_ideal_cycle",
+            "Performance efficiency against ideal cycle time",
+            "equipment.performance.ideal-cycle.v1",
+            "Ideal cycle time × total units / operating time, with product mix and unit scope declared.",
+            "fraction",
+            "Station and product-family reference window",
+            vec![
+                "approved_ideal_cycle_seconds_by_station_and_variant".into(),
+                "total_units_completed_by_station_and_variant".into(),
+                "operating_time".into(),
+            ],
+            "Synthetic mean cycle inputs are model parameters, not independently approved ideal-cycle standards, and complete product-family counts are not reported.",
+        ),
+        not_estimable_metric(
+            "first_pass_yield",
+            "First-pass yield",
+            "quality.first-pass-yield.v1",
+            "Units passing an operation on the first attempt / units entering that operation in the same window.",
+            "fraction",
+            "Station and product-family measured window",
+            vec![
+                "unique_units_entering_station".into(),
+                "unique_units_passing_first_attempt".into(),
+                "rework_linkage_by_unit_and_operation".into(),
+            ],
+            "The current simulator does not expose a complete same-window unique-unit cohort and first-attempt outcome denominator for each station.",
+        ),
+        not_estimable_metric(
+            "energy_per_good_unit",
+            "Energy intensity per good unit",
+            "energy.kwh-per-good-unit.v1",
+            "Metered electricity and declared thermal/fuel energy consumed in the production boundary / accepted good units in the same window.",
+            "kWh-equivalent/good unit",
+            "Metering interval aligned to measured production window",
+            vec![
+                "metered_electricity_kwh".into(),
+                "metered_thermal_energy_kwh_equivalent".into(),
+                "good_units_in_metering_window".into(),
+            ],
+            "No measured energy meters or operation-level energy model is included in this DES report.",
+        ),
+        not_estimable_metric(
+            "labor_productivity",
+            "Good units per paid labor hour",
+            "labor.good-units-per-paid-hour.v1",
+            "Accepted good units / paid direct and indirect labor hours, with scope declared.",
+            "good units/paid labor hour",
+            "Shift, work order or production-day window",
+            vec![
+                "accepted_good_units".into(),
+                "paid_labor_hours_by_role".into(),
+                "labor_scope_definition".into(),
+            ],
+            "Staffing, shift attendance, indirect labor and paid hours are absent from the simulator.",
+        ),
+        not_estimable_metric(
+            "audited_cost_per_good_unit",
+            "Audited cost per good unit",
+            "economics.audited-cost-per-good-unit.v1",
+            "Audited labor, energy, consumable, scrap, maintenance and overhead cost allocated to the declared production boundary / good units.",
+            "currency/good unit",
+            "Declared production-cost accounting period",
+            vec![
+                "audited_labor_cost".into(),
+                "audited_energy_cost".into(),
+                "audited_material_and_scrap_cost".into(),
+                "audited_overhead_and_maintenance_cost".into(),
+                "good_units_in_same_cost_period".into(),
+            ],
+            "No audited factory cost data, tariff/FX evidence, or accounting allocation policy is supplied.",
+        ),
+        not_estimable_metric(
+            "p95_end_to_end_lead_time",
+            "P95 end-to-end production lead time",
+            "flow.lead-time.p95.v1",
+            "P95 of final-good completion timestamp minus cohort release timestamp for completed jobs, with right-censoring disclosed.",
+            "seconds/job",
+            "Defined order-release cohort and observation window",
+            vec![
+                "job_release_timestamp".into(),
+                "final_good_completion_timestamp".into(),
+                "right_censored_open_jobs".into(),
+            ],
+            "Per-job end-to-end release/completion timestamps are not retained in the report, so a lead-time percentile cannot be reconstructed.",
+        ),
+        not_estimable_metric(
+            "on_time_delivery_rate",
+            "On-time delivery rate",
+            "delivery.on-time-rate.v1",
+            "Completed customer orders on or before promised due time / all orders due within the same cohort.",
+            "fraction",
+            "Customer-order due-date cohort",
+            vec![
+                "promised_due_timestamp".into(),
+                "customer_order_id".into(),
+                "order_completion_timestamp".into(),
+                "due_order_cohort".into(),
+            ],
+            "Customer due dates, order identifiers and delivery promises are not modeled.",
+        ),
+    ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summary_has_units_of_observation_and_no_single_sample_ci() {
+        let multi = summarize(&[1.0, 2.0, 3.0]).unwrap();
+        assert!((multi.mean - 2.0).abs() < 1e-12);
+        assert_eq!(multi.sample_standard_deviation, Some(1.0));
+        assert!(multi.mean_confidence_95_lower.is_some());
+
+        let single = summarize(&[4.0]).unwrap();
+        assert_eq!(single.sample_count, 1);
+        assert!(single.mean_confidence_95_lower.is_none());
+        assert!(single.mean_confidence_95_upper.is_none());
+    }
+
+    #[test]
+    fn unavailable_oee_and_energy_are_null_not_zero() {
+        let metrics = not_estimable_metrics();
+        let oee = metrics
+            .iter()
+            .find(|metric| metric.kpi_id == "overall_equipment_effectiveness")
+            .unwrap();
+        let energy = metrics
+            .iter()
+            .find(|metric| metric.kpi_id == "energy_per_good_unit")
+            .unwrap();
+        assert_eq!(oee.computability, Computability::NotEstimable);
+        assert_eq!(oee.value, None);
+        assert_eq!(oee.distribution, None);
+        assert_eq!(energy.computability, Computability::NotEstimable);
+        assert_eq!(energy.value, None);
+    }
+
+    #[test]
+    fn report_digests_are_sha256_shape() {
+        assert_eq!(sha256(b"abc").len(), 64);
+    }
+}
