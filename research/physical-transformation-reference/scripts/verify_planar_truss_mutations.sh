@@ -140,6 +140,7 @@ test "$conditioning_sha256" = "$(sha256sum "$crate_dir/src/truss_conditioning.rs
 jq -n \
   --arg source_commit "$source_commit" \
   --arg truss_sha256 "$truss_sha256" \
+  --arg conditioning_sha256 "$conditioning_sha256" \
   --arg rustc_version "$rustc_version" \
   --arg cargo_version "$cargo_version" \
   '{
@@ -147,7 +148,10 @@ jq -n \
     benchmark_id: "PHYS-TRUSS-MUTATION-001",
     evidence_class: "software-test-sensitivity",
     source_commit: $source_commit,
-    source_sha256: {planar_truss_rs: $truss_sha256},
+    source_sha256: {
+      planar_truss_rs: $truss_sha256,
+      truss_conditioning_rs: $conditioning_sha256
+    },
     toolchain: {rustc: $rustc_version, cargo: $cargo_version},
     baseline_control: {suite: "planar_truss::tests", disposition: "pass"},
     mutations: [
