@@ -1212,6 +1212,18 @@ fn derive_bootstrap_seed(base_seed_sha256: &str, metric: &str) -> (u64, String) 
     (seed, seed_sha256)
 }
 
+fn interval_option(
+    interval: Option<(f64, f64)>,
+    bootstrap_seed_sha256: &str,
+) -> Option<ConfidenceInterval> {
+    interval.map(|(lower_95, upper_95)| ConfidenceInterval {
+        lower_95,
+        upper_95,
+        resamples: BOOTSTRAP_RESAMPLES,
+        bootstrap_seed_sha256: bootstrap_seed_sha256.to_string(),
+    })
+}
+
 fn bootstrap_median_ci(values: &[f64], seed: u64) -> Option<(f64, f64)> {
     if values.is_empty() {
         return None;
