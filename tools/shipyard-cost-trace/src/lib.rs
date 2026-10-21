@@ -4,6 +4,13 @@
 //! engineering approval mechanism, or source-authentication service. It deliberately keeps
 //! planned, simulated, and observed quantities separate from invoice/payroll financial actuals.
 //! Rate-card estimates remain separate from direct financial actuals and must not simply be added.
+//!
+//! Quantity records accepted by [`audit`] must already represent additive contributions. Do not
+//! feed cumulative snapshots directly to this reducer: use [`event_semantics::normalize_quantities`]
+//! with an explicit bitemporal cutoff first. Corrections/reversals and snapshots are source-record
+//! semantics and must not be guessed by the accounting aggregator.
+
+pub mod event_semantics;
 
 use std::collections::{BTreeMap, HashSet};
 
@@ -48,6 +55,7 @@ pub struct QuantityRate {
 pub struct QuantityEvent {
     /// Semantic identity such as labor.welder.hours or material.aluminium.kg.
     pub quantity_key: String,
+    /// Additive contribution only; cumulative snapshots must first pass through event_semantics.
     pub quantity: f64,
     pub unit: String,
     /// Optional estimate from a declared and versioned rate card.
