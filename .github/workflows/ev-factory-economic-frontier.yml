@@ -1,0 +1,134 @@
+name: EV Factory Economic Pareto Frontier
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_economic_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_ECONOMIC_PARETO_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-economic-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_economic_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_ECONOMIC_PARETO_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-factory-economic-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  economic-frontier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse synthetic source fixtures
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and (.replication_seeds | length) == 20
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-ECON-001"
+            and .input_evidence_class == "synthetic"
+            and (.sites | length) == 3
+            and (.station_profiles | length) == 5
+            and all(.sites[]; .evidence_class == "synthetic")
+            and all(.station_profiles[]; .evidence_class == "synthetic")
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Build all Rust binaries
+        run: cargo build --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bins
+      - name: Generate paired DES operating and output report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            > ev-factory-economic-simulation-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .replication_count == 20
+            and (.replication_outcomes | length) == 120
+            and (.station_operating_statistics | length) == 30
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+            and all(.station_operating_statistics[]; .busy_fraction.sample_count == 20 and .blocked_fraction.sample_count == 20 and .starved_fraction.sample_count == 20 and .down_fraction.sample_count == 20)
+          ' ev-factory-economic-simulation-report.json
+      - name: Calculate multi-objective site/station frontier
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_economic_frontier -- \
+            ev-factory-economic-simulation-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json \
+            > ev-factory-economic-frontier-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-ECON-001"
+            and .source_simulation_replication_count == 20
+            and .source_simulation_seed_count == 20
+            and .site_count == 3
+            and .station_profile_count == 5
+            and .candidate_count == 15
+            and (.candidates | length) == 15
+            and (.site_frontiers | length) == 3
+            and .all_cost_and_energy_inputs_are_synthetic
+            and .roi_computed == false
+            and .production_release_authorized == false
+            and (.source_simulation_report_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_economic_fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and all(.candidates[]; .deployment_authorized == false and .cost_inputs_are_synthetic and .annual_incremental_opex_local >= 0 and .annual_incremental_energy_kwh >= 0 and .annual_incremental_emissions_kgco2e >= 0)
+            and all(.candidates[] | select(.output_gain_confidently_positive_under_simulation); .capex_per_incremental_annual_good_unit_local != null and .annual_opex_per_incremental_good_unit_local != null)
+            and any(.candidates[]; .pareto_frontier_member == true)
+          ' ev-factory-economic-frontier-report.json
+      - name: Verify deterministic economic report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_economic_frontier -- \
+            ev-factory-economic-simulation-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json \
+            > ev-factory-economic-frontier-repeat.json
+          cmp ev-factory-economic-frontier-report.json ev-factory-economic-frontier-repeat.json
+      - name: Negative controls - measured inputs and invalid carbon factors fail closed
+        run: |
+          jq '.input_evidence_class = "measured"' tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json > invalid-economic-evidence.json
+          jq '.sites[0].grid_kgco2e_per_kwh = -1' tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json > invalid-economic-carbon.json
+          for invalid in invalid-economic-evidence.json invalid-economic-carbon.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_economic_frontier -- ev-factory-economic-simulation-report.json "$invalid" >/dev/null 2>&1; then
+              echo "invalid economic fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash source, fixtures and reports
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/Cargo.toml \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_economic_frontier.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_incremental_economics_v0_1.json \
+            docs/research/EV_FACTORY_ECONOMIC_PARETO_FRONTIER_V0_1.md \
+            ev-factory-economic-simulation-report.json \
+            ev-factory-economic-frontier-report.json > ev-factory-economic-frontier.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-economic-pareto-frontier-report
+          path: |
+            ev-factory-economic-simulation-report.json
+            ev-factory-economic-frontier-report.json
+            ev-factory-economic-frontier.sha256
+          if-no-files-found: error
