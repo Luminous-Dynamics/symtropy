@@ -14,7 +14,7 @@ This is a separate nested Cargo workspace with no external dependencies. CI chec
 
 ## Paradigm shift: verify space-time feasibility from evidence, not planner assertions
 
-The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule.
+The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule. An empty reservation set emits `NoOperationalReservations`, so vacuous truth cannot be reported as a qualified yard plan.
 
 V0 supports:
 - axis-aligned rectangular footprints on an integer coordinate lattice;
