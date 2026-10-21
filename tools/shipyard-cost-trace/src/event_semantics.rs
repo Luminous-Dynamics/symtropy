@@ -699,6 +699,92 @@ mod tests {
     }
 
     #[test]
+    fn independent_delta_streams_sum_in_stable_stream_order() {
+        let first = record(
+            "crew-a",
+            1,
+            100,
+            100,
+            QuantityRecordKind::Delta { quantity: 12.0 },
+        );
+        let mut second = record(
+            "crew-b",
+            1,
+            110,
+            110,
+            QuantityRecordKind::Delta { quantity: 14.0 },
+        );
+        second.stream_id = "crew-clock-2".to_owned();
+
+        let normalized = normalize_quantities(&[second, first], cutoff()).unwrap();
+        assert_eq!(normalized[0].quantity, 26.0);
+        assert_eq!(
+            normalized[0].source_stream_ids,
+            vec!["crew-clock-1", "crew-clock-2"]
+        );
+    }
+
+    #[test]
+    fn normalization_is_invariant_to_source_input_order() {
+        let delta = record(
+            "delta-1",
+            1,
+            100,
+            100,
+            QuantityRecordKind::Delta { quantity: 12.0 },
+        );
+        let next = record(
+            "delta-2",
+            2,
+            200,
+            200,
+            QuantityRecordKind::Delta { quantity: 14.0 },
+        );
+        let correction = record(
+            "correct-1",
+            3,
+            300,
+            300,
+            QuantityRecordKind::Correction {
+                target_record_id: "delta-1".to_owned(),
+                replacement_quantity: 10.0,
+            },
+        );
+        let forward = normalize_quantities(
+            &[delta.clone(), next.clone(), correction.clone()],
+            cutoff(),
+        )
+        .unwrap();
+        let reverse = normalize_quantities(&[correction, next, delta], cutoff()).unwrap();
+        assert_eq!(forward, reverse);
+        assert_eq!(forward[0].quantity, 24.0);
+    }
+
+    #[test]
+    fn multiple_snapshot_streams_for_one_identity_fail_closed() {
+        let first = record(
+            "snapshot-a",
+            1,
+            100,
+            100,
+            QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 },
+        );
+        let mut second = record(
+            "snapshot-b",
+            1,
+            100,
+            100,
+            QuantityRecordKind::CumulativeSnapshot { quantity: 14.0 },
+        );
+        second.stream_id = "snapshot-stream-2".to_owned();
+
+        let errors = normalize_quantities(&[first, second], cutoff()).unwrap_err();
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("cumulative identity spans multiple snapshot streams")));
+    }
+
+    #[test]
     fn no_records_before_bitemporal_cutoff_means_no_evidence_not_zero() {
         let records = vec![record(
             "later",
