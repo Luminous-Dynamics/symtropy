@@ -221,10 +221,10 @@ fn verify_known_answers(
         if ratios.len() != 16 {
             return Err(format!("{formulation} model did not return 16 axial modes"));
         }
-        if ratios[0] > 1.0 != greater {
+        if (ratios[0] > 1.0) != greater {
             return Err(format!("{formulation} first-mode ratio violates expected bracketing"));
         }
-        if ratios[1] > 1.0 != greater {
+        if (ratios[1] > 1.0) != greater {
             return Err(format!("{formulation} second-mode ratio violates expected bracketing"));
         }
     }
