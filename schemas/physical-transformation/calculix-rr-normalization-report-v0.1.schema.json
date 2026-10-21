@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/calculix-rr-normalization-report-v0.1.schema.json",
+  "title": "CalculiX RR Normalization Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "normalization_status", "case_id", "request_id", "request_sha256",
+    "scene_sha256", "scene_revision", "coordinate_frame_id", "node_set", "deck_sha256",
+    "dat_sha256", "manifest_sha256", "node_catalog_sha256", "normalized_output_sha256",
+    "normalized_output", "source_semantics", "source_output_sha256", "unit_provenance",
+    "coordinate_frame_provenance", "physical_result_qualified",
+    "real_world_validation_status", "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "calculix-rr-normalization-report-v0.1" },
+    "normalization_status": { "const": "PASS" },
+    "case_id": { "$ref": "#/$defs/token" },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_sha256": { "$ref": "#/$defs/sha256" },
+    "scene_revision": { "type": "integer", "minimum": 0 },
+    "coordinate_frame_id": { "$ref": "#/$defs/token" },
+    "node_set": { "$ref": "#/$defs/token" },
+    "deck_sha256": { "$ref": "#/$defs/sha256" },
+    "dat_sha256": { "$ref": "#/$defs/sha256" },
+    "manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "node_catalog_sha256": { "$ref": "#/$defs/sha256" },
+    "normalized_output_sha256": { "$ref": "#/$defs/sha256" },
+    "normalized_output": { "$ref": "https://luminousdynamics.io/schemas/physical-transformation/physical-equilibrium-reaction-forces-v0.1.schema.json" },
+    "source_semantics": { "const": "reaction_only_RR" },
+    "source_output_sha256": { "$ref": "#/$defs/sha256" },
+    "unit_provenance": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "coordinate_frame_provenance": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "physical_result_qualified": { "const": false },
+    "real_world_validation_status": { "const": "UNRESOLVED" },
+    "claim_ceiling": { "type": "string", "minLength": 1, "maxLength": 1024 }
+  },
+  "$defs": {
+    "token": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
