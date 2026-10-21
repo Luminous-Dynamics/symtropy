@@ -329,7 +329,16 @@ fn parse_reference_metrics(
     let potential_gain = parse_optional_f64(value("potential_gain"), "potential_gain", row_number)?;
     let potential_gain_consistent = match (final_potential, initial_potential, potential_gain) {
         (Some(final_value), Some(initial_value), Some(gain)) => {
-            Some((gain - (final_value - initial_value)).abs() <= 1e-4_f64.max(final_value.abs() * 1e-6))
+            Some(
+                (gain - (final_value - initial_value)).abs()
+                    <= 1e-4_f64.max(
+                        final_value
+                            .abs()
+                            .max(initial_value.abs())
+                            .max(gain.abs())
+                            * 1e-6,
+                    ),
+            )
         }
         _ => None,
     };
@@ -531,9 +540,24 @@ fn optional_i64(
         return Ok(None);
     };
     if is_missing(value) { return Ok(None); }
-    value.trim().parse::<i64>().map(Some).map_err(|error| {
-        format!("PCBWorld CSV row {row_number}: {name} integer parse failed for {value:?}: {error}")
-    })
+    match value.trim().parse::<i64>() {
+        Ok(parsed) => Ok(Some(parsed)),
+        Err(_) => {
+            let parsed = value.trim().parse::<f64>().map_err(|error| {
+                format!("PCBWorld CSV row {row_number}: {name} integer parse failed for {value:?}: {error}")
+            })?;
+            if !parsed.is_finite()
+                || parsed.fract() != 0.0
+                || parsed < i64::MIN as f64
+                || parsed > i64::MAX as f64
+            {
+                return Err(format!(
+                    "PCBWorld CSV row {row_number}: {name} must be an integer, got {value:?}"
+                ));
+            }
+            Ok(Some(parsed as i64))
+        }
+    }
 }
 
 fn parse_optional_bool(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<bool>, String> {
@@ -568,7 +592,9 @@ fn parse_optional_f64(value: Option<&str>, name: &str, row_number: usize) -> Res
         format!("PCBWorld CSV row {row_number}: {name} numeric parse failed for {value:?}: {error}")
     })?;
     if !parsed.is_finite() {
-        return Ok(None);
+        return Err(format!(
+            "PCBWorld CSV row {row_number}: {name} must be finite, got {value:?}"
+        ));
     }
     Ok(Some(parsed))
 }
@@ -734,14 +760,20 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         .unwrap_err()
         .contains("routability must be within [0,1]"));
 
-        let duplicate = format!("{HEADER}{}{}", CSV.lines().nth(1).unwrap(), "\n");
+        let lines: Vec<&str> = CSV.lines().collect();
+        let duplicate = format!(
+            "{HEADER}{}\n{}\n{}\n",
+            lines[1],
+            lines[1],
+            lines[3]
+        );
         assert!(import_pcbworld_per_rollout_csv(
             duplicate.as_bytes(),
             MANIFEST.as_bytes(),
             EVALUATOR_HEAD,
         )
         .unwrap_err()
-        .contains("omits 1 pinned board"));
+        .contains("duplicate PCBWorld attempt key"));
 
         let missing_header = "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
         assert!(import_pcbworld_per_rollout_csv(
