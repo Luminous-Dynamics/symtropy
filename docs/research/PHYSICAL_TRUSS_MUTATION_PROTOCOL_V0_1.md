@@ -31,7 +31,7 @@ Energy agreement is a separate software/numerical consistency invariant, not an 
 
 The additional `asymmetric_two_bar_truss_matches_closed_form_oracle` case uses a free apex at (1,3), supports at (0,0) and (4,0), unequal member axial stiffnesses, and applied load (600,-1200) N. Its independently derived reduced stiffness matrix is (10^9\begin{bmatrix}1.1&-0.7\\-0.7&1.9\end{bmatrix}) N/m. It pins both displacement components, signed member forces, reactions, residuals and energy/work agreement. This avoids relying only on the symmetric 45-degree vertical-load fixture, where off-diagonal stiffness terms can cancel.
 
-The (cs=0) mutation is specifically assigned to the asymmetric oracle: it should catch a defect that the symmetric known-answer alone can miss.
+The (cs=0) mutation is specifically assigned to the 128-case asymmetric parameter sweep: it should catch a defect that the symmetric known-answer alone can miss, across a range of geometry, unequal axial stiffness, and mixed-sign off-axis loads. The sweep receipt uses seed `0x4153594D54525553`, 128 cases, 21 scalar output checks per case (2,688 total), and independently defined parameter bounds; its evidence class is test execution, not physical validation.
 
 ## Named mutation set
 
@@ -44,7 +44,7 @@ The CI script `research/physical-transformation-reference/scripts/verify_planar_
 | `PHYS-TRUSS-MUT-MEMBER-FORCE-AREA-001` | Omit area from recovered axial force (N=EAepsilon) | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
 | `PHYS-TRUSS-MUT-REACTION-SIGN-001` | Reverse the sign of vertical support-reaction recovery | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
 | `PHYS-TRUSS-MUT-ENERGY-HALF-FACTOR-001` | Omit the one-half factor from member strain-energy accumulation | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
-| `PHYS-TRUSS-MUT-OFFDIAGONAL-CS-001` | Set the element stiffness off-diagonal direction-cosine product (cs) to zero | `asymmetric_two_bar_truss_matches_closed_form_oracle` |
+| `PHYS-TRUSS-MUT-OFFDIAGONAL-CS-001` | Set the element stiffness off-diagonal direction-cosine product (cs) to zero | `fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle` |
 | `PHYS-TRUSS-MUT-PIVOT-SCALE-001` | Reintroduce an absolute `max(1.0)` floor in the pivot tolerance | `uniform_stiffness_and_load_rescaling_does_not_change_displacement` |
 
 A mutant counts as detected only when its named test appears as FAILED. A compile failure, unrelated Cargo failure, failed source transform, or surviving mutant invalidates the audit. After the isolated runs, the script re-checks the source hash. CI then checks the entire production source remains unchanged, re-runs formatting, the full crate suite and Clippy, and uploads the JSON mutation receipt with the reference receipt.
