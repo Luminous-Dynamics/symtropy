@@ -752,6 +752,56 @@ mod tests {
     }
 
     #[test]
+    fn explicit_indifference_margin_treats_near_ties_as_indifferent() {
+        let mut input = request();
+        input.indifference_margin_units = 40_000_000;
+        let report = compute_resident_preference_probe(&input).expect("valid explicit margin");
+        assert_eq!(report.indifference_margin_units, 40_000_000);
+        let question = report
+            .questions
+            .iter()
+            .find(|q| q.question_id == "ask-balanced-cost")
+            .expect("balanced cost query exists");
+        assert_eq!(
+            question.answer_counts,
+            PreferenceAnswerCounts::ExactModelPartition {
+                left_preferred: 0,
+                right_preferred: 1,
+                indifferent: 1,
+            }
+        );
+
+        input.indifference_margin_units = 39_999_999;
+        let report = compute_resident_preference_probe(&input).expect("valid narrower margin");
+        let question = report
+            .questions
+            .iter()
+            .find(|q| q.question_id == "ask-balanced-cost")
+            .expect("balanced cost query exists");
+        assert_eq!(
+            question.answer_counts,
+            PreferenceAnswerCounts::ExactModelPartition {
+                left_preferred: 1,
+                right_preferred: 1,
+                indifferent: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn indifference_margin_cannot_exceed_utility_numerator_range() {
+        let mut input = request();
+        input.indifference_margin_units = 100_000_001;
+        assert!(matches!(
+            compute_resident_preference_probe(&input),
+            Err(PreferenceProbeError::IndifferenceMarginOutOfRange {
+                actual: 100_000_001,
+                maximum: 100_000_000
+            })
+        ));
+    }
+
+    #[test]
     fn scenario_partition_never_increases_worst_case_regret() {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
         for question in &report.questions {
