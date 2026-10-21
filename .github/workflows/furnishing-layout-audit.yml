@@ -15,6 +15,7 @@ on:
       - 'fixtures/interiors/furnishing_functional_envelopes_v0_2.schema.json'
       - 'tools/furnishing-layout-audit/**'
       - '.github/workflows/furnishing-layout-audit.yml'
+      - 'docs/research/interiors/**'
 permissions:
   contents: read
 
