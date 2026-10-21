@@ -6,14 +6,13 @@
 //! binary avoids claiming a custom in-tree cryptographic implementation.
 
 use physical_transformation_reference::planar_truss::{
-    canonical_request, solve, symmetric_two_bar_reference_fixture, PlanarTrussResult,
+    PlanarTrussResult, canonical_request, solve, symmetric_two_bar_reference_fixture,
 };
 use std::env;
 use std::process::ExitCode;
 
 const FIXTURE_ID: &str = "PHYS-TRUSS-V-001";
-const FIXED_REQUEST: &str =
-    include_str!("../../fixtures/planar_truss_request_v0_1.txt");
+const FIXED_REQUEST: &str = include_str!("../../fixtures/planar_truss_request_v0_1.txt");
 
 fn main() -> ExitCode {
     match run() {
@@ -203,8 +202,18 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
         1.0e-15,
         "apex y displacement",
     )?;
-    close(left_bar.axial_force_n, expected_bar_force, 1.0e-9, "left bar force")?;
-    close(right_bar.axial_force_n, expected_bar_force, 1.0e-9, "right bar force")?;
+    close(
+        left_bar.axial_force_n,
+        expected_bar_force,
+        1.0e-9,
+        "left bar force",
+    )?;
+    close(
+        right_bar.axial_force_n,
+        expected_bar_force,
+        1.0e-9,
+        "right bar force",
+    )?;
     close(
         left_bar.axial_stress_pa,
         expected_bar_force / 0.01,
@@ -226,7 +235,8 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
         "left support x reaction",
     )?;
     close(
-        right.reaction_x_n
+        right
+            .reaction_x_n
             .ok_or_else(|| "right x reaction is absent".to_owned())?,
         -500.0,
         1.0e-8,
@@ -240,7 +250,8 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
         "left support y reaction",
     )?;
     close(
-        right.reaction_y_n
+        right
+            .reaction_y_n
             .ok_or_else(|| "right y reaction is absent".to_owned())?,
         500.0,
         1.0e-8,
@@ -248,9 +259,18 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
     )?;
 
     for (label, value) in [
-        ("normalized force residual", result.equilibrium.normalized_force_residual),
-        ("normalized moment residual", result.equilibrium.normalized_moment_residual),
-        ("normalized free-DOF residual", result.equilibrium.normalized_free_dof_residual),
+        (
+            "normalized force residual",
+            result.equilibrium.normalized_force_residual,
+        ),
+        (
+            "normalized moment residual",
+            result.equilibrium.normalized_moment_residual,
+        ),
+        (
+            "normalized free-DOF residual",
+            result.equilibrium.normalized_free_dof_residual,
+        ),
     ] {
         if !value.is_finite() || value >= 1.0e-12 {
             return Err(format!("{label} exceeds receipt gate: {value:.17e}"));
@@ -304,15 +324,17 @@ mod tests {
     fn source_commit_must_be_well_formed_and_is_normalized() {
         assert!(normalize_source_commit("not-a-sha").is_err());
         assert_eq!(
-            normalize_source_commit("ABCDEF0123456789ABCDEF0123456789ABCDEF01")
-                .expect("valid SHA"),
+            normalize_source_commit("ABCDEF0123456789ABCDEF0123456789ABCDEF01").expect("valid SHA"),
             "abcdef0123456789abcdef0123456789abcdef01"
         );
     }
 
     #[test]
     fn json_quoting_is_stable_for_delimiters_and_control_characters() {
-        assert_eq!(quote("quote\" slash\\ newline\n"), "\"quote\\\" slash\\\\ newline\\n\"");
+        assert_eq!(
+            quote("quote\" slash\\ newline\n"),
+            "\"quote\\\" slash\\\\ newline\\n\""
+        );
     }
 
     #[test]
