@@ -1214,6 +1214,77 @@ mod tests {
     use super::*;
 
     #[test]
+    fn lifecycle_ledger_validation_rejects_duplicate_sequences_and_bad_quality_counts() {
+        let baseline = serde_json::json!({
+            "job_lifecycle_events": [
+                {
+                    "schema_version": "0.1.0",
+                    "seed": 17,
+                    "scenario_id": "baseline",
+                    "event_sequence": 0,
+                    "timestamp_seconds": 0,
+                    "kind": "job_release",
+                    "job_id": 1,
+                    "evidence_class": "synthetic"
+                },
+                {
+                    "schema_version": "0.1.0",
+                    "seed": 17,
+                    "scenario_id": "baseline",
+                    "event_sequence": 1,
+                    "timestamp_seconds": 5,
+                    "kind": "final_good_completion",
+                    "job_id": 1,
+                    "evidence_class": "synthetic"
+                }
+            ],
+            "job_lifecycle_summary": {
+                "event_count_in_ledger": 2,
+                "eligible_released_jobs_after_warmup": 1,
+                "accepted_good_jobs_in_cohort": 1,
+                "scrapped_jobs_in_cohort": 0,
+                "right_censored_jobs_at_horizon": 0,
+                "good_job_lead_time_seconds": {
+                    "sample_count": 1,
+                    "mean": 5.0,
+                    "sample_standard_deviation": null,
+                    "minimum": 5.0,
+                    "p05": 5.0,
+                    "median": 5.0,
+                    "p95": 5.0,
+                    "maximum": 5.0,
+                    "mean_confidence_95_lower": null,
+                    "mean_confidence_95_upper": null
+                },
+                "station_first_pass_yield": [{
+                    "station_id": "station-a",
+                    "first_attempts_started_in_cohort": 1,
+                    "first_attempts_with_observed_outcome": 1,
+                    "first_attempt_passed": 1,
+                    "first_attempt_failed": 0,
+                    "unresolved_first_attempts_at_horizon": 0,
+                    "observed_first_pass_yield_fraction": 1.0
+                }]
+            }
+        });
+        assert!(validate_job_lifecycle_evidence(&baseline, 17, 1).unwrap());
+
+        let mut duplicate_sequence = baseline.clone();
+        duplicate_sequence["job_lifecycle_events"][1]["event_sequence"] = serde_json::json!(0);
+        assert!(validate_job_lifecycle_evidence(&duplicate_sequence, 17, 1).is_err());
+
+        let mut wrong_yield = baseline.clone();
+        wrong_yield["job_lifecycle_summary"]["station_first_pass_yield"][0]
+            ["first_attempt_passed"] = serde_json::json!(2);
+        assert!(validate_job_lifecycle_evidence(&wrong_yield, 17, 1).is_err());
+
+        let mut missing_terminal = baseline.clone();
+        missing_terminal["job_lifecycle_events"].as_array_mut().unwrap().pop();
+        missing_terminal["job_lifecycle_summary"]["event_count_in_ledger"] = serde_json::json!(1);
+        assert!(validate_job_lifecycle_evidence(&missing_terminal, 17, 1).is_err());
+    }
+
+    #[test]
     fn summary_has_units_of_observation_and_no_single_sample_ci() {
         let multi = summarize(&[1.0, 2.0, 3.0]).unwrap();
         assert!((multi.mean - 2.0).abs() < 1e-12);
