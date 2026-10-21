@@ -141,7 +141,7 @@ jq -n \
 
 jq -e '
   .schema_version == "physical-transform-mutation-receipt-v0.1"
-  and .source_commit | type == "string" and length == 40
+  and (.source_commit | type == "string" and length == 40)
   and .baseline_control.disposition == "pass"
   and .summary.detected == 3
   and .summary.undetected == 0
