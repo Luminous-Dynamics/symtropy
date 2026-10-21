@@ -88,7 +88,7 @@ pub fn cluster_mode_frequencies_hz(
 pub fn mass_weighted_modal_subspace_comparison(
     left_modes: &[Vec<f64>],
     right_modes: &[Vec<f64>],
-    mass: &Matrix,
+    mass: &[Vec<f64>],
 ) -> Check<ModalSubspaceComparison> {
     if left_modes.is_empty() || left_modes.len() != right_modes.len() {
         return Err("modal subspaces must have the same non-zero dimension".to_owned());
@@ -163,7 +163,7 @@ pub fn mass_weighted_modal_subspace_comparison(
     })
 }
 
-fn validate_symmetric_mass(mass: &Matrix) -> Check<()> {
+fn validate_symmetric_mass(mass: &[Vec<f64>]) -> Check<()> {
     let scale = mass
         .iter()
         .flatten()
@@ -192,7 +192,7 @@ fn scaled_basis(modes: &[Vec<f64>]) -> Check<Matrix> {
     Ok(basis)
 }
 
-fn mass_gram(left: &Matrix, right: &Matrix, mass: &Matrix) -> Check<Matrix> {
+fn mass_gram(left: &Matrix, right: &Matrix, mass: &[Vec<f64>]) -> Check<Matrix> {
     let mut result = vec![vec![0.0; right.len()]; left.len()];
     for (right_index, right_mode) in right.iter().enumerate() {
         let mass_right = matrix_vector_product(mass, right_mode)?;
@@ -250,7 +250,7 @@ fn inverse_sqrt_positive_definite(matrix: &Matrix) -> Check<Matrix> {
     }
 }
 
-fn matrix_vector_product(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
+fn matrix_vector_product(matrix: &[Vec<f64>], vector: &[f64]) -> Check<Vec<f64>> {
     if matrix.len() != vector.len() || matrix.iter().any(|row| row.len() != vector.len()) {
         return Err("matrix/vector dimensions do not agree".to_owned());
     }
