@@ -45,7 +45,7 @@ These formulas do not prove that a real member has the declared geometry, materi
 
 ## Bounded analytical input uncertainty: planar truss
 
-The bounded `planar_truss_two_bar` case propagates declared spans, apex position/height, member axial stiffnesses and apex load bounds through the reduced 2x2 stiffness matrix. It publishes interval enclosures for the matrix entries, determinant, bar lengths, displacements and condition indicators.
+The bounded `planar_truss_two_bar` case propagates declared span, apex position/height, member axial rigidities `EA` (units N) and apex load bounds through the reduced 2x2 stiffness matrix. Effective member stiffnesses `EA/L` are derived from each geometry interval rather than treated as independent of uncertain length. It publishes interval enclosures for the matrix entries, determinant, bar lengths, displacements and condition indicators.
 
 The determinant uses the geometry-specific identity
 
