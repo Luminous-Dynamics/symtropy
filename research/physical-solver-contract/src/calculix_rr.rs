@@ -283,6 +283,297 @@ fn validate_token(value: &str, label: &str) -> Check<()> {
     Ok(())
 }
 
+/// Join a parsed RR block with a support-node catalogue bound to the exact deck.
+///
+/// This emits the existing normalized reaction-force output contract. It accepts only
+/// SI request units and one explicit coordinate frame; it applies no implicit unit or
+/// frame transform. The caller must record the raw deck and .dat plus node-catalogue
+/// digests as receipt input artifacts.
+pub fn normalize_reaction_only_rr_bytes(
+    request_bytes: &[u8],
+    deck_bytes: &[u8],
+    dat_bytes: &[u8],
+    manifest_bytes: &[u8],
+    node_catalog_bytes: &[u8],
+) -> Check<Value> {
+    const MANIFEST_SCHEMA: &str = "calculix-rr-normalization-manifest-v0.1";
+    const CATALOG_SCHEMA: &str = "physical-support-node-catalog-v0.1";
+    let request_sha256 = sha256_hex(request_bytes);
+    let deck_sha256 = sha256_hex(deck_bytes);
+    let dat_sha256 = sha256_hex(dat_bytes);
+    let manifest_sha256 = sha256_hex(manifest_bytes);
+    let node_catalog_sha256 = sha256_hex(node_catalog_bytes);
+
+    let request: Value = serde_json::from_slice(request_bytes)
+        .map_err(|error| format!("invalid request JSON: {error}"))?;
+    let manifest: Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("invalid RR normalization manifest JSON: {error}"))?;
+    exact_object_keys(
+        &manifest,
+        &[
+            "schema_version",
+            "case_id",
+            "request_id",
+            "request_sha256",
+            "scene_sha256",
+            "scene_revision",
+            "coordinate_frame_id",
+            "node_set",
+            "deck_sha256",
+            "node_catalog_sha256",
+            "expected_node_ids",
+            "units",
+            "provenance",
+        ],
+        "RR normalization manifest",
+    )?;
+    if string_field(&manifest, "schema_version", "manifest")? != MANIFEST_SCHEMA {
+        return Err(format!("manifest.schema_version must equal '{MANIFEST_SCHEMA}'"));
+    }
+    let case_id = token_field(&manifest, "case_id", "manifest")?;
+    let request_id = string_field(&manifest, "request_id", "manifest")?;
+    let scene_sha256 = string_field(&manifest, "scene_sha256", "manifest")?;
+    let coordinate_frame_id = token_field(&manifest, "coordinate_frame_id", "manifest")?;
+    let scene_revision = integer_field(&manifest, "scene_revision", "manifest")?;
+    let node_set = token_field(&manifest, "node_set", "manifest")?;
+    let manifest_request_sha = string_field(&manifest, "request_sha256", "manifest")?;
+    let manifest_deck_sha = string_field(&manifest, "deck_sha256", "manifest")?;
+    let manifest_catalog_sha = string_field(&manifest, "node_catalog_sha256", "manifest")?;
+    if manifest_request_sha != request_sha256
+        || manifest_deck_sha != deck_sha256
+        || manifest_catalog_sha != node_catalog_sha256
+    {
+        return Err("manifest request/deck/node-catalogue digest binding does not match exact input bytes".to_owned());
+    }
+    if string_field(&request, "request_id", "request")? != request_id
+        || string_field(&request, "scene_sha256", "request")? != scene_sha256
+        || integer_field(&request, "scene_revision", "request")? != scene_revision
+        || string_field(&request, "coordinate_frame_id", "request")? != coordinate_frame_id
+    {
+        return Err("manifest request/scene/frame identity differs from the exact request".to_owned());
+    }
+    let fidelity = string_field(&request, "model_fidelity", "request")?;
+    if !["analytical_linear_elastic", "continuum_linear_elastic"].contains(&fidelity) {
+        return Err("RR normalization v0.1 only supports linear-elastic fidelity".to_owned());
+    }
+    let physics = string_array_field(&request, "requested_physics", "request")?;
+    if physics.as_slice() != ["static_linear_elastic"] {
+        return Err("RR normalization v0.1 only supports static_linear_elastic".to_owned());
+    }
+    if !string_array_field(&request, "required_outputs", "request")?
+        .iter().any(|kind| kind == "reaction_force")
+    {
+        return Err("request must explicitly require reaction_force output".to_owned());
+    }
+    let request_units = request.get("units").ok_or_else(|| "request.units is required".to_owned())?;
+    if string_field(request_units, "length", "request.units")? != "m"
+        || string_field(request_units, "force", "request.units")? != "N"
+    {
+        return Err("RR normalization v0.1 requires request units m and N".to_owned());
+    }
+
+    let units = manifest.get("units").ok_or_else(|| "manifest.units is required".to_owned())?;
+    exact_object_keys(units, &["length", "force"], "manifest.units")?;
+    if string_field(units, "length", "manifest.units")? != "m"
+        || string_field(units, "force", "manifest.units")? != "N"
+    {
+        return Err("manifest units must be exactly m and N".to_owned());
+    }
+    validate_provenance(manifest.get("provenance").ok_or_else(|| "manifest.provenance is required".to_owned())?, "manifest.provenance")?;
+
+    let expected_node_ids = id_array_u64(&manifest, "expected_node_ids", "manifest")?;
+    if expected_node_ids.is_empty() {
+        return Err("manifest.expected_node_ids must not be empty".to_owned());
+    }
+    let expected_ids: BTreeSet<u64> = expected_node_ids.iter().copied().collect();
+    if expected_ids.len() != expected_node_ids.len() {
+        return Err("manifest.expected_node_ids contains duplicate IDs".to_owned());
+    }
+
+    let catalog: Value = serde_json::from_slice(node_catalog_bytes)
+        .map_err(|error| format!("invalid support-node catalogue JSON: {error}"))?;
+    exact_object_keys(
+        &catalog,
+        &[
+            "schema_version",
+            "case_id",
+            "request_id",
+            "request_sha256",
+            "scene_sha256",
+            "scene_revision",
+            "coordinate_frame_id",
+            "deck_sha256",
+            "units",
+            "nodes",
+            "provenance",
+        ],
+        "support-node catalogue",
+    )?;
+    if string_field(&catalog, "schema_version", "node catalogue")? != CATALOG_SCHEMA
+        || string_field(&catalog, "case_id", "node catalogue")? != case_id
+        || string_field(&catalog, "request_id", "node catalogue")? != request_id
+        || string_field(&catalog, "request_sha256", "node catalogue")? != request_sha256
+        || string_field(&catalog, "scene_sha256", "node catalogue")? != scene_sha256
+        || integer_field(&catalog, "scene_revision", "node catalogue")? != scene_revision
+        || string_field(&catalog, "coordinate_frame_id", "node catalogue")? != coordinate_frame_id
+        || string_field(&catalog, "deck_sha256", "node catalogue")? != deck_sha256
+    {
+        return Err("support-node catalogue identity/frame/deck does not match exact inputs".to_owned());
+    }
+    let catalog_units = catalog.get("units").ok_or_else(|| "node catalogue.units is required".to_owned())?;
+    exact_object_keys(catalog_units, &["length"], "node catalogue.units")?;
+    if string_field(catalog_units, "length", "node catalogue.units")? != "m" {
+        return Err("support-node catalogue length unit must be m".to_owned());
+    }
+    validate_provenance(catalog.get("provenance").ok_or_else(|| "node catalogue.provenance is required".to_owned())?, "node catalogue.provenance")?;
+
+    let catalog_nodes = catalog.get("nodes").and_then(Value::as_array)
+        .ok_or_else(|| "node catalogue.nodes must be an array".to_owned())?;
+    let mut positions = BTreeMap::<u64, [f64; 3]>::new();
+    for (index, node) in catalog_nodes.iter().enumerate() {
+        let at = format!("node catalogue.nodes[{index}]");
+        exact_object_keys(node, &["node_id", "position_m"], &at)?;
+        let node_id = integer_field(node, "node_id", &at)?;
+        let position = vec3_field(node, "position_m", &at)?;
+        if positions.insert(node_id, position).is_some() {
+            return Err(format!("{at}.node_id duplicates node {node_id}"));
+        }
+    }
+    let catalog_ids: BTreeSet<u64> = positions.keys().copied().collect();
+    if catalog_ids != expected_ids {
+        let missing: Vec<u64> = expected_ids.difference(&catalog_ids).copied().collect();
+        let extra: Vec<u64> = catalog_ids.difference(&expected_ids).copied().collect();
+        return Err(format!("support-node catalogue inventory mismatch; missing={missing:?}, extra={extra:?}"));
+    }
+
+    let parsed = parse_reaction_only_rr_bytes(deck_bytes, dat_bytes, &node_set, &expected_node_ids)?;
+    let parsed_nodes = parsed["nodes"].as_array()
+        .ok_or_else(|| "RR parser did not return a nodes array".to_owned())?;
+    let mut reaction_forces = Vec::with_capacity(parsed_nodes.len());
+    for node in parsed_nodes {
+        let node_id = integer_field(node, "node_id", "parsed RR node")?;
+        let force_n = vec3_field(node, "force_components_as_written", "parsed RR node")?;
+        let position_m = positions.get(&node_id)
+            .ok_or_else(|| format!("RR node {node_id} has no catalogue position"))?;
+        reaction_forces.push(json!({
+            "reaction_id": format!("node-{node_id}"),
+            "force_n": force_n,
+            "position_m": position_m
+        }));
+    }
+    let normalized_output = json!({
+        "schema_version": "physical-equilibrium-reaction-forces-v0.1",
+        "case_id": case_id,
+        "request_id": request_id,
+        "request_sha256": request_sha256,
+        "scene_sha256": scene_sha256,
+        "scene_revision": scene_revision,
+        "coordinate_frame_id": coordinate_frame_id,
+        "units": {"length":"m","force":"N"},
+        "reaction_forces": reaction_forces
+    });
+    let normalized_bytes = serde_json::to_vec(&normalized_output)
+        .map_err(|error| format!("normalized reaction JSON serialization failed: {error}"))?;
+    let normalized_sha256 = sha256_hex(&normalized_bytes);
+    Ok(json!({
+        "schema_version": "calculix-rr-normalization-report-v0.1",
+        "normalization_status": "PASS",
+        "case_id": case_id,
+        "request_id": request_id,
+        "request_sha256": request_sha256,
+        "scene_sha256": scene_sha256,
+        "scene_revision": scene_revision,
+        "coordinate_frame_id": coordinate_frame_id,
+        "node_set": node_set,
+        "deck_sha256": deck_sha256,
+        "dat_sha256": dat_sha256,
+        "manifest_sha256": manifest_sha256,
+        "node_catalog_sha256": node_catalog_sha256,
+        "normalized_output_sha256": normalized_sha256,
+        "normalized_output": normalized_output,
+        "source_semantics": "reaction_only_RR",
+        "source_output_sha256": parsed["dat_sha256"],
+        "unit_provenance": "exact request plus manifest, SI m and N",
+        "coordinate_frame_provenance": "request manifest and support-node catalogue agree; no transform applied",
+        "physical_result_qualified": false,
+        "real_world_validation_status": "UNRESOLVED",
+        "claim_ceiling": "receipt-ready normalized reaction-force payload from a strict RR parser and exact deck-bound node catalogue; no execution authentication, balance pass, physical validation or solver qualification"
+    }))
+}
+
+fn exact_object_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
+    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    for key in expected {
+        if !object.contains_key(*key) {
+            return Err(format!("{at}.{key} is required"));
+        }
+    }
+    if let Some(key) = object.keys().find(|key| !expected.contains(&key.as_str())) {
+        return Err(format!("{at} contains unsupported field '{key}'"));
+    }
+    Ok(())
+}
+
+fn string_field<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
+    value.get(key).and_then(Value::as_str)
+        .ok_or_else(|| format!("{at}.{key} must be a string"))
+}
+
+fn token_field(value: &Value, key: &str, at: &str) -> Check<String> {
+    let text = string_field(value, key, at)?;
+    validate_token(text, &format!("{at}.{key}"))?;
+    Ok(text.to_owned())
+}
+
+fn integer_field(value: &Value, key: &str, at: &str) -> Check<u64> {
+    value.get(key).and_then(Value::as_u64)
+        .ok_or_else(|| format!("{at}.{key} must be a non-negative integer"))
+}
+
+fn string_array_field(value: &Value, key: &str, at: &str) -> Check<Vec<String>> {
+    let array = value.get(key).and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be an array"))?;
+    array.iter().enumerate().map(|(index, item)| {
+        item.as_str().map(str::to_owned)
+            .ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))
+    }).collect()
+}
+
+fn id_array_u64(value: &Value, key: &str, at: &str) -> Check<Vec<u64>> {
+    let array = value.get(key).and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be an array"))?;
+    array.iter().enumerate().map(|(index, item)| {
+        item.as_u64().ok_or_else(|| format!("{at}.{key}[{index}] must be a non-negative integer"))
+    }).collect()
+}
+
+fn vec3_field(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
+    let array = value.get(key).and_then(Value::as_array)
+        .ok_or_else(|| format!("{at}.{key} must be a three-component vector"))?;
+    if array.len() != 3 {
+        return Err(format!("{at}.{key} must contain exactly three components"));
+    }
+    let mut vector = [0.0; 3];
+    for (index, component) in array.iter().enumerate() {
+        let number = component.as_f64()
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
+        vector[index] = number;
+    }
+    Ok(vector)
+}
+
+fn validate_provenance(value: &Value, at: &str) -> Check<()> {
+    exact_object_keys(value, &["method", "identity", "source_ref"], at)?;
+    for key in ["method", "identity", "source_ref"] {
+        let text = string_field(value, key, at)?;
+        if text.trim().is_empty() || text.len() > 2048 {
+            return Err(format!("{at}.{key} must be non-empty and at most 2048 bytes"));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
