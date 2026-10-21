@@ -68,7 +68,7 @@ Hydrodynamic resistance/propulsion, stability, structural design, maneuverabilit
 
 ### Frozen ledger fixture currently in the repository
 
-The initial mixed-ledger TSV corpus is `tests/fixtures/golden-ledger-v0.tsv` with raw-byte SHA-256 `73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295` (LF line endings with final newline). This is one valid-input fixture corpus, not the entire shipyard benchmark suite. Add separate versioned manifests for negative controls, disruption scenarios and real-data evaluations; each must have its own digest and provenance record.
+The initial mixed-ledger TSV corpus is `tests/fixtures/golden-ledger-v0.tsv` with raw-byte SHA-256 `73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295` (LF line endings with final newline). Temporal intake now has frozen `tests/fixtures/event-semantics-v1.tsv` (SHA-256 `b000af22a68ef77f74abbeb19808a4c4708247093e96b29521ece6b34e216ab7`) plus its hand-calculated expected outputs `tests/fixtures/event-semantics-v1-expected.tsv` (SHA-256 `73f0a5f4d6100f94ac64d9f63808ed4329ed18ab05756c6be9e6ef2fab237f91`). The dedicated workflow checks all three raw-byte digests, and `tests/event_semantics_oracle.rs` compares the normalizer against those outputs without importing production aggregation helpers. These are synthetic correctness fixtures, not the entire shipyard benchmark suite. Add separate versioned manifests for negative controls, disruption scenarios and real-data evaluations; each must have its own digest and provenance record.
 
 ## 2. Fair comparison rules
 
