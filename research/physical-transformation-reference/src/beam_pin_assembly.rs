@@ -947,7 +947,7 @@ mod tests {
                     .dof_descriptors
                     .iter()
                     .filter(|descriptor| matches!(
-                        descriptor.kind,
+                        &descriptor.kind,
                         BeamPinDofKind::MemberEndRotation { .. }
                     ))
                     .count(),
