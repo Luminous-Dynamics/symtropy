@@ -43,7 +43,9 @@ The tests use an explicitly declared comparison rule: relative tolerance (10^{-1
 
 ## Mutation-sensitivity gate
 
-The CI script `research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh` checks whether selected metamorphic cases detect six concrete formula defects. It first runs the unmodified metamorphic suite as a passing control, then makes a fresh temporary copy of the crate for each single source mutation:
+The CI script `research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh` checks whether selected tests detect twelve concrete software defects. It first runs the unmodified metamorphic suite and typed-unit integration suite as passing controls, then makes a fresh minimal temporary copy of the crate for each single source mutation. Build artefacts are not copied into those temporary cases.
+
+### Mechanics formula mutations
 
 | Mutation | Expected detecting test | Failure mechanism |
 |---|---|---|
@@ -54,9 +56,22 @@ The CI script `research/physical-transformation-reference/scripts/verify_mechani
 | Simply-supported beam deflection uses length-cubed instead of length-to-the-fourth | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Span response no longer scales to the fourth power. |
 | Simply-supported beam stress is incorrectly divided by Young's modulus | `simply_supported_beam_obeys_load_span_and_stiffness_scaling` | Stress changes when modulus changes, violating the model's stress/modulus independence relation. |
 
-A mutation counts as detected only if the specifically named test is reported as failed. A passing mutant, compile failure, unrelated Cargo failure, or missing expected failure marker fails the audit. Every mutation is confined to a temporary copy; the unmodified working tree remains authoritative.
+### SI-boundary conversion mutations
 
-The script writes `mutation-sensitivity-receipt.json` with the exact source commit, SHA-256 hashes for the tested mechanics and metamorphic files, Rust/Cargo versions, passing baseline-control disposition, stable mutation IDs and individual dispositions. CI publishes it beside the existing synthetic reference receipt. The summary counters apply only to this six-mutant set: they are not a general mutation score and do not establish that all plausible defects are detectable. This layer remains software-test sensitivity, not physical validation; it does not replace frozen independent known-answer tests.
+The typed conversion boundary in `src/units.rs` is intentionally a small named API, not a general unit-expression parser. Its six conversions are independently checked by `tests/units.rs::named_source_unit_conversions_match_canonical_si_values`:
+
+| Mutation | Intended test | Conversion defect |
+|---|---|---|
+| Millimetre-to-metre factor changes from (10^{-3}) to (1) | `named_source_unit_conversions_match_canonical_si_values` | 1,000× length error |
+| Kilonewton-to-newton factor changes from (10^3) to (1) | same | 1,000× force error |
+| Square-millimetre-to-square-metre factor changes from (10^{-6}) to (10^{-3}) | same | area exponent error |
+| GPa-to-Pa factor changes from (10^9) to (1) | same | modulus conversion error |
+| mm⁴-to-m⁴ factor changes from (10^{-12}) to (10^{-6}) | same | second-moment exponent error |
+| kN/m-to-N/m factor changes from (10^3) to (1) | same | distributed-load conversion error |
+
+A mutation counts as detected only if the specifically named test is reported as failed. A surviving mutant, compile failure, unrelated Cargo failure, or missing expected failure marker fails the audit. Each mutation is isolated to a minimal temporary crate copy; the script checks that the working checkout's mechanics, metamorphic, unit implementation and unit test file hashes remain unchanged.
+
+The script writes `mutation-sensitivity-receipt.json` with the exact source commit, SHA-256 hashes of all four tested source/test files, Rust/Cargo versions, successful baseline controls, stable mutation IDs and individual dispositions. CI publishes it beside the synthetic reference receipt. Summary counts are limited to these twelve named mutants; they are not a general mutation score and do not prove all plausible defects are detectable. This layer measures software-test sensitivity, not physical validation, and does not replace frozen independent known-answer tests.
 
 
 ## Acceptance and claim limits
