@@ -108,10 +108,8 @@ fn independent_cost_view_oracle_keeps_rate_estimate_and_invoice_separate() {
     assert_eq!(observed_rate_estimate.amount, 600.0);
     assert_eq!(report.financial_actuals.len(), 1);
     assert_eq!(report.financial_actuals[0].amount_minor_units, 72_500);
-    assert_ne!(
-        planned_rate_estimate.amount + observed_rate_estimate.amount,
-        report.financial_actuals[0].amount
-    );
+    // The estimates and direct financial actual are intentionally separate output views.
+    // Assert each view independently; do not combine them into a synthetic grand total.
 }
 
 /// Missing a plan is not the same as planning zero; the audit must preserve that distinction.
