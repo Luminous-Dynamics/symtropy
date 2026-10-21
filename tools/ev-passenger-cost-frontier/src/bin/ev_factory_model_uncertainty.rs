@@ -545,8 +545,8 @@ fn assign_regret_bounds(
                 let mut nominal_gap = 0.0;
                 let mut interval_gap = 0.0;
                 for option in options {
-                    let delta = i32::from(challenger.contains(&option.option_id))
-                        - i32::from(candidate.contains(&option.option_id));
+                    let delta = (if challenger.contains(&option.option_id) { 1_i32 } else { 0_i32 })
+                        - (if candidate.contains(&option.option_id) { 1_i32 } else { 0_i32 });
                     if delta == 0 {
                         continue;
                     }
@@ -563,7 +563,8 @@ fn assign_regret_bounds(
                         let option_b = &options[j].option_id;
                         let challenger_has_pair = challenger.contains(option_a) && challenger.contains(option_b);
                         let candidate_has_pair = candidate.contains(option_a) && candidate.contains(option_b);
-                        let delta = i32::from(challenger_has_pair) - i32::from(candidate_has_pair);
+                        let delta = (if challenger_has_pair { 1_i32 } else { 0_i32 })
+                            - (if candidate_has_pair { 1_i32 } else { 0_i32 });
                         if delta == 0 {
                             continue;
                         }
