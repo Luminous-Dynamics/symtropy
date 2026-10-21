@@ -220,9 +220,16 @@ jobs:
             "$OUT/request-validation.json" >/dev/null
 
           run_ccx() {
-            name="$1"
-            deck="$2"
+            local name="$1"
+            local deck="$2"
+            local request_path="$3"
+            local request_sha_case
+            local run_dir
+            local start_epoch
+            local status
+            local end_epoch
             run_dir="$OUT/$name"
+            request_sha_case="$(sha256sum "$request_path" | cut -d ' ' -f 1)"
             mkdir -p "$run_dir"
             cp "$deck" "$run_dir/model.inp"
             start_epoch="$(date +%s)"
@@ -234,7 +241,7 @@ jobs:
             end_epoch="$(date +%s)"
             if [ "$status" -ne 0 ]; then
               jq -n --arg name "$name" --arg source_sha "$source_sha" \
-                --arg request_sha "$request_sha" --arg exe_sha "$exe_sha" \
+                --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
                 --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
                 --argjson exit_status "$status" \
                 --argjson dat_present "$(test -s "$run_dir/model.dat" && echo true || echo false)" \
@@ -256,7 +263,7 @@ jobs:
             test -s "$run_dir/model.dat"
             test -s "$run_dir/model.frd"
             jq -n --arg name "$name" --arg source_sha "$source_sha" \
-              --arg request_sha "$request_sha" --arg exe_sha "$exe_sha" \
+              --arg request_sha "$request_sha_case" --arg exe_sha "$exe_sha" \
               --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
               --arg dat_sha "$(sha256sum "$run_dir/model.dat" | cut -d ' ' -f 1)" \
               --arg frd_sha "$(sha256sum "$run_dir/model.frd" | cut -d ' ' -f 1)" \
@@ -274,14 +281,25 @@ jobs:
               }' > "$run_dir/process-receipt.json"
           }
 
-          # U output: the same request, model, load and material at three resolutions.
-          for n in 1 2 4; do
-            run_ccx "n${n}-u" "$FIX/bar-n${n}-u.inp"
+          # Each mesh has its own request because the lateral guides bind exact mesh-node targets.
+          run_ccx "n1-u" "$FIX/bar-n1-u.inp" "$FIX/request.json"
+          run_ccx "n2-u" "$FIX/bar-n2-u.inp" "$FIX/request-n2.json"
+          run_ccx "n4-u" "$FIX/bar-n4-u.inp" "$FIX/request-n4.json"
+          # An independent execution repeat and RF-only execution use the exact one-element request.
+          run_ccx "n1-u-repeat" "$FIX/bar-n1-u.inp" "$FIX/request.json"
+          run_ccx "n1-rf" "$FIX/bar-n1-rf.inp" "$FIX/request.json"
+
+          # Validate each exact request independently. Validation is a preflight, not solver evidence.
+          for n in 2 4; do
+            CASE_REQUEST="$FIX/request-n${n}.json"
+            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+              --request "$CASE_REQUEST" --validator-revision "$source_sha" \
+              > "$OUT/request-validation-n${n}.json"
+            jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
+              "$OUT/request-validation-n${n}.json" >/dev/null
+            cp "$CASE_REQUEST" "$OUT/request-n${n}.json"
           done
-          # An independent execution repeat on the one-element U fixture.
-          run_ccx "n1-u-repeat" "$FIX/bar-n1-u.inp"
-          # RF is emitted in a separate deck so the restricted RF parser sees exactly one RF section.
-          run_ccx "n1-rf" "$FIX/bar-n1-rf.inp"
+          cp "$FIX/request.json" "$OUT/request-n1.json"
 
           build="$ROOT/build-manifest.json"
           for n in 1 2 4; do
@@ -292,15 +310,25 @@ jobs:
             esac
             case "$n" in 1) tip_node=2 ;; 2) tip_node=3 ;; 4) tip_node=5 ;; esac
             R="$OUT/n${n}-u"
+            case "$n" in
+              1) CASE_REQUEST="$FIX/request.json" ;;
+              2) CASE_REQUEST="$FIX/request-n2.json" ;;
+              4) CASE_REQUEST="$FIX/request-n4.json" ;;
+            esac
+            case_request_sha="$(sha256sum "$CASE_REQUEST" | cut -d ' ' -f 1)"
+            case_request_id="$(jq -r '.request_id' "$CASE_REQUEST")"
+            case_scene_sha="$(jq -r '.scene_sha256' "$CASE_REQUEST")"
+            case_scene_revision="$(jq -r '.scene_revision' "$CASE_REQUEST")"
+            case_frame="$(jq -r '.coordinate_frame_id' "$CASE_REQUEST")"
             deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
             dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
             jq -n \
-              --arg request_id "$request_id" --arg request_sha "$request_sha" \
-              --arg scene_sha "$scene_sha" --arg frame "$frame" \
+              --arg request_id "$case_request_id" --arg request_sha "$case_request_sha" \
+              --arg scene_sha "$case_scene_sha" --arg frame "$case_frame" \
               --arg deck_sha "$deck_sha" --arg dat_sha "$dat_sha" \
               --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
               --arg case_id "CCX-EXEC-001-AXIAL-BAR-N${n}" \
-              --argjson scene_revision "$scene_revision" --argjson support_node 1 \
+              --argjson scene_revision "$case_scene_revision" --argjson support_node 1 \
               --argjson tip_node "$tip_node" --argjson nodes "$node_ids" \
               '{
                 schema_version:"calculix-displacement-qoi-manifest-v0.1",
@@ -318,7 +346,7 @@ jobs:
                 }
               }' > "$R/displacement-manifest.json"
             cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
-              --request "$REQUEST" --deck "$R/model.inp" --dat "$R/model.dat" \
+              --request "$CASE_REQUEST" --deck "$R/model.inp" --dat "$R/model.dat" \
               --build-manifest "$build" --displacement-manifest "$R/displacement-manifest.json" \
               > "$R/displacement-report.json"
             jq -e '.numeric_reference_status == "PASS" and .physical_result_qualified == false and .real_world_validation_status == "UNRESOLVED"' \
@@ -326,6 +354,12 @@ jobs:
           done
 
           # Repeat stability is assessed numerically, not by comparing volatile .dat bytes.
+          REQUEST="$FIX/request.json"
+          request_sha="$(sha256sum "$REQUEST" | cut -d ' ' -f 1)"
+          request_id="$(jq -r '.request_id' "$REQUEST")"
+          scene_sha="$(jq -r '.scene_sha256' "$REQUEST")"
+          scene_revision="$(jq -r '.scene_revision' "$REQUEST")"
+          frame="$(jq -r '.coordinate_frame_id' "$REQUEST")"
           R="$OUT/n1-u-repeat"
           base_manifest="$OUT/n1-u/displacement-manifest.json"
           deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
