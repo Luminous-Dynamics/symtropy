@@ -164,8 +164,8 @@ pub fn beam_modal_participation_properties(
             effective_modal_mass_y_kg: effective_mass_y,
             effective_modal_mass_ratio_x: ratio_x,
             effective_modal_mass_ratio_y: ratio_y,
-            cumulative_effective_mass_ratio_x: cumulative_x,
-            cumulative_effective_mass_ratio_y: cumulative_y,
+            cumulative_effective_modal_mass_ratio_x: cumulative_x,
+            cumulative_effective_modal_mass_ratio_y: cumulative_y,
         });
     }
 
