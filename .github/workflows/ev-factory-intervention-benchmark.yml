@@ -100,11 +100,12 @@ jobs:
             and .robust_best_station_id == null
             and .paired_effect_recommendation_status == "no_robust_best_intervention_detected_abstain"
           ' ev-factory-intervention-margin-250.json
-          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
-            ev-factory-simulation-report.json 0 > invalid-margin.json 2>/dev/null && {
-              echo "zero practical margin unexpectedly accepted"
-              exit 1
-            } || true
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json 0 > invalid-margin.json 2> invalid-margin.stderr; then
+            echo "zero practical margin unexpectedly accepted"
+            exit 1
+          fi
+          grep -Fq "practical margin must be a finite positive number" invalid-margin.stderr
       - name: Verify deterministic ranking report
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
