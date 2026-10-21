@@ -41,7 +41,7 @@ fn workload(size: usize) -> Vec<LedgerEvent> {
 
 fn percentile(sorted: &[u128], numerator: usize, denominator: usize) -> u128 {
     let last = sorted.len() - 1;
-    let index = (last * numerator + denominator - 1) / denominator;
+    let index = (last * numerator).div_ceil(denominator);
     sorted[index.min(last)]
 }
 
