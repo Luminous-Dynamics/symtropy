@@ -14,7 +14,7 @@ The nested Cargo crate has no external dependencies and uses the sibling space-t
 
 ## Policy contract
 
-Caller-order first-fit processes requests in supplied order. Decreasing-area first-fit sorts by descending area, maximum side, width and height, then ascending reservation ID; area multiplication uses i128 to avoid overflow. Both policies derive a deterministic candidate set from yard and obstacle boundaries and test candidates in ascending (y, x) order. Reservations may reuse a floor region only when their half-open occupancy intervals do not overlap. Active rectangular exclusion zones block placement. Any invalid input, unsupported exclusion geometry, or unsatisfied request rejects the entire call; no partial plan is returned.
+Caller-order first-fit processes requests in supplied order. Decreasing-area first-fit sorts by descending area, maximum side, width and height, then ascending reservation ID; area multiplication uses i128 to avoid overflow. A six-policy portfolio runs caller order, decreasing area, decreasing maximum side, decreasing height, decreasing width, and decreasing perimeter. It sends each completed layout through the independent verifier and chooses the lowest time-integrated bounding-envelope area, with canonical reservation coordinates as the deterministic tie-break. If every policy fails, the portfolio reports `AllPoliciesFailed`; this is heuristic exhaustion, not proof that the instance is infeasible. Each individual policy derives a deterministic candidate set from yard and obstacle boundaries and tests candidates in ascending (y, x) order. Reservations may reuse a floor region only when their half-open occupancy intervals do not overlap. Active rectangular exclusion zones block placement. Any invalid input, unsupported exclusion geometry, or unsatisfied request rejects the entire call; no partial plan is returned.
 
 Every output scenario is passed to the independent space-time verifier. The baseline cannot override a violation or mark the result feasible itself.
 
@@ -31,7 +31,7 @@ Pinned expected outputs:
 - caller-order first-fit: 179 solved, 26 feasible cases missed, 307 infeasible cases rejected, zero false-feasible outputs;
 - decreasing-area first-fit: 197 solved, 8 feasible cases missed, 307 infeasible cases rejected, zero false-feasible outputs.
 
-This family suggests decreasing-area ordering closes 18 of the 26 missed-feasible cases in this generator (+8.8 percentage points of all exactly feasible cases, from 179/205 = 87.3% to 197/205 = 96.1%). Those are target outputs from an independent development-time enumeration and pinned test expectations; the committed Rust run must pass before this is reported as verified. The family is synthetic, uses four axis-aligned rectangles and no disruptions, and is not an industrial or SOTA comparison.
+This family suggests decreasing-area ordering closes 18 of 26 caller-order misses (from 179/205 = 87.3% to 197/205 = 96.1%). The six-policy portfolio is expected to find 203/205 exact-feasible cases, miss two, and reject all 307 infeasible cases, with zero false-feasible outputs. The portfolio closes 24 of the 26 input-order misses, for 203/205 = 99.0% feasibility coverage in this particular generator. These are target outputs from an independent development-time enumeration and pinned test expectations; the committed Rust run must pass before this is reported as verified. The family is synthetic, uses four axis-aligned rectangles and no disruptions, and is not an industrial or SOTA comparison.
 
 ## Claim boundary
 
