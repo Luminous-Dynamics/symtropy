@@ -16,7 +16,7 @@ The dedicated workflow pins Rust 1.96.0 and runs formatting, tests and Clippy of
 
 A disruption evaluator must answer more than whether the new plan passes a feasibility check. It should also report how much work changed, what changed outside the disturbance's scope, how much time/space was shifted, and how long affected work takes to finish. V0 deliberately emits separate metrics rather than hiding trade-offs in an arbitrary weighted scalar.
 
-The evaluator applies the same declared exclusion-zone and vehicle-outage evidence to both the baseline and proposed candidate. It derives affected placement IDs from new-zone intersections and affected transfer IDs from outage overlap, then adds explicitly declared affected IDs. It runs the candidate through the independent space-time verifier; no planner-supplied feasibility assertion is accepted.
+The evaluator applies the same declared exclusion-zone and vehicle-outage evidence to both the baseline and proposed candidate. It derives affected placement IDs from new-zone intersections, affected transfer IDs from corridor-zone intersections or vehicle-outage overlap, then adds explicitly declared affected IDs. It runs the candidate through the independent space-time verifier; no planner-supplied feasibility assertion is accepted.
 
 The report separates:
 - baseline feasible before/after the disruption;
@@ -32,12 +32,13 @@ Already-completed reservations (end tick at or before the disruption observation
 
 ## Tests authored in V0
 
-Five unit tests cover:
+Six unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
 4. prevention of historical reservation mutation;
-5. measurement of churn on work outside the affected set.
+5. detection of a transfer corridor invalidated by a new exclusion zone, with recovery that avoids unaffected churn;
+6. measurement of churn on work outside the affected set.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
