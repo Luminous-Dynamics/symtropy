@@ -11,6 +11,7 @@ use physical_transformation_reference::beam_pin_assembly::{
     BeamMemberChain, BeamPinNode, assemble_released_joint_beam_chains,
     canonical_beam_chain_sweep_request,
 };
+use physical_transformation_reference::modal_assignment::assign_isolated_modes;
 use physical_transformation_reference::modal_subspace::{
     cluster_mode_frequencies_hz, mass_weighted_modal_subspace_comparison,
 };
@@ -18,10 +19,12 @@ use std::env;
 use std::process::ExitCode;
 
 const FROZEN_REQUEST: &str =
-    include_str!("../../fixtures/beam_chain_subspace_sweep_request_v0_1.txt");
+    include_str!("../../fixtures/beam_chain_mode_match_request_v0_1.txt");
 const ELEMENT_COUNTS: [usize; 4] = [1, 2, 4, 8];
 const SAMPLE_POINTS_PER_MEMBER: usize = 17;
 const FREQUENCY_CLUSTER_RELATIVE_GAP: f64 = 1.0e-3;
+const ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP: f64 = 0.25;
+const ISOLATED_MODE_MINIMUM_MAC: f64 = 0.7;
 
 fn main() -> ExitCode {
     match run() {
@@ -42,7 +45,7 @@ fn run() -> Result<String, String> {
     let templates = fixture_members(1);
     let base_request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
     let request = format!(
-        "{base_request}|sample_points_per_member={SAMPLE_POINTS_PER_MEMBER}|frequency_cluster_relative_gap={FREQUENCY_CLUSTER_RELATIVE_GAP:.3}|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches"
+        "{base_request}|sample_points_per_member={SAMPLE_POINTS_PER_MEMBER}|sample_metric=per-member-trapezoidal-rhoA-L-weighted-ux-uy|frequency_cluster_relative_gap={FREQUENCY_CLUSTER_RELATIVE_GAP:.3}|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap={ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP:.2}|isolated_mode_minimum_mac={ISOLATED_MODE_MINIMUM_MAC:.1}|isolated_assignment=hungarian-max-total-mac-with-abstention"
     );
     if request != FROZEN_REQUEST.trim_end_matches('\n') {
         return Err("canonical mesh-sweep/subspace request differs from frozen fixture".to_owned());
@@ -133,6 +136,16 @@ fn run() -> Result<String, String> {
             ),
             _ => None,
         };
+        let isolated_assignment = match (&previous_frequencies, mac_matrix.as_deref()) {
+            (Some(previous_frequency_values), Some(mac_values)) => Some(
+                isolated_mode_assignment_json(
+                    &previous_frequency_values[..6],
+                    &current_frequencies[..6],
+                    mac_values,
+                )?,
+            ),
+            _ => None,
+        };
         mesh_receipts.push(mesh_json(
             elements_per_member,
             assembly.stiffness_global.len(),
@@ -141,6 +154,7 @@ fn run() -> Result<String, String> {
             previous_frequencies.as_deref(),
             mac_matrix.as_deref(),
             cluster_comparison.as_deref(),
+            isolated_assignment.as_deref(),
         ));
         previous_frequencies = Some(current_frequencies);
         previous_sampled_modes = Some(current_sampled_modes);
@@ -156,12 +170,21 @@ fn run() -> Result<String, String> {
             "\"evidence_class\":\"deterministic-synthetic-mesh-sweep\",",
             "\"result\":\"pass\",",
             "\"element_counts_per_member\":[1,2,4,8],",
-            "\"mesh_results\":[{}],",
+            "\"sample_points_per_member\":17,",
+            "\"sample_metric\":\"per-member-trapezoidal-rhoA-L-weighted-ux-uy\",",
+            "\"frequency_cluster_relative_gap\":{},",
+            "\"isolated_mode_max_relative_frequency_gap\":{},",
+            "\"isolated_mode_minimum_mac\":{},",
+            "\"isolated_assignment_algorithm\":\"Hungarian max-total-MAC within hard gates\",",
+            "\"mesh_results\":[{}],"
             "\"claim_ceiling\":\"one-element to eight-elements-per-member synthetic Euler-Bernoulli model only; not a mesh-converged NBC05 200-element beam model, physical validation, structural safety or code compliance\"",
             "}}"
         ),
         json_quote(&source_commit),
         json_quote(&request),
+        float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+        float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+        float_json(ISOLATED_MODE_MINIMUM_MAC),
         mesh_receipts.join(","),
     ))
 }
@@ -216,6 +239,7 @@ fn mesh_json(
     previous_frequencies: Option<&[f64]>,
     mac_matrix: Option<&[Vec<f64>]>,
     cluster_comparison: Option<&str>,
+    isolated_assignment: Option<&str>,
 ) -> String {
     let frequencies = result
         .modes
@@ -262,6 +286,7 @@ fn mesh_json(
         .map(f64_matrix_json)
         .unwrap_or_else(|| "null".to_owned());
     let cluster_comparison_json = cluster_comparison.unwrap_or("null");
+    let isolated_assignment_json = isolated_assignment.unwrap_or("null");
     format!(
         concat!(
             "{{",
@@ -276,7 +301,8 @@ fn mesh_json(
             "\"common_low_mode_frequency_relative_changes_from_previous_mesh\":{},",
             "\"max_common_low_mode_frequency_relative_change\":{},",
             "\"mode_shape_mac_low_six_from_previous_mesh\":{},",
-            "\"clustered_mode_subspace_comparison_from_previous_mesh\":{}",
+            "\"clustered_mode_subspace_comparison_from_previous_mesh\":{},",
+            "\"isolated_mode_assignment_from_previous_mesh\":{}",
             "}}"
         ),
         elements_per_member,
@@ -291,6 +317,7 @@ fn mesh_json(
         maximum_relative_change_json,
         mac_matrix_json,
         cluster_comparison_json,
+        isolated_assignment_json,
     )
 }
 
@@ -440,6 +467,156 @@ fn cluster_subspace_comparison_json(
     ))
 }
 
+fn isolated_mode_assignment_json(
+    previous_frequencies: &[f64],
+    current_frequencies: &[f64],
+    full_mac_matrix: &[Vec<f64>],
+) -> Result<String, String> {
+    if previous_frequencies.len() != 6
+        || current_frequencies.len() != 6
+        || full_mac_matrix.len() != 6
+        || full_mac_matrix.iter().any(|row| row.len() != 6)
+    {
+        return Err("isolated-mode assignment expects the six-mode frequency/MAC block".to_owned());
+    }
+    let previous_clusters = cluster_mode_frequencies_hz(
+        previous_frequencies,
+        FREQUENCY_CLUSTER_RELATIVE_GAP,
+    )?;
+    let current_clusters = cluster_mode_frequencies_hz(
+        current_frequencies,
+        FREQUENCY_CLUSTER_RELATIVE_GAP,
+    )?;
+    if previous_clusters != current_clusters {
+        return Ok(format!(
+            concat!(
+                "{{",
+                "\"status\":\"abstain-cluster-partition-changed\",",
+                "\"relative_gap_tolerance\":{},",
+                "\"maximum_relative_frequency_gap\":{},",
+                "\"minimum_mac\":{},",
+                "\"matches\":[]",
+                "}}"
+            ),
+            float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+            float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+            float_json(ISOLATED_MODE_MINIMUM_MAC),
+        ));
+    }
+
+    let isolated_indices = previous_clusters
+        .iter()
+        .filter(|range| range.len() == 1)
+        .map(|range| range.start)
+        .collect::<Vec<_>>();
+    if isolated_indices.is_empty() {
+        return Ok(format!(
+            concat!(
+                "{{",
+                "\"status\":\"no-isolated-modes\",",
+                "\"relative_gap_tolerance\":{},",
+                "\"maximum_relative_frequency_gap\":{},",
+                "\"minimum_mac\":{},",
+                "\"matches\":[]",
+                "}}"
+            ),
+            float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+            float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+            float_json(ISOLATED_MODE_MINIMUM_MAC),
+        ));
+    }
+
+    let isolated_reference_frequencies = isolated_indices
+        .iter()
+        .map(|index| previous_frequencies[*index])
+        .collect::<Vec<_>>();
+    let isolated_candidate_frequencies = isolated_indices
+        .iter()
+        .map(|index| current_frequencies[*index])
+        .collect::<Vec<_>>();
+    let isolated_mac_matrix = isolated_indices
+        .iter()
+        .map(|reference_index| {
+            isolated_indices
+                .iter()
+                .map(|candidate_index| full_mac_matrix[*reference_index][*candidate_index])
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let assignment = assign_isolated_modes(
+        &isolated_reference_frequencies,
+        &isolated_candidate_frequencies,
+        &isolated_mac_matrix,
+        ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP,
+        ISOLATED_MODE_MINIMUM_MAC,
+    )?;
+    let Some(assignment) = assignment else {
+        return Ok(format!(
+            concat!(
+                "{{",
+                "\"status\":\"abstain-no-complete-assignment\",",
+                "\"relative_gap_tolerance\":{},",
+                "\"maximum_relative_frequency_gap\":{},",
+                "\"minimum_mac\":{},",
+                "\"isolated_mode_count\":{},",
+                "\"matches\":[]",
+                "}}"
+            ),
+            float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+            float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+            float_json(ISOLATED_MODE_MINIMUM_MAC),
+            isolated_indices.len(),
+        ));
+    };
+
+    let matches_json = assignment
+        .matches
+        .iter()
+        .map(|matched| {
+            format!(
+                concat!(
+                    "{{",
+                    "\"reference_mode_index\":{},",
+                    "\"candidate_mode_index\":{},",
+                    "\"reference_frequency_hz\":{},",
+                    "\"candidate_frequency_hz\":{},",
+                    "\"relative_frequency_gap\":{},",
+                    "\"mac\":{}",
+                    "}}"
+                ),
+                isolated_indices[matched.reference_mode_index],
+                isolated_indices[matched.candidate_mode_index],
+                float_json(matched.reference_frequency_hz),
+                float_json(matched.candidate_frequency_hz),
+                float_json(matched.relative_frequency_gap),
+                float_json(matched.modal_assurance_criterion),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!(
+        concat!(
+            "{{",
+            "\"status\":\"matched\",",
+            "\"relative_gap_tolerance\":{},",
+            "\"maximum_relative_frequency_gap\":{},",
+            "\"minimum_mac\":{},",
+            "\"minimum_matched_mac\":{},",
+            "\"maximum_matched_frequency_gap\":{},",
+            "\"mean_matched_mac\":{},",
+            "\"matches\":[{}]",
+            "}}"
+        ),
+        float_json(FREQUENCY_CLUSTER_RELATIVE_GAP),
+        float_json(ISOLATED_MODE_MAX_RELATIVE_FREQUENCY_GAP),
+        float_json(ISOLATED_MODE_MINIMUM_MAC),
+        float_json(assignment.minimum_matched_mac),
+        float_json(assignment.maximum_relative_frequency_gap),
+        float_json(assignment.mean_matched_mac),
+        matches_json,
+    ))
+}
+
 fn cluster_ranges_json(ranges: &[std::ops::Range<usize>]) -> String {
     format!(
         "[{}]",
@@ -509,10 +686,49 @@ fn json_quote(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_source_commit;
+    use super::{isolated_mode_assignment_json, parse_source_commit};
 
     #[test]
     fn source_commit_argument_is_required_and_strict() {
         assert!(parse_source_commit().is_err());
+    }
+
+    #[test]
+    fn sweep_assignment_tracks_an_isolated_mode_rank_crossing() {
+        let previous = [10.0, 10.2, 40.0, 80.0, 160.0, 320.0];
+        let current = [10.05, 10.15, 40.1, 79.9, 160.1, 319.9];
+        let mut mac = vec![vec![0.0; 6]; 6];
+        mac[0][1] = 0.98;
+        mac[1][0] = 0.99;
+        for index in 2..6 {
+            mac[index][index] = 0.95;
+        }
+
+        let receipt = isolated_mode_assignment_json(&previous, &current, &mac)
+            .expect("valid isolated-mode sweep");
+        assert!(receipt.contains("matched"));
+        assert!(receipt.contains("reference_mode_index"));
+        assert!(receipt.contains("candidate_mode_index"));
+    }
+
+    #[test]
+    fn sweep_assignment_abstains_when_cluster_partition_changes() {
+        let previous = [10.0, 10.005, 20.0, 40.0, 80.0, 160.0];
+        let current = [10.0, 10.02, 20.0, 40.0, 80.0, 160.0];
+        let mac = vec![vec![1.0; 6]; 6];
+        let receipt = isolated_mode_assignment_json(&previous, &current, &mac)
+            .expect("cluster partition change is an abstention");
+        assert!(receipt.contains("abstain-cluster-partition-changed"));
+        assert!(receipt.contains("matches"));
+    }
+
+    #[test]
+    fn sweep_assignment_reports_when_all_low_modes_are_clustered() {
+        let frequencies = [10.0, 10.005, 20.0, 20.005, 30.0, 30.005];
+        let mac = vec![vec![1.0; 6]; 6];
+        let receipt = isolated_mode_assignment_json(&frequencies, &frequencies, &mac)
+            .expect("clustered modes should not use scalar assignment");
+        assert!(receipt.contains("no-isolated-modes"));
+        assert!(receipt.contains("\\\"matches\\\":[]"));
     }
 }
