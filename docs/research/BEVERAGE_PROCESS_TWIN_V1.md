@@ -115,6 +115,8 @@ Report separate outcomes:
 - experiments and wall-clock time per qualified improvement;
 - uncertainty and across-seed variability, not only best-case curves.
 
+The machine-readable contract corpus is `docs/research/beverage-experiment-selection-scenarios-v1.json`, with its Draft 2020-12 schema at `docs/research/beverage-experiment-selection-scenarios-v1.schema.json`. Its 12 synthetic cases include equal-budget controls, budget mismatch, post-hoc seed/metric selection, hard-gate violations, synthetic-to-plant claim inflation, missing uncertainty, out-of-domain proposals, unfrozen candidate/seed manifests, future-result leakage and an empty feasible set. These are evaluator scenarios, not experiment results. 
+
 ### Proposed stretch target
 
 On the locked benchmark suite, aim for at least 20% lower mean normalized simple regret than the strongest pre-registered non-BO baseline at the same experiment budget, with a paired uncertainty interval supporting improvement and no increase in hard-constraint violations. Require the gain to replicate on an independent seed set and then in a prospective physical study before it is called an operational improvement. If measured experiments are too sparse to establish a reliable ordering, report the result as inconclusive rather than choosing the most favourable budget after seeing scores.
