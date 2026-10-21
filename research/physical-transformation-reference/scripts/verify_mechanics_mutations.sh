@@ -15,7 +15,7 @@ metamorphic_sha256="$(sha256sum "$crate_dir/tests/metamorphic.rs" | awk '{print 
 rustc_version="$(rustc --version)"
 cargo_version="$(cargo --version)"
 
-# Control: the unmutated metamorphic suite must pass before we interpret any mutant.
+# Control: the unmutated metamorphic suite must pass before interpreting mutants.
 control_log="$tmp_root/unmutated-control.log"
 if ! cargo test --locked --manifest-path "$crate_dir/Cargo.toml" --test metamorphic >"$control_log" 2>&1; then
   printf 'ERROR: unmutated metamorphic control failed.\n' >&2
@@ -41,15 +41,30 @@ run_mutation() {
       perl -0pi -e 's/let numerator = force_n \* length_m;/let numerator = force_n * length_m * length_m;/' "$mechanics"
       grep -Fq 'let numerator = force_n * length_m * length_m;' "$mechanics"
       ;;
+    axial_stress_area_squared)
+      grep -Fq 'let axial_stress_pa = force_n / area_m2;' "$mechanics"
+      perl -0pi -e 's/let axial_stress_pa = force_n \/ area_m2;/let axial_stress_pa = force_n \/ (area_m2 * area_m2);/' "$mechanics"
+      grep -Fq 'let axial_stress_pa = force_n / (area_m2 * area_m2);' "$mechanics"
+      ;;
     cantilever_deflection_length_squared)
       grep -Fq 'let deflection_numerator = force_n * length_cubed;' "$mechanics"
       perl -0pi -e 's/let deflection_numerator = force_n \* length_cubed;/let deflection_numerator = force_n * length_squared;/' "$mechanics"
       grep -Fq 'let deflection_numerator = force_n * length_squared;' "$mechanics"
       ;;
+    cantilever_omit_youngs_modulus)
+      grep -Fq 'let flexural_denominator = 3.0 * youngs_modulus_pa * second_moment_area_m4;' "$mechanics"
+      perl -0pi -e 's/let flexural_denominator = 3.0 \* youngs_modulus_pa \* second_moment_area_m4;/let flexural_denominator = 3.0 * second_moment_area_m4;/' "$mechanics"
+      grep -Fq 'let flexural_denominator = 3.0 * second_moment_area_m4;' "$mechanics"
+      ;;
     supported_beam_deflection_length_cubed)
       grep -Fq 'let length_fourth = length_squared * length_squared;' "$mechanics"
       perl -0pi -e 's/let length_fourth = length_squared \* length_squared;/let length_fourth = length_squared * length_m;/' "$mechanics"
       grep -Fq 'let length_fourth = length_squared * length_m;' "$mechanics"
+      ;;
+    supported_beam_stress_depends_on_modulus)
+      grep -Fq 'maximum_bending_moment * outer_fiber_distance_m / second_moment_area_m4;' "$mechanics"
+      perl -0pi -e 's/maximum_bending_moment \* outer_fiber_distance_m \/ second_moment_area_m4;/maximum_bending_moment * outer_fiber_distance_m \/ (second_moment_area_m4 * youngs_modulus_pa);/' "$mechanics"
+      grep -Fq 'maximum_bending_moment * outer_fiber_distance_m / (second_moment_area_m4 * youngs_modulus_pa);' "$mechanics"
       ;;
     *)
       printf 'Unknown mutation: %s\n' "$mutant" >&2
@@ -78,15 +93,25 @@ run_mutation \
   "axial-extension-length-exponent" \
   axial_extension_length_squared \
   axial_bar_obeys_force_homogeneity_and_geometric_scaling
-
+run_mutation \
+  "axial-stress-area-exponent" \
+  axial_stress_area_squared \
+  axial_bar_obeys_force_homogeneity_and_geometric_scaling
 run_mutation \
   "cantilever-deflection-span-exponent" \
   cantilever_deflection_length_squared \
   cantilever_obeys_force_span_and_stiffness_scaling
-
+run_mutation \
+  "cantilever-omit-elastic-modulus" \
+  cantilever_omit_youngs_modulus \
+  cantilever_obeys_force_span_and_stiffness_scaling
 run_mutation \
   "simply-supported-deflection-span-exponent" \
   supported_beam_deflection_length_cubed \
+  simply_supported_beam_obeys_load_span_and_stiffness_scaling
+run_mutation \
+  "simply-supported-stress-modulus-coupling" \
+  supported_beam_stress_depends_on_modulus \
   simply_supported_beam_obeys_load_span_and_stiffness_scaling
 
 # Stable field order and no timestamps make the receipt reproducible at a fixed commit/toolchain.
@@ -120,7 +145,17 @@ jq -n \
         disposition: "detected"
       },
       {
+        id: "PHYS-MUT-AXIAL-AREA-001",
+        expected_test: "axial_bar_obeys_force_homogeneity_and_geometric_scaling",
+        disposition: "detected"
+      },
+      {
         id: "PHYS-MUT-CANTILEVER-SPAN-001",
+        expected_test: "cantilever_obeys_force_span_and_stiffness_scaling",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-MUT-CANTILEVER-MODULUS-001",
         expected_test: "cantilever_obeys_force_span_and_stiffness_scaling",
         disposition: "detected"
       },
@@ -128,10 +163,15 @@ jq -n \
         id: "PHYS-MUT-SUPPORTED-BEAM-SPAN-001",
         expected_test: "simply_supported_beam_obeys_load_span_and_stiffness_scaling",
         disposition: "detected"
+      },
+      {
+        id: "PHYS-MUT-SUPPORTED-BEAM-STRESS-MODULUS-001",
+        expected_test: "simply_supported_beam_obeys_load_span_and_stiffness_scaling",
+        disposition: "detected"
       }
     ],
     summary: {
-      detected: 3,
+      detected: 6,
       undetected: 0,
       invalid_mutant: 0,
       equivalent_mutant: 0,
@@ -143,9 +183,9 @@ jq -e '
   .schema_version == "physical-transform-mutation-receipt-v0.1"
   and (.source_commit | type == "string" and length == 40)
   and .baseline_control.disposition == "pass"
-  and .summary.detected == 3
+  and .summary.detected == 6
   and .summary.undetected == 0
   and ([.mutations[].disposition] | all(. == "detected"))
 ' "$receipt_path" >/dev/null
 
-printf 'Mutation sensitivity: 3/3 selected formula defects detected. Receipt: %s\n' "$receipt_path"
+printf 'Mutation sensitivity: 6/6 selected formula defects detected. Receipt: %s\n' "$receipt_path"
