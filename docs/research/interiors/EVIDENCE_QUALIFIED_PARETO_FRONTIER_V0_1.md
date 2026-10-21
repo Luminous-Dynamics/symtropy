@@ -19,7 +19,7 @@ This utility is downstream of verification. It does not implement or replace the
 - Each objective names a stable dimension, explicit unit or normalized scale, minimize/maximize direction, finite numeric value, and evidence-admission state. Dimension, unit, and direction must match exactly across the ranking set; this utility performs no currency conversion or hidden normalization.
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
 - Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
-- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative.
+- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative. With exactly two objective dimensions, an O(n log n) sweep computes the frontier and one deterministic dominance witness per dominated candidate; inputs with more than two objective dimensions use the conservative O(n²) pairwise path.
 - Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier. Each dominated candidate stores one deterministic dominance witness rather than every dominator, keeping report memory linear in candidate count.
 - The resident retains final choice. Pareto membership is not a statement that an alternative is universally best.
 
@@ -51,7 +51,26 @@ Proposed acceptance targets (not measured performance claims):
 - fail-closed behavior for incomparable objective schemas;
 - exact-head formatting, unit tests, and strict Clippy passing.
 
-The frontier utility now has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. It separates a tradeoff-heavy worst-case non-dominated profile from a dominated-chain profile, asserts the expected frontier cardinality, excludes candidate construction from timings, and reports p50/p95/max duration. Worst-case comparison time remains quadratic in arbitrary objective vectors; the harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module. End-to-end evaluation must later compare the same verified candidate set against transparent rules, human-curated trade-offs, and commercial workflows, using identical objective definitions and input snapshots.
+The frontier utility has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. Candidate construction is outside the timed section; each profile asserts expected frontier cardinality and reports p50/p95/max duration. The two-objective sweep is O(n log n); the general higher-dimensional fallback is O(n²). The harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module.
+
+### Exact-head performance evidence
+
+Two runs used the same benchmark harness, Ubuntu 24.04 and Rust 1.96.0, but separate hosted-runner executions; treat the ratio as an observed result, not a hardware-controlled guarantee.
+
+| Alternatives | Profile | Samples | Pairwise p50 | Sweep p50 | Sweep p95 |
+|---:|---|---:|---:|---:|---:|
+| 25 | Tradeoff-heavy; all non-dominated | 50 | 0.017 ms | 0.014 ms | 0.031 ms |
+| 25 | Dominated chain; frontier size 1 | 50 | 0.014 ms | 0.016 ms | 0.029 ms |
+| 100 | Tradeoff-heavy | 30 | 0.106 ms | 0.054 ms | 0.071 ms |
+| 100 | Dominated chain | 30 | 0.058 ms | 0.073 ms | 0.092 ms |
+| 1,000 | Tradeoff-heavy | 10 | 6.025 ms | 0.582 ms | 0.708 ms |
+| 1,000 | Dominated chain | 10 | 0.717 ms | 0.804 ms | 0.904 ms |
+| 10,000 | Tradeoff-heavy | 5 | 765.216 ms | 6.542 ms | 8.010 ms |
+| 10,000 | Dominated chain | 5 | 8.761 ms | 9.637 ms | 10.267 ms |
+
+Source records: pairwise baseline exact head `f1bf1b56df568854714dddab834ba3e505464c0b`, run [#39587364782](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39587364782); sweep exact head `f6a26541b8ab55b543fb17713d58b170b8313c57`, run [#39588539113](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39588539113). At 10,000 tradeoff-heavy alternatives, the observed p50 fell from 765.216 ms to 6.542 ms (about 117× in these runs). The dominated-chain p50 increased from 8.761 ms to 9.637 ms (about 10%), exposing the small cost of the sorting sweep on an easy-to-dominate distribution. The 10,000-case p95 is based on only five samples and is exploratory; peak memory remains unmeasured.
+
+This is an internal microbenchmark, not an external SOTA result. End-to-end evaluation must compare identical verified candidate sets against transparent rules, human-curated trade-offs, and commercial/research workflows using identical inputs, objective definitions, and an independent evaluator.
 
 ## Claim ceiling
 
