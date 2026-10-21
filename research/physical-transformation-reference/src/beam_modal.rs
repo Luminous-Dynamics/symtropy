@@ -377,12 +377,30 @@ pub fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
     if left.iter().chain(right).any(|value| !value.is_finite()) {
         return Err("MAC inputs contain a non-finite value".to_owned());
     }
-    let left_norm = left.iter().map(|value| value * value).sum::<f64>();
-    let right_norm = right.iter().map(|value| value * value).sum::<f64>();
-    if !left_norm.is_finite() || !right_norm.is_finite() || left_norm <= 0.0 || right_norm <= 0.0 {
+    let left_scale = left.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let right_scale = right.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    if !left_scale.is_finite()
+        || !right_scale.is_finite()
+        || left_scale <= 0.0
+        || right_scale <= 0.0
+    {
         return Err("MAC vectors must have finite positive norm".to_owned());
     }
-    let dot = left.iter().zip(right).map(|(a, b)| a * b).sum::<f64>();
+
+    // Normalize by the largest absolute component first to avoid overflow or
+    // underflow when a valid mode vector carries an arbitrary scale factor.
+    let left_normalized = left.iter().map(|value| value / left_scale).collect::<Vec<_>>();
+    let right_normalized = right
+        .iter()
+        .map(|value| value / right_scale)
+        .collect::<Vec<_>>();
+    let left_norm = left_normalized.iter().map(|value| value * value).sum::<f64>();
+    let right_norm = right_normalized.iter().map(|value| value * value).sum::<f64>();
+    let dot = left_normalized
+        .iter()
+        .zip(&right_normalized)
+        .map(|(a, b)| a * b)
+        .sum::<f64>();
     let mac = (dot * dot / (left_norm * right_norm)).clamp(0.0, 1.0);
     if mac.is_finite() {
         Ok(mac)
@@ -644,6 +662,13 @@ mod tests {
         );
         assert!(modal_assurance_criterion(&[1.0], &[1.0, 2.0]).is_err());
         assert!(modal_assurance_criterion(&[0.0, 0.0], &[1.0, 0.0]).is_err());
+        assert!(
+            (modal_assurance_criterion(&[1.0e200, -2.0e200], &[-1.0e-200, 2.0e-200])
+                .expect("scale-safe MAC")
+                - 1.0)
+                .abs()
+                < 1.0e-14
+        );
     }
 
     #[test]
