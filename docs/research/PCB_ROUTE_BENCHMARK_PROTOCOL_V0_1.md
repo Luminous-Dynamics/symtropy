@@ -182,3 +182,30 @@ Git blob SHA-1 metadata identifies the upstream JSON object; the manifest builde
 ### Connectivity truth-source invariant
 
 Every board attempt carries `unconnected_item_count` from the native DRC/ratsnest result. A valid-route disposition requires the count to be **explicitly present and zero**. If the normalized adapter says all nets are connected while the native DRC report still lists unconnected items, the evaluator classifies the case as `incomplete_nets`; if the count is missing, it is `evidence_incomplete`. A run where DRC was not evaluated must not claim an unconnected-item count or DRC-report digest. The receipt summarizes both the observed total and how many attempts lack that observation, so unknown is not silently normalized to zero.
+
+
+## Current external competitive landscape (checked 2026-10-21)
+
+These are **separate reference measurements, not a shared leaderboard**. Record the exact source revision and reproduce on matching inputs before ranking methods.
+
+| Public source | Author-reported result | What it is useful for | Why it is not directly comparable yet |
+|---|---|---|---|
+| [PCBWorld-Bench / v1.1.1 source](https://github.com/LGAI-Research/PCBWorld) | 679 source boards; the shipped D3 evaluation pool has 677 after the documented exclusions; D3-A is 99 small-board cases | Primary engine-grounded challenge: same KiCad routing/DRC semantics, synthetic and real boards | Requires exact source bytes, board split, engine submodule, DRC policy, and evaluation recipe |
+| [FreeRouting official benchmark page](https://github.com/freerouting/freerouting/blob/master/website/benchmarks.html) | Its page generated 2026-09-30 reports 1,157 fixtures for v1.9.0, 568/1,157 fully routed (49.1%) and 415/1,157 DRC-clean (35.9%) | Large ongoing regression fixture set; separates connectivity from DRC cleanliness | Different board corpus and rules; do not compare its aggregate percentage directly to D3-A or D3-B |
+| [FastRoute project benchmarks](https://fastroute.baltavista.com/) | Project reports 2,102 s → 420 s over 20 boards in parity mode and roughly 20–300 MB versus 1–2 GB peak memory | Performance/memory baseline; test its Rust port independently | Project-authored small-suite data, parity mode is not the same as quality-maximizing output, and its DRC examples use a separate set |
+| [ProtoFlow public benchmark page](https://www.protoflow.ai/benchmarks) | Vendor reports 98/99 D3-A small boards KiCad-clean; D3-B report 30/30 attempts clean across 10 boards × 3 attempts; also provides a router-only figure | A valuable recent external point of comparison on PCBWorld D3-A/B | Vendor-produced results and tool/agent stack need independent reproduction under pinned identical rules and timeouts |
+| [PUNKFAB four-router case study](https://punkfab.com/blog/route-evals/) | On one 4-layer, 42-component board, the post reports different trade-offs across four methods and that none of the tested outputs was directly orderable | End-to-end DFM: routing success is not equivalent to fabrication readiness | One board, author-specific manufacturing rules, and no broad statistical generalization |
+
+Sources: FreeRouting's page separates "fully routed" from "clean (0 DRC)" and records its generation date; FastRoute describes a 20-board parity-mode timing comparison; ProtoFlow labels its public benchmark metrics and attempt counts; PUNKFAB describes its single-board four-router experiment. These details are reported by each source, not independently reproduced by this project.
+
+### Strongest next benchmark, in order
+
+1. **D3-A reproduction**: all 99 held-out small real boards; use the upstream-pinned split/engine/policy. Reproduce the pinned PCBWorld rule-based baseline and a reference agent before modifying the algorithm. Run each method on byte-identical boards with equal resource/time limits.
+2. **D3-B repeated outcomes**: 10 medium boards, three attempts each where that matches the referenced protocol. Preserve every attempt; report board-clustered uncertainty so three tries on the same board are not treated as three independent board families.
+3. **D3-C hard-board stress**: report per-board outcomes and complexity strata; never let a gain on easy boards hide a collapse on large boards.
+4. **Independent router baselines**: add FreeRouting and FastRoute only where an adapter can preserve exact inputs, rule transfer, router version/configuration, output bytes and post-hoc native DRC. Keep parity mode and best-quality mode as distinct experiment arms.
+5. **Orderable-output gate**: separate copper-router validity from downstream CAD/CAM/manufacturing criteria: netlist parity, copper-zone refill, drill/plating/annular-ring constraints, trace/via manufacturing limits, mask/clearance, board outline, critical-net constraints, and target supplier DFM. A "DRC-clean" board is not automatically orderable.
+
+### Stronger statistical unit
+
+The board—not each random attempt—is the generalization unit. For multi-attempt stochastic methods, report (a) attempt-level rate as an operational metric, (b) per-board probability/range across attempts, and (c) paired board-level treatment deltas. Bootstrap or otherwise resample board IDs as clusters, carrying the board's repeated attempts together. Do not treat multiple runs on the same board as independent board samples. The current v0.1 CLI pairs one report row per board; seed-level replication and board-cluster bootstrap must be a versioned extension before publishing inferential claims from multi-seed D3-B runs.
