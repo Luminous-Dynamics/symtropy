@@ -14,10 +14,10 @@ This is a separate nested Cargo workspace with no external dependencies. CI chec
 
 ## Paradigm shift: verify space-time feasibility from evidence, not planner assertions
 
-The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule. An empty reservation set emits `NoOperationalReservations`, so vacuous truth cannot be reported as a qualified yard plan.
+The verifier reconstructs violations from concrete reservations; it does not trust a supplied `feasible=true` flag or try to repair the schedule. An empty reservation set emits `NoOperationalReservations`, so vacuous truth cannot be reported as a qualified yard plan. Missing or invalid finite yard bounds are rejected; every supported block footprint and transfer/access corridor must fit entirely inside the declared yard rectangle.
 
 V0 supports:
-- axis-aligned rectangular footprints on an integer coordinate lattice;
+- one explicit finite yard boundary and axis-aligned rectangular footprints on an integer coordinate lattice;
 - half-open integer-tick reservation intervals `[start, end)`;
 - block placements/staging occupancy;
 - declared rectangular transfer/access corridors;
@@ -34,7 +34,7 @@ The frozen fixture at `tests/fixtures/space-time-v0.tsv` has raw-byte SHA-256:
 
 `7a1b65b926ad7417902ef38f69040a7757dc89fd038801d93afaee881298df00`
 
-It contains 14 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry and invalid inputs. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
+It contains 17 cases spanning feasible edge-touch/time-separated controls and negative controls for overlaps, double booking, blocked transfers, vehicle conflicts, precedence, missing predecessors, exclusions, unsupported geometry, invalid time/rectangle, missing yard bounds, and out-of-bounds blocks/corridors. The integration oracle parses the fixture and compares **per-code violation counts** with separately listed expected outcomes. Two unit tests independently compare rectangle intersection to integer-cell rasterization and half-open interval overlap to explicit tick scanning; an additional test checks input-order invariance.
 
 These checks provide bounded correctness evidence, not proof of arbitrary polygon geometry, general optimizer correctness, production shipyard safety or real-world throughput. The test suite must pass on the exact PR head before the milestone can be called verified.
 
@@ -46,15 +46,7 @@ The existing [industrial workcell validator PR #1967](https://github.com/Luminou
 
 ## Benchmark roadmap
 
-First gate: 100% agreement with hand-enumerated fixtures, all spatial/resource negative controls rejected, unsupported cases preserved as non-feasible, and deterministic reports under input permutation.
-
-Next add a tiny exhaustive placement/transfer oracle and disruption-recovery cases, then compare first-fit and transparent greedy baselines against a bounded candidate planner. Report yard area-time utilization, block re-handles, vehicle moves, makespan/delay, access blockage, recovery time, schedule churn, feasibility rate, compute time and memory separately. Freeze the scenario generator, model switches, seeds and raw outputs.
-
-For generic scheduling, use pinned [JSPLib](https://scheduleopt.github.io/benchmarks/jsplib/) and [FJSPLib](https://scheduleopt.github.io/benchmarks/fjsplib/) versions and report feasible/optimal counts and per-instance bounds/gaps. ScheduleOpt describes a standardized 10-minute comparison against CP Optimizer, CP-SAT, OptalCP and CPLEX and publishes best-known bounds. Those job-shop results are a generic solver baseline, not shipyard-space validation.
-
-Shipyard-specific research includes Wang et al. (first published 11 July 2026), which studies irregular block spatial scheduling and disruption recovery with a mixed-integer model: [IET Collaborative Intelligent Manufacturing](https://doi.org/10.1049/cim2.70066). The paper provides a baseline to reconstruct—not evidence that this crate reproduces its model or exceeds its results. Its stated simplifying assumptions motivate explicit profile switches and adversarial tests around transfer and handling constraints.
-
-No percentage improvement target is declared before the baseline implementation and comparison corpus are frozen. Any industrial productivity claim requires permissioned, longitudinal build data. Physical lift/crane and statutory safety decisions require their own qualified models and approvals.
+Do not build an optimizer on top of a permissive or under-specified verifier. First gate on exact agreement with the frozen spatial/time fixture, all negative controls rejected, explicit finite yard bounds, zero false-feasible outputs, and deterministic reports. Then follow the baseline ladder below before claiming improvements. Yard-area utilization, block re-handles, travel time, makespan/delay, recovery time, schedule churn, compute time and memory are separate metrics—not one opaque score.
 
 ## Comparative benchmark plan: a measurable path toward state of the art
 
