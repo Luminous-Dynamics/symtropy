@@ -1092,7 +1092,13 @@ mod tests {
             request("r-a", "block-a", 3, 3, 0, 10),
             request("r-b", "block-b", 3, 3, 0, 10),
         ];
-        let outcome = exact_tiny_search_with_budget(yard(), &requests, &[], 1).unwrap();
+        let small_yard = Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 5,
+            max_y: 5,
+        };
+        let outcome = exact_tiny_search_with_budget(small_yard, &requests, &[], 1).unwrap();
         assert!(matches!(outcome, ExactSearchOutcome::BudgetExceeded(1)));
     }
 
