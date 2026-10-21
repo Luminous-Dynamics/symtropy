@@ -860,8 +860,8 @@ mod tests {
             triple("d", 11.0, 25.0, 85.0),
             triple("e", 13.0, 30.0, 60.0),
         ];
-        let report = compute_pareto_frontier(&candidates)
-            .expect("three-dimensional schema is valid");
+        let report =
+            compute_pareto_frontier(&candidates).expect("three-dimensional schema is valid");
         assert_eq!(report.frontier_ids, vec!["a", "b", "d"]);
         assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
     }
