@@ -180,3 +180,25 @@ Reject the broker if its gains vanish under independent frozen seeds, if it fail
 ## Explicit non-claims
 
 This research contract does not claim that Symtropy has reproduced RoboMME, RoboMME-Interference, ActiveArena, or RoboMemArena; it does not claim that the proposed broker improves success; and it does not convert synthetic loss or operation-count proxies into robot success, milliseconds, energy, RAM, VRAM, or industry/SOTA standing.
+
+
+## Industry / SOTA comparison without false equivalence
+
+A vendor capability announcement, a synthetic diagnostic, and an official benchmark score are different evidence classes.
+
+- **ActiveArena** is the best public reference for view selection under manipulation: the official table reports ActiveArena-OFT at 62.97% ID and 47.60% OOD task-macro success over 35 tasks. This is a published external baseline, not a Symtropy result. Exact parity requires the eligible checkpoint, official evaluator, preprocessing, action head/executor, scene split, and ordered seeds. Source: https://leeibo.github.io/ActiveArena/
+- **RoboMME** is the relevant open memory-representation comparison: 16 manipulation tasks across four memory suites and 800 test episodes under the published protocol. Use its own task-macro and suite metrics. Source: https://proceedings.mlr.press/v306/dai26c.html
+- **RoboMME-Interference** adds the more deployment-realistic question of whether memory survives unrelated sessions. It should be reported separately from RoboMME clean-task scores. Its project reports that matching-session retrieval is more resistant to k7 interference than frame-sampling variants in its tested configuration. This is a motivating external result, not a guarantee about a new architecture. Source: https://github.com/SoumilRathi/robomme-interference
+- **RoboMemArena** broadens the memory setting to 26 manipulation tasks and publishes CSR (final goal success) and TSR (all-stage success). Its maintainers flag the June 20, 2026 dataset refresh as important; reproduce only after pinning matching assets, code, and scoring logic. Source: https://github.com/OpenHelix-Team/RoboMemArena
+- **Commercial foundation-model systems** are important context but generally cannot be compared by headline claims alone. For example, Google DeepMind's July 30, 2026 Gemini Robotics ER 2 announcement emphasizes real-time spatial reasoning, orchestration, and multi-robot collaboration, but those feature statements are not a directly comparable cross-session-memory score. Source: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-robotics-er-2/
+
+### What would justify a “better than SOTA” claim?
+
+1. Name the benchmark, task split, checkpoint, and exact eligible baseline; distinguish published reference numbers from runs reproduced locally.
+2. Reproduce baseline parity, then run a controller-only memory ablation with identical observations, backbone, executor, inference precision, seeds, and memory/compute budgets.
+3. On ActiveArena, aim internally for at least +5 absolute percentage points OOD task-macro success over the strongest eligible locally reproduced baseline, with a paired 95% interval above zero and no more than a 3-point absolute ID regression. These are project gates, not universal community standards.
+4. On the interference benchmark, report the full no-history/k0/k1/k3/k7 curve, raw success and memory benefit for each level, and paired uncertainty. A k7 gain must not be bought by degrading k0/clean-task success or by increasing memory/compute.
+5. Report measured p50/p95 end-to-end latency, CPU, RAM, VRAM, memory bytes/tokens, failures, and the success/resource Pareto frontier. Synthetic operation counts are not a substitute.
+6. Publish failures and per-task regressions. A higher aggregate is not enough if memory becomes brittle for one task family or under contradictions and task switches.
+
+**SOTA boundary:** the ActiveArena and RoboMME numbers are not numerically comparable to each other, to RoboMemArena, or to any synthetic VIS loss. Without a matching official protocol and reproduced baseline, the right claim is “new research candidate” rather than “industry-beating.”
