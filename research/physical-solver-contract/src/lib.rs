@@ -38,6 +38,7 @@ const OUTPUTS: &[&str] = &[
     "stress",
     "reaction_force",
     "reaction_moment",
+    "strain_energy",
     "crack_path",
     "fragment_state",
     "energy_balance",
