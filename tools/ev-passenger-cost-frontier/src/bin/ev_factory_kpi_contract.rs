@@ -377,6 +377,124 @@ fn not_estimable_metric(
     }
 }
 
+fn validate_job_lifecycle_evidence(
+    baseline: &Value,
+    primary_seed: u64,
+    expected_released_jobs: u64,
+) -> Result<bool, String> {
+    let Some(events) = baseline.get("job_lifecycle_events").and_then(Value::as_array) else {
+        return Ok(false);
+    };
+    let Some(summary) = baseline.get("job_lifecycle_summary") else {
+        return Ok(false);
+    };
+    if events.is_empty() {
+        return Ok(false);
+    }
+    if field_usize(summary, "event_count_in_ledger")? != events.len() {
+        return Err("lifecycle_event_count_does_not_match_ledger".into());
+    }
+    let mut previous_timestamp = 0_u64;
+    let mut release_ids = std::collections::BTreeSet::new();
+    let mut terminal_counts = std::collections::BTreeMap::<u64, usize>::new();
+    let mut previous_sequence: Option<u64> = None;
+    for (index, event) in events.iter().enumerate() {
+        if field_str(event, "schema_version")? != "0.1.0"
+            || field_u64(event, "seed")? != primary_seed
+            || field_str(event, "scenario_id")? != "baseline"
+            || field_str(event, "evidence_class")? != "synthetic"
+        {
+            return Err("lifecycle_event_schema_seed_scenario_or_evidence_mismatch".into());
+        }
+        let sequence = field_u64(event, "event_sequence")?;
+        if sequence != index as u64
+            || previous_sequence.is_some_and(|prior| sequence <= prior)
+        {
+            return Err("lifecycle_event_sequence_not_contiguous_and_monotonic".into());
+        }
+        previous_sequence = Some(sequence);
+        let timestamp = field_u64(event, "timestamp_seconds")?;
+        if index > 0 && timestamp < previous_timestamp {
+            return Err("lifecycle_event_timestamp_regression".into());
+        }
+        previous_timestamp = timestamp;
+        let job_id = field_u64(event, "job_id")?;
+        let kind = field_str(event, "kind")?;
+        match kind {
+            "job_release" => {
+                if !release_ids.insert(job_id) {
+                    return Err("duplicate_job_release_in_lifecycle_ledger".into());
+                }
+            }
+            "final_good_completion" | "job_scrapped" | "job_censored_at_horizon" => {
+                *terminal_counts.entry(job_id).or_default() += 1;
+            }
+            _ => {}
+        }
+    }
+    if release_ids.len() as u64 != expected_released_jobs
+        || terminal_counts.len() != release_ids.len()
+        || release_ids.iter().any(|job_id| terminal_counts.get(job_id) != Some(&1))
+        || terminal_counts.keys().any(|job_id| !release_ids.contains(job_id))
+    {
+        return Err("lifecycle_ledger_release_terminal_coverage_mismatch".into());
+    }
+    let eligible = field_u64(summary, "eligible_released_jobs_after_warmup")?;
+    let good = field_u64(summary, "accepted_good_jobs_in_cohort")?;
+    let scrapped = field_u64(summary, "scrapped_jobs_in_cohort")?;
+    let censored = field_u64(summary, "right_censored_jobs_at_horizon")?;
+    if eligible != good + scrapped + censored {
+        return Err("lifecycle_cohort_terminal_counts_do_not_reconcile".into());
+    }
+    let lead_time = summary.get("good_job_lead_time_seconds");
+    match (good, lead_time) {
+        (0, Some(value)) if value.is_null() => {}
+        (0, None) => {}
+        (expected, Some(value)) if expected > 0 => {
+            let distribution: DistributionSummary = serde_json::from_value(value.clone())
+                .map_err(|error| format!("lifecycle_lead_time_distribution_invalid:{error}"))?;
+            if distribution.sample_count as u64 != expected {
+                return Err("lifecycle_lead_time_samples_do_not_match_good_jobs".into());
+            }
+        }
+        _ => return Err("lifecycle_lead_time_distribution_presence_mismatch".into()),
+    }
+    for station in array(summary, "station_first_pass_yield")? {
+        let started = field_u64(station, "first_attempts_started_in_cohort")?;
+        let observed = field_u64(station, "first_attempts_with_observed_outcome")?;
+        let passed = field_u64(station, "first_attempt_passed")?;
+        let failed = field_u64(station, "first_attempt_failed")?;
+        let unresolved = field_u64(station, "unresolved_first_attempts_at_horizon")?;
+        if passed + failed != observed || observed + unresolved != started {
+            return Err("first_pass_outcome_counts_do_not_reconcile".into());
+        }
+        let yield_value = station.get("observed_first_pass_yield_fraction");
+        if observed == 0 {
+            if yield_value.is_some_and(|value| !value.is_null()) {
+                return Err("first_pass_yield_present_without_observed_outcomes".into());
+            }
+        } else {
+            let ratio = yield_value.and_then(Value::as_f64)
+                .ok_or_else(|| "first_pass_yield_missing_with_observed_outcomes".to_string())?;
+            if !ratio.is_finite() || (ratio - passed as f64 / observed as f64).abs() > 1e-9 {
+                return Err("first_pass_yield_arithmetic_mismatch".into());
+            }
+        }
+    }
+    Ok(true)
+}
+
+fn optional_distribution(
+    value: &Value,
+    key: &str,
+    expected_count: Option<usize>,
+) -> Result<Option<DistributionSummary>, String> {
+    match value.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(_) => get_distribution(value, key, expected_count).map(Some),
+    }
+}
+
 fn baseline_scenario<'a>(report: &'a Value) -> Result<&'a Value, String> {
     let scenarios = array(report, "scenarios")?;
     scenarios
