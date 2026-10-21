@@ -621,6 +621,11 @@ jobs:
           repeat_report_sha="$(sha256sum "$OUT/n1-u-repeat/displacement-report.json" | cut -d ' ' -f 1)"
           rf_report_sha="$(sha256sum "$OUT/n1-rf/rf-normalization-report.json" | cut -d ' ' -f 1)"
           mesh_report_sha="$(sha256sum "$OUT/mesh-trend-report.json" | cut -d ' ' -f 1)"
+          n1_process_receipt_sha="$(sha256sum "$OUT/n1-u/process-receipt.json" | cut -d ' ' -f 1)"
+          n2_process_receipt_sha="$(sha256sum "$OUT/n2-u/process-receipt.json" | cut -d ' ' -f 1)"
+          n4_process_receipt_sha="$(sha256sum "$OUT/n4-u/process-receipt.json" | cut -d ' ' -f 1)"
+          repeat_process_receipt_sha="$(sha256sum "$OUT/n1-u-repeat/process-receipt.json" | cut -d ' ' -f 1)"
+          rf_process_receipt_sha="$(sha256sum "$OUT/n1-rf/process-receipt.json" | cut -d ' ' -f 1)"
 
           # Write one summary retaining independent U, RF, repeated-run, and tamper statuses.
           jq -n \
@@ -629,6 +634,9 @@ jobs:
             --arg u1_report_sha "$u1_report_sha" --arg u2_report_sha "$u2_report_sha" \
             --arg u4_report_sha "$u4_report_sha" --arg repeat_report_sha "$repeat_report_sha" \
             --arg rf_report_sha "$rf_report_sha" --arg mesh_report_sha "$mesh_report_sha" \
+            --arg n1_receipt_sha "$n1_process_receipt_sha" --arg n2_receipt_sha "$n2_process_receipt_sha" \
+            --arg n4_receipt_sha "$n4_process_receipt_sha" --arg repeat_receipt_sha "$repeat_process_receipt_sha" \
+            --arg rf_receipt_sha "$rf_process_receipt_sha" \
             --argjson u1 "$u1" --argjson u1repeat "$u1repeat" \
             --argjson u2 "$u2" --argjson u4 "$u4" \
             --argjson rf_x "$(jq -r '.normalized_output.reaction_forces[0].force_n[0]' "$R/rf-normalization-report.json")" \
@@ -644,6 +652,10 @@ jobs:
                 n1_displacement:$u1_report_sha,n2_displacement:$u2_report_sha,
                 n4_displacement:$u4_report_sha,n1_repeat_displacement:$repeat_report_sha,
                 support_reaction:$rf_report_sha,mesh_trend:$mesh_report_sha
+              },
+              process_receipt_sha256:{
+                n1_u:$n1_receipt_sha,n2_u:$n2_receipt_sha,n4_u:$n4_receipt_sha,
+                n1_u_repeat:$repeat_receipt_sha,n1_rf:$rf_receipt_sha
               },
               support_reaction_force_x_n:$rf_x,
               support_force_balance_residual_n:($rf_x + 1000),
@@ -710,6 +722,8 @@ jobs:
             and .numerical_result_status == "PASS"
             and .process_receipts_verified_by_workflow == true
             and .process_receipt_count == 5
+            and (.process_receipt_sha256 | keys == ["n1_rf","n1_u","n1_u_repeat","n2_u","n4_u"])
+            and (.process_receipt_sha256 | all(.[]; test("^[0-9a-f]{64}$")))
             and .restricted_rf_interpretation == "PASS"
             and .artifact_tamper_control == "PASS"
             and .mesh_trend_status == "PASS"
