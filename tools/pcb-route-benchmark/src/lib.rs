@@ -572,6 +572,12 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                     board.board_id
                 ));
             }
+            if !license_url.contains(&format!("/{source_commit}/")) {
+                return Err(format!(
+                    "{}: license-evidence URL must contain the pinned immutable source commit",
+                    board.board_id
+                ));
+            }
             let license_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
                 format!("{}: external board lacks license-evidence SHA-256", board.board_id)
             })?;
@@ -728,6 +734,12 @@ pub fn build_dataset_manifest(
         if !is_commit_sha(license_source_commit) {
             return Err(format!(
                 "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
+                selection.board_id
+            ));
+        }
+        if !license_url.contains(&format!("/{license_source_commit}/")) {
+            return Err(format!(
+                "{}: license-evidence URL must contain the pinned immutable source commit",
                 selection.board_id
             ));
         }
