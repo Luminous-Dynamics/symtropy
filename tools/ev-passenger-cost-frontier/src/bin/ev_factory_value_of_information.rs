@@ -438,6 +438,41 @@ mod tests {
     }
 
     #[test]
+    fn minimax_regret_and_measurement_reductions_match_hand_calculated_fixture() {
+        let fixture = fixture();
+        let report = evaluate(&fixture, "fixture-digest".into()).expect("report");
+        assert!((report.no_information_policy.worst_case_regret_units_per_hour - 1.5).abs() < 1e-9);
+
+        let by_id: BTreeMap<String, &MeasurementResult> = report
+            .measurements
+            .iter()
+            .map(|measurement| (measurement.measurement_id.clone(), measurement))
+            .collect();
+        assert!(
+            (by_id["cycle-time-study"].gross_worst_case_regret_reduction_units_per_hour - 1.4)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (by_id["quality-rework-audit"].gross_worst_case_regret_reduction_units_per_hour - 0.5)
+                .abs()
+                < 1e-9
+        );
+        assert!(by_id["supplier-delivery-audit"]
+            .gross_worst_case_regret_reduction_units_per_hour
+            .abs()
+            < 1e-9);
+        assert!(by_id["line-side-visual-audit"]
+            .gross_worst_case_regret_reduction_units_per_hour
+            .abs()
+            < 1e-9);
+        assert!(by_id["cycle-time-study"].frontier_member);
+        assert!(by_id["quality-rework-audit"].frontier_member);
+        assert!(by_id["supplier-delivery-audit"].frontier_member);
+        assert!(!by_id["line-side-visual-audit"].frontier_member);
+    }
+
+    #[test]
     fn cycle_time_study_can_change_the_selected_action_by_observation() {
         let fixture = fixture();
         let report = evaluate(&fixture, "fixture-digest".into()).expect("report");
