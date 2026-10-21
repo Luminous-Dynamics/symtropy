@@ -736,6 +736,52 @@ mod tests {
         ]
     }
 
+    fn three_objectives(cost: f64, area: f64, coverage: f64) -> Vec<ObjectiveObservation> {
+        vec![
+            objective_in_unit("install_cost", "USD", ObjectiveDirection::Minimize, cost),
+            objective_in_unit("occupied_area", "m2", ObjectiveDirection::Minimize, area),
+            objective_in_unit(
+                "task_coverage",
+                "ratio",
+                ObjectiveDirection::Maximize,
+                coverage,
+            ),
+        ]
+    }
+
+    fn assert_report_witnesses_valid(
+        report: &FrontierReport,
+        candidates: &[AlternativeCandidate],
+    ) {
+        for result in &report.candidates {
+            let CandidateDisposition::DominatedBy(witness_id) = &result.disposition else {
+                continue;
+            };
+            let witness = candidates
+                .iter()
+                .find(|candidate| &candidate.candidate_id == witness_id)
+                .expect("reported witness must be a candidate");
+            let subject = candidates
+                .iter()
+                .find(|candidate| candidate.candidate_id == result.candidate_id)
+                .expect("dominated subject must be a candidate");
+            let mut witness_objectives = witness.objectives.iter().collect::<Vec<_>>();
+            witness_objectives.sort_by_key(|objective| objective.dimension.clone());
+            let mut subject_objectives = subject.objectives.iter().collect::<Vec<_>>();
+            subject_objectives.sort_by_key(|objective| objective.dimension.clone());
+            assert!(dominates(
+                &RankableCandidate {
+                    candidate: witness,
+                    objectives: witness_objectives,
+                },
+                &RankableCandidate {
+                    candidate: subject,
+                    objectives: subject_objectives,
+                }
+            ));
+        }
+    }
+
     fn disposition<'a>(report: &'a FrontierReport, id: &str) -> &'a CandidateDisposition {
         &report
             .candidates
@@ -1014,13 +1060,60 @@ mod tests {
     }
 
     #[test]
-    fn higher_dimensional_inputs_use_pairwise_dominance() {
-        let triple = |id: &str, cost: f64, area: f64, coverage: f64| {
+    fn three_dimensional_sweep_matches_pairwise_on_adversarial_ties() {
+        let specs = [
+            ("zero", -0.0, 0.0, -0.0),
+            ("zero-duplicate", 0.0, -0.0, 0.0),
+            ("same-x-y-worse-z", 0.0, 0.0, -1.0),
+            ("same-x-lower-y-better-z", 0.0, -1.0, 1.0),
+            ("lower-x-worse-y-z", -1.0, 1.0, -1.0),
+            ("higher-x-better-y-z", 1.0, -1.0, 1.0),
+            ("fully-worse", 2.0, 2.0, -2.0),
+        ];
+        let candidates = specs
+            .iter()
+            .map(|(id, cost, area, coverage)| {
+                candidate(
+                    id,
+                    VerificationStatus::Verified,
+                    three_objectives(*cost, *area, *coverage),
+                )
+            })
+            .collect::<Vec<_>>();
+        let report = compute_pareto_frontier(&candidates).expect("valid adversarial fixture");
+        assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
+        assert_report_witnesses_valid(&report, &candidates);
+        assert!(report.frontier_ids.contains(&"zero".to_owned()) == false);
+    }
+
+    #[test]
+    fn three_dimensional_sweep_matches_pairwise_on_generated_grid() {
+        let candidates = (0..257)
+            .map(|index| {
+                let cost = ((index * 37) % 101) as f64 - 50.0;
+                let area = ((index * 29) % 73) as f64 - 36.0;
+                let coverage = ((index * 53) % 97) as f64 - 48.0;
+                candidate(
+                    &format!("generated-{index:03}"),
+                    VerificationStatus::Verified,
+                    three_objectives(cost, area, coverage),
+                )
+            })
+            .collect::<Vec<_>>();
+        let report = compute_pareto_frontier(&candidates).expect("generated schema is valid");
+        assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
+        assert_report_witnesses_valid(&report, &candidates);
+    }
+
+    #[test]
+    fn four_dimensional_inputs_keep_exact_pairwise_fallback() {
+        let four = |id: &str, cost: f64, area: f64, coverage: f64| {
             candidate(
                 id,
                 VerificationStatus::Verified,
                 vec![
                     objective_in_unit("install_cost", "USD", ObjectiveDirection::Minimize, cost),
+                    objective_in_unit("install_effort", "hours", ObjectiveDirection::Minimize, cost),
                     objective_in_unit("occupied_area", "m2", ObjectiveDirection::Minimize, area),
                     objective_in_unit(
                         "task_coverage",
@@ -1032,14 +1125,13 @@ mod tests {
             )
         };
         let candidates = vec![
-            triple("a", 10.0, 20.0, 80.0),
-            triple("b", 12.0, 15.0, 70.0),
-            triple("c", 11.0, 22.0, 75.0),
-            triple("d", 11.0, 25.0, 85.0),
-            triple("e", 13.0, 30.0, 60.0),
+            four("a", 10.0, 20.0, 80.0),
+            four("b", 12.0, 15.0, 70.0),
+            four("c", 11.0, 22.0, 75.0),
+            four("d", 11.0, 25.0, 85.0),
+            four("e", 13.0, 30.0, 60.0),
         ];
-        let report =
-            compute_pareto_frontier(&candidates).expect("three-dimensional schema is valid");
+        let report = compute_pareto_frontier(&candidates).expect("four-objective schema is valid");
         assert_eq!(report.frontier_ids, vec!["a", "b", "d"]);
         assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
     }
