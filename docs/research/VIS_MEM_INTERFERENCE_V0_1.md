@@ -202,3 +202,48 @@ A vendor capability announcement, a synthetic diagnostic, and an official benchm
 6. Publish failures and per-task regressions. A higher aggregate is not enough if memory becomes brittle for one task family or under contradictions and task switches.
 
 **SOTA boundary:** the ActiveArena and RoboMME numbers are not numerically comparable to each other, to RoboMemArena, or to any synthetic VIS loss. Without a matching official protocol and reproduced baseline, the right claim is “new research candidate” rather than “industry-beating.”
+
+
+## Process-level diagnosis: separate *what failed* from final task failure
+
+**New external benchmark discovered during the 2026-10-21 research pass:** [MEMOBench](https://github.com/Collab-Gen/MEMOBench), paper [arXiv:2609.07047](https://arxiv.org/abs/2609.07047). The upstream README at code snapshot `490b58ffcbd4ac042d6d1daf218b4fbd2827f4cb` describes 30 history-dependent manipulation tasks and 4,200 executable checkpoints annotated for three operations: **Storage, Update, Compression**. It separately reports final task success and per-operation rates, plus failure categories such as storage failure, stale memory, compression collapse, reference drift, and execution failure. Its reported strongest memory-module baseline reaches 31.9% average task success, and the authors report that high storage performance can coexist with weak updating and compression. Those are the paper's reported results, not Symtropy results.
+
+This changes the diagnostic plan: a final task failure alone cannot tell whether the system failed to write the needed information, failed to revise it after the world changed, discarded decision-critical information while compressing, retrieved the wrong referent, or executed the action incorrectly.
+
+### Lifecycle-gated memory hypothesis
+
+Treat each memory operation as a state transition with an auditable result rather than an unobservable side effect:
+
+- **Storage:** append a provenance-bearing observation/event and record which downstream-required fields it preserves. Do not mark storage successful merely because a write call returned.
+- **Update:** when new evidence changes or contradicts an earlier belief, create a revision/supersession edge and preserve the earlier provenance. A delayed observation with older source time must not silently overwrite newer state.
+- **Compression:** compact multiple events only if the compressed representation preserves every evaluator-declared decision-relevant predicate for subsequent checkpoints. Compression ratio alone is not success.
+- **Retrieval/use:** log which version/source informed a decision and whether it was stale, disputed, superseded, or identity-ambiguous. Do not let evaluator labels or future outcomes influence the controller.
+- **Execution:** track the action outcome separately from memory state so memory correctness is not blamed for a controller/executor failure, and vice versa.
+
+The proposed engineering primitive is an append-only event/provenance log plus a bounded current-state projection. Compression may replace the projection, but it must not forge provenance or erase unresolved contradictions. For each write/update/compression, emit a deterministic receipt containing operation kind, prior-state digest, resulting-state digest, changed record IDs, retained/retired source IDs, byte delta, and a reason code. Receipts are diagnostic evidence; they are not rewards and do not expose hidden truth.
+
+### Stage 0 experiment before the interference cross-product
+
+1. Pin MEMOBench source, dataset/assets version, LIBERO/environment revision, policy/checkpoint, OpenPI protocol, evaluator, and seeds; record hashes. The repository README declares **CC BY-NC 4.0** for MEMOBench. Treat it as non-commercial research data unless licensing counsel confirms a use is permitted; do not bundle its assets/annotations into a commercial product or redistribute them absent permission. Third-party dependencies retain their own licenses.
+2. Run one true end-to-end checkpointed episode and verify the native success checker plus the operation-level outputs. Record simulator setup and missing/failure counts.
+3. Reproduce one named memory baseline on a small declared subset, then the official protocol if resources allow. A source/CSV inspection is not a reproduction.
+4. Compare the same controller through storage/update/compression variants while holding backbone, policy, action decoder/executor, precision, prompt, and seeds fixed.
+5. Only after the clean process-level baseline is stable, cross a **small predeclared subset** of operation types with interference conditions. Do not relabel this hybrid subset as the original MEMOBench or RoboMME leaderboard protocol.
+
+### Additional process metrics
+
+- Native MEMOBench: task success, Memory Storage Rate (MSR), Memory Update Rate (MUR), and Memory Compression Rate (MCR), with their official checkpoint predicates and native aggregation preserved.
+- **Revision correctness:** fraction of changed-world checkpoints where the live projection reflects the newest valid source-time evidence and retains a link to superseded evidence.
+- **Stale-use rate:** decisions whose cited evidence was superseded/expired at decision time, reported separately from delayed-but-still-valid evidence.
+- **Compression retention:** fraction of evaluator-declared decision-critical predicates preserved after compression; report bytes saved as a separate resource result.
+- **Provenance integrity:** every answerable current claim traces to source observations; no hidden evaluator labels are present in controller state.
+- **Failure attribution:** classify storage miss, update miss, compression loss, wrong retrieval/reference, model/controller failure, executor failure, and missing evaluator outcome.
+- **Cross-session degradation:** on the separate RoboMME-Interference protocol, report raw success and memory benefit at no-history/k0/k1/k3/k7; do not merge its scores with MEMOBench MSR/MUR/MCR.
+
+### Falsification criteria
+
+Reject the lifecycle-gated design if receipts can pass while native predicates fail, if compressed states lose required facts more often than the fixed-summary baseline, if updates cannot resolve source-time/identity contradictions, or if extra audit state breaks the fixed memory budget. If the audit trail is larger than the saved representation, report that overhead rather than excluding it. If the controller task score improves while one lifecycle operation regresses materially, keep that trade-off explicit and do not claim general memory reliability.
+
+### Research snapshot / constraints
+
+The MEMOBench main branch resolved to `490b58ffcbd4ac042d6d1daf218b4fbd2827f4cb` on 2026-10-21; the README described dataset/asset downloads and an OpenPI websocket policy server. Re-resolve all artifacts when execution begins. The benchmark is separate from RoboMME and RoboMME-Interference; its operation-specific rates and its 31.9% task-success result are not numerically interchangeable with their published success metrics.
