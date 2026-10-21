@@ -396,6 +396,26 @@ mod tests {
     }
 
     #[test]
+    fn every_member_end_rotation_has_stiffness_and_mass_support() {
+        let result = assemble_released_joint_pin_truss(&nodes(), &members())
+            .expect("valid released-joint assembly");
+        let rotation_indices = result
+            .dof_descriptors
+            .iter()
+            .filter_map(|descriptor| match descriptor.kind {
+                BeamPinDofKind::MemberEndRotation { .. } => Some(descriptor.index),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(rotation_indices.len(), 4);
+        assert_eq!(rotation_indices.iter().copied().collect::<BTreeSet<_>>().len(), 4);
+        for index in rotation_indices {
+            assert!(result.stiffness_global[index][index] > 0.0);
+            assert!(result.mass_global[index][index] > 0.0);
+        }
+    }
+
+    #[test]
     fn assembly_is_invariant_to_input_storage_order() {
         let first = assemble_released_joint_pin_truss(&nodes(), &members()).expect("ordered input");
         let mut reversed_nodes = nodes();
