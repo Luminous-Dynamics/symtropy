@@ -17,7 +17,7 @@ The manifest binds the exact baseline and scaled request SHA-256 values. It name
 
 The v0.1 contract binds allowed output kinds to exponents:
 - `displacement`, `stress`, `reaction_force`, `reaction_moment` require exponent `1`;
-- `strain_energy` requires exponent `2) and an SI joule unit (`J`);
+- `strain_energy` requires exponent `2` and an SI joule unit (`J`);
 - ambiguous or other output kinds, and any kind/exponent mismatch, are rejected as unsupported.
 
 This mapping is enforced by both Rust and the JSON schema instead of trusting a caller-selected exponent. The normalized values still need correct semantic meaning; a dishonest or incorrect producer can emit mislabeled values that satisfy a relation. That is why this check complements, rather than replaces, independent analytical references and load/reaction equilibrium.
