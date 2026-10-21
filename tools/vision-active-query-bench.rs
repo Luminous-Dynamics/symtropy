@@ -1235,7 +1235,7 @@ fn report_value_calibration() {
                         // policy or an environment-task-loss estimate.
                         let predicted_top = PolicyState::tie_break(scores, tick);
                         let realized_top = PolicyState::tie_break(realized_drops, tick);
-                        episode_top_matches.push(f64::from(predicted_top == realized_top));
+                        episode_top_matches.push(if predicted_top == realized_top { 1.0 } else { 0.0 });
                         episode_realized_regret.push(
                             (realized_drops[realized_top] - realized_drops[predicted_top]).max(0.0)
                         );
