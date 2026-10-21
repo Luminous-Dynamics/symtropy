@@ -30,14 +30,16 @@
       "enum": [
         "axial_bar",
         "cantilever_tip_load",
-        "simply_supported_uniform_load"
+        "simply_supported_uniform_load",
+        "planar_truss_two_bar"
       ]
     },
     "assumption_profile": {
       "enum": [
         "uniform_linear_elastic_axial_bar",
         "small_deflection_euler_bernoulli_cantilever_tip_load",
-        "small_deflection_euler_bernoulli_simply_supported_uniform_load"
+        "small_deflection_euler_bernoulli_simply_supported_uniform_load",
+        "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss"
       ]
     },
     "requested_physics": {
@@ -416,6 +418,176 @@
                           "const": "m"
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "case_id": {
+              "const": "planar_truss_two_bar"
+            },
+            "assumption_profile": {
+              "const": "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss"
+            },
+            "inputs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "span_m",
+                "apex_x_m",
+                "apex_height_m",
+                "axial_rigidity_a_n",
+                "axial_rigidity_b_n",
+                "force_x_n",
+                "force_y_n"
+              ],
+              "properties": {
+                "span_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "apex_x_m": {
+                  "type": "number"
+                },
+                "apex_height_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "force_x_n": {
+                  "type": "number"
+                },
+                "force_y_n": {
+                  "type": "number"
+                },
+                "axial_rigidity_a_n": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "axial_rigidity_b_n": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "input_bounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "schema_version",
+                "inputs"
+              ],
+              "properties": {
+                "schema_version": {
+                  "const": "physical-input-bounds-v0.1"
+                },
+                "inputs": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "span_m",
+                    "apex_x_m",
+                    "apex_height_m",
+                    "axial_rigidity_a_n",
+                    "axial_rigidity_b_n",
+                    "force_x_n",
+                    "force_y_n"
+                  ],
+                  "properties": {
+                    "span_m": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "m"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "apex_x_m": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "m"
+                        }
+                      }
+                    },
+                    "apex_height_m": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "m"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "force_x_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      }
+                    },
+                    "force_y_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      }
+                    },
+                    "axial_rigidity_a_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "axial_rigidity_b_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }

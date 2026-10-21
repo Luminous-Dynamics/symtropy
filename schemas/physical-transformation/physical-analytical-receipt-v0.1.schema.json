@@ -52,7 +52,8 @@
       "enum": [
         "axial_bar",
         "cantilever_tip_load",
-        "simply_supported_uniform_load"
+        "simply_supported_uniform_load",
+        "planar_truss_two_bar"
       ]
     },
     "evidence_class": {

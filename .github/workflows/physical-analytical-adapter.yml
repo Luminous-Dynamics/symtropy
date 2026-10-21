@@ -60,8 +60,13 @@ jobs:
           jq empty schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
           jq empty schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json
-          jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq empty schemas/physical-transformation/analytical-fixtures/planar-truss-two-bar-bounds-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/planar-truss-two-bar-near-mechanism-v0.1.json
+          jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load","planar_truss_two_bar"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e 'getpath(["allOf",0,"oneOf"]) | length == 4' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e 'getpath(["allOf",0,"oneOf"]) | any(.properties.case_id.const == "planar_truss_two_bar" and (.properties.inputs.required | length == 7) and (.properties.input_bounds.properties.inputs.required | length == 7))' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq -e '.properties.input_bounds.properties.schema_version.const == "physical-input-bounds-v0.1"' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e '.properties.case_id.enum | index("planar_truss_two_bar") != null' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
           jq -e 'getpath(["$defs","inputBound","required"]) | index("basis") != null' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq -e 'getpath(["$defs","inputBound","required"]) | index("source_ref") != null' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
           jq -e '.properties.result_status.enum == ["PASS","UNRESOLVED"] and .properties.evidence_class.const == "analytical_reference"' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
@@ -159,6 +164,48 @@ jobs:
             and (.output_enclosures.tip_deflection_m.lower <= .output_enclosures.tip_deflection_m.nominal)
             and (.output_enclosures.tip_deflection_m.nominal <= .output_enclosures.tip_deflection_m.upper)
           ' analytical-adapter-zero-crossing-receipt.json
+
+      - name: Run bounded planar-truss interval fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/planar-truss-two-bar-bounds-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-planar-truss-bounds-receipt.json
+          jq -e --arg revision "$source_commit" '
+            .schema_version == "physical-analytical-receipt-v0.1"
+            and .result_status == "PASS"
+            and .adapter_revision == $revision
+            and .case_id == "planar_truss_two_bar"
+            and .assumption_profile == "small_displacement_linear_elastic_asymmetric_two_bar_planar_truss"
+            and .uncertainty_method == "deterministic_interval_outward_rounded_v0.1"
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and (.outputs | has("displacement_x_m") and has("displacement_y_m") and has("axial_stiffness_a_n_per_m") and has("axial_stiffness_b_n_per_m") and has("condition_infinity") and has("condition_times_machine_epsilon"))
+            and (.output_units.axial_stiffness_a_n_per_m == "N/m")
+            and (.output_units.axial_stiffness_b_n_per_m == "N/m")
+            and (.output_enclosures | has("displacement_x_m") and has("displacement_y_m") and has("determinant_n2_per_m2") and has("axial_stiffness_a_n_per_m") and has("axial_stiffness_b_n_per_m") and has("condition_infinity") and has("condition_times_machine_epsilon"))
+            and (.output_enclosures | to_entries | all(.[]; (.value.lower <= .value.nominal) and (.value.nominal <= .value.upper) and (.value.lower | isfinite) and (.value.nominal | isfinite) and (.value.upper | isfinite) and (.value.width >= 0) and (.value.width | isfinite)))
+            and (.output_enclosures.condition_infinity.lower >= 1)
+            and (.output_enclosures.condition_infinity.upper < 100)
+            and (.output_enclosures.condition_times_machine_epsilon.lower == 0)
+            and (.output_enclosures.condition_times_machine_epsilon.nominal <= .output_enclosures.condition_times_machine_epsilon.upper)
+          ' analytical-adapter-planar-truss-bounds-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/planar-truss-two-bar-near-mechanism-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-planar-truss-near-mechanism-receipt.json
+          jq -e '
+            .result_status == "UNRESOLVED"
+            and .outputs == null
+            and .output_enclosures == null
+            and .uncertainty_method == "not_executed_unresolved"
+            and .real_world_validation_status == "UNRESOLVED"
+            and (.diagnostics | length > 0)
+          ' analytical-adapter-planar-truss-near-mechanism-receipt.json
 
       - name: Upload analytical reference receipts
         uses: actions/upload-artifact@v4

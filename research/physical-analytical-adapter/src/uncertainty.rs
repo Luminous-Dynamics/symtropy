@@ -114,12 +114,341 @@ impl Interval {
         Ok(result)
     }
 
+    fn add(self, rhs: Self) -> Check<Self> {
+        let lower = self.lower + rhs.lower;
+        let upper = self.upper + rhs.upper;
+        finite_values(&[lower, upper], "interval addition")?;
+        let rounded_lower = outward_down(lower)?;
+        // Addition of two known non-negative intervals remains non-negative;
+        // do not let outward rounding introduce a negative subnormal at zero.
+        let rounded_lower = if self.lower >= 0.0 && rhs.lower >= 0.0 {
+            rounded_lower.max(0.0)
+        } else {
+            rounded_lower
+        };
+        Self::new(rounded_lower, outward_up(upper)?)
+    }
+
+    fn subtract(self, rhs: Self) -> Check<Self> {
+        let lower = self.lower - rhs.upper;
+        let upper = self.upper - rhs.lower;
+        finite_values(&[lower, upper], "interval subtraction")?;
+        Self::new(outward_down(lower)?, outward_up(upper)?)
+    }
+
+    fn square(self) -> Check<Self> {
+        let endpoint_squares = [self.lower * self.lower, self.upper * self.upper];
+        finite_values(&endpoint_squares, "interval square")?;
+        let maximum = endpoint_squares.iter().copied().fold(0.0_f64, f64::max);
+        let minimum = if self.lower <= 0.0 && self.upper >= 0.0 {
+            0.0
+        } else {
+            endpoint_squares.iter().copied().fold(f64::INFINITY, f64::min)
+        };
+        let lower = if minimum == 0.0 {
+            0.0
+        } else {
+            outward_down(minimum)?.max(0.0)
+        };
+        let upper = outward_up(maximum)?;
+        Self::new(lower, upper)
+    }
+
+    fn sqrt_nonnegative(self) -> Check<Self> {
+        if self.lower < 0.0 {
+            return Err("interval square root requires a non-negative lower endpoint".to_owned());
+        }
+        let lower_root = self.lower.sqrt();
+        let upper_root = self.upper.sqrt();
+        finite_values(&[lower_root, upper_root], "interval square root")?;
+        let lower = if lower_root == 0.0 {
+            0.0
+        } else {
+            outward_down(lower_root)?.max(0.0)
+        };
+        Self::new(lower, outward_up(upper_root)?)
+    }
+
     fn scale_positive(self, factor: f64) -> Check<Self> {
         if !factor.is_finite() || factor <= 0.0 {
             return Err("interval scale factor must be positive and finite".to_owned());
         }
         self.multiply(Self::exact(factor)?)
     }
+}
+
+/// An interval enclosure for the free-apex response of a two-bar planar truss.
+/// Every field is computed from the same declared parameter box; widths may be
+/// conservative because interval dependencies are not discarded.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PlanarTrussEnclosure {
+    pub kxx_n_per_m: Interval,
+    pub kxy_n_per_m: Interval,
+    pub kyy_n_per_m: Interval,
+    pub determinant_n2_per_m2: Interval,
+    pub displacement_x_m: Interval,
+    pub displacement_y_m: Interval,
+    pub stiffness_a_n_per_m: Interval,
+    pub stiffness_b_n_per_m: Interval,
+    pub length_a_m: Interval,
+    pub length_b_m: Interval,
+    pub condition_infinity_upper: f64,
+    pub condition_times_machine_epsilon_upper: f64,
+}
+
+const PLANAR_TRUSS_INPUT_KEYS: &[&str] = &[
+    "span_m",
+    "apex_x_m",
+    "apex_height_m",
+    "axial_rigidity_a_n",
+    "axial_rigidity_b_n",
+    "force_x_n",
+    "force_y_n",
+];
+
+/// Propagate declared finite input intervals through the reduced two-DOF
+/// stiffness model for an asymmetric two-bar truss.
+///
+/// The determinant is computed using the geometric identity
+/// det(K)=kA*kB*(span*h/(LA*LB))^2 rather than Kxx*Kyy-Kxy^2; the latter
+/// loses correlation and can be much less informative near collinearity.
+/// If the resulting determinant enclosure does not prove strict positivity,
+/// the function returns an error and no displacement enclosure is issued.
+pub fn propagate_planar_truss_two_bar(
+    nominal: &BTreeMap<String, f64>,
+    bounds: &BTreeMap<String, Interval>,
+) -> Check<PlanarTrussEnclosure> {
+    exact_keys(nominal, PLANAR_TRUSS_INPUT_KEYS, "nominal truss inputs")?;
+    exact_interval_keys(bounds, PLANAR_TRUSS_INPUT_KEYS, "truss input bounds")?;
+
+    for key in PLANAR_TRUSS_INPUT_KEYS {
+        let value = nominal
+            .get(*key)
+            .copied()
+            .ok_or_else(|| format!("missing nominal truss input {key}"))?;
+        if !value.is_finite() {
+            return Err(format!("nominal truss input {key} must be finite"));
+        }
+        let interval = bounds
+            .get(*key)
+            .copied()
+            .ok_or_else(|| format!("missing truss input bound {key}"))?;
+        Interval::new(interval.lower, interval.upper)
+            .map_err(|error| format!("truss input bound {key}: {error}"))?;
+        if !interval.contains(value) {
+            return Err(format!("nominal truss input {key} lies outside its bounds"));
+        }
+    }
+
+    for key in [
+        "span_m",
+        "apex_height_m",
+        "axial_rigidity_a_n",
+        "axial_rigidity_b_n",
+    ] {
+        bounds[key].require_positive(key)?;
+    }
+
+    let span = bounds["span_m"];
+    let apex_x = bounds["apex_x_m"];
+    let height = bounds["apex_height_m"];
+    let rigidity_a = bounds["axial_rigidity_a_n"];
+    let rigidity_b = bounds["axial_rigidity_b_n"];
+    let force_x = bounds["force_x_n"];
+    let force_y = bounds["force_y_n"];
+
+    let dx_a = apex_x;
+    let dx_b = apex_x.subtract(span)?;
+    let length_a = dx_a
+        .square()?
+        .add(height.square()?)?
+        .sqrt_nonnegative()?;
+    let length_b = dx_b
+        .square()?
+        .add(height.square()?)?
+        .sqrt_nonnegative()?;
+    length_a.require_positive("bar A length")?;
+    length_b.require_positive("bar B length")?;
+
+    let cosine_a = dx_a.divide(length_a)?;
+    let sine_a = height.divide(length_a)?;
+    let cosine_b = dx_b.divide(length_b)?;
+    let sine_b = height.divide(length_b)?;
+    let stiffness_a = rigidity_a.divide(length_a)?;
+    let stiffness_b = rigidity_b.divide(length_b)?;
+
+    let kxx = stiffness_a
+        .multiply(cosine_a.square()?)?
+        .add(stiffness_b.multiply(cosine_b.square()?)?)?;
+    let kxy = stiffness_a
+        .multiply(cosine_a.multiply(sine_a)?)?
+        .add(stiffness_b.multiply(cosine_b.multiply(sine_b)?)?)?;
+    let kyy = stiffness_a
+        .multiply(sine_a.square()?)?
+        .add(stiffness_b.multiply(sine_b.square()?)?)?;
+
+    // For this geometry:
+    // cA*sB - sA*cB = span*h/(LA*LB).
+    // This expression is algebraically equivalent but avoids subtracting two
+    // nearly equal interval products in the determinant calculation.
+    let direction_cross = span
+        .multiply(height)?
+        .divide(length_a.multiply(length_b)?)?;
+    let determinant = stiffness_a
+        .multiply(stiffness_b)?
+        .multiply(direction_cross.square()?)?;
+    if !determinant.lower.is_finite()
+        || !determinant.upper.is_finite()
+        || determinant.lower <= 0.0
+    {
+        return Err(
+            "truss determinant interval includes zero or cannot be proven strictly positive"
+                .to_owned(),
+        );
+    }
+
+    let displacement_x = kyy
+        .multiply(force_x)?
+        .subtract(kxy.multiply(force_y)?)?
+        .divide(determinant)?;
+    let displacement_y = kxx
+        .multiply(force_y)?
+        .subtract(kxy.multiply(force_x)?)?
+        .divide(determinant)?;
+
+    // Conservative condition upper bound from interval row-sum bounds for K
+    // and its 2x2 inverse. This may be loose; it is a warning indicator, not
+    // a sharp condition estimate or forward-error certificate.
+    let k_norm_upper = kxx
+        .absolute()?
+        .add(kxy.absolute()?)?
+        .upper
+        .max(kxy.absolute()?.add(kyy.absolute()?)?.upper);
+    let inv_xx_abs = kyy.absolute()?.divide(determinant)?;
+    let inv_xy_abs = kxy.absolute()?.divide(determinant)?;
+    let inv_yy_abs = kxx.absolute()?.divide(determinant)?;
+    let inv_norm_upper = inv_xx_abs
+        .add(inv_xy_abs)?
+        .upper
+        .max(inv_xy_abs.add(inv_yy_abs)?.upper);
+    let condition_product = k_norm_upper * inv_norm_upper;
+    if !condition_product.is_finite() {
+        return Err("interval condition upper bound overflowed; abstaining".to_owned());
+    }
+    let condition_infinity_upper = outward_up(condition_product)?;
+    let condition_times_machine_epsilon_upper =
+        outward_up(condition_infinity_upper * f64::EPSILON)?;
+    if !condition_times_machine_epsilon_upper.is_finite() {
+        return Err("condition-times-machine-epsilon upper bound overflowed; abstaining".to_owned());
+    }
+
+    Ok(PlanarTrussEnclosure {
+        kxx_n_per_m: kxx,
+        kxy_n_per_m: kxy,
+        kyy_n_per_m: kyy,
+        determinant_n2_per_m2: determinant,
+        displacement_x_m: displacement_x,
+        displacement_y_m: displacement_y,
+        stiffness_a_n_per_m: stiffness_a,
+        stiffness_b_n_per_m: stiffness_b,
+        length_a_m: length_a,
+        length_b_m: length_b,
+        condition_infinity_upper,
+        condition_times_machine_epsilon_upper,
+    })
+}
+
+/// Independent pointwise analytical reference for the reduced free-apex system.
+/// Input keys and units match propagate_planar_truss_two_bar.
+pub fn evaluate_planar_truss_two_bar_point(
+    inputs: &BTreeMap<String, f64>,
+) -> Check<[f64; 12]> {
+    exact_keys(inputs, PLANAR_TRUSS_INPUT_KEYS, "point truss inputs")?;
+    for key in PLANAR_TRUSS_INPUT_KEYS {
+        if !inputs[key].is_finite() {
+            return Err(format!("point truss input {key} must be finite"));
+        }
+    }
+    let span = inputs["span_m"];
+    let apex_x = inputs["apex_x_m"];
+    let height = inputs["apex_height_m"];
+    let rigidity_a = inputs["axial_rigidity_a_n"];
+    let rigidity_b = inputs["axial_rigidity_b_n"];
+    let force_x = inputs["force_x_n"];
+    let force_y = inputs["force_y_n"];
+    for (key, value) in [
+        ("span_m", span),
+        ("apex_height_m", height),
+        ("axial_rigidity_a_n", rigidity_a),
+        ("axial_rigidity_b_n", rigidity_b),
+    ] {
+        if value <= 0.0 {
+            return Err(format!("point truss input {key} must be positive"));
+        }
+    }
+
+    let length_a = apex_x.hypot(height);
+    let dx_b = apex_x - span;
+    let length_b = dx_b.hypot(height);
+    if !length_a.is_finite() || !length_b.is_finite() || length_a <= 0.0 || length_b <= 0.0 {
+        return Err("point truss geometry has invalid member lengths".to_owned());
+    }
+    let stiffness_a = rigidity_a / length_a;
+    let stiffness_b = rigidity_b / length_b;
+    let cosine_a = apex_x / length_a;
+    let sine_a = height / length_a;
+    let cosine_b = dx_b / length_b;
+    let sine_b = height / length_b;
+
+    let kxx = stiffness_a * cosine_a * cosine_a
+        + stiffness_b * cosine_b * cosine_b;
+    let kxy = stiffness_a * cosine_a * sine_a
+        + stiffness_b * cosine_b * sine_b;
+    let kyy = stiffness_a * sine_a * sine_a
+        + stiffness_b * sine_b * sine_b;
+    let direction_cross = span * height / (length_a * length_b);
+    let determinant = stiffness_a * stiffness_b * direction_cross * direction_cross;
+    if ![kxx, kxy, kyy, determinant, force_x, force_y]
+        .iter()
+        .all(|value| value.is_finite())
+        || determinant <= 0.0
+    {
+        return Err("point truss stiffness/determinant is non-finite or singular".to_owned());
+    }
+    let ux = (kyy * force_x - kxy * force_y) / determinant;
+    let uy = (kxx * force_y - kxy * force_x) / determinant;
+    let matrix_inf_norm = (kxx.abs() + kxy.abs()).max(kxy.abs() + kyy.abs());
+    let inverse_inf_norm = ((kyy.abs() + kxy.abs()) / determinant)
+        .max((kxx.abs() + kxy.abs()) / determinant);
+    let condition_inf = matrix_inf_norm * inverse_inf_norm;
+    let condition_times_epsilon = condition_inf * f64::EPSILON;
+    if ![
+        ux,
+        uy,
+        matrix_inf_norm,
+        inverse_inf_norm,
+        condition_inf,
+        condition_times_epsilon,
+    ]
+    .iter()
+    .all(|value| value.is_finite())
+    {
+        return Err("point truss displacement or condition estimate is non-finite".to_owned());
+    }
+    Ok([
+        kxx,
+        kxy,
+        kyy,
+        determinant,
+        ux,
+        uy,
+        length_a,
+        length_b,
+        stiffness_a,
+        stiffness_b,
+        condition_inf,
+        condition_times_epsilon,
+    ])
 }
 
 /// Propagate independent bounds through the named formula. The nominal map is
@@ -163,6 +492,15 @@ pub fn propagate(
                 "youngs_modulus_pa",
                 "second_moment_area_m4",
                 "outer_fiber_distance_m",
+            ],
+        ),
+        "planar_truss_two_bar" => (
+            PLANAR_TRUSS_INPUT_KEYS,
+            &[
+                "span_m",
+                "apex_height_m",
+                "axial_rigidity_a_n",
+                "axial_rigidity_b_n",
             ],
         ),
         other => return Err(format!("unsupported analytical case '{other}'")),
@@ -253,6 +591,21 @@ pub fn propagate(
             Ok(BTreeMap::from([
                 ("midspan_deflection_m".to_owned(), deflection),
                 ("maximum_bending_stress_pa".to_owned(), stress),
+            ]))
+        }
+        "planar_truss_two_bar" => {
+            let enclosure = propagate_planar_truss_two_bar(nominal, bounds)?;
+            Ok(BTreeMap::from([
+                ("stiffness_kxx_n_per_m".to_owned(), enclosure.kxx_n_per_m),
+                ("stiffness_kxy_n_per_m".to_owned(), enclosure.kxy_n_per_m),
+                ("stiffness_kyy_n_per_m".to_owned(), enclosure.kyy_n_per_m),
+                ("determinant_n2_per_m2".to_owned(), enclosure.determinant_n2_per_m2),
+                ("displacement_x_m".to_owned(), enclosure.displacement_x_m),
+                ("displacement_y_m".to_owned(), enclosure.displacement_y_m),
+                ("bar_a_length_m".to_owned(), enclosure.length_a_m),
+                ("bar_b_length_m".to_owned(), enclosure.length_b_m),
+                ("condition_infinity".to_owned(), Interval::new(1.0, enclosure.condition_infinity_upper)?),
+                ("condition_times_machine_epsilon".to_owned(), Interval::new(0.0, enclosure.condition_times_machine_epsilon_upper)?),
             ]))
         }
         _ => unreachable!("case id was checked before evaluation"),
@@ -721,6 +1074,253 @@ mod tests {
                 assert_near(doubled_interval.upper, interval.upper * 2.0);
             }
         }
+    }
+
+    fn truss_fixture(
+        height_bounds: (f64, f64),
+    ) -> (BTreeMap<String, f64>, BTreeMap<String, Interval>) {
+        let nominal = BTreeMap::from([
+            ("span_m".to_owned(), 4.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), (height_bounds.0 + height_bounds.1) / 2.0),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -500.0),
+        ]);
+        let bounds = BTreeMap::from([
+            ("span_m".to_owned(), Interval::new(3.99, 4.01).unwrap()),
+            ("apex_x_m".to_owned(), Interval::new(0.99, 1.01).unwrap()),
+            ("apex_height_m".to_owned(), Interval::new(height_bounds.0, height_bounds.1).unwrap()),
+            (
+                "axial_rigidity_a_n".to_owned(),
+                Interval::new(1.2375e9, 1.2625e9).unwrap(),
+            ),
+            (
+                "axial_rigidity_b_n".to_owned(),
+                Interval::new(6.122e9, 6.247e9).unwrap(),
+            ),
+            ("force_x_n".to_owned(), Interval::new(990.0, 1_010.0).unwrap()),
+            ("force_y_n".to_owned(), Interval::new(-510.0, -490.0).unwrap()),
+        ]);
+        (nominal, bounds)
+    }
+
+    #[test]
+    fn symmetric_truss_reduces_to_diagonal_known_answer() {
+        let point = BTreeMap::from([
+            ("span_m".to_owned(), 2.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 1.0),
+            ("axial_rigidity_a_n".to_owned(), 1.4142135623730951e9),
+            ("axial_rigidity_b_n".to_owned(), 1.4142135623730951e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -2_000.0),
+        ]);
+        let exact = evaluate_planar_truss_two_bar_point(&point).unwrap();
+        assert_near(exact[0], 1.0e9);
+        assert_near(exact[1], 0.0);
+        assert_near(exact[2], 1.0e9);
+        assert_near(exact[3], 1.0e18);
+        assert_near(exact[4], 1.0e-6);
+        assert_near(exact[5], -2.0e-6);
+        assert_near(exact[10], 1.0);
+        assert_near(exact[11], f64::EPSILON);
+
+        let bounds: BTreeMap<String, Interval> = point
+            .iter()
+            .map(|(key, value)| (key.clone(), Interval::exact(*value).unwrap()))
+            .collect();
+        let enclosure = propagate_planar_truss_two_bar(&point, &bounds).unwrap();
+        assert_enclosed(enclosure.displacement_x_m, 1.0e-6);
+        assert_enclosed(enclosure.displacement_y_m, -2.0e-6);
+        assert!(enclosure.determinant_n2_per_m2.lower > 0.0);
+    }
+
+    #[test]
+    fn truss_point_intervals_enclose_independent_2x2_known_answer() {
+        let (nominal, bounds) = truss_fixture((0.74, 0.76));
+        let enclosure = propagate_planar_truss_two_bar(&nominal, &bounds)
+            .expect("valid narrow truss parameter bounds");
+        let exact = evaluate_planar_truss_two_bar_point(&nominal)
+            .expect("pointwise analytical truss reference");
+        assert_enclosed(enclosure.kxx_n_per_m, exact[0]);
+        assert_enclosed(enclosure.kxy_n_per_m, exact[1]);
+        assert_enclosed(enclosure.kyy_n_per_m, exact[2]);
+        assert_enclosed(enclosure.determinant_n2_per_m2, exact[3]);
+        assert_enclosed(enclosure.stiffness_a_n_per_m, exact[8]);
+        assert_enclosed(enclosure.stiffness_b_n_per_m, exact[9]);
+        assert_enclosed(enclosure.displacement_x_m, exact[4]);
+        assert_enclosed(enclosure.displacement_y_m, exact[5]);
+        assert!(enclosure.condition_infinity_upper.is_finite());
+        assert!(enclosure.condition_infinity_upper >= 1.0);
+        assert!(enclosure.condition_times_machine_epsilon_upper.is_finite());
+    }
+
+    #[test]
+    fn truss_widened_bounds_enclose_every_frozen_corner() {
+        let nominal = BTreeMap::from([
+            ("span_m".to_owned(), 4.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 0.75),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -500.0),
+        ]);
+        let bounds = BTreeMap::from([
+            ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
+            ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
+            ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.125e9, 1.375e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(5.5e9, 6.9e9).unwrap()),
+            ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
+            ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
+        ]);
+        let enclosure = propagate_planar_truss_two_bar(&nominal, &bounds)
+            .expect("wide but invertible truss bounds");
+        for mask in 0..(1_usize << PLANAR_TRUSS_INPUT_KEYS.len()) {
+            let point: BTreeMap<String, f64> = PLANAR_TRUSS_INPUT_KEYS
+                .iter()
+                .enumerate()
+                .map(|(index, key)| {
+                    let interval = bounds[*key];
+                    let value = if mask & (1 << index) == 0 {
+                        interval.lower
+                    } else {
+                        interval.upper
+                    };
+                    ((*key).to_owned(), value)
+                })
+                .collect();
+            let exact = evaluate_planar_truss_two_bar_point(&point)
+                .expect("each frozen corner is an admissible point");
+            assert_enclosed(enclosure.kxx_n_per_m, exact[0]);
+            assert_enclosed(enclosure.kxy_n_per_m, exact[1]);
+            assert_enclosed(enclosure.kyy_n_per_m, exact[2]);
+            assert_enclosed(enclosure.determinant_n2_per_m2, exact[3]);
+            assert_enclosed(enclosure.displacement_x_m, exact[4]);
+            assert_enclosed(enclosure.displacement_y_m, exact[5]);
+        }
+    }
+
+    #[test]
+    fn deterministic_interior_truss_samples_are_enclosed() {
+        let nominal = BTreeMap::from([
+            ("span_m".to_owned(), 4.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 0.75),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -500.0),
+        ]);
+        let bounds = BTreeMap::from([
+            ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
+            ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
+            ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.125e9, 1.375e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(5.5e9, 6.9e9).unwrap()),
+            ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
+            ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
+        ]);
+        let enclosure = propagate_planar_truss_two_bar(&nominal, &bounds).unwrap();
+        let mut state = 0xbb67_ae85_84ca_a73b_u64;
+        for _ in 0..512 {
+            let point: BTreeMap<String, f64> = PLANAR_TRUSS_INPUT_KEYS
+                .iter()
+                .map(|key| {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    let unit = (state >> 11) as f64 / ((1_u64 << 53) as f64);
+                    let range = bounds[*key];
+                    ((*key).to_owned(), range.lower + unit * (range.upper - range.lower))
+                })
+                .collect();
+            let exact = evaluate_planar_truss_two_bar_point(&point).unwrap();
+            assert_enclosed(enclosure.kxx_n_per_m, exact[0]);
+            assert_enclosed(enclosure.kxy_n_per_m, exact[1]);
+            assert_enclosed(enclosure.kyy_n_per_m, exact[2]);
+            assert_enclosed(enclosure.determinant_n2_per_m2, exact[3]);
+            assert_enclosed(enclosure.displacement_x_m, exact[4]);
+            assert_enclosed(enclosure.displacement_y_m, exact[5]);
+            assert_enclosed(enclosure.length_a_m, exact[6]);
+            assert_enclosed(enclosure.length_b_m, exact[7]);
+            assert!(exact[10] <= enclosure.condition_infinity_upper);
+            assert!(exact[11] <= enclosure.condition_times_machine_epsilon_upper);
+        }
+    }
+
+    #[test]
+    fn truss_invalid_height_or_nonpositive_axial_rigidity_abstains() {
+        let (nominal, _) = truss_fixture((0.01, 0.02));
+        let mut crossing_zero = truss_fixture((0.0, 0.02)).1;
+        assert!(
+            propagate_planar_truss_two_bar(&nominal, &crossing_zero)
+                .unwrap_err()
+                .contains("strictly positive")
+        );
+        crossing_zero.insert("apex_height_m".to_owned(), Interval::new(-0.01, 0.02).unwrap());
+        assert!(propagate_planar_truss_two_bar(&nominal, &crossing_zero).is_err());
+
+        let (_, mut bad_stiffness) = truss_fixture((0.01, 0.02));
+        bad_stiffness.insert(
+            "axial_rigidity_a_n".to_owned(),
+            Interval::new(0.0, 1.3e9).unwrap(),
+        );
+        assert!(propagate_planar_truss_two_bar(&nominal, &bad_stiffness).is_err());
+    }
+
+    #[test]
+    fn truss_determinant_underflow_abstains_without_displacement_bounds() {
+        let nominal = BTreeMap::from([
+            ("span_m".to_owned(), 4.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 1.0e-320),
+            ("axial_rigidity_a_n".to_owned(), 1.0e9),
+            ("axial_rigidity_b_n".to_owned(), 2.0e9),
+            ("force_x_n".to_owned(), 1.0),
+            ("force_y_n".to_owned(), -2.0),
+        ]);
+        let bounds = BTreeMap::from([
+            ("span_m".to_owned(), Interval::new(4.0, 4.0).unwrap()),
+            ("apex_x_m".to_owned(), Interval::new(1.0, 1.0).unwrap()),
+            ("apex_height_m".to_owned(), Interval::new(1.0e-320, 1.1e-320).unwrap()),
+            ("axial_rigidity_a_n".to_owned(), Interval::new(1.0e9, 1.0e9).unwrap()),
+            ("axial_rigidity_b_n".to_owned(), Interval::new(2.0e9, 2.0e9).unwrap()),
+            ("force_x_n".to_owned(), Interval::new(1.0, 1.0).unwrap()),
+            ("force_y_n".to_owned(), Interval::new(-2.0, -2.0).unwrap()),
+        ]);
+        let error = propagate_planar_truss_two_bar(&nominal, &bounds).unwrap_err();
+        assert!(
+            error.contains("determinant interval includes zero")
+                || error.contains("non-finite")
+                || error.contains("overflowed"),
+            "unexpected underflow abstention reason: {error}"
+        );
+    }
+
+    #[test]
+    fn truss_wider_input_box_contains_narrower_displacement_enclosure() {
+        let (wide_nominal, wide_bounds) = truss_fixture((0.7, 0.8));
+        let wide = propagate_planar_truss_two_bar(&wide_nominal, &wide_bounds).unwrap();
+        let (narrow_nominal, mut narrow_bounds) = truss_fixture((0.74, 0.76));
+        narrow_bounds.insert("span_m".to_owned(), Interval::new(3.995, 4.005).unwrap());
+        narrow_bounds.insert("apex_x_m".to_owned(), Interval::new(0.995, 1.005).unwrap());
+        narrow_bounds.insert("axial_rigidity_a_n".to_owned(), Interval::new(1.24375e9, 1.25625e9).unwrap());
+        narrow_bounds.insert("axial_rigidity_b_n".to_owned(), Interval::new(6.153e9, 6.216e9).unwrap());
+        narrow_bounds.insert("force_x_n".to_owned(), Interval::new(995.0, 1_005.0).unwrap());
+        narrow_bounds.insert("force_y_n".to_owned(), Interval::new(-505.0, -495.0).unwrap());
+        let narrow = propagate_planar_truss_two_bar(&narrow_nominal, &narrow_bounds).unwrap();
+        assert!(wide.displacement_x_m.lower <= narrow.displacement_x_m.lower);
+        assert!(wide.displacement_x_m.upper >= narrow.displacement_x_m.upper);
+        assert!(wide.displacement_y_m.lower <= narrow.displacement_y_m.lower);
+        assert!(wide.displacement_y_m.upper >= narrow.displacement_y_m.upper);
+        assert!(
+            wide.condition_infinity_upper >= narrow.condition_infinity_upper,
+            "wider uncertainty box should not understate the conservative condition indicator"
+        );
     }
 
     fn assert_near(observed: f64, expected: f64) {
