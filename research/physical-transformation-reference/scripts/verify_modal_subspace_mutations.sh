@@ -50,6 +50,11 @@ run_mutation() {
       perl -0pi -e 's/let relative_gap = \(current - previous\)\.abs\(\) \/ current\.abs\(\)\.max\(previous\.abs\(\)\);/let relative_gap = (current - previous).abs();/' "$source"
       grep -Fq 'let relative_gap = (current - previous).abs();' "$source"
       ;;
+    omit_global_spd_gate)
+      grep -Fq 'validate_symmetric_positive_definite_mass(mass)?;' "$source"
+      perl -0pi -e 's/    validate_symmetric_positive_definite_mass\(mass\)\?;/    \/\/ MUTANT: omit global positive-definite mass gate/' "$source"
+      grep -Fq 'MUTANT: omit global positive-definite mass gate' "$source"
+      ;;
     *)
       printf 'Unknown modal-subspace mutation: %s\n' "$mutation" >&2
       return 2
@@ -72,6 +77,7 @@ run_mutation() {
 run_mutation "subspace-gram-whitening-omitted" omit_gram_whitening repeated_mode_cluster_is_invariant_to_basis_rotation_and_scaling
 run_mutation "mass-metric-ignored" ignore_mass_metric comparison_uses_the_mass_inner_product_not_euclidean_mac
 run_mutation "absolute-not-relative-frequency-gap" absolute_frequency_gap frequency_clusters_use_scale_invariant_predeclared_relative_gap
+run_mutation "global-mass-positive-definiteness-omitted" omit_global_spd_gate malformed_singular_or_nonfinite_inputs_fail_closed
 
 test "$source_sha256" = "$(sha256sum "$crate_dir/src/modal_subspace.rs" | awk '{print $1}')"
 
@@ -104,10 +110,15 @@ jq -n \
         id: "PHYS-MODAL-SUBSPACE-MUT-FREQ-GAP-001",
         expected_test: "frequency_clusters_use_scale_invariant_predeclared_relative_gap",
         disposition: "detected"
+      },
+      {
+        id: "PHYS-MODAL-SUBSPACE-MUT-MASS-SPD-001",
+        expected_test: "malformed_singular_or_nonfinite_inputs_fail_closed",
+        disposition: "detected"
       }
     ],
-    mutation_count: 2,
-    detected_count: 2,
+    mutation_count: 4,
+    detected_count: 4,
     production_source_unchanged: true,
     claim_ceiling: "basis-invariant software comparison of equal-dimensional modal subspaces only; no full structural validation"
   }' > "$receipt_path"
