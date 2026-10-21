@@ -33,6 +33,18 @@ Pinned expected outputs:
 
 This family suggests decreasing-area ordering closes 18 of 26 caller-order misses (from 179/205 = 87.3% to 197/205 = 96.1%). The six-policy portfolio is expected to find 203/205 exact-feasible cases, miss two, and reject all 307 infeasible cases, with zero false-feasible outputs. The portfolio closes 24 of the 26 input-order misses, for 203/205 = 99.0% feasibility coverage in this particular generator. These are target outputs from an independent development-time enumeration and pinned test expectations; the committed Rust run must pass before this is reported as verified. The family is synthetic, uses four axis-aligned rectangles and no disruptions, and is not an industrial or SOTA comparison. The two frozen portfolio misses are case index 48 (3×1, 2×2, 2×3, 2×4) and index 244 (1×4, 4×1, 3×1, 2×4); the exact oracle confirms both have feasible packings. The portfolio returns `AllPoliciesFailed` for these cases, explicitly meaning the six heuristics exhausted their candidate layouts, not that the layouts are impossible.
 
+## Generated temporal-reuse and active-exclusion stress family
+
+The integration test `tests/generated_temporal_oracle.rs` uses seed `0x51a7_2026` to generate 512 four-block cases on a 4×4 yard. Each reservation uses one of five half-open time windows, and each case has one rectangular exclusion zone with an active interval. The exact oracle recursively enumerates legal cell masks and checks temporal overlap independently of the production geometry helper.
+
+Pinned expected counts:
+- exactly feasible: 228; infeasible: 284;
+- caller-order first-fit: 168 solved, 60 feasible cases missed, 284 infeasible cases rejected, zero false-feasible plans;
+- decreasing-area first-fit: 192 solved, 36 misses, 284 infeasible cases rejected, zero false-feasible plans;
+- six-policy portfolio: 216 solved, 12 misses, 284 infeasible cases rejected, zero false-feasible plans.
+
+In this synthetic family, the portfolio is expected to find 216/228 = 94.7% of exact-feasible layouts, versus 168/228 = 73.7% for caller-order first-fit. These are pinned Rust test targets awaiting exact-head CI confirmation, not observed industrial results. The family models only rectangles, one time-active exclusion zone and four placements; it omits transfer routes, handling phases, crane/lift physics and irregular polygons.
+
 ## Claim boundary
 
 This is a transparent baseline, not a globally optimal bottom-left solver. It does not support irregular polygons, rotation, block transfer routes, cranes, lifting/rigging, multi-capacity vehicles, vertical clearance, stacking, floor bearing, or operational safety. A passing synthetic case does not establish industrial throughput, cost savings or superiority to a published solver.
