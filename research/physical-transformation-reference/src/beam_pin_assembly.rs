@@ -68,6 +68,50 @@ pub struct BeamPinAssembly {
     pub free_dof_indices: Vec<usize>,
 }
 
+/// Canonical request for deterministic, receipt-bound released-joint assembly.
+/// Inputs are validated first and then sorted by stable ID; storage-order
+/// permutations therefore produce identical UTF-8 bytes.
+pub fn canonical_assembly_request(
+    nodes: &[BeamPinNode],
+    members: &[BeamPinMember],
+) -> Check<String> {
+    // Fail closed for malformed topology or physical inputs before hashing.
+    assemble_released_joint_pin_truss(nodes, members)?;
+
+    let mut ordered_nodes = nodes.to_vec();
+    ordered_nodes.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut ordered_members = members.to_vec();
+    ordered_members.sort_by(|left, right| left.id.cmp(&right.id));
+
+    let mut fields = vec![
+        "schema=beam-pin-assembly-request-v0.1".to_owned(),
+        "fixture=PHYS-BEAM-PIN-001".to_owned(),
+    ];
+    for node in ordered_nodes {
+        fields.push(format!(
+            "node|{}|{}|{}|{}|{}",
+            node.id,
+            node.x_m,
+            node.y_m,
+            node.restrain_x,
+            node.restrain_y
+        ));
+    }
+    for member in ordered_members {
+        fields.push(format!(
+            "member|{}|{}|{}|{}|{}|{}|{}",
+            member.id,
+            member.start_node_id,
+            member.end_node_id,
+            member.area_m2,
+            member.youngs_modulus_pa,
+            member.density_kg_m3,
+            member.second_moment_m4
+        ));
+    }
+    Ok(fields.join("|"))
+}
+
 /// Assemble the global matrices of a planar beam model with ideal pin joints.
 ///
 /// Nodes and members are sorted by stable ID before DOF assignment, so
@@ -463,6 +507,27 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn canonical_request_matches_frozen_fixture_and_input_permutation() {
+        let first = canonical_assembly_request(&nodes(), &members())
+            .expect("canonical valid request");
+        assert_eq!(
+            first,
+            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt")
+                .trim_end_matches('\n')
+        );
+
+        let mut reversed_nodes = nodes();
+        reversed_nodes.reverse();
+        let mut reversed_members = members();
+        reversed_members.reverse();
+        assert_eq!(
+            canonical_assembly_request(&reversed_nodes, &reversed_members)
+                .expect("canonical reversed request"),
+            first
+        );
     }
 
     #[test]
