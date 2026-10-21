@@ -2150,7 +2150,10 @@ mod tests {
             Some(190.0)
         );
         assert_eq!(
-            baseline.receipt.summary.median_peak_memory_bytes_all_attempts,
+            baseline
+                .receipt
+                .summary
+                .median_peak_memory_bytes_all_attempts,
             Some(205_000_000.0)
         );
         assert_eq!(
