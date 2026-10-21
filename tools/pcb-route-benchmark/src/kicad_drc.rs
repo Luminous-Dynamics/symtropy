@@ -15,6 +15,10 @@ pub const KICAD_DRC_SCHEMA_SUFFIX: &str = "/drc.v1.json";
 pub struct KicadDrcRoutingPolicy {
     pub schema: String,
     pub kicad_version: String,
+    pub schema_source_url: String,
+    pub schema_source_blob_sha1: String,
+    pub taxonomy_source_url: String,
+    pub taxonomy_source_blob_sha1: String,
     pub routing_violation_types: Vec<String>,
     pub nonrouting_violation_types: Vec<String>,
     pub blocking_severities: Vec<String>,
@@ -379,6 +383,22 @@ fn validate_policy(policy: &KicadDrcRoutingPolicy) -> Result<(), String> {
     if policy.kicad_version.trim().is_empty() {
         return Err("policy kicad_version must not be empty".into());
     }
+    for (label, url) in [
+        ("schema_source_url", policy.schema_source_url.as_str()),
+        ("taxonomy_source_url", policy.taxonomy_source_url.as_str()),
+    ] {
+        if !url.starts_with("https://") {
+            return Err(format!("policy {label} must be an HTTPS URL"));
+        }
+    }
+    for (label, hash) in [
+        ("schema_source_blob_sha1", policy.schema_source_blob_sha1.as_str()),
+        ("taxonomy_source_blob_sha1", policy.taxonomy_source_blob_sha1.as_str()),
+    ] {
+        if hash.len() != 40 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(format!("policy {label} must be a 40-character Git blob SHA-1"));
+        }
+    }
     if policy.routing_violation_types.is_empty() {
         return Err("policy routing_violation_types must not be empty".into());
     }
@@ -460,6 +480,10 @@ mod tests {
     const POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.9",
+      "schema_source_url":"https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/resources/schemas/drc.v1.json",
+      "schema_source_blob_sha1":"3db8d82fc807c0690fd231eea9efdb562576ce4",
+      "taxonomy_source_url":"https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/pcbnew/drc/drc_item.cpp",
+      "taxonomy_source_blob_sha1":"f6822d5faf1ad17f859d6c8eb13eb85c917f1f61",
       "routing_violation_types":["tracks_crossing","shorting_items","clearance"],
       "nonrouting_violation_types":["silk_over_copper","lib_footprint_mismatch"],
       "blocking_severities":["error"],
