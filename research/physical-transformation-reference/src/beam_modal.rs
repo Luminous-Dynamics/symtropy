@@ -714,13 +714,12 @@ mod tests {
             for descriptor in &assembly.dof_descriptors {
                 match &descriptor.kind {
                     BeamPinDofKind::NodeTranslationX { node_id } => {
-                        let (x, y) = coordinates_for_chain_node(
+                        let (_, y) = coordinates_for_chain_node(
                             node_id,
                             nodes,
                             members,
                             elements_per_member,
                         );
-                        let _ = x;
                         shape[descriptor.index] = -angular_rate * y;
                     }
                     BeamPinDofKind::NodeTranslationY { node_id } => {
