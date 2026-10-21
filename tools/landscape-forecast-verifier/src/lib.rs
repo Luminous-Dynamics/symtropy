@@ -119,6 +119,7 @@ pub struct ScoredCase {
     pub prediction_interval_level: f64,
     pub prediction_interval_covered: bool,
     pub prediction_interval_width: f64,
+    pub prediction_interval_score: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -146,6 +147,7 @@ pub struct MetricSummary {
     pub interval_covered_count: usize,
     pub interval_coverage: f64,
     pub mean_interval_width: f64,
+    pub mean_interval_score: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -159,7 +161,7 @@ struct GroupKey {
     interval_level_micros: u64,
 }
 
-type GroupRow = (String, String, f64, f64, f64, bool, f64, f64);
+type GroupRow = (String, String, f64, f64, f64, bool, f64, f64, f64);
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
@@ -177,6 +179,21 @@ fn valid_digest(value: &str) -> bool {
 
 fn bounded_finite(value: f64) -> bool {
     value.is_finite() && value.abs() <= MAX_ABS_VALUE
+}
+
+/// Central prediction-interval score (Winkler interval score).
+/// It rewards narrow intervals but penalizes misses in proportion to the
+/// nominal miscoverage probability. Lower is better.
+pub fn interval_score(level: f64, lower: f64, upper: f64, observation: f64) -> f64 {
+    let alpha = 1.0 - level;
+    let width = upper - lower;
+    if observation < lower {
+        width + (2.0 / alpha) * (lower - observation)
+    } else if observation > upper {
+        width + (2.0 / alpha) * (observation - upper)
+    } else {
+        width
+    }
 }
 
 fn nonempty(value: &str) -> bool {
@@ -395,6 +412,12 @@ pub fn evaluate_fixture(
         let absolute_error = signed_error.abs();
         let covered = prediction.lower <= reference_value && reference_value <= prediction.upper;
         let interval_width = prediction.upper - prediction.lower;
+        let interval_score = interval_score(
+            prediction.interval_level,
+            prediction.lower,
+            prediction.upper,
+            reference_value,
+        );
         let key = GroupKey {
             metric_id: case.metric_id.clone(),
             unit: case.unit.clone(),
@@ -424,6 +447,7 @@ pub fn evaluate_fixture(
             prediction_interval_level: prediction.interval_level,
             prediction_interval_covered: covered,
             prediction_interval_width: rounded(interval_width),
+            prediction_interval_score: rounded(interval_score),
         });
 
         groups.entry(key).or_default().push((
@@ -435,6 +459,7 @@ pub fn evaluate_fixture(
             covered,
             (baseline.mean - reference_value).abs(),
             interval_width,
+            interval_score,
         ));
     }
 
@@ -452,6 +477,7 @@ pub fn evaluate_fixture(
         let covered_count = rows.iter().filter(|row| row.5).count();
         let interval_coverage = covered_count as f64 / n;
         let mean_interval_width = rows.iter().map(|row| row.7).sum::<f64>() / n;
+        let mean_interval_score = rows.iter().map(|row| row.8).sum::<f64>() / n;
         let independent_unit_count = rows
             .iter()
             .map(|row| row.1.as_str())
@@ -481,6 +507,7 @@ pub fn evaluate_fixture(
             interval_covered_count: covered_count,
             interval_coverage: rounded(interval_coverage),
             mean_interval_width: rounded(mean_interval_width),
+            mean_interval_score: rounded(mean_interval_score),
         });
     }
 
@@ -588,6 +615,16 @@ mod tests {
         close(ecology.rmse, 6.0);
         close(ecology.baseline_mae, 26.0 / 3.0);
         close(ecology.mae_skill_score.unwrap(), 6.0 / 13.0);
+        close(heat.mean_interval_score, 3.366666667);
+        close(water.mean_interval_score, 0.766666667);
+        close(ecology.mean_interval_score, 22.666666667);
+    }
+
+    #[test]
+    fn interval_score_penalizes_misses_and_overly_wide_intervals() {
+        close(interval_score(0.8, 0.0, 1.0, 0.5), 1.0);
+        close(interval_score(0.8, 0.0, 1.0, -0.2), 3.0);
+        close(interval_score(0.8, -10.0, 10.0, 0.5), 20.0);
     }
 
     #[test]
