@@ -18,7 +18,7 @@ No one layer establishes that the 2D axial-bar model represents a real structure
 
 ## Named mutation set
 
-The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies only the crate manifest, lockfile and source files into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
+The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies the crate manifest, lockfile, source files and frozen input fixture into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
 
 | Mutation ID | Deliberate defect | Required detecting test |
 |---|---|---|
@@ -32,7 +32,7 @@ A mutant counts as detected only when its named test appears as FAILED. A compil
 
 ## Receipt fields and interpretation
 
-The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these five deliberately selected mutations. It must not be represented as a global mutation score or a physical-accuracy metric.
+The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these five deliberately selected mutations. The fifth mutation targets the new 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1` by CI after the full suite passes. It must not be represented as a global mutation score or a physical-accuracy metric.
 
 ## Claim boundary
 
