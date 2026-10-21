@@ -446,14 +446,17 @@ pub fn normalize_reaction_only_rr_bytes(
         return Err(format!("support-node catalogue inventory mismatch; missing={missing:?}, extra={extra:?}"));
     }
 
-    let parsed = parse_reaction_only_rr_bytes(deck_bytes, dat_bytes, &node_set, &expected_node_ids)?;
-    let parsed_nodes = parsed["nodes"].as_array()
+    let parsed =
+        parse_reaction_only_rr_bytes(deck_bytes, dat_bytes, &node_set, &expected_node_ids)?;
+    let parsed_nodes = parsed["nodes"]
+        .as_array()
         .ok_or_else(|| "RR parser did not return a nodes array".to_owned())?;
     let mut reaction_forces = Vec::with_capacity(parsed_nodes.len());
     for node in parsed_nodes {
         let node_id = integer_field(node, "node_id", "parsed RR node")?;
         let force_n = vec3_field(node, "force_components_as_written", "parsed RR node")?;
-        let position_m = positions.get(&node_id)
+        let position_m = positions
+            .get(&node_id)
             .ok_or_else(|| format!("RR node {node_id} has no catalogue position"))?;
         reaction_forces.push(json!({
             "reaction_id": format!("node-{node_id}"),
@@ -502,7 +505,9 @@ pub fn normalize_reaction_only_rr_bytes(
 }
 
 fn exact_object_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
     for key in expected {
         if !object.contains_key(*key) {
             return Err(format!("{at}.{key} is required"));
@@ -515,7 +520,9 @@ fn exact_object_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
 }
 
 fn string_field<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key} must be a string"))
 }
 
@@ -526,36 +533,55 @@ fn token_field(value: &Value, key: &str, at: &str) -> Check<String> {
 }
 
 fn integer_field(value: &Value, key: &str, at: &str) -> Check<u64> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{at}.{key} must be a non-negative integer"))
 }
 
 fn string_array_field(value: &Value, key: &str, at: &str) -> Check<Vec<String>> {
-    let array = value.get(key).and_then(Value::as_array)
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be an array"))?;
-    array.iter().enumerate().map(|(index, item)| {
-        item.as_str().map(str::to_owned)
-            .ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))
-    }).collect()
+    array
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{at}.{key}[{index}] must be a string"))
+        })
+        .collect()
 }
 
 fn id_array_u64(value: &Value, key: &str, at: &str) -> Check<Vec<u64>> {
-    let array = value.get(key).and_then(Value::as_array)
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be an array"))?;
-    array.iter().enumerate().map(|(index, item)| {
-        item.as_u64().ok_or_else(|| format!("{at}.{key}[{index}] must be a non-negative integer"))
-    }).collect()
+    array
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            item.as_u64()
+                .ok_or_else(|| format!("{at}.{key}[{index}] must be a non-negative integer"))
+        })
+        .collect()
 }
 
 fn vec3_field(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
-    let array = value.get(key).and_then(Value::as_array)
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be a three-component vector"))?;
     if array.len() != 3 {
         return Err(format!("{at}.{key} must contain exactly three components"));
     }
     let mut vector = [0.0; 3];
     for (index, component) in array.iter().enumerate() {
-        let number = component.as_f64()
+        let number = component
+            .as_f64()
             .filter(|number| number.is_finite())
             .ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
         vector[index] = number;
@@ -568,7 +594,9 @@ fn validate_provenance(value: &Value, at: &str) -> Check<()> {
     for key in ["method", "identity", "source_ref"] {
         let text = string_field(value, key, at)?;
         if text.trim().is_empty() || text.len() > 2048 {
-            return Err(format!("{at}.{key} must be non-empty and at most 2048 bytes"));
+            return Err(format!(
+                "{at}.{key} must be non-empty and at most 2048 bytes"
+            ));
         }
     }
     Ok(())
@@ -745,7 +773,8 @@ mod tests {
     fn make_normalization_bundle() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
         let mut request: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         request["required_outputs"] = json!(["reaction_force"]);
         let request_bytes = serde_json::to_vec(&request).unwrap();
         let request_sha = sha256_hex(&request_bytes);
@@ -795,24 +824,46 @@ mod tests {
             }
         });
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
-        (request_bytes, deck_bytes, RR_ONLY_OUTPUT.as_bytes().to_vec(), manifest_bytes, catalog_bytes)
+        (
+            request_bytes,
+            deck_bytes,
+            RR_ONLY_OUTPUT.as_bytes().to_vec(),
+            manifest_bytes,
+            catalog_bytes,
+        )
     }
 
     #[test]
     fn normalizer_joins_rr_reactions_to_exact_deck_bound_node_positions() {
         let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
-        let report = normalize_reaction_only_rr_bytes(&request, &deck, &dat, &manifest, &catalog).unwrap();
+        let report =
+            normalize_reaction_only_rr_bytes(&request, &deck, &dat, &manifest, &catalog).unwrap();
         assert_eq!(report["normalization_status"], "PASS");
         assert_eq!(report["physical_result_qualified"], false);
         assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
-        assert_eq!(report["normalized_output"]["schema_version"], "physical-equilibrium-reaction-forces-v0.1");
+        assert_eq!(
+            report["normalized_output"]["schema_version"],
+            "physical-equilibrium-reaction-forces-v0.1"
+        );
         assert_eq!(report["normalized_output"]["units"]["length"], "m");
         assert_eq!(report["normalized_output"]["units"]["force"], "N");
-        assert_eq!(report["normalized_output"]["reaction_forces"][0]["reaction_id"], "node-1");
-        assert_eq!(report["normalized_output"]["reaction_forces"][0]["position_m"][0], 0.0);
-        assert_eq!(report["normalized_output"]["reaction_forces"][1]["position_m"][0], 2.0);
+        assert_eq!(
+            report["normalized_output"]["reaction_forces"][0]["reaction_id"],
+            "node-1"
+        );
+        assert_eq!(
+            report["normalized_output"]["reaction_forces"][0]["position_m"][0],
+            0.0
+        );
+        assert_eq!(
+            report["normalized_output"]["reaction_forces"][1]["position_m"][0],
+            2.0
+        );
         let normalized_bytes = serde_json::to_vec(&report["normalized_output"]).unwrap();
-        assert_eq!(report["normalized_output_sha256"], sha256_hex(&normalized_bytes));
+        assert_eq!(
+            report["normalized_output_sha256"],
+            sha256_hex(&normalized_bytes)
+        );
         assert_eq!(report["deck_sha256"], sha256_hex(&deck));
         assert_eq!(report["dat_sha256"], sha256_hex(&dat));
     }
@@ -823,16 +874,26 @@ mod tests {
         let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
         manifest_value["node_catalog_sha256"] = json!("d".repeat(64));
         let stale_manifest = serde_json::to_vec(&manifest_value).unwrap();
-        assert!(normalize_reaction_only_rr_bytes(&request, &deck, &dat, &stale_manifest, &catalog).is_err());
+        assert!(
+            normalize_reaction_only_rr_bytes(&request, &deck, &dat, &stale_manifest, &catalog)
+                .is_err()
+        );
 
         let mut catalog_value: Value = serde_json::from_slice(&catalog).unwrap();
         catalog_value["coordinate_frame_id"] = json!("wrong-frame");
         let wrong_catalog = serde_json::to_vec(&catalog_value).unwrap();
         manifest_value["node_catalog_sha256"] = json!(sha256_hex(&wrong_catalog));
         let manifest_for_wrong_catalog = serde_json::to_vec(&manifest_value).unwrap();
-        assert!(normalize_reaction_only_rr_bytes(
-            &request, &deck, &dat, &manifest_for_wrong_catalog, &wrong_catalog
-        ).is_err());
+        assert!(
+            normalize_reaction_only_rr_bytes(
+                &request,
+                &deck,
+                &dat,
+                &manifest_for_wrong_catalog,
+                &wrong_catalog
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -848,9 +909,16 @@ mod tests {
         let catalog_knew = serde_json::to_vec(&catalog_value).unwrap();
         manifest_value["node_catalog_sha256"] = json!(sha256_hex(&catalog_knew));
         let manifest_knew = serde_json::to_vec(&manifest_value).unwrap();
-        assert!(normalize_reaction_only_rr_bytes(
-            &request_knew, &deck, &dat, &manifest_knew, &catalog_knew
-        ).is_err());
+        assert!(
+            normalize_reaction_only_rr_bytes(
+                &request_knew,
+                &deck,
+                &dat,
+                &manifest_knew,
+                &catalog_knew
+            )
+            .is_err()
+        );
     }
 
 }
