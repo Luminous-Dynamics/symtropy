@@ -45,6 +45,11 @@ run_mutation() {
       perl -0pi -e 's/let mass_influence_y = matrix_vector_product\(&assembly\.mass_global, &influence_y\)\?;/let mass_influence_y = matrix_vector_product(\&assembly.mass_global, \&influence_x)?;/' "$source"
       grep -Fq 'let mass_influence_y = matrix_vector_product(&assembly.mass_global, &influence_x)?;' "$source"
       ;;
+    skip_complete_spectrum_gate)
+      grep -Fq 'if modal_result.modes.len() != assembly.free_dof_indices.len() {' "$source"
+      perl -0pi -e 's/if modal_result\.modes\.len\(\) != assembly\.free_dof_indices\.len\(\) \{/if false {/' "$source"
+      grep -Fq 'if false {' "$source"
+      ;;
     *)
       printf 'Unknown modal-properties mutation: %s\n' "$mutation" >&2
       return 2
@@ -72,6 +77,10 @@ run_mutation \
   "y-participation-reuses-x-influence" \
   reuse_x_influence_for_y \
   orthogonal_directional_modes_report_complete_effective_mass
+run_mutation \
+  "incomplete-spectrum-gate-removed" \
+  skip_complete_spectrum_gate \
+  malformed_or_inconsistent_modal_inputs_fail_closed
 
 test "$source_sha256" = "$(sha256sum "$crate_dir/src/modal_properties.rs" | awk '{print $1}')"
 
@@ -97,6 +106,11 @@ jq -n \
       {
         id: "PHYS-MODAL-PROPERTIES-MUT-DIRECTION-001",
         expected_test: "orthogonal_directional_modes_report_complete_effective_mass",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-MODAL-PROPERTIES-MUT-SPECTRUM-COVERAGE-001",
+        expected_test: "malformed_or_inconsistent_modal_inputs_fail_closed",
         disposition: "detected"
       }
     ],
