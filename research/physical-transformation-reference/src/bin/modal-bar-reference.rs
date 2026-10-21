@@ -85,13 +85,13 @@ fn run() -> Result<String, String> {
                 .consistent
                 .normalized_frequencies
                 .get(1)
-                .map(format_number)
+                .map(|value| format_number(*value))
                 .unwrap_or_else(|| "null".to_owned());
             let second_lumped = entry
                 .lumped
                 .normalized_frequencies
                 .get(1)
-                .map(format_number)
+                .map(|value| format_number(*value))
                 .unwrap_or_else(|| "null".to_owned());
             format!(
                 "{{\"elements\":{},\"consistent_first_ratio\":{},\"lumped_first_ratio\":{},\"consistent_second_ratio\":{},\"lumped_second_ratio\":{}}}",
