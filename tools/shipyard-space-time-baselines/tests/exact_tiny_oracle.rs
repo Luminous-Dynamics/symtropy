@@ -8,7 +8,9 @@
 use std::collections::BTreeSet;
 
 use shipyard_space_time::{Rect, TimeRange, verify};
-use shipyard_space_time_baselines::{PlacementRequest, first_fit_bottom_left};
+use shipyard_space_time_baselines::{
+    PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left,
+};
 
 fn cells(rect: Rect) -> BTreeSet<(i64, i64)> {
     let mut result = BTreeSet::new();
@@ -93,6 +95,9 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
     let mut baseline_solved = 0usize;
     let mut baseline_missed_feasible = 0usize;
     let mut baseline_rejected_infeasible = 0usize;
+    let mut decreasing_solved = 0usize;
+    let mut decreasing_missed_feasible = 0usize;
+    let mut decreasing_rejected_infeasible = 0usize;
 
     for (a_width, a_height) in dimensions {
         for (b_width, b_height) in dimensions {
@@ -142,6 +147,23 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
                     Err(_) if exact => baseline_missed_feasible += 1,
                     Err(_) => baseline_rejected_infeasible += 1,
                 }
+                
+                match first_fit_decreasing_bottom_left(yard, &requests, &[]) {
+                    Ok(plan) => {
+                        decreasing_solved += 1;
+                        assert!(
+                            exact,
+                            "decreasing-area baseline produced a plan for an exact-infeasible case: {:?}",
+                            requests
+                        );
+                        assert!(
+                            verify(&plan).is_feasible(),
+                            "independent verifier rejected decreasing-area output: {plan:?}"
+                        );
+                    }
+                    Err(_) if exact => decreasing_missed_feasible += 1,
+                    Err(_) => decreasing_rejected_infeasible += 1,
+                }
             }
         }
     }
@@ -182,12 +204,13 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
     ];
     assert!(exact_pack_exists(yard, &known_miss));
     assert!(first_fit_bottom_left(yard, &known_miss, &[]).is_err());
+    assert!(first_fit_decreasing_bottom_left(yard, &known_miss, &[]).is_ok());
 
     // False infeasibility is allowed for a heuristic baseline but is measured explicitly.
     // These counters make the baseline's coverage visible in test output for the frozen family.
     eprintln!(
         "tiny packing oracle: cases={examined}, exact_feasible={exact_feasible}, \
          baseline_solved={baseline_solved}, missed_feasible={baseline_missed_feasible}, \
-         infeasible_rejected={baseline_rejected_infeasible}"
+         infeasible_rejected={baseline_rejected_infeasible}, decreasing_solved={decreasing_solved}, decreasing_missed={decreasing_missed_feasible}, decreasing_rejected={decreasing_rejected_infeasible}"
     );
 }
