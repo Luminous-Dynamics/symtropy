@@ -88,6 +88,39 @@ Sources:
 - Kirstein & Brent (2017), *An investigation into the normalisation of water and energy usage in the brewery industry*: https://doi.org/10.7166/28-4-1726
 - BIER (published 22 April 2026), *2025 Water, Energy, and Emissions Benchmarking Summary*: https://www.bieroundtable.com/2025-water-energy-and-emissions-benchmarking-summary-bier
 
+## Experiment selection under a fixed budget
+
+A second optimization target is **how much reliable improvement we obtain per experiment**, not just how well a fitted model predicts a held-out row. Fermentation experiments can be expensive, and high-dimensional settings interact. A 2025 batch Bayesian-optimization study reported a 28% increase in maximum backscatter in wet-lab growth-media experiments with *Sporosarcina pasteurii* versus its DoE comparator, and about 14% average improvement in its in-silico evaluation; the authors also report that it did not outperform every comparator in every simulated case. Those results are evidence that budget-aware experiment selection merits a direct test, not evidence of a 28% improvement for beer, wine or spirits.
+
+Research: Lapierre et al. (2025), *Multi-cycle high-throughput growth media optimization using batch Bayesian optimization*, https://doi.org/10.1002/jctb.7860. For the broader small-data setting see Siska et al. (2026), *A Guide to Bayesian Optimization in Bioprocess Engineering*, https://doi.org/10.1002/bit.70129.
+
+### Fair experimental-design ladder
+
+At the same candidate conditions, prior observations, measurement budget and total cost, compare:
+
+1. Fractional-factorial / response-surface design as a domain-standard comparator.
+2. Space-filling or random selection as a low-assumption baseline.
+3. Greedy predicted-mean optimization.
+4. Uncertainty-only active learning.
+5. Constrained batch Bayesian optimization.
+6. Mechanistic-model / Bayesian-optimization hybrid, but only where the mechanistic model and parameter ranges have independent support.
+
+At predeclared budgets (for example 8, 16 and 32 new runs), report each method across repeated seeds and multiple problem families. Include failed, infeasible, censored and quality-rejected experiments in the accounting. Do not compare one method's best observed run against another method's average, or let any method inspect outcomes unavailable at its selection time.
+
+Report separate outcomes:
+- best **feasible, quality-conforming** product outcome at each budget;
+- simple regret versus the known optimum only for transparent synthetic environments, and versus the best verified observed feasible reference in empirical environments;
+- normalized hypervolume/regret for quality, yield, water, energy and batch duration with a fixed, predeclared reference point;
+- hard-constraint violations and invalid/infeasible proposals;
+- experiments and wall-clock time per qualified improvement;
+- uncertainty and across-seed variability, not only best-case curves.
+
+### Proposed stretch target
+
+On the locked benchmark suite, aim for at least 20% lower mean normalized simple regret than the strongest pre-registered non-BO baseline at the same experiment budget, with a paired uncertainty interval supporting improvement and no increase in hard-constraint violations. Require the gain to replicate on an independent seed set and then in a prospective physical study before it is called an operational improvement. If measured experiments are too sparse to establish a reliable ordering, report the result as inconclusive rather than choosing the most favourable budget after seeing scores.
+
+The initial digital-twin corpus can test deterministic selection logic and failure handling, but synthetic optimization wins remain synthetic. Never allow predicted yield or a utility sum to compensate for safety/quality failure, water-rights/ecological limits, or a model operating outside its evidence-supported domain.
+
 ## Benchmark ambitions
 
 The proposed research target is a prospective pilot that reduces at least one preregistered normalized resource metric—water or energy per saleable product unit—by at least 10%, with no statistically supported degradation in the other resource metric, saleable yield, defined product-quality endpoints or safety gates. This is a stretch goal, not a universal limit or achieved result.
