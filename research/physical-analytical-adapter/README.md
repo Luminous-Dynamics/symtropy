@@ -5,13 +5,14 @@
 
 ## What it does
 
-This adapter invokes the existing functions in the core reference kernel for three idealized closed-form cases:
+This adapter invokes the core reference kernel for three idealized closed-form cases and includes one explicit reduced-matrix interval model:
 
 1. **Axial bar:** constant cross-section, uniform axial load, static linear elasticity.
 2. **Cantilever tip load:** small-deflection Euler-Bernoulli beam with constant section and point load at the free tip.
 3. **Simply supported uniform load:** small-deflection Euler-Bernoulli prismatic beam under a uniform load over the full span.
+4. **Asymmetric two-bar planar truss:** two restrained base supports and a free apex, with point loads and axial member stiffnesses. This case uses a reduced 2-DOF 2x2 stiffness system and is not a continuum FEM model.
 
-It reuses the implementation at `research/physical-transformation-reference/src/mechanics.rs`; the formulas are not copied into a second mechanics implementation.
+The first three cases reuse the implementation at `research/physical-transformation-reference/src/mechanics.rs`; their formulas are not copied into a second mechanics implementation. The planar-truss model has its own explicitly defined reduced-stiffness oracle in `src/uncertainty.rs`.
 
 ## Request and receipt
 
@@ -41,6 +42,20 @@ The focused workflow runs all three supported requests and one unsupported-fract
 - `analytical_reference` means a reproducible formula calculation, not measured evidence.
 
 These formulas do not prove that a real member has the declared geometry, material properties, boundary conditions or load. They do not validate real connection behavior, nonlinear material response, fracture initiation/propagation, dynamic collapse, contact, soil interaction, construction-code compliance, structural stability or demolition safety. A passing receipt is not construction authorization or machine-control approval.
+
+## Bounded analytical input uncertainty: planar truss
+
+The bounded `planar_truss_two_bar` case propagates declared spans, apex position/height, member axial stiffnesses and apex load bounds through the reduced 2x2 stiffness matrix. It publishes interval enclosures for the matrix entries, determinant, bar lengths, displacements and condition indicators.
+
+The determinant uses the geometry-specific identity
+
+```text
+det(K) = kA * kB * (span * height / (LA * LB))^2
+```
+
+rather than `Kxx*Kyy - Kxy*Kxy`, which can lose correlation and become uninformative near collinearity. If the determinant cannot be proven strictly positive, or the point calculation underflows / becomes non-finite, the receipt is `UNRESOLVED` with no outputs or finite output enclosures.
+
+The current workflow exercises two fixtures: a finite narrow interval box which must contain the nominal solution, and a near-mechanism case in the subnormal height range which must abstain. The nominal bounds are explicitly tagged as `scenario_bound`; no probability distribution, calibration status, or physical validity is inferred. The corner sweep is a falsification aid rather than a proof of interval soundness; the interval-conformance work remains an independent dependency.
 
 ## Next gates
 
