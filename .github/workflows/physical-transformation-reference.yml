@@ -145,7 +145,12 @@ jobs:
             and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
             and .verification.independent_known_answer == "pass"
             and .verification.equilibrium_gate == "pass"
+            and .verification.energy_balance == "pass"
             and .verification.physical_validation == "not_performed"
+            and .energy.strain_energy_j > 0
+            and .energy.external_work_j > 0
+            and (.energy.residual_j | abs) < 1e-12
+            and .energy.normalized_residual < 1e-12
             and .equilibrium.normalized_force_residual < 1e-12
             and .equilibrium.normalized_moment_residual < 1e-12
             and .equilibrium.normalized_free_dof_residual < 1e-12
@@ -186,8 +191,8 @@ jobs:
                 youngs_modulus_pa: {min: 30000000000, max: 210000000000},
                 downward_load_n: {min: 10.0, max: 10000.0}
               },
-              checks_per_case: 17,
-              total_scalar_checks: 2176,
+              checks_per_case: 21,
+              total_scalar_checks: 2688,
               acceptance: {
                 relative_tolerance: 1.0e-10,
                 field_specific_absolute_floors: true,
@@ -206,8 +211,8 @@ jobs:
             and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
             and .result == "pass"
             and .case_count == 128
-            and .checks_per_case == 17
-            and .total_scalar_checks == 2176
+            and .checks_per_case == 21
+            and .total_scalar_checks == 2688
             and .acceptance.normalized_force_residual_lt == 1e-12
             and .acceptance.normalized_moment_residual_lt == 1e-12
             and .acceptance.normalized_free_dof_residual_lt == 1e-12
