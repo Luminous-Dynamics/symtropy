@@ -14,7 +14,7 @@ enum Computability {
     NotEstimable,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 struct DistributionSummary {
     sample_count: usize,
     mean: f64,
