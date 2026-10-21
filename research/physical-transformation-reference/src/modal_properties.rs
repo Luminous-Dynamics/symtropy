@@ -70,6 +70,11 @@ pub fn beam_modal_participation_properties(
     if modal_result.modes.is_empty() {
         return Err("at least one modal solution is required".to_owned());
     }
+    if modal_result.modes.len() != assembly.free_dof_indices.len() {
+        return Err(
+            "modal participation requires the complete free-DOF eigenspectrum".to_owned(),
+        );
+    }
     if modal_result.modes.iter().any(|mode| {
         mode.shape_global_dofs.len() != dof_count
             || !mode.eigenvalue_rad_s_squared.is_finite()
@@ -403,6 +408,10 @@ mod tests {
         let mut malformed = result();
         malformed.modes[0].shape_global_dofs.pop();
         assert!(beam_modal_participation_properties(&assembly, &malformed).is_err());
+
+        let mut truncated = result();
+        truncated.modes.pop();
+        assert!(beam_modal_participation_properties(&assembly, &truncated).is_err());
 
         let mut unsorted = result();
         unsorted.modes.reverse();
