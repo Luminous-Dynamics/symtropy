@@ -290,8 +290,8 @@ mod tests {
         assert!((y_mode.participation_factor_y - 3.0_f64.sqrt()).abs() < 1.0e-12);
         assert!((y_mode.effective_modal_mass_y_kg - 3.0).abs() < 1.0e-12);
         assert!((y_mode.effective_modal_mass_ratio_y - 1.0).abs() < 1.0e-12);
-        assert!((y_mode.cumulative_effective_mass_ratio_x - 1.0).abs() < 1.0e-12);
-        assert!((y_mode.cumulative_effective_mass_ratio_y - 1.0).abs() < 1.0e-12);
+        assert!((y_mode.cumulative_effective_modal_mass_ratio_x - 1.0).abs() < 1.0e-12);
+        assert!((y_mode.cumulative_effective_modal_mass_ratio_y - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
