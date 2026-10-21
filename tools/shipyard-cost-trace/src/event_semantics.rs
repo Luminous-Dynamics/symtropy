@@ -285,8 +285,9 @@ pub fn normalize_quantities(
                 target_record_id, ..
             }
             | QuantityRecordKind::Reversal { target_record_id } => Some(target_record_id.as_str()),
-            QuantityRecordKind::Delta { .. }
-            | QuantityRecordKind::CumulativeSnapshot { .. } => None,
+            QuantityRecordKind::Delta { .. } | QuantityRecordKind::CumulativeSnapshot { .. } => {
+                None
+            },
         };
         let Some(target_id) = target_id else {
             continue;
@@ -371,10 +372,7 @@ pub fn normalize_quantities(
                 let latest = records_for_identity
                     .iter()
                     .filter(|record| {
-                        matches!(
-                            &record.kind,
-                            QuantityRecordKind::CumulativeSnapshot { .. }
-                        )
+                        matches!(&record.kind, QuantityRecordKind::CumulativeSnapshot { .. })
                     })
                     .max_by_key(|record| record.sequence)
                     .expect("snapshot identity has at least one eligible snapshot");
@@ -403,7 +401,8 @@ pub fn normalize_quantities(
                             match corrections.get(record.record_id.as_str()).map(|v| v[0]) {
                                 Some(action) => match &action.kind {
                                     QuantityRecordKind::Correction {
-                                        replacement_quantity, ..
+                                        replacement_quantity,
+                                        ..
                                     } => *replacement_quantity,
                                     QuantityRecordKind::Reversal { .. } => 0.0,
                                     _ => unreachable!("only corrective records target a delta"),
@@ -415,9 +414,7 @@ pub fn normalize_quantities(
                             unreachable!("delta identity has no snapshot records")
                         }
                         QuantityRecordKind::Correction { .. }
-                        | QuantityRecordKind::Reversal { .. } => {
-                            0.0
-                        }
+                        | QuantityRecordKind::Reversal { .. } => 0.0,
                     };
                     total += contribution;
                     if !total.is_finite() {
@@ -506,15 +503,33 @@ mod tests {
         let normalized = normalize_quantities(&records, cutoff()).unwrap();
         assert_eq!(normalized.len(), 1);
         assert_eq!(normalized[0].quantity, 14.0);
-        assert_eq!(normalized[0].semantics, NormalizedSemantics::LatestCumulativeSnapshot);
-        assert_eq!(normalized[0].evidence_record_ids, vec!["snapshot-1", "snapshot-2"]);
+        assert_eq!(
+            normalized[0].semantics,
+            NormalizedSemantics::LatestCumulativeSnapshot
+        );
+        assert_eq!(
+            normalized[0].evidence_record_ids,
+            vec!["snapshot-1", "snapshot-2"]
+        );
     }
 
     #[test]
     fn additive_deltas_are_summed() {
         let records = vec![
-            record("delta-1", 1, 100, 100, QuantityRecordKind::Delta { quantity: 12.0 }),
-            record("delta-2", 2, 200, 200, QuantityRecordKind::Delta { quantity: 14.0 }),
+            record(
+                "delta-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 12.0 },
+            ),
+            record(
+                "delta-2",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 14.0 },
+            ),
         ];
         let normalized = normalize_quantities(&records, cutoff()).unwrap();
         assert_eq!(normalized[0].quantity, 26.0);
@@ -524,12 +539,30 @@ mod tests {
     #[test]
     fn correction_replaces_target_delta_without_mutating_source_record() {
         let records = vec![
-            record("delta-1", 1, 100, 100, QuantityRecordKind::Delta { quantity: 12.0 }),
-            record("delta-2", 2, 200, 200, QuantityRecordKind::Delta { quantity: 14.0 }),
-            record("correct-1", 3, 300, 300, QuantityRecordKind::Correction {
-                target_record_id: "delta-1".to_owned(),
-                replacement_quantity: 10.0,
-            }),
+            record(
+                "delta-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 12.0 },
+            ),
+            record(
+                "delta-2",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 14.0 },
+            ),
+            record(
+                "correct-1",
+                3,
+                300,
+                300,
+                QuantityRecordKind::Correction {
+                    target_record_id: "delta-1".to_owned(),
+                    replacement_quantity: 10.0,
+                },
+            ),
         ];
         let normalized = normalize_quantities(&records, cutoff()).unwrap();
         assert_eq!(normalized[0].quantity, 24.0);
@@ -542,34 +575,78 @@ mod tests {
     #[test]
     fn reversal_cancels_target_delta_without_deleting_history() {
         let records = vec![
-            record("delta-1", 1, 100, 100, QuantityRecordKind::Delta { quantity: 12.0 }),
-            record("delta-2", 2, 200, 200, QuantityRecordKind::Delta { quantity: 14.0 }),
-            record("reverse-1", 3, 300, 300, QuantityRecordKind::Reversal {
-                target_record_id: "delta-1".to_owned(),
-            }),
+            record(
+                "delta-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 12.0 },
+            ),
+            record(
+                "delta-2",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 14.0 },
+            ),
+            record(
+                "reverse-1",
+                3,
+                300,
+                300,
+                QuantityRecordKind::Reversal {
+                    target_record_id: "delta-1".to_owned(),
+                },
+            ),
         ];
         let normalized = normalize_quantities(&records, cutoff()).unwrap();
         assert_eq!(normalized[0].quantity, 14.0);
-        assert!(normalized[0].evidence_record_ids.contains(&"reverse-1".to_owned()));
-        assert!(normalized[0].evidence_record_ids.contains(&"delta-1".to_owned()));
+        assert!(
+            normalized[0]
+                .evidence_record_ids
+                .contains(&"reverse-1".to_owned())
+        );
+        assert!(
+            normalized[0]
+                .evidence_record_ids
+                .contains(&"delta-1".to_owned())
+        );
     }
 
     #[test]
     fn late_arrival_does_not_change_earlier_recorded_as_of_report() {
         let records = vec![
-            record("delta-1", 1, 100, 100, QuantityRecordKind::Delta { quantity: 12.0 }),
-            record("late-delta", 2, 200, 1_500, QuantityRecordKind::Delta { quantity: 14.0 }),
+            record(
+                "delta-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 12.0 },
+            ),
+            record(
+                "late-delta",
+                2,
+                200,
+                1_500,
+                QuantityRecordKind::Delta { quantity: 14.0 },
+            ),
         ];
         let earlier = normalize_quantities(
             &records,
-            AsOfCutoff { event_time_ms: 1_000, recorded_at_ms: 1_000 },
+            AsOfCutoff {
+                event_time_ms: 1_000,
+                recorded_at_ms: 1_000,
+            },
         )
         .unwrap();
         assert_eq!(earlier[0].quantity, 12.0);
 
         let later = normalize_quantities(
             &records,
-            AsOfCutoff { event_time_ms: 1_000, recorded_at_ms: 2_000 },
+            AsOfCutoff {
+                event_time_ms: 1_000,
+                recorded_at_ms: 2_000,
+            },
         )
         .unwrap();
         assert_eq!(later[0].quantity, 26.0);
@@ -585,11 +662,21 @@ mod tests {
                 100,
                 QuantityRecordKind::CumulativeSnapshot { quantity: 12.0 },
             ),
-            record("delta", 2, 200, 200, QuantityRecordKind::Delta { quantity: 2.0 }),
+            record(
+                "delta",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 2.0 },
+            ),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("mixes delta and snapshot semantics")
-            || error.contains("identity mixes snapshot and delta semantics")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("mixes delta and snapshot semantics")
+                    || error.contains("identity mixes snapshot and delta semantics"))
+        );
     }
 
     #[test]
@@ -611,21 +698,43 @@ mod tests {
             ),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("snapshot event time does not increase")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("snapshot event time does not increase"))
+        );
     }
 
     #[test]
     fn two_corrections_of_one_delta_are_rejected_as_ambiguous() {
         let records = vec![
-            record("delta-1", 1, 100, 100, QuantityRecordKind::Delta { quantity: 12.0 }),
-            record("correct-1", 2, 200, 200, QuantityRecordKind::Correction {
-                target_record_id: "delta-1".to_owned(),
-                replacement_quantity: 10.0,
-            }),
-            record("correct-2", 3, 300, 300, QuantityRecordKind::Correction {
-                target_record_id: "delta-1".to_owned(),
-                replacement_quantity: 9.0,
-            }),
+            record(
+                "delta-1",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 12.0 },
+            ),
+            record(
+                "correct-1",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Correction {
+                    target_record_id: "delta-1".to_owned(),
+                    replacement_quantity: 10.0,
+                },
+            ),
+            record(
+                "correct-2",
+                3,
+                300,
+                300,
+                QuantityRecordKind::Correction {
+                    target_record_id: "delta-1".to_owned(),
+                    replacement_quantity: 9.0,
+                },
+            ),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
         assert!(errors
@@ -636,13 +745,27 @@ mod tests {
     #[test]
     fn duplicate_record_ids_and_stream_sequences_are_rejected() {
         let duplicate_id = vec![
-            record("same", 1, 100, 100, QuantityRecordKind::Delta { quantity: 1.0 }),
-            record("same", 2, 200, 200, QuantityRecordKind::Delta { quantity: 2.0 }),
+            record(
+                "same",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 1.0 },
+            ),
+            record(
+                "same",
+                2,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 2.0 },
+            ),
         ];
-        assert!(normalize_quantities(&duplicate_id, cutoff())
-            .unwrap_err()
-            .iter()
-            .any(|error| error.contains("duplicate record_id")));
+        assert!(
+            normalize_quantities(&duplicate_id, cutoff())
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("duplicate record_id"))
+        );
 
         let duplicate_sequence = vec![
             record("first", 1, 100, 100, QuantityRecordKind::Delta { quantity: 1.0 }),
@@ -676,7 +799,11 @@ mod tests {
         correction.stream_id = "other-stream".to_owned();
         // The target is not in the same stream as the correction; this must not rewrite it.
         let errors = normalize_quantities(&[target.clone(), correction], cutoff()).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("crosses stream or quantity identity")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("crosses stream or quantity identity"))
+        );
 
         target.identity.task_id = "other-task".to_owned();
         let cross_identity = vec![
@@ -692,10 +819,12 @@ mod tests {
                 },
             ),
         ];
-        assert!(normalize_quantities(&cross_identity, cutoff())
-            .unwrap_err()
-            .iter()
-            .any(|error| error.contains("crosses stream or quantity identity")));
+        assert!(
+            normalize_quantities(&cross_identity, cutoff())
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("crosses stream or quantity identity"))
+        );
     }
 
     #[test]
@@ -750,11 +879,9 @@ mod tests {
                 replacement_quantity: 10.0,
             },
         );
-        let forward = normalize_quantities(
-            &[delta.clone(), next.clone(), correction.clone()],
-            cutoff(),
-        )
-        .unwrap();
+        let forward =
+            normalize_quantities(&[delta.clone(), next.clone(), correction.clone()], cutoff())
+                .unwrap();
         let reverse = normalize_quantities(&[correction, next, delta], cutoff()).unwrap();
         assert_eq!(forward, reverse);
         assert_eq!(forward[0].quantity, 24.0);
@@ -779,9 +906,11 @@ mod tests {
         second.stream_id = "snapshot-stream-2".to_owned();
 
         let errors = normalize_quantities(&[first, second], cutoff()).unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|error| error.contains("cumulative identity spans multiple snapshot streams")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cumulative identity spans multiple snapshot streams"))
+        );
     }
 
     #[test]
