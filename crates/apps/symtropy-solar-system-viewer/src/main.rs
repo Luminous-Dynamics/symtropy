@@ -186,7 +186,11 @@ struct SolarHud;
 type BodyRenderQuery<'w, 's> = Query<
     'w,
     's,
-    (&'static BodyVisual, &'static mut Transform, &'static mut Visibility),
+    (
+        &'static BodyVisual,
+        &'static mut Transform,
+        &'static mut Visibility,
+    ),
     (With<BodyVisual>, Without<SolarCamera>),
 >;
 type TileRenderQuery<'w, 's> = Query<
@@ -214,7 +218,11 @@ type FeatureRenderQuery<'w, 's> = Query<
 type OrbitRenderQuery<'w, 's> = Query<
     'w,
     's,
-    (&'static OrbitSegment, &'static mut Transform, &'static mut Visibility),
+    (
+        &'static OrbitSegment,
+        &'static mut Transform,
+        &'static mut Visibility,
+    ),
     (
         With<OrbitSegment>,
         Without<BodyVisual>,
@@ -227,7 +235,11 @@ type OrbitRenderQuery<'w, 's> = Query<
 type StarRenderQuery<'w, 's> = Query<
     'w,
     's,
-    (&'static SkyStar, &'static mut Transform, &'static mut Visibility),
+    (
+        &'static SkyStar,
+        &'static mut Transform,
+        &'static mut Visibility,
+    ),
     (
         With<SkyStar>,
         Without<BodyVisual>,
@@ -738,7 +750,8 @@ fn update_scene(
     mut star_query: StarRenderQuery<'_, '_>,
     mut camera_viewport: CameraViewportParams<'_, '_>,
 ) {
-    let viewport_height_px = camera_viewport.windows
+    let viewport_height_px = camera_viewport
+        .windows
         .iter()
         .next()
         .map(|window| window.physical_height().max(1))
