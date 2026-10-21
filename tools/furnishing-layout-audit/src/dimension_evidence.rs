@@ -151,8 +151,13 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
             ));
         }
 
-        let state = text(record, "state");
-        if !state.is_some_and(recognized_state) {
+        let Some(state) = text(record, "state") else {
+            errors.push(format!(
+                "{prefix}: state must be measured, manufacturer_specified, seller_estimated, nominal, or unknown"
+            ));
+            continue;
+        };
+        if !recognized_state(state) {
             errors.push(format!(
                 "{prefix}: state must be measured, manufacturer_specified, seller_estimated, nominal, or unknown"
             ));
@@ -160,7 +165,7 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
         }
 
         let bounds = field(record, "bounds_m");
-        if *state == "unknown" {
+        if state == "unknown" {
             if bounds.is_some() {
                 errors.push(format!(
                     "{prefix}: unknown dimensions must not contain bounds_m"
@@ -179,7 +184,7 @@ pub fn audit_dimension_evidence(document: &Value) -> Vec<String> {
             let max = field(bounds, "max_m").and_then(Value::as_f64);
             match (min, max) {
                 (Some(min), Some(max)) if min.is_finite() && max.is_finite() && min <= max => {
-                    if matches!(*axis.unwrap_or(""), "width" | "depth" | "height") && min <= 0.0 {
+                    if matches!(axis.unwrap_or(""), "width" | "depth" | "height") && min <= 0.0 {
                         errors.push(format!(
                             "{prefix}: extent axes require a strictly positive minimum"
                         ));
