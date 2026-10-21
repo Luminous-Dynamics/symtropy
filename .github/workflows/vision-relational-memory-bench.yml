@@ -132,7 +132,7 @@ jobs:
           grep -Fq "STOP_SENSITIVITY" vis-active-query.tsv
           awk -F '\t' '$1 == "STOP_SENSITIVITY" && $2 == "family" { if (NF != 14) exit 1; header++ } $1 == "STOP_SENSITIVITY" && ($2 == "development" || $2 == "held_out") { if (NF != 14) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 8 || seen["0.010"] != 2 || seen["0.040"] != 2 || seen["0.080"] != 2 || seen["0.120"] != 2) exit 1 }' vis-active-query.tsv
           grep -Fq "MARGINAL_STOP_CALIBRATION" vis-active-query.tsv
-          awk -F '\t' '$1 == "MARGINAL_STOP" && $2 == "family" { if (NF != 15) exit 1; header++ } $1 == "MARGINAL_STOP" && ($2 == "development" || $2 == "held_out") { if (NF != 15) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "MARGINAL_STOP" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "MARGINAL_STOP" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
           awk -F '\t' '$1 == "MARGINAL_STOP_CALIBRATION" { if (NF != 15) exit 1; rows++ } END { if (rows != 2) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
