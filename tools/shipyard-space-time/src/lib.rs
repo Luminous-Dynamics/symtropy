@@ -144,6 +144,7 @@ pub enum ViolationCode {
     InvalidYardBounds,
     OutOfBoundsPlacement,
     OutOfBoundsTransferCorridor,
+    OutOfBoundsExclusionZone,
     NoOperationalReservations,
     InvalidTimeRange,
     PrecedenceViolation,
@@ -176,6 +177,7 @@ impl ViolationCode {
             Self::InvalidYardBounds => "InvalidYardBounds",
             Self::OutOfBoundsPlacement => "OutOfBoundsPlacement",
             Self::OutOfBoundsTransferCorridor => "OutOfBoundsTransferCorridor",
+            Self::OutOfBoundsExclusionZone => "OutOfBoundsExclusionZone",
             Self::NoOperationalReservations => "NoOperationalReservations",
             Self::InvalidTimeRange => "InvalidTimeRange",
             Self::PrecedenceViolation => "PrecedenceViolation",
@@ -415,6 +417,17 @@ pub fn verify(scenario: &Scenario) -> VerificationReport {
         }
         validate_footprint(&zone.footprint, &zone.id, &mut violations);
         validate_time_range(zone.active, &zone.id, &mut violations);
+        if let Some(bounds) = scenario.yard_bounds.filter(|bounds| bounds.is_valid())
+            && let Footprint::AxisAlignedRect(rect) = &zone.footprint
+            && rect.is_valid()
+            && !bounds.contains(*rect)
+        {
+            add_violation(
+                &mut violations,
+                ViolationCode::OutOfBoundsExclusionZone,
+                vec![zone.id.clone()],
+            );
+        }
     }
 
     // Only uniquely identified transfers can be used to establish precedence.
