@@ -427,7 +427,7 @@ pub fn compare_displacement_reference_bytes(
         "absolute_tolerance_m": absolute_tolerance_m,
         "relative_tolerance": relative_tolerance,
         "numeric_reference_status": if numeric_pass { "PASS" } else { "FAIL" },
-        "solver_process_exit_verified_by_caller": true,
+        "solver_process_exit_verified_by_caller": false,
         "solver_execution_attested": false,
         "physical_result_qualified": false,
         "real_world_validation_status": "UNRESOLVED",
