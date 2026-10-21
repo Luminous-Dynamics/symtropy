@@ -10,6 +10,7 @@ pub const KICAD_DRC_SCHEMA_SUFFIX: &str = "/drc.v1.json";
 #[serde(deny_unknown_fields)]
 pub struct KicadDrcRoutingPolicy {
     pub schema: String,
+    pub kicad_version: String,
     pub routing_violation_types: Vec<String>,
     pub nonrouting_violation_types: Vec<String>,
     pub blocking_severities: Vec<String>,
@@ -94,6 +95,12 @@ pub fn evaluate_kicad_drc_report_bytes(
         .map_err(|error| format!("KiCad DRC routing policy JSON invalid: {error}"))?;
 
     validate_policy(&policy)?;
+    if policy.kicad_version != expected_kicad_version {
+        return Err(format!(
+            "policy KiCad version mismatch: policy pins {:?}, expected {:?}",
+            policy.kicad_version, expected_kicad_version
+        ));
+    }
     if !report.schema.ends_with(KICAD_DRC_SCHEMA_SUFFIX) {
         return Err(format!(
             "unexpected KiCad DRC report schema: {}",
@@ -221,6 +228,9 @@ fn validate_policy(policy: &KicadDrcRoutingPolicy) -> Result<(), String> {
     if policy.schema != DRC_POLICY_SCHEMA {
         return Err(format!("unsupported KiCad DRC policy schema: {}", policy.schema));
     }
+    if policy.kicad_version.trim().is_empty() {
+        return Err("policy kicad_version must not be empty".into());
+    }
     if policy.routing_violation_types.is_empty() {
         return Err("policy routing_violation_types must not be empty".into());
     }
@@ -295,6 +305,7 @@ mod tests {
 
     const POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
+      "kicad_version":"9.0.9",
       "routing_violation_types":["tracks_crossing","shorting_items","clearance"],
       "nonrouting_violation_types":["silk_over_copper","lib_footprint_mismatch"],
       "blocking_severities":["error"],
@@ -346,13 +357,7 @@ mod tests {
 
     #[test]
     fn derives_routing_and_nonrouting_types_and_does_not_hide_open_items() {
-        let bytes = report(
-            &format!("{}{}", violation("tracks_crossing", "error").trim_matches(&['[', ']'][..]), &violation("silk_over_copper", "warning")),
-            &violation("unconnected_items", "error"),
-            "[]",
-        );
-        // The fixture builder above is only for test construction; check a valid
-        // serialized report structure explicitly with a stable JSON payload.
+        // Use an explicit report matching KiCad's documented drc.v1.json schema.
         let json = format!(
             r#"{{"$schema":"https://schemas.kicad.org/drc.v1.json","source":"coupon.kicad_pcb","date":"2026-10-21T10:00:00+00:00","kicad_version":"9.0.9","coordinate_units":"mm","included_severities":["error","warning"],"violations":[{{"type":"tracks_crossing","description":"crossing","severity":"error","items":[{{"uuid":"11111111-1111-4111-8111-111111111111","description":"track","pos":{{"x":1,"y":2}}}}]}},{{"type":"silk_over_copper","description":"silk","severity":"warning","items":[{{"uuid":"22222222-2222-4222-8222-222222222222","description":"text","pos":{{"x":3,"y":4}}}}]}}],"unconnected_items":[{{"type":"unconnected_items","description":"open net","severity":"error","items":[{{"uuid":"33333333-3333-4333-8333-333333333333","description":"pad","pos":{{"x":5,"y":6}}}}]}}],"schematic_parity":[]}}"#
         );
