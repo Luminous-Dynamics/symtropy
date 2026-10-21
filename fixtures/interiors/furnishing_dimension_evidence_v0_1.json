@@ -1,0 +1,84 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "furnishing-dimension-evidence-known-truth-001",
+  "status": "synthetic_fixture",
+  "units": {
+    "length": "m"
+  },
+  "records": [
+    {
+      "evidence_id": "DIM-EVID-001",
+      "subject": {
+        "kind": "product",
+        "subject_id": "fixture-cabinet-revision-a"
+      },
+      "axis": "width",
+      "state": "manufacturer_specified",
+      "bounds_m": {
+        "min_m": 0.792,
+        "max_m": 0.808
+      },
+      "method": "manufacturer_specification",
+      "source": {
+        "source_id": "fixture://manufacturer/cabinet/revision-a/width",
+        "source_kind": "manufacturer_document",
+        "captured_at": "2026-10-20T12:00:00Z"
+      },
+      "recorded_at": "2026-10-20T12:02:00Z",
+      "note": "Synthetic example; not a real product claim."
+    },
+    {
+      "evidence_id": "DIM-EVID-002",
+      "subject": {
+        "kind": "room",
+        "subject_id": "fixture-room-001"
+      },
+      "axis": "width",
+      "state": "measured",
+      "bounds_m": {
+        "min_m": 3.98,
+        "max_m": 4.02
+      },
+      "method": "laser_measure",
+      "source": {
+        "source_id": "fixture://survey/room-001/width",
+        "source_kind": "site_measurement",
+        "captured_at": "2026-10-20T12:00:00Z"
+      },
+      "recorded_at": "2026-10-20T12:03:00Z",
+      "note": "Synthetic uncertainty band used to exercise bounded geometry."
+    },
+    {
+      "evidence_id": "DIM-EVID-003",
+      "subject": {
+        "kind": "product",
+        "subject_id": "fixture-chair-listing-17"
+      },
+      "axis": "depth",
+      "state": "seller_estimated",
+      "bounds_m": {
+        "min_m": 0.54,
+        "max_m": 0.68
+      },
+      "method": "seller_estimate",
+      "source": {
+        "source_id": "fixture://seller-listing/chair-17/dimensions",
+        "source_kind": "seller_listing",
+        "captured_at": "2026-10-20T12:00:00Z"
+      },
+      "recorded_at": "2026-10-20T12:04:00Z",
+      "note": "Synthetic and intentionally wider than the manufacturer-spec example."
+    },
+    {
+      "evidence_id": "DIM-EVID-004",
+      "subject": {
+        "kind": "product",
+        "subject_id": "fixture-unverified-stool"
+      },
+      "axis": "width",
+      "state": "unknown",
+      "recorded_at": "2026-10-20T12:05:00Z",
+      "note": "Unknown is explicit: no bounds are asserted."
+    }
+  ]
+}
