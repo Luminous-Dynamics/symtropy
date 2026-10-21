@@ -18,6 +18,8 @@
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
 - Twenty-one unit tests and four integration tests pin topology, accounting, deconstruction planning, and analytical outcomes against explicit expected values.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
+- Planar truss reference: dependency-free 2D pin-jointed linear-elastic stiffness assembly, deterministic dense solve, closed-form symmetric V-truss oracle, explicit support reactions and normalized force/moment/free-DOF residuals, fail-closed singular mechanism detection, and scale-invariant pivot tolerance. Scope is capped at 128 nodes / 512 bars and excludes bending, buckling, nonlinear response, contact, fracture, dynamics, and physical validation.
+- Planar-truss mutation audit tests four deliberately defective variants (omitted area in global stiffness, omitted area in recovered member force, reversed vertical support-reaction sign, and an absolute pivot-tolerance floor that breaks scale invariance). It requires targeted assertion failures in isolated temporary copies, then re-runs the unmutated full suite/formatting/Clippy and publishes a source-bound receipt.
 
 ## Run locally
 

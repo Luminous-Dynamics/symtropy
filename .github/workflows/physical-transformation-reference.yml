@@ -47,6 +47,19 @@ jobs:
       - name: Run Clippy with warnings denied
         run: cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify planar-truss mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh
+
+      - name: Re-verify planar-truss production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/planar_truss.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Run frozen fixture and verify exact-head receipt
         shell: bash
         run: |
@@ -88,10 +101,12 @@ jobs:
             and (.claim_ceiling | contains("not_structural_or_collapse_prediction"))
           ' physical-transformation-reference-receipt.json
 
-      - name: Upload deterministic reference receipt
+      - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
-          name: physical-transformation-reference-receipt
-          path: physical-transformation-reference-receipt.json
+          name: physical-transformation-reference-receipts
+          path: |
+            physical-transformation-reference-receipt.json
+            planar-truss-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
