@@ -118,7 +118,15 @@ impl Interval {
         let lower = self.lower + rhs.lower;
         let upper = self.upper + rhs.upper;
         finite_values(&[lower, upper], "interval addition")?;
-        Self::new(outward_down(lower)?, outward_up(upper)?)
+        let rounded_lower = outward_down(lower)?;
+        // Addition of two known non-negative intervals remains non-negative;
+        // do not let outward rounding introduce a negative subnormal at zero.
+        let rounded_lower = if self.lower >= 0.0 && rhs.lower >= 0.0 {
+            rounded_lower.max(0.0)
+        } else {
+            rounded_lower
+        };
+        Self::new(rounded_lower, outward_up(upper)?)
     }
 
     fn subtract(self, rhs: Self) -> Check<Self> {
