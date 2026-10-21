@@ -40,14 +40,9 @@ That is an engineering assumption which must be preserved in the receipt; if the
 
 ### B0 — Element mechanics and sign conventions
 
-Implement a small, independently tested planar beam/frame element. Each unreleased beam node has global DOFs (u_x, u_y, theta_z). Transform local axial and bending stiffness to global coordinates. For an Euler-Bernoulli first slice, the local axial submatrix is EA/L times [[1,-1],[-1,1]] and the bending submatrix is EI/L³ times the standard 4-DOF Hermite beam stiffness matrix. Any later Timoshenko/shear-deformable model must be a separate declared formulation.
+The first element-matrix implementation is in draft [PR #2559](https://github.com/Luminous-Dynamics/symtropy/pull/2559), which adds a local 6-DOF Euler-Bernoulli frame-element reference in order [u1, v1, theta1, u2, v2, theta2]. It builds the axial EA/L block, bending EI/L³ block, axial/transverse consistent mass, and a separate rotary-inertia mass contribution. This is a local element primitive, not a global beam/modal solver. The PR's exact-head format/test/Clippy run must pass before this primitive counts as qualified.
 
-Add independent tests for:
-- rigid-body modes of an unconstrained single beam;
-- cantilever bending frequency / static tip compliance against analytical beam theory;
-- axial frequency against the fixed-free bar spectrum;
-- frame-element coordinate rotation invariance;
-- translation/rotation unit and dimensional consistency.
+B0 acceptance tests cover local stiffness/mass symmetry, analytic axial stiffness and mass entries, bending-stiffness matrix entries, closed-form cantilever tip compliance/rotation under static load, explicit rotary-inertia scaling, and fail-closed input domains. Next add rigid-body modal checks, a beam generalized-eigenproblem, element coordinate transformation, shear-deformable comparison, and a blind global mesh-convergence test.
 
 A static stiffness matrix or a correct axial-bar frequency does not qualify beam dynamics.
 
