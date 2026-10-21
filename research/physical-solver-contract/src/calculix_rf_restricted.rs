@@ -29,8 +29,6 @@ struct ParsedDeck {
     nodes: BTreeMap<u64, [f64; 3]>,
     elements: BTreeMap<u64, [u64; 2]>,
     node_sets: BTreeMap<String, BTreeSet<u64>>,
-    element_set: String,
-    element_members: BTreeSet<u64>,
     boundary_dofs: BTreeSet<(u64, u8)>,
     cloads: BTreeMap<(u64, u8), f64>,
     node_print_set: String,
@@ -727,7 +725,7 @@ fn validate_and_parse_deck(cards: &[Card], expected_node_set: &str) -> Check<Par
         Ok(())
     })?;
     Ok(ParsedDeck {
-        nodes, elements, node_sets, element_set, element_members, boundary_dofs, cloads,
+        nodes, elements, node_sets, boundary_dofs, cloads,
         node_print_set, elastic_modulus_pa: elastic_modulus_pa.expect("checked above"),
         poisson_ratio: poisson_ratio.expect("checked above"),
         section_area_m2: section_area_m2.expect("checked above"),
@@ -882,15 +880,6 @@ fn field_sha<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
         return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
     }
     Ok(text)
-}
-
-fn field_sha_eq(value: &Value, key: &str, at: &str, expected: &str) -> Check<bool> {
-    let text = value.get(key).and_then(Value::as_str)
-        .ok_or_else(|| format!("{at}.{key} must be a string"))?;
-    if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
-        return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
-    }
-    Ok(text == expected)
 }
 
 fn field_u64(value: &Value, key: &str, at: &str) -> Check<u64> {
@@ -1120,8 +1109,13 @@ RF
     #[test]
     fn Cload_at_support_is_rejected_by_support_load_disjointness() {
         let deck = DECK.replace("2,1,1000.", "1,1,1000.");
-        let b = bundle_with(&deck, DAT);
-        assert!(assess(&b).is_err());
+        let mut b = bundle_with(&deck, DAT);
+        let mut manifest: Value = serde_json::from_slice(&b.manifest).unwrap();
+        manifest["load_node_map"][0]["node_id"] = json!(1);
+        b.manifest = serde_json::to_vec(&manifest).unwrap();
+        assert!(assess(&b)
+            .unwrap_err()
+            .contains("load-node inventory intersects prescribed-support inventory"));
     }
 
     #[test]
