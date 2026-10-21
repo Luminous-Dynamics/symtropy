@@ -282,6 +282,57 @@ pub fn analyze_planar_modal_truss(
     })
 }
 
+/// Frozen geometry from NAFEMS Benchmark Challenge 5, Figure 1:
+/// two supports one metre apart vertically, with a free upper-right node;
+/// one horizontal and one diagonal pin-jointed bar, both radius 0.01 m.
+pub fn nafems_challenge5_reference_fixture() -> ModalTrussInput {
+    let radius_m = 0.01;
+    let area_m2 = std::f64::consts::PI * radius_m * radius_m;
+    ModalTrussInput {
+        nodes: vec![
+            ModalTrussNode {
+                id: "lower-support".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+            },
+            ModalTrussNode {
+                id: "upper-support".to_owned(),
+                x_m: 0.0,
+                y_m: 1.0,
+                restrained_x: true,
+                restrained_y: true,
+            },
+            ModalTrussNode {
+                id: "free".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrained_x: false,
+                restrained_y: false,
+            },
+        ],
+        bars: vec![
+            ModalTrussBar {
+                id: "diagonal".to_owned(),
+                node_i: "lower-support".to_owned(),
+                node_j: "free".to_owned(),
+                area_m2,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7_800.0,
+            },
+            ModalTrussBar {
+                id: "horizontal".to_owned(),
+                node_i: "upper-support".to_owned(),
+                node_j: "free".to_owned(),
+                area_m2,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7_800.0,
+            },
+        ],
+    }
+}
+
 fn validate_input(input: &ModalTrussInput) -> Check<BTreeMap<String, usize>> {
     if input.nodes.len() < 2 || input.nodes.len() > MAX_NODES {
         return Err(format!("node count must be between 2 and {MAX_NODES}"));
@@ -556,7 +607,7 @@ fn euclidean_norm(vector: &[f64]) -> f64 {
 mod tests {
     use super::{
         ModalModeClassification, ModalTrussBar, ModalTrussInput, ModalTrussMassFormulation,
-        ModalTrussNode, analyze_planar_modal_truss,
+        ModalTrussNode, analyze_planar_modal_truss, nafems_challenge5_reference_fixture,
     };
 
     const E: f64 = 200.0e9;
@@ -640,6 +691,37 @@ mod tests {
             (kxx + kyy - discriminant) / (2.0 * mass_per_free_dof),
             (kxx + kyy + discriminant) / (2.0 * mass_per_free_dof),
         ]
+    }
+
+    #[test]
+    fn nafems_challenge5_single_element_per_member_frequencies_match_published_tables() {
+        // NAFEMS Benchmark Challenge 5, Figure 1, published single-element
+        // truss frequencies: CS1 uses consistent mass, CS2 uses lumped mass.
+        // Values are published to two decimals / one decimal, respectively.
+        let cases = [
+            (ModalTrussMassFormulation::Consistent, [452.09, 1_114.6]),
+            (ModalTrussMassFormulation::RowSumLumped, [369.13, 910.05]),
+        ];
+
+        for (formulation, expected_frequencies_hz) in cases {
+            let result =
+                analyze_planar_modal_truss(&nafems_challenge5_reference_fixture(), formulation)
+                    .expect("supported NAFEMS Challenge 5 single-element truss");
+            assert_eq!(result.modes.len(), 2);
+            assert_eq!(result.near_zero_mode_count, 0);
+            assert!(result.maximum_mass_orthogonality_residual < 1.0e-10);
+
+            for (mode, expected) in result.modes.iter().zip(expected_frequencies_hz.iter()) {
+                assert_eq!(mode.classification, ModalModeClassification::Elastic);
+                close_relative(
+                    mode.frequency_hz,
+                    *expected,
+                    2.0e-4,
+                    "published NAFEMS Challenge 5 frequency",
+                );
+                assert!(mode.normalized_eigen_residual < 1.0e-10);
+            }
+        }
     }
 
     #[test]

@@ -111,3 +111,17 @@ Do not confuse this modal benchmark with [SOFiSTiK BE1](https://docs.sofistik.co
 
 The initial modal acceptance contract is software verification only: exact analytical subproblem, expected consistent/lumped bracketing, monotone convergence on the frozen mesh ladder, deterministic results, and fail-closed invalid domains. No hardware timing, commercial solver comparison, experimental validation or engineering certification is claimed. The next external step is to pin the complete NAFEMS Challenge 5 geometry, restraints, member data, mass-matrix convention and target frequencies in a rights-aware manifest before comparing modal results.
 
+## External modal fixture: NAFEMS Challenge 5 original two-member truss
+
+The public `modal_truss::nafems_challenge5_reference_fixture()` freezes the original single-element-per-member planar truss shown in NAFEMS Benchmark Challenge 5, Figure 1. The two left nodes are fixed, the free node is at `(1 m, 1 m)`, and the model uses one horizontal member plus one diagonal member, both circular with radius `0.01 m`, `E=210 GPa`, and density `7800 kg/m^3`. The reported published frequency pairs are:
+
+| Mass convention | First mode | Second mode |
+|---|---:|---:|
+| Consistent mass (NAFEMS CS1) | 452.09 Hz | 1114.6 Hz |
+| Lumped mass (NAFEMS CS2) | 369.13 Hz | 910.05 Hz |
+
+The new external-reference test gates all four rounded published values within 0.02%, and also requires two elastic modes, mass orthogonality, and normalized generalized-eigenvalue residual below `1e-10`. The tighter numerical result is derived from the stated geometry/material inputs; the rounded published frequencies are the external comparison targets.
+
+**Scope distinction:** this tests the original two-member model shown in Challenge 5 and the mass-formulation effect for that discretization. It does not complete the full challenge investigation of member refinement, intermediate-node constraint equations, higher-mode convergence, or beam-member sensitivity. The NAFEMS authors warn that bar-only modes from one element per member may not represent the structure's real modes; the full benchmark follow-up must therefore include mode-shape interpretation and refinement/constraint variants, not only frequency agreement. No measured physical validation is claimed.
+
+Source: [NAFEMS Benchmark Challenge 5 — Dynamic Characteristics of a Truss Structure](https://www.nafems.org/downloads/nbr5v3.pdf), Figure 1 and pages 0–3. The separate [SOFiSTiK BE1 benchmark](https://docs.sofistik.com/2026/en/verification/_static/verification/pdf/be1.pdf) remains a static truss-deflection case, not a modal benchmark.
