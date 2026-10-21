@@ -114,6 +114,9 @@
         "planar_truss_conditioning_bin_rs",
         "lib_rs",
         "cargo_toml",
+        "cargo_lock",
+        "workflow_yml",
+        "mutation_script_sh",
         "conditioning_receipt_schema_json"
       ],
       "properties": {
@@ -122,6 +125,9 @@
         "planar_truss_conditioning_bin_rs": { "$ref": "#/$defs/sha256" },
         "lib_rs": { "$ref": "#/$defs/sha256" },
         "cargo_toml": { "$ref": "#/$defs/sha256" },
+        "cargo_lock": { "$ref": "#/$defs/sha256" },
+        "workflow_yml": { "$ref": "#/$defs/sha256" },
+        "mutation_script_sh": { "$ref": "#/$defs/sha256" },
         "conditioning_receipt_schema_json": { "$ref": "#/$defs/sha256" }
       }
     },
