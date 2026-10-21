@@ -404,18 +404,12 @@ mod tests {
         .expect("VOI fixture must parse")
     }
 
-    fn canonical_bytes(fixture: &Fixture) -> Vec<u8> {
-        serde_json::to_vec(fixture).expect("fixture serialization")
-    }
-
     #[test]
     fn fixed_inputs_are_deterministic_and_claims_stay_bounded() {
         let fixture = fixture();
         validate_fixture(&fixture).expect("fixture valid");
-        let bytes = canonical_bytes(&fixture);
-        let digest = format!("{:x}", Sha256::digest(&bytes));
-        let first = evaluate(&fixture, digest.clone()).expect("first report");
-        let second = evaluate(&fixture, digest).expect("second report");
+        let first = evaluate(&fixture, "fixed-input-digest".into()).expect("first report");
+        let second = evaluate(&fixture, "fixed-input-digest".into()).expect("second report");
         assert_eq!(first, second);
         assert!(first.all_inputs_are_synthetic);
         assert!(!first.scenario_probabilities_used);
@@ -534,10 +528,10 @@ mod tests {
                 .contains("evidence_invalid")
         );
 
-        let mut fixture = fixture();
-        fixture.measurements[0].cost_amount = -1.0;
+        let mut negative_cost_fixture = fixture();
+        negative_cost_fixture.measurements[0].cost_amount = -1.0;
         assert!(
-            validate_fixture(&fixture)
+            validate_fixture(&negative_cost_fixture)
                 .expect_err("negative cost rejected")
                 .contains("cost_time_or_evidence_invalid")
         );
