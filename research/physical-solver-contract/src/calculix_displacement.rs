@@ -115,18 +115,26 @@ pub fn compare_displacement_reference_bytes(
     )?;
 
     if field_string(&manifest, "schema_version", "manifest")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal {MANIFEST_SCHEMA}"));
+        return Err(format!(
+            "manifest.schema_version must equal {MANIFEST_SCHEMA}"
+        ));
     }
     let case_id = token(field_string(&manifest, "case_id", "manifest")?, "case_id")?;
     let request_id = field_string(&manifest, "request_id", "manifest")?.to_owned();
     let scene_sha256 = field_sha(&manifest, "scene_sha256", "manifest")?;
     let scene_revision = field_u64(&manifest, "scene_revision", "manifest")?;
-    let coordinate_frame_id =
-        token(field_string(&manifest, "coordinate_frame_id", "manifest")?, "coordinate_frame_id")?;
-    let support_target_id =
-        token(field_string(&manifest, "support_target_id", "manifest")?, "support_target_id")?;
-    let load_target_id =
-        token(field_string(&manifest, "load_target_id", "manifest")?, "load_target_id")?;
+    let coordinate_frame_id = token(
+        field_string(&manifest, "coordinate_frame_id", "manifest")?,
+        "coordinate_frame_id",
+    )?;
+    let support_target_id = token(
+        field_string(&manifest, "support_target_id", "manifest")?,
+        "support_target_id",
+    )?;
+    let load_target_id = token(
+        field_string(&manifest, "load_target_id", "manifest")?,
+        "load_target_id",
+    )?;
     let support_node_id = field_u64(&manifest, "support_node_id", "manifest")?;
     let load_node_id = field_u64(&manifest, "load_node_id", "manifest")?;
     let node_set = token(field_string(&manifest, "node_set", "manifest")?, "node_set")?;
@@ -143,13 +151,16 @@ pub fn compare_displacement_reference_bytes(
         ("build_manifest_sha256", &build_manifest_sha256),
     ] {
         if field_sha(&manifest, field, "manifest")? != observed {
-            return Err(format!("manifest.{field} does not match the exact input bytes"));
+            return Err(format!(
+                "manifest.{field} does not match the exact input bytes"
+            ));
         }
     }
-    let solver_executable_sha256 =
-        field_sha(&manifest, "solver_executable_sha256", "manifest")?;
+    let solver_executable_sha256 = field_sha(&manifest, "solver_executable_sha256", "manifest")?;
     if solver_executable_sha256 != field_sha(&build, "ccx_executable_sha256", "build manifest")? {
-        return Err("displacement manifest executable digest differs from build manifest".to_owned());
+        return Err(
+            "displacement manifest executable digest differs from build manifest".to_owned(),
+        );
     }
 
     if field_string(&request, "schema_version", "request")? != "physical-solver-request-v0.1"
@@ -161,7 +172,9 @@ pub fn compare_displacement_reference_bytes(
         return Err("manifest identity differs from the exact physical request".to_owned());
     }
     if field_string(&request, "model_fidelity", "request")? != "analytical_linear_elastic" {
-        return Err("displacement comparison requires analytical_linear_elastic model fidelity".to_owned());
+        return Err(
+            "displacement comparison requires analytical_linear_elastic model fidelity".to_owned(),
+        );
     }
     let units = request
         .get("units")
@@ -222,9 +235,14 @@ pub fn compare_displacement_reference_bytes(
     let mut support_boundary_seen = false;
     for boundary in boundaries {
         if field_string(boundary, "kind", "boundary")? != "fixed" {
-            return Err("v0.1 axial-bar boundaries must be zero-valued fixed constraints".to_owned());
+            return Err(
+                "v0.1 axial-bar boundaries must be zero-valued fixed constraints".to_owned(),
+            );
         }
-        let target_id = token(field_string(boundary, "target_id", "boundary")?, "boundary.target_id")?;
+        let target_id = token(
+            field_string(boundary, "target_id", "boundary")?,
+            "boundary.target_id",
+        )?;
         if !observed_boundary_targets.insert(target_id) {
             return Err(format!("duplicate request boundary target '{target_id}'"));
         }
@@ -242,9 +260,9 @@ pub fn compare_displacement_reference_bytes(
             }
             support_boundary_seen = true;
         } else {
-            let target_is_mesh_node = manifest_nodes.iter().any(|node| {
-                node.get("target_id").and_then(Value::as_str) == Some(target_id)
-            });
+            let target_is_mesh_node = manifest_nodes
+                .iter()
+                .any(|node| node.get("target_id").and_then(Value::as_str) == Some(target_id));
             if !target_is_mesh_node || dofs != ["uy", "uz"].into_iter().collect() {
                 return Err(format!(
                     "v0.1 non-support mesh boundary '{target_id}' must be a declared node target fixed only in uy/uz"
@@ -257,7 +275,10 @@ pub fn compare_displacement_reference_bytes(
         .filter_map(|node| node.get("target_id").and_then(Value::as_str))
         .collect();
     if !support_boundary_seen || observed_boundary_targets != expected_boundary_targets {
-        return Err("request boundaries must cover the support and exactly every model-node lateral guide".to_owned());
+        return Err(
+            "request boundaries must cover the support and exactly every model-node lateral guide"
+                .to_owned(),
+        );
     }
 
     let support_pos = nodes
@@ -278,14 +299,18 @@ pub fn compare_displacement_reference_bytes(
     }
     let length_m = load_pos[0] - support_pos[0];
     if !length_m.is_finite() || length_m <= 0.0 {
-        return Err("v0.1 requires the load endpoint to lie at positive x from the support".to_owned());
+        return Err(
+            "v0.1 requires the load endpoint to lie at positive x from the support".to_owned(),
+        );
     }
 
     let deck_text = std::str::from_utf8(deck_bytes)
         .map_err(|_| "CalculiX input deck must be UTF-8/ASCII text".to_owned())?;
     let deck = parse_and_validate_deck(deck_text, support_node_id, load_node_id, &node_set)?;
     if deck.nodes.len() != deck.elements.len() + 1 {
-        return Err("axial bar mesh must contain exactly one more node than T3D2 elements".to_owned());
+        return Err(
+            "axial bar mesh must contain exactly one more node than T3D2 elements".to_owned(),
+        );
     }
     for (id, position) in &deck.nodes {
         let manifest_position = nodes
@@ -293,7 +318,9 @@ pub fn compare_displacement_reference_bytes(
             .ok_or_else(|| format!("manifest model_nodes omit deck node {id}"))?;
         for axis in 0..3 {
             if !approx_eq(position[axis], manifest_position[axis], 1.0e-12) {
-                return Err(format!("node {id} coordinate differs between deck and model-node manifest"));
+                return Err(format!(
+                    "node {id} coordinate differs between deck and model-node manifest"
+                ));
             }
         }
     }
@@ -305,8 +332,11 @@ pub fn compare_displacement_reference_bytes(
     {
         return Err("support/load node coordinates disagree with the exact deck".to_owned());
     }
-    if !approx_eq(deck.youngs_modulus_pa, request_modulus, request_modulus * 1.0e-12)
-        || !approx_eq(deck.poisson_ratio, request_poisson, 1.0e-12)
+    if !approx_eq(
+        deck.youngs_modulus_pa,
+        request_modulus,
+        request_modulus * 1.0e-12,
+    ) || !approx_eq(deck.poisson_ratio, request_poisson, 1.0e-12)
     {
         return Err("deck elastic material constants differ from the physical request".to_owned());
     }
@@ -322,7 +352,11 @@ pub fn compare_displacement_reference_bytes(
     let (observed_load_node, observed_dof, observed_force) = deck.point_loads[0];
     if observed_load_node != load_node_id
         || observed_dof != 1
-        || !approx_eq(observed_force, request_force[0], request_force[0].abs() * 1.0e-12)
+        || !approx_eq(
+            observed_force,
+            request_force[0],
+            request_force[0].abs() * 1.0e-12,
+        )
     {
         return Err("deck CLOAD does not match the exact request load".to_owned());
     }
@@ -331,17 +365,18 @@ pub fn compare_displacement_reference_bytes(
     if expected_time <= 0.0 {
         return Err("manifest.target_time must be positive".to_owned());
     }
-    let absolute_tolerance_m =
-        field_positive_f64(&manifest, "absolute_tolerance_m", "manifest")?;
-    let relative_tolerance =
-        field_nonnegative_f64(&manifest, "relative_tolerance", "manifest")?;
-    validate_provenance(manifest.get("provenance").ok_or_else(|| {
-        "manifest.provenance is required".to_owned()
-    })?)?;
+    let absolute_tolerance_m = field_positive_f64(&manifest, "absolute_tolerance_m", "manifest")?;
+    let relative_tolerance = field_nonnegative_f64(&manifest, "relative_tolerance", "manifest")?;
+    validate_provenance(
+        manifest
+            .get("provenance")
+            .ok_or_else(|| "manifest.provenance is required".to_owned())?,
+    )?;
 
     let dat_text = std::str::from_utf8(dat_bytes)
         .map_err(|_| "CalculiX .dat output must be UTF-8/ASCII text".to_owned())?;
-    let (observed_set, observed_time, row) = parse_displacement_section(dat_text, &node_set, load_node_id)?;
+    let (observed_set, observed_time, row) =
+        parse_displacement_section(dat_text, &node_set, load_node_id)?;
     let time_tolerance = 1.0e-8 * expected_time.abs().max(1.0);
     let time_matches = (observed_time - expected_time).abs() <= time_tolerance;
 
@@ -352,11 +387,9 @@ pub fn compare_displacement_reference_bytes(
     }
     let observed_displacement_m = row.displacement_m[0];
     let absolute_error_m = (observed_displacement_m - expected_displacement_m).abs();
-    let allowed_error_m =
-        absolute_tolerance_m + relative_tolerance * expected_displacement_m.abs();
-    let numeric_pass = time_matches
-        && observed_displacement_m.is_finite()
-        && absolute_error_m <= allowed_error_m;
+    let allowed_error_m = absolute_tolerance_m + relative_tolerance * expected_displacement_m.abs();
+    let numeric_pass =
+        time_matches && observed_displacement_m.is_finite() && absolute_error_m <= allowed_error_m;
 
     Ok(json!({
         "schema_version": "calculix-displacement-qoi-report-v0.1",
@@ -424,7 +457,8 @@ fn validate_build_manifest(build: &Value) -> Check<()> {
     )?;
     if field_string(build, "schema_version", "build manifest")? != BUILD_SCHEMA
         || field_string(build, "builder_repository", "build manifest")? != PINNED_BUILDER_REPOSITORY
-        || field_string(build, "builder_repository_commit", "build manifest")? != PINNED_BUILDER_COMMIT
+        || field_string(build, "builder_repository_commit", "build manifest")?
+            != PINNED_BUILDER_COMMIT
         || field_string(build, "container_image", "build manifest")? != PINNED_CONTAINER_IMAGE
         || field_string(build, "ccx_source_url", "build manifest")? != PINNED_CCX_SOURCE_URL
         || field_sha(build, "ccx_source_sha256", "build manifest")? != PINNED_CCX_SOURCE_SHA256
@@ -447,7 +481,9 @@ fn validate_build_manifest(build: &Value) -> Check<()> {
         || config.get("with_arpack").and_then(Value::as_bool) != Some(false)
         || config.get("with_mt").and_then(Value::as_bool) != Some(true)
     {
-        return Err("build config does not match the declared SPOOLES-only static-bar profile".to_owned());
+        return Err(
+            "build config does not match the declared SPOOLES-only static-bar profile".to_owned(),
+        );
     }
     Ok(())
 }
@@ -462,7 +498,10 @@ fn parse_model_nodes(manifest: &Value) -> Check<BTreeMap<u64, [f64; 3]>> {
     for value in values {
         exact_keys(value, &["node_id", "target_id", "position_m"], "model node")?;
         let id = field_u64(value, "node_id", "model node")?;
-        let target = token(field_string(value, "target_id", "model node")?, "model node target_id")?;
+        let target = token(
+            field_string(value, "target_id", "model node")?,
+            "model node target_id",
+        )?;
         if !targets.insert(target.to_owned()) {
             return Err("model-node target IDs must be unique".to_owned());
         }
@@ -504,7 +543,9 @@ fn parse_model_nodes(manifest: &Value) -> Check<BTreeMap<u64, [f64; 3]>> {
             .count()
             != 1
     {
-        return Err("support/load endpoint target identities differ from model-node catalogue".to_owned());
+        return Err(
+            "support/load endpoint target identities differ from model-node catalogue".to_owned(),
+        );
     }
     Ok(nodes)
 }
@@ -533,13 +574,18 @@ fn parse_and_validate_deck(
     ]
     .into_iter()
     .collect();
-    if cards.iter().any(|card| !allowed.contains(card.name.as_str())) {
+    if cards
+        .iter()
+        .any(|card| !allowed.contains(card.name.as_str()) )
+    {
         let unsupported: Vec<&str> = cards
             .iter()
             .filter(|card| !allowed.contains(card.name.as_str()))
             .map(|card| card.name.as_str())
             .collect();
-        return Err(format!("unsupported CalculiX card(s) in v0.1 profile: {unsupported:?}"));
+        return Err(format!(
+            "unsupported CalculiX card(s) in v0.1 profile: {unsupported:?}"
+        ));
     }
     for (name, expected) in [
         ("HEADING", 1),
@@ -557,7 +603,9 @@ fn parse_and_validate_deck(
         ("END STEP", 1),
     ] {
         if cards.iter().filter(|card| card.name == name).count() != expected {
-            return Err(format!("v0.1 deck requires exactly {expected} {name} card(s)"));
+            return Err(format!(
+                "v0.1 deck requires exactly {expected} {name} card(s)"
+            ));
         }
     }
 
@@ -591,13 +639,17 @@ fn parse_and_validate_deck(
     for (line_no, raw) in &element_card.rows {
         let fields = csv_fields(raw);
         if fields.len() != 3 {
-            return Err(format!("ELEMENT row at line {line_no} requires ID,node1,node2"));
+            return Err(format!(
+                "ELEMENT row at line {line_no} requires ID,node1,node2"
+            ));
         }
         let _element_id = parse_u64(fields[0], *line_no, "ELEMENT ID")?;
         let a = parse_u64(fields[1], *line_no, "ELEMENT node ID")?;
         let b = parse_u64(fields[2], *line_no, "ELEMENT node ID")?;
         if a == b || !nodes.contains_key(&a) || !nodes.contains_key(&b) {
-            return Err(format!("ELEMENT row at line {line_no} has invalid node references"));
+            return Err(format!(
+                "ELEMENT row at line {line_no} has invalid node references"
+            ));
         }
         elements.push([a, b]);
     }
@@ -620,7 +672,9 @@ fn parse_and_validate_deck(
             for field in csv_fields(raw) {
                 let id = parse_u64(field, *line_no, "NSET node ID")?;
                 if !nodes.contains_key(&id) || !set.insert(id) {
-                    return Err(format!("NSET {name} contains an absent or duplicate node ID {id}"));
+                    return Err(format!(
+                        "NSET {name} contains an absent or duplicate node ID {id}"
+                    ));
                 }
             }
         }
@@ -629,7 +683,10 @@ fn parse_and_validate_deck(
     if node_sets.get("SUPPORT") != Some(&[support_node_id].into_iter().collect())
         || node_sets.get(expected_node_set) != Some(&[load_node_id].into_iter().collect())
     {
-        return Err("SUPPORT and tip NSET inventories must match the exact declared endpoint nodes".to_owned());
+        return Err(
+            "SUPPORT and tip NSET inventories must match the exact declared endpoint nodes"
+                .to_owned(),
+        );
     }
 
     let material_card = cards.iter().find(|card| card.name == "MATERIAL").unwrap();
@@ -652,7 +709,10 @@ fn parse_and_validate_deck(
         return Err("ELASTIC constants are outside the v0.1 envelope".to_owned());
     }
 
-    let section_card = cards.iter().find(|card| card.name == "SOLID SECTION").unwrap();
+    let section_card = cards
+        .iter()
+        .find(|card| card.name == "SOLID SECTION")
+        .unwrap();
     if section_card.params.get("ELSET").map(String::as_str) != Some("BAR")
         || section_card.params.get("MATERIAL").map(String::as_str) != Some("STEEL")
         || section_card.rows.len() != 1
@@ -673,30 +733,43 @@ fn parse_and_validate_deck(
     for (line_no, raw) in &boundary_card.rows {
         let fields = csv_fields(raw);
         if fields.len() != 4 {
-            return Err(format!("BOUNDARY row at line {line_no} requires node,first_dof,last_dof,value"));
+            return Err(format!(
+                "BOUNDARY row at line {line_no} requires node,first_dof,last_dof,value"
+            ));
         }
         let node = parse_u64(fields[0], *line_no, "BOUNDARY node ID")?;
         let first = parse_u64(fields[1], *line_no, "BOUNDARY first DOF")?;
         let last = parse_u64(fields[2], *line_no, "BOUNDARY last DOF")?;
         let value = parse_finite(fields[3], *line_no)?;
         if !nodes.contains_key(&node) || first < 1 || last > 3 || first > last || value != 0.0 {
-            return Err(format!("BOUNDARY row at line {line_no} exceeds the v0.1 zero-displacement profile"));
+            return Err(format!(
+                "BOUNDARY row at line {line_no} exceeds the v0.1 zero-displacement profile"
+            ));
         }
         for dof in first..=last {
             if !boundary_dofs.insert((node, dof as u8)) {
-                return Err(format!("duplicate BOUNDARY condition for node {node}, DOF {dof}"));
+                return Err(format!(
+                    "duplicate BOUNDARY condition for node {node}, DOF {dof}"
+                ));
             }
         }
     }
     let expected_boundary: BTreeSet<(u64, u8)> = nodes
         .keys()
         .flat_map(|node| {
-            let dofs: Vec<u8> = if *node == support_node_id { vec![1, 2, 3] } else { vec![2, 3] };
+            let dofs: Vec<u8> = if *node == support_node_id {
+                vec![1, 2, 3]
+            } else {
+                vec![2, 3]
+            };
             dofs.into_iter().map(|dof| (*node, dof)).collect::<Vec<_>>()
         })
         .collect();
     if boundary_dofs != expected_boundary {
-        return Err("boundary inventory must pin all support DOFs and y/z only at every other node".to_owned());
+        return Err(
+            "boundary inventory must pin all support DOFs and y/z only at every other node"
+                .to_owned(),
+        );
     }
 
     let cload_card = cards.iter().find(|card| card.name == "CLOAD").unwrap();
@@ -704,7 +777,9 @@ fn parse_and_validate_deck(
     for (line_no, raw) in &cload_card.rows {
         let fields = csv_fields(raw);
         if fields.len() != 3 {
-            return Err(format!("CLOAD row at line {line_no} requires node,DOF,value"));
+            return Err(format!(
+                "CLOAD row at line {line_no} requires node,DOF,value"
+            ));
         }
         point_loads.push((
             parse_u64(fields[0], *line_no, "CLOAD node ID")?,
@@ -713,7 +788,9 @@ fn parse_and_validate_deck(
         ));
     }
     if point_loads.len() != 1 || point_loads[0].0 != load_node_id || point_loads[0].1 != 1 {
-        return Err("v0.1 requires a single global-x point force at the declared tip node".to_owned());
+        return Err(
+            "v0.1 requires a single global-x point force at the declared tip node".to_owned(),
+        );
     }
 
     let static_card = cards.iter().find(|card| card.name == "STATIC").unwrap();
@@ -728,7 +805,9 @@ fn parse_and_validate_deck(
         .ok_or_else(|| "NODE PRINT is missing NSET=".to_owned())?
         .to_ascii_uppercase();
     if node_print.rows.len() != 1 || node_print.rows[0].1.trim().to_ascii_uppercase() != "U" {
-        return Err("displacement deck must request exactly U from a single NODE PRINT set".to_owned());
+        return Err(
+            "displacement deck must request exactly U from a single NODE PRINT set".to_owned(),
+        );
     }
 
     // Verify the T3D2 connectivity is a chain in x order, with no duplicate edges.
@@ -753,7 +832,13 @@ fn parse_and_validate_deck(
         .collect();
     let actual_edges: BTreeSet<(u64, u64)> = elements
         .iter()
-        .map(|edge| if edge[0] < edge[1] { (edge[0], edge[1]) } else { (edge[1], edge[0]) })
+        .map(|edge| {
+            if edge[0] < edge[1] {
+                (edge[0], edge[1])
+            } else {
+                (edge[1], edge[0])
+            }
+        })
         .collect();
     if actual_edges != expected_edges || elements.len() != expected_edges.len() {
         return Err("T3D2 element connectivity must form one non-branching axial chain".to_owned());
@@ -806,11 +891,18 @@ fn parse_cards(text: &str) -> Check<Vec<DeckCard>> {
                 };
                 let key = key.trim().to_ascii_uppercase();
                 let value = value.trim().to_ascii_uppercase();
-                if key.is_empty() || value.is_empty() || params.insert(key.clone(), value).is_some() {
-                    return Err(format!("empty or duplicate card parameter '{key}' at line {line_no}"));
+                if key.is_empty() || value.is_empty() || params.insert(key.clone(), value).is_some()
+                {
+                    return Err(format!(
+                        "empty or duplicate card parameter '{key}' at line {line_no}"
+                    ));
                 }
             }
-            current = Some(DeckCard { name, params, rows: Vec::new() });
+            current = Some(DeckCard {
+                name,
+                params,
+                rows: Vec::new(),
+            });
         } else {
             let card = current
                 .as_mut()
@@ -841,7 +933,10 @@ fn parse_displacement_section(
         })
         .collect();
     if headers.len() != 1 {
-        return Err(format!("expected exactly one displacement U section, found {}", headers.len()));
+        return Err(format!(
+            "expected exactly one displacement U section, found {}",
+            headers.len()
+        ));
     }
     let header_index = headers[0];
     let header = lines[header_index].trim();
@@ -854,7 +949,9 @@ fn parse_displacement_section(
     let observed_set = rest[..marker_index].trim().to_owned();
     validate_token(&observed_set, "observed node set")?;
     if !observed_set.eq_ignore_ascii_case(expected_set) {
-        return Err(format!("observed displacement set '{observed_set}' does not match '{expected_set}'"));
+        return Err(format!(
+            "observed displacement set '{observed_set}' does not match '{expected_set}'"
+        ));
     }
     let time_text = rest[marker_index + marker.len()..].trim();
     let observed_time = parse_finite(time_text, header_index + 1)?;
@@ -877,16 +974,25 @@ fn parse_displacement_section(
             Ok(value) => value,
             Err(_) => {
                 if looks_numeric(fields[0]) {
-                    return Err(format!("malformed displacement node ID at .dat line {}", index + 1));
+                    return Err(format!(
+                        "malformed displacement node ID at .dat line {}",
+                        index + 1
+                    ));
                 }
                 if saw_data {
                     break;
                 }
-                return Err(format!("unexpected non-data line after displacement header at .dat line {}", index + 1));
+                return Err(format!(
+                    "unexpected non-data line after displacement header at .dat line {}",
+                    index + 1
+                ));
             }
         };
         if fields.len() != 4 {
-            return Err(format!("displacement row at .dat line {} requires node ID and three components", index + 1));
+            return Err(format!(
+                "displacement row at .dat line {} requires node ID and three components",
+                index + 1
+            ));
         }
         let displacement_m = [
             parse_finite(fields[1], index + 1)?,
@@ -922,7 +1028,10 @@ fn validate_provenance(value: &Value) -> Check<()> {
     {
         return Err("provenance must identify the derived analytical u=FL/(EA) oracle".to_owned());
     }
-    token(field_string(value, "source_ref", "provenance")?, "provenance.source_ref")?;
+    token(
+        field_string(value, "source_ref", "provenance")?,
+        "provenance.source_ref",
+    )?;
     Ok(())
 }
 
@@ -942,7 +1051,9 @@ fn exact_keys(value: &Value, expected: &[&str], label: &str) -> Check<()> {
     let observed: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let expected: BTreeSet<&str> = expected.iter().copied().collect();
     if observed != expected {
-        return Err(format!("{label} keys differ: expected {expected:?}, observed {observed:?}"));
+        return Err(format!(
+            "{label} keys differ: expected {expected:?}, observed {observed:?}"
+        ));
     }
     Ok(())
 }
@@ -1012,8 +1123,14 @@ fn finite_number(value: &Value, label: &str) -> Check<f64> {
 }
 
 fn validate_hex(value: &str, length: usize, label: &str) -> Check<()> {
-    if value.len() != length || !value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
-        return Err(format!("{label} must be {length} lowercase hexadecimal characters"));
+    if value.len() != length
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(format!(
+            "{label} must be {length} lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
@@ -1021,9 +1138,9 @@ fn validate_hex(value: &str, length: usize, label: &str) -> Check<()> {
 fn token<'a>(value: &'a str, label: &str) -> Check<&'a str> {
     if value.is_empty()
         || value.len() > 256
-        || !value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/'))
+        || !value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
+        })
     {
         return Err(format!("{label} is not a valid token"));
     }
@@ -1213,7 +1330,8 @@ U
         let dat = dat(U);
         let build = build_manifest();
         let manifest = manifest(&request, &deck, &dat, &build);
-        let report = compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
+        let report =
+            compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
         assert_eq!(report["numeric_reference_status"], "PASS");
         assert_eq!(report["physical_result_qualified"], false);
         assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
@@ -1229,9 +1347,15 @@ U
         let manifest = manifest(&request, &deck, &dat, &build);
         let mut changed_deck = deck.clone();
         changed_deck.extend_from_slice(b"** changed\n");
-        assert!(compare_displacement_reference_bytes(&request, &changed_deck, &dat, &manifest, &build).is_err());
+        assert!(
+            compare_displacement_reference_bytes(&request, &changed_deck, &dat, &manifest, &build)
+                .is_err()
+        );
         let changed_dat = dat(U * 2.0);
-        assert!(compare_displacement_reference_bytes(&request, &deck, &changed_dat, &manifest, &build).is_err());
+        assert!(
+            compare_displacement_reference_bytes(&request, &deck, &changed_dat, &manifest, &build)
+                .is_err()
+        );
     }
 
     #[test]
@@ -1258,7 +1382,8 @@ U
         let dat = dat(U * 2.0);
         let build = build_manifest();
         let manifest = manifest(&request, &deck, &dat, &build);
-        let report = compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
+        let report =
+            compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &build).unwrap();
         assert_eq!(report["numeric_reference_status"], "FAIL");
         assert_eq!(report["physical_result_qualified"], false);
     }
@@ -1273,18 +1398,25 @@ U
         let mut unsupported_deck = deck.clone();
         unsupported_deck.extend_from_slice(b"*DLOAD\nBAR,P,1.0\n");
         let unsupported_manifest = manifest(&request, &unsupported_deck, &dat, &build);
-        assert!(compare_displacement_reference_bytes(
-            &request,
-            &unsupported_deck,
-            &dat,
-            &unsupported_manifest,
-            &build
-        ).is_err());
+        assert!(
+            compare_displacement_reference_bytes(
+                &request,
+                &unsupported_deck,
+                &dat,
+                &unsupported_manifest,
+                &build
+            )
+            .is_err()
+        );
         let wrong_build = build_manifest().into_iter().collect::<Vec<_>>();
         let mut changed_build: Value = serde_json::from_slice(&wrong_build).unwrap();
-        changed_build["builder_repository_commit"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        changed_build["builder_repository_commit"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let changed_build = serde_json::to_vec(&changed_build).unwrap();
         let manifest = manifest(&request, &deck, &dat, &changed_build);
-        assert!(compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &changed_build).is_err());
+        assert!(
+            compare_displacement_reference_bytes(&request, &deck, &dat, &manifest, &changed_build)
+                .is_err()
+        );
     }
 }
