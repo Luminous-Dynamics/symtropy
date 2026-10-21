@@ -51,6 +51,29 @@ This is a capability comparison from public documentation, not a head-to-head pe
 
 **Lifecycle / reverse-supply-chain baseline.** Recent 2025–2026 work examines BIM-driven demolition waste planning, IFC/knowledge-graph deconstruction sequence generation, and digital-twin-enabled reverse supply chains for trading recovered materials. That suggests a useful Symtropy distinction: plan recovery before dismantling, preserve identities/provenance during physical-state transitions, then reconcile actual recovered lots and quantities against the plan. Sources include https://www.nature.com/articles/s41598-025-13938-9, https://doi.org/10.1016/j.jobe.2025.112564, and https://doi.org/10.1016/j.cie.2025.111605. These are comparison targets and research context, not proof of Symtropy superiority.
 
+## Modal solver qualification: a separate benchmark family
+
+**Do not collapse static stiffness, nonlinear stability, and vibration into one “truss benchmark.”**
+
+| Reference | Physics / quantity of interest | What counts as an honest comparison |
+|---|---|---|
+| [SOFiSTiK BE1 — Joint Deflection of Plane Truss](https://docs.sofistik.com/2026/en/verification/_static/verification/pdf/be1.pdf) | Static displacement under specified nodal loads | Same node coordinates/connectivity, section properties, restraints, loads, displacement target and linear model. It is not a modal benchmark. |
+| [SOFiSTiK BE31 — Snap-Through Behaviour of a Truss](https://docs.sofistik.com/2026/en/verification/index.html) | Geometrically nonlinear stability / snap-through | Requires nonlinear load stepping, equilibrium-path and limit-point checks. The current small-displacement linear truss model cannot claim it. |
+| [NAFEMS NBC05](https://www.nafems.org/downloads/nbc5_challenge.pdf) | Free-vibration natural frequencies of a pin-jointed truss, with an auxiliary fixed-free axial-bar study | Match member geometry/section interpretation, supports/DOFs, mass formulation, mode identity and subdivision constraints. Consistent- and lumped-mass runs are separate cases. The published commercial-code frequencies are comparators, not exact truth. |
+| [NAFEMS R0015 — Selected Benchmarks of Natural Frequency Analysis](https://www.nafems.org/publications/resource_center/r0015/) | Broader modal frequency reference set | Preserve each benchmark's own assumptions, model class, target modes and reference provenance; never pool its targets into an average “modal accuracy” score. |
+
+NBC05's published truss mode outputs are 452.09 / 369.13 Hz for mode 1 and 1114.6 / 910.05 Hz for mode 2 in its two commercial-system columns. These are distinct reported outputs, not interchangeable expected values. Before pinning any target, resolve the source drawing's `r=0.01` section annotation, boundary conditions, free DOFs, model family and mass formulation. For the companion 1 m fixed-free axial bar with (E=210\,\mathrm{GPa}) and (\rho=7800\,\mathrm{kg/m^3}), the analytical longitudinal fundamental is approximately 1297.186 Hz; this is a separate one-dimensional test and must not be compared directly to the whole-truss frequencies.
+
+**Symtropy's evidence boundary today:** the static truss receipts/sweeps qualify only named synthetic, linear, small-displacement 2D pin-jointed cases. The new modal work is a separate 1D longitudinal-bar prototype with explicit consistent/lumped mass formulations, shapes and residual diagnostics; it is not a verified NAFEMS NBC05 reproduction and does not model lateral bending or structural safety. The drafts ([#2534](https://github.com/Luminous-Dynamics/symtropy/pull/2534), [#2537](https://github.com/Luminous-Dynamics/symtropy/pull/2537), [#2538](https://github.com/Luminous-Dynamics/symtropy/pull/2538), [#2539](https://github.com/Luminous-Dynamics/symtropy/pull/2539)) must be assessed at the exact head of each PR; don't inherit evidence across different commit SHAs.
+
+### Qualification targets for the first modal ladder
+
+- Analytical fixed-free bar frequencies: independently derived, per-mode relative error reported for 1, 2, 4, 8 and 16 elements.
+- Generalized eigenpairs: report (\|K\phi-\lambda M\phi\|) with a declared scaling, mass-normalization error and cross-mode (\Phi^T M\Phi-I) error; no silent mode dropping.
+- At 8 elements, provisional target of <5% frequency error for the first two longitudinal bar modes, with consistent and lumped mass kept as separate model results. This is a model-specific engineering gate, not a universal standard.
+- Modal truss: no “benchmark reproduced” label until NBC05 inputs, constraints, reference provenance, mode pairing and subdivision mechanism controls are independently pinned.
+- Cross-solver: pin code/version, element and mass formulations, integration assumptions, units, restraints, mode pairing and convergence. Compare runtime only inside the same error/robustness envelope.
+
 ## 3. Paradigm shifts worth pursuing
 
 ### A. Model choice based on an error budget
