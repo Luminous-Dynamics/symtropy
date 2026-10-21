@@ -48,7 +48,7 @@ Use identical, versioned job-shop scenarios with explicit precedence, worker/ski
 - a change to vessel configuration or work package;
 - combined disruptions and recovery.
 
-Compare at least four baselines:
+Use public generic scheduling benchmarks as an external solver-quality check before claiming any shipyard-specific advance. The [ScheduleOpt/JSPLib benchmark library](https://scheduleopt.github.io/benchmarks/jsplib/) maintains instances, a best-known-bound archive and standardized 10-minute comparisons among CP Optimizer, CP-SAT and OptalCP, with MIP results also represented. The [flexible-job-shop library](https://scheduleopt.github.io/benchmarks/fjsplib/) adds flexible routing cases. Freeze the benchmark revision, report per-instance lower/upper bounds and optimality gaps, and do not cherry-pick only instances where the new method wins. These public machine/job instances do not include shipyard block geometry, crane travel, spatial occupancy, material arrivals or inspection logic; passing them is solver-comparison evidence, not shipyard validation.\n\nCompare at least four baselines:
 1. frozen yard plan / current manual plan when permissioned data exists;
 2. a simple transparent rule baseline (e.g., earliest-due-date with precedence and resource-feasibility checks);
 3. a critical-path / resource-constrained project scheduling baseline;
