@@ -1,0 +1,312 @@
+{
+  "schema": "pcb-route-pilot-candidate-set-v0.1",
+  "status": "candidate_selection_only_not_authorized_for_benchmark_run",
+  "purpose": "Stratified 30-board pipeline-qualification pilot; source licensing, source URLs, required-net counts and local source-byte hashes remain mandatory intake gates.",
+  "benchmark_id": "pcbworld-bench",
+  "benchmark_version": "v1.1.1",
+  "dataset_id": "pcbench-d3",
+  "pilot_split_id": "d3-test-stratified-pilot30-v0.1",
+  "upstream": {
+    "repository": "https://github.com/LGAI-Research/PCBWorld",
+    "source_commit_sha": "1989a9325796b73cca793a0c8f222dd1509256e8",
+    "split_config_path": "configs/datasets/d3.json",
+    "split_config_blob_sha": "61d86bbf6cfd8ff8d1e13089c8d98a90f6f81bb3",
+    "board_filename": "processed_v9_guide_v3.kicad_pcb"
+  },
+  "selection": {
+    "split_name": "test",
+    "easy": {
+      "source_count": 99,
+      "selected_count": 10,
+      "method": "indices floor((i+0.5)*N/10), i=0..9",
+      "board_ids": [
+        "0005_AVR-Playground_hello_world",
+        "0015_kitspace_tt_opt101_module_b1",
+        "0025_kitspace_hum_temp_sensor",
+        "0035_KiCad-Like-a-Pro-Tutorial_rf24-breakout-v1",
+        "0045_retroreflectors_TANGOFLOCK",
+        "0055_dustbox_Dustbox",
+        "0065_DiscoDanceFloorV1_BusTerminator",
+        "0075_RPi-ATtiny85-Programmer_rpi_attiny85_programmer",
+        "0085_mini-whip_mini-whip-power-feed",
+        "0095_PsuFanController_FanController"
+      ]
+    },
+    "medium": {
+      "source_count": 10,
+      "selected_count": 10,
+      "method": "all upstream test entries",
+      "board_ids": [
+        "0113_maytal_Maytal",
+        "0144_ottawa-badges-2016_ottawa-badge-tagger-2016",
+        "0174_sensorboard_DiffIR",
+        "0203_MOD-MPU9150_mod-mpu9150",
+        "0232_ATtiny461Breakout_ATTiny461DevBoard",
+        "0260_NiMH-Charger_NiMH Charger",
+        "0288_raspberrypi-3-usb-hub_usb_hub",
+        "0316_kicad-workshop_fancyboard",
+        "0344_mavbridge_mavbridge",
+        "0376_cat-trainer_teensy_base_pcb"
+      ]
+    },
+    "hard": {
+      "source_count": 10,
+      "selected_count": 10,
+      "method": "all upstream test entries",
+      "board_ids": [
+        "0400_laptimer58_Chickadee",
+        "0423_induction-hob_temperature-sender",
+        "0448_uedaino_uedaino",
+        "0473_data-manager_data-manager",
+        "0496_kitspace_f-91w",
+        "0520_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD_negative",
+        "0546_ozinverter_ozinverterkicad",
+        "0571_Brushless_ESC_Brushless_ESC",
+        "0599_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD",
+        "0626_TOBS_HybridChargeController"
+      ]
+    }
+  },
+  "candidates": [
+    {
+      "board_id": "0005_AVR-Playground_hello_world",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0015_kitspace_tt_opt101_module_b1",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0025_kitspace_hum_temp_sensor",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0035_KiCad-Like-a-Pro-Tutorial_rf24-breakout-v1",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0045_retroreflectors_TANGOFLOCK",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0055_dustbox_Dustbox",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0065_DiscoDanceFloorV1_BusTerminator",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0075_RPi-ATtiny85-Programmer_rpi_attiny85_programmer",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0085_mini-whip_mini-whip-power-feed",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0095_PsuFanController_FanController",
+      "difficulty": "easy",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0113_maytal_Maytal",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0144_ottawa-badges-2016_ottawa-badge-tagger-2016",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0174_sensorboard_DiffIR",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0203_MOD-MPU9150_mod-mpu9150",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0232_ATtiny461Breakout_ATTiny461DevBoard",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0260_NiMH-Charger_NiMH Charger",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0288_raspberrypi-3-usb-hub_usb_hub",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0316_kicad-workshop_fancyboard",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0344_mavbridge_mavbridge",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0376_cat-trainer_teensy_base_pcb",
+      "difficulty": "medium",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0400_laptimer58_Chickadee",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0423_induction-hob_temperature-sender",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0448_uedaino_uedaino",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0473_data-manager_data-manager",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0496_kitspace_f-91w",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0520_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD_negative",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0546_ozinverter_ozinverterkicad",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0571_Brushless_ESC_Brushless_ESC",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0599_RGBMatrixPanelCPLD-PhotonBackpack_RGBMatrixPanel_CPLD",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    },
+    {
+      "board_id": "0626_TOBS_HybridChargeController",
+      "difficulty": "hard",
+      "split_name": "test",
+      "license_status": "unverified",
+      "source_url_status": "unverified",
+      "required_nets_status": "unmeasured"
+    }
+  ]
+}
