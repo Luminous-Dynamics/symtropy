@@ -1,7 +1,7 @@
 use pcb_route_benchmark::{
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
-    pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files,
-    verify_run_artifacts, ValidatedRun,
+    pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files, verify_run_artifacts,
+    ValidatedRun,
 };
 use std::{
     env, fs,
