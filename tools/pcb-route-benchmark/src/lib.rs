@@ -1516,6 +1516,8 @@ mod tests {
         assert!((baseline.receipt.summary.completion_rate - 2.0 / 6.0).abs() < 1e-9);
         assert_eq!(baseline.receipt.summary.timeout_cases, 1);
         assert_eq!(baseline.receipt.summary.tool_error_cases, 1);
+        assert_eq!(baseline.receipt.summary.reported_unconnected_item_total, 1);
+        assert_eq!(baseline.receipt.summary.cases_missing_unconnected_item_count, 2);
     }
 
     #[test]
@@ -1549,6 +1551,29 @@ mod tests {
         assert!(case
             .reason_codes
             .contains(&"DRC_REPORT_DIGEST_MISSING".to_string()));
+        assert!(!case.valid_route_completion);
+    }
+
+    #[test]
+    fn connected_net_summary_with_native_unconnected_items_is_not_a_valid_route() {
+        let mut value: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["cases"][0]["connected_nets"] = serde_json::Value::from(2);
+        value["cases"][0]["required_nets"] = serde_json::Value::from(2);
+        value["cases"][0]["unconnected_item_count"] = serde_json::Value::from(1);
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let run = evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap();
+        let case = run
+            .receipt
+            .cases
+            .iter()
+            .find(|c| c.board_id == "easy-001")
+            .unwrap();
+        assert_eq!(case.disposition, Disposition::IncompleteNets);
+        assert!(case
+            .reason_codes
+            .contains(&"UNCONNECTED_ITEMS_REMAIN".to_string()));
         assert!(!case.valid_route_completion);
     }
 
