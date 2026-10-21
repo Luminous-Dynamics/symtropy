@@ -259,7 +259,7 @@ fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> boo
 /// The algorithm uses worst-case quadratic comparison time for arbitrary
 /// objective vectors, but stores only one dominance witness per excluded
 /// candidate so output memory remains linear in candidate count.
-/// 
+///
 /// This function checks digest shape but does not authenticate digests or
 /// receipts. The claim of independent verification originates outside this
 /// module and must be bound by the caller to the exact candidate revision.
