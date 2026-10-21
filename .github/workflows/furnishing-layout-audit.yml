@@ -7,8 +7,9 @@ on:
       - feat/furnishing-robust-geometry-v0-1-20261021
       - test/furnishing-robust-geometry-exhaustive-v0-2-20261021
       - feat/furnishing-dimension-evidence-v0-1-20261021
+      - feat/furnishing-dimension-policy-v0-1-20261021
   pull_request:
-    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "docs/furnishing-evaluation-matrix-v0-5-20261020", "feat/furnishing-robust-geometry-v0-1-20261021", "test/furnishing-robust-geometry-exhaustive-v0-2-20261021"]
+    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "docs/furnishing-evaluation-matrix-v0-5-20261020", "feat/furnishing-robust-geometry-v0-1-20261021", "test/furnishing-robust-geometry-exhaustive-v0-2-20261021", "feat/furnishing-dimension-evidence-v0-1-20261021"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
@@ -23,21 +24,24 @@ permissions:
 jobs:
   audit:
     name: Exact-head furnishing layout oracle
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/feat/furnishing-dimension-policy-v0-1-20261021')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Checkout exact pull request head
+      - name: Checkout exact tested commit
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 1
       - name: Assert exact commit
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then expected="${{ github.event.pull_request.head.sha }}"; else expected="${{ github.sha }}"; fi
+          test "$(git rev-parse HEAD)" = "$expected"
           test "${{ github.repository }}" = "Luminous-Dynamics/symtropy"
       - name: Install pinned Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9

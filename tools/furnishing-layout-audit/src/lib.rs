@@ -4,6 +4,7 @@
 //! building-code compliance, physical safety, measured-site truth, or usability.
 
 pub mod dimension_evidence;
+pub mod dimension_policy;
 pub mod robust_geometry;
 
 use serde_json::Value;
