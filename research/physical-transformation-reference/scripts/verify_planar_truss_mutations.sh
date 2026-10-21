@@ -212,6 +212,8 @@ jq -e '
   and .baseline_control.disposition == "pass"
   and .summary.detected == 8
   and .summary.undetected == 0
+  and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
+  and (.source_sha256.truss_conditioning_rs | test("^[0-9a-f]{64}$"))
   and ([.mutations[].disposition] | all(. == "detected"))
 ' "$receipt_path" >/dev/null
 
