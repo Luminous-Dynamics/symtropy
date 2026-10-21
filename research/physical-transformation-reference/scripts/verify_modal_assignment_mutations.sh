@@ -70,7 +70,7 @@ run_mutation \
 run_mutation \
   "frequency-gate-ignored" \
   ignore_frequency_gate \
-  assignment_abstains_when_no_complete_matching_meets_both_gates
+  valid_matching_is_selected_even_when_invalid_edges_have_higher_mac
 
 test "$source_sha256" = "$(sha256sum "$crate_dir/src/modal_assignment.rs" | awk '{print $1}')"
 
@@ -95,7 +95,7 @@ jq -n \
       },
       {
         id: "PHYS-MODAL-ASSIGNMENT-MUT-FREQUENCY-GATE-001",
-        expected_test: "assignment_abstains_when_no_complete_matching_meets_both_gates",
+        expected_test: "valid_matching_is_selected_even_when_invalid_edges_have_higher_mac",
         disposition: "detected"
       }
     ],
