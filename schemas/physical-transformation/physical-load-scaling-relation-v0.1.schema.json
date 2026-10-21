@@ -32,11 +32,33 @@
         "additionalProperties": false,
         "required": ["output_kind", "baseline_output_id", "scaled_output_id", "scaling_exponent"],
         "properties": {
-          "output_kind": { "$ref": "#/$defs/token" },
+          "output_kind": {
+            "enum": ["displacement", "stress", "reaction_force", "reaction_moment", "energy_balance"]
+          },
           "baseline_output_id": { "$ref": "#/$defs/token" },
           "scaled_output_id": { "$ref": "#/$defs/token" },
           "scaling_exponent": { "type": "integer", "enum": [1, 2] }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "output_kind": { "const": "energy_balance" } },
+              "required": ["output_kind"]
+            },
+            "then": { "properties": { "scaling_exponent": { "const": 2 } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "output_kind": {
+                  "enum": ["displacement", "stress", "reaction_force", "reaction_moment"]
+                }
+              },
+              "required": ["output_kind"]
+            },
+            "then": { "properties": { "scaling_exponent": { "const": 1 } } }
+          }
+        ]
       }
     }
   },
