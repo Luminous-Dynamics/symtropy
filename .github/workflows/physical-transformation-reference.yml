@@ -120,6 +120,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify isolated modal-assignment mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_assignment_mutations.sh
+
+      - name: Re-verify modal-assignment production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/modal_assignment.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify modal-subspace comparison mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_modal_subspace_mutations.sh
@@ -572,5 +585,6 @@ jobs:
             beam-chain-mesh-mutation-receipt.json
             beam-chain-modal-sweep-receipt.json
             modal-subspace-mutation-receipt.json
+            modal-assignment-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
