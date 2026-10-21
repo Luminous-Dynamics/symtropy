@@ -227,9 +227,11 @@ fn wilson_interval_95(successes: usize, trials: usize) -> (f64, f64) {
     let z2 = z * z;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width =
-        z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
-    ((center - half_width).max(0.0), (center + half_width).min(1.0))
+    let half_width = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    (
+        (center - half_width).max(0.0),
+        (center + half_width).min(1.0),
+    )
 }
 
 fn build_selection_calibration_report() -> SelectionCalibrationReport {
@@ -249,12 +251,10 @@ fn build_selection_calibration_report() -> SelectionCalibrationReport {
     let mut null_familywise = 0usize;
     for _ in 0..NULL_TRIALS {
         let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
-        null_pointwise += usize::from(
-            selected_robust_winner(&samples, false, PRACTICAL_MARGIN).is_some(),
-        );
-        null_familywise += usize::from(
-            selected_robust_winner(&samples, true, PRACTICAL_MARGIN).is_some(),
-        );
+        null_pointwise +=
+            usize::from(selected_robust_winner(&samples, false, PRACTICAL_MARGIN).is_some());
+        null_familywise +=
+            usize::from(selected_robust_winner(&samples, true, PRACTICAL_MARGIN).is_some());
     }
 
     let separated_means = [WINNER_EFFECT, 0.0, 0.0, 0.0, 0.0];
