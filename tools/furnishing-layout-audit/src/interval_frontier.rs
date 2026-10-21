@@ -260,6 +260,51 @@ fn guaranteed_interval_dominates(
     strictly_better
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum IntervalDominanceRelation {
+    LeftDominates,
+    RightDominates,
+    Incomparable,
+}
+
+/// Check both directional dominance predicates in one objective traversal.
+/// The independent predicate below remains the simple pairwise oracle.
+fn compare_interval_dominance(
+    left: &RankableIntervalCandidate<'_>,
+    right: &RankableIntervalCandidate<'_>,
+) -> IntervalDominanceRelation {
+    let mut left_non_worse = true;
+    let mut left_strict = false;
+    let mut right_non_worse = true;
+    let mut right_strict = false;
+
+    for (left_value, right_value) in left.objectives.iter().zip(&right.objectives) {
+        match left_value.direction {
+            ObjectiveDirection::Minimize => {
+                left_non_worse &= left_value.upper <= right_value.lower;
+                left_strict |= left_value.upper < right_value.lower;
+                right_non_worse &= right_value.upper <= left_value.lower;
+                right_strict |= right_value.upper < left_value.lower;
+            }
+            ObjectiveDirection::Maximize => {
+                left_non_worse &= left_value.lower >= right_value.upper;
+                left_strict |= left_value.lower > right_value.upper;
+                right_non_worse &= right_value.lower >= left_value.upper;
+                right_strict |= right_value.lower > left_value.upper;
+            }
+        }
+    }
+
+    match (
+        left_non_worse && left_strict,
+        right_non_worse && right_strict,
+    ) {
+        (true, false) => IntervalDominanceRelation::LeftDominates,
+        (false, true) => IntervalDominanceRelation::RightDominates,
+        _ => IntervalDominanceRelation::Incomparable,
+    }
+}
+
 /// Compute exact witnesses by maintaining only the current guaranteed frontier.
 ///
 /// This relation is transitive: if A's interval is separated from B's and B's
@@ -278,12 +323,15 @@ fn incremental_interval_dominators(
         let mut dominated_frontier_ids = Vec::new();
 
         for existing in &frontier {
-            if guaranteed_interval_dominates(existing, candidate) {
-                candidate_dominator = Some(existing.candidate.candidate_id.clone());
-                break;
-            }
-            if guaranteed_interval_dominates(candidate, existing) {
-                dominated_frontier_ids.push(existing.candidate.candidate_id.clone());
+            match compare_interval_dominance(existing, candidate) {
+                IntervalDominanceRelation::LeftDominates => {
+                    candidate_dominator = Some(existing.candidate.candidate_id.clone());
+                    break;
+                }
+                IntervalDominanceRelation::RightDominates => {
+                    dominated_frontier_ids.push(existing.candidate.candidate_id.clone());
+                }
+                IntervalDominanceRelation::Incomparable => {}
             }
         }
 
@@ -1030,6 +1078,33 @@ mod tests {
                         .expect("reversed generated schema is valid"),
                     "input-order invariance: dimensions={dimensions} profile={profile}"
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn paired_interval_comparison_matches_independent_directional_predicates() {
+        for dimensions in [2_usize, 4, 8] {
+            for profile in ["dominated-chain", "tradeoff-heavy", "seeded-mixed"] {
+                let candidates = generated_candidates(29, dimensions, 65, profile);
+                let rankable = candidates.iter().map(rankable_for_test).collect::<Vec<_>>();
+                for left_index in 0..rankable.len() {
+                    for right_index in (left_index + 1)..rankable.len() {
+                        let left = &rankable[left_index];
+                        let right = &rankable[right_index];
+                        let relation = compare_interval_dominance(left, right);
+                        assert_eq!(
+                            relation == IntervalDominanceRelation::LeftDominates,
+                            guaranteed_interval_dominates(left, right),
+                            "left direction: dims={dimensions} profile={profile}"
+                        );
+                        assert_eq!(
+                            relation == IntervalDominanceRelation::RightDominates,
+                            guaranteed_interval_dominates(right, left),
+                            "right direction: dims={dimensions} profile={profile}"
+                        );
+                    }
+                }
             }
         }
     }
