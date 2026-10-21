@@ -1074,7 +1074,10 @@ mod tests {
             assert_eq!(exact["relation_status"], "PASS", "exact alpha={alpha}");
 
             let perturbed = assess(&make_bundle(alpha, 1.1));
-            assert_eq!(perturbed["relation_status"], "FAIL", "perturbed alpha={alpha}");
+            assert_eq!(
+                perturbed["relation_status"], "FAIL",
+                "perturbed alpha={alpha}"
+            );
             assert_eq!(perturbed["violation_count"], 1, "perturbed alpha={alpha}");
         }
     }
@@ -1110,23 +1113,29 @@ mod tests {
             }],
             "producer_status":"PASS"
         });
-        assert!(bind_output(
-            &bundle.root,
-            &receipt,
-            &verification,
-            "baseline-displacement",
-            "strain_energy"
-        ).is_err());
+        assert!(
+            bind_output(
+                &bundle.root,
+                &receipt,
+                &verification,
+                "baseline-displacement",
+                "strain_energy"
+            )
+            .is_err()
+        );
 
         let mut receipt_j = receipt.clone();
         receipt_j["outputs"][0]["unit"] = json!("J");
-        assert!(bind_output(
-            &bundle.root,
-            &receipt_j,
-            &verification,
-            "baseline-displacement",
-            "strain_energy"
-        ).is_ok());
+        assert!(
+            bind_output(
+                &bundle.root,
+                &receipt_j,
+                &verification,
+                "baseline-displacement",
+                "strain_energy"
+            )
+            .is_ok()
+        );
     }
 
     #[test]
