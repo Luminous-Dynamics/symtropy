@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha1::Sha1;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -64,6 +65,8 @@ pub struct IntakeBoard {
     pub license_evidence_url: Option<String>,
     #[serde(default)]
     pub license_evidence_source_commit_sha: Option<String>,
+    #[serde(default)]
+    pub license_evidence_git_blob_sha1: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -83,6 +86,8 @@ pub struct BoardPin {
     pub license_evidence_url: Option<String>,
     #[serde(default)]
     pub license_evidence_source_commit_sha: Option<String>,
+    #[serde(default)]
+    pub license_evidence_git_blob_sha1: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -239,6 +244,7 @@ pub struct DatasetFileVerificationEntry {
     pub relative_path: String,
     pub byte_len: u64,
     pub sha256: String,
+    pub git_blob_sha1: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
