@@ -62,6 +62,8 @@ pub struct IntakeBoard {
     pub license_evidence_relative_path: Option<String>,
     #[serde(default)]
     pub license_evidence_url: Option<String>,
+    #[serde(default)]
+    pub license_evidence_source_commit_sha: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -79,6 +81,8 @@ pub struct BoardPin {
     pub license_evidence_sha256: Option<String>,
     #[serde(default)]
     pub license_evidence_url: Option<String>,
+    #[serde(default)]
+    pub license_evidence_source_commit_sha: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -553,6 +557,15 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             let license_url = board.license_evidence_url.as_deref().ok_or_else(|| {
                 format!("{}: external board lacks license-evidence source URL", board.board_id)
             })?;
+            let source_commit = board.license_evidence_source_commit_sha.as_deref().ok_or_else(|| {
+                format!("{}: external board lacks immutable license-source commit", board.board_id)
+            })?;
+            if !is_commit_sha(source_commit) {
+                return Err(format!(
+                    "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
+                    board.board_id
+                ));
+            }
             if !license_url.starts_with("https://") {
                 return Err(format!(
                     "{}: license-evidence source URL must use HTTPS",
@@ -706,6 +719,18 @@ pub fn build_dataset_manifest(
                 selection.board_id
             ));
         }
+        let license_source_commit = selection
+            .license_evidence_source_commit_sha
+            .as_deref()
+            .ok_or_else(|| {
+                format!("{}: license-evidence source commit is required", selection.board_id)
+            })?;
+        if !is_commit_sha(license_source_commit) {
+            return Err(format!(
+                "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
+                selection.board_id
+            ));
+        }
         let candidate_ids = split_config
             .get(selection.difficulty.as_str())
             .and_then(|difficulty| difficulty.get(intake.split_name.as_str()))
@@ -784,6 +809,7 @@ pub fn build_dataset_manifest(
             license_evidence_relative_path: Some(license_relative_path.to_string()),
             license_evidence_sha256: Some(sha256_hex(&license_bytes)),
             license_evidence_url: Some(license_url.to_string()),
+            license_evidence_source_commit_sha: Some(license_source_commit.to_ascii_lowercase()),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
@@ -2251,7 +2277,8 @@ mod tests {
                     license: "CC-BY-4.0".into(),
                     source_url: "https://github.com/PCBench/PCBench".into(),
                     license_evidence_relative_path: Some("license-evidence/board-easy-1.txt".into()),
-                    license_evidence_url: Some("https://spdx.org/licenses/CC-BY-4.0.html".into()),
+                    license_evidence_url: Some("https://github.com/example/license/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE".into()),
+                    license_evidence_source_commit_sha: Some("a".repeat(40)),
                 },
                 IntakeBoard {
                     board_id: "board-hard-1".into(),
@@ -2260,7 +2287,8 @@ mod tests {
                     license: "MIT".into(),
                     source_url: "https://github.com/PCBench/PCBench".into(),
                     license_evidence_relative_path: Some("license-evidence/board-hard-1.txt".into()),
-                    license_evidence_url: Some("https://spdx.org/licenses/MIT.html".into()),
+                    license_evidence_url: Some("https://github.com/example/license/blob/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/LICENSE".into()),
+                    license_evidence_source_commit_sha: Some("b".repeat(40)),
                 },
             ],
         };
@@ -2293,6 +2321,7 @@ mod tests {
             .expect("pinned split manifests build from source bytes");
         assert_eq!(manifest.boards.len(), 2);
         assert_eq!(manifest.evidence_class, "external_benchmark");
+        assert!(manifest.boards.iter().all(|board| board.license_evidence_source_commit_sha.as_ref().is_some_and(|sha| is_commit_sha(sha))));
         assert_eq!(
             manifest.source_split_config_sha256.as_deref(),
             Some(sha256_hex(&split_config_bytes).as_str())
@@ -2360,6 +2389,7 @@ mod tests {
             board.license_evidence_relative_path = None;
             board.license_evidence_url = None;
             board.license_evidence_sha256 = None;
+            board.license_evidence_source_commit_sha = None;
         }
         assert!(
             validate_manifest(&manifest)
