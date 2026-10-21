@@ -1,0 +1,136 @@
+{
+  "schema_version": "physical-solver-request-v0.1",
+  "request_id": "ccx-exec-001:axial-bar:n4",
+  "source_revision": "556e78c6e93a63b1b734c9d1b9d3f91cdd7223ac",
+  "scene_revision": 1,
+  "scene_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "model_fidelity": "analytical_linear_elastic",
+  "requested_physics": [
+    "static_linear_elastic"
+  ],
+  "coordinate_frame_id": "fixture:global-xyz",
+  "units": {
+    "length": "m",
+    "mass": "kg",
+    "time": "s",
+    "force": "N",
+    "stress": "Pa"
+  },
+  "materials": [
+    {
+      "material_id": "steel-fixture",
+      "component_ids": [
+        "bar-001"
+      ],
+      "youngs_modulus_pa": 210000000000,
+      "poisson_ratio": 0.3,
+      "density_kg_m3": 7850,
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only:declared-not-measured",
+        "uncertainty_relative": null
+      }
+    }
+  ],
+  "loads": [
+    {
+      "load_id": "tension-001",
+      "kind": "point_force",
+      "target_id": "bar-end-b",
+      "vector_xyz": [
+        1000,
+        0,
+        0
+      ],
+      "coordinate_frame_id": "fixture:global-xyz",
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    }
+  ],
+  "boundary_conditions": [
+    {
+      "condition_id": "fixed-end-a",
+      "target_id": "bar-end-a",
+      "kind": "fixed",
+      "dofs": [
+        "ux",
+        "uy",
+        "uz"
+      ],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    },
+    {
+      "condition_id": "lateral-guide-internal-1",
+      "target_id": "internal-1",
+      "kind": "fixed",
+      "dofs": [
+        "uy",
+        "uz"
+      ],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    },
+    {
+      "condition_id": "lateral-guide-internal-2",
+      "target_id": "internal-2",
+      "kind": "fixed",
+      "dofs": [
+        "uy",
+        "uz"
+      ],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    },
+    {
+      "condition_id": "lateral-guide-internal-3",
+      "target_id": "internal-3",
+      "kind": "fixed",
+      "dofs": [
+        "uy",
+        "uz"
+      ],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    },
+    {
+      "condition_id": "lateral-guide-bar-end-b",
+      "target_id": "bar-end-b",
+      "kind": "fixed",
+      "dofs": [
+        "uy",
+        "uz"
+      ],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
+    }
+  ],
+  "required_outputs": [
+    "displacement",
+    "reaction_force"
+  ],
+  "acceptance": {
+    "relative_tolerance": 0.000001,
+    "absolute_tolerance": 5e-13,
+    "require_convergence": true,
+    "max_iterations": 1
+  }
+}
