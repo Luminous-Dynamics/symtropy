@@ -20,7 +20,7 @@ For intervention pair (A,B), the comparison uses:
 
 `d_{A,B}(s) = g_A(s) - g_B(s)`
 
-The report summarizes these **within-seed difference-of-differences** values across the declared 20 seed replications, including sample standard deviation, empirical quantiles and a two-sided 95% Student-`t` interval for the mean paired difference. It does not estimate this interval by subtracting the lower/upper bounds from two marginal confidence intervals.
+The report summarizes these **within-seed difference-of-differences** values across the declared 20 seed replications, including sample standard deviation, empirical quantiles and a pointwise two-sided 95% Student-`t` interval for the mean paired difference. Since robust-best selection compares five interventions using ten pairwise comparisons, it also calculates Bonferroni-adjusted simultaneous intervals with a family-wise error target of 0.05. Robust-best selection uses the adjusted intervals; pointwise intervals and decisions remain visible for comparison. The implementation uses conservative critical values for at most ten comparisons. Neither interval is estimated by subtracting the bounds from two marginal intervention confidence intervals.
 
 The probability-labelled fields in the JSON are deliberately defined as the empirical share of seeds for which the paired effect exceeds the practical margin. They are not Bayesian posterior probabilities and do not make assumptions about future real-world frequencies.
 
@@ -33,7 +33,7 @@ The CLI now accepts an explicit optional `practical-margin-units-per-hour` argum
 - Interventions are practically equivalent under this rule only when the interval lies wholly inside [-0.05, +0.05].
 - Otherwise, the pair remains inconclusive.
 
-A candidate is reported as robust-best only if it is meaningfully better than every other candidate under the pairwise interval rule. If even one pair is inconclusive or equivalent, the evaluator returns no unique robust best. The margin is a declared benchmark setting—not an industry standard—and must be sensitivity-tested or pre-registered before any future measured-data evaluation.
+A candidate is reported as robust-best only if it is meaningfully better than every other candidate under the **family-wise-adjusted** interval rule. If even one adjusted comparison is inconclusive or equivalent, the evaluator returns no unique robust best. Pointwise intervals alone are not promoted as family-wise evidence. The margin is a declared benchmark setting—not an industry standard—and must be sensitivity-tested or pre-registered before any future measured-data evaluation.
 
 ## Reproducibility and guards
 
