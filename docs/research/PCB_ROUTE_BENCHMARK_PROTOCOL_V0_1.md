@@ -177,3 +177,8 @@ The initial candidate list is checked into `tools/pcb-route-benchmark/fixtures/p
 This file is intentionally a **candidate set**, not an executable intake manifest. Every entry states that its original source license, source URL and required-net count remain unverified/unmeasured. The builder must reject placeholder license entries, and the benchmark must not start on these boards until original project provenance/licensing and actual local board hashes are filled into a reviewed intake spec. Required-net counts must be measured using the pinned EDA/evaluation semantics, not guessed from the board name. D3's medium/hard “test” lists are only ten boards each; this 30-board pilot therefore spans the published difficulty labels but is not a statistically representative sample of the full 677-board D3 pool.
 
 Git blob SHA-1 metadata identifies the upstream JSON object; the manifest builder separately calculates SHA-256 over the exact raw JSON bytes for cryptographic receipt binding. Do not substitute one for the other.
+
+
+### Connectivity truth-source invariant
+
+Every board attempt carries `unconnected_item_count` from the native DRC/ratsnest result. A valid-route disposition requires the count to be **explicitly present and zero**. If the normalized adapter says all nets are connected while the native DRC report still lists unconnected items, the evaluator classifies the case as `incomplete_nets`; if the count is missing, it is `evidence_incomplete`. A run where DRC was not evaluated must not claim an unconnected-item count or DRC-report digest. The receipt summarizes both the observed total and how many attempts lack that observation, so unknown is not silently normalized to zero.
