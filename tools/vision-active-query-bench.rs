@@ -1196,7 +1196,7 @@ fn sample_evaluator_observation(
 fn report_value_calibration() {
     println!("VALUE_CALIBRATION\tfamily\tepisodes\tcandidate_states\tmc_draws_per_candidate\tcandidate_samples\tmean_predicted_risk_reduction\tmean_mc_expected_risk_reduction\tmean_prediction_minus_mc\tbootstrap95_lo\tbootstrap95_hi\tmean_absolute_gap");
     println!("VALUE_REALIZED_STRATA\tfamily\tstratum\tepisodes\tobservation_samples\tmean_realized_belief_risk_drop\tbootstrap95_lo\tbootstrap95_hi");
-    println!("VALUE_RANKING\tfamily\tepisodes\tdecision_states\tmean_top_action_agreement\tbootstrap95_lo\tbootstrap95_hi\tmean_pairwise_concordance\tmean_mc_oracle_regret\tregret_bootstrap95_lo\tregret_bootstrap95_hi");
+    println!("VALUE_RANKING\tfamily\tepisodes\tdecision_states\tmean_top_action_agreement\ttop_bootstrap95_lo\ttop_bootstrap95_hi\tmean_pairwise_concordance\tconcordance_bootstrap95_lo\tconcordance_bootstrap95_hi\tmean_mc_oracle_regret\tregret_bootstrap95_lo\tregret_bootstrap95_hi");
 
     for (family_index, family) in Family::ALL.iter().copied().enumerate() {
         let mut predicted_mean_by_episode = Vec::new();
@@ -1414,16 +1414,21 @@ fn report_value_calibration() {
             mix64(ROOT_SEED ^ 0x5241_4E4B_4147_5245
                 ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)),
         );
+        let (concordance_lo, concordance_hi) = bootstrap_ci(
+            &pairwise_concordance_by_episode,
+            mix64(ROOT_SEED ^ 0x5241_4E4B_434F_4E43
+                ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)),
+        );
         let (regret_lo, regret_hi) = bootstrap_ci(
             &mc_regret_by_episode,
             mix64(ROOT_SEED ^ 0x5241_4E4B_5245_4752
                 ^ (family_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9)),
         );
-        println!("VALUE_RANKING\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.6}\t{:.6}\t{:.6}",
+        println!("VALUE_RANKING\t{}\t{}\t{}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.4}\t{:.6}\t{:.6}\t{:.6}",
             family.name(), top_agreement_by_episode.len(),
             VALUE_CALIBRATION_TICKS.len() * top_agreement_by_episode.len(),
-            top_agreement, agreement_lo, agreement_hi,
-            pairwise_concordance, mc_regret, regret_lo, regret_hi);
+            top_agreement, agreement_lo, agreement_hi, pairwise_concordance,
+            concordance_lo, concordance_hi, mc_regret, regret_lo, regret_hi);
     }
 }
 
