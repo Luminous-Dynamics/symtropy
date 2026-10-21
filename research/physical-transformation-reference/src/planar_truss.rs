@@ -808,9 +808,8 @@ mod tests {
             let expected_bar_stress = expected_bar_force / area_m2;
             let expected_bar_strain = expected_bar_stress / youngs_modulus_pa;
             let expected_bar_extension = expected_bar_strain * (2.0_f64.sqrt() * half_span_m);
-            let scale_tolerance = |expected: f64, relative: f64, floor: f64| {
-                (expected.abs() * relative).max(floor)
-            };
+            let scale_tolerance =
+                |expected: f64, relative: f64, floor: f64| (expected.abs() * relative).max(floor);
 
             close(
                 apex.displacement_x_m,
