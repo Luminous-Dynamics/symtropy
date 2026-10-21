@@ -1122,7 +1122,10 @@ mod tests {
     fn familywise_interval_abstains_when_pointwise_interval_only_narrowly_separates() {
         let pointwise = paired_interval_decision(Some(0.08), Some(0.22), 0.05);
         let adjusted = paired_interval_decision(Some(0.01), Some(0.29), 0.05);
-        assert_eq!(pointwise, "station_a_meaningfully_better_under_paired_model");
+        assert_eq!(
+            pointwise,
+            "station_a_meaningfully_better_under_paired_model"
+        );
         assert_eq!(adjusted, "inconclusive_under_paired_interval");
     }
 
