@@ -45,7 +45,8 @@ run_mutation() {
   local log="$tmp_root/$label.log"
 
   mkdir -p "$mutant_dir"
-  cp -a "$crate_dir/." "$mutant_dir/"
+  cp "$crate_dir/Cargo.toml" "$crate_dir/Cargo.lock" "$mutant_dir/"
+  cp -a "$crate_dir/src" "$crate_dir/tests" "$mutant_dir/"
 
   case "$mutant" in
     axial_extension_length_squared)
