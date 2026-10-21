@@ -90,6 +90,7 @@ fn run_case(alternatives: usize, scenarios: usize, criteria: usize, samples: usi
             .collect(),
         query_cost_unit: "effort_points".to_owned(),
         query_duration_unit: "synthetic_seconds".to_owned(),
+        indifference_margin_units: 250_000,
         alternatives: candidate_rows,
         scenarios: scenario_rows,
         questions,
