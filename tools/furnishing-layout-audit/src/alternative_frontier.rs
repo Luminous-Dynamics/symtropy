@@ -637,9 +637,11 @@ mod tests {
             VerificationStatus::Verified,
             two_objectives(1.0, 100.0),
         );
-        stale.revision_sha256 = Some("c".repeat(64));
+        let edited_revision = "c".repeat(64);
+        let receipt_revision = "a".repeat(64);
+        stale.revision_sha256 = Some(edited_revision.clone());
         // The receipt still refers to the prior candidate revision.
-        stale.verified_revision_sha256 = Some("a".repeat(64));
+        stale.verified_revision_sha256 = Some(receipt_revision.clone());
         let current = candidate(
             "current",
             VerificationStatus::Verified,
@@ -661,11 +663,11 @@ mod tests {
             .expect("excluded candidate remains in the report");
         assert_eq!(
             edited.revision_sha256.as_deref(),
-            Some("c".repeat(64).as_str())
+            Some(edited_revision.as_str())
         );
         assert_eq!(
             edited.verified_revision_sha256.as_deref(),
-            Some("a".repeat(64).as_str())
+            Some(receipt_revision.as_str())
         );
     }
 
