@@ -127,9 +127,7 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
         if normalized_routing_types != evidence.routing_blocking_violation_types {
             return Err(format!(
                 "{}: normalized routing DRC types {:?} disagree with raw KiCad DRC types {:?}",
-                case.board_id,
-                normalized_routing_types,
-                evidence.routing_blocking_violation_types
+                case.board_id, normalized_routing_types, evidence.routing_blocking_violation_types
             ));
         }
         if case.upstream_nonrouting_drc_after as usize
