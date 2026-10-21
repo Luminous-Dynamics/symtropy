@@ -25,6 +25,23 @@ pub enum MassMatrixFormulation {
     Lumped,
 }
 
+/// A mass-normalized longitudinal eigenmode of the fixed-free axial bar.
+/// Shape entries are the free nodal axial degrees of freedom; the fixed-end
+/// degree of freedom is omitted and is understood to be zero.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AxialBarMode {
+    /// Generalized eigenvalue in rad²/s².
+    pub eigenvalue_rad_s_squared: f64,
+    /// Natural frequency in hertz.
+    pub frequency_hz: f64,
+    /// Mass-normalized mode shape over free axial degrees of freedom.
+    pub shape_free_dofs: Vec<f64>,
+    /// Infinity-norm residual scaled by ||K||∞ + |lambda| ||M||∞.
+    pub normalized_eigen_residual: f64,
+    /// Absolute deviation of phiᵀ M phi from one.
+    pub mass_norm_residual: f64,
+}
+
 /// Analytical longitudinal natural frequencies for a uniform bar fixed at one
 /// end and free at the other, in hertz.
 ///
@@ -57,11 +74,11 @@ pub fn analytical_fixed_free_axial_bar_frequencies(
     Ok(frequencies)
 }
 
-/// Solve the longitudinal modal frequencies of a uniform fixed-free axial bar
-/// using linear two-node elements. The returned values are ordered ascending
-/// and are in hertz. At most one mode per element is available in this 1D
-/// discretization.
-pub fn fixed_free_axial_bar_frequencies(
+/// Solve the longitudinal modes of a uniform fixed-free axial bar using
+/// linear two-node elements and an explicitly selected mass formulation.
+/// Frequencies are ordered ascending. Shapes use mass normalization and omit
+/// the fixed-end degree of freedom. At most one mode per element is available.
+pub fn fixed_free_axial_bar_modes(
     length_m: f64,
     area_m2: f64,
     youngs_modulus_pa: f64,
@@ -69,7 +86,7 @@ pub fn fixed_free_axial_bar_frequencies(
     element_count: usize,
     requested_modes: usize,
     mass_formulation: MassMatrixFormulation,
-) -> Check<Vec<f64>> {
+) -> Check<Vec<AxialBarMode>> {
     validate_positive("length_m", length_m)?;
     validate_positive("area_m2", area_m2)?;
     validate_positive("youngs_modulus_pa", youngs_modulus_pa)?;
@@ -138,9 +155,9 @@ pub fn fixed_free_axial_bar_frequencies(
     ensure_finite_matrix("stiffness", &stiffness)?;
     ensure_finite_matrix("mass", &mass)?;
 
-    let eigenvalues = generalized_symmetric_eigenvalues(&stiffness, &mass)?;
-    let mut frequencies = Vec::with_capacity(requested_modes);
-    for eigenvalue in eigenvalues.into_iter().take(requested_modes) {
+    let eigenpairs = generalized_symmetric_eigenpairs(&stiffness, &mass)?;
+    let mut modes = Vec::with_capacity(requested_modes);
+    for (eigenvalue, shape) in eigenpairs.into_iter().take(requested_modes) {
         if !eigenvalue.is_finite() || eigenvalue <= 0.0 {
             return Err("modal eigenvalue is not finite and positive".to_string());
         }
@@ -148,9 +165,41 @@ pub fn fixed_free_axial_bar_frequencies(
         if !frequency.is_finite() || frequency <= 0.0 {
             return Err("modal frequency is not finite and positive".to_string());
         }
-        frequencies.push(frequency);
+        let residual = normalized_eigen_residual(&stiffness, &mass, eigenvalue, &shape)?;
+        let mass_norm = quadratic_form(&mass, &shape)?;
+        modes.push(AxialBarMode {
+            eigenvalue_rad_s_squared: eigenvalue,
+            frequency_hz: frequency,
+            shape_free_dofs: shape,
+            normalized_eigen_residual: residual,
+            mass_norm_residual: (mass_norm - 1.0).abs(),
+        });
     }
-    Ok(frequencies)
+    Ok(modes)
+}
+
+/// Frequency-only convenience wrapper over the richer modal result.
+pub fn fixed_free_axial_bar_frequencies(
+    length_m: f64,
+    area_m2: f64,
+    youngs_modulus_pa: f64,
+    density_kg_m3: f64,
+    element_count: usize,
+    requested_modes: usize,
+    mass_formulation: MassMatrixFormulation,
+) -> Check<Vec<f64>> {
+    Ok(fixed_free_axial_bar_modes(
+        length_m,
+        area_m2,
+        youngs_modulus_pa,
+        density_kg_m3,
+        element_count,
+        requested_modes,
+        mass_formulation,
+    )?
+    .into_iter()
+    .map(|mode| mode.frequency_hz)
+    .collect())
 }
 
 fn validate_positive(name: &str, value: f64) -> Check<()> {
@@ -179,7 +228,10 @@ fn ensure_finite_matrix(name: &str, matrix: &Matrix) -> Check<()> {
 
 /// Solve K x = lambda M x by a Cholesky reduction followed by a symmetric
 /// Jacobi eigensolve. The reduced M must be positive definite.
-fn generalized_symmetric_eigenvalues(stiffness: &Matrix, mass: &Matrix) -> Check<Vec<f64>> {
+fn generalized_symmetric_eigenpairs(
+    stiffness: &Matrix,
+    mass: &Matrix,
+) -> Check<Vec<(f64, Vec<f64>)>> {
     let lower = cholesky_lower(mass)?;
     let inverse_lower = inverse_lower_triangular(&lower)?;
     let transformed_left = matrix_multiply(&inverse_lower, stiffness);
@@ -196,11 +248,106 @@ fn generalized_symmetric_eigenvalues(stiffness: &Matrix, mass: &Matrix) -> Check
     }
     ensure_finite_matrix("transformed eigenproblem", &transformed)?;
 
-    let mut eigenvalues = symmetric_jacobi_eigenvalues(transformed)?;
-    eigenvalues.sort_by(f64::total_cmp);
-    Ok(eigenvalues)
+    let (eigenvalues, eigenvectors) = symmetric_jacobi_eigenpairs(transformed)?;
+    let mut eigenpairs = Vec::with_capacity(eigenvalues.len());
+    for (column, eigenvalue) in eigenvalues.into_iter().enumerate() {
+        let transformed_shape: Vec<f64> = (0..eigenvectors.len())
+            .map(|row| eigenvectors[row][column])
+            .collect();
+        let shape = solve_lower_transpose(&lower, &transformed_shape)?;
+        eigenpairs.push((eigenvalue, shape));
+    }
+    eigenpairs.sort_by(|left, right| left.0.total_cmp(&right.0));
+    Ok(eigenpairs)
 }
 
+fn solve_lower_transpose(lower: &Matrix, right_hand_side: &[f64]) -> Check<Vec<f64>> {
+    let size = lower.len();
+    if right_hand_side.len() != size {
+        return Err("eigenvector dimension does not match Cholesky factor".to_string());
+    }
+
+    let mut solution = vec![0.0; size];
+    for row in (0..size).rev() {
+        let mut value = right_hand_side[row];
+        for col in (row + 1)..size {
+            value -= lower[col][row] * solution[col];
+        }
+        let diagonal = lower[row][row];
+        if !diagonal.is_finite() || diagonal <= 0.0 {
+            return Err("invalid transposed Cholesky diagonal".to_string());
+        }
+        solution[row] = value / diagonal;
+    }
+    if solution.iter().all(|value| value.is_finite()) {
+        Ok(solution)
+    } else {
+        Err("generalized eigenvector contains a non-finite value".to_string())
+    }
+}
+
+fn matrix_infinity_norm(matrix: &Matrix) -> f64 {
+    matrix
+        .iter()
+        .map(|row| row.iter().map(|value| value.abs()).sum::<f64>())
+        .fold(0.0_f64, f64::max)
+}
+
+fn vector_infinity_norm(vector: &[f64]) -> f64 {
+    vector.iter().map(|value| value.abs()).fold(0.0_f64, f64::max)
+}
+
+fn matrix_vector_product(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
+    if matrix.iter().any(|row| row.len() != vector.len()) || matrix.len() != vector.len() {
+        return Err("matrix/vector dimensions do not agree".to_string());
+    }
+    let product: Vec<f64> = matrix
+        .iter()
+        .map(|row| row.iter().zip(vector).map(|(a, b)| a * b).sum())
+        .collect();
+    if product.iter().all(|value| value.is_finite()) {
+        Ok(product)
+    } else {
+        Err("matrix/vector product contains a non-finite value".to_string())
+    }
+}
+
+fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> Check<f64> {
+    let product = matrix_vector_product(matrix, vector)?;
+    let value: f64 = vector.iter().zip(product).map(|(a, b)| a * b).sum();
+    if value.is_finite() && value > 0.0 {
+        Ok(value)
+    } else {
+        Err("modal mass norm is not finite and positive".to_string())
+    }
+}
+
+fn normalized_eigen_residual(
+    stiffness: &Matrix,
+    mass: &Matrix,
+    eigenvalue: f64,
+    shape: &[f64],
+) -> Check<f64> {
+    let stiffness_shape = matrix_vector_product(stiffness, shape)?;
+    let mass_shape = matrix_vector_product(mass, shape)?;
+    let numerator = stiffness_shape
+        .iter()
+        .zip(&mass_shape)
+        .map(|(k_phi, m_phi)| (k_phi - eigenvalue * m_phi).abs())
+        .fold(0.0_f64, f64::max);
+    let denominator = (matrix_infinity_norm(stiffness)
+        + eigenvalue.abs() * matrix_infinity_norm(mass))
+        * vector_infinity_norm(shape);
+    if !numerator.is_finite() || !denominator.is_finite() || denominator <= 0.0 {
+        return Err("cannot normalize the generalized eigenpair residual".to_string());
+    }
+    let result = numerator / denominator;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err("normalized eigenpair residual is non-finite".to_string())
+    }
+}
 fn cholesky_lower(matrix: &Matrix) -> Check<Matrix> {
     let size = matrix.len();
     let mut lower = vec![vec![0.0; size]; size];
@@ -283,10 +430,17 @@ fn transpose(matrix: &Matrix) -> Matrix {
     result
 }
 
-fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
+fn symmetric_jacobi_eigenpairs(mut matrix: Matrix) -> Check<(Vec<f64>, Matrix)> {
     let size = matrix.len();
+    if size == 0 {
+        return Err("eigenproblem matrix is empty".to_string());
+    }
+    let mut eigenvectors = vec![vec![0.0; size]; size];
+    for index in 0..size {
+        eigenvectors[index][index] = 1.0;
+    }
     if size == 1 {
-        return Ok(vec![matrix[0][0]]);
+        return Ok((vec![matrix[0][0]], eigenvectors));
     }
 
     let scale = matrix
@@ -337,6 +491,12 @@ fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
                     matrix[index][q] = new_iq;
                     matrix[q][index] = new_iq;
                 }
+                for row in 0..size {
+                    let vp = eigenvectors[row][p];
+                    let vq = eigenvectors[row][q];
+                    eigenvectors[row][p] = cosine * vp - sine * vq;
+                    eigenvectors[row][q] = sine * vp + cosine * vq;
+                }
             }
         }
 
@@ -357,10 +517,12 @@ fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
     }
 
     let eigenvalues: Vec<f64> = (0..size).map(|index| matrix[index][index]).collect();
-    if eigenvalues.iter().all(|value| value.is_finite()) {
-        Ok(eigenvalues)
+    if eigenvalues.iter().all(|value| value.is_finite())
+        && eigenvectors.iter().flatten().all(|value| value.is_finite())
+    {
+        Ok((eigenvalues, eigenvectors))
     } else {
-        Err("eigensolver returned a non-finite eigenvalue".to_string())
+        Err("eigensolver returned a non-finite eigenpair".to_string())
     }
 }
 
@@ -492,6 +654,28 @@ mod tests {
         for mode in 0..2 {
             assert!(relative_error(different_area[mode], baseline[mode]) < 1.0e-11);
             assert!(relative_error(scaled[mode], 2.0 * baseline[mode]) < 1.0e-11);
+        }
+    }
+
+    #[test]
+    fn modes_report_small_eigen_residual_and_mass_normalization_error() {
+        let modes = super::fixed_free_axial_bar_modes(
+            LENGTH_M,
+            AREA_M2,
+            YOUNGS_MODULUS_PA,
+            DENSITY_KG_M3,
+            8,
+            3,
+            MassMatrixFormulation::Consistent,
+        )
+        .expect("modal result");
+        assert_eq!(modes.len(), 3);
+        assert!(modes.windows(2).all(|pair| pair[0].frequency_hz < pair[1].frequency_hz));
+        for mode in modes {
+            assert_eq!(mode.shape_free_dofs.len(), 8);
+            assert!(mode.normalized_eigen_residual < 1.0e-10);
+            assert!(mode.mass_norm_residual < 1.0e-10);
+            assert!(mode.shape_free_dofs.iter().all(|value| value.is_finite()));
         }
     }
 
