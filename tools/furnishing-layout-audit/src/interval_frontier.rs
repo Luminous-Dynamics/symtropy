@@ -6,7 +6,7 @@
 //! preference, physical safety, or equivalence in the real world.
 
 use crate::alternative_frontier::{ObjectiveDirection, ObjectiveEvidence, VerificationStatus};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -260,6 +260,107 @@ fn guaranteed_interval_dominates(
     strictly_better
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum IntervalDominanceRelation {
+    LeftDominates,
+    RightDominates,
+    Incomparable,
+}
+
+/// Check both directional dominance predicates in one objective traversal.
+/// The independent predicate below remains the simple pairwise oracle.
+fn compare_interval_dominance(
+    left: &RankableIntervalCandidate<'_>,
+    right: &RankableIntervalCandidate<'_>,
+) -> IntervalDominanceRelation {
+    let mut left_non_worse = true;
+    let mut left_strict = false;
+    let mut right_non_worse = true;
+    let mut right_strict = false;
+
+    for (left_value, right_value) in left.objectives.iter().zip(&right.objectives) {
+        match left_value.direction {
+            ObjectiveDirection::Minimize => {
+                left_non_worse &= left_value.upper <= right_value.lower;
+                left_strict |= left_value.upper < right_value.lower;
+                right_non_worse &= right_value.upper <= left_value.lower;
+                right_strict |= right_value.upper < left_value.lower;
+            }
+            ObjectiveDirection::Maximize => {
+                left_non_worse &= left_value.lower >= right_value.upper;
+                left_strict |= left_value.lower > right_value.upper;
+                right_non_worse &= right_value.lower >= left_value.upper;
+                right_strict |= right_value.lower > left_value.upper;
+            }
+        }
+
+        if !left_non_worse && !right_non_worse {
+            return IntervalDominanceRelation::Incomparable;
+        }
+    }
+
+    match (left_non_worse && left_strict, right_non_worse && right_strict) {
+        (true, false) => IntervalDominanceRelation::LeftDominates,
+        (false, true) => IntervalDominanceRelation::RightDominates,
+        _ => IntervalDominanceRelation::Incomparable,
+    }
+}
+
+/// Compute exact witnesses by maintaining only the current guaranteed frontier.
+///
+/// This relation is transitive: if A's interval is separated from B's and B's
+/// from C's in every objective, A is also separated from C's. A candidate
+/// already dominated by a frontier member therefore cannot dominate another
+/// frontier member. The algorithm is O(n·F) in current frontier width F and
+/// remains O(n²) when most candidates are mutually incomparable.
+fn incremental_interval_dominators(
+    rankable: &[RankableIntervalCandidate<'_>],
+) -> BTreeMap<String, String> {
+    let mut frontier: Vec<&RankableIntervalCandidate<'_>> = Vec::new();
+    let mut dominators = BTreeMap::new();
+
+    for candidate in rankable {
+        let mut candidate_dominator = None;
+        let mut dominated_frontier_ids = Vec::new();
+
+        for existing in &frontier {
+            match compare_interval_dominance(existing, candidate) {
+                IntervalDominanceRelation::LeftDominates => {
+                    candidate_dominator = Some(existing.candidate.candidate_id.clone());
+                    break;
+                }
+                IntervalDominanceRelation::RightDominates => {
+                    dominated_frontier_ids.push(existing.candidate.candidate_id.clone());
+                }
+                IntervalDominanceRelation::Incomparable => {}
+            }
+        }
+
+        if let Some(witness_id) = candidate_dominator {
+            dominators.insert(candidate.candidate.candidate_id.clone(), witness_id);
+            continue;
+        }
+
+        if !dominated_frontier_ids.is_empty() {
+            let dominated_ids = dominated_frontier_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>();
+            frontier.retain(|existing| {
+                !dominated_ids.contains(existing.candidate.candidate_id.as_str())
+            });
+            for dominated_id in dominated_frontier_ids {
+                dominators.insert(dominated_id, candidate.candidate.candidate_id.clone());
+            }
+        }
+
+        // The caller sorts by candidate ID first, making scan order stable.
+        frontier.push(candidate);
+    }
+
+    dominators
+}
+
 /// Compute a conservative guaranteed-interval Pareto frontier.
 ///
 /// Only candidates labelled Verified by the caller's independent verifier can
@@ -269,7 +370,9 @@ fn guaranteed_interval_dominates(
 ///
 /// Rankable candidates must share objective dimensions, units/scales, directions,
 /// and interval-semantic keys exactly. No unit conversion, midpoint imputation,
-/// interval widening, or hidden utility weight is performed.
+/// interval widening, or hidden utility weight is performed. The exact adaptive
+/// frontier makes O(n·F) dominance checks for current frontier width F, with
+/// O(n²) worst-case time when most candidates are mutually incomparable.
 ///
 /// This function validates SHA-256 syntax and equality of the receipt-bound
 /// revision field only. It does not authenticate the receipt or recompute any
@@ -351,15 +454,10 @@ pub fn compute_interval_frontier(
         }
     }
 
+    let dominators = incremental_interval_dominators(&rankable);
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        let witness = rankable
-            .iter()
-            .find(|other| {
-                other.candidate.candidate_id != candidate.candidate.candidate_id
-                    && guaranteed_interval_dominates(other, candidate)
-            })
-            .map(|other| other.candidate.candidate_id.clone());
+        let witness = dominators.get(&candidate.candidate.candidate_id).cloned();
 
         let disposition = match witness {
             Some(witness_id) => IntervalCandidateDisposition::GuaranteedDominatedBy(witness_id),
@@ -827,6 +925,189 @@ mod tests {
         reverse.reverse();
         let second = compute_interval_frontier(&reverse).expect("valid schema");
         assert_eq!(first, second);
+    }
+
+    fn rankable_for_test<'a>(
+        candidate: &'a IntervalAlternativeCandidate,
+    ) -> RankableIntervalCandidate<'a> {
+        let mut objectives = candidate.objectives.iter().collect::<Vec<_>>();
+        objectives.sort_by_key(|objective| objective.dimension.clone());
+        RankableIntervalCandidate {
+            candidate,
+            objectives,
+        }
+    }
+
+    fn pairwise_frontier_ids(candidates: &[IntervalAlternativeCandidate]) -> Vec<String> {
+        let mut rankable = candidates.iter().map(rankable_for_test).collect::<Vec<_>>();
+        rankable.sort_by_key(|candidate| candidate.candidate.candidate_id.clone());
+        rankable
+            .iter()
+            .filter(|candidate| {
+                !rankable.iter().any(|other| {
+                    other.candidate.candidate_id != candidate.candidate.candidate_id
+                        && guaranteed_interval_dominates(other, candidate)
+                })
+            })
+            .map(|candidate| candidate.candidate.candidate_id.clone())
+            .collect()
+    }
+
+    fn generated_candidates(
+        seed: usize,
+        dimensions: usize,
+        count: usize,
+        profile: &str,
+    ) -> Vec<IntervalAlternativeCandidate> {
+        (0..count)
+            .map(|index| {
+                let (cost, coverage) = match profile {
+                    "dominated-chain" => (
+                        ((index * 10) as f64, (index * 10 + 2) as f64),
+                        (
+                            (10_000 - index * 10 - 2) as f64,
+                            (10_000 - index * 10) as f64,
+                        ),
+                    ),
+                    "tradeoff-heavy" => (
+                        ((index * 10) as f64, (index * 10 + 2) as f64),
+                        ((index * 10) as f64, (index * 10 + 2) as f64),
+                    ),
+                    "seeded-mixed" => {
+                        let cost_lower = (index * 37 + seed * 17) % 251;
+                        let coverage_lower = (index * 53 + seed * 31) % 257;
+                        (
+                            (
+                                cost_lower as f64,
+                                (cost_lower + (index * 7 + seed) % 9) as f64,
+                            ),
+                            (
+                                coverage_lower as f64,
+                                (coverage_lower + (index * 11 + seed * 3) % 9) as f64,
+                            ),
+                        )
+                    }
+                    _ => unreachable!("generated profile name is fixed in the test"),
+                };
+                let mut result = candidate(
+                    &format!("generated-{index:04}"),
+                    VerificationStatus::Verified,
+                    cost,
+                    coverage,
+                );
+                for axis in 2..dimensions {
+                    let direction = if axis % 2 == 0 {
+                        ObjectiveDirection::Minimize
+                    } else {
+                        ObjectiveDirection::Maximize
+                    };
+                    let lower = match (profile, direction) {
+                        ("dominated-chain", ObjectiveDirection::Minimize) => {
+                            (index * 10 + axis) as f64
+                        }
+                        ("dominated-chain", ObjectiveDirection::Maximize) => {
+                            (10_000 - index * 10 - axis) as f64
+                        }
+                        ("tradeoff-heavy", ObjectiveDirection::Minimize) => {
+                            (index * 10 + axis) as f64
+                        }
+                        ("tradeoff-heavy", ObjectiveDirection::Maximize) => {
+                            (index * 10 + axis) as f64
+                        }
+                        (_, _) => ((index * (31 + axis) + seed * (19 + axis)) % 263) as f64,
+                    };
+                    let width = match profile {
+                        "dominated-chain" => 1,
+                        "tradeoff-heavy" => 1,
+                        _ => (index * 5 + seed * 3 + axis * 7) % 6,
+                    };
+                    result.objectives.push(objective(
+                        &format!("objective_{axis}"),
+                        "synthetic_unit",
+                        direction,
+                        lower,
+                        lower + width as f64,
+                    ));
+                }
+                result
+            })
+            .collect()
+    }
+
+    #[test]
+    fn generated_interval_frontiers_match_pairwise_oracle_and_witnesses() {
+        for dimensions in [2_usize, 4, 6, 8] {
+            for profile in ["dominated-chain", "tradeoff-heavy", "seeded-mixed"] {
+                let candidates = generated_candidates(17, dimensions, 257, profile);
+                let report =
+                    compute_interval_frontier(&candidates).expect("generated schema is valid");
+                assert_eq!(
+                    report.frontier_ids,
+                    pairwise_frontier_ids(&candidates),
+                    "dimensions={dimensions} profile={profile}"
+                );
+                assert!(report.ranking_complete);
+
+                for result in &report.candidates {
+                    if let IntervalCandidateDisposition::GuaranteedDominatedBy(witness_id) =
+                        &result.disposition
+                    {
+                        let witness = candidates
+                            .iter()
+                            .find(|candidate| candidate.candidate_id == *witness_id)
+                            .expect("witness candidate exists");
+                        let target = candidates
+                            .iter()
+                            .find(|candidate| candidate.candidate_id == result.candidate_id)
+                            .expect("target candidate exists");
+                        assert!(
+                            guaranteed_interval_dominates(
+                                &rankable_for_test(witness),
+                                &rankable_for_test(target)
+                            ),
+                            "invalid witness {witness_id} for {}",
+                            result.candidate_id
+                        );
+                    }
+                }
+
+                let mut reversed = candidates.clone();
+                reversed.reverse();
+                assert_eq!(
+                    report,
+                    compute_interval_frontier(&reversed)
+                        .expect("reversed generated schema is valid"),
+                    "input-order invariance: dimensions={dimensions} profile={profile}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn paired_interval_comparison_matches_independent_directional_predicates() {
+        for dimensions in [2_usize, 4, 8] {
+            for profile in ["dominated-chain", "tradeoff-heavy", "seeded-mixed"] {
+                let candidates = generated_candidates(29, dimensions, 65, profile);
+                let rankable = candidates.iter().map(rankable_for_test).collect::<Vec<_>>();
+                for left_index in 0..rankable.len() {
+                    for right_index in (left_index + 1)..rankable.len() {
+                        let left = &rankable[left_index];
+                        let right = &rankable[right_index];
+                        let relation = compare_interval_dominance(left, right);
+                        assert_eq!(
+                            relation == IntervalDominanceRelation::LeftDominates,
+                            guaranteed_interval_dominates(left, right),
+                            "left direction: dims={dimensions} profile={profile}"
+                        );
+                        assert_eq!(
+                            relation == IntervalDominanceRelation::RightDominates,
+                            guaranteed_interval_dominates(right, left),
+                            "right direction: dims={dimensions} profile={profile}"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
