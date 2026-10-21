@@ -61,8 +61,22 @@ pub struct ConditioningCaseReport {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ConditioningCaseDefinition {
+    pub model: String,
+    pub base_span_m: f64,
+    pub apex_x_m: f64,
+    pub axial_stiffness_a_n_per_m: f64,
+    pub axial_stiffness_b_n_per_m: f64,
+    pub youngs_modulus_pa: f64,
+    pub target_displacement_m: [f64; 2],
+    pub vertical_rhs_perturbation_relative_amplitude: f64,
+    pub apex_height_schedule_m: [f64; 9],
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ConditioningSweepReport {
     pub benchmark_id: String,
+    pub case_definition: ConditioningCaseDefinition,
     pub machine_epsilon: f64,
     pub condition_reject_threshold: f64,
     pub accepted_case_count: usize,
@@ -321,6 +335,17 @@ pub fn conditioning_sweep_report() -> Check<ConditioningSweepReport> {
 
     Ok(ConditioningSweepReport {
         benchmark_id: CONDITIONING_BENCHMARK_ID.to_owned(),
+        case_definition: ConditioningCaseDefinition {
+            model: "static_small_displacement_linear_elastic_planar_pin_jointed_truss".to_owned(),
+            base_span_m: SPAN_M,
+            apex_x_m: APEX_X_M,
+            axial_stiffness_a_n_per_m: AXIAL_STIFFNESS_A_N_PER_M,
+            axial_stiffness_b_n_per_m: AXIAL_STIFFNESS_B_N_PER_M,
+            youngs_modulus_pa: YOUNGS_MODULUS_PA,
+            target_displacement_m: [TARGET_UX_M, TARGET_UY_M],
+            vertical_rhs_perturbation_relative_amplitude: RELATIVE_VERTICAL_RHS_PERTURBATION,
+            apex_height_schedule_m: HEIGHTS_M,
+        },
         machine_epsilon: f64::EPSILON,
         condition_reject_threshold: CONDITION_REJECT_THRESHOLD,
         accepted_case_count,
@@ -466,6 +491,17 @@ mod tests {
         let second = conditioning_sweep_report().expect("same frozen inputs should pass");
         assert_eq!(first, second);
         assert_eq!(first.benchmark_id, CONDITIONING_BENCHMARK_ID);
+        assert_eq!(first.case_definition.base_span_m, SPAN_M);
+        assert_eq!(first.case_definition.apex_x_m, APEX_X_M);
+        assert_eq!(first.case_definition.axial_stiffness_a_n_per_m, AXIAL_STIFFNESS_A_N_PER_M);
+        assert_eq!(first.case_definition.axial_stiffness_b_n_per_m, AXIAL_STIFFNESS_B_N_PER_M);
+        assert_eq!(first.case_definition.youngs_modulus_pa, YOUNGS_MODULUS_PA);
+        assert_eq!(first.case_definition.target_displacement_m, [TARGET_UX_M, TARGET_UY_M]);
+        assert_eq!(
+            first.case_definition.vertical_rhs_perturbation_relative_amplitude,
+            RELATIVE_VERTICAL_RHS_PERTURBATION
+        );
+        assert_eq!(first.case_definition.apex_height_schedule_m, HEIGHTS_M);
         assert_eq!(first.cases.len(), 9);
         assert_eq!(first.accepted_case_count, 7);
         assert_eq!(first.rejected_case_count, 2);
