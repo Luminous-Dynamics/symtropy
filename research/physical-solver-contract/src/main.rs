@@ -56,7 +56,9 @@ fn run() -> Result<(), String> {
                 }
                 displacement_manifest_path = Some(
                     args.get(i + 1)
-                        .ok_or_else(|| "--displacement-manifest requires a manifest path".to_owned())?
+                        .ok_or_else(|| {
+                            "--displacement-manifest requires a manifest path".to_owned()
+                        })?
                         .clone(),
                 );
                 i += 2;
@@ -246,18 +248,20 @@ fn run() -> Result<(), String> {
             deck_path.ok_or_else(|| "--displacement-manifest requires --deck".to_owned())?;
         let dat_path =
             dat_path.ok_or_else(|| "--displacement-manifest requires --dat".to_owned())?;
-        let build_manifest_path =
-            build_manifest_path.ok_or_else(|| "--displacement-manifest requires --build-manifest".to_owned())?;
+        let build_manifest_path = build_manifest_path
+            .ok_or_else(|| "--displacement-manifest requires --build-manifest".to_owned())?;
         let request_bytes = fs::read(&request_path)
             .map_err(|error| format!("could not read request {request_path}: {error}"))?;
         let deck_bytes = fs::read(&deck_path)
             .map_err(|error| format!("could not read deck {deck_path}: {error}"))?;
         let dat_bytes = fs::read(&dat_path)
             .map_err(|error| format!("could not read .dat output {dat_path}: {error}"))?;
-        let manifest_bytes = fs::read(manifest_path)
-            .map_err(|error| format!("could not read displacement manifest {manifest_path}: {error}"))?;
-        let build_manifest_bytes = fs::read(&build_manifest_path)
-            .map_err(|error| format!("could not read build manifest {build_manifest_path}: {error}"))?;
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| {
+            format!("could not read displacement manifest {manifest_path}: {error}")
+        })?;
+        let build_manifest_bytes = fs::read(&build_manifest_path).map_err(|error| {
+            format!("could not read build manifest {build_manifest_path}: {error}")
+        })?;
         let report = compare_displacement_reference_bytes(
             &request_bytes,
             &deck_bytes,
@@ -328,7 +332,11 @@ fn run() -> Result<(), String> {
         );
         return Ok(());
     }
-    if deck_path.is_some() || dat_path.is_some() || node_catalog_path.is_some() || build_manifest_path.is_some() {
+    if deck_path.is_some()
+        || dat_path.is_some()
+        || node_catalog_path.is_some()
+        || build_manifest_path.is_some()
+    {
         return Err("--deck and --dat require --restricted-rf-manifest or --displacement-manifest; --node-catalog requires --restricted-rf-manifest; --build-manifest requires --displacement-manifest".to_owned());
     }
 
