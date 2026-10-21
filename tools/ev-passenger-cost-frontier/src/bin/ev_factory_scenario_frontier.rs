@@ -432,6 +432,7 @@ fn validate_simulation_output(value: &Value, expected_seed_count: usize) -> Resu
         || value["replication_seeds"].as_array().map(Vec::len) != Some(expected_seed_count)
         || value["replication_outcomes"].as_array().map(Vec::len)
             != Some(expected_seed_count.saturating_mul(6))
+        || value["station_operating_statistics"].as_array().map(Vec::len) != Some(30)
         || value["output_never_exceeds_released_input"] != true
         || value["all_buffers_respected_capacity"] != true
         || value["station_time_accounting_within_horizon"] != true
