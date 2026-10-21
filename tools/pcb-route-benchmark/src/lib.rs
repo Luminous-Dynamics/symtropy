@@ -1469,6 +1469,313 @@ pub fn compare_runs(
     })
 }
 
+
+pub fn compare_replicated_runs(
+    baseline_runs: &[ValidatedRun],
+    treatment_runs: &[ValidatedRun],
+    evaluator_git_head: &str,
+) -> Result<ReplicatedComparisonReceipt, String> {
+    if !is_commit_sha(evaluator_git_head) {
+        return Err(
+            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
+    }
+    if baseline_runs.is_empty() || treatment_runs.is_empty() {
+        return Err("replicated comparison requires non-empty baseline and treatment series".into());
+    }
+
+    let baseline_by_seed = index_replicated_runs(baseline_runs, "baseline")?;
+    let treatment_by_seed = index_replicated_runs(treatment_runs, "treatment")?;
+    if baseline_by_seed.keys().ne(treatment_by_seed.keys()) {
+        return Err("replicated comparison requires identical declared seed sets".into());
+    }
+
+    let baseline_first = *baseline_by_seed.values().next().expect("non-empty baseline");
+    let treatment_first = *treatment_by_seed.values().next().expect("non-empty treatment");
+    if baseline_first.receipt.router.method_id == treatment_first.receipt.router.method_id {
+        return Err("baseline and treatment method IDs must differ".into());
+    }
+    if baseline_first.receipt.dataset_manifest_sha256
+        != treatment_first.receipt.dataset_manifest_sha256
+    {
+        return Err("replicated comparison dataset manifest digest differs".into());
+    }
+    if baseline_first.receipt.benchmark_id != treatment_first.receipt.benchmark_id
+        || baseline_first.receipt.benchmark_version != treatment_first.receipt.benchmark_version
+        || baseline_first.receipt.dataset_id != treatment_first.receipt.dataset_id
+        || baseline_first.receipt.split_id != treatment_first.receipt.split_id
+        || baseline_first.receipt.drc_policy_sha256 != treatment_first.receipt.drc_policy_sha256
+    {
+        return Err("replicated comparison benchmark, split, or DRC policy differs".into());
+    }
+    if baseline_first.receipt.drc_engine != treatment_first.receipt.drc_engine {
+        return Err("replicated comparison DRC engine pin differs".into());
+    }
+    if baseline_first.receipt.environment != treatment_first.receipt.environment {
+        return Err("replicated comparison environment differs".into());
+    }
+
+    let mut seed_pairs = Vec::with_capacity(baseline_by_seed.len());
+    for (seed, baseline) in &baseline_by_seed {
+        let treatment = treatment_by_seed
+            .get(seed)
+            .copied()
+            .ok_or_else(|| format!("treatment series lacks seed {seed}"))?;
+        // Reuse the single-seed pairing gate so each seed has identical board IDs,
+        // input digests, engine, DRC policy, environment and declared seed.
+        compare_runs(baseline, treatment, evaluator_git_head)?;
+        seed_pairs.push(SeedReportPin {
+            seed: *seed,
+            baseline_report_sha256: baseline.receipt.input_report_sha256.clone(),
+            treatment_report_sha256: treatment.receipt.input_report_sha256.clone(),
+        });
+    }
+
+    let board_ids: Vec<String> = baseline_first
+        .receipt
+        .cases
+        .iter()
+        .map(|case| case.board_id.clone())
+        .collect();
+    if board_ids.is_empty() {
+        return Err("replicated comparison requires at least one board".into());
+    }
+    let seed_count = baseline_by_seed.len();
+    let mut board_summaries = Vec::with_capacity(board_ids.len());
+    let mut completion_cluster_deltas = Vec::with_capacity(board_ids.len());
+    let mut elapsed_cluster_deltas = Vec::with_capacity(board_ids.len());
+    let mut wirelength_cluster_deltas = Vec::new();
+    let mut via_cluster_deltas = Vec::new();
+    let mut all_elapsed_deltas = Vec::with_capacity(board_ids.len() * seed_count);
+    let mut baseline_valid_attempts = 0usize;
+    let mut treatment_valid_attempts = 0usize;
+    let mut jointly_valid_attempts = 0usize;
+
+    for board_id in &board_ids {
+        let mut baseline_valid = 0usize;
+        let mut treatment_valid = 0usize;
+        let mut elapsed_deltas = Vec::with_capacity(seed_count);
+        let mut wirelength_deltas = Vec::new();
+        let mut via_deltas = Vec::new();
+
+        for seed in baseline_by_seed.keys() {
+            let baseline = baseline_by_seed[seed];
+            let treatment = treatment_by_seed[seed];
+            let baseline_case = baseline
+                .receipt
+                .cases
+                .iter()
+                .find(|case| case.board_id == *board_id)
+                .ok_or_else(|| format!("baseline seed {seed} lacks board {board_id}"))?;
+            let treatment_case = treatment
+                .receipt
+                .cases
+                .iter()
+                .find(|case| case.board_id == *board_id)
+                .ok_or_else(|| format!("treatment seed {seed} lacks board {board_id}"))?;
+            if baseline_case.input_board_sha256 != treatment_case.input_board_sha256
+                || baseline_case.required_nets != treatment_case.required_nets
+            {
+                return Err(format!("paired input identity differs for board {board_id}"));
+            }
+
+            baseline_valid += usize::from(baseline_case.valid_route_completion);
+            treatment_valid += usize::from(treatment_case.valid_route_completion);
+            let elapsed_delta =
+                treatment_case.elapsed_ms as f64 - baseline_case.elapsed_ms as f64;
+            elapsed_deltas.push(elapsed_delta);
+            all_elapsed_deltas.push(elapsed_delta);
+
+            if baseline_case.valid_route_completion && treatment_case.valid_route_completion {
+                if let (Some(left), Some(right)) = (
+                    baseline_case.total_wirelength_mm,
+                    treatment_case.total_wirelength_mm,
+                ) {
+                    wirelength_deltas.push(right - left);
+                }
+                if let (Some(left), Some(right)) =
+                    (baseline_case.via_count, treatment_case.via_count)
+                {
+                    via_deltas.push(right as f64 - left as f64);
+                }
+            }
+        }
+
+        baseline_valid_attempts += baseline_valid;
+        treatment_valid_attempts += treatment_valid;
+        jointly_valid_attempts += wirelength_deltas.len().min(via_deltas.len());
+
+        let board_completion_delta =
+            (treatment_valid as f64 - baseline_valid as f64) / seed_count as f64;
+        let board_elapsed_delta = mean(&elapsed_deltas);
+        completion_cluster_deltas.push(board_completion_delta);
+        elapsed_cluster_deltas.push(board_elapsed_delta);
+
+        let wirelength_delta = if wirelength_deltas.is_empty() {
+            None
+        } else {
+            let value = mean(&wirelength_deltas);
+            wirelength_cluster_deltas.push(value);
+            Some(value)
+        };
+        let via_delta = if via_deltas.is_empty() {
+            None
+        } else {
+            let value = mean(&via_deltas);
+            via_cluster_deltas.push(value);
+            Some(value)
+        };
+        board_summaries.push(ReplicatedBoardSummary {
+            board_id: board_id.clone(),
+            paired_attempt_count: seed_count,
+            baseline_valid_attempts: baseline_valid,
+            treatment_valid_attempts: treatment_valid,
+            baseline_completion_rate: baseline_valid as f64 / seed_count as f64,
+            treatment_completion_rate: treatment_valid as f64 / seed_count as f64,
+            completion_delta_percentage_points: board_completion_delta * 100.0,
+            mean_elapsed_delta_ms_treatment_minus_baseline: board_elapsed_delta,
+            jointly_valid_attempts: wirelength_deltas.len().min(via_deltas.len()),
+            mean_wirelength_delta_mm_treatment_minus_baseline: wirelength_delta,
+            mean_via_delta_treatment_minus_baseline: via_delta,
+        });
+    }
+
+    board_summaries.sort_by(|a, b| a.board_id.cmp(&b.board_id));
+    let board_count = board_summaries.len();
+    let paired_attempt_count = board_count * seed_count;
+    let baseline_rate = baseline_valid_attempts as f64 / paired_attempt_count as f64;
+    let treatment_rate = treatment_valid_attempts as f64 / paired_attempt_count as f64;
+
+    let seed_material = seed_pairs
+        .iter()
+        .map(|pair| {
+            format!(
+                "{}:{}:{}",
+                pair.seed, pair.baseline_report_sha256, pair.treatment_report_sha256
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    let master_seed_sha = sha256_hex(
+        format!(
+            "{}|{}|{}|pcb-route-board-cluster-bootstrap-v0.1",
+            baseline_first.receipt.dataset_manifest_sha256, seed_material, evaluator_git_head
+        )
+        .as_bytes(),
+    );
+    let (completion_seed, completion_seed_sha) =
+        derive_bootstrap_seed(&master_seed_sha, "board_cluster_completion");
+    let (elapsed_seed, elapsed_seed_sha) =
+        derive_bootstrap_seed(&master_seed_sha, "board_cluster_elapsed_ms");
+    let completion_ci = bootstrap_mean_ci(&completion_cluster_deltas, completion_seed);
+    let elapsed_ci = bootstrap_mean_ci(&elapsed_cluster_deltas, elapsed_seed);
+
+    let (wirelength_ci, wirelength_seed_sha) = if wirelength_cluster_deltas.is_empty() {
+        (None, None)
+    } else {
+        let (seed, seed_sha) =
+            derive_bootstrap_seed(&master_seed_sha, "board_cluster_wirelength_mm");
+        (Some(bootstrap_mean_ci(&wirelength_cluster_deltas, seed)), Some(seed_sha))
+    };
+    let (via_ci, via_seed_sha) = if via_cluster_deltas.is_empty() {
+        (None, None)
+    } else {
+        let (seed, seed_sha) = derive_bootstrap_seed(&master_seed_sha, "board_cluster_vias");
+        (Some(bootstrap_mean_ci(&via_cluster_deltas, seed)), Some(seed_sha))
+    };
+
+    Ok(ReplicatedComparisonReceipt {
+        schema: "pcb-route-replicated-comparison-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        dataset_manifest_sha256: baseline_first.receipt.dataset_manifest_sha256.clone(),
+        baseline_method_id: baseline_first.receipt.router.method_id.clone(),
+        treatment_method_id: treatment_first.receipt.router.method_id.clone(),
+        seed_pairs,
+        summary: ReplicatedSummary {
+            board_count,
+            seed_count,
+            paired_attempt_count,
+            baseline_valid_attempts,
+            treatment_valid_attempts,
+            baseline_completion_rate: baseline_rate,
+            treatment_completion_rate: treatment_rate,
+            completion_delta_percentage_points: (treatment_rate - baseline_rate) * 100.0,
+            completion_delta_95_ci_board_clustered: ConfidenceInterval {
+                lower_95: completion_ci.0 * 100.0,
+                upper_95: completion_ci.1 * 100.0,
+                resamples: BOOTSTRAP_RESAMPLES,
+                bootstrap_seed_sha256: completion_seed_sha,
+            },
+            mean_elapsed_delta_ms_treatment_minus_baseline: mean(&elapsed_cluster_deltas),
+            mean_elapsed_delta_95_ci_board_clustered_ms: ConfidenceInterval {
+                lower_95: elapsed_ci.0,
+                upper_95: elapsed_ci.1,
+                resamples: BOOTSTRAP_RESAMPLES,
+                bootstrap_seed_sha256: elapsed_seed_sha,
+            },
+            median_elapsed_delta_ms_per_attempt: median(&all_elapsed_deltas).unwrap_or(0.0),
+            jointly_valid_attempts,
+            mean_wirelength_delta_mm_treatment_minus_baseline: if wirelength_cluster_deltas.is_empty() {
+                None
+            } else {
+                Some(mean(&wirelength_cluster_deltas))
+            },
+            wirelength_delta_95_ci_board_clustered_mm: interval_option(
+                wirelength_ci,
+                wirelength_seed_sha.as_deref().unwrap_or(&master_seed_sha),
+            ),
+            mean_via_delta_treatment_minus_baseline: if via_cluster_deltas.is_empty() {
+                None
+            } else {
+                Some(mean(&via_cluster_deltas))
+            },
+            via_delta_95_ci_board_clustered: interval_option(
+                via_ci,
+                via_seed_sha.as_deref().unwrap_or(&master_seed_sha),
+            ),
+        },
+        boards: board_summaries,
+        authority: "board_clustered_paired_routing_metrics_only_no_physical_or_production_release_authority".into(),
+        claim_ceiling: "Seed repetitions are paired within board and board IDs are the bootstrap cluster. This avoids treating repeated tries on one board as independent boards. The comparison is still valid only for the pinned dataset, rule policy, engine, environment and exact inputs; it proves no SI/PI, manufacturing or physical qualification.".into(),
+    })
+}
+
+fn index_replicated_runs<'a>(
+    runs: &'a [ValidatedRun],
+    label: &str,
+) -> Result<BTreeMap<u64, &'a ValidatedRun>, String> {
+    let first = runs
+        .first()
+        .ok_or_else(|| format!("{label} series is empty"))?;
+    let mut indexed = BTreeMap::new();
+
+    for run in runs {
+        let seed = run
+            .report
+            .seed
+            .ok_or_else(|| format!("{label} series contains a run without a declared seed"))?;
+        if run.receipt.router != first.receipt.router {
+            return Err(format!("{label} series router pin changes between seeds"));
+        }
+        if run.receipt.benchmark_id != first.receipt.benchmark_id
+            || run.receipt.benchmark_version != first.receipt.benchmark_version
+            || run.receipt.dataset_id != first.receipt.dataset_id
+            || run.receipt.split_id != first.receipt.split_id
+            || run.receipt.dataset_manifest_sha256 != first.receipt.dataset_manifest_sha256
+            || run.receipt.drc_policy_sha256 != first.receipt.drc_policy_sha256
+            || run.receipt.drc_engine != first.receipt.drc_engine
+            || run.receipt.environment != first.receipt.environment
+        {
+            return Err(format!("{label} series benchmark, dataset, DRC policy, engine or environment changes between seeds"));
+        }
+        if indexed.insert(seed, run).is_some() {
+            return Err(format!("{label} series has duplicate seed {seed}"));
+        }
+    }
+
+    Ok(indexed)
+}
+
 fn bool_as_f64(value: bool) -> f64 {
     if value {
         1.0
