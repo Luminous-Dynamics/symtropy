@@ -151,9 +151,9 @@ A defensible initial industrial win is not “our model predicts better.” It i
 
 ## Scenario corpus
 
-- beverage-adaptive-sensing-scenarios-v1.json contains 20 synthetic cases.
+- beverage-adaptive-sensing-scenarios-v1.json contains 22 synthetic cases.
 - beverage-adaptive-sensing-scenarios-v1.schema.json defines the Draft 2020-12 contract.
-- Cases include fixed safety-test preservation, future-information leakage, unavailable channels, missing-as-zero errors, sensor drift, spatial gradients, delayed assays, insufficient dense-reference evidence, and policy auditability.
+- Cases include fixed safety-test preservation, future-information leakage, unavailable channels, missing-as-zero errors, sensor drift, spatial gradients, delayed assays, insufficient dense-reference evidence, policy auditability, non-positive expected net value, and results arriving after the decision deadline.
 
 These files define expected evaluator behavior. They do not contain empirical fermentation trajectories, a qualified sampler implementation, or a result showing any policy wins.
 
