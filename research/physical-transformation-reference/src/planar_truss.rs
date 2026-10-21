@@ -884,8 +884,18 @@ mod tests {
         // This exercises off-diagonal coupling that cancels in the symmetric oracle.
         let result = solve(&asymmetric_two_bar_truss()).expect("stable asymmetric truss");
         let apex = node(&result, "C");
-        close(apex.displacement_x_m, 1.875e-7, 1.0e-15, "asymmetric apex x");
-        close(apex.displacement_y_m, -5.625e-7, 1.0e-15, "asymmetric apex y");
+        close(
+            apex.displacement_x_m,
+            1.875e-7,
+            1.0e-15,
+            "asymmetric apex x",
+        );
+        close(
+            apex.displacement_y_m,
+            -5.625e-7,
+            1.0e-15,
+            "asymmetric apex y",
+        );
 
         let left = node(&result, "A");
         let right = node(&result, "B");
