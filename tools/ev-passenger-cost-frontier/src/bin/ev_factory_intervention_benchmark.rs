@@ -404,7 +404,6 @@ fn main() {
         }
         return;
     }
-    let args: Vec<String> = env::args().collect();
     if !(2..=3).contains(&args.len()) {
         eprintln!(
             "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour] | --calibrate-selection"
