@@ -1274,12 +1274,15 @@ mod tests {
         assert!(validate_job_lifecycle_evidence(&duplicate_sequence, 17, 1).is_err());
 
         let mut wrong_yield = baseline.clone();
-        wrong_yield["job_lifecycle_summary"]["station_first_pass_yield"][0]
-            ["first_attempt_passed"] = serde_json::json!(2);
+        wrong_yield["job_lifecycle_summary"]["station_first_pass_yield"][0]["first_attempt_passed"] =
+            serde_json::json!(2);
         assert!(validate_job_lifecycle_evidence(&wrong_yield, 17, 1).is_err());
 
         let mut missing_terminal = baseline.clone();
-        missing_terminal["job_lifecycle_events"].as_array_mut().unwrap().pop();
+        missing_terminal["job_lifecycle_events"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         missing_terminal["job_lifecycle_summary"]["event_count_in_ledger"] = serde_json::json!(1);
         assert!(validate_job_lifecycle_evidence(&missing_terminal, 17, 1).is_err());
     }
