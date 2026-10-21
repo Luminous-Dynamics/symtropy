@@ -132,6 +132,16 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
                 evidence.routing_blocking_violation_types
             ));
         }
+        if case.upstream_nonrouting_drc_after as usize
+            != evidence.nonrouting_blocking_violation_types.len()
+        {
+            return Err(format!(
+                "{}: normalized non-routing DRC count {} disagrees with raw KiCad DRC count {}",
+                case.board_id,
+                case.upstream_nonrouting_drc_after,
+                evidence.nonrouting_blocking_violation_types.len()
+            ));
+        }
         if case.valid_route_completion && !evidence.route_drc_pass {
             return Err(format!(
                 "{}: normalized report claims valid completion but raw KiCad DRC policy fails",
@@ -273,6 +283,13 @@ pub fn evaluate_kicad_drc_report_bytes(
         if !matches!(severity.as_str(), "error" | "warning" | "exclusion") {
             return Err(format!(
                 "unknown KiCad DRC included severity: {severity}"
+            ));
+        }
+    }
+    for required_severity in &policy.blocking_severities {
+        if !report.included_severities.contains(required_severity) {
+            return Err(format!(
+                "KiCad DRC report omits required blocking severity {required_severity:?}"
             ));
         }
     }
@@ -659,6 +676,25 @@ mod tests {
         assert_eq!(receipt.routing_blocking_violation_types, vec!["tracks_crossing"]);
         assert_eq!(receipt.nonrouting_blocking_violation_types, Vec::<String>::new());
         assert_eq!(receipt.unconnected_item_count, 1);
+    }
+
+
+    #[test]
+    fn refuses_reports_that_omit_a_policy_required_severity() {
+        let raw = report("[]", "[]", "[]").replace(
+            r#""included_severities":["error","warning"]"#,
+            r#""included_severities":["error"]"#,
+        );
+        assert!(
+            evaluate_kicad_drc_report_bytes(
+                raw.as_bytes(),
+                POLICY.as_bytes(),
+                "coupon.kicad_pcb",
+                "9.0.9",
+            )
+            .unwrap_err()
+            .contains("omits required blocking severity")
+        );
     }
 
     #[test]
