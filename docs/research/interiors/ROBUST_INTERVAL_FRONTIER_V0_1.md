@@ -31,7 +31,7 @@ The v0.1 relation only ranks intervals admitted as **DeterministicEnvelope** bou
 
 ## Test plan / acceptance
 
-The current tests cover separated intervals, overlapping intervals, point-interval agreement, touching bounds, blocked/indeterminate status, non-admitted evidence, malformed endpoints, different interval semantics/units, stale receipt binding, input-order invariance, empty input and duplicate IDs. The next gates are exact-head rustfmt, the complete furnishing tests, strict Clippy, and expansion to generated intervals checked against an independent small reference.
+The current tests cover separated intervals, overlapping intervals where midpoint ranking would create a false dominance, point-interval agreement, touching bounds, endpoint-level soundness across generated bound pairs, blocked/indeterminate status, non-admitted evidence, malformed endpoints, unsupported statistical semantics, different envelope bases/units, stale receipt binding, input-order invariance, empty input and duplicate IDs. The next gates are exact-head rustfmt, the complete furnishing tests, strict Clippy, and expansion to generated intervals checked against an independent small reference.
 
 Future benchmarks should compare midpoint ordering only as an ablation and report rank flips, guaranteed-dominance false positives, frontier-size/ambiguity growth, abstention, p50/p95/max and peak memory over 2/3/4/6/8 objectives at 25/100/1,000/10,000 candidates. Statistical intervals need empirical coverage/calibration; deterministic guarantees cannot be inferred from confidence bounds.
 
