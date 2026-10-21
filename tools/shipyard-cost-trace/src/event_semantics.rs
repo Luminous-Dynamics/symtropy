@@ -300,7 +300,7 @@ pub fn normalize_quantities(
                 ));
             }
             Some(target) => {
-                if !matches!(target.kind, QuantityRecordKind::Delta { .. }) {
+                if !matches!(&target.kind, QuantityRecordKind::Delta { .. }) {
                     errors.insert(format!(
                         "{}: correction/reversal target {} is not an original delta",
                         record.record_id, target_id
@@ -370,15 +370,15 @@ pub fn normalize_quantities(
             StreamMode::Snapshot => {
                 let latest = records_for_identity
                     .iter()
-                    .filter(|record| matches!(record.kind, QuantityRecordKind::CumulativeSnapshot { .. }))
+                    .filter(|record| matches!(&record.kind, QuantityRecordKind::CumulativeSnapshot { .. }))
                     .max_by_key(|record| record.sequence)
                     .expect("snapshot identity has at least one eligible snapshot");
                 for record in &records_for_identity {
                     source_stream_ids.insert(record.stream_id.clone());
                     evidence_record_ids.insert(record.record_id.clone());
                 }
-                match latest.kind {
-                    QuantityRecordKind::CumulativeSnapshot { quantity } => quantity,
+                match &latest.kind {
+                    QuantityRecordKind::CumulativeSnapshot { quantity } => *quantity,
                     _ => unreachable!("filtered to cumulative snapshots"),
                 }
             }
