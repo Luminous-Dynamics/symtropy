@@ -141,10 +141,9 @@ pub fn solve_published_axial_truss(
         * mass_multiplier;
     validate_positive("effective_mass_kg", effective_mass)?;
 
-    let frequencies = stiffness_eigenvalues
-        .map(|stiffness_eigenvalue| {
-            (stiffness_eigenvalue / effective_mass).sqrt() / (2.0 * std::f64::consts::PI)
-        });
+    let frequencies = stiffness_eigenvalues.map(|stiffness_eigenvalue| {
+        (stiffness_eigenvalue / effective_mass).sqrt() / (2.0 * std::f64::consts::PI)
+    });
     if frequencies
         .iter()
         .any(|value| !value.is_finite() || *value <= 0.0)
