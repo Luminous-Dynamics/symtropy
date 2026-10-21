@@ -184,8 +184,10 @@ jobs:
             and .uncertainty_method == "deterministic_interval_outward_rounded_v0.1"
             and .real_world_validation_status == "UNRESOLVED"
             and (.request_sha256 | test("^[0-9a-f]{64}$"))
-            and (.outputs | has("displacement_x_m") and has("displacement_y_m") and has("condition_infinity") and has("condition_times_machine_epsilon"))
-            and (.output_enclosures | has("displacement_x_m") and has("displacement_y_m") and has("determinant_n2_per_m2") and has("condition_infinity") and has("condition_times_machine_epsilon"))
+            and (.outputs | has("displacement_x_m") and has("displacement_y_m") and has("axial_stiffness_a_n_per_m") and has("axial_stiffness_b_n_per_m") and has("condition_infinity") and has("condition_times_machine_epsilon"))
+            and (.output_units.axial_stiffness_a_n_per_m == "N/m")
+            and (.output_units.axial_stiffness_b_n_per_m == "N/m")
+            and (.output_enclosures | has("displacement_x_m") and has("displacement_y_m") and has("determinant_n2_per_m2") and has("axial_stiffness_a_n_per_m") and has("axial_stiffness_b_n_per_m") and has("condition_infinity") and has("condition_times_machine_epsilon"))
             and (.output_enclosures | to_entries | all(.[]; (.value.lower <= .value.nominal) and (.value.nominal <= .value.upper) and (.value.lower | isfinite) and (.value.nominal | isfinite) and (.value.upper | isfinite) and (.value.width >= 0) and (.value.width | isfinite)))
             and (.output_enclosures.condition_infinity.lower >= 1)
             and (.output_enclosures.condition_infinity.upper < 100)
