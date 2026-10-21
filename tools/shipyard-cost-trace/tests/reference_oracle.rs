@@ -86,7 +86,7 @@ fn frozen_fixture() -> Vec<LedgerEvent> {
         quantity("weld-actual-a", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Observed, 7.0, Some(rate(100.0, "labor-v1"))),
         quantity("weld-actual-b", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Observed, 5.0, Some(rate(100.0, "labor-v1"))),
         quantity("overtime", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.overtime.hours", "hour", Stage::Observed, 2.0, Some(rate(150.0, "overtime-v1"))),
-        quantity("aluminium-plan", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.planned.kg", "kg", Stage::Planned, 120.0, Some(rate(250.0, "material-v4"))),
+        quantity("aluminium-plan", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.issued.kg", "kg", Stage::Planned, 120.0, Some(rate(250.0, "material-v4"))),
         quantity("aluminium-issued", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.issued.kg", "kg", Stage::Observed, 125.0, Some(rate(250.0, "material-v4"))),
         quantity("aluminium-scrap", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.scrapped.kg", "kg", Stage::Observed, 3.0, None),
         quantity("rework", "hull-001", CONFIG_A, "block-01-weld", "labor.rework.hours", "hour", Stage::Observed, 3.0, Some(rate(100.0, "labor-v1"))),
@@ -288,6 +288,32 @@ fn independent_reference_evaluator_matches_frozen_mixed_shipyard_ledger() {
         .find(|row| row.quantity_key == "labor.welder.overtime.hours")
         .expect("overtime estimate");
     assert_eq!(overtime.amount, 300.0);
+
+    let aluminium = actual
+        .quantity_reconciliations
+        .iter()
+        .find(|row| row.quantity_key == "material.aluminium.issued.kg")
+        .expect("aluminium issued");
+    assert_eq!(aluminium.planned, Some(120.0));
+    assert_eq!(aluminium.observed, Some(125.0));
+    assert_eq!(aluminium.observed_minus_planned, Some(5.0));
+    let aluminium_actual_rate = actual
+        .rate_card_costs
+        .iter()
+        .find(|row| {
+            row.quantity_key == "material.aluminium.issued.kg"
+                && row.stage == Stage::Observed
+        })
+        .expect("observed aluminium issue estimate");
+    assert_eq!(aluminium_actual_rate.amount, 31_250.0);
+
+    let rework = actual
+        .rate_card_costs
+        .iter()
+        .find(|row| row.quantity_key == "labor.rework.hours")
+        .expect("rework estimate");
+    assert_eq!(rework.amount, 300.0);
+    assert_eq!(actual.rate_card_costs.len(), 9);
 
     let paint = actual
         .quantity_reconciliations
