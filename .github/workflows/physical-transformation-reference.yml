@@ -289,6 +289,61 @@ jobs:
             and .acceptance.oracle == "independent inverse of the reduced 2x2 stiffness matrix"
           ' planar-truss-asymmetric-sweep-receipt.json
 
+      - name: Generate deterministic truss-conditioning receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          truss_source_sha256="$(sha256sum research/physical-transformation-reference/src/planar_truss.rs | awk '{print $1}')"
+          jq -n \
+            --arg source_commit "$source_commit" \
+            --arg truss_source_sha256 "$truss_source_sha256" \
+            '{
+              schema_version: "planar-truss-conditioning-receipt-v0.1",
+              benchmark_id: "PHYS-TRUSS-CONDITION-001",
+              source_commit: $source_commit,
+              source_sha256: {planar_truss_rs: $truss_source_sha256},
+              evidence_class: "software-test-run",
+              result: "pass",
+              test: "planar_truss::tests::conditioning_sweep_separates_backward_residual_from_forward_error",
+              case_count: 9,
+              apex_height_schedule_m: [1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001],
+              fixed_geometry: {base_span_m: 4.0, apex_x_m: 1.0},
+              axial_stiffness_n_per_m: {bar_a: 1000000000, bar_b: 2000000000},
+              target_apex_displacement_m: {x: 0.000001, y: -0.000002},
+              independent_condition_oracle: {
+                norm: "infinity",
+                determinant: "kA*kB*(cA*sB-sA*cB)^2",
+                reciprocal_condition_definition: "1/(norm_inf(K)*norm_inf(inverse(K)))"
+              },
+              acceptance: {
+                fail_closed_when_condition_times_machine_epsilon_gte: 0.001,
+                forward_error_bound: "condition_inf*backward_error/(1-condition_inf*backward_error)+16*condition_inf*machine_epsilon+1e-10",
+                zero_false_accepts_for_frozen_unresolved_stratum: true,
+                backward_and_forward_errors_reported_by_test_assertions: true
+              },
+              result_scope: {
+                model: "static small-displacement linear-elastic planar pin-jointed truss",
+                external_solver_invoked: false,
+                physical_validation: "not_performed"
+              },
+              claim_ceiling: "synthetic condition-boundary software verification only; no physical validation, structural safety or external FEM qualification"
+            }' > planar-truss-conditioning-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg truss_source_sha256 "$truss_source_sha256" '
+            .schema_version == "planar-truss-conditioning-receipt-v0.1"
+            and .benchmark_id == "PHYS-TRUSS-CONDITION-001"
+            and .source_commit == $source_commit
+            and .source_sha256.planar_truss_rs == $truss_source_sha256
+            and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .case_count == 9
+            and (.apex_height_schedule_m | length == 9)
+            and .independent_condition_oracle.norm == "infinity"
+            and .acceptance.fail_closed_when_condition_times_machine_epsilon_gte == 0.001
+            and .result_scope.physical_validation == "not_performed"
+          ' planar-truss-conditioning-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -299,5 +354,6 @@ jobs:
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
             planar-truss-asymmetric-sweep-receipt.json
+            planar-truss-conditioning-receipt.json
           if-no-files-found: error
           retention-days: 90
