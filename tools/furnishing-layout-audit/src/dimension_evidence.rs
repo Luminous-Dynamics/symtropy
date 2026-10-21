@@ -293,7 +293,8 @@ mod tests {
     #[test]
     fn duplicate_evidence_ids_are_rejected() {
         let mut doc = fixture();
-        doc["records"][1]["evidence_id"] = doc["records"][0]["evidence_id"].clone();
+        let first_id = doc["records"][0]["evidence_id"].clone();
+        doc["records"][1]["evidence_id"] = first_id;
         let errors = audit_dimension_evidence(&doc);
         assert!(errors.iter().any(|error| error.contains("duplicate evidence_id")));
     }
@@ -304,6 +305,23 @@ mod tests {
         doc["records"][0]["bounds_m"]["min_m"] = json!(0.0);
         let errors = audit_dimension_evidence(&doc);
         assert!(errors.iter().any(|error| error.contains("strictly positive minimum")));
+    }
+
+
+    #[test]
+    fn unknown_dimension_cannot_claim_a_measurement_method() {
+        let mut doc = fixture();
+        doc["records"][3]["method"] = json!("seller_estimate");
+        let errors = audit_dimension_evidence(&doc);
+        assert!(errors.iter().any(|error| error.contains("unknown state may only use method unavailable")));
+    }
+
+    #[test]
+    fn unsupported_document_units_fail_closed() {
+        let mut doc = fixture();
+        doc["units"]["length"] = json!("feet");
+        let errors = audit_dimension_evidence(&doc);
+        assert!(errors.iter().any(|error| error.contains("units.length must be m")));
     }
 
     #[test]
