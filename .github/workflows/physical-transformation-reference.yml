@@ -480,11 +480,11 @@ jobs:
           cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-chain-modal-sweep-reference -- \
             --source-commit "$source_commit" > beam-chain-modal-sweep-raw-b.json
           cmp --silent beam-chain-modal-sweep-raw-a.json beam-chain-modal-sweep-raw-b.json
-          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_sweep_request_v0_1.txt)"
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_participation_request_v0_1.txt)"
           test "$(jq -r '.request_canonical' beam-chain-modal-sweep-raw-a.json)" = "$request_canonical"
-          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|modal_participation=global-x-y-effective-modal-mass-v0.1|total_mass_basis=full-global-assembled-mass-including-restrained-translations"
           request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
-          test "$request_sha256" = "1a662e356f23b2683f569268e81edff6fad3859863dc325dd14a04d465878439"
+          test "$request_sha256" = "c1f99c84b11d6cb301bfb497c921f7234a730fd49ca0f77dbc0861d54d180544"
           crate_tree_sha256="$(
             git ls-files research/physical-transformation-reference |
               LC_ALL=C sort |
@@ -512,6 +512,8 @@ jobs:
             and .result == "pass"
             and .element_counts_per_member == [1,2,4,8]
             and (.mesh_results | length == 4)
+            and .modal_participation_metric == "global-x-y-effective-modal-mass-v0.1"
+            and .total_mass_basis == "full-global-assembled-mass-including-restrained-translations"
             and all(.mesh_results[]; .mode_count == (6 * .elements_per_member))
             and all(.mesh_results[]; .free_dof_count == .mode_count)
             and all(.mesh_results[]; .global_dof_count == (6 * .elements_per_member + 4))
@@ -519,6 +521,22 @@ jobs:
             and all(.mesh_results[]; .maximum_normalized_eigen_residual < 1e-9)
             and all(.mesh_results[]; .maximum_mass_norm_residual < 1e-9)
             and all(.mesh_results[]; .maximum_off_diagonal_mass_orthogonality_residual < 1e-9)
+            and all(.mesh_results[]; (.modal_participation.modes | length) == .mode_count)
+            and all(.mesh_results[]; .modal_participation.total_translational_mass_x_kg > 0)
+            and all(.mesh_results[]; .modal_participation.total_translational_mass_y_kg > 0)
+            and all(.mesh_results[]; all(.modal_participation.modes[];
+              .generalized_mass_kg > 0
+              and .effective_modal_mass_x_kg >= 0
+              and .effective_modal_mass_y_kg >= 0
+              and .effective_modal_mass_ratio_x >= 0
+              and .effective_modal_mass_ratio_x <= 1.00000001
+              and .effective_modal_mass_ratio_y >= 0
+              and .effective_modal_mass_ratio_y <= 1.00000001
+              and .cumulative_effective_modal_mass_ratio_x >= 0
+              and .cumulative_effective_modal_mass_ratio_x <= 1.00000001
+              and .cumulative_effective_modal_mass_ratio_y >= 0
+              and .cumulative_effective_modal_mass_ratio_y <= 1.00000001
+            ))
             and (.mesh_results[0].common_low_mode_frequency_relative_changes_from_previous_mesh == null)
             and (.mesh_results[0].max_common_low_mode_frequency_relative_change == null)
             and (.mesh_results[1].common_low_mode_frequency_relative_changes_from_previous_mesh | length == 6)
