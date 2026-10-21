@@ -648,8 +648,7 @@ fn parse_and_validate_deck(
             "NODE PRINT" => ["NSET"].into_iter().collect(),
             _ => BTreeSet::new(),
         };
-        let observed_params: BTreeSet<&str> =
-            card.params.keys().map(String::as_str).collect();
+        let observed_params: BTreeSet<&str> = card.params.keys().map(String::as_str).collect();
         if observed_params != expected_params {
             return Err(format!(
                 "card {} has unsupported or missing parameters: expected {expected_params:?}, observed {observed_params:?}",
@@ -848,7 +847,10 @@ fn parse_and_validate_deck(
     }
     let increments = csv_fields(&static_card.rows[0].1);
     if increments.len() != 4 {
-        return Err("STATIC increment row must contain initial, period, minimum, and maximum time values".to_owned());
+        return Err(
+            "STATIC increment row must contain initial, period, minimum, and maximum time values"
+                .to_owned(),
+        );
     }
     let initial_increment = parse_finite(increments[0], static_card.rows[0].0)?;
     let time_period = parse_finite(increments[1], static_card.rows[0].0)?;
@@ -861,7 +863,11 @@ fn parse_and_validate_deck(
         || minimum_increment > initial_increment
         || initial_increment > maximum_increment
         || time_period < initial_increment
-        || !approx_eq(time_period, expected_time, 1.0e-12 * expected_time.abs().max(1.0))
+        || !approx_eq(
+            time_period,
+            expected_time,
+            1.0e-12 * expected_time.abs().max(1.0),
+        )
     {
         return Err("STATIC time controls must be finite, positive, ordered, and match manifest.target_time".to_owned());
     }
@@ -1521,7 +1527,10 @@ U
             &build,
         )
         .unwrap_err();
-        assert!(time_error.contains("match manifest.target_time"), "{time_error}");
+        assert!(
+            time_error.contains("match manifest.target_time"),
+            "{time_error}"
+        );
 
         let wrong_build = build_manifest().into_iter().collect::<Vec<_>>();
         let mut changed_build: Value = serde_json::from_slice(&wrong_build).unwrap();
