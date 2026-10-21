@@ -260,7 +260,6 @@ fn guaranteed_interval_dominates(
     strictly_better
 }
 
-
 /// Compute exact witnesses by maintaining only the current guaranteed frontier.
 ///
 /// This relation is transitive: if A's interval is separated from B's and B's
@@ -409,9 +408,7 @@ pub fn compute_interval_frontier(
     let dominators = incremental_interval_dominators(&rankable);
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        let witness = dominators
-            .get(&candidate.candidate.candidate_id)
-            .cloned();
+        let witness = dominators.get(&candidate.candidate.candidate_id).cloned();
 
         let disposition = match witness {
             Some(witness_id) => IntervalCandidateDisposition::GuaranteedDominatedBy(witness_id),
@@ -881,7 +878,6 @@ mod tests {
         assert_eq!(first, second);
     }
 
-
     fn rankable_for_test<'a>(
         candidate: &'a IntervalAlternativeCandidate,
     ) -> RankableIntervalCandidate<'a> {
@@ -894,10 +890,7 @@ mod tests {
     }
 
     fn pairwise_frontier_ids(candidates: &[IntervalAlternativeCandidate]) -> Vec<String> {
-        let mut rankable = candidates
-            .iter()
-            .map(rankable_for_test)
-            .collect::<Vec<_>>();
+        let mut rankable = candidates.iter().map(rankable_for_test).collect::<Vec<_>>();
         rankable.sort_by_key(|candidate| candidate.candidate.candidate_id.clone());
         rankable
             .iter()
