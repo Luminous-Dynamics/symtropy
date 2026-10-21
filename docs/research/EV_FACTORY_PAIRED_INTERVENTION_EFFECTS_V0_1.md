@@ -35,6 +35,14 @@ The CLI now accepts an explicit optional `practical-margin-units-per-hour` argum
 
 A candidate is reported as robust-best only if it is meaningfully better than every other candidate under the **family-wise-adjusted** interval rule. If even one adjusted comparison is inconclusive or equivalent, the evaluator returns no unique robust best. Pointwise intervals alone are not promoted as family-wise evidence. The margin is a declared benchmark setting—not an industry standard—and must be sensitivity-tested or pre-registered before any future measured-data evaluation.
 
+## Family-wise calibration smoke report
+
+The CLI supports `--calibrate-selection`, which emits a deterministic machine-readable report for a fixed synthetic generator. The current panel uses five candidates, 20 paired replications, a declared 0.05 practical margin, 2,000 exact-null trials and 500 trials with one intervention having a true mean advantage of 1.7 good units/hour. The generator uses a SplitMix64 stream and a sum-of-12-uniforms approximate-normal variate, including shared noise to represent common-random-number correlation.
+
+The report records actual false-winner counts and rates for the pointwise and Bonferroni-adjusted procedures, correct-selection rates for the separated-winner case, Wilson 95% intervals on those Monte Carlo rates, the deterministic generator seed, and a SHA-256 digest of the generator specification. The CI workflow validates the report contract, compares repeated output byte-for-byte, and includes the JSON in the evidence artifact and source/report hash ledger.
+
+This is a **calibration smoke test**, not a distribution-free guarantee. Wilson intervals describe Monte Carlo uncertainty for these fixed synthetic trials; they do not establish the real-world family-wise error rate. The sum-of-uniforms generator is only approximately normal, and the paired-Student-t interval still depends on its parametric assumptions. The larger held-out-generator calibration, heavy-tail/unequal-variance cases and comparison with recognized ranking-and-selection procedures remain open work in [#2505](https://github.com/Luminous-Dynamics/symtropy/issues/2505) and [#2551](https://github.com/Luminous-Dynamics/symtropy/issues/2551).
+
 ## Reproducibility and guards
 
 - The source simulation report is hashed from the exact raw bytes by the ranking executable.
