@@ -10,94 +10,93 @@ use shipyard_cost_trace::{
     RateCardCostTotal, Stage,
 };
 
-const CONFIG_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const CONFIG_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const GOLDEN_TSV: &str = include_str!("fixtures/golden-ledger-v0.tsv");
+const EXPECTED_HEADER: &str = "event_id\tbuild_id\tconfiguration_sha256\ttask_id\tstage\tkind\tquantity_key\tunit\tquantity\trate_minor_units\tcurrency_basis_id\tminor_unit_exponent\trate_card_ref\ttransaction_ref\tamount_minor_units\tsource_ref\tsource_permission_ref\trelated_event_ids";
 
-fn quantity(
-    id: &str,
-    build: &str,
-    config: &str,
-    task: &str,
-    key: &str,
-    unit: &str,
-    stage: Stage,
-    amount: f64,
-    rate: Option<QuantityRate>,
-) -> LedgerEvent {
-    LedgerEvent {
-        event_id: id.to_owned(),
-        build_id: build.to_owned(),
-        configuration_sha256: config.to_owned(),
-        task_id: task.to_owned(),
-        stage,
-        source_ref: format!("fixture:{id}"),
-        source_permission: EvidencePermission::PublicOrPermitted,
-        source_permission_ref: "fixture-rights:public-test-data-v1".to_owned(),
-        related_event_ids: Vec::new(),
-        kind: EventKind::Quantity(QuantityEvent {
-            quantity_key: key.to_owned(),
-            quantity: amount,
-            unit: unit.to_owned(),
-            rate,
-        }),
-    }
-}
-
-fn financial(
-    id: &str,
-    build: &str,
-    config: &str,
-    task: &str,
-    transaction_ref: &str,
-    amount_minor_units: i64,
-) -> LedgerEvent {
-    LedgerEvent {
-        event_id: id.to_owned(),
-        build_id: build.to_owned(),
-        configuration_sha256: config.to_owned(),
-        task_id: task.to_owned(),
-        stage: Stage::Observed,
-        source_ref: format!("fixture:{transaction_ref}"),
-        source_permission: EvidencePermission::PublicOrPermitted,
-        source_permission_ref: "fixture-rights:public-test-data-v1".to_owned(),
-        related_event_ids: Vec::new(),
-        kind: EventKind::FinancialActual(FinancialTransaction {
-            transaction_ref: transaction_ref.to_owned(),
-            amount_minor_units,
-            currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
-            minor_unit_exponent: 2,
-        }),
-    }
-}
-
-fn rate(unit_rate: f64, name: &str) -> QuantityRate {
-    QuantityRate {
-        unit_rate,
-        currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
-        minor_unit_exponent: 2,
-        rate_card_ref: name.to_owned(),
+fn parse_stage(value: &str) -> Stage {
+    match value {
+        "planned" => Stage::Planned,
+        "simulated" => Stage::Simulated,
+        "observed" => Stage::Observed,
+        other => panic!("unknown stage in frozen fixture: {other}"),
     }
 }
 
 fn frozen_fixture() -> Vec<LedgerEvent> {
-    vec![
-        quantity("weld-plan", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Planned, 10.0, Some(rate(100.0, "labor-v1"))),
-        quantity("weld-sim", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Simulated, 11.0, Some(rate(100.0, "labor-v1"))),
-        quantity("weld-actual-a", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Observed, 7.0, Some(rate(100.0, "labor-v1"))),
-        quantity("weld-actual-b", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.hours", "hour", Stage::Observed, 5.0, Some(rate(100.0, "labor-v1"))),
-        quantity("overtime", "hull-001", CONFIG_A, "block-01-weld", "labor.welder.overtime.hours", "hour", Stage::Observed, 2.0, Some(rate(150.0, "overtime-v1"))),
-        quantity("aluminium-plan", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.issued.kg", "kg", Stage::Planned, 120.0, Some(rate(250.0, "material-v4"))),
-        quantity("aluminium-issued", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.issued.kg", "kg", Stage::Observed, 125.0, Some(rate(250.0, "material-v4"))),
-        quantity("aluminium-scrap", "hull-001", CONFIG_A, "block-01-weld", "material.aluminium.scrapped.kg", "kg", Stage::Observed, 3.0, None),
-        quantity("rework", "hull-001", CONFIG_A, "block-01-weld", "labor.rework.hours", "hour", Stage::Observed, 3.0, Some(rate(100.0, "labor-v1"))),
-        quantity("paint-plan", "hull-001", CONFIG_A, "block-02-paint", "labor.painter.hours", "hour", Stage::Planned, 10.0, Some(rate(80.0, "labor-v1"))),
-        quantity("paint-actual", "hull-001", CONFIG_A, "block-02-paint", "labor.painter.hours", "hour", Stage::Observed, 8.0, Some(rate(80.0, "labor-v1"))),
-        quantity("cnc-simulation-only", "hull-001", CONFIG_A, "block-03-cnc", "labor.cnc.hours", "hour", Stage::Simulated, 5.5, None),
-        financial("invoice-weld", "hull-001", CONFIG_A, "block-01-weld", "invoice-800:line-01", 150_000),
-        financial("credit-weld", "hull-001", CONFIG_A, "block-01-weld", "credit-800:line-01", -5_000),
-        financial("invoice-paint", "hull-001", CONFIG_A, "block-02-paint", "invoice-801:line-02", 80_000),
-        financial("invoice-revised-config", "hull-002", CONFIG_B, "block-01-weld", "invoice-900:line-01", 2_345),
-    ]
+    let mut lines = GOLDEN_TSV.lines();
+    assert_eq!(lines.next(), Some(EXPECTED_HEADER), "frozen corpus header");
+
+    lines
+        .filter(|line| !line.is_empty())
+        .enumerate()
+        .map(|(line_index, line)| {
+            let fields: Vec<&str> = line.split('\t').collect();
+            assert_eq!(
+                fields.len(),
+                18,
+                "frozen corpus row {} must have 18 columns",
+                line_index + 2
+            );
+
+            let stage = parse_stage(fields[4]);
+            let related_event_ids = if fields[17] == "-" {
+                Vec::new()
+            } else {
+                fields[17].split(';').map(str::to_owned).collect()
+            };
+
+            let kind = match fields[5] {
+                "quantity" => {
+                    let rate = if fields[9].is_empty() {
+                        None
+                    } else {
+                        Some(QuantityRate {
+                            unit_rate: fields[9]
+                                .parse()
+                                .expect("valid frozen rate-card unit rate"),
+                            currency_basis_id: fields[10].to_owned(),
+                            minor_unit_exponent: fields[11]
+                                .parse()
+                                .expect("valid frozen rate denomination"),
+                            rate_card_ref: fields[12].to_owned(),
+                        })
+                    };
+                    EventKind::Quantity(QuantityEvent {
+                        quantity_key: fields[6].to_owned(),
+                        unit: fields[7].to_owned(),
+                        quantity: fields[8]
+                            .parse()
+                            .expect("valid frozen quantity"),
+                        rate,
+                    })
+                }
+                "financial" => EventKind::FinancialActual(FinancialTransaction {
+                    transaction_ref: fields[13].to_owned(),
+                    amount_minor_units: fields[14]
+                        .parse()
+                        .expect("valid frozen financial amount"),
+                    currency_basis_id: fields[10].to_owned(),
+                    minor_unit_exponent: fields[11]
+                        .parse()
+                        .expect("valid frozen financial denomination"),
+                }),
+                other => panic!("unknown frozen event kind: {other}"),
+            };
+
+            LedgerEvent {
+                event_id: fields[0].to_owned(),
+                build_id: fields[1].to_owned(),
+                configuration_sha256: fields[2].to_owned(),
+                task_id: fields[3].to_owned(),
+                stage,
+                kind,
+                source_ref: fields[15].to_owned(),
+                source_permission: EvidencePermission::PublicOrPermitted,
+                source_permission_ref: fields[16].to_owned(),
+                related_event_ids,
+            }
+        })
+        .collect()
 }
 
 /// Deliberately simple reference algorithm. It does not invoke audit or production helpers.
