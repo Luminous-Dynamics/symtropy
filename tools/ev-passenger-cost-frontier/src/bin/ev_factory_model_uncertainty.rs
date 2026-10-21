@@ -339,18 +339,21 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
     mark_pareto_frontier(&mut designs);
 
     let mut feasible: Vec<&Design> = designs.iter().filter(|design| design.feasible).collect();
-    let nominal_best = *feasible
+    let nominal_best = (**feasible
         .iter()
         .min_by(|a, b| nominal_preference_cmp(a, b))
-        .ok_or_else(|| "no_nominal_feasible_design".to_string())?;
-    let interval_best = *feasible
+        .ok_or_else(|| "no_nominal_feasible_design".to_string())?)
+        .clone();
+    let interval_best = (**feasible
         .iter()
         .min_by(|a, b| interval_preference_cmp(a, b))
-        .ok_or_else(|| "no_interval_robust_feasible_design".to_string())?;
-    let minimax_regret = *feasible
+        .ok_or_else(|| "no_interval_robust_feasible_design".to_string())?)
+        .clone();
+    let minimax_regret = (**feasible
         .iter()
         .min_by(|a, b| regret_preference_cmp(a, b))
-        .ok_or_else(|| "no_minimax_regret_feasible_design".to_string())?;
+        .ok_or_else(|| "no_minimax_regret_feasible_design".to_string())?)
+        .clone();
 
     let mut objectives = vec![
         Objective { field: "interval_lower_bound_worst_case_gain_units_per_hour".into(), direction: "maximize".into() },
