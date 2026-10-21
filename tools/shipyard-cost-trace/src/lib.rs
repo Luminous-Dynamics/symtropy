@@ -373,18 +373,18 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         if is_nonempty(&event.event_id) && !event_ids.insert(event.event_id.as_str()) {
             errors.push(format!("{}: duplicate event_id", event.event_id));
         }
-        if let EventKind::FinancialActual(transaction) = &event.kind {
-            if is_nonempty(&transaction.transaction_ref) {
-                let key = (
-                    event.build_id.as_str(),
-                    transaction.transaction_ref.as_str(),
-                );
-                if !transaction_refs.insert(key) {
-                    errors.push(format!(
-                        "{}: duplicate financial transaction allocation {}",
-                        event.event_id, transaction.transaction_ref
-                    ));
-                }
+        if let EventKind::FinancialActual(transaction) = &event.kind
+            && is_nonempty(&transaction.transaction_ref)
+        {
+            let key = (
+                event.build_id.as_str(),
+                transaction.transaction_ref.as_str(),
+            );
+            if !transaction_refs.insert(key) {
+                errors.push(format!(
+                    "{}: duplicate financial transaction allocation {}",
+                    event.event_id, transaction.transaction_ref
+                ));
             }
         }
         validate_event(event, &mut errors);
