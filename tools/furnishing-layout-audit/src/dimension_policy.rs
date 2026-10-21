@@ -273,7 +273,9 @@ pub fn assess_dimensions(
                 disposition: EvidenceDisposition::Blocked,
                 evidence_ids,
                 bounds_m: claim_bounds,
-                reason: format!("evidence state {state:?} is not allowed for this mandatory requirement"),
+                reason: format!(
+                    "evidence state {state:?} is not allowed for this mandatory requirement"
+                ),
             });
         } else {
             dimensions.push(DimensionAssessment {
@@ -282,7 +284,9 @@ pub fn assess_dimensions(
                 disposition: EvidenceDisposition::Provisional,
                 evidence_ids,
                 bounds_m: claim_bounds,
-                reason: format!("evidence state {state:?} is not in the allowed set; retained for preview only"),
+                reason: format!(
+                    "evidence state {state:?} is not in the allowed set; retained for preview only"
+                ),
             });
         }
     }
@@ -293,9 +297,10 @@ pub fn assess_dimensions(
             .any(|item| item.mandatory && item.disposition == EvidenceDisposition::Blocked)
     {
         PromotionDisposition::Blocked
-    } else if dimensions.iter().any(|item| {
-        item.mandatory && item.disposition == EvidenceDisposition::Indeterminate
-    }) {
+    } else if dimensions
+        .iter()
+        .any(|item| item.mandatory && item.disposition == EvidenceDisposition::Indeterminate)
+    {
         PromotionDisposition::Indeterminate
     } else if dimensions
         .iter()
@@ -358,7 +363,11 @@ mod tests {
         assert_eq!(dimension.disposition, EvidenceDisposition::AcceptedByPolicy);
         assert_eq!(dimension.bounds_m, Some((3.98, 4.02)));
         assert_eq!(dimension.accepted_bounds_m(), Some((3.98, 4.02)));
-        assert!(dimension.reason.contains("authenticity and freshness were not evaluated"));
+        assert!(
+            dimension
+                .reason
+                .contains("authenticity and freshness were not evaluated")
+        );
     }
 
     #[test]
@@ -388,7 +397,10 @@ mod tests {
         );
         let report = assess_dimensions(&document, &[requirement]);
         assert_eq!(report.disposition, PromotionDisposition::Blocked);
-        assert_eq!(report.dimensions[0].disposition, EvidenceDisposition::Blocked);
+        assert_eq!(
+            report.dimensions[0].disposition,
+            EvidenceDisposition::Blocked
+        );
         assert_eq!(report.dimensions[0].accepted_bounds_m(), None);
         assert!(report.dimensions[0].bounds_m.is_some());
     }
@@ -405,20 +417,17 @@ mod tests {
         );
         let report = assess_dimensions(&document, &[requirement]);
         assert_eq!(report.disposition, PromotionDisposition::Indeterminate);
-        assert_eq!(report.dimensions[0].disposition, EvidenceDisposition::Indeterminate);
+        assert_eq!(
+            report.dimensions[0].disposition,
+            EvidenceDisposition::Indeterminate
+        );
         assert_eq!(report.dimensions[0].bounds_m, None);
     }
 
     #[test]
     fn missing_mandatory_dimension_is_indeterminate_not_clear() {
         let document = fixture();
-        let requirement = requirement(
-            "placement",
-            "missing-placement",
-            "x",
-            MEASURED_ONLY,
-            true,
-        );
+        let requirement = requirement("placement", "missing-placement", "x", MEASURED_ONLY, true);
         let report = assess_dimensions(&document, &[requirement]);
         assert_eq!(report.disposition, PromotionDisposition::Indeterminate);
         assert_eq!(report.dimensions[0].accepted_bounds_m(), None);
@@ -427,16 +436,13 @@ mod tests {
     #[test]
     fn missing_nonmandatory_dimension_is_preview_only() {
         let document = fixture();
-        let requirement = requirement(
-            "placement",
-            "optional-placement",
-            "y",
-            MEASURED_ONLY,
-            false,
-        );
+        let requirement = requirement("placement", "optional-placement", "y", MEASURED_ONLY, false);
         let report = assess_dimensions(&document, &[requirement]);
         assert_eq!(report.disposition, PromotionDisposition::PreviewOnly);
-        assert_eq!(report.dimensions[0].disposition, EvidenceDisposition::Provisional);
+        assert_eq!(
+            report.dimensions[0].disposition,
+            EvidenceDisposition::Provisional
+        );
     }
 
     #[test]
@@ -444,7 +450,10 @@ mod tests {
         let mut document = fixture();
         let mut duplicate = document["records"][0].clone();
         duplicate["evidence_id"] = json!("DIM-EVID-005");
-        document["records"].as_array_mut().expect("records array").push(duplicate);
+        document["records"]
+            .as_array_mut()
+            .expect("records array")
+            .push(duplicate);
         let requirement = requirement(
             "product",
             "fixture-cabinet-revision-a",
@@ -464,13 +473,7 @@ mod tests {
     fn invalid_document_blocks_every_policy_promotion() {
         let mut document = fixture();
         document["units"]["length"] = json!("feet");
-        let requirement = requirement(
-            "room",
-            "fixture-room-001",
-            "width",
-            MEASURED_ONLY,
-            true,
-        );
+        let requirement = requirement("room", "fixture-room-001", "width", MEASURED_ONLY, true);
         let report = assess_dimensions(&document, &[requirement]);
         assert_eq!(report.disposition, PromotionDisposition::Blocked);
         assert!(!report.structural_errors.is_empty());
