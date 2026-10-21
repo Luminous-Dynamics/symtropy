@@ -493,11 +493,11 @@ jobs:
           cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-chain-modal-sweep-reference -- \
             --source-commit "$source_commit" > beam-chain-modal-sweep-raw-b.json
           cmp --silent beam-chain-modal-sweep-raw-a.json beam-chain-modal-sweep-raw-b.json
-          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_subspace_sweep_request_v0_1.txt)"
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_mode_match_request_v0_1.txt)"
           test "$(jq -r '.request_canonical' beam-chain-modal-sweep-raw-a.json)" = "$request_canonical"
-          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|sample_points_per_member=17|frequency_cluster_relative_gap=0.001|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches"
+          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|sample_points_per_member=17|frequency_cluster_relative_gap=0.001|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches|isolated_mode_max_relative_frequency_gap=0.25|isolated_mode_minimum_mac=0.7|isolated_assignment=hungarian-max-total-mac-with-abstention"
           request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
-          test "$request_sha256" = "0abeee5bbbc6d777d8e6450da27836998b4588b3b5b551af965fb7e89cd2d6c8"
+          test "$request_sha256" = "513bdfad91980dabb275e7a4fc63e73586f78c3d05daf394c159f155b07b196a"
           crate_tree_sha256="$(
             git ls-files research/physical-transformation-reference |
               LC_ALL=C sort |
@@ -560,6 +560,34 @@ jobs:
                 )
               else
                 .clustered_mode_subspace_comparison_from_previous_mesh.comparisons == []
+              end
+            ))
+            and (.mesh_results[0].isolated_mode_assignment_from_previous_mesh == null)
+            and all(.mesh_results[1:][]; (
+              .isolated_mode_assignment_from_previous_mesh.status == "matched"
+              or .isolated_mode_assignment_from_previous_mesh.status == "no-isolated-modes"
+              or .isolated_mode_assignment_from_previous_mesh.status == "abstain-no-complete-assignment"
+              or .isolated_mode_assignment_from_previous_mesh.status == "abstain-cluster-partition-changed"
+            ))
+            and all(.mesh_results[1:][]; (
+              if .isolated_mode_assignment_from_previous_mesh.status == "matched"
+              then
+                (.isolated_mode_assignment_from_previous_mesh.matches | length) > 0
+                and (.isolated_mode_assignment_from_previous_mesh.minimum_matched_mac >= 0.7)
+                and (.isolated_mode_assignment_from_previous_mesh.mean_matched_mac >= 0.7)
+                and (.isolated_mode_assignment_from_previous_mesh.maximum_matched_frequency_gap <= 0.25)
+                and all(.isolated_mode_assignment_from_previous_mesh.matches[];
+                  .reference_mode_index >= 0 and .reference_mode_index < 6
+                  and .candidate_mode_index >= 0 and .candidate_mode_index < 6
+                  and .relative_frequency_gap >= 0 and .relative_frequency_gap <= 0.25
+                  and .mac >= 0.7 and .mac <= 1
+                )
+                and (([.isolated_mode_assignment_from_previous_mesh.matches[].reference_mode_index] | unique | length)
+                  == (.isolated_mode_assignment_from_previous_mesh.matches | length))
+                and (([.isolated_mode_assignment_from_previous_mesh.matches[].candidate_mode_index] | unique | length)
+                  == (.isolated_mode_assignment_from_previous_mesh.matches | length))
+              else
+                .isolated_mode_assignment_from_previous_mesh.matches == []
               end
             ))
             and (.claim_ceiling | contains("not a mesh-converged"))
