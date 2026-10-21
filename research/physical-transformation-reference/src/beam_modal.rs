@@ -439,7 +439,7 @@ fn mass_inner_product(mass: &Matrix, left: &[f64], right: &[f64]) -> Check<f64> 
 #[cfg(test)]
 mod tests {
     use crate::beam_pin_assembly::{
-        BeamMemberChain, BeamPinMember, BeamPinNode, assemble_released_joint_beam_chains,
+        BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_beam_chains,
         assemble_released_joint_pin_truss,
     };
 
@@ -447,6 +447,37 @@ mod tests {
         BeamModeClass, modal_assurance_criterion, sample_beam_chain_mode_on_fixed_grid,
         solve_beam_pin_assembly_modes,
     };
+
+    fn coordinates_for_chain_node(
+        node_id: &str,
+        nodes: &[BeamPinNode],
+        members: &[BeamMemberChain],
+        elements_per_member: usize,
+    ) -> (f64, f64) {
+        if let Some(node) = nodes.iter().find(|node| node.id == node_id) {
+            return (node.x_m, node.y_m);
+        }
+        for member in members {
+            let prefix = format!("{}::station::", member.id);
+            if let Some(station_text) = node_id.strip_prefix(&prefix) {
+                let station_index = station_text.parse::<usize>().expect("numeric station ID");
+                let start = nodes
+                    .iter()
+                    .find(|node| node.id == member.start_node_id)
+                    .expect("member start node");
+                let end = nodes
+                    .iter()
+                    .find(|node| node.id == member.end_node_id)
+                    .expect("member end node");
+                let fraction = station_index as f64 / elements_per_member as f64;
+                return (
+                    start.x_m + (end.x_m - start.x_m) * fraction,
+                    start.y_m + (end.y_m - start.y_m) * fraction,
+                );
+            }
+        }
+        panic!("node coordinate not found for {node_id}");
+    }
 
     fn chain_fixture(
         elements_per_member: usize,
@@ -660,6 +691,79 @@ mod tests {
             (modal_assurance_criterion(&samples_1, &samples_4).expect("same-grid MAC") - 1.0)
                 .abs()
                 < 1.0e-14
+        );
+    }
+
+    #[test]
+    fn fixed_grid_mode_sampling_is_invariant_for_rigid_rotation_across_meshes() {
+        let (nodes_1, members_1) = chain_fixture(1);
+        let assembly_1 = assemble_released_joint_beam_chains(&nodes_1, &members_1)
+            .expect("coarse member-chain assembly");
+        let (nodes_4, members_4) = chain_fixture(4);
+        let assembly_4 = assemble_released_joint_beam_chains(&nodes_4, &members_4)
+            .expect("refined member-chain assembly");
+        let angular_rate = 0.015_f64;
+
+        let make_rigid_rotation = |
+            assembly: &crate::beam_pin_assembly::BeamPinAssembly,
+            nodes: &[BeamPinNode],
+            members: &[BeamMemberChain],
+            elements_per_member: usize,
+        | {
+            let mut shape = vec![0.0; assembly.stiffness_global.len()];
+            for descriptor in &assembly.dof_descriptors {
+                match &descriptor.kind {
+                    BeamPinDofKind::NodeTranslationX { node_id } => {
+                        let (x, y) = coordinates_for_chain_node(
+                            node_id,
+                            nodes,
+                            members,
+                            elements_per_member,
+                        );
+                        let _ = x;
+                        shape[descriptor.index] = -angular_rate * y;
+                    }
+                    BeamPinDofKind::NodeTranslationY { node_id } => {
+                        let (x, _) = coordinates_for_chain_node(
+                            node_id,
+                            nodes,
+                            members,
+                            elements_per_member,
+                        );
+                        shape[descriptor.index] = angular_rate * x;
+                    }
+                    BeamPinDofKind::MemberEndRotation { .. }
+                    | BeamPinDofKind::MemberInteriorRotation { .. } => {
+                        shape[descriptor.index] = angular_rate;
+                    }
+                }
+            }
+            super::BeamModalMode {
+                eigenvalue_rad_s_squared: 1.0,
+                frequency_hz: Some(1.0 / (2.0 * std::f64::consts::PI)),
+                class: BeamModeClass::Elastic,
+                shape_global_dofs: shape,
+                normalized_eigen_residual: 0.0,
+                mass_norm_residual: 0.0,
+            }
+        };
+        let mode_1 = make_rigid_rotation(&assembly_1, &nodes_1, &members_1, 1);
+        let mode_4 = make_rigid_rotation(&assembly_4, &nodes_4, &members_4, 4);
+        let samples_1 =
+            sample_beam_chain_mode_on_fixed_grid(&nodes_1, &members_1, &assembly_1, &mode_1, 17)
+                .expect("coarse rigid-rotation samples");
+        let samples_4 =
+            sample_beam_chain_mode_on_fixed_grid(&nodes_4, &members_4, &assembly_4, &mode_4, 17)
+                .expect("refined rigid-rotation samples");
+        assert_eq!(samples_1.len(), samples_4.len());
+        for (coarse, refined) in samples_1.iter().zip(&samples_4) {
+            assert!((coarse - refined).abs() < 1.0e-12);
+        }
+        assert!(
+            (modal_assurance_criterion(&samples_1, &samples_4).expect("rigid-rotation MAC")
+                - 1.0)
+                .abs()
+                < 1.0e-12
         );
     }
 
