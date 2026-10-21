@@ -238,3 +238,36 @@ The report emits three tables:
 This remains a synthetic model audit, not task-loss improvement, real-world confidence calibration, or evidence that any active policy should be preferred. A lower average calibration gap alone is not sufficient: the action-ranking metrics must also show useful separation, and final task loss must still beat round-robin in a held-out policy experiment. If predictions are calibrated in magnitude but do not rank candidate value, investigate decision-relevant complementarity or scoring ties; if predictions are biased under held-out profiles, fix the sensor/delay/hazard model before another policy sweep.
 
 The previous single-sample value report should be treated as a noisy exploratory diagnostic and is superseded by this Monte Carlo protocol, not pooled with it.
+
+## VIS-ACT-010: online adaptation of observable nuisance priors
+
+**Status:** new policy and tests committed; exact-head qualification and results pending.
+
+### Why this experiment is justified
+
+The qualified VIS-ACT-009 Monte Carlo audit found mean value estimates that were badly low on development episodes yet only slightly biased in aggregate on held-out episodes. More importantly, value-score pairwise concordance was only about 0.526 in both domains. The simulator exposes a large, known domain shift in nuisance distributions: development delays are at most two ticks with distractor rates 0.15–0.35, while held-out delays can reach five ticks with distractor rates 0.35–0.65. The current scorer nevertheless uses one fixed delay prior and one fixed distractor rate.
+
+This motivates a narrow, testable adaptation—not another tuned task-value heuristic.
+
+### Policy
+
+The added `online_adaptive_value` policy uses the same expected terminal belief-risk scorer as the fixed-prior policy, but adapts only nuisance factors directly observable from its own released observations:
+- a Dirichlet-smoothed histogram of source-arrival delay, initialized from the declared public delay prior with six pseudo-observations;
+- a Beta-smoothed distractor-frequency estimate, initialized around the public distractor prior with four pseudo-observations;
+- no hidden profile, latent truth, unchosen observation, evaluator label, or future data is exposed to the policy.
+
+The conditional sensor-corruption prior remains fixed. A controller generally cannot identify sensor corruption from a single unlabelled stream without additional assumptions or independent ground-truth feedback; pretending it can infer that quantity would create another source of silent leakage. Confidence-tier frequencies also remain fixed in this experiment, since they are generated independently in the current simulator.
+
+The policy uses the fixed-prior scorer unchanged as the direct control. Both receive identical episodes and the same fixed sensing budgets. Reports include paired policy-loss contrasts, the five-point budget frontier, observed state/work proxies, and a unit test that verifies priors shift in the expected direction after observed distractors/delays. The source also retains hidden-truth/profile relabelling tests to detect leakage.
+
+### Hypothesis and rejection gate
+
+**Hypothesis:** online nuisance adaptation improves decision quality under shifted delay/distractor distributions relative to the fixed-prior expected-value selector, without consulting hidden metadata or increasing the sensing budget.
+
+Primary comparison: `online_adaptive_value - expected_task_loss_reduction` using paired episode-loss differences and 95% episode-bootstrap intervals, separately for development and held-out families. Round-robin remains the reference floor, and each policy's paired difference versus round-robin remains reported.
+
+Do not promote the adaptive scorer merely because it beats the fixed scorer. It must improve the held-out comparison, show no unsupported win on development that collapses under shift, and have its changes verified by the nuisance-prior tests. If the held-out interval includes zero or the adaptive policy is worse than round-robin, retain it as a diagnostic baseline and move to a better-calibrated belief model or direct external benchmark—not more threshold tuning.
+
+### What this does not claim
+
+This only learns nuisance rates that are observable from released data. It does not solve sensor-noise identifiability, establish the causal correctness of any observation model, or prove a robotics benefit. Synthetic mean loss and estimated scoring-work units must remain separate from native ActiveArena/RoboMME success and measured hardware performance.
