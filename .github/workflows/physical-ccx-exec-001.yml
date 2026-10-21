@@ -528,6 +528,48 @@ jobs:
             and .physical_result_qualified == false
           ' "$OUT/mesh-trend-report.json" > /dev/null
 
+          # Verify each actual process receipt against the exact source, request, build,
+          # executable, input, stdout/stderr log, and outputs still on disk.
+          for name in n1-u n2-u n4-u n1-u-repeat n1-rf; do
+            case "$name" in
+              n1-u|n1-u-repeat|n1-rf) CASE_REQUEST="$FIX/request.json" ;;
+              n2-u) CASE_REQUEST="$FIX/request-n2.json" ;;
+              n4-u) CASE_REQUEST="$FIX/request-n4.json" ;;
+            esac
+            request_sha_case="$(sha256sum "$CASE_REQUEST" | cut -d ' ' -f 1)"
+            R="$OUT/$name"
+            deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+            dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
+            frd_sha="$(sha256sum "$R/model.frd" | cut -d ' ' -f 1)"
+            log_sha="$(sha256sum "$R/process.log" | cut -d ' ' -f 1)"
+            jq -e \
+              --arg case_id "$name" --arg source_sha "$source_sha" \
+              --arg request_sha "$request_sha_case" --arg build_sha "$build_sha" \
+              --arg exe_sha "$exe_sha" --arg deck_sha "$deck_sha" \
+              --arg dat_sha "$dat_sha" --arg frd_sha "$frd_sha" --arg log_sha "$log_sha" \
+              --arg executable "$CCX" \
+              '.case_id == $case_id
+               and .source_sha == $source_sha
+               and .request_sha256 == $request_sha
+               and .build_manifest_sha256 == $build_sha
+               and .solver_executable_sha256 == $exe_sha
+               and .executable_path == $executable
+               and .argv == [$executable,"model"]
+               and .working_directory_case == $case_id
+               and .input_deck_sha256 == $deck_sha
+               and .dat_sha256 == $dat_sha
+               and .frd_sha256 == $frd_sha
+               and .process_log_sha256 == $log_sha
+               and .process_exit_status == 0
+               and .process_status == "PASS"
+               and .solver_execution_attested_by_this_receipt == false
+               and .physical_result_qualified == false
+               and (.started_epoch_s | type == "number")
+               and (.ended_epoch_s | type == "number")
+               and (.ended_epoch_s >= .started_epoch_s)' \
+              "$R/process-receipt.json" >/dev/null
+          done
+
           # Write one summary retaining independent U, RF, repeated-run, and tamper statuses.
           jq -n \
             --arg source_sha "$source_sha" --arg request_sha "$request_sha" \
@@ -547,6 +589,8 @@ jobs:
               support_force_balance_residual_n:($rf_x + 1000),
               repeat_max_abs_delta_m:((($u1 - $u1repeat) | if . < 0 then -. else . end)),
               numerical_result_status:"PASS",
+              process_receipts_verified_by_workflow:true,
+              process_receipt_count:5,
               restricted_rf_interpretation:"PASS",
               artifact_tamper_control:"PASS",
               mesh_trend_status:"PASS",
@@ -604,6 +648,8 @@ jobs:
           jq -e '
             .schema_version == "ccx-exec-001-summary-v0.1"
             and .numerical_result_status == "PASS"
+            and .process_receipts_verified_by_workflow == true
+            and .process_receipt_count == 5
             and .restricted_rf_interpretation == "PASS"
             and .artifact_tamper_control == "PASS"
             and .mesh_trend_status == "PASS"
