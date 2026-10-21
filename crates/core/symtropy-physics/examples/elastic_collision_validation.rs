@@ -88,6 +88,10 @@ fn expected_velocities(case: CollisionCase) -> (f64, f64) {
 
 fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+    // Isolate the restitution law from overlap-correction work. Baumgarte
+    // stabilization has its own energy-injection/penetration contract and is
+    // intentionally outside this analytical velocity benchmark.
+    world.baumgarte = 0.0;
     let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, case.mass_a);
     let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, case.mass_b);
 
