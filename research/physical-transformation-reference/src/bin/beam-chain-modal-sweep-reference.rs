@@ -14,8 +14,7 @@ use physical_transformation_reference::beam_pin_assembly::{
 use std::env;
 use std::process::ExitCode;
 
-const FROZEN_REQUEST: &str =
-    include_str!("../../fixtures/beam_chain_sweep_request_v0_1.txt");
+const FROZEN_REQUEST: &str = include_str!("../../fixtures/beam_chain_sweep_request_v0_1.txt");
 const ELEMENT_COUNTS: [usize; 4] = [1, 2, 4, 8];
 
 fn main() -> ExitCode {
@@ -84,15 +83,7 @@ fn run() -> Result<String, String> {
             .modes
             .iter()
             .take(6)
-            .map(|mode| {
-                sample_beam_chain_mode_on_fixed_grid(
-                    &nodes,
-                    &members,
-                    &assembly,
-                    mode,
-                    17,
-                )
-            })
+            .map(|mode| sample_beam_chain_mode_on_fixed_grid(&nodes, &members, &assembly, mode, 17))
             .collect::<Result<Vec<_>, _>>()?;
         if current_sampled_modes.len() != 6 {
             return Err("each mesh must provide six modes for the low-mode MAC grid".to_owned());
@@ -200,7 +191,10 @@ fn mesh_json(
         .modes
         .iter()
         .map(|mode| {
-            float_json(mode.frequency_hz.expect("receipt only includes elastic modes"))
+            float_json(
+                mode.frequency_hz
+                    .expect("receipt only includes elastic modes"),
+            )
         })
         .collect::<Vec<_>>()
         .join(",");
@@ -209,7 +203,9 @@ fn mesh_json(
             .iter()
             .zip(result.modes.iter())
             .map(|(previous, mode)| {
-                let current = mode.frequency_hz.expect("receipt only includes elastic modes");
+                let current = mode
+                    .frequency_hz
+                    .expect("receipt only includes elastic modes");
                 ((current - previous) / previous).abs()
             })
             .collect::<Vec<_>>()
@@ -219,7 +215,11 @@ fn mesh_json(
         .map(|values| {
             format!(
                 "[{}]",
-                values.iter().map(|value| float_json(*value)).collect::<Vec<_>>().join(",")
+                values
+                    .iter()
+                    .map(|value| float_json(*value))
+                    .collect::<Vec<_>>()
+                    .join(",")
             )
         })
         .unwrap_or_else(|| "null".to_owned());
