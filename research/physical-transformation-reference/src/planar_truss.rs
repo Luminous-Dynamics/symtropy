@@ -1117,27 +1117,111 @@ mod tests {
                 .iter()
                 .find(|member| member.bar_id == "BC")
                 .unwrap_or_else(|| panic!("case {case_index} missing BC result"));
-            let tolerance = |expected: f64, relative: f64, floor: f64| {
-                (expected.abs() * relative).max(floor)
-            };
+            let tolerance =
+                |expected: f64, relative: f64, floor: f64| (expected.abs() * relative).max(floor);
 
-            close(apex.displacement_x_m, expected_ux, tolerance(expected_ux, 1.0e-9, 1.0e-14), &format!("case {case_index} apex x"));
-            close(apex.displacement_y_m, expected_uy, tolerance(expected_uy, 1.0e-9, 1.0e-14), &format!("case {case_index} apex y"));
-            close(bar_a.axial_extension_m, expected_extension_a, tolerance(expected_extension_a, 1.0e-9, 1.0e-14), &format!("case {case_index} AC extension"));
-            close(bar_b.axial_extension_m, expected_extension_b, tolerance(expected_extension_b, 1.0e-9, 1.0e-14), &format!("case {case_index} BC extension"));
-            close(bar_a.axial_force_n, expected_force_a, tolerance(expected_force_a, 1.0e-9, 1.0e-6), &format!("case {case_index} AC force"));
-            close(bar_b.axial_force_n, expected_force_b, tolerance(expected_force_b, 1.0e-9, 1.0e-6), &format!("case {case_index} BC force"));
-            close(bar_a.axial_stress_pa, expected_force_a / area_a, tolerance(expected_force_a / area_a, 1.0e-9, 1.0e-3), &format!("case {case_index} AC stress"));
-            close(bar_b.axial_stress_pa, expected_force_b / area_b, tolerance(expected_force_b / area_b, 1.0e-9, 1.0e-3), &format!("case {case_index} BC stress"));
-            close(bar_a.axial_strain, expected_extension_a / length_a, tolerance(expected_extension_a / length_a, 1.0e-9, 1.0e-15), &format!("case {case_index} AC strain"));
-            close(bar_b.axial_strain, expected_extension_b / length_b, tolerance(expected_extension_b / length_b, 1.0e-9, 1.0e-15), &format!("case {case_index} BC strain"));
-            close(support_a.reaction_x_n.expect("A x reaction"), -expected_force_a * cosine_a, tolerance(expected_force_a * cosine_a, 1.0e-9, 1.0e-6), &format!("case {case_index} A x reaction"));
-            close(support_a.reaction_y_n.expect("A y reaction"), -expected_force_a * sine_a, tolerance(expected_force_a * sine_a, 1.0e-9, 1.0e-6), &format!("case {case_index} A y reaction"));
-            close(support_b.reaction_x_n.expect("B x reaction"), -expected_force_b * cosine_b, tolerance(expected_force_b * cosine_b, 1.0e-9, 1.0e-6), &format!("case {case_index} B x reaction"));
-            close(support_b.reaction_y_n.expect("B y reaction"), -expected_force_b * sine_b, tolerance(expected_force_b * sine_b, 1.0e-9, 1.0e-6), &format!("case {case_index} B y reaction"));
-            close(result.energy.strain_energy_j, expected_energy, tolerance(expected_energy, 1.0e-9, 1.0e-12), &format!("case {case_index} strain energy"));
-            close(result.energy.external_work_j, expected_energy, tolerance(expected_energy, 1.0e-9, 1.0e-12), &format!("case {case_index} external work"));
-            close(result.energy.residual_j, 0.0, tolerance(expected_energy, 1.0e-9, 1.0e-12), &format!("case {case_index} energy residual"));
+            close(
+                apex.displacement_x_m,
+                expected_ux,
+                tolerance(expected_ux, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} apex x"),
+            );
+            close(
+                apex.displacement_y_m,
+                expected_uy,
+                tolerance(expected_uy, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} apex y"),
+            );
+            close(
+                bar_a.axial_extension_m,
+                expected_extension_a,
+                tolerance(expected_extension_a, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} AC extension"),
+            );
+            close(
+                bar_b.axial_extension_m,
+                expected_extension_b,
+                tolerance(expected_extension_b, 1.0e-9, 1.0e-14),
+                &format!("case {case_index} BC extension"),
+            );
+            close(
+                bar_a.axial_force_n,
+                expected_force_a,
+                tolerance(expected_force_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} AC force"),
+            );
+            close(
+                bar_b.axial_force_n,
+                expected_force_b,
+                tolerance(expected_force_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} BC force"),
+            );
+            close(
+                bar_a.axial_stress_pa,
+                expected_force_a / area_a,
+                tolerance(expected_force_a / area_a, 1.0e-9, 1.0e-3),
+                &format!("case {case_index} AC stress"),
+            );
+            close(
+                bar_b.axial_stress_pa,
+                expected_force_b / area_b,
+                tolerance(expected_force_b / area_b, 1.0e-9, 1.0e-3),
+                &format!("case {case_index} BC stress"),
+            );
+            close(
+                bar_a.axial_strain,
+                expected_extension_a / length_a,
+                tolerance(expected_extension_a / length_a, 1.0e-9, 1.0e-15),
+                &format!("case {case_index} AC strain"),
+            );
+            close(
+                bar_b.axial_strain,
+                expected_extension_b / length_b,
+                tolerance(expected_extension_b / length_b, 1.0e-9, 1.0e-15),
+                &format!("case {case_index} BC strain"),
+            );
+            close(
+                support_a.reaction_x_n.expect("A x reaction"),
+                -expected_force_a * cosine_a,
+                tolerance(expected_force_a * cosine_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} A x reaction"),
+            );
+            close(
+                support_a.reaction_y_n.expect("A y reaction"),
+                -expected_force_a * sine_a,
+                tolerance(expected_force_a * sine_a, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} A y reaction"),
+            );
+            close(
+                support_b.reaction_x_n.expect("B x reaction"),
+                -expected_force_b * cosine_b,
+                tolerance(expected_force_b * cosine_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} B x reaction"),
+            );
+            close(
+                support_b.reaction_y_n.expect("B y reaction"),
+                -expected_force_b * sine_b,
+                tolerance(expected_force_b * sine_b, 1.0e-9, 1.0e-6),
+                &format!("case {case_index} B y reaction"),
+            );
+            close(
+                result.energy.strain_energy_j,
+                expected_energy,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} strain energy"),
+            );
+            close(
+                result.energy.external_work_j,
+                expected_energy,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} external work"),
+            );
+            close(
+                result.energy.residual_j,
+                0.0,
+                tolerance(expected_energy, 1.0e-9, 1.0e-12),
+                &format!("case {case_index} energy residual"),
+            );
 
             for (label, residual) in [
                 ("force", result.equilibrium.normalized_force_residual),
