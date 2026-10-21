@@ -608,4 +608,46 @@ mod tests {
         let second = compute_response_robustness(&input, &channel).expect("permuted input");
         assert_eq!(first, second);
     }
+
+    #[test]
+    fn held_out_balanced_model_is_not_force_fitted_to_extreme_answers() {
+        let input = request();
+        let report =
+            compute_response_robustness(&input, &BoundedPreferenceResponseChannel::exact())
+                .expect("exact channel");
+        let held_out_weights_bps = [5_000_u16, 5_000_u16];
+        let left = input
+            .alternatives
+            .iter()
+            .find(|alternative| alternative.candidate_id == "low-cost")
+            .expect("left candidate");
+        let right = input
+            .alternatives
+            .iter()
+            .find(|alternative| alternative.candidate_id == "high-support")
+            .expect("right candidate");
+        let utility = |scores: &[u16]| {
+            scores
+                .iter()
+                .zip(held_out_weights_bps)
+                .map(|(score, weight)| u64::from(*score) * u64::from(weight))
+                .sum::<u64>()
+        };
+        assert_eq!(utility(&left.criterion_scores_bps), utility(&right.criterion_scores_bps));
+
+        // Neither supplied training scenario predicts indifference for this pair.
+        let resolution = resolve_observed_answer(
+            &report,
+            "ask-extremes",
+            ObservedPreferenceAnswer::Indifferent,
+        )
+        .expect("known question");
+        assert_eq!(
+            resolution,
+            ObservedAnswerResolution::OutsideDeclaredChannel {
+                question_id: "ask-extremes".to_owned(),
+                answer: ObservedPreferenceAnswer::Indifferent,
+            }
+        );
+    }
 }
