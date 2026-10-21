@@ -124,7 +124,7 @@ fn pairwise_frontier_ids(candidates: &[AlternativeCandidate]) -> Vec<String> {
         .enumerate()
         .filter(|(index, candidate)| {
             !candidates.iter().enumerate().any(|(other_index, other)| {
-                index != &other_index && pairwise_dominates(other, candidate)
+                *index != other_index && pairwise_dominates(other, candidate)
             })
         })
         .map(|(_, candidate)| candidate.candidate_id.clone())
