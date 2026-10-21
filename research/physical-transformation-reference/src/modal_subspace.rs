@@ -116,7 +116,7 @@ pub fn mass_weighted_modal_subspace_comparison(
     {
         return Err("modal subspace input contains a non-finite value".to_owned());
     }
-    validate_symmetric_mass(mass)?;
+    validate_symmetric_positive_definite_mass(mass)?;
 
     // Scaling each basis vector independently preserves its span while
     // limiting overflow/underflow before mass-weighted Gram products.
@@ -163,7 +163,54 @@ pub fn mass_weighted_modal_subspace_comparison(
     })
 }
 
-fn validate_symmetric_mass(mass: &[Vec<f64>]) -> Check<()> {
+fn validate_symmetric_positive_definite_mass(mass: &[Vec<f64>]) -> Check<()> {
+    let size = mass.len();
+    let scale = mass
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
+    if !scale.is_finite() || scale <= 0.0 {
+        return Err("mass matrix must have a finite positive scale".to_owned());
+    }
+    let mut normalized = vec![vec![0.0; size]; size];
+    for row in 0..size {
+        for col in 0..size {
+            let left = mass[row][col];
+            let right = mass[col][row];
+            if (left - right).abs() > 1.0e-12 * scale {
+                return Err(format!("mass matrix is not symmetric at ({row}, {col})"));
+            }
+            normalized[row][col] = left / scale;
+        }
+    }
+
+    // A successful Cholesky factorization proves the supplied mass metric is
+    // positive-definite over the full sampled DOF space, not just over the
+    // two particular modal subspaces selected for comparison.
+    let mut lower = vec![vec![0.0; size]; size];
+    for row in 0..size {
+        for col in 0..=row {
+            let mut value = normalized[row][col];
+            for inner in 0..col {
+                value -= lower[row][inner] * lower[col][inner];
+            }
+            if row == col {
+                if !value.is_finite() || value <= 0.0 {
+                    return Err("mass matrix is not positive definite".to_owned());
+                }
+                lower[row][col] = value.sqrt();
+            } else {
+                let diagonal = lower[col][col];
+                if !diagonal.is_finite() || diagonal <= 0.0 {
+                    return Err("mass matrix has an invalid Cholesky pivot".to_owned());
+                }
+                lower[row][col] = value / diagonal;
+            }
+        }
+    }
+    Ok(())
+}
     let scale = mass
         .iter()
         .flatten()
@@ -454,6 +501,16 @@ mod tests {
             mass_weighted_modal_subspace_comparison(
                 &[vec![1.0, 0.0]],
                 &[vec![0.0, 1.0]],
+                &vec![vec![1.0, 0.0], vec![0.0, -1.0]],
+            )
+            .is_err()
+        );
+        // The basis vectors below only touch a positive principal direction;
+        // an indefinite mass matrix must still be rejected globally.
+        assert!(
+            mass_weighted_modal_subspace_comparison(
+                &[vec![1.0, 0.0]],
+                &[vec![1.0, 0.0]],
                 &vec![vec![1.0, 0.0], vec![0.0, -1.0]],
             )
             .is_err()
