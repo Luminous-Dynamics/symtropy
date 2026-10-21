@@ -369,6 +369,69 @@ pub fn canonical_beam_chain_request(
     Ok(fields.join("|"))
 }
 
+/// Canonical request covering a deterministic list of mesh levels for a
+/// fixed member-chain geometry/material set. The element-count envelope is
+/// sorted and unique, and every level is validated by the assembly routine.
+pub fn canonical_beam_chain_sweep_request(
+    joints: &[BeamPinNode],
+    members: &[BeamMemberChain],
+    element_counts_per_member: &[usize],
+) -> Check<String> {
+    if element_counts_per_member.is_empty() {
+        return Err("mesh sweep must include at least one element count".to_owned());
+    }
+    let mut levels = element_counts_per_member.to_vec();
+    levels.sort_unstable();
+    if levels.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err("mesh sweep element counts must be unique".to_owned());
+    }
+
+    for level in &levels {
+        let mut level_members = members.to_vec();
+        for member in &mut level_members {
+            member.elements_per_member = *level;
+        }
+        assemble_released_joint_beam_chains(joints, &level_members)?;
+    }
+
+    let mut ordered_joints = joints.to_vec();
+    ordered_joints.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut ordered_members = members.to_vec();
+    ordered_members.sort_by(|left, right| left.id.cmp(&right.id));
+
+    let mut fields = vec![
+        "schema=beam-chain-modal-sweep-request-v0.1".to_owned(),
+        "fixture=PHYS-BEAM-CHAIN-MODAL-001".to_owned(),
+        format!(
+            "element_counts_per_member={}",
+            levels
+                .iter()
+                .map(usize::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    ];
+    for joint in ordered_joints {
+        fields.push(format!(
+            "joint|{}|{}|{}|{}|{}",
+            joint.id, joint.x_m, joint.y_m, joint.restrain_x, joint.restrain_y
+        ));
+    }
+    for member in ordered_members {
+        fields.push(format!(
+            "chain|{}|{}|{}|{}|{}|{}|{}",
+            member.id,
+            member.start_node_id,
+            member.end_node_id,
+            member.area_m2,
+            member.youngs_modulus_pa,
+            member.density_kg_m3,
+            member.second_moment_m4
+        ));
+    }
+    Ok(fields.join("|"))
+}
+
 /// Assemble a refined planar beam mesh while releasing rotation only at
 /// physical member endpoints. Every chain interior station has one rotation
 /// DOF shared by its two adjacent segments. Translational and rotary mass
