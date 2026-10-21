@@ -233,6 +233,39 @@ mod tests {
     }
 
     #[test]
+    fn independent_diagonal_generalized_eigenproblem_matches_exact_roots() {
+        // K phi = lambda M phi, with a diagonal system whose exact roots are
+        // lambda=[4,9]. This isolates eigenvalue ordering and mass normalization
+        // from the frame-element assembly and any external solver.
+        let stiffness = vec![vec![4.0, 0.0], vec![0.0, 36.0]];
+        let mass = vec![vec![1.0, 0.0], vec![0.0, 4.0]];
+        let eigenpairs = crate::modal_bar::generalized_symmetric_eigenpairs(
+            &stiffness,
+            &mass,
+        )
+        .expect("diagonal generalized eigenproblem");
+        assert_eq!(eigenpairs.len(), 2);
+        assert!((eigenpairs[0].0 - 4.0).abs() < 1.0e-12);
+        assert!((eigenpairs[1].0 - 9.0).abs() < 1.0e-12);
+        assert!(eigenpairs[0].0 < eigenpairs[1].0);
+
+        for (eigenvalue, shape) in &eigenpairs {
+            assert!(crate::modal_bar::normalized_eigen_residual(
+                &stiffness,
+                &mass,
+                *eigenvalue,
+                shape
+            )
+            .expect("finite residual")
+                < 1.0e-12);
+            assert!(
+                (crate::modal_bar::quadratic_form(&mass, shape).expect("modal norm") - 1.0).abs()
+                    < 1.0e-12
+            );
+        }
+    }
+
+    #[test]
     fn modes_preserve_all_free_dofs_and_have_small_residuals() {
         let assembly = fixture();
         let result = solve_beam_pin_assembly_modes(&assembly).expect("modal result");
