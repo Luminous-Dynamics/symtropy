@@ -91,7 +91,7 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
     let mut portfolio_rejected_infeasible = 0usize;
     let mut portfolio_false_feasible = 0usize;
 
-    for _case in 0..CASES {
+    for case_index in 0..CASES {
         let requests: Vec<PlacementRequest> = (0..4)
             .map(|index| PlacementRequest {
                 reservation_id: format!("r-{index}"),
@@ -150,7 +150,16 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
                     "independent spatial verifier rejected portfolio output: {result:?}"
                 );
             }
-            Err(_) if exact => portfolio_missed += 1,
+            Err(errors) if exact => {
+                portfolio_missed += 1;
+                if case_index == 48 || case_index == 244 {
+                    assert_eq!(
+                        errors[0].code.as_str(),
+                        "AllPoliciesFailed",
+                        "portfolio exhaustion must not be described as proven infeasibility"
+                    );
+                }
+            }
             Err(_) => portfolio_rejected_infeasible += 1,
         }
     }
