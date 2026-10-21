@@ -1,0 +1,1 @@
+schema=modal-bar-request-v0.1|fixture=NAFEMS-CHALLENGE-5-AXIAL-BAR|length_m=1|radius_m=0.01|youngs_modulus_pa=210000000000|density_kg_m3=7800|elements=16

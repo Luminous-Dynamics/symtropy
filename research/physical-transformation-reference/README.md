@@ -16,7 +16,7 @@
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, cantilever deflection, simply supported midspan deflection and bending stress.
 - Frozen synthetic fixture: three topology components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one. A separate component is then recovered through the state transition and its declared 1,000 mg reconciles exactly to recovery outputs.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
-- The current focused crate suite contains 31 library unit tests, 3 truss-receipt CLI unit tests, and 4 integration oracle tests, plus compile-fail/doctest coverage where present. The counts are verified per exact-head CI run; mutation-harness runs are reported separately.
+- The current focused crate suite contains 37 library unit tests, 3 truss-receipt CLI unit tests, 3 modal-receipt CLI unit tests, and 4 integration oracle tests, plus compile-fail/doctest coverage where present. The counts are verified per exact-head CI run; mutation-harness runs are reported separately.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 - Planar truss reference: dependency-free 2D pin-jointed linear-elastic stiffness assembly, deterministic dense solve, closed-form symmetric V-truss oracle, explicit support reactions and normalized force/moment/free-DOF residuals, fail-closed singular mechanism detection, and scale-invariant pivot tolerance. Scope is capped at 128 nodes / 512 bars and excludes bending, buckling, nonlinear response, contact, fracture, dynamics, and physical validation.
 - A second independent known-answer case uses asymmetric bar geometry, unequal axial stiffness, and mixed horizontal/vertical load. It pins both apex displacement components, signed member responses, support reactions, equilibrium residuals, and energy/work balance. It specifically exercises the stiffness cross-coupling terms that cancel under the symmetric vertical-load fixture; a zeroed-{cs} mutation is required to fail this oracle.
@@ -36,9 +36,12 @@ cargo run --locked --manifest-path research/physical-transformation-reference/Ca
   --source-commit "$(git rev-parse HEAD)"
 cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
   --source-commit "$(git rev-parse HEAD)"
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+bash research/physical-transformation-reference/scripts/verify_modal_bar_mutations.sh
 ```
 
-The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics; CI adds the SHA-256 request digest and pins the expected digest. Neither receipt is a claim of verified real-world evidence.
+The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics. The `modal-bar-reference` binary parses its seven-field frozen request, derives area from the declared radius, evaluates both mass formulations, and emits the 1/2/4/8/16-element convergence ladder. CI hashes the canonical request and source tree, requires repeated receipts to be byte-identical, and uploads the receipt. A separate isolated-mutant harness targets five modal formula/numerical defects; it must show the original modal test suite passing and each mutant detected. These receipts are software verification evidence, not physical validation or a full NAFEMS Challenge 5 reproduction.
 
 ## Paradigm shift
 
@@ -59,7 +62,7 @@ For the wider industry matrix and proposed numerical acceptance targets, see [PH
 ## Benchmark ladder
 
 1. **Software invariants (implemented slice):** deterministic replay, transactional rejection, graph connectivity and exact integer mass balance.
-2. **Analytical mechanics (initial slice implemented):** unit-aware axial bar, cantilever tip load, and simply supported uniform-load cases with independently pinned expected values and declared tolerances.
+2. **Analytical mechanics (initial slice implemented):** unit-aware axial bar, cantilever tip load, and simply supported uniform-load cases with independently pinned expected values and declared tolerances. A separate modal axial-bar subproblem now checks consistent/lumped mass, exact frequency limits, and two-mode mesh convergence; the complete 2D NAFEMS Challenge 5 model is still future work.
 3. **Solver adapter:** pin solver/version, boundary conditions, mesh and convergence information; report error and residuals.
 4. **Physical fracture/contact:** use a rights-cleared measured dataset or controlled instrumented experiment, including uncertainty and held-out cases.
 5. **Construction planning:** temporary supports, connection prerequisites, assembly sequence and tool accessibility.
@@ -91,3 +94,20 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
+
+## Modal mechanics slice: fixed-free axial bar
+
+The `modal_bar` module adds a separate, deliberately small generalized-eigenvalue reference for a uniform 1D axial bar fixed at one end and free at the other. It assembles the reduced axial stiffness matrix and offers both consistent and row-sum-lumped mass formulations, then solves the small symmetric generalized eigenproblem through a Cholesky reduction and Jacobi eigensolver. The model is capped at 32 elements.
+
+For the continuum model, the mode-n frequency is
+
+`f_n = (2n - 1) / (4 L) * sqrt(E / rho)`.
+
+For the NAFEMS Challenge 5 bar parameters (`L=1 m`, `r=0.01 m`, `E=210 GPa`, `rho=7800 kg/m^3`), the one-element test has independently derived frequency ratios `2*sqrt(3)/pi` for consistent mass and `2*sqrt(2)/pi` for row-sum-lumped mass. These bracket the continuum frequency from opposite sides. The tests sweep 1, 2, 4, 8 and 16 elements, check first- and second-mode convergence, and exercise area invariance, common E/rho scaling, inverse-length scaling, and unsupported inputs.
+
+**External benchmark boundary:** this is the analytical 1D axial-bar subproblem discussed in [NAFEMS Benchmark Challenge 5](https://www.nafems.org/downloads/nbr5v3.pdf), not a reproduction of the full planar modal truss in that challenge. NAFEMS explicitly highlights that consistent and lumped mass matrices can differ significantly on coarse meshes and converge with refinement. The full challenge also raises mode-shape fidelity and the limitations of single bar elements for real truss dynamics; the present module does not resolve those limitations or calculate a general 2D truss's natural modes.
+
+Do not confuse this modal benchmark with [SOFiSTiK BE1](https://docs.sofistik.com/2026/en/verification/_static/verification/pdf/be1.pdf), which is a separate static 13-member plane-truss deflection case. The external reference reports a vertical deflection of about 69.09 mm at free node 8; no BE1 reproduction is claimed by the current two-bar static oracle or this modal bar module.
+
+The initial modal acceptance contract is software verification only: exact analytical subproblem, expected consistent/lumped bracketing, monotone convergence on the frozen mesh ladder, deterministic results, and fail-closed invalid domains. No hardware timing, commercial solver comparison, experimental validation or engineering certification is claimed. The next external step is to pin the complete NAFEMS Challenge 5 geometry, restraints, member data, mass-matrix convention and target frequencies in a rights-aware manifest before comparing modal results.
+

@@ -51,6 +51,10 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh
 
+      - name: Verify modal-bar mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_bar_mutations.sh
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -222,6 +226,71 @@ jobs:
             and .acceptance.energy_oracle == "strain_energy_and_external_work_match_half_load_dot_displacement"
           ' planar-truss-sweep-receipt.json
 
+
+      - name: Generate and verify deterministic modal axial-bar receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+            --source-commit "$source_commit" > modal-bar-reference-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+            --source-commit "$source_commit" > modal-bar-reference-raw-b.json
+          cmp --silent modal-bar-reference-raw-a.json modal-bar-reference-raw-b.json
+          request_canonical="$(jq -r '.request_canonical' modal-bar-reference-raw-a.json)"
+          fixture_canonical="$(cat research/physical-transformation-reference/fixtures/modal_bar_request_v0_1.txt)"
+          test "$request_canonical" = "$fixture_canonical"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "40481e49877eec54acb79fdf207981a24f8be420a8d3efd6931cc51ba70459fe"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of UTF-8 request_canonical bytes without a final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked research/physical-transformation-reference files"
+            }
+          ' modal-bar-reference-raw-a.json > modal-bar-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "modal-bar-receipt-v0.1"
+            and .benchmark_id == "PHYS-MODAL-BAR-001"
+            and .fixture_id == "NAFEMS-CHALLENGE-5-AXIAL-BAR"
+            and .source_commit == $source_commit
+            and .evidence_class == "software-test-run"
+            and .result == "pass"
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .input.length_m == 1
+            and .input.radius_m == 0.01
+            and .input.area_m2 > 0.0003141592653
+            and .input.area_m2 < 0.0003141592655
+            and .input.youngs_modulus_pa == 210000000000
+            and .input.density_kg_m3 == 7800
+            and .input.elements == 16
+            and (.mass_formulations.consistent.frequencies_hz | length) == 16
+            and (.mass_formulations.row_sum_lumped.frequencies_hz | length) == 16
+            and .verification.analytical_one_element_known_answer == "pass"
+            and .verification.consistent_first_mode_above_continuum == true
+            and .verification.lumped_first_mode_below_continuum == true
+            and .verification.first_mode_relative_error_at_16_elements_below_1pct == true
+            and .verification.second_mode_relative_error_at_16_elements_below_2pct == true
+            and .verification.mesh_convergence == "pass"
+            and .verification.physical_validation == "not_performed"
+            and (.mesh_convergence | length) == 5
+            and (.mesh_convergence[0].elements == 1)
+            and (.mesh_convergence[-1].elements == 16)
+            and (.claim_ceiling | contains("not full NAFEMS Challenge 5 2D truss reproduction"))
+          ' modal-bar-reference-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -231,5 +300,7 @@ jobs:
             planar-truss-mutation-receipt.json
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
+            modal-bar-reference-receipt.json
+            modal-bar-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
