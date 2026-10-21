@@ -5,13 +5,11 @@
 //! axial-bar tests. It preserves zero/mechanism modes rather than dropping them.
 
 use crate::Check;
-use crate::beam_pin_assembly::{
-    BeamMemberChain, BeamPinAssembly, BeamPinDofKind, BeamPinNode,
-};
-use std::collections::BTreeMap;
+use crate::beam_pin_assembly::{BeamMemberChain, BeamPinAssembly, BeamPinDofKind, BeamPinNode};
 use crate::modal_bar::{
     Matrix, generalized_symmetric_eigenpairs, normalized_eigen_residual, quadratic_form,
 };
+use std::collections::BTreeMap;
 
 const ZERO_MODE_RELATIVE_TOLERANCE: f64 = 1.0e-10;
 
@@ -223,7 +221,10 @@ pub fn sample_beam_chain_mode_on_fixed_grid(
                     return Err(format!("duplicate y-translation DOF for node {node_id}"));
                 }
             }
-            BeamPinDofKind::MemberEndRotation { member_id, at_start } => {
+            BeamPinDofKind::MemberEndRotation {
+                member_id,
+                at_start,
+            } => {
                 let element_count = *member_counts
                     .get(member_id)
                     .ok_or_else(|| format!("rotation references unknown member {member_id}"))?;
@@ -232,7 +233,9 @@ pub fn sample_beam_chain_mode_on_fixed_grid(
                     .insert((member_id.clone(), station), descriptor.index)
                     .is_some()
                 {
-                    return Err(format!("duplicate member endpoint rotation: {member_id}/{station}"));
+                    return Err(format!(
+                        "duplicate member endpoint rotation: {member_id}/{station}"
+                    ));
                 }
             }
             BeamPinDofKind::MemberInteriorRotation {
@@ -260,9 +263,7 @@ pub fn sample_beam_chain_mode_on_fixed_grid(
         }
     }
 
-    let mut sampled = Vec::with_capacity(
-        ordered_members.len() * sample_points_per_member * 2,
-    );
+    let mut sampled = Vec::with_capacity(ordered_members.len() * sample_points_per_member * 2);
     for member in &ordered_members {
         let element_count = member.elements_per_member;
         let (x_start, y_start) = *coordinates
@@ -320,7 +321,10 @@ pub fn sample_beam_chain_mode_on_fixed_grid(
             let theta_i = *rotations
                 .get(&(member.id.clone(), element_index))
                 .ok_or_else(|| {
-                    format!("missing rotation DOF for member {} station {}", member.id, element_index)
+                    format!(
+                        "missing rotation DOF for member {} station {}",
+                        member.id, element_index
+                    )
                 })?;
             let theta_j = *rotations
                 .get(&(member.id.clone(), element_index + 1))
@@ -378,7 +382,10 @@ pub fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
         return Err("MAC inputs contain a non-finite value".to_owned());
     }
     let left_scale = left.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
-    let right_scale = right.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let right_scale = right
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     if !left_scale.is_finite()
         || !right_scale.is_finite()
         || left_scale <= 0.0
@@ -389,13 +396,22 @@ pub fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
 
     // Normalize by the largest absolute component first to avoid overflow or
     // underflow when a valid mode vector carries an arbitrary scale factor.
-    let left_normalized = left.iter().map(|value| value / left_scale).collect::<Vec<_>>();
+    let left_normalized = left
+        .iter()
+        .map(|value| value / left_scale)
+        .collect::<Vec<_>>();
     let right_normalized = right
         .iter()
         .map(|value| value / right_scale)
         .collect::<Vec<_>>();
-    let left_norm = left_normalized.iter().map(|value| value * value).sum::<f64>();
-    let right_norm = right_normalized.iter().map(|value| value * value).sum::<f64>();
+    let left_norm = left_normalized
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>();
+    let right_norm = right_normalized
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>();
     let dot = left_normalized
         .iter()
         .zip(&right_normalized)
@@ -457,8 +473,8 @@ fn mass_inner_product(mass: &Matrix, left: &[f64], right: &[f64]) -> Check<f64> 
 #[cfg(test)]
 mod tests {
     use crate::beam_pin_assembly::{
-        BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_beam_chains,
-        assemble_released_joint_pin_truss,
+        BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode,
+        assemble_released_joint_beam_chains, assemble_released_joint_pin_truss,
     };
 
     use super::{
@@ -497,9 +513,7 @@ mod tests {
         panic!("node coordinate not found for {node_id}");
     }
 
-    fn chain_fixture(
-        elements_per_member: usize,
-    ) -> (Vec<BeamPinNode>, Vec<BeamMemberChain>) {
+    fn chain_fixture(elements_per_member: usize) -> (Vec<BeamPinNode>, Vec<BeamMemberChain>) {
         let nodes = vec![
             BeamPinNode {
                 id: "A".to_owned(),
@@ -593,25 +607,19 @@ mod tests {
         // from the frame-element assembly and any external solver.
         let stiffness = vec![vec![4.0, 0.0], vec![0.0, 36.0]];
         let mass = vec![vec![1.0, 0.0], vec![0.0, 4.0]];
-        let eigenpairs = crate::modal_bar::generalized_symmetric_eigenpairs(
-            &stiffness,
-            &mass,
-        )
-        .expect("diagonal generalized eigenproblem");
+        let eigenpairs = crate::modal_bar::generalized_symmetric_eigenpairs(&stiffness, &mass)
+            .expect("diagonal generalized eigenproblem");
         assert_eq!(eigenpairs.len(), 2);
         assert!((eigenpairs[0].0 - 4.0).abs() < 1.0e-12);
         assert!((eigenpairs[1].0 - 9.0).abs() < 1.0e-12);
         assert!(eigenpairs[0].0 < eigenpairs[1].0);
 
         for (eigenvalue, shape) in &eigenpairs {
-            assert!(crate::modal_bar::normalized_eigen_residual(
-                &stiffness,
-                &mass,
-                *eigenvalue,
-                shape
-            )
-            .expect("finite residual")
-                < 1.0e-12);
+            assert!(
+                crate::modal_bar::normalized_eigen_residual(&stiffness, &mass, *eigenvalue, shape)
+                    .expect("finite residual")
+                    < 1.0e-12
+            );
             assert!(
                 (crate::modal_bar::quadratic_form(&mass, shape).expect("modal norm") - 1.0).abs()
                     < 1.0e-12
@@ -713,8 +721,7 @@ mod tests {
         assert_eq!(samples_1.len(), 2 * 17 * 2);
         assert_eq!(samples_1, samples_4);
         assert!(
-            (modal_assurance_criterion(&samples_1, &samples_4).expect("same-grid MAC") - 1.0)
-                .abs()
+            (modal_assurance_criterion(&samples_1, &samples_4).expect("same-grid MAC") - 1.0).abs()
                 < 1.0e-14
         );
     }
@@ -729,12 +736,10 @@ mod tests {
             .expect("refined member-chain assembly");
         let angular_rate = 0.015_f64;
 
-        let make_rigid_rotation = |
-            assembly: &crate::beam_pin_assembly::BeamPinAssembly,
-            nodes: &[BeamPinNode],
-            members: &[BeamMemberChain],
-            elements_per_member: usize,
-        | {
+        let make_rigid_rotation = |assembly: &crate::beam_pin_assembly::BeamPinAssembly,
+                                   nodes: &[BeamPinNode],
+                                   members: &[BeamMemberChain],
+                                   elements_per_member: usize| {
             let mut shape = vec![0.0; assembly.stiffness_global.len()];
             for descriptor in &assembly.dof_descriptors {
                 match &descriptor.kind {
@@ -784,8 +789,7 @@ mod tests {
             assert!((coarse - refined).abs() < 1.0e-12);
         }
         assert!(
-            (modal_assurance_criterion(&samples_1, &samples_4).expect("rigid-rotation MAC")
-                - 1.0)
+            (modal_assurance_criterion(&samples_1, &samples_4).expect("rigid-rotation MAC") - 1.0)
                 .abs()
                 < 1.0e-12
         );
@@ -834,12 +838,10 @@ mod tests {
         // Independent quadratic formula for det(K - lambda M) = 0:
         // det(M)*lambda^2 - trace(adj(M)*K)*lambda + det(K) = 0.
         let det_m = mass[0][0] * mass[1][1] - mass[0][1] * mass[1][0];
-        let trace_adj_m_k =
-            mass[1][1] * stiffness[0][0] + mass[0][0] * stiffness[1][1]
-                - mass[0][1] * stiffness[1][0]
-                - mass[1][0] * stiffness[0][1];
-        let det_k =
-            stiffness[0][0] * stiffness[1][1] - stiffness[0][1] * stiffness[1][0];
+        let trace_adj_m_k = mass[1][1] * stiffness[0][0] + mass[0][0] * stiffness[1][1]
+            - mass[0][1] * stiffness[1][0]
+            - mass[1][0] * stiffness[0][1];
+        let det_k = stiffness[0][0] * stiffness[1][1] - stiffness[0][1] * stiffness[1][0];
         assert!(det_m > 0.0 && det_k > 0.0);
         let discriminant = trace_adj_m_k * trace_adj_m_k - 4.0 * det_m * det_k;
         assert!(discriminant > 0.0);
@@ -928,7 +930,12 @@ mod tests {
 
             assert_eq!(assembly.free_dof_indices.len(), 6 * elements_per_member);
             assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
-            assert!(result.modes.iter().all(|mode| mode.class == BeamModeClass::Elastic));
+            assert!(
+                result
+                    .modes
+                    .iter()
+                    .all(|mode| mode.class == BeamModeClass::Elastic)
+            );
             assert!(result.modes.windows(2).all(|pair| {
                 pair[0].frequency_hz.expect("elastic mode")
                     < pair[1].frequency_hz.expect("elastic mode")
