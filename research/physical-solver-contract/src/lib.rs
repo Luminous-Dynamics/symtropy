@@ -4,6 +4,7 @@
 //! Every receipt produced here has physical_result_status=UNRESOLVED because
 //! this crate does not invoke a qualified mechanics solver.
 
+pub mod calculix_rr;
 pub mod equilibrium;
 pub mod mesh_convergence;
 pub mod reference_compare;
