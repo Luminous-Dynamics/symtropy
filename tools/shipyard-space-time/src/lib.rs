@@ -130,6 +130,7 @@ pub enum ViolationCode {
     MissingPredecessor,
     InvalidFootprint,
     UnsupportedFootprint,
+    NoOperationalReservations,
     InvalidTimeRange,
     PrecedenceViolation,
     BlockDoubleBooked,
@@ -157,6 +158,7 @@ impl ViolationCode {
             Self::MissingPredecessor => "MissingPredecessor",
             Self::InvalidFootprint => "InvalidFootprint",
             Self::UnsupportedFootprint => "UnsupportedFootprint",
+            Self::NoOperationalReservations => "NoOperationalReservations",
             Self::InvalidTimeRange => "InvalidTimeRange",
             Self::PrecedenceViolation => "PrecedenceViolation",
             Self::BlockDoubleBooked => "BlockDoubleBooked",
@@ -240,6 +242,15 @@ fn validate_time_range(range: TimeRange, subject_id: &str, violations: &mut Vec<
 /// every discoverable violation in deterministic order. It does not attempt to repair a plan.
 pub fn verify(scenario: &Scenario) -> VerificationReport {
     let mut violations = Vec::new();
+
+    // A vacuously consistent empty input must not be promoted to a qualified yard plan.
+    if scenario.placements.is_empty() && scenario.transfers.is_empty() {
+        add_violation(
+            &mut violations,
+            ViolationCode::NoOperationalReservations,
+            Vec::new(),
+        );
+    }
     let mut placement_ids = HashSet::new();
     let mut transfer_ids = HashSet::new();
     let mut exclusion_ids = HashSet::new();
@@ -565,6 +576,13 @@ mod tests {
             .violations
             .iter()
             .any(|violation| violation.code == code)
+    }
+
+    #[test]
+    fn empty_scenario_is_not_mistaken_for_a_qualified_yard_plan() {
+        let report = verify(&Scenario::default());
+        assert!(!report.is_feasible());
+        assert_eq!(report.count(ViolationCode::NoOperationalReservations), 1);
     }
 
     #[test]
