@@ -769,6 +769,62 @@ mod tests {
     }
 
     #[test]
+    fn zero_width_intervals_reduce_exactly_to_nominal_objectives() {
+        let mut exact_fixture = fixture();
+        for effect in &mut exact_fixture.option_effects {
+            effect.uncertainty_half_width_units_per_hour = 0.0;
+        }
+        for effect in &mut exact_fixture.interaction_effects {
+            effect.uncertainty_half_width_units_per_hour = 0.0;
+        }
+        let report = evaluate(&exact_fixture, "zero-width-fixture".into()).expect("exact intervals");
+        for design in report.designs.iter().filter(|design| design.feasible) {
+            assert!(
+                (design.nominal_worst_case_gain_units_per_hour
+                    - design.interval_lower_bound_worst_case_gain_units_per_hour)
+                    .abs()
+                    < EPSILON
+            );
+            assert!(
+                (design.nominal_worst_case_regret_units_per_hour
+                    - design.interval_robust_regret_upper_bound_units_per_hour)
+                    .abs()
+                    < EPSILON
+            );
+        }
+    }
+
+    #[test]
+    fn widening_intervals_cannot_improve_lower_bounds_or_reduce_regret_bounds() {
+        let mut narrow_fixture = fixture();
+        for effect in &mut narrow_fixture.interaction_effects {
+            effect.uncertainty_half_width_units_per_hour = 0.10;
+        }
+        let narrow = evaluate(&narrow_fixture, "narrow-fixture".into()).expect("narrow report");
+        let wide = evaluate(&fixture(), "wide-fixture".into()).expect("wide report");
+        let narrow_by_id: BTreeMap<&str, &Design> = narrow
+            .designs
+            .iter()
+            .map(|design| (design.design_id.as_str(), design))
+            .collect();
+        for wide_design in wide.designs.iter().filter(|design| design.feasible) {
+            let narrow_design = narrow_by_id[wide_design.design_id.as_str()];
+            assert!(
+                wide_design.interval_lower_bound_worst_case_gain_units_per_hour
+                    <= narrow_design.interval_lower_bound_worst_case_gain_units_per_hour + EPSILON,
+                "wider coefficient intervals improved lower bound for {}",
+                wide_design.design_id
+            );
+            assert!(
+                wide_design.interval_robust_regret_upper_bound_units_per_hour + EPSILON
+                    >= narrow_design.interval_robust_regret_upper_bound_units_per_hour,
+                "wider coefficient intervals reduced regret bound for {}",
+                wide_design.design_id
+            );
+        }
+    }
+
+    #[test]
     fn duplicate_main_effect_reverse_pair_and_invalid_uncertainty_fail_closed() {
         let mut duplicate = fixture();
         duplicate.option_effects.push(duplicate.option_effects[0].clone());
