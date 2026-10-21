@@ -16,6 +16,7 @@ const MAX_OBJECTIVES: usize = 32;
 const MAX_ALTERNATIVES: usize = 64;
 const MAX_SCENARIOS: usize = 256;
 const MAX_QUESTIONS: usize = 2_048;
+const MAX_UTILITY_NUMERATOR: u64 = 100_000_000;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreferenceAlternative {
@@ -61,6 +62,9 @@ pub struct ResidentPreferenceProbeRequest {
     pub query_cost_unit: String,
     /// Unit identifier for query_duration_units, shared by all questions.
     pub query_duration_unit: String,
+    /// Explicit answer indifference margin in exact utility-numerator units.
+    /// Zero means only exact utility ties are classified as indifferent.
+    pub indifference_margin_units: u64,
     pub alternatives: Vec<PreferenceAlternative>,
     pub scenarios: Vec<PreferenceScenario>,
     pub questions: Vec<PairwisePreferenceQuestion>,
@@ -104,6 +108,7 @@ pub struct ResidentPreferenceProbeReport {
     pub criterion_ids: Vec<String>,
     pub query_cost_unit: String,
     pub query_duration_unit: String,
+    pub indifference_margin_units: u64,
     pub claim_ceiling: &'static str,
 }
 
@@ -127,6 +132,7 @@ pub enum PreferenceProbeError {
     ScenarioWeightSum { scenario_id: String, actual: u32 },
     UnknownQuestionCandidate { question_id: String, candidate_id: String },
     SelfComparison { question_id: String },
+    IndifferenceMarginOutOfRange { actual: u64, maximum: u64 },
     RegretInvariantViolation { question_id: String },
 }
 
@@ -185,6 +191,10 @@ impl fmt::Display for PreferenceProbeError {
             Self::SelfComparison { question_id } => {
                 write!(f, "question {question_id:?} compares a candidate with itself")
             }
+            Self::IndifferenceMarginOutOfRange { actual, maximum } => write!(
+                f,
+                "indifference margin {actual} exceeds maximum utility numerator {maximum}"
+            ),
             Self::RegretInvariantViolation { question_id } => write!(
                 f,
                 "question {question_id:?} increased minimax regret after partitioning scenarios"
@@ -301,6 +311,12 @@ pub fn compute_resident_preference_probe(
         return Err(PreferenceProbeError::InvalidIdentifier {
             field: "query unit",
             index: 0,
+        });
+    }
+    if request.indifference_margin_units > MAX_UTILITY_NUMERATOR {
+        return Err(PreferenceProbeError::IndifferenceMarginOutOfRange {
+            actual: request.indifference_margin_units,
+            maximum: MAX_UTILITY_NUMERATOR,
         });
     }
 
@@ -516,10 +532,16 @@ pub fn compute_resident_preference_probe(
         let right_index = alternative_index[question.right_candidate_id.as_str()];
         let mut partitions = [Vec::new(), Vec::new(), Vec::new()];
         for (scenario_index, scenario_utilities) in utilities.iter().enumerate() {
-            let outcome_index = match scenario_utilities[left_index].cmp(&scenario_utilities[right_index]) {
-                std::cmp::Ordering::Greater => 0,
-                std::cmp::Ordering::Less => 1,
-                std::cmp::Ordering::Equal => 2,
+            let left_utility = scenario_utilities[left_index];
+            let right_utility = scenario_utilities[right_index];
+            let outcome_index = if left_utility.abs_diff(right_utility)
+                <= request.indifference_margin_units
+            {
+                2
+            } else if left_utility > right_utility {
+                0
+            } else {
+                1
             };
             partitions[outcome_index].push(scenario_index);
         }
@@ -576,7 +598,8 @@ pub fn compute_resident_preference_probe(
         criterion_ids: request.criterion_ids.clone(),
         query_cost_unit: request.query_cost_unit.clone(),
         query_duration_unit: request.query_duration_unit.clone(),
-        claim_ceiling: "An exact question ranking conditional on the caller-supplied, finite, deterministic preference-model set, upstream-normalized criterion scores and perfectly scenario-consistent answers. It does not establish a resident's true preferences, model-set adequacy, accessibility, real-room safety, or a universally best alternative. Hard-feasibility receipts are syntax/binding checked but not authenticated here.",
+        indifference_margin_units: request.indifference_margin_units,
+        claim_ceiling: "An exact question ranking conditional on the caller-supplied finite preference-model set, upstream-normalized criterion scores, the explicit indifference margin, and scenario-consistent answers. It does not establish a resident's true preferences, model-set adequacy, accessibility, real-room safety, or a universally best alternative. Hard-feasibility receipts are syntax/binding checked but not authenticated here.",
     })
 }
 
@@ -611,6 +634,7 @@ mod tests {
             criterion_ids: vec!["affordability".to_owned(), "task_support".to_owned()],
             query_cost_unit: "effort_points".to_owned(),
             query_duration_unit: "seconds".to_owned(),
+            indifference_margin_units: 0,
             alternatives: vec![
                 alternative("low-cost", &[10_000, 0]),
                 alternative("balanced", &[6_000, 6_000]),
@@ -687,10 +711,16 @@ mod tests {
             .expect("question right candidate exists");
         let mut partitions: [Vec<PreferenceScenario>; 3] = [Vec::new(), Vec::new(), Vec::new()];
         for scenario in &input.scenarios {
-            let outcome = match direct_utility(left, scenario).cmp(&direct_utility(right, scenario)) {
-                std::cmp::Ordering::Greater => 0,
-                std::cmp::Ordering::Less => 1,
-                std::cmp::Ordering::Equal => 2,
+            let left_utility = direct_utility(left, scenario);
+            let right_utility = direct_utility(right, scenario);
+            let outcome = if left_utility.abs_diff(right_utility)
+                <= input.indifference_margin_units
+            {
+                2
+            } else if left_utility > right_utility {
+                0
+            } else {
+                1
             };
             partitions[outcome].push(scenario.clone());
         }
@@ -824,6 +854,7 @@ mod tests {
             ],
             query_cost_unit: "effort_points".to_owned(),
             query_duration_unit: "seconds".to_owned(),
+            indifference_margin_units: 0,
             alternatives: vec![
                 alternative("a-cost", &[10_000, 0, 0]),
                 alternative("b-support", &[0, 10_000, 0]),
