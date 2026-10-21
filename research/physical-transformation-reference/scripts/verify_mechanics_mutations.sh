@@ -12,6 +12,8 @@ receipt_path="${GITHUB_WORKSPACE:-$repo_root}/mutation-sensitivity-receipt.json"
 source_commit="$(git -C "$repo_root" rev-parse HEAD)"
 mechanics_sha256="$(sha256sum "$crate_dir/src/mechanics.rs" | awk '{print $1}')"
 metamorphic_sha256="$(sha256sum "$crate_dir/tests/metamorphic.rs" | awk '{print $1}')"
+units_sha256="$(sha256sum "$crate_dir/src/units.rs" | awk '{print $1}')"
+unit_tests_sha256="$(sha256sum "$crate_dir/tests/units.rs" | awk '{print $1}')"
 rustc_version="$(rustc --version)"
 cargo_version="$(cargo --version)"
 
@@ -23,6 +25,14 @@ if ! cargo test --locked --manifest-path "$crate_dir/Cargo.toml" --test metamorp
   exit 1
 fi
 printf 'PASS control: unmutated metamorphic suite\n'
+
+units_control_log="$tmp_root/unmutated-units-control.log"
+if ! cargo test --locked --manifest-path "$crate_dir/Cargo.toml" --test units >"$units_control_log" 2>&1; then
+  printf 'ERROR: unmutated typed unit boundary control failed.\n' >&2
+  cat "$units_control_log" >&2
+  exit 1
+fi
+printf 'PASS control: unmutated typed unit boundary suite\n'
 
 run_mutation() {
   local label="$1"
