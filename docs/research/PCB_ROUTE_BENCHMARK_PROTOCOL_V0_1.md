@@ -75,3 +75,18 @@ Upstream documentation distinguishes 679 PCBench source boards from the 677-boar
 The current v1.1.1 README lists FreeRouting and KRT as rule-based baselines; the exact method availability is versioned, so the protocol must enumerate the methods actually present in the pinned checkout rather than carry forward a stale router list from an earlier release. The upstream evaluator documents a staged process (rollout, post-hoc native DRC, aggregate) and metrics such as connectivity success, routability, track/via counts, wirelength, DRC violation classes and upstream board metadata. The Rust evaluator's normalized input must be produced by an adapter that faithfully maps these metric semantics and carries raw DRC reports and output-board digests; a summary CSV or router-reported success value alone is not evidence enough.
 
 Primary upstream sources checked: [PCBWorld README](https://github.com/LGAI-Research/PCBWorld/blob/main/README.md), [dataset index](https://github.com/LGAI-Research/PCBWorld/blob/main/configs/datasets/README.md), [D3 dataset manifest](https://github.com/LGAI-Research/PCBWorld/blob/main/configs/datasets/d3.json), [evaluation metric contract](https://github.com/LGAI-Research/PCBWorld/blob/main/eval/README.md), and [KDD reproduction index](https://github.com/LGAI-Research/PCBWorld/blob/main/experiments/kdd/README.md).
+
+
+## Normalization adapter contract for PCBWorld outputs
+
+The first adapter should preserve both raw upstream reports and a normalized Rust input, because PCBWorld distinguishes several outcomes that a single completion bit would erase:
+
+- Connectivity success: every net's pads form one connectivity group; this is not sufficient if dangling copper exists.
+- Routability: use upstream's stated reduction in pad connectivity groups, with the pinned initial-board baseline, rather than recomputing a different formula.
+- Physical routing proxies: engine-reported track count, via count and wirelength in millimetres.
+- DRC dimensions: error-severity violations only, and errors plus the three promoted warning codes 12/13/37, with the per-violation severity, label, error code/type, coordinates, layer, net names, error/promoted flags retained.
+- Board provenance: original source-board hash, matching source .kicad_pro design-rule file, DRC policy/configuration digest, router/engine version and output-board hash.
+
+The published evaluation pipeline is staged: rollout produces artifacts; post-hoc DRC scores the saved routed board against its source project rules; aggregation computes split/method results. The adapter must retain those stage boundaries and attach the raw DRC report; a single summary CSV or a router's own success label is insufficient proof. Record the policy-specific results rather than mixing the paper recipe's scoring policy with the newer shipped default. In particular, a score under one warning-promotion / reward config is not interchangeable with a score under another.
+
+Do not claim the output-board digest is independently verified merely because it appears in the normalized row. The actual adapter must hash the bytes of the saved PCB output, compare that to the report, and then run the pinned DRC engine against that exact saved file. The normalized evaluator validates structure/coverage/pairing; provenance of physical bytes and DRC execution comes from the adapter's raw-file receipts and external tool process logs.
