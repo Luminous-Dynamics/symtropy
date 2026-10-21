@@ -89,7 +89,13 @@ The new synthetic conditioning work [PHYS-TRUSS-CONDITION-001 #2497](https://git
 
 This remains a synthetic small-displacement, 2D pin-jointed-truss code-verification case. It is not an external FEM result, a probability distribution for loading uncertainty, a general sparse-matrix condition estimator, or physical validation. Transfer the principle to the FEM adapter only after its matrix/solver diagnostics and error semantics are independently understood.
 
-## 6. Metrics and proposed targets
+### Interval enclosures: uncertainty is not a sensitivity multiplier
+
+The reduced-truss extension [PHYS-UQ-TRUSS-001 #2500](https://github.com/Luminous-Dynamics/symtropy/issues/2500) / [draft PR #2501](https://github.com/Luminous-Dynamics/symtropy/pull/2501) propagates declared bounds for geometry, axial stiffness and load through a reduced 2x2 linear-elastic truss. It uses a geometry-specific determinant identity and refuses to issue displacement enclosures when strict positivity of the determinant cannot be established.
+
+This is not a confidence interval: declared ranges are not probability distributions, and scenario bounds are not measured/calibrated uncertainty. Nor does a bounded corner grid prove interval soundness. Sound enclosures depend on arithmetic semantics, outward rounding and conformance tests; the independent interval-conformance gate remains a dependency. Record finite enclosure width and unresolved/abstention separately from reference error, mesh convergence and physical validation. A wide enclosure is evidence of low decision resolution, not a PASS.
+
+## 7. Metrics and proposed targets
 
 ### Integrity and abstention
 - Zero false PASS outcomes across the frozen adversarial corpus.
@@ -109,7 +115,7 @@ This remains a synthetic small-displacement, 2D pin-jointed-truss code-verificat
 - Plot error versus DOFs and total compute cost; report paired per-case cost to first meet the frozen quantity-of-interest tolerance.
 - For later uniform-versus-adaptive work [PHYS-AMR-BENCH-001 #2331](https://github.com/Luminous-Dynamics/symtropy/issues/2331), the proposed stretch target is at least 25% lower median total CPU-seconds to the same eligible tolerance OR twice as many held-out cases meeting tolerance at equal compute, with no increase in false-pass/false-safe outcomes. This is a hypothesis to test, not an established result.
 
-## 7. How to claim improvement over the state of the art
+## 8. How to claim improvement over the state of the art
 
 The primary objective is **more independently verified engineering accuracy per complete evidence and compute budget**, subject to a hard zero-false-PASS gate—not speed at the cost of validity.
 
@@ -124,7 +130,7 @@ The claim ladder:
 
 No stage implies the next one automatically.
 
-## 8. References
+## 9. References
 
 - NAFEMS, [The Standard NAFEMS Benchmarks (P18)](https://www.nafems.org/publications/resource_center/p18/) and [Linear Static Benchmarks — Volume 1](https://www.nafems.org/publications/browse_buy/browse_by_topic/linear/p07/).
 - NIST, [FEM Solution Uncertainty and Accuracy Assessment](https://www.nist.gov/publications/finite-element-method-solution-uncertainty-asymptotic-solution-and-new-approach).
