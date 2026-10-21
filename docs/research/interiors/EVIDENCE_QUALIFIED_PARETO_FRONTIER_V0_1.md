@@ -76,7 +76,20 @@ This is an internal microbenchmark, not an external SOTA result. End-to-end eval
 
 ## Three-objective follow-up
 
-A separate stacked draft [PR #2519](https://github.com/Luminous-Dynamics/symtropy/pull/2519) adds an exact three-objective sweep using a compressed y-coordinate index and Fenwick prefix-minimum witnesses. It defers updates across equal-x groups and resolves equal-y candidates separately so identical points do not dominate one another. The new generated-grid and adversarial tests compare its output against the brute-force dominance oracle. This remains unproven until exact-head CI completes; four or more dimensions still use the pairwise fallback. The benchmark matrix now includes 2D and 3D profiles at 25/100/1,000/10,000 candidates, plus 4D fallback cases through 1,000 candidates.
+The exact three-objective sweep is in stacked draft [PR #2519](https://github.com/Luminous-Dynamics/symtropy/pull/2519). It uses a compressed y-coordinate index and Fenwick prefix-minimum witnesses, defers updates across equal-x groups, and resolves equal-y candidates separately so identical points do not dominate one another. Its generated-grid and adversarial tests compare frontier membership and each reported witness against the brute-force dominance oracle.
+
+Exact tested head `39a5c413e92569db1174a72e4b203be700f08744` passed [Furnishing Layout Audit run #39590356895](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39590356895): formatting, 38 crate tests, strict Clippy and the expanded benchmark matrix.
+
+| Dimensions | Alternatives | Profile | Samples | p50 | p95 |
+|---:|---:|---|---:|---:|---:|
+| 3 | 1,000 | Tradeoff-heavy | 10 | 0.912 ms | 1.031 ms |
+| 3 | 1,000 | Dominated chain | 10 | 1.371 ms | 1.553 ms |
+| 3 | 10,000 | Tradeoff-heavy; all non-dominated | 5 | 10.452 ms | 11.266 ms |
+| 3 | 10,000 | Dominated chain; one frontier member | 5 | 17.341 ms | 18.635 ms |
+| 4 | 1,000 | Tradeoff-heavy; pairwise fallback | 10 | 7.548 ms | 7.832 ms |
+| 4 | 1,000 | Dominated chain; pairwise fallback | 10 | 1.035 ms | 1.088 ms |
+
+These are synthetic internal microbenchmarks. The 10,000-candidate rows use five samples, so p95 is exploratory, not an SLA. Peak memory is not measured. The 3D cases matched the exact pairwise reference in tests; this does not yet establish external SOTA superiority. Four or more objectives remain O(n²) and are the next algorithmic gap.
 
 ## Claim ceiling
 
