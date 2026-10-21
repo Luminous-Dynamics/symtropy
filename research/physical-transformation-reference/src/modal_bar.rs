@@ -102,10 +102,12 @@ pub fn analyze_fixed_free_bar(
         }
     }
     for i in 0..n {
-        for j in 0..i {
-            let average = 0.5 * (symmetric[i][j] + symmetric[j][i]);
-            symmetric[i][j] = average;
-            symmetric[j][i] = average;
+        let (above, at_and_below) = symmetric.split_at_mut(i);
+        let row = &mut at_and_below[0];
+        for (above_row, row_value) in above.iter_mut().zip(row.iter_mut()) {
+            let average = 0.5 * (*row_value + above_row[i]);
+            *row_value = average;
+            above_row[i] = average;
         }
     }
 
@@ -230,12 +232,18 @@ fn cholesky_lower(matrix: &[Vec<f64>]) -> Check<Vec<Vec<f64>>> {
 fn invert_lower(lower: &[Vec<f64>]) -> Check<Vec<Vec<f64>>> {
     let n = lower.len();
     let mut inverse = vec![vec![0.0; n]; n];
-    for column in 0..n {
-        for row in 0..n {
-            let correction: f64 = (0..row).map(|k| lower[row][k] * inverse[k][column]).sum();
+    for (row, lower_row) in lower.iter().enumerate() {
+        let (prior, current_and_after) = inverse.split_at_mut(row);
+        let inverse_row = &mut current_and_after[0];
+        for (column, cell) in inverse_row.iter_mut().enumerate() {
+            let correction: f64 = prior
+                .iter()
+                .enumerate()
+                .map(|(k, inverse_row)| lower_row[k] * inverse_row[column])
+                .sum();
             let rhs = if row == column { 1.0 } else { 0.0 };
-            inverse[row][column] = (rhs - correction) / lower[row][row];
-            if !inverse[row][column].is_finite() {
+            *cell = (rhs - correction) / lower_row[row];
+            if !cell.is_finite() {
                 return Err("mass matrix inverse factor is non-finite".to_owned());
             }
         }
@@ -276,9 +284,9 @@ fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
     for _ in 0..max_iterations {
         let mut largest = 0.0_f64;
         let mut pivot = None;
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let candidate = matrix[i][j].abs();
+        for (i, row) in matrix.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                let candidate = value.abs();
                 if candidate > largest {
                     largest = candidate;
                     pivot = Some((i, j));
@@ -309,15 +317,21 @@ fn symmetric_eigenvalues(mut matrix: Vec<Vec<f64>>) -> Check<Vec<f64>> {
         let cosine = 1.0 / (1.0 + t * t).sqrt();
         let sine = t * cosine;
 
-        for k in 0..n {
+        let mut changed_columns = Vec::with_capacity(n.saturating_sub(2));
+        for (k, row) in matrix.iter_mut().enumerate() {
             if k != p && k != q {
-                let akp = matrix[k][p];
-                let akq = matrix[k][q];
-                matrix[k][p] = cosine * akp - sine * akq;
-                matrix[p][k] = matrix[k][p];
-                matrix[k][q] = sine * akp + cosine * akq;
-                matrix[q][k] = matrix[k][q];
+                let akp = row[p];
+                let akq = row[q];
+                let new_p = cosine * akp - sine * akq;
+                let new_q = sine * akp + cosine * akq;
+                row[p] = new_p;
+                row[q] = new_q;
+                changed_columns.push((k, new_p, new_q));
             }
+        }
+        for (k, new_p, new_q) in changed_columns {
+            matrix[p][k] = new_p;
+            matrix[q][k] = new_q;
         }
         matrix[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
         matrix[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
