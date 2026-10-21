@@ -505,9 +505,7 @@ fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<
 /// are removed and receive this candidate as a valid witness. The worst case
 /// remains O(n²) when almost every point is non-dominated, but dominated
 /// distributions require comparisons against a much smaller frontier.
-fn incremental_frontier_dominators(
-    rankable: &[RankableCandidate<'_>],
-) -> BTreeMap<String, String> {
+fn incremental_frontier_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<String, String> {
     let mut frontier: Vec<&RankableCandidate<'_>> = Vec::new();
     let mut dominators = BTreeMap::new();
 
@@ -539,10 +537,7 @@ fn incremental_frontier_dominators(
                 !dominated_ids.contains(existing.candidate.candidate_id.as_str())
             });
             for dominated_id in dominated_frontier_ids {
-                dominators.insert(
-                    dominated_id,
-                    candidate.candidate.candidate_id.clone(),
-                );
+                dominators.insert(dominated_id, candidate.candidate.candidate_id.clone());
             }
         }
         // rankable is sorted by stable candidate ID, so appending preserves
@@ -665,8 +660,8 @@ pub fn compute_pareto_frontier(
         3 => Some(three_dimensional_dominators(&rankable)),
         _ => None,
     };
-    let incremental_dominators = (objective_count >= 4)
-        .then(|| incremental_frontier_dominators(&rankable));
+    let incremental_dominators =
+        (objective_count >= 4).then(|| incremental_frontier_dominators(&rankable));
 
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
@@ -1209,8 +1204,7 @@ mod tests {
                     )
                 })
                 .collect::<Vec<_>>();
-            let report =
-                compute_pareto_frontier(&candidates).expect("generated schema is valid");
+            let report = compute_pareto_frontier(&candidates).expect("generated schema is valid");
             assert_eq!(
                 report.frontier_ids,
                 pairwise_frontier_ids(&candidates),
