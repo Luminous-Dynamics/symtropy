@@ -12,12 +12,12 @@ The benchmark tests core translational collision response only. It does **not** 
 
 - 3D world, but purely collinear center-of-mass motion along world X.
 - Two dynamic spheres of radius 0.5 m, initially centred at `(-1, 0, 0)` and `(1, 0, 0)`.
-- Zero gravity, zero linear/angular damping, zero friction, no callbacks, no static body, and no externally applied force.
+- Zero gravity, zero linear/angular damping, zero friction, zero Baumgarte position-bias correction, no callbacks, no static body, and no externally applied force.
 - Fixed timestep `dt = 1/120 s`; at most 2,000 steps to first detected contact.
 - Both bodies use the same coefficient of restitution, matching the current pair rule `sqrt(e_a * e_b)`.
 - Initial relative approach speed is always above the engine's documented 1 m/s restitution threshold; the benchmark does not depend on a low-speed bounce regime.
 
-The test stops at the first contact-resolving frame and checks the resulting velocities and world invariant snapshot. It is not a full post-impact trajectory or contact-stability benchmark.
+The test sets Baumgarte bias to zero to isolate the restitution impulse law from overlap-correction work. The test stops at the first contact-resolving frame and checks the resulting velocities and world invariant snapshot. It is not a full post-impact trajectory, penetration-correction, or contact-stability benchmark.
 
 ## Independent closed-form oracle
 
