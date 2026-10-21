@@ -512,6 +512,10 @@ jobs:
             and (.mesh_results[2].common_low_mode_frequency_relative_changes_from_previous_mesh | length == 12)
             and (.mesh_results[3].common_low_mode_frequency_relative_changes_from_previous_mesh | length == 24)
             and all(.mesh_results[1:][]; .max_common_low_mode_frequency_relative_change >= 0)
+            and (.mesh_results[0].mode_shape_mac_low_six_from_previous_mesh == null)
+            and all(.mesh_results[1:][]; (.mode_shape_mac_low_six_from_previous_mesh | length) == 6)
+            and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[]; length == 6))
+            and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[][]; . >= 0 and . <= 1))
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-chain-modal-sweep-receipt.json
 
