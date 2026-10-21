@@ -685,6 +685,60 @@ mod tests {
     }
 
     #[test]
+    fn first_three_mode_shapes_match_independent_analytical_sine_samples() {
+        for formulation in [
+            MassMatrixFormulation::Consistent,
+            MassMatrixFormulation::Lumped,
+        ] {
+            let modes = super::fixed_free_axial_bar_modes(
+                LENGTH_M,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                8,
+                3,
+                formulation,
+            )
+            .expect("modal shapes");
+
+            for (mode_index, mode) in modes.iter().enumerate() {
+                let analytical_shape: Vec<f64> = (1..=8)
+                    .map(|node| {
+                        let x = LENGTH_M * node as f64 / 8.0;
+                        (((2 * mode_index + 1) as f64) * std::f64::consts::PI * x
+                            / (2.0 * LENGTH_M))
+                            .sin()
+                    })
+                    .collect();
+                let dot = mode
+                    .shape_free_dofs
+                    .iter()
+                    .zip(&analytical_shape)
+                    .map(|(actual, expected)| actual * expected)
+                    .sum::<f64>();
+                let actual_norm = mode
+                    .shape_free_dofs
+                    .iter()
+                    .map(|value| value * value)
+                    .sum::<f64>();
+                let expected_norm = analytical_shape
+                    .iter()
+                    .map(|value| value * value)
+                    .sum::<f64>();
+                let modal_assurance = dot * dot / (actual_norm * expected_norm);
+
+                assert!(
+                    modal_assurance > 1.0 - 1.0e-12,
+                    "mode {} MAC too low for {:?}: {:.17e}",
+                    mode_index + 1,
+                    formulation,
+                    modal_assurance
+                );
+            }
+        }
+    }
+
+    #[test]
     fn invalid_domains_and_unavailable_modes_fail_closed() {
         assert!(
             analytical_fixed_free_axial_bar_frequencies(0.0, YOUNGS_MODULUS_PA, DENSITY_KG_M3, 1,)
