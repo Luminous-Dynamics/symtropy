@@ -76,8 +76,8 @@ jobs:
             and (.candidates | length) == 5
             and (.method_scores | length) == 4
             and (.paired_intervention_comparisons | length) == 10
-            and .familywise_method == "bonferroni_adjusted_two_sided_paired_t_intervals"
-            and .familywise_error_rate_target == 0.05
+            and .familywise_method == "bonferroni_adjusted_two_sided_paired_t_intervals_nominal_coverage"
+            and .familywise_nominal_error_rate_target == 0.05
             and .familywise_comparison_count == 10
             and .familywise_comparison_budget == 10
             and all(.paired_intervention_comparisons[]; .paired_effect_a_minus_b.sample_count == 20 and .practical_equivalence_margin_units_per_hour == 0.05 and .probability_a_beats_b_beyond_margin >= 0 and .probability_a_beats_b_beyond_margin <= 1 and .probability_b_beats_a_beyond_margin >= 0 and .probability_b_beats_a_beyond_margin <= 1 and .familywise_simultaneous_ci_95_lower_units_per_hour != null and .familywise_simultaneous_ci_95_upper_units_per_hour != null and .familywise_critical_value > 0 and (.familywise_decision | type) == "string")
