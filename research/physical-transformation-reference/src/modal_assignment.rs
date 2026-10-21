@@ -310,6 +310,22 @@ mod tests {
     }
 
     #[test]
+    fn valid_matching_is_selected_even_when_invalid_edges_have_higher_mac() {
+        let assignment = assign_isolated_modes(
+            &[10.0, 100.0],
+            &[10.1, 100.2],
+            &[vec![0.8, 0.99], vec![0.99, 0.8]],
+            0.05,
+            0.75,
+        )
+        .expect("valid constrained assignment")
+        .expect("diagonal edges satisfy both gates");
+        assert_eq!(assignment.matches[0].candidate_mode_index, 0);
+        assert_eq!(assignment.matches[1].candidate_mode_index, 1);
+        assert!((assignment.minimum_matched_mac - 0.8).abs() < 1.0e-14);
+    }
+
+    #[test]
     fn malformed_inputs_fail_closed() {
         assert!(assign_isolated_modes(&[], &[], &[], 0.1, 0.5).is_err());
         assert!(assign_isolated_modes(&[10.0], &[10.0, 20.0], &[vec![1.0]], 0.1, 0.5).is_err());
