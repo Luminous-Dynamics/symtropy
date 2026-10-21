@@ -87,6 +87,10 @@ A frozen symmetric two-bar V-truss has an independent closed-form oracle. Furthe
 
 The implementation intentionally caps the dense reference at 128 nodes / 512 bars. It is a small benchmark/oracle model, not a large-scale FEM solver; dense assembly and Gaussian elimination are not suitable as the production-scale route. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture and dynamics. Passing this benchmark qualifies only the named idealized mathematical model—not a real structure or the external SOFiSTiK BE1 benchmark.
 
+## Modal dynamics: separate verification contract
+
+The static planar-truss solver does **not** implement free-vibration or modal analysis. [NAFEMS NBC05 modal verification contract](benchmarks/NAFEMS_NBC05_MODAL_VERIFICATION_V0_1.md) records the next research ladder: analytical axial-bar spectrum; independent generalized-eigenvalue known answer; explicitly labelled consistent/lumped mass; mode-shape and eigen-residual checks; constraint/mechanism classification; and only then a carefully reconstructed external benchmark comparison. Its published solver values are comparators, not ground truth, and the benchmark is not yet reproduced.
+
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
