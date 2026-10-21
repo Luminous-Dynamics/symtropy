@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, env, fs, process};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    env, fs, process,
+};
 
 const CLAIM_CEILING: &str = "Synthetic cost-energy-labor-capacity frontier only. All prices, equipment costs, station power, staffing and grid intensity are sensitivity inputs. This is not a measured factory, ROI calculation, vendor quote, SOTA result or purchase recommendation.";
 
@@ -526,9 +529,8 @@ fn validate_inputs(
         return Err("simulation_per_seed_outcome_count_mismatch".into());
     }
 
-    let close_enough = |left: f64, right: f64| {
-        (left - right).abs() <= 1e-9 * left.abs().max(right.abs()).max(1.0)
-    };
+    let close_enough =
+        |left: f64, right: f64| (left - right).abs() <= 1e-9 * left.abs().max(right.abs()).max(1.0);
     let expected_scenarios: BTreeSet<String> = std::iter::once("baseline".to_string())
         .chain(
             station_ids
@@ -554,8 +556,8 @@ fn validate_inputs(
             return Err("simulation_per_seed_outcome_identity_or_value_invalid".into());
         }
 
-        if let Some(previous_baseline) = baseline_rate_by_seed
-            .insert(outcome.seed, outcome.baseline_good_units_per_hour)
+        if let Some(previous_baseline) =
+            baseline_rate_by_seed.insert(outcome.seed, outcome.baseline_good_units_per_hour)
         {
             if !close_enough(previous_baseline, outcome.baseline_good_units_per_hour) {
                 return Err("simulation_same_seed_baseline_rate_mismatch".into());
@@ -564,7 +566,9 @@ fn validate_inputs(
 
         if outcome.scenario_id == "baseline" {
             if outcome.intervention_station_id.is_some()
-                || outcome.paired_good_units_per_hour_delta_vs_baseline.is_some()
+                || outcome
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_some()
                 || !close_enough(
                     outcome.good_units_per_hour,
                     outcome.baseline_good_units_per_hour,
