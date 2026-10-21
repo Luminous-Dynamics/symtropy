@@ -333,6 +333,63 @@ pub struct ComparisonReceipt {
     pub claim_ceiling: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SeedReportPin {
+    pub seed: u64,
+    pub baseline_report_sha256: String,
+    pub treatment_report_sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ReplicatedBoardSummary {
+    pub board_id: String,
+    pub paired_attempt_count: usize,
+    pub baseline_valid_attempts: usize,
+    pub treatment_valid_attempts: usize,
+    pub baseline_completion_rate: f64,
+    pub treatment_completion_rate: f64,
+    pub completion_delta_percentage_points: f64,
+    pub mean_elapsed_delta_ms_treatment_minus_baseline: f64,
+    pub jointly_valid_attempts: usize,
+    pub mean_wirelength_delta_mm_treatment_minus_baseline: Option<f64>,
+    pub mean_via_delta_treatment_minus_baseline: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ReplicatedSummary {
+    pub board_count: usize,
+    pub seed_count: usize,
+    pub paired_attempt_count: usize,
+    pub baseline_valid_attempts: usize,
+    pub treatment_valid_attempts: usize,
+    pub baseline_completion_rate: f64,
+    pub treatment_completion_rate: f64,
+    pub completion_delta_percentage_points: f64,
+    pub completion_delta_95_ci_board_clustered: ConfidenceInterval,
+    pub mean_elapsed_delta_ms_treatment_minus_baseline: f64,
+    pub mean_elapsed_delta_95_ci_board_clustered_ms: ConfidenceInterval,
+    pub median_elapsed_delta_ms_per_attempt: f64,
+    pub jointly_valid_attempts: usize,
+    pub mean_wirelength_delta_mm_treatment_minus_baseline: Option<f64>,
+    pub wirelength_delta_95_ci_board_clustered_mm: Option<ConfidenceInterval>,
+    pub mean_via_delta_treatment_minus_baseline: Option<f64>,
+    pub via_delta_95_ci_board_clustered: Option<ConfidenceInterval>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ReplicatedComparisonReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub dataset_manifest_sha256: String,
+    pub baseline_method_id: String,
+    pub treatment_method_id: String,
+    pub seed_pairs: Vec<SeedReportPin>,
+    pub summary: ReplicatedSummary,
+    pub boards: Vec<ReplicatedBoardSummary>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
 pub fn evaluate_report_bytes(
     report_bytes: &[u8],
     manifest_bytes: &[u8],
