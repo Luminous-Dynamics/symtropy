@@ -175,3 +175,36 @@ rustc --edition=2024 --test tools/vision-active-query-bench.rs -o /tmp/active-qu
 rustc --edition=2024 -O tools/vision-active-query-bench.rs -o /tmp/active-query-bench
 /tmp/active-query-bench
 ```
+
+## VIS-ACT-008: development-calibrated marginal value of sensing
+
+**Status:** new candidate implementation; exact-head qualification and numeric results pending. This section makes no performance claim.
+
+### Hypothesis and design
+
+The absolute-risk stop rule has not worked: it nearly always spends the full budget. The new policy instead estimates the *expected reduction in terminal decision loss from one more requested observation* and compares the largest candidate value with an explicit request cost. Its calibration objective is:
+
+`J = mean(task loss + c × requests used)`
+
+where `c` is task-loss units per request. The fixed development grid is `[0, 0.00025, 0.0005, 0.001, 0.0015, 0.002, 0.003]`. The chosen value is the grid point minimizing the mean objective on development episodes only. The chosen threshold is then reported on the held-out family; held-out outcomes never select the threshold. The full threshold-by-family sensitivity table is diagnostic and must not be used to retune it.
+
+This is deliberately a **myopic counterfactual estimator**, not an optimal stopping proof. It reuses the existing frozen confidence, delay, distractor and hazard priors. The previous expected-task-loss policy's negative result is a reason for skepticism, not a reason to presume this stopping adaptation works.
+
+### Avoiding a symmetric-prior trap
+
+A majority decision can have complementary information value: with all three claims unknown, the modeled marginal decision-loss reduction of observing only one claim may be exactly zero because the other two remain at 0.5. A naive marginal stop policy would stop before acquiring any evidence. This implementation therefore enforces an explicit exploration floor: request until at least one **relevant** observation has been acquired for each query claim before applying the marginal-value stopping rule. Distractor responses do not satisfy the floor. This is a declared heuristic that will be ablated later, not a guarantee that three observations are sufficient.
+
+### Qualification and rejection rules
+
+The exact-head Rust workflow checks deterministic replay, all policy invariance tests, the nine-policy report schema, all 90 budget-frontier rows, risk-stop cost sensitivity, the marginal-cost sensitivity table, the development calibration row, and SHA-256 report integrity.
+
+The marginal report includes both:
+- raw paired task-loss delta versus round-robin, to show quality/coverage trade-offs; and
+- paired cost-adjusted objective delta versus round-robin, where round-robin pays for all 48 requests.
+
+The candidate advances only if the **development-selected** threshold has a held-out cost-adjusted objective delta whose paired 95% interval is entirely below zero. Also report raw task-loss delta, answer rate, requests used and per-episode uncertainty; don't call lower spend a win if task quality collapses. The threshold is rejected as a preferred policy if this gate fails. Estimated scoring-work units are a deterministic operation-count proxy, not measured wall-clock latency, GPU time, RAM, energy or robotics efficiency.
+
+### External benchmark boundary
+
+This remains symbolic and synthetic. It cannot be ranked numerically against ActiveArena task success or RoboMME scores. After this gate, the next external gate remains a controller-only ablation on a pinned ActiveArena baseline: fixed model/checkpoint, prompts, preprocessing, executor and committed ID/OOD seed order; report task-macro success, per-task/category results, paired uncertainty, failures, latency, VRAM/RAM and observation counts. A +5 percentage-point OOD improvement with paired evidence and no more than a 3-point ID regression is an internal target, not a community standard.
+
