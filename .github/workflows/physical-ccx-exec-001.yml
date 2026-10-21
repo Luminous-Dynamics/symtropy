@@ -34,10 +34,20 @@ jobs:
           . /etc/os-release
           test "${VERSION_CODENAME}" = "noble"
           rm -f /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list
-          cat > /etc/apt/sources.list.d/phys-ccx-snapshot.list <<'EOF'
-          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble main universe
-          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-updates main universe
-          deb [check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-security main universe
+          cat > /etc/apt/sources.list.d/phys-ccx-snapshot.sources <<'EOF'
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Snapshot: 20261020T000000Z
+
+          Types: deb
+          URIs: http://security.ubuntu.com/ubuntu/
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Snapshot: 20261020T000000Z
           EOF
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -145,6 +155,11 @@ jobs:
             echo "with_pastix=$WITH_PASTIX"
             echo "with_arpack=$WITH_ARPACK"
             echo "with_mt=$WITH_MT"
+            echo "c_compiler=$(cc --version | head -n 1)"
+            echo "fortran_compiler=$(gfortran --version | head -n 1)"
+            echo "make_version=$(make --version | head -n 1)"
+            echo "linker_version=$(ld --version | head -n 1)"
+            echo "installed_package_inventory_sha256=$(sha256sum "$RUNNER_TEMP/ccx-evidence/build-identity.log" | cut -d ' ' -f 1)"
             echo "ccx_executable_sha256=$(sha256sum "$CCX" | cut -d ' ' -f 1)"
           } > "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt"
           jq -n \
@@ -170,13 +185,8 @@ jobs:
               build_log_sha256:$build_log_sha,
               build_config:{with_pardiso:false,with_pastix:false,with_arpack:false,with_mt:true}
             }' > "$RUNNER_TEMP/ccx-evidence/build-manifest.json"
-          cp "$RUNNER_TEMP/ccx-evidence/build-manifest.json" \
-            "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt" \
-            "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt" \
-            "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256" \
-            "$RUNNER_TEMP/ccx-evidence/source-provenance.txt" \
-            "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" \
-            "$RUNNER_TEMP/ccx-evidence/"
+          cp "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" \
+            "$RUNNER_TEMP/ccx-evidence/CalculiX-PROVENANCE.md"
 
       - name: Run real CCX cases and independently audit U and RF outputs
         id: execute_cases
@@ -201,7 +211,7 @@ jobs:
 
           cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
             --request "$REQUEST" --validator-revision "$source_sha" > "$OUT/request-validation.json"
-          jq -e '.valid == true or .request_status == "PASS" or .status == "PASS"' \
+          jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_status == "UNRESOLVED"' \
             "$OUT/request-validation.json" >/dev/null
 
           run_ccx() {
