@@ -32,14 +32,16 @@ Already-completed reservations (end tick at or before the disruption observation
 
 ## Tests authored in V0
 
-Five tests cover:
+Five unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
 4. prevention of historical reservation mutation;
 5. measurement of churn on work outside the affected set.
 
-These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The evaluator currently models rectangle-zone intersections and exclusive vehicle outages only; it does not compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
+A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
+
+These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator currently models rectangle-zone intersections and exclusive vehicle outages only; it does not compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
 
 ## Benchmark protocol and targets
 
