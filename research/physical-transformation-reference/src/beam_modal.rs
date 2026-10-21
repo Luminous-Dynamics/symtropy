@@ -295,6 +295,96 @@ mod tests {
     }
 
     #[test]
+    fn cantilever_bending_eigenvalues_match_independent_closed_form_two_by_two_oracle() {
+        use crate::beam_element::euler_bernoulli_frame_element;
+
+        let length_m = 2.0_f64;
+        let area_m2 = 0.004_f64;
+        let youngs_modulus_pa = 70.0e9_f64;
+        let density_kg_m3 = 2700.0_f64;
+        let second_moment_m4 = 2.0e-6_f64;
+        let element = euler_bernoulli_frame_element(
+            length_m,
+            area_m2,
+            youngs_modulus_pa,
+            density_kg_m3,
+            second_moment_m4,
+        )
+        .expect("cantilever beam element");
+
+        // The root DOFs are fixed. Select only the free transverse-tip
+        // displacement and rotation; axial motion decouples from bending.
+        let indices = [4_usize, 5_usize];
+        let stiffness = indices
+            .iter()
+            .map(|row| {
+                indices
+                    .iter()
+                    .map(|col| element.stiffness_local[*row][*col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mass = indices
+            .iter()
+            .map(|row| {
+                indices
+                    .iter()
+                    .map(|col| element.mass_local[*row][*col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        // Independent quadratic formula for det(K - lambda M) = 0:
+        // det(M)*lambda^2 - trace(adj(M)*K)*lambda + det(K) = 0.
+        let det_m = mass[0][0] * mass[1][1] - mass[0][1] * mass[1][0];
+        let trace_adj_m_k =
+            mass[1][1] * stiffness[0][0] + mass[0][0] * stiffness[1][1]
+                - mass[0][1] * stiffness[1][0]
+                - mass[1][0] * stiffness[0][1];
+        let det_k =
+            stiffness[0][0] * stiffness[1][1] - stiffness[0][1] * stiffness[1][0];
+        assert!(det_m > 0.0 && det_k > 0.0);
+        let discriminant = trace_adj_m_k * trace_adj_m_k - 4.0 * det_m * det_k;
+        assert!(discriminant > 0.0);
+        let root = discriminant.sqrt();
+        let expected = [
+            (trace_adj_m_k - root) / (2.0 * det_m),
+            (trace_adj_m_k + root) / (2.0 * det_m),
+        ];
+
+        let actual = crate::modal_bar::generalized_symmetric_eigenpairs(&stiffness, &mass)
+            .expect("cantilever generalized eigenproblem");
+        assert_eq!(actual.len(), 2);
+        for index in 0..2 {
+            let scale = expected[index].abs().max(1.0);
+            assert!(
+                (actual[index].0 - expected[index]).abs() / scale < 1.0e-10,
+                "cantilever bending eigenvalue {} differs: actual={:.17e}, expected={:.17e}",
+                index + 1,
+                actual[index].0,
+                expected[index]
+            );
+            assert!(
+                crate::modal_bar::normalized_eigen_residual(
+                    &stiffness,
+                    &mass,
+                    actual[index].0,
+                    &actual[index].1
+                )
+                .expect("cantilever mode residual")
+                    < 1.0e-10
+            );
+            assert!(
+                (crate::modal_bar::quadratic_form(&mass, &actual[index].1)
+                    .expect("cantilever modal mass")
+                    - 1.0)
+                    .abs()
+                    < 1.0e-10
+            );
+        }
+    }
+
+    #[test]
     fn refined_beam_chains_preserve_modes_and_diagnostics_at_multiple_mesh_levels() {
         let nodes = vec![
             BeamPinNode {
