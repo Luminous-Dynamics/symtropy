@@ -1306,6 +1306,17 @@ fn complete_operation(
     };
 
     let station = &catalog.stations[station_index];
+    record_lifecycle_event(
+        state,
+        catalog,
+        JobLifecycleEventKind::StationEnd,
+        job.id,
+        job.variant,
+        Some(station_index),
+        Some(server_index),
+        None,
+        Some(station_attempts),
+    );
     let passed = DeterministicRng::for_key(
         catalog.seed,
         "quality-outcome",
@@ -1315,8 +1326,44 @@ fn complete_operation(
     )
     .unit()
         < station.good_yield_fraction;
+    {
+        let record = state.job_records.get_mut(&job.id)
+            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_quality_outcome", job.id))?;
+        if station_attempts == 1 {
+            if record.first_attempt_outcome_by_station[station_index].is_some() {
+                return Err(format!("job_{}_first_attempt_outcome_duplicated_for_station_{}", job.id, station.station_id));
+            }
+            record.first_attempt_outcome_by_station[station_index] = Some(passed);
+        }
+    }
+    record_lifecycle_event(
+        state,
+        catalog,
+        if passed { JobLifecycleEventKind::QualityPass } else { JobLifecycleEventKind::QualityFail },
+        job.id,
+        job.variant,
+        Some(station_index),
+        Some(server_index),
+        None,
+        Some(station_attempts),
+    );
     if !passed && station_attempts <= station.max_rework_attempts {
-        let rework_seconds = sample_service_seconds(catalog, station, job.id, station_attempts + 1);
+        let rework_attempt = station_attempts + 1;
+        let rework_seconds = sample_service_seconds(catalog, station, job.id, rework_attempt);
+        let record = state.job_records.get_mut(&job.id)
+            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_rework", job.id))?;
+        record.attempts_started_by_station[station_index] += 1;
+        record_lifecycle_event(
+            state,
+            catalog,
+            JobLifecycleEventKind::ReworkStart,
+            job.id,
+            job.variant,
+            Some(station_index),
+            Some(server_index),
+            None,
+            Some(rework_attempt),
+        );
         let runtime = &mut state.stations[station_index];
         if state.now >= catalog.warmup_seconds {
             runtime.metrics.rework_attempts_after_warmup += 1;
@@ -1325,7 +1372,7 @@ fn complete_operation(
         }
         runtime.servers[server_index].state = ServerState::Busy {
             job,
-            station_attempts: station_attempts + 1,
+            station_attempts: rework_attempt,
             service_seconds_for_job: service_seconds_for_job.saturating_add(rework_seconds),
         };
         let completion_at = state.now.saturating_add(rework_seconds);
@@ -1358,6 +1405,22 @@ fn complete_operation(
             machine_fails_after_release: machine_fails,
         };
     } else {
+        let record = state.job_records.get_mut(&job.id)
+            .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_scrap", job.id))?;
+        if record.scrapped_at_seconds.replace(state.now).is_some() {
+            return Err(format!("job_{}_scrap_terminal_record_duplicated", job.id));
+        }
+        record_lifecycle_event(
+            state,
+            catalog,
+            JobLifecycleEventKind::JobScrapped,
+            job.id,
+            job.variant,
+            Some(station_index),
+            Some(server_index),
+            None,
+            Some(station_attempts),
+        );
         state.scrapped_jobs_total += 1;
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
