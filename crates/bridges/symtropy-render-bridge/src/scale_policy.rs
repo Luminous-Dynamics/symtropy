@@ -293,10 +293,7 @@ impl ScaleBandLatch {
         initial_band: ApparentSizeBand,
         hysteresis_fraction: f64,
     ) -> Result<Self, ApparentScaleError> {
-        if !hysteresis_fraction.is_finite()
-            || hysteresis_fraction < 0.0
-            || hysteresis_fraction >= 0.5
-        {
+        if !hysteresis_fraction.is_finite() || !(0.0..0.5).contains(&hysteresis_fraction) {
             return Err(ApparentScaleError::InvalidHysteresisFraction);
         }
         Ok(Self {
