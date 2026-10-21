@@ -229,7 +229,10 @@ fn ensure_finite_matrix(name: &str, matrix: &Matrix) -> Check<()> {
 
 /// Solve K x = lambda M x by a Cholesky reduction followed by a symmetric
 /// Jacobi eigensolve. The reduced M must be positive definite.
-pub(crate) fn generalized_symmetric_eigenpairs(stiffness: &Matrix, mass: &Matrix) -> Check<Vec<Eigenpair>> {
+pub(crate) fn generalized_symmetric_eigenpairs(
+    stiffness: &Matrix,
+    mass: &Matrix,
+) -> Check<Vec<Eigenpair>> {
     let lower = cholesky_lower(mass)?;
     let inverse_lower = inverse_lower_triangular(&lower)?;
     let transformed_left = matrix_multiply(&inverse_lower, stiffness);
