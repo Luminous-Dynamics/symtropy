@@ -740,6 +740,161 @@ mod tests {
         assert!(result.claim_ceiling.contains("not member bending/buckling"));
     }
 
+    fn next_unit_interval(seed: &mut u64) -> f64 {
+        // Frozen LCG for reproducibility; not a statistical or cryptographic RNG.
+        *seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*seed >> 11) as f64 / 9_007_199_254_740_992.0
+    }
+
+    fn sample_between(seed: &mut u64, minimum: f64, maximum: f64) -> f64 {
+        minimum + (maximum - minimum) * next_unit_interval(seed)
+    }
+
+    #[test]
+    fn fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form() {
+        // Fixed seed and bounded ranges make every case reproducible. These are
+        // numerical coverage ranges for the declared linear-elastic model, not
+        // a statistical sample of materials or a real-world validation claim.
+        let mut seed = 0x5452_5553_535F_5631_u64;
+        const CASES: usize = 128;
+
+        for case_index in 0..CASES {
+            let half_span_m = sample_between(&mut seed, 0.25, 12.0);
+            let area_m2 = sample_between(&mut seed, 1.0e-4, 5.0e-2);
+            let youngs_modulus_pa = sample_between(&mut seed, 30.0e9, 210.0e9);
+            let load_n = sample_between(&mut seed, 10.0, 10_000.0);
+
+            let mut input = symmetric_two_bar_truss();
+            for node in &mut input.nodes {
+                match node.id.as_str() {
+                    "left" => {
+                        node.x_m = 0.0;
+                        node.y_m = 0.0;
+                    }
+                    "right" => {
+                        node.x_m = 2.0 * half_span_m;
+                        node.y_m = 0.0;
+                    }
+                    "apex" => {
+                        node.x_m = half_span_m;
+                        node.y_m = half_span_m;
+                        node.force_y_n = -load_n;
+                    }
+                    other => panic!("unexpected frozen node ID in case {case_index}: {other}"),
+                }
+            }
+            for bar in &mut input.bars {
+                bar.area_m2 = area_m2;
+                bar.youngs_modulus_pa = youngs_modulus_pa;
+            }
+
+            // Reverse storage order on alternating cases to couple numeric
+            // coverage with the solver's promised input-order determinism.
+            if case_index % 2 == 1 {
+                input.nodes.reverse();
+                input.bars.reverse();
+            }
+
+            let result = solve(&input)
+                .unwrap_or_else(|error| panic!("truss sweep case {case_index} rejected: {error}"));
+            let apex = node(&result, "apex");
+            let left = node(&result, "left");
+            let right = node(&result, "right");
+            let expected_apex_y =
+                -load_n * (2.0_f64.sqrt() * half_span_m) / (area_m2 * youngs_modulus_pa);
+            let expected_bar_force = -load_n / 2.0_f64.sqrt();
+            let expected_bar_stress = expected_bar_force / area_m2;
+            let expected_bar_strain = expected_bar_stress / youngs_modulus_pa;
+            let expected_bar_extension = expected_bar_strain * (2.0_f64.sqrt() * half_span_m);
+            let scale_tolerance = |expected: f64, relative: f64, floor: f64| {
+                (expected.abs() * relative).max(floor)
+            };
+
+            close(
+                apex.displacement_x_m,
+                0.0,
+                1.0e-13,
+                &format!("case {case_index} apex horizontal symmetry"),
+            );
+            close(
+                apex.displacement_y_m,
+                expected_apex_y,
+                scale_tolerance(expected_apex_y, 1.0e-10, 1.0e-15),
+                &format!("case {case_index} apex vertical displacement"),
+            );
+
+            for bar in &result.bar_results {
+                close(
+                    bar.axial_force_n,
+                    expected_bar_force,
+                    scale_tolerance(expected_bar_force, 1.0e-10, 1.0e-9),
+                    &format!("case {case_index} {} axial force", bar.bar_id),
+                );
+                close(
+                    bar.axial_stress_pa,
+                    expected_bar_stress,
+                    scale_tolerance(expected_bar_stress, 1.0e-10, 1.0e-6),
+                    &format!("case {case_index} {} axial stress", bar.bar_id),
+                );
+                close(
+                    bar.axial_strain,
+                    expected_bar_strain,
+                    scale_tolerance(expected_bar_strain, 1.0e-10, 1.0e-18),
+                    &format!("case {case_index} {} axial strain", bar.bar_id),
+                );
+                close(
+                    bar.axial_extension_m,
+                    expected_bar_extension,
+                    scale_tolerance(expected_bar_extension, 1.0e-10, 1.0e-15),
+                    &format!("case {case_index} {} axial extension", bar.bar_id),
+                );
+            }
+
+            close(
+                left.reaction_x_n.expect("left x support reaction"),
+                load_n / 2.0,
+                scale_tolerance(load_n / 2.0, 1.0e-10, 1.0e-8),
+                &format!("case {case_index} left horizontal reaction"),
+            );
+            close(
+                right.reaction_x_n.expect("right x support reaction"),
+                -load_n / 2.0,
+                scale_tolerance(load_n / 2.0, 1.0e-10, 1.0e-8),
+                &format!("case {case_index} right horizontal reaction"),
+            );
+            close(
+                left.reaction_y_n.expect("left y support reaction"),
+                load_n / 2.0,
+                scale_tolerance(load_n / 2.0, 1.0e-10, 1.0e-8),
+                &format!("case {case_index} left vertical reaction"),
+            );
+            close(
+                right.reaction_y_n.expect("right y support reaction"),
+                load_n / 2.0,
+                scale_tolerance(load_n / 2.0, 1.0e-10, 1.0e-8),
+                &format!("case {case_index} right vertical reaction"),
+            );
+
+            assert!(
+                result.equilibrium.normalized_force_residual < 1.0e-12,
+                "case {case_index} normalized force residual={:.17e}",
+                result.equilibrium.normalized_force_residual
+            );
+            assert!(
+                result.equilibrium.normalized_moment_residual < 1.0e-12,
+                "case {case_index} normalized moment residual={:.17e}",
+                result.equilibrium.normalized_moment_residual
+            );
+            assert!(
+                result.equilibrium.normalized_free_dof_residual < 1.0e-12,
+                "case {case_index} normalized free-DOF residual={:.17e}",
+                result.equilibrium.normalized_free_dof_residual
+            );
+        }
+    }
+
     #[test]
     fn input_order_does_not_change_result_order_or_values() {
         let original = symmetric_two_bar_truss();
