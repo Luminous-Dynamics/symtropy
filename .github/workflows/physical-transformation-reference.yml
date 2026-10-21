@@ -290,6 +290,55 @@ jobs:
             and (.claim_ceiling | contains("not_modal_truss_nbc05"))
           ' modal-bar-reference-receipt.json
 
+      - name: Generate and verify deterministic 128-case modal scale-sweep receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml --lib modal_bar::tests::fixed_seed_128_case_modal_sweep_matches_discrete_oracle_and_scale_laws -- --exact --nocapture | tee modal-bar-scale-sweep-test.log
+          grep 'MODAL_SWEEP_JSON ' modal-bar-scale-sweep-test.log | tail -n 1 | sed 's/^.*MODAL_SWEEP_JSON //' > modal-bar-scale-sweep-raw.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/modal_bar_sweep_request_v0_1.txt)"
+          test "$request_canonical" = "schema=modal-bar-sweep-request-v0.1|fixture=PHYS-AXIAL-BAR-SWEEP-001|seed_hex=0x4D4F44414C534331|lcg_multiplier=6364136223846793005|lcg_increment=1442695040888963407|cases=128|length_m=0.2..5.0|area_m2=1e-8..1e-2|youngs_modulus_pa=30e9..210e9|density_kg_m3=1000..16000|elements=1..16|mass_formulation=consistent,lumped|modes=all|independent_oracle=closed_form_discrete_eigenvalues|checks=oracle_rel_lt_2e-9,area_rel_lt_2e-10,inverse_length_rel_lt_2e-10"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "56f0a4c5364ba43bb2943456a66f62856a0bd9e146a8e9c1fe2b3f9d9b0a95e8"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg source_commit "$source_commit" --arg request_canonical "$request_canonical" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              source_commit: $source_commit,
+              evidence_class: "software-test-run",
+              result: "pass",
+              request_canonical: $request_canonical,
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              claim_ceiling: "synthetic 1D longitudinal axial bar; discrete algebraic spectrum and scale laws only; not modal truss, NBC05 reproduction, physical validation or structural safety"
+            }
+          ' modal-bar-scale-sweep-raw.json > modal-bar-scale-sweep-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "modal-bar-sweep-test-result-v0.1"
+            and .benchmark_id == "PHYS-AXIAL-BAR-SWEEP-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "software-test-run"
+            and .result == "pass"
+            and .case_count == 128
+            and .mass_formulation_count == 2
+            and .max_oracle_relative_error < 2e-9
+            and .max_area_scaling_relative_error < 2e-10
+            and .max_inverse_length_scaling_relative_error < 2e-10
+            and (.claim_ceiling | contains("not modal truss"))
+          ' modal-bar-scale-sweep-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -301,5 +350,6 @@ jobs:
             planar-truss-sweep-receipt.json
             modal-bar-reference-receipt.json
             modal-bar-mutation-receipt.json
+            modal-bar-scale-sweep-receipt.json
           if-no-files-found: error
           retention-days: 90
