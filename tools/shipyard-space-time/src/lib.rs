@@ -652,7 +652,10 @@ mod tests {
             placements: vec![placement("p-1", "block-1", rect(0, 0, 2, 2), 0, 2)],
             ..Scenario::default()
         };
-        assert!(has_code(&verify(&scenario), ViolationCode::MissingYardBounds));
+        assert!(has_code(
+            &verify(&scenario),
+            ViolationCode::MissingYardBounds
+        ));
     }
 
     #[test]
@@ -672,7 +675,10 @@ mod tests {
             ..Scenario::default()
         });
         assert!(has_code(&report, ViolationCode::OutOfBoundsPlacement));
-        assert!(has_code(&report, ViolationCode::OutOfBoundsTransferCorridor));
+        assert!(has_code(
+            &report,
+            ViolationCode::OutOfBoundsTransferCorridor
+        ));
     }
 
     #[test]
@@ -684,13 +690,7 @@ mod tests {
                 max_x: 10,
                 max_y: 10,
             }),
-            placements: vec![placement(
-                "p-1",
-                "block-1",
-                rect(0, 0, 1, 1),
-                0,
-                2,
-            )],
+            placements: vec![placement("p-1", "block-1", rect(0, 0, 1, 1), 0, 2)],
             exclusion_zones: vec![ExclusionZone {
                 id: "zone-outside".to_owned(),
                 footprint: rect(9, 1, 11, 2),
