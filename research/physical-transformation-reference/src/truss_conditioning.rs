@@ -477,9 +477,19 @@ mod tests {
                     && case.vertical_rhs_plus_amplification.is_finite()
                     && case.vertical_rhs_minus_amplification.is_finite())
         );
+        assert!(first.cases.iter().all(|case| {
+            (case.vertical_rhs_perturbation_relative_amplitude
+                - RELATIVE_VERTICAL_RHS_PERTURBATION)
+                .abs()
+                < 1.0e-20
+        }));
         assert!(
-            first.cases.last().unwrap().vertical_rhs_plus_amplification
-                > first.cases.first().unwrap().vertical_rhs_plus_amplification
+            first.cases.windows(2).all(|pair| {
+                pair[0].vertical_rhs_plus_amplification
+                    < pair[1].vertical_rhs_plus_amplification
+                    && pair[0].vertical_rhs_minus_amplification
+                        < pair[1].vertical_rhs_minus_amplification
+            })
         );
         assert!(
             first
