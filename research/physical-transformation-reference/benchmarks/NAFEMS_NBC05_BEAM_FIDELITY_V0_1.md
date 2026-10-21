@@ -40,9 +40,11 @@ That is an engineering assumption which must be preserved in the receipt; if the
 
 ### B0 — Element mechanics and sign conventions
 
-The first element-matrix implementation is in draft [PR #2559](https://github.com/Luminous-Dynamics/symtropy/pull/2559), which adds a local 6-DOF Euler-Bernoulli frame-element reference in order [u1, v1, theta1, u2, v2, theta2]. It builds the axial EA/L block, bending EI/L³ block, axial/transverse consistent mass, and a separate rotary-inertia mass contribution. This is a local element primitive, not a global beam/modal solver. The PR's exact-head format/test/Clippy run must pass before this primitive counts as qualified.
+The first element-matrix implementation is in draft [PR #2559](https://github.com/Luminous-Dynamics/symtropy/pull/2559), which adds a local 6-DOF Euler-Bernoulli frame-element reference in order [u1, v1, theta1, u2, v2, theta2]. It builds the axial EA/L block, bending EI/L³ block, axial/transverse consistent mass, and a separate rotary-inertia mass contribution. This is a local element primitive, not a global beam/modal solver.
 
-B0 acceptance tests cover local stiffness/mass symmetry, analytic axial stiffness and mass entries, bending-stiffness matrix entries, closed-form cantilever tip compliance/rotation under static load, explicit rotary-inertia scaling, and fail-closed input domains. Next add rigid-body modal checks, a beam generalized-eigenproblem, element coordinate transformation, shear-deformable comparison, and a blind global mesh-convergence test.
+The stacked global-axis transformation increment in PR #2560 adds congruence transforms for stiffness and each mass contribution, rejects geometry-length mismatch, verifies strain-energy invariance and global matrix symmetry, and checks rigid-body translation/rotation residuals. B0 now separately pins the local and transformed contracts.
+
+The draft CI mutation audit is intended to kill omitted/incorrect second moment, bending-coupling sign, omitted axial area, omitted rotary inertia, wrong rotary length exponent, transverse-mass factor error, rotary-mass off-diagonal sign error, and a local-to-global transverse sign defect. Only the mutations actually reported detected at an exact-head passing run count as evidence.
 
 A static stiffness matrix or a correct axial-bar frequency does not qualify beam dynamics.
 
