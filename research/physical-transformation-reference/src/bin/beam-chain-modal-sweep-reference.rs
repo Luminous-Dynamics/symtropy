@@ -11,10 +11,14 @@ use physical_transformation_reference::beam_pin_assembly::{
     BeamMemberChain, BeamPinNode, assemble_released_joint_beam_chains,
     canonical_beam_chain_sweep_request,
 };
+use physical_transformation_reference::modal_properties::{
+    BeamModalParticipationProperties, beam_modal_participation_properties,
+};
 use std::env;
 use std::process::ExitCode;
 
-const FROZEN_REQUEST: &str = include_str!("../../fixtures/beam_chain_sweep_request_v0_1.txt");
+const FROZEN_REQUEST: &str =
+    include_str!("../../fixtures/beam_chain_participation_request_v0_1.txt");
 const ELEMENT_COUNTS: [usize; 4] = [1, 2, 4, 8];
 
 fn main() -> ExitCode {
@@ -34,7 +38,10 @@ fn run() -> Result<String, String> {
     let source_commit = parse_source_commit()?;
     let nodes = fixture_nodes();
     let templates = fixture_members(1);
-    let request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
+    let base_request = canonical_beam_chain_sweep_request(&nodes, &templates, &ELEMENT_COUNTS)?;
+    let request = format!(
+        "{base_request}|modal_participation=global-x-y-effective-modal-mass-v0.1|total_mass_basis=full-global-assembled-mass-including-restrained-translations"
+    );
     if request != FROZEN_REQUEST.trim_end_matches('\n') {
         return Err("canonical mesh-sweep request differs from frozen fixture".to_owned());
     }
@@ -105,11 +112,13 @@ fn run() -> Result<String, String> {
         } else {
             None
         };
+        let participation = beam_modal_participation_properties(&assembly, &result)?;
         mesh_receipts.push(mesh_json(
             elements_per_member,
             assembly.stiffness_global.len(),
             assembly.free_dof_indices.len(),
             &result,
+            &participation,
             previous_frequencies.as_deref(),
             mac_matrix.as_deref(),
         ));
@@ -184,6 +193,7 @@ fn mesh_json(
     global_dof_count: usize,
     free_dof_count: usize,
     result: &physical_transformation_reference::beam_modal::BeamModalResult,
+    participation: &BeamModalParticipationProperties,
     previous_frequencies: Option<&[f64]>,
     mac_matrix: Option<&[Vec<f64>]>,
 ) -> String {
@@ -232,6 +242,7 @@ fn mesh_json(
         .as_ref()
         .map(|matrix| f64_matrix_json(matrix))
         .unwrap_or_else(|| "null".to_owned());
+    let participation_json = participation_json(participation);
     format!(
         concat!(
             "{{",
@@ -243,6 +254,7 @@ fn mesh_json(
             "\"maximum_mass_norm_residual\":{},",
             "\"maximum_off_diagonal_mass_orthogonality_residual\":{},",
             "\"frequencies_hz\":[{}],",
+            "\"modal_participation\":{},",
             "\"common_low_mode_frequency_relative_changes_from_previous_mesh\":{},",
             "\"max_common_low_mode_frequency_relative_change\":{},",
             "\"mode_shape_mac_low_six_from_previous_mesh\":{}",
@@ -256,9 +268,62 @@ fn mesh_json(
         float_json(result.maximum_mass_norm_residual),
         float_json(result.maximum_off_diagonal_mass_orthogonality_residual),
         frequencies,
+        participation_json,
         relative_changes_json,
         maximum_relative_change_json,
         mac_matrix_json,
+    )
+}
+
+fn participation_json(properties: &BeamModalParticipationProperties) -> String {
+    let modes = properties
+        .modes
+        .iter()
+        .map(|mode| {
+            format!(
+                concat!(
+                    "{{",
+                    "\"mode_index\":{},",
+                    "\"mode_class\":\"{:?}\",",
+                    "\"frequency_hz\":{},",
+                    "\"generalized_mass_kg\":{},",
+                    "\"participation_factor_x\":{},",
+                    "\"participation_factor_y\":{},",
+                    "\"effective_modal_mass_x_kg\":{},",
+                    "\"effective_modal_mass_y_kg\":{},",
+                    "\"effective_modal_mass_ratio_x\":{},",
+                    "\"effective_modal_mass_ratio_y\":{},",
+                    "\"cumulative_effective_modal_mass_ratio_x\":{},",
+                    "\"cumulative_effective_modal_mass_ratio_y\":{}",
+                    "}}"
+                ),
+                mode.mode_index,
+                mode.class,
+                mode.frequency_hz.map(float_json).unwrap_or_else(|| "null".to_owned()),
+                float_json(mode.generalized_mass_kg),
+                float_json(mode.participation_factor_x),
+                float_json(mode.participation_factor_y),
+                float_json(mode.effective_modal_mass_x_kg),
+                float_json(mode.effective_modal_mass_y_kg),
+                float_json(mode.effective_modal_mass_ratio_x),
+                float_json(mode.effective_modal_mass_ratio_y),
+                float_json(mode.cumulative_effective_modal_mass_ratio_x),
+                float_json(mode.cumulative_effective_modal_mass_ratio_y),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        concat!(
+            "{{",
+            "\"total_translational_mass_x_kg\":{},",
+            "\"total_translational_mass_y_kg\":{},",
+            "\"modes\":[{}]",
+            "}}"
+        ),
+        float_json(properties.total_translational_mass_x_kg),
+        float_json(properties.total_translational_mass_y_kg),
+        modes,
     )
 }
 
