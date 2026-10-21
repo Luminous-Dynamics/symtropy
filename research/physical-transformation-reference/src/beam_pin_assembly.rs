@@ -8,8 +8,8 @@
 //! decide a structure is safe, include geometric nonlinearity, or perform a
 //! complete NAFEMS NBC05 beam-model reproduction.
 
-use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
 use crate::Check;
+use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_NODES: usize = 128;
@@ -45,11 +45,21 @@ pub struct BeamPinMember {
 /// member identity and endpoint, not by node identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BeamPinDofKind {
-    NodeTranslationX { node_id: String },
-    NodeTranslationY { node_id: String },
-    MemberEndRotation { member_id: String, at_start: bool },
+    NodeTranslationX {
+        node_id: String,
+    },
+    NodeTranslationY {
+        node_id: String,
+    },
+    MemberEndRotation {
+        member_id: String,
+        at_start: bool,
+    },
     /// Rotation shared by adjacent elements inside one physical member chain.
-    MemberInteriorRotation { member_id: String, station_index: usize },
+    MemberInteriorRotation {
+        member_id: String,
+        station_index: usize,
+    },
 }
 
 /// A globally indexed generalized coordinate, preserved in each receipt.
@@ -95,11 +105,7 @@ pub fn canonical_assembly_request(
     for node in ordered_nodes {
         fields.push(format!(
             "node|{}|{}|{}|{}|{}",
-            node.id,
-            node.x_m,
-            node.y_m,
-            node.restrain_x,
-            node.restrain_y
+            node.id, node.x_m, node.y_m, node.restrain_x, node.restrain_y
         ));
     }
     for member in ordered_members {
@@ -448,7 +454,9 @@ pub fn assemble_released_joint_beam_chains(
         return Err(format!("joint count must be between 1 and {MAX_NODES}"));
     }
     if members.is_empty() || members.len() > MAX_MEMBERS {
-        return Err(format!("member-chain count must be between 1 and {MAX_MEMBERS}"));
+        return Err(format!(
+            "member-chain count must be between 1 and {MAX_MEMBERS}"
+        ));
     }
 
     let mut ordered_joints = joints.to_vec();
@@ -476,12 +484,18 @@ pub fn assemble_released_joint_beam_chains(
             return Err(format!("duplicate member-chain ID: {}", member.id));
         }
         if member.start_node_id == member.end_node_id {
-            return Err(format!("member chain {} has identical endpoints", member.id));
+            return Err(format!(
+                "member chain {} has identical endpoints",
+                member.id
+            ));
         }
         if !joint_index.contains_key(&member.start_node_id)
             || !joint_index.contains_key(&member.end_node_id)
         {
-            return Err(format!("member chain {} references an unknown joint", member.id));
+            return Err(format!(
+                "member chain {} references an unknown joint",
+                member.id
+            ));
         }
         if !(1..=MAX_CHAIN_ELEMENTS_PER_MEMBER).contains(&member.elements_per_member) {
             return Err(format!(
@@ -494,7 +508,10 @@ pub fn assemble_released_joint_beam_chains(
     }
     for joint in &ordered_joints {
         if !used_joints.contains(&joint.id) {
-            return Err(format!("isolated physical joint is not allowed: {}", joint.id));
+            return Err(format!(
+                "isolated physical joint is not allowed: {}",
+                joint.id
+            ));
         }
     }
 
@@ -563,7 +580,9 @@ pub fn assemble_released_joint_beam_chains(
         .sum();
     let dof_count = translation_dof_count + rotation_dof_count;
     if dof_count > MAX_CHAIN_DOFS {
-        return Err(format!("refined beam mesh DOF count exceeds {MAX_CHAIN_DOFS}"));
+        return Err(format!(
+            "refined beam mesh DOF count exceeds {MAX_CHAIN_DOFS}"
+        ));
     }
 
     let mut descriptors = Vec::with_capacity(dof_count);
@@ -696,7 +715,10 @@ pub fn assemble_released_joint_beam_chains(
 
     Ok(BeamPinAssembly {
         ordered_node_ids: all_nodes.into_iter().map(|node| node.id).collect(),
-        ordered_member_ids: ordered_members.into_iter().map(|member| member.id).collect(),
+        ordered_member_ids: ordered_members
+            .into_iter()
+            .map(|member| member.id)
+            .collect(),
         dof_descriptors: descriptors,
         stiffness_global: global_stiffness,
         mass_global: global_mass,
@@ -870,7 +892,14 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(rotation_indices.len(), 4);
-        assert_eq!(rotation_indices.iter().copied().collect::<BTreeSet<_>>().len(), 4);
+        assert_eq!(
+            rotation_indices
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len(),
+            4
+        );
         for index in rotation_indices {
             assert!(result.stiffness_global[index][index] > 0.0);
             assert!(result.mass_global[index][index] > 0.0);
@@ -929,12 +958,11 @@ mod tests {
 
     #[test]
     fn canonical_request_matches_frozen_fixture_and_input_permutation() {
-        let first = canonical_assembly_request(&nodes(), &members())
-            .expect("canonical valid request");
+        let first =
+            canonical_assembly_request(&nodes(), &members()).expect("canonical valid request");
         assert_eq!(
             first,
-            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt")
-                .trim_end_matches('\n')
+            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt").trim_end_matches('\n')
         );
 
         let mut reversed_nodes = nodes();
@@ -1039,12 +1067,18 @@ mod tests {
                 let next_dofs = translation_dofs
                     .get(&next_station)
                     .expect("next station translation DOFs");
-                assert!(previous_dofs.iter().any(|dof| {
-                    assembly.stiffness_global[*index][*dof].abs() > 0.0
-                }), "rotation {member_id}/{station_index} must couple to the previous station");
-                assert!(next_dofs.iter().any(|dof| {
-                    assembly.stiffness_global[*index][*dof].abs() > 0.0
-                }), "rotation {member_id}/{station_index} must couple to the next station");
+                assert!(
+                    previous_dofs
+                        .iter()
+                        .any(|dof| { assembly.stiffness_global[*index][*dof].abs() > 0.0 }),
+                    "rotation {member_id}/{station_index} must couple to the previous station"
+                );
+                assert!(
+                    next_dofs
+                        .iter()
+                        .any(|dof| { assembly.stiffness_global[*index][*dof].abs() > 0.0 }),
+                    "rotation {member_id}/{station_index} must couple to the next station"
+                );
             }
             assert_eq!(
                 assembly
@@ -1062,10 +1096,10 @@ mod tests {
 
     #[test]
     fn member_chain_request_is_frozen_and_storage_order_invariant() {
-        let expected = include_str!("../fixtures/beam_chain_request_v0_1.txt")
-            .trim_end_matches('\n');
-        let first =
-            canonical_beam_chain_request(&nodes(), &chains(4)).expect("canonical beam-chain request");
+        let expected =
+            include_str!("../fixtures/beam_chain_request_v0_1.txt").trim_end_matches('\n');
+        let first = canonical_beam_chain_request(&nodes(), &chains(4))
+            .expect("canonical beam-chain request");
         assert_eq!(first, expected);
 
         let mut reversed_nodes = nodes();
@@ -1081,8 +1115,8 @@ mod tests {
 
     #[test]
     fn canonical_mesh_sweep_request_covers_levels_and_is_order_invariant() {
-        let expected = include_str!("../fixtures/beam_chain_sweep_request_v0_1.txt")
-            .trim_end_matches('\n');
+        let expected =
+            include_str!("../fixtures/beam_chain_sweep_request_v0_1.txt").trim_end_matches('\n');
         let first = canonical_beam_chain_sweep_request(&nodes(), &chains(1), &[1, 2, 4, 8])
             .expect("canonical sweep request");
         assert_eq!(first, expected);
@@ -1092,12 +1126,8 @@ mod tests {
         let mut reversed_chains = chains(1);
         reversed_chains.reverse();
         assert_eq!(
-            canonical_beam_chain_sweep_request(
-                &reversed_nodes,
-                &reversed_chains,
-                &[8, 4, 2, 1]
-            )
-            .expect("canonical reversed sweep request"),
+            canonical_beam_chain_sweep_request(&reversed_nodes, &reversed_chains, &[8, 4, 2, 1])
+                .expect("canonical reversed sweep request"),
             first
         );
         assert!(canonical_beam_chain_sweep_request(&nodes(), &chains(1), &[1, 2, 2]).is_err());
