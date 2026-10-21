@@ -20,7 +20,7 @@ For intervention pair (A,B), the comparison uses:
 
 `d_{A,B}(s) = g_A(s) - g_B(s)`
 
-The report summarizes these **within-seed difference-of-differences** values across the declared 20 seed replications, including sample standard deviation, empirical quantiles and a two-sided 95% Student-`t` interval for the mean paired difference. It does not estimate this interval by subtracting the lower/upper bounds from two marginal confidence intervals.
+The report summarizes these **within-seed difference-of-differences** values across the declared 20 seed replications, including sample standard deviation, empirical quantiles and a pointwise two-sided 95% Student-`t` interval for the mean paired difference. Since robust-best selection compares five interventions using ten pairwise comparisons, it also calculates Bonferroni-adjusted simultaneous intervals with a nominal family-wise error target of 0.05 under the paired-Student-t assumptions. Robust-best selection uses the adjusted intervals; pointwise intervals and decisions remain visible for comparison. The implementation uses conservative critical values for at most ten comparisons. Neither interval is estimated by subtracting the bounds from two marginal intervention confidence intervals.
 
 The probability-labelled fields in the JSON are deliberately defined as the empirical share of seeds for which the paired effect exceeds the practical margin. They are not Bayesian posterior probabilities and do not make assumptions about future real-world frequencies.
 
@@ -33,7 +33,15 @@ The CLI now accepts an explicit optional `practical-margin-units-per-hour` argum
 - Interventions are practically equivalent under this rule only when the interval lies wholly inside [-0.05, +0.05].
 - Otherwise, the pair remains inconclusive.
 
-A candidate is reported as robust-best only if it is meaningfully better than every other candidate under the pairwise interval rule. If even one pair is inconclusive or equivalent, the evaluator returns no unique robust best. The margin is a declared benchmark setting—not an industry standard—and must be sensitivity-tested or pre-registered before any future measured-data evaluation.
+A candidate is reported as robust-best only if it is meaningfully better than every other candidate under the **family-wise-adjusted** interval rule. If even one adjusted comparison is inconclusive or equivalent, the evaluator returns no unique robust best. Pointwise intervals alone are not promoted as family-wise evidence. The margin is a declared benchmark setting—not an industry standard—and must be sensitivity-tested or pre-registered before any future measured-data evaluation.
+
+## Family-wise calibration smoke report
+
+The CLI supports `--calibrate-selection`, which emits a deterministic machine-readable report for a fixed synthetic generator. The current panel uses five candidates, 20 paired replications, a declared 0.05 practical margin, 2,000 exact-null trials and 500 trials with one intervention having a true mean advantage of 1.7 good units/hour. The generator uses a SplitMix64 stream and a sum-of-12-uniforms approximate-normal variate, including shared noise to represent common-random-number correlation.
+
+The report records actual false-winner counts and rates for the pointwise and Bonferroni-adjusted procedures, correct-selection rates for the separated-winner case, Wilson 95% intervals on those Monte Carlo rates, the deterministic generator seed, and a SHA-256 digest of the generator specification. The CI workflow validates the report contract, compares repeated output byte-for-byte, and includes the JSON in the evidence artifact and source/report hash ledger.
+
+This is a **calibration smoke test**, not a distribution-free guarantee. Wilson intervals describe Monte Carlo uncertainty for these fixed synthetic trials; they do not establish the real-world family-wise error rate. The sum-of-uniforms generator is only approximately normal, and the paired-Student-t interval still depends on its parametric assumptions. The larger held-out-generator calibration, heavy-tail/unequal-variance cases and comparison with recognized ranking-and-selection procedures remain open work in [#2505](https://github.com/Luminous-Dynamics/symtropy/issues/2505) and [#2551](https://github.com/Luminous-Dynamics/symtropy/issues/2551).
 
 ## Reproducibility and guards
 

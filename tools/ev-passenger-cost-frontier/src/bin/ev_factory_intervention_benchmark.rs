@@ -6,6 +6,8 @@ use std::{
 };
 
 const CLAIM_CEILING: &str = "Synthetic intervention-ranking evaluator only. Its oracle is the paired counterfactual result of the declared simulator, not a measured factory truth, industry benchmark, causal production estimate, or capital-investment recommendation.";
+const FAMILYWISE_ALPHA: f64 = 0.05;
+const FAMILYWISE_COMPARISON_BUDGET: usize = 10;
 
 #[derive(Debug, Clone, Deserialize)]
 struct SimulationReport {
@@ -142,6 +144,10 @@ struct PairedInterventionComparison {
     probability_b_beats_a_beyond_margin: f64,
     practical_equivalence_margin_units_per_hour: f64,
     decision: String,
+    familywise_simultaneous_ci_95_lower_units_per_hour: Option<f64>,
+    familywise_simultaneous_ci_95_upper_units_per_hour: Option<f64>,
+    familywise_critical_value: f64,
+    familywise_decision: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -161,6 +167,10 @@ struct Report {
     nonoverlapping_interval_screen_separates_top_two: bool,
     interval_screen_note: String,
     practical_equivalence_margin_units_per_hour: f64,
+    familywise_nominal_error_rate_target: f64,
+    familywise_method: String,
+    familywise_comparison_count: usize,
+    familywise_comparison_budget: usize,
     paired_intervention_comparisons: Vec<PairedInterventionComparison>,
     robust_best_station_id: Option<String>,
     paired_effect_recommendation_status: String,
@@ -171,11 +181,232 @@ struct Report {
     claim_ceiling: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct SelectionCalibrationReport {
+    schema_version: String,
+    benchmark_id: String,
+    generator: String,
+    generator_spec_sha256: String,
+    generator_seed_hex: String,
+    candidate_count: usize,
+    replications_per_candidate: usize,
+    practical_equivalence_margin_units_per_hour: f64,
+    familywise_nominal_error_rate_target: f64,
+    null_trial_count: usize,
+    null_pointwise_false_winner_count: usize,
+    null_pointwise_false_winner_rate: f64,
+    null_pointwise_false_winner_rate_wilson_95_lower: f64,
+    null_pointwise_false_winner_rate_wilson_95_upper: f64,
+    null_familywise_false_winner_count: usize,
+    null_familywise_false_winner_rate: f64,
+    null_familywise_false_winner_rate_wilson_95_lower: f64,
+    null_familywise_false_winner_rate_wilson_95_upper: f64,
+    separated_winner_trial_count: usize,
+    separated_winner_true_effect_units_per_hour: f64,
+    separated_winner_pointwise_correct_selection_count: usize,
+    separated_winner_pointwise_correct_selection_rate: f64,
+    separated_winner_pointwise_correct_selection_rate_wilson_95_lower: f64,
+    separated_winner_pointwise_correct_selection_rate_wilson_95_upper: f64,
+    separated_winner_familywise_correct_selection_count: usize,
+    separated_winner_familywise_correct_selection_rate: f64,
+    separated_winner_familywise_correct_selection_rate_wilson_95_lower: f64,
+    separated_winner_familywise_correct_selection_rate_wilson_95_upper: f64,
+    all_generators_are_synthetic: bool,
+    field_sota_claim: bool,
+    production_release_authorized: bool,
+    claim_ceiling: String,
+}
+
+fn wilson_interval_95(successes: usize, trials: usize) -> (f64, f64) {
+    if trials == 0 {
+        return (f64::NAN, f64::NAN);
+    }
+    let z = 1.959_963_984_540_054_f64;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = z * z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    (
+        (center - half_width).max(0.0),
+        (center + half_width).min(1.0),
+    )
+}
+
+fn build_selection_calibration_report() -> SelectionCalibrationReport {
+    const SEED: u64 = 0xA17E_2026_10_21;
+    const REPLICATIONS: usize = 20;
+    const NULL_TRIALS: usize = 2_000;
+    const POWER_TRIALS: usize = 500;
+    const PRACTICAL_MARGIN: f64 = 0.05;
+    const WINNER_EFFECT: f64 = 1.7;
+
+    let generator_spec = "splitmix64; centered-sum-of-12-uniforms; shared-component=0.3; idiosyncratic-component=0.9539392014169457; candidates=5; replications=20; practical-margin=0.05; null-trials=2000; separated-winner-trials=500; winner-effect=1.7; methods=pointwise-paired-t,bonferroni-familywise-paired-t";
+    let generator_spec_sha256 = format!("{:x}", Sha256::digest(generator_spec.as_bytes()));
+
+    let mut state = SEED;
+    let null_means = [0.0; 5];
+    let mut null_pointwise = 0usize;
+    let mut null_familywise = 0usize;
+    for _ in 0..NULL_TRIALS {
+        let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
+        null_pointwise +=
+            usize::from(selected_robust_winner(&samples, false, PRACTICAL_MARGIN).is_some());
+        null_familywise +=
+            usize::from(selected_robust_winner(&samples, true, PRACTICAL_MARGIN).is_some());
+    }
+
+    let separated_means = [WINNER_EFFECT, 0.0, 0.0, 0.0, 0.0];
+    let mut separated_pointwise = 0usize;
+    let mut separated_familywise = 0usize;
+    for _ in 0..POWER_TRIALS {
+        let samples = synthetic_paired_samples(&mut state, &separated_means, REPLICATIONS);
+        separated_pointwise +=
+            usize::from(selected_robust_winner(&samples, false, PRACTICAL_MARGIN) == Some(0));
+        separated_familywise +=
+            usize::from(selected_robust_winner(&samples, true, PRACTICAL_MARGIN) == Some(0));
+    }
+
+    let null_pointwise_rate = null_pointwise as f64 / NULL_TRIALS as f64;
+    let null_familywise_rate = null_familywise as f64 / NULL_TRIALS as f64;
+    let pointwise_power = separated_pointwise as f64 / POWER_TRIALS as f64;
+    let familywise_power = separated_familywise as f64 / POWER_TRIALS as f64;
+    let (null_pointwise_lower, null_pointwise_upper) =
+        wilson_interval_95(null_pointwise, NULL_TRIALS);
+    let (null_familywise_lower, null_familywise_upper) =
+        wilson_interval_95(null_familywise, NULL_TRIALS);
+    let (pointwise_power_lower, pointwise_power_upper) =
+        wilson_interval_95(separated_pointwise, POWER_TRIALS);
+    let (familywise_power_lower, familywise_power_upper) =
+        wilson_interval_95(separated_familywise, POWER_TRIALS);
+
+    SelectionCalibrationReport {
+        schema_version: "0.1.0".into(),
+        benchmark_id: "EV-FACTORY-STAT-CAL-001".into(),
+        generator: "Deterministic SplitMix64 stream with sum-of-12-uniforms approximate-normal variates; correlated common component plus independent candidate noise. Calibration is a synthetic smoke test, not proof of distribution-free coverage.".into(),
+        generator_spec_sha256,
+        generator_seed_hex: format!("0x{SEED:016x}"),
+        candidate_count: 5,
+        replications_per_candidate: REPLICATIONS,
+        practical_equivalence_margin_units_per_hour: PRACTICAL_MARGIN,
+        familywise_nominal_error_rate_target: FAMILYWISE_ALPHA,
+        null_trial_count: NULL_TRIALS,
+        null_pointwise_false_winner_count: null_pointwise,
+        null_pointwise_false_winner_rate: null_pointwise_rate,
+        null_pointwise_false_winner_rate_wilson_95_lower: null_pointwise_lower,
+        null_pointwise_false_winner_rate_wilson_95_upper: null_pointwise_upper,
+        null_familywise_false_winner_count: null_familywise,
+        null_familywise_false_winner_rate: null_familywise_rate,
+        null_familywise_false_winner_rate_wilson_95_lower: null_familywise_lower,
+        null_familywise_false_winner_rate_wilson_95_upper: null_familywise_upper,
+        separated_winner_trial_count: POWER_TRIALS,
+        separated_winner_true_effect_units_per_hour: WINNER_EFFECT,
+        separated_winner_pointwise_correct_selection_count: separated_pointwise,
+        separated_winner_pointwise_correct_selection_rate: pointwise_power,
+        separated_winner_pointwise_correct_selection_rate_wilson_95_lower: pointwise_power_lower,
+        separated_winner_pointwise_correct_selection_rate_wilson_95_upper: pointwise_power_upper,
+        separated_winner_familywise_correct_selection_count: separated_familywise,
+        separated_winner_familywise_correct_selection_rate: familywise_power,
+        separated_winner_familywise_correct_selection_rate_wilson_95_lower: familywise_power_lower,
+        separated_winner_familywise_correct_selection_rate_wilson_95_upper: familywise_power_upper,
+        all_generators_are_synthetic: true,
+        field_sota_claim: false,
+        production_release_authorized: false,
+        claim_ceiling: "Synthetic parametric smoke calibration only. Wilson intervals quantify Monte Carlo uncertainty over these fixed synthetic generators; they do not establish distribution-free guarantees, physical-factory validity, an industrial SOTA result or purchase authorization.".into(),
+    }
+}
+
+fn splitmix64(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut value = *state;
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+// Sum of twelve centered uniforms: a deterministic, approximately normal
+// variate with variance one. This is a calibration smoke generator, not a
+// replacement for a high-quality simulation RNG or a formal proof.
+fn centered_normal_approx(state: &mut u64) -> f64 {
+    (0..12)
+        .map(|_| (splitmix64(state) >> 11) as f64 / ((1u64 << 53) as f64))
+        .sum::<f64>()
+        - 6.0
+}
+
+fn selected_robust_winner(
+    samples: &[Vec<f64>],
+    familywise: bool,
+    practical_margin: f64,
+) -> Option<usize> {
+    let sample_count = samples.first()?.len();
+    (0..samples.len()).find(|&candidate| {
+        (0..samples.len())
+            .filter(|&other| other != candidate)
+            .all(|other| {
+                let differences: Vec<f64> = samples[candidate]
+                    .iter()
+                    .zip(samples[other].iter())
+                    .map(|(a, b)| a - b)
+                    .collect();
+                let Ok(summary) = summarize_distribution(&differences) else {
+                    return false;
+                };
+                let (lower, upper) = if familywise {
+                    let critical = student_t_critical_bonferroni_10((sample_count - 1) as u32);
+                    let Some(sd) = summary.sample_standard_deviation else {
+                        return false;
+                    };
+                    let half_width = critical * sd / (sample_count as f64).sqrt();
+                    (
+                        Some(summary.mean - half_width),
+                        Some(summary.mean + half_width),
+                    )
+                } else {
+                    (
+                        summary.mean_confidence_95_lower,
+                        summary.mean_confidence_95_upper,
+                    )
+                };
+                paired_interval_decision(lower, upper, practical_margin)
+                    == "station_a_meaningfully_better_under_paired_model"
+            })
+    })
+}
+
+fn synthetic_paired_samples(
+    state: &mut u64,
+    means: &[f64; 5],
+    replications: usize,
+) -> Vec<Vec<f64>> {
+    let mut samples = vec![Vec::with_capacity(replications); means.len()];
+    for _ in 0..replications {
+        let shared = 0.3 * centered_normal_approx(state);
+        for (candidate, mean) in means.iter().enumerate() {
+            let idiosyncratic = 0.953_939_201_416_945_7 * centered_normal_approx(state);
+            samples[candidate].push(mean + shared + idiosyncratic);
+        }
+    }
+    samples
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
+    if args.len() == 2 && args[1] == "--calibrate-selection" {
+        let report = build_selection_calibration_report();
+        match serde_json::to_string_pretty(&report) {
+            Ok(value) => println!("{value}"),
+            Err(error) => {
+                eprintln!("cannot serialize selection calibration report: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
     if !(2..=3).contains(&args.len()) {
         eprintln!(
-            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]"
+            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour] | --calibrate-selection"
         );
         process::exit(2);
     }
@@ -540,6 +771,23 @@ fn evaluate(
             let lower = paired_effect.mean_confidence_95_lower;
             let upper = paired_effect.mean_confidence_95_upper;
             let decision = paired_interval_decision(lower, upper, practical_equivalence_margin);
+            let familywise_critical_value =
+                student_t_critical_bonferroni_10((difference_samples.len() - 1) as u32);
+            if !familywise_critical_value.is_finite() {
+                return Err("familywise_interval_requires_at_least_two_replications".into());
+            }
+            let familywise_half_width = familywise_critical_value
+                * paired_effect
+                    .sample_standard_deviation
+                    .ok_or_else(|| "paired_standard_deviation_missing".to_string())?
+                / (difference_samples.len() as f64).sqrt();
+            let familywise_lower = Some(paired_effect.mean - familywise_half_width);
+            let familywise_upper = Some(paired_effect.mean + familywise_half_width);
+            let familywise_decision = paired_interval_decision(
+                familywise_lower,
+                familywise_upper,
+                practical_equivalence_margin,
+            );
             paired_comparisons.push(PairedInterventionComparison {
                 station_a_id: station_a.clone(),
                 station_b_id: station_b.clone(),
@@ -550,8 +798,19 @@ fn evaluate(
                 probability_b_beats_a_beyond_margin: b_win_count as f64 / input.replication_count as f64,
                 practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
                 decision: decision.into(),
+                familywise_simultaneous_ci_95_lower_units_per_hour: familywise_lower,
+                familywise_simultaneous_ci_95_upper_units_per_hour: familywise_upper,
+                familywise_critical_value,
+                familywise_decision: familywise_decision.into(),
             });
         }
+    }
+    let familywise_comparison_count = paired_comparisons.len();
+    if familywise_comparison_count > FAMILYWISE_COMPARISON_BUDGET {
+        return Err(format!(
+            "familywise_method_budget_exceeded_for_{}_pairwise_comparisons",
+            familywise_comparison_count
+        ));
     }
     let robust_best_station_id = oracle_ranked.first().and_then(|top| {
         let candidate_id = top.station_id.as_str();
@@ -569,9 +828,11 @@ fn evaluate(
                 })
                 .is_some_and(|comparison| {
                     if comparison.station_a_id == top.station_id {
-                        comparison.decision == "station_a_meaningfully_better_under_paired_model"
+                        comparison.familywise_decision
+                            == "station_a_meaningfully_better_under_paired_model"
                     } else {
-                        comparison.decision == "station_b_meaningfully_better_under_paired_model"
+                        comparison.familywise_decision
+                            == "station_b_meaningfully_better_under_paired_model"
                     }
                 })
         });
@@ -582,9 +843,9 @@ fn evaluate(
         }
     });
     let paired_effect_recommendation_status = if robust_best_station_id.is_some() {
-        "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
+        "unique_best_intervention_separated_from_all_candidates_by_bonferroni_simultaneous_paired_intervals"
     } else {
-        "no_robust_best_intervention_detected_abstain"
+        "no_robust_best_intervention_detected_after_familywise_adjustment_abstain"
     }
     .to_string();
 
@@ -628,8 +889,12 @@ fn evaluate(
         runner_up_station_by_mean_paired_gain: runner_up.station_id.clone(),
         runner_up_station_ci_upper: runner_up.oracle_paired_gain_ci_95_upper,
         nonoverlapping_interval_screen_separates_top_two: intervals_separate,
-        interval_screen_note: "Legacy descriptive screen only; paired_intervention_comparisons is the primary comparison of intervention-vs-intervention effects.".into(),
+        interval_screen_note: "The legacy marginal-interval screen is descriptive only. Pointwise paired intervals are reported alongside Bonferroni simultaneous intervals; robust-best uses the family-wise-adjusted decisions.".into(),
         practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
+        familywise_nominal_error_rate_target: FAMILYWISE_ALPHA,
+        familywise_method: "bonferroni_adjusted_two_sided_paired_t_intervals_nominal_coverage".into(),
+        familywise_comparison_count,
+        familywise_comparison_budget: FAMILYWISE_COMPARISON_BUDGET,
         paired_intervention_comparisons: paired_comparisons,
         robust_best_station_id,
         paired_effect_recommendation_status,
@@ -728,6 +993,44 @@ fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
         28 => 2.048,
         29 => 2.045,
         _ => 1.960,
+    }
+}
+
+fn student_t_critical_bonferroni_10(degrees_of_freedom: u32) -> f64 {
+    // Two-sided family-wise alpha 0.05 across at most ten pairwise comparisons:
+    // per-comparison alpha <= 0.005, so use the t(0.9975) critical value.
+    // The df >= 29 fallback (3.0381) is conservative for every larger df.
+    match degrees_of_freedom {
+        0 => f64::NAN,
+        1 => 127.3213,
+        2 => 14.0890,
+        3 => 7.4533,
+        4 => 5.5976,
+        5 => 4.7733,
+        6 => 4.3168,
+        7 => 4.0293,
+        8 => 3.8325,
+        9 => 3.6897,
+        10 => 3.5814,
+        11 => 3.4966,
+        12 => 3.4284,
+        13 => 3.3725,
+        14 => 3.3260,
+        15 => 3.2860,
+        16 => 3.2520,
+        17 => 3.2219,
+        18 => 3.1966,
+        19 => 3.1737,
+        20 => 3.1534,
+        21 => 3.1353,
+        22 => 3.1190,
+        23 => 3.1040,
+        24 => 3.0905,
+        25 => 3.0780,
+        26 => 3.0666,
+        27 => 3.0565,
+        28 => 3.0470,
+        _ => 3.0381,
     }
 }
 
@@ -1026,6 +1329,50 @@ mod tests {
         let equal = summarize_distribution(&equal_differences).expect("equivalence summary");
         assert!(equal.mean_confidence_95_lower.unwrap() >= -margin);
         assert!(equal.mean_confidence_95_upper.unwrap() <= margin);
+    }
+
+    #[test]
+    fn deterministic_monte_carlo_calibrates_null_and_separated_winner_cases() {
+        let report = build_selection_calibration_report();
+        assert_eq!(report.null_trial_count, 2_000);
+        assert_eq!(report.separated_winner_trial_count, 500);
+        assert_eq!(report.replications_per_candidate, 20);
+        assert!(
+            report.null_familywise_false_winner_rate
+                <= report.null_pointwise_false_winner_rate + f64::EPSILON,
+            "familywise null rate must not exceed pointwise rate"
+        );
+        assert!(
+            report.null_familywise_false_winner_rate <= 0.06,
+            "familywise null smoke rate exceeded 6%: {:.4}",
+            report.null_familywise_false_winner_rate
+        );
+        assert!(
+            report.separated_winner_familywise_correct_selection_rate >= 0.90,
+            "separated-winner familywise power fell below 90%: {:.4}",
+            report.separated_winner_familywise_correct_selection_rate
+        );
+        assert!(!report.field_sota_claim);
+        assert!(!report.production_release_authorized);
+    }
+
+    #[test]
+    fn familywise_t_critical_values_are_conservative_and_wider_than_pointwise() {
+        assert!((student_t_critical_bonferroni_10(19) - 3.1737).abs() < 1e-4);
+        assert!(student_t_critical_bonferroni_10(19) > student_t_critical_95(19));
+        assert!(student_t_critical_bonferroni_10(29) >= student_t_critical_bonferroni_10(40));
+        assert!(student_t_critical_bonferroni_10(0).is_nan());
+    }
+
+    #[test]
+    fn familywise_interval_abstains_when_pointwise_interval_only_narrowly_separates() {
+        let pointwise = paired_interval_decision(Some(0.08), Some(0.22), 0.05);
+        let adjusted = paired_interval_decision(Some(0.01), Some(0.29), 0.05);
+        assert_eq!(
+            pointwise,
+            "station_a_meaningfully_better_under_paired_model"
+        );
+        assert_eq!(adjusted, "inconclusive_under_paired_interval");
     }
 
     #[test]

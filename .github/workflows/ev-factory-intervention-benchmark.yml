@@ -44,6 +44,27 @@ jobs:
         run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
       - name: Full Rust package tests
         run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Emit deterministic family-wise selection calibration report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- --calibrate-selection > ev-factory-selection-calibration-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-STAT-CAL-001"
+            and .candidate_count == 5
+            and .replications_per_candidate == 20
+            and .practical_equivalence_margin_units_per_hour == 0.05
+            and .familywise_nominal_error_rate_target == 0.05
+            and .null_trial_count == 2000
+            and .separated_winner_trial_count == 500
+            and .null_familywise_false_winner_rate <= 0.06
+            and .null_familywise_false_winner_rate <= .null_pointwise_false_winner_rate + 0.000000001
+            and .separated_winner_familywise_correct_selection_rate >= 0.90
+            and (.generator_spec_sha256 | test("^[0-9a-f]{64}$"))
+            and .all_generators_are_synthetic == true
+            and .field_sota_claim == false
+            and .production_release_authorized == false
+          ' ev-factory-selection-calibration-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- --calibrate-selection > ev-factory-selection-calibration-repeat.json
+          cmp ev-factory-selection-calibration-report.json ev-factory-selection-calibration-repeat.json
       - name: Generate paired DES source report
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
@@ -76,9 +97,13 @@ jobs:
             and (.candidates | length) == 5
             and (.method_scores | length) == 4
             and (.paired_intervention_comparisons | length) == 10
-            and all(.paired_intervention_comparisons[]; .paired_effect_a_minus_b.sample_count == 20 and .practical_equivalence_margin_units_per_hour == 0.05 and .probability_a_beats_b_beyond_margin >= 0 and .probability_a_beats_b_beyond_margin <= 1 and .probability_b_beats_a_beyond_margin >= 0 and .probability_b_beats_a_beyond_margin <= 1)
+            and .familywise_method == "bonferroni_adjusted_two_sided_paired_t_intervals_nominal_coverage"
+            and .familywise_nominal_error_rate_target == 0.05
+            and .familywise_comparison_count == 10
+            and .familywise_comparison_budget == 10
+            and all(.paired_intervention_comparisons[]; .paired_effect_a_minus_b.sample_count == 20 and .practical_equivalence_margin_units_per_hour == 0.05 and .probability_a_beats_b_beyond_margin >= 0 and .probability_a_beats_b_beyond_margin <= 1 and .probability_b_beats_a_beyond_margin >= 0 and .probability_b_beats_a_beyond_margin <= 1 and .familywise_simultaneous_ci_95_lower_units_per_hour != null and .familywise_simultaneous_ci_95_upper_units_per_hour != null and .familywise_critical_value > 0 and (.familywise_decision | type) == "string")
             and .robust_best_station_id == "end-of-line-test"
-            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
+            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_bonferroni_simultaneous_paired_intervals"
             and all(.method_scores[]; (.ranked_station_ids | length) == 5 and .absolute_regret_units_per_hour_vs_point_estimate_oracle != null and .spearman_rank_correlation_vs_oracle != null and .kendall_tau_b_vs_oracle != null)
             and .results_are_synthetic_model_conditional
             and (.result_scores_are_field_sota_claims == false)
@@ -93,12 +118,12 @@ jobs:
           jq -e '
             .practical_equivalence_margin_units_per_hour == 0.01
             and .robust_best_station_id == "end-of-line-test"
-            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
+            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_bonferroni_simultaneous_paired_intervals"
           ' ev-factory-intervention-margin-001.json
           jq -e '
             .practical_equivalence_margin_units_per_hour == 2.5
             and .robust_best_station_id == null
-            and .paired_effect_recommendation_status == "no_robust_best_intervention_detected_abstain"
+            and .paired_effect_recommendation_status == "no_robust_best_intervention_detected_after_familywise_adjustment_abstain"
           ' ev-factory-intervention-margin-250.json
           if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
             ev-factory-simulation-report.json 0 > invalid-margin.json 2> invalid-margin.stderr; then
@@ -132,6 +157,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
             docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md \
             docs/research/EV_FACTORY_PAIRED_INTERVENTION_EFFECTS_V0_1.md \
+            ev-factory-selection-calibration-report.json \
             ev-factory-simulation-report.json \
             ev-factory-intervention-ranking-report.json \
             ev-factory-intervention-margin-001.json \
@@ -140,6 +166,7 @@ jobs:
         with:
           name: ev-factory-intervention-ranking-report
           path: |
+            ev-factory-selection-calibration-report.json
             ev-factory-simulation-report.json
             ev-factory-intervention-ranking-report.json
             ev-factory-intervention-margin-001.json
