@@ -25,11 +25,23 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Produce canonical Rust formatting
+        run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all
+
       - name: Check formatting
         run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all -- --check
 
       - name: Unit tests
         run: cargo test --manifest-path tools/pcb-route-benchmark/Cargo.toml
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pcb-route-benchmark-rustfmt-source
+          path: |
+            tools/pcb-route-benchmark/src/lib.rs
+            tools/pcb-route-benchmark/src/main.rs
+          if-no-files-found: error
 
       - name: Prepare exact-manifest-bound synthetic reports
         shell: bash
