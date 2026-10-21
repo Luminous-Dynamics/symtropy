@@ -280,7 +280,8 @@ mod tests {
             RF_AND_RR_OUTPUT.as_bytes(),
             "FIXED",
             &[1, 2],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(report["parse_status"], "PASS");
         assert_eq!(report["source_semantics"], "reaction_only_RR");
         assert_eq!(report["nodes"][0]["force_components_as_written"][0], -1000.0);
@@ -292,70 +293,140 @@ mod tests {
     #[test]
     fn RF_only_output_is_not_accepted_as_reaction_data() {
         let rf_only = " forces (fx,fy,fz) for set FIXED and time 1.0\n 1 0.0 0.0 0.0\n 2 0.0 0.0 0.0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), rf_only.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                rf_only.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn deck_must_explicitly_request_rr() {
         let deck = "*STEP\n*NODE PRINT,NSET=FIXED\nRF\n*END STEP\n";
-        assert!(parse_reaction_only_rr_bytes(
-            deck.as_bytes(), RR_ONLY_OUTPUT.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                deck.as_bytes(),
+                RR_ONLY_OUTPUT.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn wrong_set_is_rejected() {
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), RR_ONLY_OUTPUT.as_bytes(), "SUPPORTS", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                RR_ONLY_OUTPUT.as_bytes(),
+                "SUPPORTS",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn missing_unexpected_and_duplicate_nodes_are_rejected() {
         let missing = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), missing.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                missing.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
         let unexpected = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n2 0 0 0\n3 0 0 0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), unexpected.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                unexpected.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
         let duplicate = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n1 1 0 0\n2 0 0 0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), duplicate.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                duplicate.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn malformed_nonfinite_and_fortran_exponents_are_handled_explicitly() {
         let fortran = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0D+00\n1 -1.0D+03 0.0D+00 0.0D+00\n2 1.0D+03 0.0D+00 0.0D+00\n";
         let parsed = parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), fortran.as_bytes(), "FIXED", &[1, 2],
-        ).unwrap();
+            DECK_WITH_RR.as_bytes(),
+            fortran.as_bytes(),
+            "FIXED",
+            &[1, 2],
+        )
+        .unwrap();
         assert_eq!(parsed["time_value"], 1.0);
         let nonfinite = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 NaN 0 0\n2 1 0 0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), nonfinite.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                nonfinite.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
         let malformed = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 1.0E+ 0 0\n2 1 0 0\n";
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), malformed.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                malformed.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn duplicate_sections_invalid_set_and_invalid_text_are_rejected() {
         let repeated = format!("{RR_ONLY_OUTPUT}\n{RR_ONLY_OUTPUT}");
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), repeated.as_bytes(), "FIXED", &[1, 2],
-        ).is_err());
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), RR_ONLY_OUTPUT.as_bytes(), "bad set!", &[1, 2],
-        ).is_err());
-        assert!(parse_reaction_only_rr_bytes(
-            DECK_WITH_RR.as_bytes(), &[0xff, 0xfe], "FIXED", &[1, 2],
-        ).is_err());
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                repeated.as_bytes(),
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                RR_ONLY_OUTPUT.as_bytes(),
+                "bad set!",
+                &[1, 2],
+            )
+            .is_err()
+        );
+        assert!(
+            parse_reaction_only_rr_bytes(
+                DECK_WITH_RR.as_bytes(),
+                &[0xff, 0xfe],
+                "FIXED",
+                &[1, 2],
+            )
+            .is_err()
+        );
     }
 }
