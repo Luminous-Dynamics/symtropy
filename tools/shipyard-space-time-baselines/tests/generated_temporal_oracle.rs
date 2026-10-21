@@ -6,7 +6,8 @@
 
 use shipyard_space_time::{ExclusionZone, Footprint, Rect, TimeRange, verify};
 use shipyard_space_time_baselines::{
-    PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left, first_fit_portfolio,
+    BaselineErrorCode, PlacementRequest, first_fit_bottom_left,
+    first_fit_decreasing_bottom_left, first_fit_heuristic_portfolio, first_fit_portfolio,
 };
 
 const YARD_WIDTH: i64 = 4;
@@ -167,6 +168,11 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
     let mut portfolio_missed = 0usize;
     let mut portfolio_rejected_infeasible = 0usize;
     let mut portfolio_false_feasible = 0usize;
+    let mut exact_combined_solved = 0usize;
+    let mut exact_fallback_recovered = 0usize;
+    let mut exact_proven_infeasible = 0usize;
+    let mut exact_budget_exhausted = 0usize;
+    let mut exact_combined_false_feasible = 0usize;
 
     for _case in 0..CASES {
         let (requests, zone) = generated_case(&mut state);
@@ -210,7 +216,7 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
             Err(_) => decreasing_rejected_infeasible += 1,
         }
 
-        match first_fit_portfolio(yard, &requests, std::slice::from_ref(&zone)) {
+        match first_fit_heuristic_portfolio(yard, &requests, std::slice::from_ref(&zone)) {
             Ok(result) => {
                 portfolio_solved += 1;
                 if !exact {
@@ -227,6 +233,33 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
                     portfolio_rejected_infeasible += 1;
                 }
             }
+        }
+
+        match first_fit_portfolio(yard, &requests, std::slice::from_ref(&zone)) {
+            Ok(result) => {
+                exact_combined_solved += 1;
+                if !exact {
+                    exact_combined_false_feasible += 1;
+                }
+                if result.exact_fallback_used {
+                    exact_fallback_recovered += 1;
+                    assert_eq!(result.selected_policy.as_str(), "exact-tiny-search");
+                    assert!(result.exact_nodes_examined <= 100_000);
+                } else {
+                    assert!(result.feasible_candidates > 0);
+                }
+                assert!(verify(&result.scenario).is_feasible());
+            }
+            Err(errors) => match errors[0].code {
+                BaselineErrorCode::ExactSearchProvenInfeasible => {
+                    assert!(!exact, "exact search claimed a feasible case impossible");
+                    exact_proven_infeasible += 1;
+                }
+                BaselineErrorCode::ExactSearchBudgetExceeded => {
+                    exact_budget_exhausted += 1;
+                }
+                other => panic!("unexpected combined portfolio failure: {other:?}"),
+            },
         }
     }
 
@@ -250,4 +283,12 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
         "portfolio temporal infeasibility changed"
     );
     assert_eq!(portfolio_false_feasible, 0, "portfolio false-feasible plans detected");
+    assert_eq!(exact_combined_solved, 228, "exact-repaired temporal coverage changed");
+    assert_eq!(exact_fallback_recovered, 12, "exact temporal recovery count changed");
+    assert_eq!(exact_proven_infeasible, 284, "exact temporal infeasibility count changed");
+    assert_eq!(exact_budget_exhausted, 0, "temporal exact-search budget changed");
+    assert_eq!(
+        exact_combined_false_feasible, 0,
+        "exact-repaired temporal false-feasible plans detected"
+    );
 }
