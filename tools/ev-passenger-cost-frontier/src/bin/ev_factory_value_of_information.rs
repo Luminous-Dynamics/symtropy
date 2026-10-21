@@ -461,9 +461,8 @@ mod tests {
     #[test]
     fn duplicate_action_effect_is_rejected() {
         let mut fixture = fixture();
-        fixture.scenarios[0]
-            .action_effects
-            .push(fixture.scenarios[0].action_effects[0].clone());
+        let duplicate = fixture.scenarios[0].action_effects[0].clone();
+        fixture.scenarios[0].action_effects.push(duplicate);
         assert!(validate_fixture(&fixture)
             .expect_err("duplicate action effect rejected")
             .contains("duplicate"));
