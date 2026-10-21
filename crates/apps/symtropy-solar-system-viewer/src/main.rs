@@ -9,6 +9,7 @@
 //! presentation space when physical apparent size falls below the configured band.
 //! That exaggeration is reported in the HUD and never changes body coordinates.
 
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use std::f64::consts::PI;
@@ -179,6 +180,72 @@ struct SolarCamera;
 
 #[derive(Component)]
 struct SolarHud;
+
+// Named ECS query contracts keep system signatures readable and make each
+// disjoint render target explicit for Bevy's mutable-query alias analysis.
+type BodyRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static BodyVisual, &'static mut Transform, &'static mut Visibility),
+    (With<BodyVisual>, Without<SolarCamera>),
+>;
+type TileRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static mut Transform, &'static mut Visibility),
+    (
+        With<SurfaceTile>,
+        Without<BodyVisual>,
+        Without<LocalFeature>,
+        Without<SolarCamera>,
+    ),
+>;
+type FeatureRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static mut Transform, &'static mut Visibility),
+    (
+        With<LocalFeature>,
+        Without<BodyVisual>,
+        Without<SurfaceTile>,
+        Without<SolarCamera>,
+    ),
+>;
+type OrbitRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static OrbitSegment, &'static mut Transform, &'static mut Visibility),
+    (
+        With<OrbitSegment>,
+        Without<BodyVisual>,
+        Without<SurfaceTile>,
+        Without<LocalFeature>,
+        Without<SolarCamera>,
+        Without<SkyStar>,
+    ),
+>;
+type StarRenderQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static SkyStar, &'static mut Transform, &'static mut Visibility),
+    (
+        With<SkyStar>,
+        Without<BodyVisual>,
+        Without<SurfaceTile>,
+        Without<LocalFeature>,
+        Without<OrbitSegment>,
+        Without<SolarCamera>,
+    ),
+>;
+type CameraRenderQuery<'w, 's> =
+    Query<'w, 's, (&'static mut Transform, &'static mut Projection), With<SolarCamera>>;
+type PrimaryWindowQuery<'w, 's> = Query<'w, 's, &'static Window, With<PrimaryWindow>>;
+
+#[derive(SystemParam)]
+struct CameraViewportParams<'w, 's> {
+    camera_query: CameraRenderQuery<'w, 's>,
+    windows: PrimaryWindowQuery<'w, 's>,
+}
 
 fn world_position(x_m: f64, y_m: f64, z_m: f64) -> LargeWorldPosition {
     LargeWorldPosition::from_absolute_meters(FRAME, [x_m, y_m, z_m])
@@ -664,54 +731,14 @@ fn render_radius_for_band(
 
 fn update_scene(
     mut state: ResMut<ViewerState>,
-    mut body_query: Query<
-        (&BodyVisual, &mut Transform, &mut Visibility),
-        (With<BodyVisual>, Without<SolarCamera>),
-    >,
-    mut tile_query: Query<
-        (&mut Transform, &mut Visibility),
-        (
-            With<SurfaceTile>,
-            Without<BodyVisual>,
-            Without<LocalFeature>,
-            Without<SolarCamera>,
-        ),
-    >,
-    mut feature_query: Query<
-        (&mut Transform, &mut Visibility),
-        (
-            With<LocalFeature>,
-            Without<BodyVisual>,
-            Without<SurfaceTile>,
-            Without<SolarCamera>,
-        ),
-    >,
-    mut orbit_query: Query<
-        (&OrbitSegment, &mut Transform, &mut Visibility),
-        (
-            With<OrbitSegment>,
-            Without<BodyVisual>,
-            Without<SurfaceTile>,
-            Without<LocalFeature>,
-            Without<SolarCamera>,
-            Without<SkyStar>,
-        ),
-    >,
-    mut star_query: Query<
-        (&SkyStar, &mut Transform, &mut Visibility),
-        (
-            With<SkyStar>,
-            Without<BodyVisual>,
-            Without<SurfaceTile>,
-            Without<LocalFeature>,
-            Without<OrbitSegment>,
-            Without<SolarCamera>,
-        ),
-    >,
-    mut camera_query: Query<(&mut Transform, &mut Projection), With<SolarCamera>>,
-    windows: Query<&Window, With<PrimaryWindow>>,
+    mut body_query: BodyRenderQuery<'_, '_>,
+    mut tile_query: TileRenderQuery<'_, '_>,
+    mut feature_query: FeatureRenderQuery<'_, '_>,
+    mut orbit_query: OrbitRenderQuery<'_, '_>,
+    mut star_query: StarRenderQuery<'_, '_>,
+    mut camera_viewport: CameraViewportParams<'_, '_>,
 ) {
-    let viewport_height_px = windows
+    let viewport_height_px = camera_viewport.windows
         .iter()
         .next()
         .map(|window| window.physical_height().max(1))
@@ -940,7 +967,7 @@ fn update_scene(
             None
         }
     };
-    for (mut transform, mut projection) in &mut camera_query {
+    for (mut transform, mut projection) in &mut camera_viewport.camera_query {
         transform.translation = Vec3::ZERO;
         if let Some(focus_relative) = focus_relative {
             transform.rotation = Transform::from_translation(Vec3::ZERO)
