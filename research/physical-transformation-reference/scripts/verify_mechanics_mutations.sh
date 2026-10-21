@@ -154,10 +154,36 @@ run_mutation \
   "simply-supported-stress-modulus-coupling" \
   supported_beam_stress_depends_on_modulus \
   simply_supported_beam_obeys_load_span_and_stiffness_scaling
+run_mutation \
+  "millimeters-conversion-factor" \
+  unit_length_mm_factor_1000 \
+  named_source_unit_conversions_match_canonical_si_values
+run_mutation \
+  "kilonewtons-conversion-factor" \
+  unit_force_kn_factor_1000 \
+  named_source_unit_conversions_match_canonical_si_values
+run_mutation \
+  "square-millimeters-conversion-exponent" \
+  unit_area_mm2_exponent \
+  named_source_unit_conversions_match_canonical_si_values
+run_mutation \
+  "gigapascals-conversion-factor" \
+  unit_modulus_gpa_factor \
+  named_source_unit_conversions_match_canonical_si_values
+run_mutation \
+  "millimeters-fourth-conversion-exponent" \
+  unit_second_moment_mm4_exponent \
+  named_source_unit_conversions_match_canonical_si_values
+run_mutation \
+  "kilonewtons-per-meter-conversion-factor" \
+  unit_distributed_load_kn_per_m_factor \
+  named_source_unit_conversions_match_canonical_si_values
 
 # Prove the actual checkout's source and test files were not changed by any mutant run.
 test "$mechanics_sha256" = "$(sha256sum "$crate_dir/src/mechanics.rs" | awk '{print $1}')"
 test "$metamorphic_sha256" = "$(sha256sum "$crate_dir/tests/metamorphic.rs" | awk '{print $1}')"
+test "$units_sha256" = "$(sha256sum "$crate_dir/src/units.rs" | awk '{print $1}')"
+test "$unit_tests_sha256" = "$(sha256sum "$crate_dir/tests/units.rs" | awk '{print $1}')"
 
 # Stable field order and no timestamps make the receipt reproducible at a fixed commit/toolchain.
 jq -n \
