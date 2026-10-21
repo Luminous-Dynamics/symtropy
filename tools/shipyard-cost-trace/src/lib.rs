@@ -262,7 +262,9 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
 
     match &event.kind {
         EventKind::Quantity(quantity) => {
-            if quantity.aggregation_semantics != QuantityAggregationSemantics::AdditiveContribution {
+            if quantity.aggregation_semantics
+                != QuantityAggregationSemantics::AdditiveContribution
+            {
                 errors.push(format!(
                     "{label}: cumulative snapshots must be normalized before audit; only additive contributions are accepted"
                 ));
