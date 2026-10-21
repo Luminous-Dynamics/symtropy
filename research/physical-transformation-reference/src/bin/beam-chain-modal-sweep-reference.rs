@@ -4,7 +4,8 @@
 //! not the 200-elements-per-member NAFEMS reference model.
 
 use physical_transformation_reference::beam_modal::{
-    BeamModeClass, solve_beam_pin_assembly_modes,
+    BeamModeClass, modal_assurance_criterion, sample_beam_chain_mode_on_fixed_grid,
+    solve_beam_pin_assembly_modes,
 };
 use physical_transformation_reference::beam_pin_assembly::{
     BeamMemberChain, BeamPinNode, assemble_released_joint_beam_chains,
@@ -41,6 +42,7 @@ fn run() -> Result<String, String> {
 
     let mut mesh_receipts = Vec::with_capacity(ELEMENT_COUNTS.len());
     let mut previous_frequencies: Option<Vec<f64>> = None;
+    let mut previous_sampled_modes: Option<Vec<Vec<f64>>> = None;
     for elements_per_member in ELEMENT_COUNTS {
         let members = fixture_members(elements_per_member);
         let assembly = assemble_released_joint_beam_chains(&nodes, &members)?;
@@ -75,14 +77,53 @@ fn run() -> Result<String, String> {
             .iter()
             .map(|mode| mode.frequency_hz.expect("elastic mode"))
             .collect::<Vec<_>>();
+        // Compare the six lowest modes on fixed physical sample locations,
+        // not incompatible nodal vectors from different meshes. Preserve the
+        // full 6x6 MAC matrix; frequency-rank pairing is not silently blessed.
+        let current_sampled_modes = result
+            .modes
+            .iter()
+            .take(6)
+            .map(|mode| {
+                sample_beam_chain_mode_on_fixed_grid(
+                    &nodes,
+                    &members,
+                    &assembly,
+                    mode,
+                    17,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if current_sampled_modes.len() != 6 {
+            return Err("each mesh must provide six modes for the low-mode MAC grid".to_owned());
+        }
+        let mac_matrix = if let Some(previous_modes) = &previous_sampled_modes {
+            Some(
+                previous_modes
+                    .iter()
+                    .map(|previous_mode| {
+                        current_sampled_modes
+                            .iter()
+                            .map(|current_mode| {
+                                modal_assurance_criterion(previous_mode, current_mode)
+                            })
+                            .collect::<Result<Vec<_>, _>>()
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        } else {
+            None
+        };
         mesh_receipts.push(mesh_json(
             elements_per_member,
             assembly.stiffness_global.len(),
             assembly.free_dof_indices.len(),
             &result,
             previous_frequencies.as_deref(),
+            mac_matrix.as_deref(),
         ));
         previous_frequencies = Some(current_frequencies);
+        previous_sampled_modes = Some(current_sampled_modes);
     }
 
     Ok(format!(
@@ -153,6 +194,7 @@ fn mesh_json(
     free_dof_count: usize,
     result: &physical_transformation_reference::beam_modal::BeamModalResult,
     previous_frequencies: Option<&[f64]>,
+    mac_matrix: Option<&[Vec<f64>]>,
 ) -> String {
     let frequencies = result
         .modes
@@ -186,6 +228,9 @@ fn mesh_json(
         .and_then(|values| values.iter().copied().reduce(f64::max))
         .map(float_json)
         .unwrap_or_else(|| "null".to_owned());
+    let mac_matrix_json = mac_matrix
+        .map(f64_matrix_json)
+        .unwrap_or_else(|| "null".to_owned());
     format!(
         concat!(
             "{{",
@@ -198,7 +243,8 @@ fn mesh_json(
             "\"maximum_off_diagonal_mass_orthogonality_residual\":{},",
             "\"frequencies_hz\":[{}],",
             "\"common_low_mode_frequency_relative_changes_from_previous_mesh\":{},",
-            "\"max_common_low_mode_frequency_relative_change\":{}",
+            "\"max_common_low_mode_frequency_relative_change\":{},",
+            "\"mode_shape_mac_low_six_from_previous_mesh\":{}",
             "}}"
         ),
         elements_per_member,
@@ -211,6 +257,26 @@ fn mesh_json(
         frequencies,
         relative_changes_json,
         maximum_relative_change_json,
+        mac_matrix_json,
+    )
+}
+
+fn f64_matrix_json(matrix: &[Vec<f64>]) -> String {
+    format!(
+        "[{}]",
+        matrix
+            .iter()
+            .map(|row| {
+                format!(
+                    "[{}]",
+                    row.iter()
+                        .map(|value| float_json(*value))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
