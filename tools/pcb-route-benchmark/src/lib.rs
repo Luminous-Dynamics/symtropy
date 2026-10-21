@@ -22,7 +22,39 @@ pub struct DatasetManifest {
     pub split_id: String,
     pub evidence_class: String,
     pub source_url: String,
+    #[serde(default)]
+    pub source_split_config_sha256: Option<String>,
+    #[serde(default)]
+    pub source_split_commit_sha: Option<String>,
+    #[serde(default)]
+    pub source_split_name: Option<String>,
+    #[serde(default)]
+    pub intake_metadata_sha256: Option<String>,
     pub boards: Vec<BoardPin>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct IntakeSpec {
+    pub schema: String,
+    pub benchmark_id: String,
+    pub benchmark_version: String,
+    pub dataset_id: String,
+    pub split_id: String,
+    pub source_url: String,
+    pub source_split_commit_sha: String,
+    pub split_name: String,
+    pub boards: Vec<IntakeBoard>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct IntakeBoard {
+    pub board_id: String,
+    pub difficulty: String,
+    pub required_nets: u32,
+    pub license: String,
+    pub source_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -338,6 +370,25 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
     if manifest.boards.is_empty() {
         return Err("manifest must contain at least one board".into());
     }
+    if let Some(digest) = manifest.source_split_config_sha256.as_deref() {
+        require_sha256(digest, "source_split_config_sha256")?;
+    }
+    if let Some(commit) = manifest.source_split_commit_sha.as_deref() {
+        if !is_commit_sha(commit) {
+            return Err("source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into());
+        }
+    }
+    if let Some(digest) = manifest.intake_metadata_sha256.as_deref() {
+        require_sha256(digest, "intake_metadata_sha256")?;
+    }
+    if manifest.evidence_class == "external_benchmark"
+        && (manifest.source_split_config_sha256.is_none()
+            || manifest.source_split_commit_sha.is_none()
+            || manifest.source_split_name.is_none()
+            || manifest.intake_metadata_sha256.is_none())
+    {
+        return Err("external manifest must bind split config, source commit, split name and intake metadata digests".into());
+    }
     let mut ids = BTreeSet::new();
     for board in &manifest.boards {
         if board.board_id.trim().is_empty()
@@ -412,6 +463,139 @@ fn validate_relative_path(relative_path: &str, board_id: &str) -> Result<(), Str
         ));
     }
     Ok(())
+}
+
+pub fn build_dataset_manifest(
+    split_config_bytes: &[u8],
+    intake_spec_bytes: &[u8],
+    dataset_root: &Path,
+) -> Result<DatasetManifest, String> {
+    let split_config: serde_json::Value = serde_json::from_slice(split_config_bytes)
+        .map_err(|error| format!("upstream split configuration JSON invalid: {error}"))?;
+    let intake: IntakeSpec = serde_json::from_slice(intake_spec_bytes)
+        .map_err(|error| format!("intake specification JSON/schema invalid: {error}"))?;
+
+    if intake.schema != "pcb-route-intake-spec-v0.1" {
+        return Err(format!("unsupported intake specification schema: {}", intake.schema));
+    }
+    if !is_commit_sha(&intake.source_split_commit_sha) {
+        return Err("source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into());
+    }
+    if intake.split_name.trim().is_empty()
+        || intake.benchmark_id.trim().is_empty()
+        || intake.benchmark_version.trim().is_empty()
+        || intake.dataset_id.trim().is_empty()
+        || intake.split_id.trim().is_empty()
+        || !intake.source_url.starts_with("https://")
+    {
+        return Err("intake identity, split name and HTTPS source URL must be declared".into());
+    }
+    if intake.boards.is_empty() {
+        return Err("intake specification must contain at least one selected board".into());
+    }
+    let filename = split_config
+        .get("board_filename")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "upstream split config is missing string board_filename".to_string())?;
+    validate_relative_path(filename, "board_filename")?;
+
+    let root = dataset_root.canonicalize().map_err(|error| {
+        format!(
+            "cannot canonicalize dataset root {}: {error}",
+            dataset_root.display()
+        )
+    })?;
+    if !root.is_dir() {
+        return Err(format!("dataset root is not a directory: {}", root.display()));
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut boards = Vec::with_capacity(intake.boards.len());
+    for selection in &intake.boards {
+        if !seen.insert(selection.board_id.as_str()) {
+            return Err(format!("duplicate selected board ID: {}", selection.board_id));
+        }
+        if selection.required_nets == 0 {
+            return Err(format!("{}: required_nets must be positive", selection.board_id));
+        }
+        if selection.license.trim().is_empty()
+            || matches!(
+                selection.license.trim().to_ascii_lowercase().as_str(),
+                "unknown" | "n/a" | "not-provided" | "noassertion" | "unverified"
+            )
+        {
+            return Err(format!(
+                "{}: license must be explicitly verified before intake",
+                selection.board_id
+            ));
+        }
+        if !selection.source_url.starts_with("https://") {
+            return Err(format!(
+                "{}: board source URL must use HTTPS",
+                selection.board_id
+            ));
+        }
+        let candidate_ids = split_config
+            .get(&selection.difficulty)
+            .and_then(|difficulty| difficulty.get(&intake.split_name))
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| {
+                format!(
+                    "upstream split has no array for difficulty={} split={}",
+                    selection.difficulty, intake.split_name
+                )
+            })?;
+        if !candidate_ids.iter().any(|id| id.as_str() == Some(&selection.board_id)) {
+            return Err(format!(
+                "{} is not a member of the pinned {}.{} split",
+                selection.board_id, selection.difficulty, intake.split_name
+            ));
+        }
+
+        let relative_path = format!("{}/{}", selection.board_id, filename);
+        validate_relative_path(&relative_path, &selection.board_id)?;
+        let actual_path = root.join(&relative_path).canonicalize().map_err(|error| {
+            format!(
+                "{}: cannot resolve source file {}: {error}",
+                selection.board_id, relative_path
+            )
+        })?;
+        if !actual_path.starts_with(&root) || !actual_path.is_file() {
+            return Err(format!(
+                "{}: source file is not a regular file contained by the dataset root",
+                selection.board_id
+            ));
+        }
+        let bytes = fs::read(&actual_path).map_err(|error| {
+            format!("{}: cannot read source board bytes: {error}", selection.board_id)
+        })?;
+        boards.push(BoardPin {
+            board_id: selection.board_id.clone(),
+            input_board_sha256: sha256_hex(&bytes),
+            required_nets: selection.required_nets,
+            license: selection.license.clone(),
+            source_url: selection.source_url.clone(),
+            relative_path: Some(relative_path),
+        });
+    }
+    boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
+
+    let manifest = DatasetManifest {
+        schema: MANIFEST_SCHEMA.into(),
+        benchmark_id: intake.benchmark_id.clone(),
+        benchmark_version: intake.benchmark_version.clone(),
+        dataset_id: intake.dataset_id.clone(),
+        split_id: intake.split_id.clone(),
+        evidence_class: "external_benchmark".into(),
+        source_url: intake.source_url.clone(),
+        source_split_config_sha256: Some(sha256_hex(split_config_bytes)),
+        source_split_commit_sha: Some(intake.source_split_commit_sha.to_ascii_lowercase()),
+        source_split_name: Some(intake.split_name.clone()),
+        intake_metadata_sha256: Some(sha256_hex(intake_spec_bytes)),
+        boards,
+    };
+    validate_manifest(&manifest)?;
+    Ok(manifest)
 }
 
 pub fn verify_dataset_files(
