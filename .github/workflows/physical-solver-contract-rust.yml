@@ -742,6 +742,218 @@ jobs:
             and .physical_result_qualified == false
           ' "${root}-tampered/report.json"
 
+      - name: Assess linear load scaling with receipt-bound outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="solver-contract-load-scaling"
+          tampered="${root}-tampered"
+          rm -rf "$root" "$tampered"
+          mkdir -p "$root/artifacts/baseline" "$root/artifacts/scaled"
+
+          base_fixture="schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+          jq '
+            .request_id = "fixture:load-scale-baseline"
+            | .requested_physics = ["static_linear_elastic"]
+            | .required_outputs = ["displacement"]
+            | .loads[0].kind = "point_force"
+            | .loads[0].vector_xyz = [1000, 0, 0]
+          ' "$base_fixture" > "$root/baseline-request.json"
+          jq '
+            .request_id = "fixture:load-scale-scaled"
+            | .loads[0].vector_xyz = [2000, 0, 0]
+          ' "$root/baseline-request.json" > "$root/scaled-request.json"
+
+          base_sha="$(sha256sum "$root/baseline-request.json" | cut -d ' ' -f 1)"
+          scaled_sha="$(sha256sum "$root/scaled-request.json" | cut -d ' ' -f 1)"
+          base_id="$(jq -r '.request_id' "$root/baseline-request.json")"
+          scaled_id="$(jq -r '.request_id' "$root/scaled-request.json")"
+          scene_sha="$(jq -r '.scene_sha256' "$root/baseline-request.json")"
+          scene_revision="$(jq -r '.scene_revision' "$root/baseline-request.json")"
+          frame="$(jq -r '.coordinate_frame_id' "$root/baseline-request.json")"
+
+          jq -n \
+            --arg request_sha "$base_sha" --arg request_id "$base_id" \
+            --arg scene_sha "$scene_sha" --arg frame "$frame" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-normalized-observables-v0.1",
+              request_sha256:$request_sha,
+              request_id:$request_id,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              case_id:"load-scaling-cli-synthetic",
+              observables:[
+                {observable_id:"tip_ux",value:0.01,unit:"m"},
+                {observable_id:"tip_uy",value:0,unit:"m"}
+              ]
+            }' > "$root/artifacts/baseline/displacement.json"
+
+          jq -n \
+            --arg request_sha "$scaled_sha" --arg request_id "$scaled_id" \
+            --arg scene_sha "$scene_sha" --arg frame "$frame" \
+            --argjson scene_revision "$scene_revision" \
+            '{
+              schema_version:"physical-normalized-observables-v0.1",
+              request_sha256:$request_sha,
+              request_id:$request_id,
+              scene_sha256:$scene_sha,
+              scene_revision:$scene_revision,
+              case_id:"load-scaling-cli-synthetic",
+              observables:[
+                {observable_id:"tip_ux",value:0.02,unit:"m"},
+                {observable_id:"tip_uy",value:0,unit:"m"}
+              ]
+            }' > "$root/artifacts/scaled/displacement.json"
+
+          base_output_sha="$(sha256sum "$root/artifacts/baseline/displacement.json" | cut -d ' ' -f 1)"
+          scaled_output_sha="$(sha256sum "$root/artifacts/scaled/displacement.json" | cut -d ' ' -f 1)"
+          jq -n \
+            --arg request_sha "$base_sha" --arg request_id "$base_id" \
+            --arg source_revision "$(jq -r '.source_revision' "$root/baseline-request.json")" \
+            --arg output_sha "$base_output_sha" \
+            '{
+              schema_version:"physical-solver-receipt-v0.1",
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              source_revision:$source_revision,
+              adapter:{
+                adapter_id:"synthetic-load-scale-cli",
+                version:"0.1.0",
+                executable_sha256:("b" * 64),
+                configuration_sha256:("c" * 64),
+                solver_name:"synthetic-test-only",
+                solver_version:"0.1.0",
+                solver_build_ref:"fixture-only:no-solver-executed"
+              },
+              status:"PASS",
+              evidence_class:"synthetic",
+              physics_evaluated:["static_linear_elastic"],
+              physics_omitted:[],
+              convergence:{
+                state:"not_applicable",iterations:null,residual:null,
+                mesh_refinement_evaluated:false,
+                details:"Synthetic load-scaling control; no FEM solver executed."
+              },
+              outputs:[{
+                output_id:"baseline-displacement",
+                kind:"displacement",
+                sha256:$output_sha,
+                media_type:"application/json",
+                unit:"m",
+                artifact_ref:"baseline/displacement.json"
+              }],
+              uncertainty:{state:"unknown",method:null,summary:"Synthetic control only."},
+              validity_envelope:{
+                supported_geometry:"synthetic fixture",
+                supported_material_model:"linear elasticity fixture",
+                load_regime:"static point force",
+                limitations:["No external solver executed."]
+              },
+              claim_ceiling:"Synthetic contract fixture only; not physical qualification.",
+              diagnostics:[]
+            }' > "$root/baseline-receipt.json"
+
+          jq -n \
+            --arg request_sha "$scaled_sha" --arg request_id "$scaled_id" \
+            --arg source_revision "$(jq -r '.source_revision' "$root/scaled-request.json")" \
+            --arg output_sha "$scaled_output_sha" \
+            '{
+              schema_version:"physical-solver-receipt-v0.1",
+              request_id:$request_id,
+              request_sha256:$request_sha,
+              source_revision:$source_revision,
+              adapter:{
+                adapter_id:"synthetic-load-scale-cli",
+                version:"0.1.0",
+                executable_sha256:("b" * 64),
+                configuration_sha256:("c" * 64),
+                solver_name:"synthetic-test-only",
+                solver_version:"0.1.0",
+                solver_build_ref:"fixture-only:no-solver-executed"
+              },
+              status:"PASS",
+              evidence_class:"synthetic",
+              physics_evaluated:["static_linear_elastic"],
+              physics_omitted:[],
+              convergence:{
+                state:"not_applicable",iterations:null,residual:null,
+                mesh_refinement_evaluated:false,
+                details:"Synthetic load-scaling control; no FEM solver executed."
+              },
+              outputs:[{
+                output_id:"scaled-displacement",
+                kind:"displacement",
+                sha256:$output_sha,
+                media_type:"application/json",
+                unit:"m",
+                artifact_ref:"scaled/displacement.json"
+              }],
+              uncertainty:{state:"unknown",method:null,summary:"Synthetic control only."},
+              validity_envelope:{
+                supported_geometry:"synthetic fixture",
+                supported_material_model:"linear elasticity fixture",
+                load_regime:"static point force",
+                limitations:["No external solver executed."]
+              },
+              claim_ceiling:"Synthetic contract fixture only; not physical qualification.",
+              diagnostics:[]
+            }' > "$root/scaled-receipt.json"
+
+          jq -n \
+            --arg baseline_sha "$base_sha" --arg scaled_sha "$scaled_sha" \
+            '{
+              schema_version:"physical-load-scaling-relation-v0.1",
+              relation_id:"synthetic-load-scaling-cli",
+              case_id:"load-scaling-cli-synthetic",
+              baseline_request_sha256:$baseline_sha,
+              scaled_request_sha256:$scaled_sha,
+              load_scale_factor:2,
+              absolute_tolerance:0.000000000001,
+              relative_tolerance:0.0000000001,
+              output_pairs:[{
+                output_kind:"displacement",
+                baseline_output_id:"baseline-displacement",
+                scaled_output_id:"scaled-displacement",
+                scaling_exponent:1
+              }]
+            }' > "$root/relation.json"
+
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$root/baseline-request.json" \
+            --receipt "$root/baseline-receipt.json" \
+            --scaled-request "$root/scaled-request.json" \
+            --scaled-receipt "$root/scaled-receipt.json" \
+            --artifact-root "$root/artifacts" \
+            --load-scaling-manifest "$root/relation.json" \
+            > "$root/report.json"
+          jq -e '
+            .relation_status == "PASS"
+            and .observable_count == 2
+            and .violation_count == 0
+            and .baseline_artifact_verification_status == "PASS"
+            and .scaled_artifact_verification_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+          ' "$root/report.json"
+
+          cp -a "$root" "$tampered"
+          printf 'deliberately mutated scaled observation\n' > "$tampered/artifacts/scaled/displacement.json"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request "$tampered/baseline-request.json" \
+            --receipt "$tampered/baseline-receipt.json" \
+            --scaled-request "$tampered/scaled-request.json" \
+            --scaled-receipt "$tampered/scaled-receipt.json" \
+            --artifact-root "$tampered/artifacts" \
+            --load-scaling-manifest "$tampered/relation.json" \
+            > "$tampered/report.json"
+          jq -e '
+            .relation_status == "UNRESOLVED"
+            and .scaled_artifact_verification_status == "FAIL"
+            and .scaled_output_artifact_bytes_verified == false
+            and .physical_result_qualified == false
+          ' "$tampered/report.json"
+
       - name: Upload validation receipts and reports
         uses: actions/upload-artifact@v4
         with:
@@ -754,6 +966,8 @@ jobs:
             solver-contract-mesh-study*/report.json
             solver-contract-equilibrium*/manifest.json
             solver-contract-equilibrium*/report.json
+            solver-contract-load-scaling*/relation.json
+            solver-contract-load-scaling*/report.json
           if-no-files-found: error
           retention-days: 90
 

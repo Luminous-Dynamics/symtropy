@@ -5,6 +5,7 @@
 //! this crate does not invoke a qualified mechanics solver.
 
 pub mod equilibrium;
+pub mod load_scaling;
 pub mod mesh_convergence;
 pub mod reference_compare;
 
@@ -37,6 +38,7 @@ const OUTPUTS: &[&str] = &[
     "stress",
     "reaction_force",
     "reaction_moment",
+    "strain_energy",
     "crack_path",
     "fragment_state",
     "energy_balance",
