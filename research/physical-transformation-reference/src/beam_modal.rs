@@ -5,7 +5,10 @@
 //! axial-bar tests. It preserves zero/mechanism modes rather than dropping them.
 
 use crate::Check;
-use crate::beam_pin_assembly::BeamPinAssembly;
+use crate::beam_pin_assembly::{
+    BeamMemberChain, BeamPinAssembly, BeamPinDofKind, BeamPinNode,
+};
+use std::collections::BTreeMap;
 use crate::modal_bar::{
     Matrix, generalized_symmetric_eigenpairs, normalized_eigen_residual, quadratic_form,
 };
@@ -132,6 +135,260 @@ pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamMo
         maximum_mass_norm_residual: max_mass_norm,
         maximum_off_diagonal_mass_orthogonality_residual: max_orthogonality,
     })
+}
+
+/// Evaluate a mode's in-plane translation on a fixed spatial sampling grid
+/// along each physical beam member. Cubic Hermite interpolation is applied to
+/// transverse displacement/rotation and linear interpolation to axial motion.
+/// The returned vector is [ux, uy] for every sample point, ordered by member ID
+/// then increasing physical arclength fraction. This makes mode shapes from
+/// different mesh densities comparable without comparing incompatible nodal
+/// vectors directly.
+pub fn sample_beam_chain_mode_on_fixed_grid(
+    joints: &[BeamPinNode],
+    members: &[BeamMemberChain],
+    assembly: &BeamPinAssembly,
+    mode: &BeamModalMode,
+    sample_points_per_member: usize,
+) -> Check<Vec<f64>> {
+    if sample_points_per_member < 2 || sample_points_per_member > 1025 {
+        return Err("sample_points_per_member must be between 2 and 1025".to_owned());
+    }
+    let global_dof_count = assembly.stiffness_global.len();
+    if mode.shape_global_dofs.len() != global_dof_count
+        || assembly.mass_global.len() != global_dof_count
+    {
+        return Err("mode shape and assembly DOF dimensions do not agree".to_owned());
+    }
+    if mode
+        .shape_global_dofs
+        .iter()
+        .any(|value| !value.is_finite())
+    {
+        return Err("mode shape contains a non-finite component".to_owned());
+    }
+
+    let mut coordinates = BTreeMap::<String, (f64, f64)>::new();
+    for joint in joints {
+        if joint.id.is_empty() || !joint.x_m.is_finite() || !joint.y_m.is_finite() {
+            return Err("physical joint ID or coordinates are invalid".to_owned());
+        }
+        if coordinates
+            .insert(joint.id.clone(), (joint.x_m, joint.y_m))
+            .is_some()
+        {
+            return Err(format!("duplicate physical joint ID: {}", joint.id));
+        }
+    }
+
+    let mut member_counts = BTreeMap::<String, usize>::new();
+    let mut ordered_members = members.to_vec();
+    ordered_members.sort_by(|left, right| left.id.cmp(&right.id));
+    for member in &ordered_members {
+        if member.id.is_empty()
+            || !(1..=32).contains(&member.elements_per_member)
+            || !coordinates.contains_key(&member.start_node_id)
+            || !coordinates.contains_key(&member.end_node_id)
+            || member.start_node_id == member.end_node_id
+        {
+            return Err(format!("member-chain input is invalid for {}", member.id));
+        }
+        if member_counts
+            .insert(member.id.clone(), member.elements_per_member)
+            .is_some()
+        {
+            return Err(format!("duplicate member-chain ID: {}", member.id));
+        }
+    }
+    if ordered_members.is_empty() {
+        return Err("at least one member chain is required for spatial mode sampling".to_owned());
+    }
+
+    let mut translations = BTreeMap::<String, (Option<usize>, Option<usize>)>::new();
+    let mut rotations = BTreeMap::<(String, usize), usize>::new();
+    for descriptor in &assembly.dof_descriptors {
+        if descriptor.index >= global_dof_count {
+            return Err("DOF descriptor index is outside the global matrix".to_owned());
+        }
+        match &descriptor.kind {
+            BeamPinDofKind::NodeTranslationX { node_id } => {
+                let entry = translations.entry(node_id.clone()).or_default();
+                if entry.0.replace(descriptor.index).is_some() {
+                    return Err(format!("duplicate x-translation DOF for node {node_id}"));
+                }
+            }
+            BeamPinDofKind::NodeTranslationY { node_id } => {
+                let entry = translations.entry(node_id.clone()).or_default();
+                if entry.1.replace(descriptor.index).is_some() {
+                    return Err(format!("duplicate y-translation DOF for node {node_id}"));
+                }
+            }
+            BeamPinDofKind::MemberEndRotation { member_id, at_start } => {
+                let element_count = *member_counts
+                    .get(member_id)
+                    .ok_or_else(|| format!("rotation references unknown member {member_id}"))?;
+                let station = if *at_start { 0 } else { element_count };
+                if rotations
+                    .insert((member_id.clone(), station), descriptor.index)
+                    .is_some()
+                {
+                    return Err(format!("duplicate member endpoint rotation: {member_id}/{station}"));
+                }
+            }
+            BeamPinDofKind::MemberInteriorRotation {
+                member_id,
+                station_index,
+            } => {
+                let element_count = *member_counts
+                    .get(member_id)
+                    .ok_or_else(|| format!("rotation references unknown member {member_id}"))?;
+                if *station_index == 0 || *station_index >= element_count {
+                    return Err(format!(
+                        "interior rotation station is outside member {}: {}",
+                        member_id, station_index
+                    ));
+                }
+                if rotations
+                    .insert((member_id.clone(), *station_index), descriptor.index)
+                    .is_some()
+                {
+                    return Err(format!(
+                        "duplicate interior rotation: {member_id}/{station_index}"
+                    ));
+                }
+            }
+        }
+    }
+
+    let mut sampled = Vec::with_capacity(
+        ordered_members.len() * sample_points_per_member * 2,
+    );
+    for member in &ordered_members {
+        let element_count = member.elements_per_member;
+        let (x_start, y_start) = *coordinates
+            .get(&member.start_node_id)
+            .expect("validated physical start joint");
+        let (x_end, y_end) = *coordinates
+            .get(&member.end_node_id)
+            .expect("validated physical end joint");
+        let delta_x = x_end - x_start;
+        let delta_y = y_end - y_start;
+        let total_length = delta_x.hypot(delta_y);
+        if !total_length.is_finite() || total_length <= 0.0 {
+            return Err(format!("member {} has invalid physical length", member.id));
+        }
+        let cosine = delta_x / total_length;
+        let sine = delta_y / total_length;
+        let element_length = total_length / element_count as f64;
+
+        for sample_index in 0..sample_points_per_member {
+            let fraction = sample_index as f64 / (sample_points_per_member - 1) as f64;
+            let scaled_station = fraction * element_count as f64;
+            let element_index = if sample_index + 1 == sample_points_per_member {
+                element_count - 1
+            } else {
+                (scaled_station.floor() as usize).min(element_count - 1)
+            };
+            let xi = if sample_index + 1 == sample_points_per_member {
+                1.0
+            } else {
+                scaled_station - element_index as f64
+            };
+
+            let start_station_id = if element_index == 0 {
+                member.start_node_id.clone()
+            } else {
+                format!("{}::station::{:04}", member.id, element_index)
+            };
+            let end_station_id = if element_index + 1 == element_count {
+                member.end_node_id.clone()
+            } else {
+                format!("{}::station::{:04}", member.id, element_index + 1)
+            };
+
+            let translation_indices = |node_id: &str| -> Check<(usize, usize)> {
+                let (x, y) = translations
+                    .get(node_id)
+                    .ok_or_else(|| format!("missing translation DOFs for node {node_id}"))?;
+                Ok((
+                    x.ok_or_else(|| format!("missing x translation for node {node_id}"))?,
+                    y.ok_or_else(|| format!("missing y translation for node {node_id}"))?,
+                ))
+            };
+            let (ux_i, uy_i) = translation_indices(&start_station_id)?;
+            let (ux_j, uy_j) = translation_indices(&end_station_id)?;
+            let theta_i = *rotations
+                .get(&(member.id.clone(), element_index))
+                .ok_or_else(|| {
+                    format!("missing rotation DOF for member {} station {}", member.id, element_index)
+                })?;
+            let theta_j = *rotations
+                .get(&(member.id.clone(), element_index + 1))
+                .ok_or_else(|| {
+                    format!(
+                        "missing rotation DOF for member {} station {}",
+                        member.id,
+                        element_index + 1
+                    )
+                })?;
+
+            let global_ux_i = mode.shape_global_dofs[ux_i];
+            let global_uy_i = mode.shape_global_dofs[uy_i];
+            let global_ux_j = mode.shape_global_dofs[ux_j];
+            let global_uy_j = mode.shape_global_dofs[uy_j];
+            let axial_i = cosine * global_ux_i + sine * global_uy_i;
+            let transverse_i = -sine * global_ux_i + cosine * global_uy_i;
+            let axial_j = cosine * global_ux_j + sine * global_uy_j;
+            let transverse_j = -sine * global_ux_j + cosine * global_uy_j;
+            let rotation_i = mode.shape_global_dofs[theta_i];
+            let rotation_j = mode.shape_global_dofs[theta_j];
+
+            let xi2 = xi * xi;
+            let xi3 = xi2 * xi;
+            let h1 = 1.0 - 3.0 * xi2 + 2.0 * xi3;
+            let h2 = xi - 2.0 * xi2 + xi3;
+            let h3 = 3.0 * xi2 - 2.0 * xi3;
+            let h4 = -xi2 + xi3;
+            let axial = (1.0 - xi) * axial_i + xi * axial_j;
+            let transverse = h1 * transverse_i
+                + h2 * element_length * rotation_i
+                + h3 * transverse_j
+                + h4 * element_length * rotation_j;
+            let global_ux = cosine * axial - sine * transverse;
+            let global_uy = sine * axial + cosine * transverse;
+            if !global_ux.is_finite() || !global_uy.is_finite() {
+                return Err("interpolated beam-mode sample is non-finite".to_owned());
+            }
+            sampled.push(global_ux);
+            sampled.push(global_uy);
+        }
+    }
+    Ok(sampled)
+}
+
+/// Sign-invariant modal assurance criterion between samples evaluated on the
+/// same physical grid. It ranges from 0 (orthogonal sample vectors) to 1
+/// (identical up to sign/scale). It is a comparison metric, not a validation
+/// oracle; the sampling grid and mode-pairing policy remain part of the request.
+pub fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
+    if left.is_empty() || left.len() != right.len() {
+        return Err("MAC vectors must be non-empty and have equal dimensions".to_owned());
+    }
+    if left.iter().chain(right).any(|value| !value.is_finite()) {
+        return Err("MAC inputs contain a non-finite value".to_owned());
+    }
+    let left_norm = left.iter().map(|value| value * value).sum::<f64>();
+    let right_norm = right.iter().map(|value| value * value).sum::<f64>();
+    if !left_norm.is_finite() || !right_norm.is_finite() || left_norm <= 0.0 || right_norm <= 0.0 {
+        return Err("MAC vectors must have finite positive norm".to_owned());
+    }
+    let dot = left.iter().zip(right).map(|(a, b)| a * b).sum::<f64>();
+    let mac = (dot * dot / (left_norm * right_norm)).clamp(0.0, 1.0);
+    if mac.is_finite() {
+        Ok(mac)
+    } else {
+        Err("MAC result is non-finite".to_owned())
+    }
 }
 
 fn reduce_matrix(matrix: &[Vec<f64>], free_indices: &[usize]) -> Check<Matrix> {
