@@ -1,5 +1,5 @@
 use shipyard_cost_trace::{
-    audit, EvidencePermission, EventKind, LedgerEvent, QuantityEvent, Stage,
+    EventKind, EvidencePermission, LedgerEvent, QuantityEvent, Stage, audit,
 };
 use std::time::Instant;
 
@@ -23,7 +23,7 @@ fn workload(size: usize) -> Vec<LedgerEvent> {
             stage: Stage::Observed,
             source_ref: format!("synthetic:event-{index:06}"),
             source_permission: EvidencePermission::PublicOrPermitted,
-        source_permission_ref: "fixture-rights:public-test-data".to_owned(),
+            source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids,
             kind: EventKind::Quantity(QuantityEvent {
                 quantity_key: "labor.fitter.hours".to_owned(),
@@ -46,7 +46,9 @@ fn percentile(sorted: &[u128], numerator: usize, denominator: usize) -> u128 {
 }
 
 fn main() {
-    println!("schema,event_count,samples,median_audit_ns,p95_audit_ns,quantity_axes,observed_units");
+    println!(
+        "schema,event_count,samples,median_audit_ns,p95_audit_ns,quantity_axes,observed_units"
+    );
     for size in [20_usize, 200, 2_000, 20_000] {
         let events = workload(size);
         let mut samples = Vec::with_capacity(SAMPLE_COUNT);

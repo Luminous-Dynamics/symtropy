@@ -16,6 +16,8 @@ The nested Cargo workspace isolates this slice from the main Symtropy workspace 
 
 Each event binds a build, exact vessel-configuration SHA-256, task, stage, event identity, source reference, source-permission disposition plus a permission/terms reference, and explicit related-event links. The permission status is not self-authenticating: the kernel checks that a reference is present but does not validate the referenced licence or authorization. Quantity axes are keyed by semantic identity and unit. Quantity events may carry an optional, versioned unit-rate card; direct financial actuals are a separate event kind and are accepted only at Observed stage.
 
+**Important intake boundary:** V0 treats every `QuantityEvent.quantity` as an additive contribution and sums records sharing a build/configuration/task/axis/unit/stage. It does not distinguish cumulative snapshots from deltas or model event-time versus ingestion-time/as-of cutoffs. For example, feeding cumulative readings of 12 hours and then 14 hours would currently count as 26. Do not connect cumulative MES/ERP snapshots directly; source adapters must reject them until explicit event semantics and temporal identity are implemented. Track this boundary in [SHIPYARD-EVENT-SEMANTICS-001 #2458](https://github.com/Luminous-Dynamics/symtropy/issues/2458).
+
 The audit returns three non-additive views:
 
 1. Quantity reconciliation by build/configuration/task/axis/unit. Observed-minus-planned variance is available only when both an explicit planned quantity and an explicit observed quantity exist. Missing events remain None, never a substitute zero. Different configuration digests do not reconcile against one another.

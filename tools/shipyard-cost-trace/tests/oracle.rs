@@ -1,6 +1,6 @@
 use shipyard_cost_trace::{
-    audit, EvidencePermission, EventKind, FinancialTransaction, LedgerEvent, QuantityEvent,
-    QuantityRate, Stage,
+    EventKind, EvidencePermission, FinancialTransaction, LedgerEvent, QuantityEvent, QuantityRate,
+    Stage, audit,
 };
 
 const CONFIG: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -45,7 +45,7 @@ fn invoice_event(amount_minor_units: i64) -> LedgerEvent {
             transaction_ref: "invoice-1:line-1".to_owned(),
             amount_minor_units,
             currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
-                minor_unit_exponent: 2,
+            minor_unit_exponent: 2,
         }),
     }
 }
@@ -54,7 +54,7 @@ fn test_rate(rate: f64) -> QuantityRate {
     QuantityRate {
         unit_rate: rate,
         currency_basis_id: "ZAR-cent-2026-SA".to_owned(),
-                minor_unit_exponent: 2,
+        minor_unit_exponent: 2,
         rate_card_ref: "oracle-rate-card-v1".to_owned(),
     }
 }
@@ -89,7 +89,12 @@ fn exhaustive_tiny_quantity_pairs_match_independent_arithmetic_oracle() {
 fn independent_cost_view_oracle_keeps_rate_estimate_and_invoice_separate() {
     let events = vec![
         quantity_event("planned-hours", Stage::Planned, 5.0, Some(test_rate(100.0))),
-        quantity_event("observed-hours", Stage::Observed, 6.0, Some(test_rate(100.0))),
+        quantity_event(
+            "observed-hours",
+            Stage::Observed,
+            6.0,
+            Some(test_rate(100.0)),
+        ),
         invoice_event(72_500),
     ];
     let report = audit(&events).expect("valid mixed ledger");

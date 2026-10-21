@@ -206,17 +206,24 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
         ("build_id", event.build_id.as_str()),
         ("task_id", event.task_id.as_str()),
         ("source_ref", event.source_ref.as_str()),
-        ("source_permission_ref", event.source_permission_ref.as_str()),
+        (
+            "source_permission_ref",
+            event.source_permission_ref.as_str(),
+        ),
     ] {
         if !is_nonempty(value) {
             errors.push(format!("{label}: {name} is missing"));
         }
     }
     if !is_sha256(&event.configuration_sha256) {
-        errors.push(format!("{label}: configuration_sha256 must be 64 hexadecimal characters"));
+        errors.push(format!(
+            "{label}: configuration_sha256 must be 64 hexadecimal characters"
+        ));
     }
     if event.source_permission == EvidencePermission::Unresolved {
-        errors.push(format!("{label}: source rights/access disposition is unresolved"));
+        errors.push(format!(
+            "{label}: source rights/access disposition is unresolved"
+        ));
     }
 
     let mut related = HashSet::new();
@@ -225,10 +232,14 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
             errors.push(format!("{label}: related_event_ids contains a blank id"));
         }
         if related_id == &event.event_id {
-            errors.push(format!("{label}: event cannot reference itself as a related event"));
+            errors.push(format!(
+                "{label}: event cannot reference itself as a related event"
+            ));
         }
         if !related.insert(related_id.as_str()) {
-            errors.push(format!("{label}: duplicate related event reference {related_id}"));
+            errors.push(format!(
+                "{label}: duplicate related event reference {related_id}"
+            ));
         }
     }
 
@@ -245,7 +256,9 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
             }
             if let Some(rate) = &quantity.rate {
                 if !rate.unit_rate.is_finite() || rate.unit_rate < 0.0 {
-                    errors.push(format!("{label}: unit_rate must be finite and non-negative"));
+                    errors.push(format!(
+                        "{label}: unit_rate must be finite and non-negative"
+                    ));
                 }
                 if !is_nonempty(&rate.currency_basis_id) {
                     errors.push(format!("{label}: rated quantity has no currency_basis_id"));
@@ -260,13 +273,19 @@ fn validate_event(event: &LedgerEvent, errors: &mut Vec<String>) {
         }
         EventKind::FinancialActual(transaction) => {
             if event.stage != Stage::Observed {
-                errors.push(format!("{label}: financial actuals must have Observed stage"));
+                errors.push(format!(
+                    "{label}: financial actuals must have Observed stage"
+                ));
             }
             if !is_nonempty(&transaction.transaction_ref) {
-                errors.push(format!("{label}: financial actual requires transaction_ref"));
+                errors.push(format!(
+                    "{label}: financial actual requires transaction_ref"
+                ));
             }
             if !is_nonempty(&transaction.currency_basis_id) {
-                errors.push(format!("{label}: financial actual has no currency_basis_id"));
+                errors.push(format!(
+                    "{label}: financial actual has no currency_basis_id"
+                ));
             }
             if transaction.minor_unit_exponent > 6 {
                 errors.push(format!("{label}: minor_unit_exponent must be within 0..=6"));
@@ -356,7 +375,10 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
         }
         if let EventKind::FinancialActual(transaction) = &event.kind {
             if is_nonempty(&transaction.transaction_ref) {
-                let key = (event.build_id.as_str(), transaction.transaction_ref.as_str());
+                let key = (
+                    event.build_id.as_str(),
+                    transaction.transaction_ref.as_str(),
+                );
                 if !transaction_refs.insert(key) {
                     errors.push(format!(
                         "{}: duplicate financial transaction allocation {}",
@@ -459,14 +481,18 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                 };
                 let buckets = quantities.entry(key).or_insert([None, None, None]);
                 let index = event.stage.index();
-                let sum = add_finite(buckets[index].unwrap_or(0.0), quantity.quantity)
-                    .ok_or_else(|| vec![format!("{}: quantity aggregation overflow", event.event_id)])?;
+                let sum = add_finite(buckets[index].unwrap_or(0.0), quantity.quantity).ok_or_else(
+                    || vec![format!("{}: quantity aggregation overflow", event.event_id)],
+                )?;
                 buckets[index] = Some(sum);
 
                 if let Some(rate) = &quantity.rate {
                     let estimated_amount = quantity.quantity * rate.unit_rate;
                     if !estimated_amount.is_finite() {
-                        return Err(vec![format!("{}: quantity × rate overflow", event.event_id)]);
+                        return Err(vec![format!(
+                            "{}: quantity × rate overflow",
+                            event.event_id
+                        )]);
                     }
                     let cost_key = RateCardGroupKey {
                         build_id: event.build_id.clone(),
@@ -481,7 +507,10 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     };
                     let prior = estimated_costs.get(&cost_key).copied().unwrap_or(0.0);
                     let sum = add_finite(prior, estimated_amount).ok_or_else(|| {
-                        vec![format!("{}: rate-card cost aggregation overflow", event.event_id)]
+                        vec![format!(
+                            "{}: rate-card cost aggregation overflow",
+                            event.event_id
+                        )]
                     })?;
                     estimated_costs.insert(cost_key, sum);
                 }
@@ -495,9 +524,14 @@ pub fn audit(events: &[LedgerEvent]) -> Result<AuditReport, Vec<String>> {
                     minor_unit_exponent: transaction.minor_unit_exponent,
                 };
                 let prior = financials.get(&key).copied().unwrap_or(0_i64);
-                let sum = prior.checked_add(transaction.amount_minor_units).ok_or_else(|| {
-                    vec![format!("{}: financial actual integer minor-unit overflow", event.event_id)]
-                })?;
+                let sum = prior
+                    .checked_add(transaction.amount_minor_units)
+                    .ok_or_else(|| {
+                        vec![format!(
+                            "{}: financial actual integer minor-unit overflow",
+                            event.event_id
+                        )]
+                    })?;
                 financials.insert(key, sum);
             }
         }
@@ -637,8 +671,24 @@ mod tests {
     #[test]
     fn computes_variance_only_when_plan_and_observation_exist() {
         let events = vec![
-            quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor.welder", 10.0, Some(rate())),
-            quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor.welder", 12.0, Some(rate())),
+            quantity_event(
+                "plan",
+                Stage::Planned,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                10.0,
+                Some(rate()),
+            ),
+            quantity_event(
+                "actual",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                12.0,
+                Some(rate()),
+            ),
         ];
         let report = audit(&events).unwrap();
         assert_eq!(report.quantity_reconciliations.len(), 1);
@@ -653,8 +703,24 @@ mod tests {
     #[test]
     fn simulated_quantities_do_not_become_observed_actuals() {
         let events = vec![
-            quantity_event("plan", Stage::Planned, CONFIG_A, "cut-01", "machine.laser", 3.0, None),
-            quantity_event("sim", Stage::Simulated, CONFIG_A, "cut-01", "machine.laser", 2.0, None),
+            quantity_event(
+                "plan",
+                Stage::Planned,
+                CONFIG_A,
+                "cut-01",
+                "machine.laser",
+                3.0,
+                None,
+            ),
+            quantity_event(
+                "sim",
+                Stage::Simulated,
+                CONFIG_A,
+                "cut-01",
+                "machine.laser",
+                2.0,
+                None,
+            ),
         ];
         let report = audit(&events).unwrap();
         let row = &report.quantity_reconciliations[0];
@@ -667,7 +733,15 @@ mod tests {
 
     #[test]
     fn absent_planned_quantity_is_not_silently_zero() {
-        let events = vec![quantity_event("actual", Stage::Observed, CONFIG_A, "paint-01", "labor.painter", 4.0, None)];
+        let events = vec![quantity_event(
+            "actual",
+            Stage::Observed,
+            CONFIG_A,
+            "paint-01",
+            "labor.painter",
+            4.0,
+            None,
+        )];
         let report = audit(&events).unwrap();
         let row = &report.quantity_reconciliations[0];
         assert_eq!(row.planned, None);
@@ -679,22 +753,59 @@ mod tests {
     #[test]
     fn plan_and_actual_on_different_configuration_revisions_do_not_compare() {
         let events = vec![
-            quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor.welder", 10.0, None),
-            quantity_event("actual", Stage::Observed, CONFIG_B, "weld-01", "labor.welder", 12.0, None),
+            quantity_event(
+                "plan",
+                Stage::Planned,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                10.0,
+                None,
+            ),
+            quantity_event(
+                "actual",
+                Stage::Observed,
+                CONFIG_B,
+                "weld-01",
+                "labor.welder",
+                12.0,
+                None,
+            ),
         ];
         let report = audit(&events).unwrap();
         assert_eq!(report.quantity_reconciliations.len(), 2);
-        assert!(report.quantity_reconciliations.iter().all(|row| row.observed_minus_planned.is_none()));
+        assert!(
+            report
+                .quantity_reconciliations
+                .iter()
+                .all(|row| row.observed_minus_planned.is_none())
+        );
     }
 
     #[test]
     fn financial_actuals_are_not_added_to_rate_card_costs() {
         let events = vec![
-            quantity_event("actual-hours", Stage::Observed, CONFIG_A, "weld-01", "labor.welder", 2.0, Some(rate())),
+            quantity_event(
+                "actual-hours",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                2.0,
+                Some(rate()),
+            ),
             financial_event("invoice-line", "inv-42:line-3", 35_000),
         ];
         let report = audit(&events).unwrap();
-        assert_eq!(report.rate_card_costs.iter().find(|row| row.stage == Stage::Observed).unwrap().amount, 20_000.0);
+        assert_eq!(
+            report
+                .rate_card_costs
+                .iter()
+                .find(|row| row.stage == Stage::Observed)
+                .unwrap()
+                .amount,
+            20_000.0
+        );
         assert_eq!(report.financial_actuals.len(), 1);
         assert_eq!(report.financial_actuals[0].amount_minor_units, 35_000);
     }
@@ -702,11 +813,31 @@ mod tests {
     #[test]
     fn duplicate_event_ids_are_rejected() {
         let events = vec![
-            quantity_event("same", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None),
-            quantity_event("same", Stage::Observed, CONFIG_A, "weld-01", "labor", 2.0, None),
+            quantity_event(
+                "same",
+                Stage::Planned,
+                CONFIG_A,
+                "weld-01",
+                "labor",
+                1.0,
+                None,
+            ),
+            quantity_event(
+                "same",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor",
+                2.0,
+                None,
+            ),
         ];
         let errors = audit(&events).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("duplicate event_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate event_id"))
+        );
     }
 
     #[test]
@@ -716,7 +847,11 @@ mod tests {
             financial_event("event-2", "inv-42:line-3", 35_000),
         ];
         let errors = audit(&events).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("duplicate financial transaction allocation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate financial transaction allocation"))
+        );
     }
 
     #[test]
@@ -724,38 +859,90 @@ mod tests {
         let mut event = financial_event("event-1", "inv-42:line-3", 35_000);
         event.stage = Stage::Planned;
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("must have Observed stage")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must have Observed stage"))
+        );
     }
 
     #[test]
     fn missing_source_reference_is_rejected() {
-        let mut event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.source_ref = " ".to_owned();
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("source_ref is missing")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("source_ref is missing"))
+        );
     }
 
     #[test]
     fn source_permission_needs_a_reference_not_only_an_enum() {
-        let mut event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.source_permission_ref.clear();
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("source_permission_ref is missing")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("source_permission_ref is missing"))
+        );
     }
 
     #[test]
     fn unresolved_source_rights_are_rejected() {
-        let mut event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.source_permission = EvidencePermission::Unresolved;
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("rights/access disposition is unresolved")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("rights/access disposition is unresolved"))
+        );
     }
 
     #[test]
     fn malformed_configuration_digest_is_rejected() {
-        let event = quantity_event("event-1", Stage::Observed, "not-a-digest", "weld-01", "labor", 1.0, None);
+        let event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            "not-a-digest",
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("configuration_sha256")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("configuration_sha256"))
+        );
     }
 
     #[test]
@@ -763,65 +950,185 @@ mod tests {
         let mut invalid_rate = rate();
         invalid_rate.currency_basis_id.clear();
         invalid_rate.rate_card_ref.clear();
-        let event = quantity_event("event-1", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, Some(invalid_rate));
+        let event = quantity_event(
+            "event-1",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            Some(invalid_rate),
+        );
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("no currency_basis_id")));
-        assert!(errors.iter().any(|error| error.contains("no rate_card_ref")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("no currency_basis_id"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("no rate_card_ref"))
+        );
     }
 
     #[test]
     fn derived_cost_overflow_is_rejected() {
         let mut enormous_rate = rate();
         enormous_rate.unit_rate = f64::MAX;
-        let event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 2.0, Some(enormous_rate));
+        let event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            2.0,
+            Some(enormous_rate),
+        );
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("quantity × rate overflow")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("quantity × rate overflow"))
+        );
     }
 
     #[test]
     fn unknown_lineage_reference_is_rejected() {
-        let mut event = quantity_event("event-1", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "event-1",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.related_event_ids.push("missing-parent".to_owned());
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("does not exist in this ledger")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("does not exist in this ledger"))
+        );
     }
 
     #[test]
     fn related_event_from_another_build_is_rejected() {
-        let mut event = quantity_event("observed", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "observed",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.related_event_ids.push("plan".to_owned());
-        let mut plan = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut plan = quantity_event(
+            "plan",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         plan.build_id = "different-build".to_owned();
         let errors = audit(&[event, plan]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("belongs to a different build")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("belongs to a different build"))
+        );
     }
 
     #[test]
     fn related_event_from_different_configuration_is_rejected() {
-        let mut event = quantity_event("observed", Stage::Observed, CONFIG_B, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "observed",
+            Stage::Observed,
+            CONFIG_B,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.related_event_ids.push("plan".to_owned());
-        let plan = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let plan = quantity_event(
+            "plan",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         let errors = audit(&[event, plan]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("different configuration revision")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("different configuration revision"))
+        );
     }
 
     #[test]
     fn later_stage_cannot_be_a_parent_of_an_earlier_stage() {
-        let mut event = quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let mut event = quantity_event(
+            "plan",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         event.related_event_ids.push("actual".to_owned());
-        let actual = quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
+        let actual = quantity_event(
+            "actual",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
         let errors = audit(&[event, actual]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("later evidence stage")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("later evidence stage"))
+        );
     }
 
     #[test]
     fn lineage_cycle_is_rejected() {
-        let mut first = quantity_event("first", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None);
-        let mut second = quantity_event("second", Stage::Observed, CONFIG_A, "weld-01", "labor", 2.0, None);
+        let mut first = quantity_event(
+            "first",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            None,
+        );
+        let mut second = quantity_event(
+            "second",
+            Stage::Observed,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            2.0,
+            None,
+        );
         first.related_event_ids.push("second".to_owned());
         second.related_event_ids.push("first".to_owned());
         let errors = audit(&[first, second]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("cyclic related-event lineage")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cyclic related-event lineage"))
+        );
     }
 
     #[test]
@@ -858,24 +1165,49 @@ mod tests {
         let report = audit(&events).expect("large acyclic lineage");
         assert_eq!(report.event_count, 5_000);
         assert_eq!(report.quantity_reconciliations.len(), 1);
-        assert_eq!(
-            report.quantity_reconciliations[0].observed,
-            Some(5_000.0)
-        );
+        assert_eq!(report.quantity_reconciliations[0].observed, Some(5_000.0));
     }
 
     #[test]
     fn empty_ledger_is_not_reported_as_zero_cost() {
         let errors = audit(&[]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("empty evidence is not a zero-cost build")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("empty evidence is not a zero-cost build"))
+        );
     }
 
     #[test]
     fn same_stage_float_aggregation_is_independent_of_input_order() {
         let first = vec![
-            quantity_event("a-large", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0e16, None),
-            quantity_event("b-small", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None),
-            quantity_event("c-small", Stage::Observed, CONFIG_A, "weld-01", "labor", 1.0, None),
+            quantity_event(
+                "a-large",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor",
+                1.0e16,
+                None,
+            ),
+            quantity_event(
+                "b-small",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor",
+                1.0,
+                None,
+            ),
+            quantity_event(
+                "c-small",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor",
+                1.0,
+                None,
+            ),
         ];
         let mut second = first.clone();
         second.reverse();
@@ -885,8 +1217,24 @@ mod tests {
     #[test]
     fn input_permutation_does_not_change_report() {
         let first = vec![
-            quantity_event("plan", Stage::Planned, CONFIG_A, "weld-01", "labor.welder", 10.0, Some(rate())),
-            quantity_event("actual", Stage::Observed, CONFIG_A, "weld-01", "labor.welder", 12.0, Some(rate())),
+            quantity_event(
+                "plan",
+                Stage::Planned,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                10.0,
+                Some(rate()),
+            ),
+            quantity_event(
+                "actual",
+                Stage::Observed,
+                CONFIG_A,
+                "weld-01",
+                "labor.welder",
+                12.0,
+                Some(rate()),
+            ),
             financial_event("invoice-line", "inv-42:line-3", 35_000),
         ];
         let mut second = first.clone();
@@ -896,12 +1244,38 @@ mod tests {
 
     #[test]
     fn rate_card_estimates_remain_separated_by_work_package() {
-        let welding = quantity_event("weld-hours", Stage::Observed, CONFIG_A, "welding-block-a", "labor.welder.hours", 1.0, Some(rate()));
-        let painting = quantity_event("paint-hours", Stage::Observed, CONFIG_A, "painting-block-a", "labor.painter.hours", 2.0, Some(rate()));
+        let welding = quantity_event(
+            "weld-hours",
+            Stage::Observed,
+            CONFIG_A,
+            "welding-block-a",
+            "labor.welder.hours",
+            1.0,
+            Some(rate()),
+        );
+        let painting = quantity_event(
+            "paint-hours",
+            Stage::Observed,
+            CONFIG_A,
+            "painting-block-a",
+            "labor.painter.hours",
+            2.0,
+            Some(rate()),
+        );
         let report = audit(&[welding, painting]).unwrap();
         assert_eq!(report.rate_card_costs.len(), 2);
-        assert!(report.rate_card_costs.iter().any(|row| row.task_id == "welding-block-a" && row.amount == 10_000.0));
-        assert!(report.rate_card_costs.iter().any(|row| row.task_id == "painting-block-a" && row.amount == 20_000.0));
+        assert!(
+            report
+                .rate_card_costs
+                .iter()
+                .any(|row| row.task_id == "welding-block-a" && row.amount == 10_000.0)
+        );
+        assert!(
+            report
+                .rate_card_costs
+                .iter()
+                .any(|row| row.task_id == "painting-block-a" && row.amount == 20_000.0)
+        );
     }
 
     #[test]
@@ -912,8 +1286,18 @@ mod tests {
         painting.task_id = "paint-block-a".to_owned();
         let report = audit(&[welding, painting]).unwrap();
         assert_eq!(report.financial_actuals.len(), 2);
-        assert!(report.financial_actuals.iter().any(|row| row.task_id == "welding-block-a" && row.amount_minor_units == 30_000));
-        assert!(report.financial_actuals.iter().any(|row| row.task_id == "paint-block-a" && row.amount_minor_units == 12_000));
+        assert!(
+            report
+                .financial_actuals
+                .iter()
+                .any(|row| row.task_id == "welding-block-a" && row.amount_minor_units == 30_000)
+        );
+        assert!(
+            report
+                .financial_actuals
+                .iter()
+                .any(|row| row.task_id == "paint-block-a" && row.amount_minor_units == 12_000)
+        );
     }
 
     #[test]
@@ -929,22 +1313,46 @@ mod tests {
 
     #[test]
     fn currency_basis_rejects_conflicting_minor_unit_exponents() {
-        let planned = quantity_event("rate", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, Some(rate()));
+        let planned = quantity_event(
+            "rate",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            Some(rate()),
+        );
         let mut actual = financial_event("invoice", "inv-1:line-1", 10_000);
         if let EventKind::FinancialActual(transaction) = &mut actual.kind {
             transaction.minor_unit_exponent = 0;
         }
         let errors = audit(&[planned, actual]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("conflicting minor_unit_exponent values")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("conflicting minor_unit_exponent values"))
+        );
     }
 
     #[test]
     fn minor_unit_exponents_outside_supported_range_are_rejected() {
         let mut invalid_rate = rate();
         invalid_rate.minor_unit_exponent = 7;
-        let event = quantity_event("rate", Stage::Planned, CONFIG_A, "weld-01", "labor", 1.0, Some(invalid_rate));
+        let event = quantity_event(
+            "rate",
+            Stage::Planned,
+            CONFIG_A,
+            "weld-01",
+            "labor",
+            1.0,
+            Some(invalid_rate),
+        );
         let errors = audit(&[event]).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("minor_unit_exponent must be within 0..=6")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("minor_unit_exponent must be within 0..=6"))
+        );
     }
 
     #[test]
@@ -954,6 +1362,10 @@ mod tests {
             financial_event("event-2", "inv-43:line-3", 1),
         ];
         let errors = audit(&events).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("financial actual integer minor-unit overflow")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("financial actual integer minor-unit overflow"))
+        );
     }
 }

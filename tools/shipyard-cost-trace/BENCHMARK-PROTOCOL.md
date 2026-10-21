@@ -16,6 +16,7 @@ Minimum valid fixtures:
 - material issue, return, scrap and rework as different event meanings;
 - partial execution with unknown remaining work;
 - changed configuration / revised plan while preserving the original history;
+- additive delta versus cumulative snapshot, including correction/reversal and duplicate delivery;
 - late-arriving measurement and an explicit as-of cutoff.
 
 Minimum invalid controls:
