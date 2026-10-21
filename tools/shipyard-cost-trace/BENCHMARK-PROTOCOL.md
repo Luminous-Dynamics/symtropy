@@ -16,11 +16,15 @@ Minimum valid fixtures:
 - material issue, return, scrap and rework as different event meanings;
 - partial execution with unknown remaining work;
 - changed configuration / revised plan while preserving the original history;
-- additive delta versus cumulative snapshot, including correction/reversal and duplicate delivery;
-- late-arriving measurement and an explicit as-of cutoff.
+- additive delta versus cumulative snapshot, including exact 12 → 14 snapshot = 14 and 12 + 14 delta = 26 expectations;
+- correction replaces exactly one earlier delta, reversal cancels exactly one earlier delta, and duplicate delivery is rejected by stable source identity;
+- event-time and recorded-time cutoffs, including a late arrival that must not change an earlier recorded-as-of result;
+- source-record IDs and stream/sequence lineage carried into the normalized result.
 
 Minimum invalid controls:
-- duplicated event and transaction IDs;
+- duplicated event and transaction IDs or source stream sequences;
+- cumulative snapshot passed straight to the additive audit reducer;
+- mixed snapshot/delta semantics, multiple snapshot streams for one identity, contradictory snapshot sequence/time, or multiple corrections/reversals for one target;
 - unresolved, cyclic, cross-build or cross-configuration lineage;
 - observed actual entered at a planned/simulated stage;
 - unresolved permission, absent source reference or malformed configuration digest;
@@ -71,7 +75,7 @@ The initial mixed-ledger TSV corpus is `tests/fixtures/golden-ledger-v0.tsv` wit
 - Freeze input corpus, train/tune/test partition, constraints, evaluation code and baseline configuration before comparing methods.
 - Tune on a development set only. Keep a hidden or sealed test set for the final comparison; do not revise expected outcomes after seeing candidate results without a versioned correction.
 - Match vessel class, work scope, price year, currency, region, service life, throughput, tax/tender scope and allocation policy for cost comparisons.
-- Keep planned quantities, simulated estimates, observed quantities, rate-card estimates and posted financial actuals as separate fields. Require delta-versus-cumulative-snapshot semantics before external MES/ERP ingestion; this is tracked in [SHIPYARD-EVENT-SEMANTICS-001 #2458](https://github.com/Luminous-Dynamics/symtropy/issues/2458).
+- Keep planned quantities, simulated estimates, observed quantities, rate-card estimates and posted financial actuals as separate fields. Before source ingestion, classify each quantity as additive delta, cumulative snapshot, correction or reversal; preserve event time and recorded time. Normalize by an explicit cutoff and preserve source-record lineage. The V0 audit now explicitly rejects records typed as cumulative snapshots; see [SHIPYARD-EVENT-SEMANTICS-001 #2458](https://github.com/Luminous-Dynamics/symtropy/issues/2458).
 - Report unknown and unallocated amounts explicitly. Never infer a zero from absent evidence.
 - Report point estimate, interval and uncertainty/calibration method when the evidence supports them; otherwise mark the uncertainty as unquantified.
 - Retain failures, timeouts and negative controls in the report. Publish raw outputs and environment metadata, not only a headline score.
@@ -97,3 +101,12 @@ Do not equate:
 - IMO GreenVoyage2050 hull-form optimization: https://greenvoyage2050.imo.org/technology/hull-form-optimization/
 
 This protocol does not assert conformance to an industrial digital-twin standard and does not claim measured cost, schedule, labor, quality or emissions improvements.
+
+## 5. Cross-repository ownership (provisional)
+
+- **Symthaea** owns vessel requirements, model assumptions/applicability, physical-model evidence, uncertainty, and comparable source-pinned acquisition/lifecycle-cost inputs. It must not infer certified structural, stability, hydrodynamic or fire-safety facts from schedule output.
+- **Symtropy** owns the manufacturing/digital-twin planning layer: work packages, precedence, yard-space/resource constraints, schedule/disruption alternatives, and the trace from planned/simulated quantities to normalized observations and financial actuals.
+- **Mycelix** owns permissioned provenance/custody/inspection evidence and source-profile mapping, preserving original event time separately from repository/ingestion time and reporting lossy field mappings instead of silently upgrading claims.
+- **Sol Atlas** may own spatial/source freshness context for sites, access, geography and material logistics; those layers provide context, not implicit manufacturing or certification authority.
+
+Cross-repository links must bind exact configuration/schema/profile digests and distinguish forecast, simulation, provider assertion, observed measurement, independent verification, and formal approval. A link or signed receipt proves provenance of a claim, not truth of its physical content.
