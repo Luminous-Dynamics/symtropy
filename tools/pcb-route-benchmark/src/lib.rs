@@ -545,7 +545,7 @@ pub fn build_dataset_manifest(
                     selection.difficulty, intake.split_name
                 )
             })?;
-        if !candidate_ids.iter().any(|id| id.as_str() == Some(&selection.board_id)) {
+        if !candidate_ids.iter().any(|id| id.as_str() == Some(selection.board_id.as_str())) {
             return Err(format!(
                 "{} is not a member of the pinned {}.{} split",
                 selection.board_id, selection.difficulty, intake.split_name
@@ -1347,6 +1347,78 @@ mod tests {
                 .unwrap_err()
                 .contains("unsafe dataset-relative source path")
         );
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn pinned_split_manifest_builder_hashes_actual_sources_and_rejects_nonmembers() {
+        let split_config = serde_json::json!({
+            "board_filename": "processed_v9_guide_v3.kicad_pcb",
+            "easy": { "test": ["board-easy-1", "board-easy-2"] },
+            "hard": { "test": ["board-hard-1"] }
+        });
+        let split_config_bytes = serde_json::to_vec(&split_config).unwrap();
+        let intake = IntakeSpec {
+            schema: "pcb-route-intake-spec-v0.1".into(),
+            benchmark_id: "pcbworld-bench".into(),
+            benchmark_version: "v1.1.1".into(),
+            dataset_id: "pcbench-d3".into(),
+            split_id: "d3-test-pilot-v0.1".into(),
+            source_url: "https://github.com/LGAI-Research/PCBWorld".into(),
+            source_split_commit_sha: "c".repeat(40),
+            split_name: "test".into(),
+            boards: vec![
+                IntakeBoard {
+                    board_id: "board-easy-1".into(),
+                    difficulty: "easy".into(),
+                    required_nets: 4,
+                    license: "CC-BY-4.0".into(),
+                    source_url: "https://github.com/PCBench/PCBench".into(),
+                },
+                IntakeBoard {
+                    board_id: "board-hard-1".into(),
+                    difficulty: "hard".into(),
+                    required_nets: 9,
+                    license: "MIT".into(),
+                    source_url: "https://github.com/PCBench/PCBench".into(),
+                },
+            ],
+        };
+        let intake_bytes = serde_json::to_vec(&intake).unwrap();
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-manifest-build-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        for id in ["board-easy-1", "board-hard-1"] {
+            std::fs::create_dir_all(root.join(id)).unwrap();
+            std::fs::write(
+                root.join(id).join("processed_v9_guide_v3.kicad_pcb"),
+                format!("synthetic board fixture bytes: {id}\n"),
+            )
+            .unwrap();
+        }
+
+        let manifest = build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
+            .expect("pinned split manifests build from source bytes");
+        assert_eq!(manifest.boards.len(), 2);
+        assert_eq!(manifest.evidence_class, "external_benchmark");
+        assert_eq!(
+            manifest.source_split_config_sha256.as_deref(),
+            Some(sha256_hex(&split_config_bytes).as_str())
+        );
+        let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+        let receipt = verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+            .expect("built source files verify");
+        assert_eq!(receipt.verified_board_count, 2);
+
+        let mut invalid = intake.clone();
+        invalid.boards[0].board_id = "not-in-split".into();
+        let invalid_bytes = serde_json::to_vec(&invalid).unwrap();
+        assert!(build_dataset_manifest(&split_config_bytes, &invalid_bytes, &root)
+            .unwrap_err()
+            .contains("is not a member of the pinned"));
 
         let _ = std::fs::remove_dir_all(&root);
     }
