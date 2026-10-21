@@ -280,6 +280,35 @@ fn validate_inputs(
     errors
 }
 
+/// Place requests in deterministic decreasing-area order before using the same candidate policy.
+////
+//// Tie-break order is descending maximum side, width, height, then ascending reservation ID.
+//// Area is computed in i128 to avoid overflow for positive i64 dimensions.
+////
+//// This remains a heuristic policy, not a globally optimal rectangle-packing algorithm.
+pub fn first_fit_decreasing_bottom_left(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+) -> Result<Scenario, Vec<BaselineError>> {
+    let mut ordered = requests.to_vec();
+    ordered.sort_by(|left, right| {
+        let left_area = i128::from(left.width) * i128::from(left.height);
+        let right_area = i128::from(right.width) * i128::from(right.height);
+        let left_max_side = left.width.max(left.height);
+        let right_max_side = right.width.max(right.height);
+
+        right_area
+            .cmp(&left_area)
+            .then_with(|| right_max_side.cmp(&left_max_side))
+            .then_with(|| right.width.cmp(&left.width))
+            .then_with(|| right.height.cmp(&left.height))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+
+    first_fit_bottom_left(yard_bounds, &ordered, exclusion_zones)
+}
+
 /// Place rectangular requests using a deterministic first-fit/bottom-left candidate order.
 ///
 /// Requests are processed in caller-provided order. Candidate positions are tried in ascending
