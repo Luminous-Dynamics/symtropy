@@ -40,10 +40,7 @@ fn run() -> Result<String, String> {
             let value = args
                 .get(index + 1)
                 .ok_or_else(|| "--source-commit requires a value".to_owned())?;
-            if value.len() != 40 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
-                return Err("--source-commit must be a 40-character Git SHA-1".to_owned());
-            }
-            source_commit = Some(value.to_ascii_lowercase());
+            source_commit = Some(normalize_source_commit(value)?);
             index += 2;
         } else {
             return Err(format!("unknown argument: {}", args[index]));
@@ -163,6 +160,13 @@ fn run() -> Result<String, String> {
     ))
 }
 
+fn normalize_source_commit(value: &str) -> Result<String, String> {
+    if value.len() != 40 || !value.chars().all(|character| character.is_ascii_hexdigit()) {
+        return Err("--source-commit must be a 40-character Git SHA-1".to_owned());
+    }
+    Ok(value.to_ascii_lowercase())
+}
+
 fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
     let apex = result
         .node_results
@@ -196,7 +200,7 @@ fn verify_reference_outcome(result: &PlanarTrussResult) -> Result<(), String> {
     close(
         apex.displacement_y_m,
         expected_apex_y,
-        1.0e-10,
+        1.0e-15,
         "apex y displacement",
     )?;
     close(left_bar.axial_force_n, expected_bar_force, 1.0e-9, "left bar force")?;
@@ -297,8 +301,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn source_commit_must_be_explicit_and_well_formed() {
-        assert!(run().unwrap_err().contains("usage:"));
+    fn source_commit_must_be_well_formed_and_is_normalized() {
+        assert!(normalize_source_commit("not-a-sha").is_err());
+        assert_eq!(
+            normalize_source_commit("ABCDEF0123456789ABCDEF0123456789ABCDEF01")
+                .expect("valid SHA"),
+            "abcdef0123456789abcdef0123456789abcdef01"
+        );
     }
 
     #[test]
