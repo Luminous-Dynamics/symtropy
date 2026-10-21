@@ -87,8 +87,8 @@ impl CaseKind {
                 "span_m",
                 "apex_x_m",
                 "apex_height_m",
-                "axial_stiffness_a_n_per_m",
-                "axial_stiffness_b_n_per_m",
+                "axial_rigidity_a_n",
+                "axial_rigidity_b_n",
                 "force_x_n",
                 "force_y_n",
             ],
@@ -119,6 +119,8 @@ impl CaseKind {
                 "displacement_y_m": "m",
                 "bar_a_length_m": "m",
                 "bar_b_length_m": "m",
+                "axial_stiffness_a_n_per_m": "N/m",
+                "axial_stiffness_b_n_per_m": "N/m",
                 "condition_infinity": "dimensionless",
                 "condition_times_machine_epsilon": "dimensionless"
             }),
@@ -341,8 +343,8 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
                 ("span_m".to_owned(), number("span_m")?),
                 ("apex_x_m".to_owned(), number("apex_x_m")?),
                 ("apex_height_m".to_owned(), number("apex_height_m")?),
-                ("axial_stiffness_a_n_per_m".to_owned(), number("axial_stiffness_a_n_per_m")?),
-                ("axial_stiffness_b_n_per_m".to_owned(), number("axial_stiffness_b_n_per_m")?),
+                ("axial_rigidity_a_n".to_owned(), number("axial_rigidity_a_n")?),
+                ("axial_rigidity_b_n".to_owned(), number("axial_rigidity_b_n")?),
                 ("force_x_n".to_owned(), number("force_x_n")?),
                 ("force_y_n".to_owned(), number("force_y_n")?),
             ]);
@@ -356,8 +358,10 @@ fn evaluate_case(case: CaseKind, inputs: &Map<String, Value>) -> Check<Value> {
                 "displacement_y_m": result[5],
                 "bar_a_length_m": result[6],
                 "bar_b_length_m": result[7],
-                "condition_infinity": result[8],
-                "condition_times_machine_epsilon": result[9]
+                "axial_stiffness_a_n_per_m": result[8],
+                "axial_stiffness_b_n_per_m": result[9],
+                "condition_infinity": result[10],
+                "condition_times_machine_epsilon": result[11]
             }))
         }
     }
@@ -584,7 +588,7 @@ fn input_unit(key: &str) -> Option<&'static str> {
         "second_moment_area_m4" => Some("m^4"),
         "outer_fiber_distance_m" => Some("m"),
         "span_m" | "apex_x_m" | "apex_height_m" => Some("m"),
-        "axial_stiffness_a_n_per_m" | "axial_stiffness_b_n_per_m" => Some("N/m"),
+        "axial_rigidity_a_n" | "axial_rigidity_b_n" => Some("N"),
         "force_x_n" | "force_y_n" => Some("N"),
         _ => None,
     }
@@ -600,8 +604,8 @@ fn is_positive_input(key: &str) -> bool {
             | "outer_fiber_distance_m"
             | "span_m"
             | "apex_height_m"
-            | "axial_stiffness_a_n_per_m"
-            | "axial_stiffness_b_n_per_m"
+            | "axial_rigidity_a_n"
+            | "axial_rigidity_b_n"
     )
 }
 
