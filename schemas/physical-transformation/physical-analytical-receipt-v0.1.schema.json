@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json",
+  "title": "Physical Analytical Reference Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "request_sha256",
+    "source_revision",
+    "adapter_revision",
+    "case_id",
+    "evidence_class",
+    "result_status",
+    "computation_method",
+    "requested_physics",
+    "physics_omitted",
+    "assumption_profile",
+    "assumptions",
+    "outputs",
+    "output_units",
+    "reference_oracle_tolerances",
+    "diagnostics",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-analytical-receipt-v0.1" },
+    "request_id": { "type": "string" },
+    "request_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "adapter_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "case_id": { "enum": ["axial_bar", "cantilever_tip_load", "simply_supported_uniform_load"] },
+    "evidence_class": { "const": "analytical_reference" },
+    "result_status": { "enum": ["PASS", "UNRESOLVED"] },
+    "computation_method": { "const": "closed_form_analytical_reference" },
+    "requested_physics": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+    "physics_omitted": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "assumption_profile": { "type": "string" },
+    "assumptions": { "type": "string" },
+    "outputs": { "type": ["object", "null"] },
+    "output_units": { "type": "object" },
+    "reference_oracle_tolerances": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_tolerance", "absolute_tolerance", "scope"],
+      "properties": {
+        "relative_tolerance": { "type": "number", "minimum": 0 },
+        "absolute_tolerance": { "type": "number", "minimum": 0 },
+        "scope": { "type": "string" }
+      }
+    },
+    "diagnostics": { "type": "array", "items": { "type": "string" } },
+    "claim_ceiling": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "result_status": { "const": "PASS" } }, "required": ["result_status"] },
+      "then": {
+        "properties": {
+          "outputs": { "type": "object" },
+          "physics_omitted": { "maxItems": 0 },
+          "diagnostics": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "result_status": { "const": "UNRESOLVED" } }, "required": ["result_status"] },
+      "then": { "properties": { "outputs": { "type": "null" }, "diagnostics": { "minItems": 1 } } }
+    }
+  ]
+}

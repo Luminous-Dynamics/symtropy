@@ -1,0 +1,25 @@
+{
+  "schema_version": "physical-analytical-request-v0.1",
+  "request_id": "analytical:simple-support-001",
+  "source_revision": "eb11bb72b28f3bf9853c235f64e6c400907cf2af",
+  "case_id": "simply_supported_uniform_load",
+  "assumption_profile": "small_deflection_euler_bernoulli_simply_supported_uniform_load",
+  "requested_physics": [
+    "static_linear_elastic"
+  ],
+  "units": {
+    "length": "m",
+    "force": "N",
+    "area": "m^2",
+    "stress": "Pa",
+    "second_moment": "m^4",
+    "distributed_load": "N/m"
+  },
+  "inputs": {
+    "load_n_per_m": 1000,
+    "length_m": 4,
+    "youngs_modulus_pa": 200000000000,
+    "second_moment_area_m4": 0.000008,
+    "outer_fiber_distance_m": 0.1
+  }
+}

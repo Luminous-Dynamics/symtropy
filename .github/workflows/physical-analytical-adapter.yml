@@ -1,0 +1,135 @@
+name: Physical Analytical Adapter
+
+on:
+  push:
+    branches: ["research/physical-analytical-adapter-v0-1"]
+    paths:
+      - "research/physical-analytical-adapter/**"
+      - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "research/physical-analytical-adapter/README.md"
+      - "schemas/physical-transformation/analytical-fixtures/**"
+      - "schemas/physical-transformation/physical-analytical-*.schema.json"
+      - "schemas/physical-transformation/analytical-*.schema.json"
+      - "schemas/physical-transformation/fixtures/physical-analytical-*.json"
+      - ".github/workflows/physical-analytical-adapter.yml"
+      - ".github/workflows/physical-transformation-reference.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/physical-analytical-adapter/**"
+      - "research/physical-transformation-reference/**"
+      - "docs/research/PHYSICAL_ANALYTICAL_VV_ROADMAP_V0_1.md"
+      - "research/physical-analytical-adapter/README.md"
+      - "schemas/physical-transformation/analytical-fixtures/**"
+      - "schemas/physical-transformation/physical-analytical-*.schema.json"
+      - ".github/workflows/physical-analytical-adapter.yml"
+      - ".github/workflows/physical-transformation-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-analytical-adapter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analytical-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Validate request and receipt schema syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq empty schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json
+          jq empty schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json
+          jq -e '.properties.case_id.enum == ["axial_bar","cantilever_tip_load","simply_supported_uniform_load"]' schemas/physical-transformation/physical-analytical-request-v0.1.schema.json
+          jq -e '.properties.result_status.enum == ["PASS","UNRESOLVED"] and .properties.evidence_class.const == "analytical_reference"' schemas/physical-transformation/physical-analytical-receipt-v0.1.schema.json
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/physical-analytical-adapter/Cargo.toml --all -- --check
+
+      - name: Test analytical formulas and negative controls
+        run: cargo test --locked --manifest-path research/physical-analytical-adapter/Cargo.toml
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path research/physical-analytical-adapter/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run all known-answer cases at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/analytical-bar-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-bar-receipt.json
+          jq -e --arg revision "$source_commit" '
+            .schema_version == "physical-analytical-receipt-v0.1"
+            and .result_status == "PASS"
+            and .adapter_revision == $revision
+            and .case_id == "axial_bar"
+            and .outputs.axial_stress_pa > 99999
+            and .outputs.axial_stress_pa < 100001
+            and .outputs.axial_strain > 0
+            and .outputs.extension_m > 0
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+          ' analytical-adapter-bar-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/cantilever-tip-load-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-cantilever-receipt.json
+          jq -e '
+            .result_status == "PASS"
+            and .case_id == "cantilever_tip_load"
+            and .outputs.tip_deflection_m > 0
+            and .outputs.maximum_bending_stress_pa > 2499999
+          ' analytical-adapter-cantilever-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/simply-supported-uniform-load-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-simply-supported-receipt.json
+          jq -e '
+            .result_status == "PASS"
+            and .case_id == "simply_supported_uniform_load"
+            and .outputs.midspan_deflection_m > 0.00208
+            and .outputs.midspan_deflection_m < 0.00209
+            and .outputs.maximum_bending_stress_pa > 24999999
+            and .outputs.maximum_bending_stress_pa < 25000001
+          ' analytical-adapter-simply-supported-receipt.json
+
+          cargo run --quiet --locked --manifest-path research/physical-analytical-adapter/Cargo.toml -- \
+            --request schemas/physical-transformation/analytical-fixtures/unsupported-fracture-v0.1.json \
+            --adapter-revision "$source_commit" > analytical-adapter-unsupported-receipt.json
+          jq -e '
+            .result_status == "UNRESOLVED"
+            and .outputs == null
+            and (.physics_omitted | index("fracture") != null)
+            and (.diagnostics | length > 0)
+          ' analytical-adapter-unsupported-receipt.json
+
+      - name: Upload analytical reference receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: physical-analytical-adapter-receipts
+          path: analytical-adapter-*-receipt.json
+          if-no-files-found: error
+          retention-days: 90
