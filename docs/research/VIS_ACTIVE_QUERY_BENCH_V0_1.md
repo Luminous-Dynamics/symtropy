@@ -202,7 +202,7 @@ The marginal report includes both:
 - raw paired task-loss delta versus round-robin, to show quality/coverage trade-offs; and
 - paired cost-adjusted objective delta versus round-robin, where round-robin pays for all 48 requests.
 
-The candidate advances only if the **development-selected** threshold has a held-out cost-adjusted objective delta whose paired 95% interval is entirely below zero. Also report raw task-loss delta, answer rate, requests used and per-episode uncertainty; don't call lower spend a win if task quality collapses. The threshold is rejected as a preferred policy if this gate fails. Estimated scoring-work units are a deterministic operation-count proxy, not measured wall-clock latency, GPU time, RAM, energy or robotics efficiency.
+The candidate advances only if the **development-selected** threshold has (a) a held-out cost-adjusted objective delta whose paired 95% interval is entirely below zero and (b) a raw task-loss degradation whose paired 95% upper bound is no greater than +0.01 absolute. The cost grid is an explicit synthetic preference, not a measured sensor-cost calibration. Also report answer rate, requests used and per-episode uncertainty; lower spend is not a win if quality fails the non-inferiority gate. Reject the policy as preferred if either gate fails. Estimated scoring-work units are a deterministic operation-count proxy, not measured wall-clock latency, GPU time, RAM, energy or robotics efficiency.
 
 ### External benchmark boundary
 
