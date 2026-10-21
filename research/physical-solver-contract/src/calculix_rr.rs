@@ -741,4 +741,116 @@ mod tests {
                 .is_err()
         );
     }
+
+    fn make_normalization_bundle() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
+        let mut request: Value = serde_json::from_str(include_str!(
+            "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
+        )).unwrap();
+        request["required_outputs"] = json!(["reaction_force"]);
+        let request_bytes = serde_json::to_vec(&request).unwrap();
+        let request_sha = sha256_hex(&request_bytes);
+        let scene_sha = request["scene_sha256"].as_str().unwrap();
+        let scene_revision = request["scene_revision"].as_u64().unwrap();
+        let request_id = request["request_id"].as_str().unwrap();
+        let frame = request["coordinate_frame_id"].as_str().unwrap();
+        let deck_bytes = b"*NODE,NSET=FIXED\n1,0,0,0\n2,2,0,0\n*STEP\n*NODE PRINT,NSET=FIXED\nRF, RR\n*END STEP\n".to_vec();
+        let catalog = json!({
+            "schema_version":"physical-support-node-catalog-v0.1",
+            "case_id":"calculix-rr-normalization-synthetic",
+            "request_id":request_id,
+            "request_sha256":request_sha,
+            "scene_sha256":scene_sha,
+            "scene_revision":scene_revision,
+            "coordinate_frame_id":frame,
+            "deck_sha256":sha256_hex(&deck_bytes),
+            "units":{"length":"m"},
+            "nodes":[
+                {"node_id":1,"position_m":[0.0,0.0,0.0]},
+                {"node_id":2,"position_m":[2.0,0.0,0.0]}
+            ],
+            "provenance":{
+                "method":"synthetic_known_node_positions",
+                "identity":"two-node support fixture",
+                "source_ref":"fixture-only:rr-node-catalog"
+            }
+        });
+        let catalog_bytes = serde_json::to_vec(&catalog).unwrap();
+        let manifest = json!({
+            "schema_version":"calculix-rr-normalization-manifest-v0.1",
+            "case_id":"calculix-rr-normalization-synthetic",
+            "request_id":request_id,
+            "request_sha256":request_sha,
+            "scene_sha256":scene_sha,
+            "scene_revision":scene_revision,
+            "coordinate_frame_id":frame,
+            "node_set":"FIXED",
+            "deck_sha256":sha256_hex(&deck_bytes),
+            "node_catalog_sha256":sha256_hex(&catalog_bytes),
+            "expected_node_ids":[1,2],
+            "units":{"length":"m","force":"N"},
+            "provenance":{
+                "method":"synthetic_hand_checked_manifest",
+                "identity":"two-node reaction output normalization",
+                "source_ref":"fixture-only:rr-normalization-manifest"
+            }
+        });
+        let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+        (request_bytes, deck_bytes, RR_ONLY_OUTPUT.as_bytes().to_vec(), manifest_bytes, catalog_bytes)
+    }
+
+    #[test]
+    fn normalizer_joins_rr_reactions_to_exact_deck_bound_node_positions() {
+        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let report = normalize_reaction_only_rr_bytes(&request, &deck, &dat, &manifest, &catalog).unwrap();
+        assert_eq!(report["normalization_status"], "PASS");
+        assert_eq!(report["physical_result_qualified"], false);
+        assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
+        assert_eq!(report["normalized_output"]["schema_version"], "physical-equilibrium-reaction-forces-v0.1");
+        assert_eq!(report["normalized_output"]["units"]["length"], "m");
+        assert_eq!(report["normalized_output"]["units"]["force"], "N");
+        assert_eq!(report["normalized_output"]["reaction_forces"][0]["reaction_id"], "node-1");
+        assert_eq!(report["normalized_output"]["reaction_forces"][0]["position_m"][0], 0.0);
+        assert_eq!(report["normalized_output"]["reaction_forces"][1]["position_m"][0], 2.0);
+        let normalized_bytes = serde_json::to_vec(&report["normalized_output"]).unwrap();
+        assert_eq!(report["normalized_output_sha256"], sha256_hex(&normalized_bytes));
+        assert_eq!(report["deck_sha256"], sha256_hex(&deck));
+        assert_eq!(report["dat_sha256"], sha256_hex(&dat));
+    }
+
+    #[test]
+    fn normalizer_rejects_stale_node_catalogue_digest_and_wrong_frame() {
+        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
+        manifest_value["node_catalog_sha256"] = json!("d".repeat(64));
+        let stale_manifest = serde_json::to_vec(&manifest_value).unwrap();
+        assert!(normalize_reaction_only_rr_bytes(&request, &deck, &dat, &stale_manifest, &catalog).is_err());
+
+        let mut catalog_value: Value = serde_json::from_slice(&catalog).unwrap();
+        catalog_value["coordinate_frame_id"] = json!("wrong-frame");
+        let wrong_catalog = serde_json::to_vec(&catalog_value).unwrap();
+        manifest_value["node_catalog_sha256"] = json!(sha256_hex(&wrong_catalog));
+        let manifest_for_wrong_catalog = serde_json::to_vec(&manifest_value).unwrap();
+        assert!(normalize_reaction_only_rr_bytes(
+            &request, &deck, &dat, &manifest_for_wrong_catalog, &wrong_catalog
+        ).is_err());
+    }
+
+    #[test]
+    fn normalizer_rejects_non_si_request_units() {
+        let (request, deck, dat, manifest, catalog) = make_normalization_bundle();
+        let mut request_value: Value = serde_json::from_slice(&request).unwrap();
+        request_value["units"]["force"] = json!("kN");
+        let request_knew = serde_json::to_vec(&request_value).unwrap();
+        let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
+        manifest_value["request_sha256"] = json!(sha256_hex(&request_knew));
+        let mut catalog_value: Value = serde_json::from_slice(&catalog).unwrap();
+        catalog_value["request_sha256"] = json!(sha256_hex(&request_knew));
+        let catalog_knew = serde_json::to_vec(&catalog_value).unwrap();
+        manifest_value["node_catalog_sha256"] = json!(sha256_hex(&catalog_knew));
+        let manifest_knew = serde_json::to_vec(&manifest_value).unwrap();
+        assert!(normalize_reaction_only_rr_bytes(
+            &request_knew, &deck, &dat, &manifest_knew, &catalog_knew
+        ).is_err());
+    }
+
 }
