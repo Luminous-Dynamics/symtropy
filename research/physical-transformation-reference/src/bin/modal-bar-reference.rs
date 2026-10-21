@@ -68,14 +68,15 @@ fn run() -> Result<String, String> {
     if request.contains('\n') || request.contains('\r') {
         return Err("frozen request must be a single LF-terminated line".to_owned());
     }
-    if !request.contains(&format!("fixture={FIXTURE_ID}")) {
+    let frozen = parse_request(request)?;
+    if frozen.fixture_id != FIXTURE_ID {
         return Err("frozen request fixture identifier does not match the CLI".to_owned());
     }
 
-    let base = reference_bar(16);
+    let base = frozen.to_bar()?;
     let consistent = analyze_fixed_free_bar(base, MassFormulation::Consistent)?;
     let lumped = analyze_fixed_free_bar(base, MassFormulation::RowSumLumped)?;
-    let ladder = build_mesh_ladder()?;
+    let ladder = build_mesh_ladder(base)?;
     verify_known_answers(&ladder, &consistent, &lumped)?;
 
     let ladder_json = ladder
@@ -138,11 +139,11 @@ fn run() -> Result<String, String> {
             "  \"claim_ceiling\": \"1D uniform fixed-free linear axial bar only; analytical/software verification, not full NAFEMS Challenge 5 2D truss reproduction, physical validation, modal test validation, or structural certification\"\n",
             "}}"
         ),
-        FIXTURE_ID,
+        frozen.fixture_id,
         source_commit,
         request,
         base.length_m,
-        base.length_m * 0.0 + 0.01_f64,
+        frozen.radius_m,
         base.area_m2,
         format_number(base.youngs_modulus_pa),
         format_number(base.density_kg_m3),
@@ -166,31 +167,109 @@ struct MeshEntry {
     lumped: ModalFrequencies,
 }
 
-fn reference_bar(elements: usize) -> FixedFreeBar {
-    let radius_m = 0.01;
-    FixedFreeBar {
-        length_m: 1.0,
-        area_m2: std::f64::consts::PI * radius_m * radius_m,
-        youngs_modulus_pa: 210.0e9,
-        density_kg_m3: 7_800.0,
-        elements,
+#[derive(Clone, Debug, PartialEq)]
+struct ModalRequest {
+    fixture_id: String,
+    length_m: f64,
+    radius_m: f64,
+    youngs_modulus_pa: f64,
+    density_kg_m3: f64,
+    elements: usize,
+}
+
+impl ModalRequest {
+    fn to_bar(&self) -> Result<FixedFreeBar, String> {
+        if !self.radius_m.is_finite() || self.radius_m <= 0.0 {
+            return Err("radius must be finite and positive".to_owned());
+        }
+        let area_m2 = std::f64::consts::PI * self.radius_m * self.radius_m;
+        if !area_m2.is_finite() || area_m2 <= 0.0 {
+            return Err("derived cross-sectional area is outside the supported numeric range".to_owned());
+        }
+        Ok(FixedFreeBar {
+            length_m: self.length_m,
+            area_m2,
+            youngs_modulus_pa: self.youngs_modulus_pa,
+            density_kg_m3: self.density_kg_m3,
+            elements: self.elements,
+        })
     }
 }
 
-fn build_mesh_ladder() -> Result<Vec<MeshEntry>, String> {
+fn parse_request(request: &str) -> Result<ModalRequest, String> {
+    let mut fields = std::collections::BTreeMap::<&str, &str>::new();
+    for part in request.split('|') {
+        let (key, value) = part
+            .split_once('=')
+            .ok_or_else(|| format!("request field lacks '=' separator: {part}"))?;
+        if key.is_empty() || value.is_empty() {
+            return Err("request keys and values must be non-empty".to_owned());
+        }
+        if fields.insert(key, value).is_some() {
+            return Err(format!("duplicate request field: {key}"));
+        }
+    }
+    const REQUIRED_FIELDS: [&str; 7] = [
+        "schema",
+        "fixture",
+        "length_m",
+        "radius_m",
+        "youngs_modulus_pa",
+        "density_kg_m3",
+        "elements",
+    ];
+    if fields.len() != REQUIRED_FIELDS.len()
+        || REQUIRED_FIELDS.iter().any(|key| !fields.contains_key(key))
+    {
+        return Err("request must contain exactly the seven frozen schema fields".to_owned());
+    }
+    if fields["schema"] != "modal-bar-request-v0.1" {
+        return Err("unsupported modal request schema".to_owned());
+    }
+
+    let length_m = parse_positive_number(&fields, "length_m")?;
+    let radius_m = parse_positive_number(&fields, "radius_m")?;
+    let youngs_modulus_pa = parse_positive_number(&fields, "youngs_modulus_pa")?;
+    let density_kg_m3 = parse_positive_number(&fields, "density_kg_m3")?;
+    let elements = fields["elements"]
+        .parse::<usize>()
+        .map_err(|_| "element count must be an unsigned integer".to_owned())?;
+    Ok(ModalRequest {
+        fixture_id: fields["fixture"].to_owned(),
+        length_m,
+        radius_m,
+        youngs_modulus_pa,
+        density_kg_m3,
+        elements,
+    })
+}
+
+fn parse_positive_number(
+    fields: &std::collections::BTreeMap<&str, &str>,
+    key: &str,
+) -> Result<f64, String> {
+    let value = fields
+        .get(key)
+        .ok_or_else(|| format!("missing request field: {key}"))?;
+    let parsed = value
+        .parse::<f64>()
+        .map_err(|_| format!("request field {key} is not numeric"))?;
+    if !parsed.is_finite() || parsed <= 0.0 {
+        return Err(format!("request field {key} must be finite and positive"));
+    }
+    Ok(parsed)
+}
+
+fn build_mesh_ladder(base: FixedFreeBar) -> Result<Vec<MeshEntry>, String> {
     MESH_LADDER
         .iter()
         .map(|elements| {
+            let mut bar = base;
+            bar.elements = *elements;
             Ok(MeshEntry {
                 elements: *elements,
-                consistent: analyze_fixed_free_bar(
-                    reference_bar(*elements),
-                    MassFormulation::Consistent,
-                )?,
-                lumped: analyze_fixed_free_bar(
-                    reference_bar(*elements),
-                    MassFormulation::RowSumLumped,
-                )?,
+                consistent: analyze_fixed_free_bar(bar, MassFormulation::Consistent)?,
+                lumped: analyze_fixed_free_bar(bar, MassFormulation::RowSumLumped)?,
             })
         })
         .collect()
@@ -316,12 +395,34 @@ fn normalize_source_commit(value: &str) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_source_commit;
+    use super::{FIXTURE_ID, REQUEST, normalize_source_commit, parse_request};
 
     #[test]
     fn source_commit_requires_exactly_40_hexadecimal_characters() {
         assert!(normalize_source_commit("0123456789abcdef0123456789abcdef01234567").is_ok());
         assert!(normalize_source_commit("0123456789abcdef0123456789abcdef0123456z").is_err());
         assert!(normalize_source_commit("not-a-commit").is_err());
+    }
+
+    #[test]
+    fn frozen_request_drives_the_reported_physical_parameters() {
+        let canonical = REQUEST.strip_suffix('\n').expect("frozen request is LF-terminated");
+        let request = parse_request(canonical).expect("valid frozen modal request");
+        assert_eq!(request.fixture_id, FIXTURE_ID);
+        assert_eq!(request.length_m, 1.0);
+        assert_eq!(request.radius_m, 0.01);
+        assert_eq!(request.youngs_modulus_pa, 210.0e9);
+        assert_eq!(request.density_kg_m3, 7_800.0);
+        assert_eq!(request.elements, 16);
+        let bar = request.to_bar().expect("valid bar geometry");
+        assert_eq!(bar.area_m2, std::f64::consts::PI * 0.01_f64 * 0.01_f64);
+    }
+
+    #[test]
+    fn request_parser_rejects_duplicate_unknown_and_unsupported_fields() {
+        let canonical = REQUEST.strip_suffix('\n').expect("frozen request is LF-terminated");
+        assert!(parse_request(&format!("{canonical}|elements=2")).is_err());
+        assert!(parse_request(&format!("{canonical}|unreviewed=1")).is_err());
+        assert!(parse_request(&canonical.replace("schema=modal-bar-request-v0.1", "schema=modal-bar-request-v0.2")).is_err());
     }
 }
