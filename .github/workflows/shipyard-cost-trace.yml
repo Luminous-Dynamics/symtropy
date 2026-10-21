@@ -33,6 +33,9 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
+      - name: Check Rust formatting
+        run: cargo fmt --all --manifest-path tools/shipyard-cost-trace/Cargo.toml -- --check
+
       - name: Run isolated tests offline
         run: cargo test --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml
 
