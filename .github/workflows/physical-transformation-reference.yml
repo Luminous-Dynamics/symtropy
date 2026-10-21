@@ -350,6 +350,16 @@ jobs:
             and (.source_sha256 | all(.[]; type == "string" and test("^[0-9a-f]{64}$")))
             and .evidence_class == "software-test-run"
             and .result == "pass"
+            and .case_definition.model == "static_small_displacement_linear_elastic_planar_pin_jointed_truss"
+            and .case_definition.base_span_m == 4
+            and .case_definition.apex_x_m == 1
+            and .case_definition.axial_stiffness_a_n_per_m == 1000000000
+            and .case_definition.axial_stiffness_b_n_per_m == 2000000000
+            and .case_definition.youngs_modulus_pa == 200000000000
+            and .case_definition.target_displacement_m == [0.000001, -0.000002]
+            and .case_definition.vertical_rhs_perturbation_relative_amplitude == 0.0000000001
+            and .case_definition.apex_height_schedule_m == [1, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001]
+            and ([.cases[].apex_height_m] == .case_definition.apex_height_schedule_m)
             and .case_count == 9
             and .accepted_case_count == 7
             and .rejected_case_count == 2
