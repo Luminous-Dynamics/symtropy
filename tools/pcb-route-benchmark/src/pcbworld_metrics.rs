@@ -871,7 +871,8 @@ board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,
         .unwrap_err()
         .contains("duplicate PCBWorld attempt key"));
 
-        let missing_header =\n            "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
+        let missing_header =
+            "board_id,rollout_idx,status\nboard-a,0,completed\nboard-b,0,completed\n";
         assert!(import_pcbworld_per_rollout_csv(
             missing_header.as_bytes(),
             MANIFEST.as_bytes(),
