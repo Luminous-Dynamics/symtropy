@@ -21,6 +21,7 @@ const AXIAL_STIFFNESS_B_N_PER_M: f64 = 2.0e9;
 const YOUNGS_MODULUS_PA: f64 = 200.0e9;
 const TARGET_UX_M: f64 = 1.0e-6;
 const TARGET_UY_M: f64 = -2.0e-6;
+const RELATIVE_VERTICAL_RHS_PERTURBATION: f64 = 1.0e-10;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConditioningCaseReport {
@@ -35,6 +36,14 @@ pub struct ConditioningCaseReport {
     pub condition_times_machine_epsilon: f64,
     pub target_displacement_m: [f64; 2],
     pub applied_load_n: [f64; 2],
+    /// A controlled relative perturbation of the vertical right-hand-side component.
+    /// This is a sensitivity probe, not a measured uncertainty distribution.
+    pub vertical_rhs_perturbation_n: f64,
+    pub vertical_rhs_perturbation_relative_amplitude: f64,
+    pub vertical_rhs_plus_relative_displacement_change: f64,
+    pub vertical_rhs_minus_relative_displacement_change: f64,
+    pub vertical_rhs_plus_amplification: f64,
+    pub vertical_rhs_minus_amplification: f64,
     /// "accepted" means the numerical response met the preregistered error checks.
     /// "rejected_numerically_unresolved" means the solver abstained as expected.
     pub disposition: String,
@@ -130,6 +139,13 @@ pub fn conditioning_sweep_report() -> Check<ConditioningSweepReport> {
                 "conditioning case {case_index} h={apex_height_m:.3e}: independent target load is non-finite"
             ));
         }
+        let sensitivity = vertical_rhs_perturbation_sensitivity(
+            kxx,
+            kxy,
+            kyy,
+            determinant,
+            applied_load_n,
+        )?;
 
         let input = build_input(apex_height_m, applied_load_n, length_a_m, length_b_m);
         let solved = solve(&input);
@@ -157,6 +173,12 @@ pub fn conditioning_sweep_report() -> Check<ConditioningSweepReport> {
                         condition_times_machine_epsilon,
                         target_displacement_m,
                         applied_load_n,
+                        vertical_rhs_perturbation_n: sensitivity.perturbation_n,
+                        vertical_rhs_perturbation_relative_amplitude: sensitivity.relative_amplitude,
+                        vertical_rhs_plus_relative_displacement_change: sensitivity.plus_relative_displacement_change,
+                        vertical_rhs_minus_relative_displacement_change: sensitivity.minus_relative_displacement_change,
+                        vertical_rhs_plus_amplification: sensitivity.plus_amplification,
+                        vertical_rhs_minus_amplification: sensitivity.minus_amplification,
                         disposition: "rejected_numerically_unresolved".to_owned(),
                         observed_displacement_m: None,
                         forward_error_relative: None,
@@ -269,6 +291,12 @@ pub fn conditioning_sweep_report() -> Check<ConditioningSweepReport> {
             condition_times_machine_epsilon,
             target_displacement_m,
             applied_load_n,
+            vertical_rhs_perturbation_n: sensitivity.perturbation_n,
+            vertical_rhs_perturbation_relative_amplitude: sensitivity.relative_amplitude,
+            vertical_rhs_plus_relative_displacement_change: sensitivity.plus_relative_displacement_change,
+            vertical_rhs_minus_relative_displacement_change: sensitivity.minus_relative_displacement_change,
+            vertical_rhs_plus_amplification: sensitivity.plus_amplification,
+            vertical_rhs_minus_amplification: sensitivity.minus_amplification,
             disposition: "accepted".to_owned(),
             observed_displacement_m: Some(observed_displacement_m),
             forward_error_relative: Some(forward_error_relative),
@@ -299,6 +327,77 @@ pub fn conditioning_sweep_report() -> Check<ConditioningSweepReport> {
         rejected_case_count,
         cases,
         claim_ceiling: "synthetic static small-displacement linear-elastic 2D pin-jointed truss conditioning test only; no physical validation, external FEM qualification, or structural safety claim".to_owned(),
+    })
+}
+
+struct RhsPerturbationSensitivity {
+    perturbation_n: f64,
+    relative_amplitude: f64,
+    plus_relative_displacement_change: f64,
+    minus_relative_displacement_change: f64,
+    plus_amplification: f64,
+    minus_amplification: f64,
+}
+
+fn vertical_rhs_perturbation_sensitivity(
+    kxx: f64,
+    kxy: f64,
+    kyy: f64,
+    determinant: f64,
+    force: [f64; 2],
+) -> Check<RhsPerturbationSensitivity> {
+    let force_scale = force[0].abs().max(force[1].abs());
+    if !force_scale.is_finite() || force_scale <= 0.0 {
+        return Err("vertical RHS sensitivity has an invalid force scale".to_owned());
+    }
+    let perturbation_n = RELATIVE_VERTICAL_RHS_PERTURBATION * force_scale;
+    let relative_amplitude = perturbation_n / force_scale;
+    let solve_two_by_two = |fx: f64, fy: f64| -> [f64; 2] {
+        [
+            (kyy * fx - kxy * fy) / determinant,
+            (kxx * fy - kxy * fx) / determinant,
+        ]
+    };
+    let baseline = solve_two_by_two(force[0], force[1]);
+    let plus = solve_two_by_two(force[0], force[1] + perturbation_n);
+    let minus = solve_two_by_two(force[0], force[1] - perturbation_n);
+    let output_scale = baseline[0].abs().max(baseline[1].abs());
+    if !baseline.iter().chain(plus.iter()).chain(minus.iter()).all(|value| value.is_finite())
+        || !output_scale.is_finite()
+        || output_scale <= 0.0
+        || !relative_amplitude.is_finite()
+        || relative_amplitude <= 0.0
+    {
+        return Err("vertical RHS sensitivity calculation is non-finite or undefined".to_owned());
+    }
+    let plus_change = (plus[0] - baseline[0])
+        .abs()
+        .max((plus[1] - baseline[1]).abs())
+        / output_scale;
+    let minus_change = (minus[0] - baseline[0])
+        .abs()
+        .max((minus[1] - baseline[1]).abs())
+        / output_scale;
+    let plus_amplification = plus_change / relative_amplitude;
+    let minus_amplification = minus_change / relative_amplitude;
+    if ![
+        plus_change,
+        minus_change,
+        plus_amplification,
+        minus_amplification,
+    ]
+    .iter()
+    .all(|value| value.is_finite())
+    {
+        return Err("vertical RHS sensitivity outputs are non-finite".to_owned());
+    }
+    Ok(RhsPerturbationSensitivity {
+        perturbation_n,
+        relative_amplitude,
+        plus_relative_displacement_change: plus_change,
+        minus_relative_displacement_change: minus_change,
+        plus_amplification,
+        minus_amplification,
     })
 }
 
@@ -370,6 +469,18 @@ mod tests {
         assert_eq!(first.cases.len(), 9);
         assert_eq!(first.accepted_case_count, 7);
         assert_eq!(first.rejected_case_count, 2);
+        assert!(
+            first
+                .cases
+                .iter()
+                .all(|case| case.vertical_rhs_perturbation_relative_amplitude > 0.0
+                    && case.vertical_rhs_plus_amplification.is_finite()
+                    && case.vertical_rhs_minus_amplification.is_finite())
+        );
+        assert!(
+            first.cases.last().unwrap().vertical_rhs_plus_amplification
+                > first.cases.first().unwrap().vertical_rhs_plus_amplification
+        );
         assert!(
             first
                 .cases
