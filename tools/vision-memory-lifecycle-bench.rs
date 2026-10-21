@@ -349,7 +349,7 @@ impl Memory {
         let index = self.items.iter().position(|e| e.observation.key == observation.key);
         let mut evicted: Option<Entry> = None;
         let mut accepted = false;
-        let mut result = "ignored_stale";
+        let mut result: &str;
         let mut mutation_kind = "ignore";
 
         match policy {
@@ -835,7 +835,7 @@ fn run_receipts() {
         let summary = run_episode(&episode, 0, policy, 3, true);
         for r in summary.receipts {
             println!(
-                "RECEIPT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}\t{:016x}\t{}\t{}\t{}",
+                "RECEIPT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}\t{:016x}\t{}\t{}\t{}",
                 r.episode,
                 r.policy,
                 r.capacity,
