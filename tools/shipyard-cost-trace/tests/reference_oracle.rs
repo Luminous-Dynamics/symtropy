@@ -277,14 +277,14 @@ fn frozen_corpus_shape_and_event_identity_are_pinned() {
     assert_eq!(
         events
             .iter()
-            .filter(|event| matches!(event.kind, EventKind::Quantity(_)))
+            .filter(|event| matches!(&event.kind, EventKind::Quantity(_)))
             .count(),
         12
     );
     assert_eq!(
         events
             .iter()
-            .filter(|event| matches!(event.kind, EventKind::FinancialActual(_)))
+            .filter(|event| matches!(&event.kind, EventKind::FinancialActual(_)))
             .count(),
         4
     );
