@@ -398,11 +398,19 @@ fn validate_policy(policy: &KicadDrcRoutingPolicy) -> Result<(), String> {
         }
     }
     for (label, hash) in [
-        ("schema_source_blob_sha1", policy.schema_source_blob_sha1.as_str()),
-        ("taxonomy_source_blob_sha1", policy.taxonomy_source_blob_sha1.as_str()),
+        (
+            "schema_source_blob_sha1",
+            policy.schema_source_blob_sha1.as_str(),
+        ),
+        (
+            "taxonomy_source_blob_sha1",
+            policy.taxonomy_source_blob_sha1.as_str(),
+        ),
     ] {
         if hash.len() != 40 || !hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err(format!("policy {label} must be a 40-character Git blob SHA-1"));
+            return Err(format!(
+                "policy {label} must be a 40-character Git blob SHA-1"
+            ));
         }
     }
     if policy.routing_violation_types.is_empty() {
