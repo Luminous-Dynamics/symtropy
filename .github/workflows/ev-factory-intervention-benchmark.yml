@@ -52,15 +52,16 @@ jobs:
         run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
       - name: Evaluate synthetic set-based measurement value
         run: |
-          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json
-          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_value_of_information -- \
-            tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json > ev-factory-voi-report.json
-          jq -e '
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_value_of_information_v0_1.json
+          jq empty "$FIXTURE"
+          EXPECTED_SHA256=$(sha256sum "$FIXTURE" | cut -d' ' -f1)
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_value_of_information -- "$FIXTURE" > ev-factory-voi-report.json
+          jq -e --arg digest "$EXPECTED_SHA256" '
             .benchmark_id == "EV-FACTORY-VOI-001"
             and .scenario_count == 4
             and .action_count == 4
             and .measurement_count == 4
-            and .source_fixture_sha256 != null
+            and .source_fixture_sha256 == $digest
             and .no_information_policy.worst_case_regret_units_per_hour > 0
             and .scenario_probabilities_used == false
             and .expected_value_reported == false
