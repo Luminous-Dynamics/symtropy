@@ -15,11 +15,12 @@ It is not universal: contact state, plasticity, geometric nonlinearity, follower
 
 The manifest binds the exact baseline and scaled request SHA-256 values. It names the case, scale factor, shared absolute and relative tolerances and exact output pairs. Every required output kind must be covered; each selected output must be unique, receipt-declared, byte-verified and normalized with exact request/scene identity.
 
-Each output pair declares `scaling_exponent`:
-- `1`: linear response, for example displacement, stress, strain or reaction resultants;
-- `2`: quadratic response under the same linear-elastic assumptions, for example strain energy when derived from the same linear system.
+The v0.1 contract binds allowed output kinds to exponents:
+- `displacement`, `stress`, `reaction_force`, `reaction_moment` require exponent `1`;
+- `energy_balance` requires exponent `2` under the narrow linear-static model envelope;
+- other output kinds or kind/exponent combinations are rejected as unsupported.
 
-The assessor permits only exponents 1 and 2; it does not infer an exponent from an output name, unit or solver label. Callers are responsible for selecting the physically correct relation for the named observables.
+This mapping is enforced by both Rust and the JSON schema, instead of trusting a caller-selected exponent. The normalized values still need correct semantic meaning; a dishonest or incorrect producer can emit mislabeled values that satisfy a relation. That is why this check complements, rather than replaces, independent analytical references and load/reaction equilibrium.
 
 For a baseline observable (q) and load factor (alpha>0), the checked relation is:
 
