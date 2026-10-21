@@ -2134,6 +2134,117 @@ mod tests {
     }
 
     #[test]
+    fn lifecycle_ledger_replays_terminal_counts_lead_time_and_first_pass_yield() {
+        let catalog = fixture();
+        let report = evaluate_catalog(&catalog).expect("lifecycle fixture simulation");
+        let baseline = report.scenarios.iter()
+            .find(|scenario| scenario.scenario_id == "baseline")
+            .expect("primary seed baseline");
+        let ledger = &baseline.job_lifecycle_events;
+        assert!(!ledger.is_empty());
+        assert_eq!(baseline.job_lifecycle_summary.event_count_in_ledger, ledger.len());
+        assert!(ledger.iter().all(|event| {
+            event.schema_version == "0.1.0"
+                && event.seed == report.seed
+                && event.scenario_id == "baseline"
+                && event.evidence_class == "synthetic"
+        }));
+        assert!(ledger.windows(2).all(|pair| {
+            pair[0].timestamp_seconds <= pair[1].timestamp_seconds
+                && pair[0].event_sequence < pair[1].event_sequence
+        }));
+        assert!(ledger.iter().enumerate().all(|(i, event)| event.event_sequence == i as u64));
+
+        let mut releases = BTreeMap::<u64, u64>::new();
+        let mut terminal_counts = BTreeMap::<u64, u32>::new();
+        let mut lead_times = Vec::<f64>::new();
+        let mut first_starts = BTreeMap::<(u64, String), u64>::new();
+        let mut first_outcomes = BTreeMap::<(u64, String), bool>::new();
+        for event in ledger {
+            match event.kind {
+                JobLifecycleEventKind::JobRelease => {
+                    assert!(releases.insert(event.job_id, event.timestamp_seconds).is_none());
+                }
+                JobLifecycleEventKind::FinalGoodCompletion => {
+                    *terminal_counts.entry(event.job_id).or_default() += 1;
+                    let released_at = *releases.get(&event.job_id).expect("release precedes completion");
+                    assert!(event.timestamp_seconds >= released_at);
+                    if released_at >= catalog.warmup_seconds {
+                        lead_times.push((event.timestamp_seconds - released_at) as f64);
+                    }
+                }
+                JobLifecycleEventKind::JobScrapped | JobLifecycleEventKind::JobCensoredAtHorizon => {
+                    *terminal_counts.entry(event.job_id).or_default() += 1;
+                }
+                JobLifecycleEventKind::StationStart if event.attempt_number == Some(1) => {
+                    first_starts.insert(
+                        (event.job_id, event.station_id.clone().expect("start station")),
+                        event.timestamp_seconds,
+                    );
+                }
+                JobLifecycleEventKind::QualityPass | JobLifecycleEventKind::QualityFail
+                    if event.attempt_number == Some(1) =>
+                {
+                    let station_id = event.station_id.clone().expect("quality station");
+                    first_outcomes.insert(
+                        (event.job_id, station_id),
+                        event.kind == JobLifecycleEventKind::QualityPass,
+                    );
+                }
+                _ => {}
+            }
+        }
+        assert_eq!(releases.len() as u64, baseline.released_jobs_total);
+        assert!(releases.keys().all(|job_id| terminal_counts.get(job_id) == Some(&1)));
+        assert_eq!(terminal_counts.len(), releases.len());
+
+        let summary = &baseline.job_lifecycle_summary;
+        assert_eq!(
+            summary.eligible_released_jobs_after_warmup,
+            summary.accepted_good_jobs_in_cohort
+                + summary.scrapped_jobs_in_cohort
+                + summary.right_censored_jobs_at_horizon
+        );
+        let lead_summary = summary.good_job_lead_time_seconds.as_ref().expect("good lead times");
+        let recomputed_leads = summarize_distribution(&lead_times).expect("ledger-derived lead times");
+        assert_eq!(lead_summary.sample_count, recomputed_leads.sample_count);
+        assert!((lead_summary.mean - recomputed_leads.mean).abs() < 1e-12);
+        assert!((lead_summary.median - recomputed_leads.median).abs() < 1e-12);
+        assert!((lead_summary.p95 - recomputed_leads.p95).abs() < 1e-12);
+
+        for station_summary in &summary.station_first_pass_yield {
+            let station_id = station_summary.station_id.clone();
+            let eligible_starts: Vec<_> = first_starts.iter()
+                .filter(|((_, station), timestamp)| station == &station_id
+                    && **timestamp >= catalog.warmup_seconds)
+                .map(|(key, _)| key)
+                .collect();
+            let outcomes: Vec<bool> = eligible_starts.iter()
+                .filter_map(|key| first_outcomes.get(*key).copied())
+                .collect();
+            let passed = outcomes.iter().filter(|passed| **passed).count() as u64;
+            let failed = outcomes.len() as u64 - passed;
+            assert_eq!(
+                station_summary.first_attempts_started_in_cohort,
+                eligible_starts.len() as u64
+            );
+            assert_eq!(station_summary.first_attempts_with_observed_outcome, outcomes.len() as u64);
+            assert_eq!(station_summary.first_attempt_passed, passed);
+            assert_eq!(station_summary.first_attempt_failed, failed);
+            assert_eq!(
+                station_summary.unresolved_first_attempts_at_horizon,
+                eligible_starts.len() as u64 - outcomes.len() as u64
+            );
+            let expected_yield = if outcomes.is_empty() {
+                None
+            } else {
+                Some(passed as f64 / outcomes.len() as f64)
+            };
+            assert_eq!(station_summary.observed_first_pass_yield_fraction, expected_yield);
+        }
+    }
+
+    #[test]
     fn sequence_metrics_are_reported_at_the_buffer_transfer_boundary() {
         let report = evaluate_catalog(&fixture()).expect("replicated simulation");
         assert_eq!(
