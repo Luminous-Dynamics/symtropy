@@ -255,14 +255,14 @@ fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> boo
 
 /// Convert an objective into a minimization coordinate without retaining signed zero.
 fn minimization_coordinate(objective: &ObjectiveObservation) -> f64 {
-    let value = if objective.value == 0.0 {
+    let coordinate = match objective.direction {
+        ObjectiveDirection::Minimize => objective.value,
+        ObjectiveDirection::Maximize => -objective.value,
+    };
+    if coordinate == 0.0 {
         0.0
     } else {
-        objective.value
-    };
-    match objective.direction {
-        ObjectiveDirection::Minimize => value,
-        ObjectiveDirection::Maximize => -value,
+        coordinate
     }
 }
 
@@ -342,6 +342,180 @@ fn two_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<St
     dominators
 }
 
+#[derive(Clone, Copy, Debug)]
+struct SweepPoint3<'a> {
+    id: &'a str,
+    x: f64,
+    y: f64,
+    z: f64,
+}
+
+fn minimum_z_witness(
+    left: usize,
+    right: usize,
+    points: &[SweepPoint3<'_>],
+) -> usize {
+    match points[left].z.total_cmp(&points[right].z) {
+        std::cmp::Ordering::Less => left,
+        std::cmp::Ordering::Greater => right,
+        std::cmp::Ordering::Equal => {
+            if points[left].id <= points[right].id {
+                left
+            } else {
+                right
+            }
+        }
+    }
+}
+
+fn fenwick_update(
+    tree: &mut [Option<usize>],
+    y_index: usize,
+    point_index: usize,
+    points: &[SweepPoint3<'_>],
+) {
+    let mut index = y_index + 1;
+    while index < tree.len() {
+        tree[index] = Some(match tree[index] {
+            Some(existing) => minimum_z_witness(existing, point_index, points),
+            None => point_index,
+        });
+        let low_bit = index & (!index + 1);
+        index += low_bit;
+    }
+}
+
+fn fenwick_query(
+    tree: &[Option<usize>],
+    y_index: usize,
+    points: &[SweepPoint3<'_>],
+) -> Option<usize> {
+    let mut index = y_index + 1;
+    let mut best = None;
+    while index > 0 {
+        if let Some(candidate) = tree[index] {
+            best = Some(match best {
+                Some(existing) => minimum_z_witness(existing, candidate, points),
+                None => candidate,
+            });
+        }
+        index &= index - 1;
+    }
+    best
+}
+
+/// Find exact three-dimensional dominance witnesses in O(n log n).
+///
+/// All coordinates are transformed to minimization coordinates. The Fenwick
+/// tree captures candidates from strictly earlier x groups; equal-x groups
+/// are handled separately so an identical point never dominates its duplicate.
+/// The tree stores the minimum z witness for each y prefix, breaking ties by ID.
+fn three_dimensional_dominators(
+    rankable: &[RankableCandidate<'_>],
+) -> BTreeMap<String, String> {
+    let mut points = rankable
+        .iter()
+        .map(|candidate| SweepPoint3 {
+            id: candidate.candidate.candidate_id.as_str(),
+            x: minimization_coordinate(candidate.objectives[0]),
+            y: minimization_coordinate(candidate.objectives[1]),
+            z: minimization_coordinate(candidate.objectives[2]),
+        })
+        .collect::<Vec<_>>();
+    points.sort_by(|left, right| {
+        left.x
+            .total_cmp(&right.x)
+            .then_with(|| left.y.total_cmp(&right.y))
+            .then_with(|| left.z.total_cmp(&right.z))
+            .then_with(|| left.id.cmp(right.id))
+    });
+
+    let mut y_coordinates = points.iter().map(|point| point.y).collect::<Vec<_>>();
+    y_coordinates.sort_by(f64::total_cmp);
+    y_coordinates.dedup_by(|left, right| *left == *right);
+    let mut tree = vec![None; y_coordinates.len() + 1];
+    let mut dominators = BTreeMap::new();
+    let mut x_start = 0;
+
+    while x_start < points.len() {
+        let group_x = points[x_start].x;
+        let mut x_end = x_start + 1;
+        while x_end < points.len() && points[x_end].x == group_x {
+            x_end += 1;
+        }
+
+        // Earlier x groups strictly improve x, so y <= and z <= are enough
+        // to establish dominance for every point in the current group.
+        for point_index in x_start..x_end {
+            let point = points[point_index];
+            let y_index = y_coordinates
+                .binary_search_by(|value| value.total_cmp(&point.y))
+                .expect("every point y coordinate is in the compressed index");
+            if let Some(witness_index) = fenwick_query(&tree, y_index, &points) {
+                if points[witness_index].z <= point.z {
+                    dominators.insert(
+                        point.id.to_owned(),
+                        points[witness_index].id.to_owned(),
+                    );
+                }
+            }
+        }
+
+        // Within equal x, a point from a lower y group dominates when its
+        // z is no worse. Inside an equal-y group, only a strictly lower z
+        // dominates; exact duplicates remain tied and both stay eligible.
+        let mut y_start = x_start;
+        let mut prefix_min_z: Option<usize> = None;
+        while y_start < x_end {
+            let group_y = points[y_start].y;
+            let mut y_end = y_start + 1;
+            while y_end < x_end && points[y_end].y == group_y {
+                y_end += 1;
+            }
+            let same_y_min_z = y_start;
+            for point_index in y_start..y_end {
+                let point = points[point_index];
+                if dominators.contains_key(point.id) {
+                    continue;
+                }
+                if let Some(witness_index) = prefix_min_z {
+                    if points[witness_index].z <= point.z {
+                        dominators.insert(
+                            point.id.to_owned(),
+                            points[witness_index].id.to_owned(),
+                        );
+                        continue;
+                    }
+                }
+                if points[same_y_min_z].z < point.z {
+                    dominators.insert(
+                        point.id.to_owned(),
+                        points[same_y_min_z].id.to_owned(),
+                    );
+                }
+            }
+            prefix_min_z = Some(match prefix_min_z {
+                Some(previous) => minimum_z_witness(previous, same_y_min_z, &points),
+                None => same_y_min_z,
+            });
+            y_start = y_end;
+        }
+
+        // Defer inserts until the whole x group has been queried, so equal-x
+        // points are not mistakenly treated as strictly better in x.
+        for point_index in x_start..x_end {
+            let point = points[point_index];
+            let y_index = y_coordinates
+                .binary_search_by(|value| value.total_cmp(&point.y))
+                .expect("every point y coordinate is in the compressed index");
+            fenwick_update(&mut tree, y_index, point_index, &points);
+        }
+        x_start = x_end;
+    }
+
+    dominators
+}
+
 /// Compute a Pareto frontier without scalarizing objectives.
 ///
 /// Only alternatives marked Verified by the caller's independent verifier can
@@ -356,10 +530,10 @@ fn two_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<St
 /// this function invents neither weights nor tolerances. Callers must define
 /// units, evidence-admission rules, and any justified normalization upstream.
 ///
-/// Two-objective inputs use an O(n log n) sweep-line frontier. Higher-dimensional
-/// inputs use worst-case quadratic comparison time. Only one dominance witness
-/// is stored per excluded candidate, keeping output memory linear in candidate
-/// count.
+/// Two- and three-objective inputs use exact O(n log n) sweep-line frontiers.
+/// Inputs with more than three objective dimensions use worst-case quadratic
+/// comparison. Only one dominance witness is stored per excluded candidate,
+/// keeping output memory linear in candidate count.
 ///
 /// This function checks digest shape but does not authenticate digests or
 /// receipts. The claim of independent verification originates outside this
@@ -445,15 +619,19 @@ pub fn compute_pareto_frontier(
         }
     }
 
-    let two_dimensional = rankable
+    let objective_count = rankable
         .first()
-        .is_some_and(|candidate| candidate.objectives.len() == 2);
-    let sweep_dominators = two_dimensional.then(|| two_dimensional_dominators(&rankable));
+        .map_or(0, |candidate| candidate.objectives.len());
+    let sweep_dominators = match objective_count {
+        2 => Some(two_dimensional_dominators(&rankable)),
+        3 => Some(three_dimensional_dominators(&rankable)),
+        _ => None,
+    };
 
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        // Two-objective inputs use the sweep result; higher-dimensional inputs
-        // retain the general pairwise verifier. Neither path invents weights.
+        // Two/three-objective inputs use an exact sweep result; higher-dimensional
+        // inputs retain the independent pairwise fallback. No weights are invented.
         let first_dominator = if let Some(dominators) = &sweep_dominators {
             dominators.get(&candidate.candidate.candidate_id).cloned()
         } else {
