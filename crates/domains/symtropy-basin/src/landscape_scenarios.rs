@@ -379,7 +379,11 @@ impl LandscapeScenarioManifest {
             &mut violations,
         );
         if let Some(reference) = &self.evaluation_plan {
-            validate_sha256(&reference.sha256, "$.evaluation_plan.sha256", &mut violations);
+            validate_sha256(
+                &reference.sha256,
+                "$.evaluation_plan.sha256",
+                &mut violations,
+            );
             if reference.schema != EVALUATION_PLAN_SCHEMA {
                 violations.push(ContractViolation::new(
                     "evaluation-plan-schema-unsupported",
@@ -690,7 +694,13 @@ mod tests {
             schema["$defs"]["evaluationPlanRef"]["properties"]["schema_uri"]["const"],
             EVALUATION_PLAN_SCHEMA_URI
         );
-        assert!(schema["properties"]["evaluation_plan"]["oneOf"].as_array().unwrap().len() == 2);
+        assert!(
+            schema["properties"]["evaluation_plan"]["oneOf"]
+                .as_array()
+                .unwrap()
+                .len()
+                == 2
+        );
         for purpose in ["schema-qualification", "synthetic-benchmark"] {
             assert!(
                 schema["properties"]["purpose"]["enum"]
@@ -737,7 +747,11 @@ mod tests {
         let errors = manifest
             .validate_against_inputs(&snapshot_bytes, b"boundary-conditions-v0-empty")
             .unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-bytes-required"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-bytes-required")
+        );
     }
 
     #[test]
@@ -754,11 +768,19 @@ mod tests {
             .validate_against_evaluation_plan(
                 &snapshot_bytes,
                 b"boundary-conditions-v0-empty",
-                &changed_bytes
+                &changed_bytes,
             )
             .unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-digest-mismatch"));
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-id-mismatch"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-digest-mismatch")
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-id-mismatch")
+        );
     }
 
     #[test]
@@ -766,7 +788,8 @@ mod tests {
         let snapshot_bytes = snapshot(SCHEMATIC_GEOMETRY_STATUS);
         let (mut reference, plan_bytes) = evaluation_plan_for_snapshot(&snapshot_bytes);
         let mut changed_plan: Value = serde_json::from_slice(&plan_bytes).unwrap();
-        changed_plan["project_snapshot_sha256"] = json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        changed_plan["project_snapshot_sha256"] =
+            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         changed_plan["project_scope"] = json!("watershed");
         let changed_bytes = serde_json::to_vec(&changed_plan).unwrap();
         reference.sha256 = sha256_hex(&changed_bytes);
@@ -777,11 +800,19 @@ mod tests {
             .validate_against_evaluation_plan(
                 &snapshot_bytes,
                 b"boundary-conditions-v0-empty",
-                &changed_bytes
+                &changed_bytes,
             )
             .unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-snapshot-mismatch"));
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-scope-mismatch"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-snapshot-mismatch")
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-scope-mismatch")
+        );
     }
 
     #[test]
@@ -796,7 +827,11 @@ mod tests {
                 &plan_bytes
             )
             .unwrap_err();
-        assert!(errors.iter().any(|error| error.code == "evaluation-plan-reference-required"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "evaluation-plan-reference-required")
+        );
     }
 
     #[test]
