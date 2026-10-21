@@ -497,8 +497,18 @@ impl PolicyState {
                 // look non-pivotal while the other claims remain completely unknown.
                 // Guarantee one relevant observation per query claim before testing the
                 // myopic stop rule, rather than stopping immediately at the symmetric prior.
-                if let Some(index) = self.relevant_counts.iter().position(|count| *count == 0) {
-                    index
+                if self.relevant_counts.iter().any(|count| *count == 0) {
+                    // First try every as-yet-unrequested query claim. If an observation is
+                    // diverted to a distractor, retry the least-requested missing claim
+                    // rather than starving the other claims with repeated attempts on index 0.
+                    let scores = std::array::from_fn(|index| {
+                        if self.relevant_counts[index] == 0 {
+                            -(self.requested_counts[index] as f64)
+                        } else {
+                            f64::NEG_INFINITY
+                        }
+                    });
+                    Self::tie_break(scores, tick)
                 } else {
                     let scores = self.expected_task_loss_reduction_scores(tick);
                     let best_marginal_value = scores.iter().copied().fold(0.0_f64, f64::max);
@@ -1346,6 +1356,34 @@ mod tests {
             });
         }
         assert_eq!(free.relevant_counts, [1; QUERY_COUNT]);
+    }
+
+    #[test]
+    fn marginal_value_explores_unrequested_claims_before_retrying_a_distractor() {
+        let mut state = PolicyState::new(PolicyKind::MarginalValueStop, 18);
+        state.stop_cost_per_observation = 0.25;
+
+        let first = state.choose_action(0);
+        assert_eq!(first, 0);
+        state.observe(first, Evidence {
+            key: 3, // evaluator-generated hot distractor: does not satisfy the floor
+            value: false,
+            source_tick: 0,
+            arrival_tick: 0,
+            confidence: 950,
+        });
+
+        let second = state.choose_action(1);
+        assert_eq!(second, 1);
+        state.observe(second, Evidence {
+            key: QUERY_KEYS[second] as u8,
+            value: true,
+            source_tick: 1,
+            arrival_tick: 1,
+            confidence: 950,
+        });
+        let third = state.choose_action(2);
+        assert_eq!(third, 2);
     }
 
     #[test]
