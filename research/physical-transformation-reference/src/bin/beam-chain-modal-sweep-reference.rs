@@ -176,7 +176,7 @@ fn run() -> Result<String, String> {
             "\"isolated_mode_max_relative_frequency_gap\":{},",
             "\"isolated_mode_minimum_mac\":{},",
             "\"isolated_assignment_algorithm\":\"Hungarian max-total-MAC within hard gates\",",
-            "\"mesh_results\":[{}],
+            "\"mesh_results\":[{}],"
             "\"claim_ceiling\":\"one-element to eight-elements-per-member synthetic Euler-Bernoulli model only; not a mesh-converged NBC05 200-element beam model, physical validation, structural safety or code compliance\"",
             "}}"
         ),
