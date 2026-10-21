@@ -1,0 +1,601 @@
+use crate::{sha256_hex, DatasetManifest, MANIFEST_SCHEMA};
+use csv::StringRecord;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+
+pub const PCBWORLD_CSV_RECEIPT_SCHEMA: &str = "pcbworld-per-rollout-import-receipt-v0.1";
+const REQUIRED_COLUMNS: &[&str] = &[
+    "board_id",
+    "rollout_idx",
+    "seed",
+    "status",
+    "success",
+    "clean_pass",
+    "routability",
+    "wirelength_mm",
+    "via_count",
+    "track_count",
+    "drv_errors_only_count",
+    "drv_errors_and_promoted_count",
+    "final_potential",
+    "initial_potential",
+    "potential_gain",
+    "reward_config",
+    "check_angle",
+    "eval_status",
+];
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PcbWorldDrcViolation {
+    pub severity_label: String,
+    pub severity: u32,
+    pub error_code: u32,
+    pub error_type: String,
+    pub x_mm: f64,
+    pub y_mm: f64,
+    pub layer: i64,
+    pub net_names: Vec<String>,
+    pub is_error: bool,
+    pub is_promoted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PcbWorldReferenceMetrics {
+    /// PCBWorld's published connectivity metric. This is not an independent DRC result.
+    pub success: Option<bool>,
+    /// PCBWorld's published clean_pass: success and zero ERROR-severity DRCs.
+    /// It does not necessarily require zero promoted warnings.
+    pub clean_pass: Option<bool>,
+    pub routability: Option<f64>,
+    pub ratsnest_reduction: Option<f64>,
+    pub unrouted_count: Option<u32>,
+    pub initial_unconnected: Option<u32>,
+    pub wirelength_mm: Option<f64>,
+    pub via_count: Option<u32>,
+    pub track_count: Option<u32>,
+    pub drc_violations: Option<u32>,
+    pub drv_errors_only_count: Option<u32>,
+    pub drv_errors_and_promoted_count: Option<u32>,
+    pub track_angle_drv_count: Option<u32>,
+    pub total_drv_count: Option<u32>,
+    pub initial_unrouted_edges: Option<u32>,
+    pub unrouted_edges_remaining: Option<u32>,
+    pub final_potential: Option<f64>,
+    pub initial_potential: Option<f64>,
+    pub potential_gain: Option<f64>,
+    pub per_board_rollout_time_secs: Option<f64>,
+    pub eval_time_secs: Option<f64>,
+    pub eval_status: Option<String>,
+    pub reward_config: Option<String>,
+    pub check_angle: Option<u32>,
+    /// Present only when the source CSV actually includes a serialized violation list.
+    pub drv_violations: Option<Vec<PcbWorldDrcViolation>>,
+    /// False flags a potential-gain arithmetic inconsistency; values are preserved.
+    pub potential_gain_consistent: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PcbWorldRolloutRow {
+    pub board_id: String,
+    pub rollout_idx: u32,
+    pub seed: Option<i64>,
+    pub checkpoint: Option<String>,
+    pub status: String,
+    pub artifact_path_present: bool,
+    pub reference_metrics: PcbWorldReferenceMetrics,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PcbWorldCsvSummary {
+    pub rows_attempted: usize,
+    pub unique_boards: usize,
+    pub rows_completed: usize,
+    pub rows_crashed: usize,
+    pub rows_truncated: usize,
+    pub rows_skipped: usize,
+    pub rows_with_success_metric: usize,
+    pub rows_with_clean_pass_metric: usize,
+    pub success_attempts: usize,
+    pub clean_pass_attempts: usize,
+    pub success_rate_over_all_rows: f64,
+    pub clean_pass_rate_over_all_rows: f64,
+    pub rows_with_routability: usize,
+    pub mean_routability_over_recorded_rows: Option<f64>,
+    pub rows_with_error_only_drc_count: usize,
+    pub error_only_drc_total: u64,
+    pub rows_with_promoted_drc_count: usize,
+    pub error_and_promoted_drc_total: u64,
+    pub rows_missing_reward_config: usize,
+    pub rows_missing_check_angle: usize,
+    pub scoring_policy_variants: Vec<String>,
+    pub potential_gain_inconsistency_rows: usize,
+    pub rows_with_serialized_drc_violations: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PcbWorldCsvImportReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub input_csv_sha256: String,
+    pub dataset_manifest_sha256: String,
+    pub dataset_id: String,
+    pub split_id: String,
+    pub source_board_count: usize,
+    pub row_count: usize,
+    pub summary: PcbWorldCsvSummary,
+    pub rows: Vec<PcbWorldRolloutRow>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
+/// Import the upstream per-rollout CSV while preserving its published metric semantics.
+/// This function does not infer a clean board from a CSV self-label; the source's
+/// clean_pass is retained independently of the evaluator's stricter route disposition.
+pub fn import_pcbworld_per_rollout_csv(
+    csv_bytes: &[u8],
+    manifest_bytes: &[u8],
+    evaluator_git_head: &str,
+) -> Result<PcbWorldCsvImportReceipt, String> {
+    if !is_commit_sha(evaluator_git_head) {
+        return Err("evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into());
+    }
+
+    let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+    crate::validate_manifest(&manifest)?;
+    if manifest.schema != MANIFEST_SCHEMA {
+        return Err(format!("unsupported dataset manifest schema: {}", manifest.schema));
+    }
+
+    let mut reader = csv::ReaderBuilder::new()
+        .flexible(false)
+        .from_reader(csv_bytes);
+    let headers = reader
+        .headers()
+        .map_err(|error| format!("PCBWorld CSV header parse failed: {error}"))?
+        .clone();
+    let mut column_index = BTreeMap::new();
+    for (index, name) in headers.iter().enumerate() {
+        if name.trim().is_empty() {
+            return Err("PCBWorld CSV has an empty header name".into());
+        }
+        if column_index.insert(name.to_string(), index).is_some() {
+            return Err(format!("PCBWorld CSV has duplicate column name: {name}"));
+        }
+    }
+    let mut missing_columns: Vec<&str> = REQUIRED_COLUMNS
+        .iter()
+        .copied()
+        .filter(|name| !column_index.contains_key(*name))
+        .collect();
+    missing_columns.sort_unstable();
+    if !missing_columns.is_empty() {
+        return Err(format!(
+            "PCBWorld per-rollout CSV is missing required columns: {}",
+            missing_columns.join(", ")
+        ));
+    }
+
+    let source_board_ids: BTreeSet<String> =
+        manifest.boards.iter().map(|board| board.board_id.clone()).collect();
+    let mut seen_attempts: BTreeSet<(String, u32, Option<i64>)> = BTreeSet::new();
+    let mut observed_board_ids = BTreeSet::new();
+    let mut rows = Vec::new();
+
+    for (offset, record) in reader.records().enumerate() {
+        let row_number = offset + 2;
+        let record = record
+            .map_err(|error| format!("PCBWorld CSV row {row_number} is malformed: {error}"))?;
+        let board_id = required_text(&record, &column_index, "board_id", row_number)?;
+        if !source_board_ids.contains(&board_id) {
+            return Err(format!(
+                "PCBWorld CSV row {row_number} names board {board_id} outside the pinned manifest"
+            ));
+        }
+        let rollout_idx = required_u32(&record, &column_index, "rollout_idx", row_number)?;
+        let seed = optional_i64(&record, &column_index, "seed", row_number)?;
+        if !seen_attempts.insert((board_id.clone(), rollout_idx, seed)) {
+            return Err(format!(
+                "duplicate PCBWorld attempt key at row {row_number}: board={board_id}, rollout_idx={rollout_idx}, seed={seed:?}"
+            ));
+        }
+        observed_board_ids.insert(board_id.clone());
+
+        let status = required_text(&record, &column_index, "status", row_number)?;
+        let reference_metrics = parse_reference_metrics(&record, &column_index, row_number)?;
+        rows.push(PcbWorldRolloutRow {
+            board_id,
+            rollout_idx,
+            seed,
+            checkpoint: optional_text(&record, &column_index, "ckpt"),
+            status,
+            artifact_path_present: optional_text(&record, &column_index, "artifact_path").is_some(),
+            reference_metrics,
+        });
+    }
+
+    if rows.is_empty() {
+        return Err("PCBWorld per-rollout CSV has no data rows".into());
+    }
+    let missing_boards: Vec<String> = source_board_ids
+        .difference(&observed_board_ids)
+        .cloned()
+        .collect();
+    if !missing_boards.is_empty() {
+        return Err(format!(
+            "PCBWorld CSV omits {} pinned board(s), e.g. {}",
+            missing_boards.len(),
+            missing_boards.iter().take(5).cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+
+    // A cell must not silently mix scoring policies. Missing policy metadata is retained,
+    // but successful post-hoc scoring rows must declare their reward config and angle.
+    let mut policies = BTreeSet::new();
+    for row in &rows {
+        if row.reference_metrics.eval_status.as_deref() == Some("ok") {
+            let reward_config = row.reference_metrics.reward_config.as_deref().ok_or_else(|| {
+                format!("{} rollout {}: eval_status=ok but reward_config is missing", row.board_id, row.rollout_idx)
+            })?;
+            let check_angle = row.reference_metrics.check_angle.ok_or_else(|| {
+                format!("{} rollout {}: eval_status=ok but check_angle is missing", row.board_id, row.rollout_idx)
+            })?;
+            policies.insert(format!("{reward_config}|check_angle={check_angle}"));
+        }
+    }
+    if policies.len() > 1 {
+        return Err(format!(
+            "PCBWorld CSV mixes DRC scoring policies in one import: {}",
+            policies.into_iter().collect::<Vec<_>>().join(", ")
+        ));
+    }
+
+    rows.sort_by(|left, right| {
+        left.board_id
+            .cmp(&right.board_id)
+            .then_with(|| left.rollout_idx.cmp(&right.rollout_idx))
+            .then_with(|| left.seed.cmp(&right.seed))
+    });
+    let summary = summarize(&rows);
+    Ok(PcbWorldCsvImportReceipt {
+        schema: PCBWORLD_CSV_RECEIPT_SCHEMA.into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        input_csv_sha256: sha256_hex(csv_bytes),
+        dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        dataset_id: manifest.dataset_id,
+        split_id: manifest.split_id,
+        source_board_count: source_board_ids.len(),
+        row_count: rows.len(),
+        summary,
+        rows,
+        authority: "pinned_pcbworld_per_rollout_metric_import_only_no_independent_router_or_physical_claim".into(),
+        claim_ceiling: "This receipt preserves published PCBWorld per-rollout fields and the source CSV byte digest. The source clean_pass is PCBWorld's success-plus-zero-error-severity definition; it is not interchangeable with this project's stricter route-validity predicate. It does not independently validate raw PCB bytes, source licenses, native DRC execution, signal/power integrity, manufacturability, physical quality or production release.".into(),
+    })
+}
+
+fn parse_reference_metrics(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    row_number: usize,
+) -> Result<PcbWorldReferenceMetrics, String> {
+    let value = |name: &str| -> Option<&str> {
+        columns.get(name).and_then(|index| record.get(*index))
+    };
+    let success = parse_optional_bool(value("success"), "success", row_number)?;
+    let clean_pass = parse_optional_bool(value("clean_pass"), "clean_pass", row_number)?;
+    let routability = parse_optional_f64(value("routability"), "routability", row_number)?;
+    if routability.is_some_and(|number| !(0.0..=1.0).contains(&number)) {
+        return Err(format!("PCBWorld CSV row {row_number}: routability must be within [0,1]"));
+    }
+    let drv_errors_only_count =
+        parse_optional_u32(value("drv_errors_only_count"), "drv_errors_only_count", row_number)?;
+    let drv_errors_and_promoted_count = parse_optional_u32(
+        value("drv_errors_and_promoted_count"),
+        "drv_errors_and_promoted_count",
+        row_number,
+    )?;
+
+    if let (Some(clean), Some(success_value), Some(error_count)) =
+        (clean_pass, success, drv_errors_only_count)
+    {
+        let expected_clean = success_value && error_count == 0;
+        if clean != expected_clean {
+            return Err(format!(
+                "PCBWorld CSV row {row_number}: clean_pass={clean} contradicts PCBWorld definition success && drv_errors_only_count==0"
+            ));
+        }
+    }
+
+    let drv_violations = match value("drv_violations") {
+        Some(cell) if !is_missing(cell) => {
+            let records: Vec<PcbWorldDrcViolation> = serde_json::from_str(cell).map_err(|error| {
+                format!("PCBWorld CSV row {row_number}: drv_violations JSON invalid: {error}")
+            })?;
+            validate_violation_counts(
+                &records,
+                drv_errors_only_count,
+                drv_errors_and_promoted_count,
+                row_number,
+            )?;
+            Some(records)
+        }
+        _ => None,
+    };
+
+    let final_potential = parse_optional_f64(value("final_potential"), "final_potential", row_number)?;
+    let initial_potential =
+        parse_optional_f64(value("initial_potential"), "initial_potential", row_number)?;
+    let potential_gain = parse_optional_f64(value("potential_gain"), "potential_gain", row_number)?;
+    let potential_gain_consistent = match (final_potential, initial_potential, potential_gain) {
+        (Some(final_value), Some(initial_value), Some(gain)) => {
+            Some((gain - (final_value - initial_value)).abs() <= 1e-4_f64.max(final_value.abs() * 1e-6))
+        }
+        _ => None,
+    };
+    let check_angle = parse_optional_u32(value("check_angle"), "check_angle", row_number)?;
+    if check_angle.is_some_and(|angle| !matches!(angle, 45 | 90)) {
+        return Err(format!("PCBWorld CSV row {row_number}: check_angle must be 45 or 90"));
+    }
+
+    Ok(PcbWorldReferenceMetrics {
+        success,
+        clean_pass,
+        routability,
+        ratsnest_reduction: parse_optional_f64(
+            value("ratsnest_reduction"),
+            "ratsnest_reduction",
+            row_number,
+        )?,
+        unrouted_count: parse_optional_u32(value("unrouted_count"), "unrouted_count", row_number)?,
+        initial_unconnected: parse_optional_u32(
+            value("initial_unconnected"),
+            "initial_unconnected",
+            row_number,
+        )?,
+        wirelength_mm: nonnegative_f64(value("wirelength_mm"), "wirelength_mm", row_number)?,
+        via_count: parse_optional_u32(value("via_count"), "via_count", row_number)?,
+        track_count: parse_optional_u32(value("track_count"), "track_count", row_number)?,
+        drc_violations: parse_optional_u32(value("drc_violations"), "drc_violations", row_number)?,
+        drv_errors_only_count,
+        drv_errors_and_promoted_count,
+        track_angle_drv_count: parse_optional_u32(
+            value("track_angle_drv_count"),
+            "track_angle_drv_count",
+            row_number,
+        )?,
+        total_drv_count: parse_optional_u32(value("total_drv_count"), "total_drv_count", row_number)?,
+        initial_unrouted_edges: parse_optional_u32(
+            value("initial_unrouted_edges"),
+            "initial_unrouted_edges",
+            row_number,
+        )?,
+        unrouted_edges_remaining: parse_optional_u32(
+            value("unrouted_edges_remaining"),
+            "unrouted_edges_remaining",
+            row_number,
+        )?,
+        final_potential,
+        initial_potential,
+        potential_gain,
+        per_board_rollout_time_secs: nonnegative_f64(
+            value("per_board_rollout_time"),
+            "per_board_rollout_time",
+            row_number,
+        )?,
+        eval_time_secs: nonnegative_f64(value("eval_time_sec"), "eval_time_sec", row_number)?,
+        eval_status: optional_text(record, columns, "eval_status"),
+        reward_config: optional_text(record, columns, "reward_config"),
+        check_angle,
+        drv_violations,
+        potential_gain_consistent,
+    })
+}
+
+fn summarize(rows: &[PcbWorldRolloutRow]) -> PcbWorldCsvSummary {
+    let success_values: Vec<bool> = rows
+        .iter()
+        .filter_map(|row| row.reference_metrics.success)
+        .collect();
+    let clean_values: Vec<bool> = rows
+        .iter()
+        .filter_map(|row| row.reference_metrics.clean_pass)
+        .collect();
+    let routability: Vec<f64> = rows
+        .iter()
+        .filter_map(|row| row.reference_metrics.routability)
+        .collect();
+    let error_counts: Vec<u32> = rows
+        .iter()
+        .filter_map(|row| row.reference_metrics.drv_errors_only_count)
+        .collect();
+    let promoted_counts: Vec<u32> = rows
+        .iter()
+        .filter_map(|row| row.reference_metrics.drv_errors_and_promoted_count)
+        .collect();
+    let policies: BTreeSet<String> = rows
+        .iter()
+        .filter_map(|row| match (
+            row.reference_metrics.reward_config.as_deref(),
+            row.reference_metrics.check_angle,
+        ) {
+            (Some(config), Some(angle)) if row.reference_metrics.eval_status.as_deref() == Some("ok") => {
+                Some(format!("{config}|check_angle={angle}"))
+            }
+            _ => None,
+        })
+        .collect();
+
+    PcbWorldCsvSummary {
+        rows_attempted: rows.len(),
+        unique_boards: rows.iter().map(|row| row.board_id.as_str()).collect::<BTreeSet<_>>().len(),
+        rows_completed: rows.iter().filter(|row| row.status == "completed").count(),
+        rows_crashed: rows.iter().filter(|row| row.status == "crashed").count(),
+        rows_truncated: rows.iter().filter(|row| row.status == "truncated").count(),
+        rows_skipped: rows
+            .iter()
+            .filter(|row| row.status.starts_with("skipped"))
+            .count(),
+        rows_with_success_metric: success_values.len(),
+        rows_with_clean_pass_metric: clean_values.len(),
+        success_attempts: success_values.iter().filter(|value| **value).count(),
+        clean_pass_attempts: clean_values.iter().filter(|value| **value).count(),
+        success_rate_over_all_rows: success_values.iter().filter(|value| **value).count() as f64 / rows.len() as f64,
+        clean_pass_rate_over_all_rows: clean_values.iter().filter(|value| **value).count() as f64 / rows.len() as f64,
+        rows_with_routability: routability.len(),
+        mean_routability_over_recorded_rows: mean(&routability),
+        rows_with_error_only_drc_count: error_counts.len(),
+        error_only_drc_total: error_counts.iter().map(|value| u64::from(*value)).sum(),
+        rows_with_promoted_drc_count: promoted_counts.len(),
+        error_and_promoted_drc_total: promoted_counts.iter().map(|value| u64::from(*value)).sum(),
+        rows_missing_reward_config: rows.iter().filter(|row| row.reference_metrics.reward_config.is_none()).count(),
+        rows_missing_check_angle: rows.iter().filter(|row| row.reference_metrics.check_angle.is_none()).count(),
+        scoring_policy_variants: policies.into_iter().collect(),
+        potential_gain_inconsistency_rows: rows
+            .iter()
+            .filter(|row| row.reference_metrics.potential_gain_consistent == Some(false))
+            .count(),
+        rows_with_serialized_drc_violations: rows
+            .iter()
+            .filter(|row| row.reference_metrics.drv_violations.is_some())
+            .count(),
+    }
+}
+
+fn validate_violation_counts(
+    records: &[PcbWorldDrcViolation],
+    error_only: Option<u32>,
+    error_and_promoted: Option<u32>,
+    row_number: usize,
+) -> Result<(), String> {
+    if records.iter().any(|record| {
+        !record.x_mm.is_finite()
+            || !record.y_mm.is_finite()
+            || record.severity_label.trim().is_empty()
+            || record.error_type.trim().is_empty()
+    }) {
+        return Err(format!("PCBWorld CSV row {row_number}: DRC violation list contains invalid fields"));
+    }
+    let actual_error_only = records.iter().filter(|record| record.is_error).count() as u32;
+    let actual_error_and_promoted = records.iter().filter(|record| record.is_promoted).count() as u32;
+    if error_only.is_some_and(|value| value != actual_error_only) {
+        return Err(format!("PCBWorld CSV row {row_number}: serialized DRC violation list disagrees with error-only count"));
+    }
+    if error_and_promoted.is_some_and(|value| value != actual_error_and_promoted) {
+        return Err(format!("PCBWorld CSV row {row_number}: serialized DRC violation list disagrees with promoted-warning count"));
+    }
+    Ok(())
+}
+
+fn required_text(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    name: &str,
+    row_number: usize,
+) -> Result<String, String> {
+    optional_text(record, columns, name)
+        .ok_or_else(|| format!("PCBWorld CSV row {row_number}: {name} must not be empty"))
+}
+
+fn optional_text(record: &StringRecord, columns: &BTreeMap<String, usize>, name: &str) -> Option<String> {
+    let value = columns.get(name).and_then(|index| record.get(*index))?.trim();
+    if is_missing(value) { None } else { Some(value.to_string()) }
+}
+
+fn required_u32(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    name: &str,
+    row_number: usize,
+) -> Result<u32, String> {
+    optional_u32(record, columns, name, row_number)?
+        .ok_or_else(|| format!("PCBWorld CSV row {row_number}: {name} must not be empty"))
+}
+
+fn optional_u32(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<u32>, String> {
+    parse_optional_u32(columns.get(name).and_then(|index| record.get(*index)), name, row_number)
+}
+
+fn optional_i64(
+    record: &StringRecord,
+    columns: &BTreeMap<String, usize>,
+    name: &str,
+    row_number: usize,
+) -> Result<Option<i64>, String> {
+    let Some(value) = columns.get(name).and_then(|index| record.get(*index)) else {
+        return Ok(None);
+    };
+    if is_missing(value) { return Ok(None); }
+    value.trim().parse::<i64>().map(Some).map_err(|error| {
+        format!("PCBWorld CSV row {row_number}: {name} integer parse failed for {value:?}: {error}")
+    })
+}
+
+fn parse_optional_bool(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<bool>, String> {
+    let Some(value) = value else { return Ok(None); };
+    let value = value.trim().to_ascii_lowercase();
+    if is_missing(&value) { return Ok(None); }
+    match value.as_str() {
+        "true" | "1" => Ok(Some(true)),
+        "false" | "0" => Ok(Some(false)),
+        _ => Err(format!("PCBWorld CSV row {row_number}: {name} boolean parse failed for {value:?}")),
+    }
+}
+
+fn parse_optional_u32(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<u32>, String> {
+    let Some(value) = value else { return Ok(None); };
+    let value = value.trim();
+    if is_missing(value) { return Ok(None); }
+    let parsed = value.parse::<f64>().map_err(|error| {
+        format!("PCBWorld CSV row {row_number}: {name} numeric parse failed for {value:?}: {error}")
+    })?;
+    if !parsed.is_finite() || parsed < 0.0 || parsed.fract() != 0.0 || parsed > u32::MAX as f64 {
+        return Err(format!("PCBWorld CSV row {row_number}: {name} must be a non-negative integer, got {value:?}"));
+    }
+    Ok(Some(parsed as u32))
+}
+
+fn parse_optional_f64(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<f64>, String> {
+    let Some(value) = value else { return Ok(None); };
+    let value = value.trim();
+    if is_missing(value) { return Ok(None); }
+    let parsed = value.parse::<f64>().map_err(|error| {
+        format!("PCBWorld CSV row {row_number}: {name} numeric parse failed for {value:?}: {error}")
+    })?;
+    if !parsed.is_finite() {
+        return Ok(None);
+    }
+    Ok(Some(parsed))
+}
+
+fn nonnegative_f64(value: Option<&str>, name: &str, row_number: usize) -> Result<Option<f64>, String> {
+    let parsed = parse_optional_f64(value, name, row_number)?;
+    if parsed.is_some_and(|number| number < 0.0) {
+        return Err(format!("PCBWorld CSV row {row_number}: {name} cannot be negative"));
+    }
+    Ok(parsed)
+}
+
+fn is_missing(value: &str) -> bool {
+    let value = value.trim();
+    value.is_empty()
+        || matches!(value.to_ascii_lowercase().as_str(), "nan" | "none" | "null" | "na")
+}
+
+fn mean(values: &[f64]) -> Option<f64> {
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.iter().sum::<f64>() / values.len() as f64)
+    }
+}
+
+fn is_commit_sha(value: &str) -> bool {
+    matches!(value.len(), 40 | 64) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
