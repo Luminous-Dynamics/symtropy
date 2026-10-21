@@ -282,6 +282,57 @@ pub fn analyze_planar_modal_truss(
     })
 }
 
+/// Frozen geometry from NAFEMS Benchmark Challenge 5, Figure 1:
+/// two supports one metre apart vertically, with a free upper-right node;
+/// one horizontal and one diagonal pin-jointed bar, both radius 0.01 m.
+pub fn nafems_challenge5_reference_fixture() -> ModalTrussInput {
+    let radius_m = 0.01;
+    let area_m2 = std::f64::consts::PI * radius_m * radius_m;
+    ModalTrussInput {
+        nodes: vec![
+            ModalTrussNode {
+                id: "lower-support".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+            },
+            ModalTrussNode {
+                id: "upper-support".to_owned(),
+                x_m: 0.0,
+                y_m: 1.0,
+                restrained_x: true,
+                restrained_y: true,
+            },
+            ModalTrussNode {
+                id: "free".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrained_x: false,
+                restrained_y: false,
+            },
+        ],
+        bars: vec![
+            ModalTrussBar {
+                id: "diagonal".to_owned(),
+                node_i: "lower-support".to_owned(),
+                node_j: "free".to_owned(),
+                area_m2,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7_800.0,
+            },
+            ModalTrussBar {
+                id: "horizontal".to_owned(),
+                node_i: "upper-support".to_owned(),
+                node_j: "free".to_owned(),
+                area_m2,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7_800.0,
+            },
+        ],
+    }
+}
+
 fn validate_input(input: &ModalTrussInput) -> Check<BTreeMap<String, usize>> {
     if input.nodes.len() < 2 || input.nodes.len() > MAX_NODES {
         return Err(format!("node count must be between 2 and {MAX_NODES}"));
@@ -556,64 +607,13 @@ fn euclidean_norm(vector: &[f64]) -> f64 {
 mod tests {
     use super::{
         ModalModeClassification, ModalTrussBar, ModalTrussInput, ModalTrussMassFormulation,
-        ModalTrussNode, analyze_planar_modal_truss,
+        ModalTrussNode, analyze_planar_modal_truss, nafems_challenge5_reference_fixture,
     };
 
     const E: f64 = 200.0e9;
     const DENSITY: f64 = 7_800.0;
     const AREA_AC: f64 = 0.015811388300841896;
     const AREA_BC: f64 = 0.042426406871192854;
-
-    /// Frozen geometry from NAFEMS Benchmark Challenge 5, Figure 1:
-    /// two supports one metre apart vertically, with a free upper-right node;
-    /// one horizontal and one diagonal pin-jointed bar, both radius 0.01 m.
-    fn nafems_challenge5_single_element_truss() -> ModalTrussInput {
-        let radius_m = 0.01;
-        let area_m2 = std::f64::consts::PI * radius_m * radius_m;
-        ModalTrussInput {
-            nodes: vec![
-                ModalTrussNode {
-                    id: "lower-support".to_owned(),
-                    x_m: 0.0,
-                    y_m: 0.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                },
-                ModalTrussNode {
-                    id: "upper-support".to_owned(),
-                    x_m: 0.0,
-                    y_m: 1.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                },
-                ModalTrussNode {
-                    id: "free".to_owned(),
-                    x_m: 1.0,
-                    y_m: 1.0,
-                    restrained_x: false,
-                    restrained_y: false,
-                },
-            ],
-            bars: vec![
-                ModalTrussBar {
-                    id: "diagonal".to_owned(),
-                    node_i: "lower-support".to_owned(),
-                    node_j: "free".to_owned(),
-                    area_m2,
-                    youngs_modulus_pa: 210.0e9,
-                    density_kg_m3: 7_800.0,
-                },
-                ModalTrussBar {
-                    id: "horizontal".to_owned(),
-                    node_i: "upper-support".to_owned(),
-                    node_j: "free".to_owned(),
-                    area_m2,
-                    youngs_modulus_pa: 210.0e9,
-                    density_kg_m3: 7_800.0,
-                },
-            ],
-        }
-    }
 
     fn asymmetric_two_bar_fixture() -> ModalTrussInput {
         ModalTrussInput {
@@ -711,7 +711,7 @@ mod tests {
 
         for (formulation, expected_frequencies_hz) in cases {
             let result = analyze_planar_modal_truss(
-                &nafems_challenge5_single_element_truss(),
+                &nafems_challenge5_reference_fixture(),
                 formulation,
             )
             .expect("supported NAFEMS Challenge 5 single-element truss");
