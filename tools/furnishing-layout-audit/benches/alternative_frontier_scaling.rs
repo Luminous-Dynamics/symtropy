@@ -27,12 +27,7 @@ fn observation(
     }
 }
 
-fn candidate(
-    index: usize,
-    count: usize,
-    profile: &str,
-    dimensions: usize,
-) -> AlternativeCandidate {
+fn candidate(index: usize, count: usize, profile: &str, dimensions: usize) -> AlternativeCandidate {
     let cost = index as f64 + 1.0;
     let coverage = match profile {
         "tradeoff-heavy" => index as f64 / count.max(1) as f64,
@@ -52,7 +47,12 @@ fn candidate(
 
     let mut objectives = vec![
         observation("install_cost", "USD", ObjectiveDirection::Minimize, cost),
-        observation("task_coverage", "ratio", ObjectiveDirection::Maximize, coverage),
+        observation(
+            "task_coverage",
+            "ratio",
+            ObjectiveDirection::Maximize,
+            coverage,
+        ),
     ];
     if dimensions >= 3 {
         objectives.push(observation(
