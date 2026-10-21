@@ -12,6 +12,7 @@
 //! - **4D** (D=4): Cross-section slicing — slice 4D world with 3D hyperplane,
 //!   render the intersection
 
+pub mod galaxy_catalog;
 pub mod galaxy_spatial;
 pub mod hierarchy_select;
 #[cfg(feature = "inspector")]
@@ -23,6 +24,10 @@ pub mod scale_policy;
 pub mod sync;
 pub mod telemetry_ssbo;
 
+pub use galaxy_catalog::{
+    GalaxyCatalogContext, GalaxyCatalogError, GalaxyCoverageState, GalaxyEvidenceLayer,
+    GalaxyTileSummary,
+};
 pub use galaxy_spatial::{
     GALACTIC_COORDINATE_QUANTUM_MICROPC, GALACTIC_DOMAIN_HALF_WIDTH_PC,
     GALAXY_MAX_CELL_DEPTH, GalacticPosition, GalaxyCellId, GalaxyIndexError,
