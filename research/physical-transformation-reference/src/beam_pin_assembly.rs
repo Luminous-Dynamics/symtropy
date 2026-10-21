@@ -8,7 +8,7 @@
 //! decide a structure is safe, include geometric nonlinearity, or perform a
 //! complete NAFEMS NBC05 beam-model reproduction.
 
-use crate::beam_element::{euler_bernoulli_frame_element, transform_element_to_global, Matrix6};
+use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
 use crate::Check;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -112,7 +112,10 @@ pub fn assemble_released_joint_pin_truss(
             return Err(format!("duplicate member ID: {}", member.id));
         }
         if member.start_node_id == member.end_node_id {
-            return Err(format!("member {} has the same start and end node", member.id));
+            return Err(format!(
+                "member {} has the same start and end node",
+                member.id
+            ));
         }
         if !node_by_id.contains_key(member.start_node_id.as_str()) {
             return Err(format!(
@@ -183,11 +186,7 @@ pub fn assemble_released_joint_pin_truss(
             member.density_kg_m3,
             member.second_moment_m4,
         )?;
-        let global = transform_element_to_global(
-            &local,
-            end.x_m - start.x_m,
-            end.y_m - start.y_m,
-        )?;
+        let global = transform_element_to_global(&local, end.x_m - start.x_m, end.y_m - start.y_m)?;
 
         let start_node_index = *node_by_id
             .get(member.start_node_id.as_str())
@@ -252,7 +251,10 @@ pub fn assemble_released_joint_pin_truss(
 
     Ok(BeamPinAssembly {
         ordered_node_ids: ordered_nodes.into_iter().map(|node| node.id).collect(),
-        ordered_member_ids: ordered_members.into_iter().map(|member| member.id).collect(),
+        ordered_member_ids: ordered_members
+            .into_iter()
+            .map(|member| member.id)
+            .collect(),
         dof_descriptors: descriptors,
         stiffness_global: global_stiffness,
         mass_global: global_mass,
@@ -263,11 +265,7 @@ pub fn assemble_released_joint_pin_truss(
     })
 }
 
-fn assemble_element_matrix(
-    global: &mut [Vec<f64>],
-    element: &Matrix6,
-    dof_map: &[usize; 6],
-) {
+fn assemble_element_matrix(global: &mut [Vec<f64>], element: &Matrix6, dof_map: &[usize; 6]) {
     for row in 0..6 {
         for col in 0..6 {
             global[dof_map[row]][dof_map[col]] += element[row][col];
@@ -315,9 +313,7 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{
-        BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss,
-    };
+    use super::{BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
 
     fn nodes() -> Vec<BeamPinNode> {
         vec![
@@ -383,9 +379,10 @@ mod tests {
             .dof_descriptors
             .iter()
             .filter_map(|descriptor| match &descriptor.kind {
-                BeamPinDofKind::MemberEndRotation { member_id, at_start } => {
-                    Some((member_id.clone(), *at_start, descriptor.index))
-                }
+                BeamPinDofKind::MemberEndRotation {
+                    member_id,
+                    at_start,
+                } => Some((member_id.clone(), *at_start, descriptor.index)),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -400,8 +397,7 @@ mod tests {
 
     #[test]
     fn assembly_is_invariant_to_input_storage_order() {
-        let first = assemble_released_joint_pin_truss(&nodes(), &members())
-            .expect("ordered input");
+        let first = assemble_released_joint_pin_truss(&nodes(), &members()).expect("ordered input");
         let mut reversed_nodes = nodes();
         reversed_nodes.reverse();
         let mut reversed_members = members();
@@ -416,8 +412,14 @@ mod tests {
         let result = assemble_released_joint_pin_truss(&nodes(), &members())
             .expect("valid released-joint assembly");
         assert_eq!(result.stiffness_global.len(), result.mass_global.len());
-        assert_eq!(result.mass_global.len(), result.translational_mass_global.len());
-        assert_eq!(result.mass_global.len(), result.rotary_inertia_mass_global.len());
+        assert_eq!(
+            result.mass_global.len(),
+            result.translational_mass_global.len()
+        );
+        assert_eq!(
+            result.mass_global.len(),
+            result.rotary_inertia_mass_global.len()
+        );
 
         for row in 0..result.mass_global.len() {
             for col in 0..result.mass_global.len() {
@@ -430,8 +432,7 @@ mod tests {
                         < 1.0e-10 * scale_k
                 );
                 assert!(
-                    (result.mass_global[row][col] - result.mass_global[col][row]).abs()
-                        < 1.0e-10
+                    (result.mass_global[row][col] - result.mass_global[col][row]).abs() < 1.0e-10
                 );
                 assert!(
                     (result.mass_global[row][col]
