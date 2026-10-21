@@ -251,33 +251,23 @@ mod tests {
     #[test]
     fn axial_truss_frequencies_obey_modulus_density_and_length_scaling() {
         let parameters = published_nbc05_parameters();
-        let baseline = solve_published_axial_truss(
-            parameters,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("baseline");
+        let baseline = solve_published_axial_truss(parameters, MassMatrixFormulation::Consistent)
+            .expect("baseline");
         let mut four_times_modulus = parameters;
         four_times_modulus.youngs_modulus_pa *= 4.0;
-        let stiff = solve_published_axial_truss(
-            four_times_modulus,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("four-times modulus");
+        let stiff =
+            solve_published_axial_truss(four_times_modulus, MassMatrixFormulation::Consistent)
+                .expect("four-times modulus");
         let mut four_times_density = parameters;
         four_times_density.density_kg_m3 *= 4.0;
-        let dense = solve_published_axial_truss(
-            four_times_density,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("four-times density");
+        let dense =
+            solve_published_axial_truss(four_times_density, MassMatrixFormulation::Consistent)
+                .expect("four-times density");
         let mut double_geometry = parameters;
         double_geometry.top_span_m *= 2.0;
         double_geometry.vertical_offset_m *= 2.0;
-        let long = solve_published_axial_truss(
-            double_geometry,
-            MassMatrixFormulation::Consistent,
-        )
-        .expect("double geometry");
+        let long = solve_published_axial_truss(double_geometry, MassMatrixFormulation::Consistent)
+            .expect("double geometry");
 
         for mode in 0..2 {
             assert!(
@@ -289,8 +279,7 @@ mod tests {
                     < 1.0e-12
             );
             assert!(
-                ((long.frequencies_hz[mode] / baseline.frequencies_hz[mode]) - 0.5).abs()
-                    < 1.0e-12
+                ((long.frequencies_hz[mode] / baseline.frequencies_hz[mode]) - 0.5).abs() < 1.0e-12
             );
         }
     }
