@@ -126,6 +126,7 @@ pub struct BoardAttempt {
     pub drc_report_sha256: Option<String>,
     pub required_nets: u32,
     pub connected_nets: u32,
+    pub unconnected_item_count: Option<u32>,
     pub routing_drc_violation_types: Vec<String>,
     pub dangling_track_count: u32,
     pub dangling_via_count: u32,
@@ -169,6 +170,7 @@ pub struct EvaluatedCase {
     pub reason_codes: Vec<String>,
     pub required_nets: u32,
     pub connected_nets: u32,
+    pub unconnected_item_count: Option<u32>,
     pub routing_drc_violation_types: Vec<String>,
     pub dangling_track_count: u32,
     pub dangling_via_count: u32,
@@ -191,6 +193,8 @@ pub struct RunSummary {
     pub timeout_cases: usize,
     pub tool_error_cases: usize,
     pub routing_drc_violation_histogram: BTreeMap<String, usize>,
+    pub reported_unconnected_item_total: u64,
+    pub cases_missing_unconnected_item_count: usize,
     pub upstream_nonrouting_drc_before_total: u64,
     pub upstream_nonrouting_drc_after_total: u64,
     pub median_elapsed_ms_all_attempts: Option<f64>,
@@ -861,7 +865,9 @@ fn validate_case(case: &BoardAttempt) -> Result<(), String> {
         return Err(format!("{}: empty DRC violation type", case.board_id));
     }
     if !case.drc_evaluated
-        && (!case.routing_drc_violation_types.is_empty()
+        && (case.drc_report_sha256.is_some()
+            || case.unconnected_item_count.is_some()
+            || !case.routing_drc_violation_types.is_empty()
             || case.dangling_track_count > 0
             || case.dangling_via_count > 0)
     {
@@ -894,6 +900,11 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
             if case.connected_nets < case.required_nets {
                 reasons.push("UNROUTED_NETS".into());
             }
+            if case.unconnected_item_count.is_none() {
+                reasons.push("UNCONNECTED_ITEM_COUNT_MISSING".into());
+            } else if case.unconnected_item_count.unwrap_or(0) > 0 {
+                reasons.push("UNCONNECTED_ITEMS_REMAIN".into());
+            }
             if !case.drc_evaluated {
                 reasons.push("ROUTE_DRC_NOT_EVALUATED".into());
             }
@@ -914,9 +925,12 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
                 || case.dangling_via_count > 0
             {
                 Disposition::InvalidRoute
-            } else if case.connected_nets < case.required_nets {
+            } else if case.connected_nets < case.required_nets
+                || case.unconnected_item_count.unwrap_or(0) > 0
+            {
                 Disposition::IncompleteNets
             } else if !case.drc_evaluated
+                || case.unconnected_item_count.is_none()
                 || case.drc_report_sha256.is_none()
                 || case.output_board_sha256.is_none()
                 || case.total_wirelength_mm.is_none()
@@ -939,6 +953,7 @@ fn evaluate_case(case: &BoardAttempt) -> EvaluatedCase {
         reason_codes: reasons,
         required_nets: case.required_nets,
         connected_nets: case.connected_nets,
+        unconnected_item_count: case.unconnected_item_count,
         routing_drc_violation_types: case.routing_drc_violation_types.clone(),
         dangling_track_count: case.dangling_track_count,
         dangling_via_count: case.dangling_via_count,
@@ -991,6 +1006,15 @@ fn summarize_cases(cases: &[EvaluatedCase], evidence_class: &str) -> RunSummary 
             .filter(|c| c.disposition == Disposition::ToolError)
             .count(),
         routing_drc_violation_histogram: histogram,
+        reported_unconnected_item_total: cases
+            .iter()
+            .filter_map(|c| c.unconnected_item_count)
+            .map(u64::from)
+            .sum(),
+        cases_missing_unconnected_item_count: cases
+            .iter()
+            .filter(|c| c.unconnected_item_count.is_none())
+            .count(),
         upstream_nonrouting_drc_before_total: cases
             .iter()
             .map(|c| c.upstream_nonrouting_drc_before as u64)
