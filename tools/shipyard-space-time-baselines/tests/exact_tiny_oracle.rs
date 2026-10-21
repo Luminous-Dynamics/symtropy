@@ -122,7 +122,9 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
                 ];
                 let exact = exact_pack_exists(yard, &requests);
                 examined += 1;
-                exact_feasible += usize::from(exact);
+                if exact {
+                    exact_feasible += 1;
+                }
 
                 match first_fit_bottom_left(yard, &requests, &[]) {
                     Ok(plan) => {
