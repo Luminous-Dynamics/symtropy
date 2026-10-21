@@ -109,7 +109,12 @@
         },
         {
           "if": { "properties": { "state": { "const": "unknown" } }, "required": ["state"] },
-          "then": { "not": { "required": ["bounds_m"] } }
+          "then": {
+            "not": { "required": ["bounds_m"] },
+            "properties": {
+              "method": { "const": "unavailable" }
+            }
+          }
         },
         {
           "if": { "properties": { "state": { "const": "measured" } }, "required": ["state"] },
