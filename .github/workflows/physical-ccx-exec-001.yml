@@ -672,13 +672,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p symtropy/.ccx-exec-001-evidence
+          mkdir -p symtropy/ccx-exec-001-evidence
           if [ -d "$RUNNER_TEMP/ccx-evidence" ]; then
-            cp -a "$RUNNER_TEMP/ccx-evidence/." symtropy/.ccx-exec-001-evidence/
+            cp -a "$RUNNER_TEMP/ccx-evidence/." symtropy/ccx-exec-001-evidence/
           fi
-          if ! find symtropy/.ccx-exec-001-evidence -type f -print -quit | grep -q .; then
+          if ! find symtropy/ccx-exec-001-evidence -type f -print -quit | grep -q .; then
             printf 'No evidence files were produced before the earlier step failed.\n' \
-              > symtropy/.ccx-exec-001-evidence/NO_EVIDENCE.txt
+              > symtropy/ccx-exec-001-evidence/NO_EVIDENCE.txt
           fi
 
       - name: Upload build provenance, raw solver outputs, and audit reports
@@ -686,7 +686,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ccx-exec-001-${{ github.event.pull_request.head.sha || github.sha }}
-          path: symtropy/.ccx-exec-001-evidence/**
+          path: symtropy/ccx-exec-001-evidence/**
           if-no-files-found: warn
           retention-days: 90
 
