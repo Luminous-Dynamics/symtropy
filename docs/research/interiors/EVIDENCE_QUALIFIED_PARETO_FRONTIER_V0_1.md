@@ -51,7 +51,7 @@ Proposed acceptance targets (not measured performance claims):
 - fail-closed behavior for incomparable objective schemas;
 - exact-head formatting, unit tests, and strict Clippy passing.
 
-The frontier utility now has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. It separates a tradeoff-heavy worst-case non-dominated profile from a dominated-chain profile, asserts the expected frontier cardinality, excludes candidate construction from timings, and reports p50/p95/max duration. Worst-case comparison time remains quadratic in arbitrary objective vectors; existing collision-oracle timings are not measurements of this module. End-to-end evaluation must later compare the same verified candidate set against transparent rules, human-curated trade-offs, and commercial workflows, using identical objective definitions and input snapshots.
+The frontier utility now has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. It separates a tradeoff-heavy worst-case non-dominated profile from a dominated-chain profile, asserts the expected frontier cardinality, excludes candidate construction from timings, and reports p50/p95/max duration. Worst-case comparison time remains quadratic in arbitrary objective vectors; the harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module. End-to-end evaluation must later compare the same verified candidate set against transparent rules, human-curated trade-offs, and commercial workflows, using identical objective definitions and input snapshots.
 
 ## Claim ceiling
 
