@@ -39,6 +39,60 @@ pub struct PlanarTrussInput {
     pub bars: Vec<TrussBar>,
 }
 
+/// Canonical analytical known-answer input used by the reference receipt.
+///
+/// Two fixed base nodes and one free apex form a symmetric V-truss. The downward
+/// 1000 N apex load produces compression in both equal diagonal axial members.
+pub fn symmetric_two_bar_reference_fixture() -> PlanarTrussInput {
+    PlanarTrussInput {
+        nodes: vec![
+            TrussNode {
+                id: "left".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+                force_x_n: 0.0,
+                force_y_n: 0.0,
+            },
+            TrussNode {
+                id: "right".to_owned(),
+                x_m: 2.0,
+                y_m: 0.0,
+                restrained_x: true,
+                restrained_y: true,
+                force_x_n: 0.0,
+                force_y_n: 0.0,
+            },
+            TrussNode {
+                id: "apex".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrained_x: false,
+                restrained_y: false,
+                force_x_n: 0.0,
+                force_y_n: -1_000.0,
+            },
+        ],
+        bars: vec![
+            TrussBar {
+                id: "left-diagonal".to_owned(),
+                node_i: "left".to_owned(),
+                node_j: "apex".to_owned(),
+                area_m2: 0.01,
+                youngs_modulus_pa: 200.0e9,
+            },
+            TrussBar {
+                id: "right-diagonal".to_owned(),
+                node_i: "right".to_owned(),
+                node_j: "apex".to_owned(),
+                area_m2: 0.01,
+                youngs_modulus_pa: 200.0e9,
+            },
+        ],
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TrussNodeResult {
     pub node_id: String,
@@ -86,6 +140,42 @@ pub struct PlanarTrussResult {
     pub bar_results: Vec<TrussBarResult>,
     pub equilibrium: EquilibriumSummary,
     pub claim_ceiling: &'static str,
+}
+
+/// Canonical, order-independent textual representation used to bind a
+/// fixture request to a receipt. This is not itself a cryptographic hash.
+/// Call `solve` first to validate the model; IDs may not contain the pipe
+/// delimiter because `solve` rejects characters outside its ID grammar.
+pub fn canonical_request(fixture_id: &str, input: &PlanarTrussInput) -> Check<String> {
+    validate_id(fixture_id, "fixture ID")?;
+    let mut nodes = input.nodes.clone();
+    nodes.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut bars = input.bars.clone();
+    bars.sort_by(|left, right| left.id.cmp(&right.id));
+
+    let mut fields = vec![
+        "schema=planar-truss-request-v0.1".to_owned(),
+        format!("fixture={fixture_id}"),
+    ];
+    for node in nodes {
+        fields.push(format!(
+            "node|{}|{}|{}|{}|{}|{}|{}",
+            node.id,
+            node.x_m,
+            node.y_m,
+            node.restrained_x,
+            node.restrained_y,
+            node.force_x_n,
+            node.force_y_n
+        ));
+    }
+    for bar in bars {
+        fields.push(format!(
+            "bar|{}|{}|{}|{}|{}",
+            bar.id, bar.node_i, bar.node_j, bar.area_m2, bar.youngs_modulus_pa
+        ));
+    }
+    Ok(fields.join("|"))
 }
 
 /// Assemble and solve a finite, small-displacement, pin-jointed 2D truss.
@@ -536,53 +626,7 @@ mod tests {
     use super::*;
 
     fn symmetric_two_bar_truss() -> PlanarTrussInput {
-        PlanarTrussInput {
-            nodes: vec![
-                TrussNode {
-                    id: "left".to_owned(),
-                    x_m: 0.0,
-                    y_m: 0.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                    force_x_n: 0.0,
-                    force_y_n: 0.0,
-                },
-                TrussNode {
-                    id: "right".to_owned(),
-                    x_m: 2.0,
-                    y_m: 0.0,
-                    restrained_x: true,
-                    restrained_y: true,
-                    force_x_n: 0.0,
-                    force_y_n: 0.0,
-                },
-                TrussNode {
-                    id: "apex".to_owned(),
-                    x_m: 1.0,
-                    y_m: 1.0,
-                    restrained_x: false,
-                    restrained_y: false,
-                    force_x_n: 0.0,
-                    force_y_n: -1_000.0,
-                },
-            ],
-            bars: vec![
-                TrussBar {
-                    id: "left-diagonal".to_owned(),
-                    node_i: "left".to_owned(),
-                    node_j: "apex".to_owned(),
-                    area_m2: 0.01,
-                    youngs_modulus_pa: 200.0e9,
-                },
-                TrussBar {
-                    id: "right-diagonal".to_owned(),
-                    node_i: "right".to_owned(),
-                    node_j: "apex".to_owned(),
-                    area_m2: 0.01,
-                    youngs_modulus_pa: 200.0e9,
-                },
-            ],
-        }
+        symmetric_two_bar_reference_fixture()
     }
 
     fn close(actual: f64, expected: f64, tolerance: f64, label: &str) {
@@ -598,6 +642,26 @@ mod tests {
             .iter()
             .find(|node| node.node_id == id)
             .expect("expected node result")
+    }
+
+    #[test]
+    fn canonical_request_matches_frozen_bytes_and_ignores_input_order() {
+        let original = symmetric_two_bar_truss();
+        let expected =
+            include_str!("../fixtures/planar_truss_request_v0_1.txt").trim_end_matches('\n');
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-V-001", &original).expect("canonical request"),
+            expected
+        );
+
+        let mut permuted = original;
+        permuted.nodes.reverse();
+        permuted.bars.reverse();
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-V-001", &permuted).expect("permuted request"),
+            expected
+        );
+        assert!(canonical_request("bad|fixture", &permuted).is_err());
     }
 
     #[test]

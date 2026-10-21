@@ -1,0 +1,1 @@
+schema=planar-truss-request-v0.1|fixture=PHYS-TRUSS-V-001|node|apex|1|1|false|false|0|-1000|node|left|0|0|true|true|0|0|node|right|2|0|true|true|0|0|bar|left-diagonal|left|apex|0.01|200000000000|bar|right-diagonal|right|apex|0.01|200000000000

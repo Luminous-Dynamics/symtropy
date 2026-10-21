@@ -13,4 +13,8 @@ path = "src/lib.rs"
 name = "physical-transformation-reference"
 path = "src/main.rs"
 
+[[bin]]
+name = "planar-truss-reference"
+path = "src/bin/planar-truss-reference.rs"
+
 [workspace]

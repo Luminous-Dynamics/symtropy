@@ -20,6 +20,7 @@
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 - Planar truss reference: dependency-free 2D pin-jointed linear-elastic stiffness assembly, deterministic dense solve, closed-form symmetric V-truss oracle, explicit support reactions and normalized force/moment/free-DOF residuals, fail-closed singular mechanism detection, and scale-invariant pivot tolerance. Scope is capped at 128 nodes / 512 bars and excludes bending, buckling, nonlinear response, contact, fracture, dynamics, and physical validation.
 - Planar-truss mutation audit tests four deliberately defective variants (omitted area in global stiffness, omitted area in recovered member force, reversed vertical support-reaction sign, and an absolute pivot-tolerance floor that breaks scale invariance). It requires targeted assertion failures in isolated temporary copies, then re-runs the unmutated full suite/formatting/Clippy and publishes a source-bound receipt.
+- Frozen planar-truss request bytes live at `fixtures/planar_truss_request_v0_1.txt`; the canonical serializer is order-independent and tested against those exact bytes. The `planar-truss-reference` binary emits a deterministic truss receipt containing node displacements, member forces/stresses/strains, support reactions, normalized equilibrium residuals, source commit and the canonical request. CI computes SHA-256 over the canonical UTF-8 request bytes (without a trailing newline), verifies the pinned digest/oracle gates, and uploads the receipt alongside the topology/mass and mutation receipts. The physical-validation field remains `not_performed`.
 
 ## Run locally
 
@@ -27,11 +28,13 @@
 cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
 cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
 cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
-cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml -- \
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin physical-transformation-reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
   --source-commit "$(git rev-parse HEAD)"
 ```
 
-The CLI emits one JSON receipt. The source commit binds the receipt to versioned code and embedded fixtures; it is not a cryptographic digest of physical inputs or a claim of verified real-world evidence.
+The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics; CI adds the SHA-256 request digest and pins the expected digest. Neither receipt is a claim of verified real-world evidence.
 
 ## Paradigm shift
 
