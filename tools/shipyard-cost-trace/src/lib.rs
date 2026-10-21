@@ -614,6 +614,7 @@ mod tests {
             stage: Stage::Observed,
             source_ref: format!("invoice:{reference}"),
             source_permission: EvidencePermission::PublicOrPermitted,
+            source_permission_ref: "fixture-rights:public-test-data".to_owned(),
             related_event_ids: Vec::new(),
             kind: EventKind::FinancialActual(FinancialTransaction {
                 transaction_ref: reference.to_owned(),
