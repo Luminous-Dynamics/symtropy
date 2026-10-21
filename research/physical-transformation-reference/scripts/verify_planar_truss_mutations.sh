@@ -55,6 +55,11 @@ run_mutation() {
       perl -0pi -e 's/let contribution = 0.5 \* bar\.axial_force_n \* bar\.axial_extension_m;/let contribution = bar.axial_force_n * bar.axial_extension_m;/' "$source"
       grep -Fq 'let contribution = bar.axial_force_n * bar.axial_extension_m;' "$source"
       ;;
+    truss_offdiagonal_coupling_zero)
+      grep -Fq 'let cs = c * s;' "$source"
+      perl -0pi -e 's/let cs = c \* s;/let cs = 0.0;/' "$source"
+      grep -Fq 'let cs = 0.0;' "$source"
+      ;;
     support_reaction_sign)
       grep -Fq 'let value = internal[2 * index + 1] - loads[2 * index + 1];' "$source"
       perl -0pi -e 's/let value = internal\[2 \* index \+ 1\] - loads\[2 \* index \+ 1\];/let value = loads[2 * index + 1] - internal[2 * index + 1];/' "$source"
@@ -101,6 +106,10 @@ run_mutation \
   truss_energy_omits_half_factor \
   symmetric_two_bar_truss_matches_independent_closed_form_oracle
 run_mutation \
+  "asymmetric-offdiagonal-coupling" \
+  truss_offdiagonal_coupling_zero \
+  asymmetric_two_bar_truss_matches_closed_form_oracle
+run_mutation \
   "vertical-support-reaction-sign" \
   support_reaction_sign \
   symmetric_two_bar_truss_matches_independent_closed_form_oracle
@@ -146,6 +155,11 @@ jq -n \
         disposition: "detected"
       },
       {
+        id: "PHYS-TRUSS-MUT-OFFDIAGONAL-CS-001",
+        expected_test: "asymmetric_two_bar_truss_matches_closed_form_oracle",
+        disposition: "detected"
+      },
+      {
         id: "PHYS-TRUSS-MUT-REACTION-SIGN-001",
         expected_test: "symmetric_two_bar_truss_matches_independent_closed_form_oracle",
         disposition: "detected"
@@ -157,7 +171,7 @@ jq -n \
       }
     ],
     summary: {
-      detected: 6,
+      detected: 7,
       undetected: 0,
       invalid_mutant: 0,
       equivalent_mutant: 0,
@@ -169,9 +183,9 @@ jq -e '
   .schema_version == "planar-truss-mutation-receipt-v0.1"
   and (.source_commit | type == "string" and length == 40)
   and .baseline_control.disposition == "pass"
-  and .summary.detected == 6
+  and .summary.detected == 7
   and .summary.undetected == 0
   and ([.mutations[].disposition] | all(. == "detected"))
 ' "$receipt_path" >/dev/null
 
-printf 'Planar-truss mutation sensitivity: 6/6 named defects detected. Receipt: %s\n' "$receipt_path"
+printf 'Planar-truss mutation sensitivity: 7/7 named defects detected. Receipt: %s\n' "$receipt_path"
