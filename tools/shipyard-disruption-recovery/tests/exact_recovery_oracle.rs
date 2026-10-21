@@ -72,6 +72,7 @@ fn exact_recovery_oracle_finds_minimum_churn_feasible_relocation() {
         observed_at_tick: 5,
         new_exclusion_zones: vec![disturbance_zone.clone()],
         vehicle_outages: Vec::new(),
+        placement_occupancy_extensions: Vec::new(),
         explicitly_affected_reservation_ids: Vec::new(),
     };
 
