@@ -3,11 +3,11 @@
 //! This fixture evaluator deliberately parses the source corpus and expected-output TSV
 //! independently of the production normalizer. It does not import production aggregation helpers.
 
+use shipyard_cost_trace::Stage;
 use shipyard_cost_trace::event_semantics::{
     AsOfCutoff, NormalizedQuantity, NormalizedSemantics, QuantityIdentity, QuantityRecord,
     QuantityRecordKind, normalize_quantities,
 };
-use shipyard_cost_trace::Stage;
 
 const INPUTS: &str = include_str!("fixtures/event-semantics-v1.tsv");
 const EXPECTED: &str = include_str!("fixtures/event-semantics-v1-expected.tsv");
@@ -37,7 +37,10 @@ fn parse_case(case_id: &str) -> (AsOfCutoff, Vec<QuantityRecord>) {
             recorded_at_ms: fields[2].parse().expect("valid recorded-time cutoff"),
         };
         if let Some(previous) = cutoff {
-            assert_eq!(previous, this_cutoff, "cutoff must be stable within case {case_id}");
+            assert_eq!(
+                previous, this_cutoff,
+                "cutoff must be stable within case {case_id}"
+            );
         } else {
             cutoff = Some(this_cutoff);
         }
