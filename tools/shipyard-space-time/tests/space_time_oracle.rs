@@ -145,7 +145,7 @@ fn frozen_space_time_corpus_matches_expected_violation_counts() {
         }
     }
 
-    assert_eq!(cases.len(), 17, "frozen scenario inventory changed");
+    assert_eq!(cases.len(), 18, "frozen scenario inventory changed");
     for (case_id, case) in cases {
         let expected = case
             .expected_counts
@@ -194,6 +194,7 @@ fn frozen_corpus_covers_both_rejection_and_feasible_cases() {
         ViolationCode::OutOfBoundsPlacement.as_str(),
         ViolationCode::OutOfBoundsTransferCorridor.as_str(),
         ViolationCode::MissingYardBounds.as_str(),
+        ViolationCode::InvalidYardBounds.as_str(),
     ] {
         assert!(
             expected_codes.contains(&required),
