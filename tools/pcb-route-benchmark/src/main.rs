@@ -1,4 +1,6 @@
-use pcb_route_benchmark::{compare_runs, evaluate_report_bytes, verify_dataset_files};
+use pcb_route_benchmark::{
+    build_dataset_manifest, compare_runs, evaluate_report_bytes, verify_dataset_files,
+};
 use std::{
     env, fs,
     io::{self, Write},
@@ -28,6 +30,18 @@ fn run() -> Result<Vec<u8>, String> {
     })?;
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
+        [command, split_config_path, intake_path, dataset_root]
+            if command == "build-manifest" =>
+        {
+            let split_config = fs::read(split_config_path)
+                .map_err(|error| format!("cannot read {split_config_path}: {error}"))?;
+            let intake = fs::read(intake_path)
+                .map_err(|error| format!("cannot read {intake_path}: {error}"))?;
+            let manifest =
+                build_dataset_manifest(&split_config, &intake, Path::new(dataset_root))?;
+            serde_json::to_vec_pretty(&manifest)
+                .map_err(|error| format!("cannot serialize dataset manifest: {error}"))
+        }
         [command, manifest_path, dataset_root] if command == "verify-dataset" => {
             let manifest = fs::read(manifest_path)
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
@@ -57,6 +71,6 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark verify-dataset MANIFEST.json DATASET_ROOT | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json".into()),
+        _ => Err("usage: pcb-route-benchmark build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json".into()),
     }
 }
