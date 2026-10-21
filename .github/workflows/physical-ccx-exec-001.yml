@@ -211,7 +211,7 @@ jobs:
 
           cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
             --request "$REQUEST" --validator-revision "$source_sha" > "$OUT/request-validation.json"
-          jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_status == "UNRESOLVED"' \
+          jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
             "$OUT/request-validation.json" >/dev/null
 
           run_ccx() {
