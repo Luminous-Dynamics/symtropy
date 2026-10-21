@@ -17,4 +17,8 @@ path = "src/main.rs"
 name = "planar-truss-reference"
 path = "src/bin/planar-truss-reference.rs"
 
+[[bin]]
+name = "planar-truss-conditioning"
+path = "src/bin/planar-truss-conditioning.rs"
+
 [workspace]

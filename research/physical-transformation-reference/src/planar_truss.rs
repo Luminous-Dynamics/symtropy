@@ -1236,6 +1236,21 @@ mod tests {
     }
 
     #[test]
+    fn conditioning_sweep_separates_backward_residual_from_forward_error() {
+        let report = crate::truss_conditioning::conditioning_sweep_report()
+            .expect("the frozen conditioning sweep must meet its declared envelope");
+        assert_eq!(report.cases.len(), 9);
+        assert_eq!(report.accepted_case_count, 7);
+        assert_eq!(report.rejected_case_count, 2);
+        assert!(
+            report
+                .cases
+                .windows(2)
+                .all(|pair| pair[0].condition_infinity < pair[1].condition_infinity)
+        );
+    }
+
+    #[test]
     fn fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form() {
         // Fixed seed and bounded ranges make every case reproducible. These are
         // numerical coverage ranges for the declared linear-elastic model, not

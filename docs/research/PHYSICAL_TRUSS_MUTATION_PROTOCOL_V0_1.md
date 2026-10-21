@@ -35,6 +35,33 @@ The (cs=0) mutation is specifically assigned to the 128-case asymmetric paramete
 
 The asymmetric sweep bounds are: span 2–6 m; apex x between 20% and 80% of span; apex height 0.5–3 m; Young's modulus 50–210 GPa; bar axial stiffnesses 1e7–1e10 and 7e6–1.3e10 N/m; and both apex force components from −3,000 to +3,000 N. The fixed LCG seed and constants are checked into the test; the CI metadata receipt names the independent 2x2 inverse oracle and its source hash. These bounds are deterministic regression coverage, not a distributional uncertainty model.
 
+## Conditioning, backward error, and the fail-closed envelope
+
+The asymmetric sweep varies geometry and load direction, but a bounded sample with apex height at least 0.5 m does not stress the numerical limit as a two-bar truss approaches a mechanism. The conditioning sweep deliberately lowers the apex toward the support line for the same off-axis geometry and unequal axial stiffnesses.
+
+For each height, it independently constructs the reduced 2-DOF stiffness matrix:
+`K = [[Kxx, Kxy], [Kxy, Kyy]]`. With axial member stiffnesses `kA = EA/L`, `kB = EB/L`, and direction cosines/sines `(cA,sA)`, `(cB,sB)`:
+
+```text
+Kxx = kA*cA^2 + kB*cB^2
+Kxy = kA*cA*sA + kB*cB*sB
+Kyy = kA*sA^2 + kB*sB^2
+det(K) = kA*kB*(cA*sB - sA*cB)^2
+```
+
+The determinant identity is used rather than `Kxx*Kyy - Kxy*Kxy` to avoid cancellation as the two direction vectors become nearly parallel. The exact 2x2 inverse supplies an infinity-norm condition number `kappa_inf = ||K||inf * ||K^-1||inf`. This is a mathematical reference for this 2-DOF case; the test does not pretend it is a scalable general sparse-matrix condition estimator.
+
+A fixed target apex displacement is chosen first and its applied load is independently generated as `F = K*u_target`. For any accepted solver output `u_hat`, the test separately computes:
+
+- Forward error: `||u_hat - u_target||inf / ||u_target||inf`.
+- Backward residual: `||K*u_hat - F||inf / (||K||inf*||u_hat||inf + ||F||inf)`.
+- Condition-amplified backward residual: `kappa_inf * backward_error`.
+- A controlled vertical-right-hand-side perturbation of (10^{-10}\|F\|_\infty), reporting the resulting relative displacement change for both perturbation signs and the output/input amplification ratio. This is a deterministic sensitivity probe, not a probability distribution or measured load uncertainty.
+
+This tests two distinct decision hazards: a low backward residual does not imply low forward error for an ill-conditioned matrix, and a numerically accepted solve can still be highly sensitive to small input perturbations. The frozen acceptance calculation compares the forward error against the condition-amplified backward term plus an explicit roundoff allowance. When `kappa_inf * machine_epsilon >= 1e-3`, the test requires the production solver to return a numerical-singularity error and issue no displacements. The geometry/height schedule, target displacement, stiffnesses, threshold, and condition/error equations are fixed in the test. These are declared test-envelope thresholds, not universal structural design limits or a posteriori error certification for arbitrary FEM systems.
+
+The exact-head workflow invokes `planar-truss-conditioning` twice and requires byte-identical output before it publishes `planar-truss-conditioning-receipt-v0.1`. The receipt contains per-case geometry, Kxx/Kxy/Kyy, determinant, condition and reciprocal-condition estimates, `condition*machine_epsilon`, independently generated loads, accepted/rejected disposition, forward/backward errors and condition-aware bounds for accepted cases, controlled vertical-load perturbation size and response-amplification metrics, plus explicit nulls and the exact solver error for expected rejected cases. The outer receipt binds the source commit and SHA-256 digests for `planar_truss.rs`, `truss_conditioning.rs`, `src/bin/planar-truss-conditioning.rs`, `src/lib.rs`, `Cargo.toml`, `Cargo.lock`, the exact workflow YAML, the mutation harness, and `schemas/planar-truss-conditioning-receipt-v0.1.schema.json`. It also records the pinned Rust/Cargo versions and target triple. The mutation receipt separately binds both `planar_truss.rs` and `truss_conditioning.rs` before and after isolated mutations. CI verifies the frozen 9-case / 7-accepted / 2-rejected counts, monotone condition progression, forward-error limits and independent equilibrium/energy residual gates. This is a deterministic software-test receipt only: it does not contain physical experiment data, invoke an external FEM solver, or establish physical validity.
+
 ## Named mutation set
 
 The CI script `research/physical-transformation-reference/scripts/verify_planar_truss_mutations.sh` first runs the unmutated `planar_truss::tests` control. It then copies the crate manifest, lockfile, source files and frozen input fixture into fresh temporary directories, applies one explicit mutation per copy, and runs the intended test by exact name.
@@ -48,13 +75,14 @@ The CI script `research/physical-transformation-reference/scripts/verify_planar_
 | `PHYS-TRUSS-MUT-ENERGY-HALF-FACTOR-001` | Omit the one-half factor from member strain-energy accumulation | `symmetric_two_bar_truss_matches_independent_closed_form_oracle` |
 | `PHYS-TRUSS-MUT-OFFDIAGONAL-CS-001` | Set the element stiffness off-diagonal direction-cosine product (cs) to zero | `fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle` |
 | `PHYS-TRUSS-MUT-PIVOT-SCALE-001` | Reintroduce an absolute `max(1.0)` floor in the pivot tolerance | `uniform_stiffness_and_load_rescaling_does_not_change_displacement` |
+| `PHYS-TRUSS-MUT-CONDITION-THRESHOLD-001` | Raise the conditioning rejection threshold so a near-mechanism is wrongly treated as eligible | `truss_conditioning::tests::sweep_is_deterministic_and_separates_accepted_from_rejected_cases` |
 
 A mutant counts as detected only when its named test appears as FAILED. A compile failure, unrelated Cargo failure, failed source transform, or surviving mutant invalidates the audit. After the isolated runs, the script re-checks the source hash. CI then checks the entire production source remains unchanged, re-runs formatting, the full crate suite and Clippy, and uploads the JSON mutation receipt with the reference receipt.
 
 ## Receipt fields and interpretation
 
-The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these seven deliberately selected mutations. The third mutation targets the 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1`; the fourth mutation targets the strain-energy half-factor; the fifth zeros the off-diagonal `cs` coupling and is required to fail the asymmetric oracle. It must not be represented as a global mutation score or a physical-accuracy metric.
+The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these eight deliberately selected mutations. The third mutation targets the 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1`; the fourth mutation targets the strain-energy half-factor; the fifth zeros the off-diagonal `cs` coupling and is required to fail the asymmetric oracle. It must not be represented as a global mutation score or a physical-accuracy metric.
 
 ## Claim boundary
 
-The solver handles only static small-displacement linear-elastic 2D pin-jointed axial bars under its declared input contract. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture, dynamics, and structural code/safety checks. Passing this audit shows only software-test sensitivity for the seven named defects; it neither reproduces a proprietary catalog case nor establishes sim-to-real validity.
+The solver handles only static small-displacement linear-elastic 2D pin-jointed axial bars under its declared input contract. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture, dynamics, and structural code/safety checks. Passing this audit shows only software-test sensitivity for the eight named defects; it neither reproduces a proprietary catalog case nor establishes sim-to-real validity.
