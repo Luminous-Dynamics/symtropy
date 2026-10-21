@@ -33,7 +33,7 @@
         "required": ["output_kind", "baseline_output_id", "scaled_output_id", "scaling_exponent"],
         "properties": {
           "output_kind": {
-            "enum": ["displacement", "stress", "reaction_force", "reaction_moment", "energy_balance"]
+            "enum": ["displacement", "stress", "reaction_force", "reaction_moment", "strain_energy"]
           },
           "baseline_output_id": { "$ref": "#/$defs/token" },
           "scaled_output_id": { "$ref": "#/$defs/token" },
@@ -42,7 +42,7 @@
         "allOf": [
           {
             "if": {
-              "properties": { "output_kind": { "const": "energy_balance" } },
+              "properties": { "output_kind": { "const": "strain_energy" } },
               "required": ["output_kind"]
             },
             "then": { "properties": { "scaling_exponent": { "const": 2 } } }
