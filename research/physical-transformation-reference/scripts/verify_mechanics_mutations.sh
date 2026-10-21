@@ -282,7 +282,6 @@ jq -n \
         disposition: "detected"
       }
     ],
-    summary:    ],
     summary: {
       detected: 12,
       undetected: 0,
