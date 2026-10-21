@@ -440,8 +440,8 @@
                 "span_m",
                 "apex_x_m",
                 "apex_height_m",
-                "axial_stiffness_a_n_per_m",
-                "axial_stiffness_b_n_per_m",
+                "axial_rigidity_a_n",
+                "axial_rigidity_b_n",
                 "force_x_n",
                 "force_y_n"
               ],
@@ -457,19 +457,19 @@
                   "type": "number",
                   "exclusiveMinimum": 0
                 },
-                "axial_stiffness_a_n_per_m": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
-                },
-                "axial_stiffness_b_n_per_m": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
-                },
                 "force_x_n": {
                   "type": "number"
                 },
                 "force_y_n": {
                   "type": "number"
+                },
+                "axial_rigidity_a_n": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "axial_rigidity_b_n": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
                 }
               }
             },
@@ -491,8 +491,8 @@
                     "span_m",
                     "apex_x_m",
                     "apex_height_m",
-                    "axial_stiffness_a_n_per_m",
-                    "axial_stiffness_b_n_per_m",
+                    "axial_rigidity_a_n",
+                    "axial_rigidity_b_n",
                     "force_x_n",
                     "force_y_n"
                   ],
@@ -539,40 +539,6 @@
                         }
                       ]
                     },
-                    "axial_stiffness_a_n_per_m": {
-                      "$ref": "#/$defs/inputBound",
-                      "properties": {
-                        "unit": {
-                          "const": "N/m"
-                        }
-                      },
-                      "allOf": [
-                        {
-                          "properties": {
-                            "lower": {
-                              "exclusiveMinimum": 0
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "axial_stiffness_b_n_per_m": {
-                      "$ref": "#/$defs/inputBound",
-                      "properties": {
-                        "unit": {
-                          "const": "N/m"
-                        }
-                      },
-                      "allOf": [
-                        {
-                          "properties": {
-                            "lower": {
-                              "exclusiveMinimum": 0
-                            }
-                          }
-                        }
-                      ]
-                    },
                     "force_x_n": {
                       "$ref": "#/$defs/inputBound",
                       "properties": {
@@ -588,6 +554,40 @@
                           "const": "N"
                         }
                       }
+                    },
+                    "axial_rigidity_a_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "axial_rigidity_b_n": {
+                      "$ref": "#/$defs/inputBound",
+                      "properties": {
+                        "unit": {
+                          "const": "N"
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "properties": {
+                            "lower": {
+                              "exclusiveMinimum": 0
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }
