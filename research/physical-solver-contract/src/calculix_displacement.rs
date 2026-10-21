@@ -143,6 +143,10 @@ pub fn compare_displacement_reference_bytes(
     if component != "ux" {
         return Err("v0.1 only supports the global axial displacement component ux".to_owned());
     }
+    let expected_time = field_f64(&manifest, "target_time", "manifest")?;
+    if expected_time <= 0.0 {
+        return Err("manifest.target_time must be positive".to_owned());
+    }
 
     for (field, observed) in [
         ("request_sha256", &request_sha256),
@@ -306,7 +310,13 @@ pub fn compare_displacement_reference_bytes(
 
     let deck_text = std::str::from_utf8(deck_bytes)
         .map_err(|_| "CalculiX input deck must be UTF-8/ASCII text".to_owned())?;
-    let deck = parse_and_validate_deck(deck_text, support_node_id, load_node_id, &node_set)?;
+    let deck = parse_and_validate_deck(
+        deck_text,
+        support_node_id,
+        load_node_id,
+        &node_set,
+        expected_time,
+    )?;
     if deck.nodes.len() != deck.elements.len() + 1 {
         return Err(
             "axial bar mesh must contain exactly one more node than T3D2 elements".to_owned(),
@@ -361,10 +371,6 @@ pub fn compare_displacement_reference_bytes(
         return Err("deck CLOAD does not match the exact request load".to_owned());
     }
 
-    let expected_time = field_f64(&manifest, "target_time", "manifest")?;
-    if expected_time <= 0.0 {
-        return Err("manifest.target_time must be positive".to_owned());
-    }
     let absolute_tolerance_m = field_positive_f64(&manifest, "absolute_tolerance_m", "manifest")?;
     let relative_tolerance = field_nonnegative_f64(&manifest, "relative_tolerance", "manifest")?;
     validate_provenance(
@@ -555,6 +561,7 @@ fn parse_and_validate_deck(
     support_node_id: u64,
     load_node_id: u64,
     expected_node_set: &str,
+    expected_time: f64,
 ) -> Check<ParsedDeck> {
     let cards = parse_cards(deck_text)?;
     let allowed: BTreeSet<&str> = [
@@ -605,6 +612,48 @@ fn parse_and_validate_deck(
         if cards.iter().filter(|card| card.name == name).count() != expected {
             return Err(format!(
                 "v0.1 deck requires exactly {expected} {name} card(s)"
+            ));
+        }
+    }
+
+    // A strict order keeps this small qualified profile from accidentally
+    // interpreting a different CalculiX step/card scope as the same problem.
+    let expected_order = [
+        "HEADING",
+        "NODE",
+        "ELEMENT",
+        "NSET",
+        "NSET",
+        "MATERIAL",
+        "ELASTIC",
+        "SOLID SECTION",
+        "BOUNDARY",
+        "STEP",
+        "STATIC",
+        "CLOAD",
+        "NODE PRINT",
+        "END STEP",
+    ];
+    let observed_order: Vec<&str> = cards.iter().map(|card| card.name.as_str()).collect();
+    if observed_order != expected_order {
+        return Err("deck cards are not in the exact v0.1 linear-static order".to_owned());
+    }
+
+    for card in &cards {
+        let expected_params: BTreeSet<&str> = match card.name.as_str() {
+            "ELEMENT" => ["TYPE", "ELSET"].into_iter().collect(),
+            "NSET" => ["NSET"].into_iter().collect(),
+            "MATERIAL" => ["NAME"].into_iter().collect(),
+            "SOLID SECTION" => ["ELSET", "MATERIAL"].into_iter().collect(),
+            "NODE PRINT" => ["NSET"].into_iter().collect(),
+            _ => BTreeSet::new(),
+        };
+        let observed_params: BTreeSet<&str> =
+            card.params.keys().map(String::as_str).collect();
+        if observed_params != expected_params {
+            return Err(format!(
+                "card {} has unsupported or missing parameters: expected {expected_params:?}, observed {observed_params:?}",
+                card.name
             ));
         }
     }
@@ -796,6 +845,25 @@ fn parse_and_validate_deck(
     let static_card = cards.iter().find(|card| card.name == "STATIC").unwrap();
     if static_card.rows.len() != 1 {
         return Err("STATIC card must have exactly one load increment row".to_owned());
+    }
+    let increments = csv_fields(&static_card.rows[0].1);
+    if increments.len() != 4 {
+        return Err("STATIC increment row must contain initial, period, minimum, and maximum time values".to_owned());
+    }
+    let initial_increment = parse_finite(increments[0], static_card.rows[0].0)?;
+    let time_period = parse_finite(increments[1], static_card.rows[0].0)?;
+    let minimum_increment = parse_finite(increments[2], static_card.rows[0].0)?;
+    let maximum_increment = parse_finite(increments[3], static_card.rows[0].0)?;
+    if initial_increment <= 0.0
+        || time_period <= 0.0
+        || minimum_increment <= 0.0
+        || maximum_increment <= 0.0
+        || minimum_increment > initial_increment
+        || initial_increment > maximum_increment
+        || time_period < initial_increment
+        || !approx_eq(time_period, expected_time, 1.0e-12 * expected_time.abs().max(1.0))
+    {
+        return Err("STATIC time controls must be finite, positive, ordered, and match manifest.target_time".to_owned());
     }
 
     let node_print = cards.iter().find(|card| card.name == "NODE PRINT").unwrap();
