@@ -878,6 +878,26 @@ mod tests {
     }
 
     #[test]
+    fn asymmetric_request_matches_frozen_bytes_and_ignores_input_order() {
+        let original = asymmetric_two_bar_truss();
+        let expected = include_str!("../fixtures/planar_truss_asymmetric_request_v0_1.txt")
+            .trim_end_matches('\n');
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-ASYM-001", &original).expect("canonical asymmetric request"),
+            expected
+        );
+
+        let mut permuted = original;
+        permuted.nodes.reverse();
+        permuted.bars.reverse();
+        assert_eq!(
+            canonical_request("PHYS-TRUSS-ASYM-001", &permuted)
+                .expect("permuted asymmetric request"),
+            expected
+        );
+    }
+
+    #[test]
     fn asymmetric_two_bar_truss_matches_closed_form_oracle() {
         // Geometry A=(0,0), B=(4,0), C=(1,3), with EA/L=1e9 and 2e9 N/m.
         // For the free apex, K = 1e9 [[1.1,-0.7],[-0.7,1.9]] and F=(600,-1200) N.
