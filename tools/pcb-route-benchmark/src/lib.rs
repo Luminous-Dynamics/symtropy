@@ -546,6 +546,23 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                     board.board_id
                 ));
             }
+            let license_path = board.license_evidence_relative_path.as_deref().ok_or_else(|| {
+                format!("{}: external board lacks hash-bound license-evidence path", board.board_id)
+            })?;
+            validate_relative_path(license_path, &format!("{} license evidence", board.board_id))?;
+            let license_url = board.license_evidence_url.as_deref().ok_or_else(|| {
+                format!("{}: external board lacks license-evidence source URL", board.board_id)
+            })?;
+            if !license_url.starts_with("https://") {
+                return Err(format!(
+                    "{}: license-evidence source URL must use HTTPS",
+                    board.board_id
+                ));
+            }
+            let license_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
+                format!("{}: external board lacks license-evidence SHA-256", board.board_id)
+            })?;
+            require_sha256(license_sha, "license_evidence_sha256")?;
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
@@ -667,6 +684,28 @@ pub fn build_dataset_manifest(
                 selection.board_id
             ));
         }
+        let license_relative_path = selection
+            .license_evidence_relative_path
+            .as_deref()
+            .ok_or_else(|| {
+                format!("{}: license-evidence file path is required", selection.board_id)
+            })?;
+        validate_relative_path(
+            license_relative_path,
+            &format!("{} license evidence", selection.board_id),
+        )?;
+        let license_url = selection
+            .license_evidence_url
+            .as_deref()
+            .ok_or_else(|| {
+                format!("{}: license-evidence source URL is required", selection.board_id)
+            })?;
+        if !license_url.starts_with("https://") {
+            return Err(format!(
+                "{}: license-evidence source URL must use HTTPS",
+                selection.board_id
+            ));
+        }
         let candidate_ids = split_config
             .get(selection.difficulty.as_str())
             .and_then(|difficulty| difficulty.get(intake.split_name.as_str()))
@@ -707,6 +746,34 @@ pub fn build_dataset_manifest(
                 selection.board_id
             )
         })?;
+        let license_actual_path = root
+            .join(license_relative_path)
+            .canonicalize()
+            .map_err(|error| {
+                format!(
+                    "{}: cannot resolve license-evidence file {}: {error}",
+                    selection.board_id, license_relative_path
+                )
+            })?;
+        if !license_actual_path.starts_with(&root) || !license_actual_path.is_file() {
+            return Err(format!(
+                "{}: license-evidence path is not a regular file contained by the dataset root",
+                selection.board_id
+            ));
+        }
+        let license_bytes = fs::read(&license_actual_path).map_err(|error| {
+            format!(
+                "{}: cannot read license-evidence bytes: {error}",
+                selection.board_id
+            )
+        })?;
+        if license_bytes.is_empty() {
+            return Err(format!(
+                "{}: license-evidence file is empty",
+                selection.board_id
+            ));
+        }
+
         boards.push(BoardPin {
             board_id: selection.board_id.clone(),
             input_board_sha256: sha256_hex(&bytes),
@@ -714,6 +781,9 @@ pub fn build_dataset_manifest(
             license: selection.license.clone(),
             source_url: selection.source_url.clone(),
             relative_path: Some(relative_path),
+            license_evidence_relative_path: Some(license_relative_path.to_string()),
+            license_evidence_sha256: Some(sha256_hex(&license_bytes)),
+            license_evidence_url: Some(license_url.to_string()),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
