@@ -2250,6 +2250,8 @@ mod tests {
                     required_nets: 4,
                     license: "CC-BY-4.0".into(),
                     source_url: "https://github.com/PCBench/PCBench".into(),
+                    license_evidence_relative_path: Some("license-evidence/board-easy-1.txt".into()),
+                    license_evidence_url: Some("https://spdx.org/licenses/CC-BY-4.0.html".into()),
                 },
                 IntakeBoard {
                     board_id: "board-hard-1".into(),
@@ -2257,6 +2259,8 @@ mod tests {
                     required_nets: 9,
                     license: "MIT".into(),
                     source_url: "https://github.com/PCBench/PCBench".into(),
+                    license_evidence_relative_path: Some("license-evidence/board-hard-1.txt".into()),
+                    license_evidence_url: Some("https://spdx.org/licenses/MIT.html".into()),
                 },
             ],
         };
@@ -2272,6 +2276,18 @@ mod tests {
             )
             .unwrap();
         }
+        std::fs::create_dir_all(root.join("license-evidence")).unwrap();
+        // These are deliberately synthetic test payloads, not real board licenses.
+        std::fs::write(
+            root.join("license-evidence/board-easy-1.txt"),
+            b"SYNTHETIC license-evidence fixture text for CC-BY-4.0\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("license-evidence/board-hard-1.txt"),
+            b"SYNTHETIC license-evidence fixture text for MIT\n",
+        )
+        .unwrap();
 
         let manifest = build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
             .expect("pinned split manifests build from source bytes");
@@ -2285,6 +2301,22 @@ mod tests {
         let receipt = verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
             .expect("built source files verify");
         assert_eq!(receipt.verified_board_count, 2);
+        assert_eq!(receipt.verified_license_evidence_count, 2);
+        assert_eq!(receipt.entries.len(), 4);
+        assert_eq!(
+            receipt.entries.iter().filter(|entry| entry.role == "license_evidence").count(),
+            2
+        );
+        std::fs::write(
+            root.join("license-evidence/board-easy-1.txt"),
+            b"modified after manifest creation\n",
+        )
+        .unwrap();
+        assert!(
+            verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("license-evidence bytes SHA-256")
+        );
 
         let mut invalid = intake.clone();
         invalid.boards[0].board_id = "not-in-split".into();
