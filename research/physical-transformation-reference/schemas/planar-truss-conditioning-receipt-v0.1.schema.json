@@ -10,6 +10,7 @@
     "benchmark_id",
     "case_definition",
     "source_commit",
+    "toolchain",
     "evidence_class",
     "result",
     "machine_epsilon",
@@ -78,6 +79,16 @@
       }
     },
     "source_commit": { "$ref": "#/$defs/gitSha1" },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rustc", "cargo", "target_triple"],
+      "properties": {
+        "rustc": { "type": "string", "pattern": "^rustc 1\\.96\\.0 \\(" },
+        "cargo": { "type": "string", "minLength": 1 },
+        "target_triple": { "type": "string", "minLength": 1 }
+      }
+    },
     "evidence_class": { "const": "software-test-run" },
     "result": { "const": "pass" },
     "machine_epsilon": { "type": "number", "exclusiveMinimum": 0 },
