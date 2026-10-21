@@ -298,5 +298,4 @@ mod tests {
         }
         assert_eq!(case_count, 30);
     }
-
 }
