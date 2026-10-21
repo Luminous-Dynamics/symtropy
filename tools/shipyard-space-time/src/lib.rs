@@ -50,6 +50,13 @@ impl Rect {
             && self.min_y < other.max_y
             && other.min_y < self.max_y
     }
+
+    pub const fn contains(self, other: Self) -> bool {
+        self.min_x <= other.min_x
+            && self.min_y <= other.min_y
+            && other.max_x <= self.max_x
+            && other.max_y <= self.max_y
+    }
 }
 
 /// Geometry is either represented in the supported V0 model or explicitly unsupported.
@@ -109,6 +116,9 @@ pub struct ExclusionZone {
 /// A complete finite scenario. This structure contains no planner-supplied feasibility flag.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Scenario {
+    /// Finite yard boundary in the same integer coordinate lattice as every footprint.
+    /// Missing or invalid bounds make the scenario unqualified.
+    pub yard_bounds: Option<Rect>,
     pub placements: Vec<Placement>,
     pub transfers: Vec<Transfer>,
     pub exclusion_zones: Vec<ExclusionZone>,
@@ -130,6 +140,10 @@ pub enum ViolationCode {
     MissingPredecessor,
     InvalidFootprint,
     UnsupportedFootprint,
+    MissingYardBounds,
+    InvalidYardBounds,
+    OutOfBoundsPlacement,
+    OutOfBoundsTransferCorridor,
     NoOperationalReservations,
     InvalidTimeRange,
     PrecedenceViolation,
@@ -158,6 +172,10 @@ impl ViolationCode {
             Self::MissingPredecessor => "MissingPredecessor",
             Self::InvalidFootprint => "InvalidFootprint",
             Self::UnsupportedFootprint => "UnsupportedFootprint",
+            Self::MissingYardBounds => "MissingYardBounds",
+            Self::InvalidYardBounds => "InvalidYardBounds",
+            Self::OutOfBoundsPlacement => "OutOfBoundsPlacement",
+            Self::OutOfBoundsTransferCorridor => "OutOfBoundsTransferCorridor",
             Self::NoOperationalReservations => "NoOperationalReservations",
             Self::InvalidTimeRange => "InvalidTimeRange",
             Self::PrecedenceViolation => "PrecedenceViolation",
@@ -243,6 +261,21 @@ fn validate_time_range(range: TimeRange, subject_id: &str, violations: &mut Vec<
 pub fn verify(scenario: &Scenario) -> VerificationReport {
     let mut violations = Vec::new();
 
+    // Missing/invalid spatial boundaries cannot qualify a finite yard plan.
+    match scenario.yard_bounds {
+        None => add_violation(
+            &mut violations,
+            ViolationCode::MissingYardBounds,
+            Vec::new(),
+        ),
+        Some(bounds) if !bounds.is_valid() => add_violation(
+            &mut violations,
+            ViolationCode::InvalidYardBounds,
+            Vec::new(),
+        ),
+        Some(_) => {}
+    }
+
     // A vacuously consistent empty input must not be promoted to a qualified yard plan.
     if scenario.placements.is_empty() && scenario.transfers.is_empty() {
         add_violation(
@@ -286,6 +319,17 @@ pub fn verify(scenario: &Scenario) -> VerificationReport {
             &placement.reservation_id,
             &mut violations,
         );
+        if let Some(bounds) = scenario.yard_bounds.filter(|bounds| bounds.is_valid())
+            && let Footprint::AxisAlignedRect(rect) = &placement.footprint
+            && rect.is_valid()
+            && !bounds.contains(*rect)
+        {
+            add_violation(
+                &mut violations,
+                ViolationCode::OutOfBoundsPlacement,
+                vec![placement.reservation_id.clone()],
+            );
+        }
     }
 
     for transfer in &scenario.transfers {
@@ -318,6 +362,17 @@ pub fn verify(scenario: &Scenario) -> VerificationReport {
         }
         validate_footprint(&transfer.corridor, &transfer.id, &mut violations);
         validate_time_range(transfer.interval, &transfer.id, &mut violations);
+        if let Some(bounds) = scenario.yard_bounds.filter(|bounds| bounds.is_valid())
+            && let Footprint::AxisAlignedRect(rect) = &transfer.corridor
+            && rect.is_valid()
+            && !bounds.contains(*rect)
+        {
+            add_violation(
+                &mut violations,
+                ViolationCode::OutOfBoundsTransferCorridor,
+                vec![transfer.id.clone()],
+            );
+        }
 
         let mut seen_predecessors = HashSet::new();
         for predecessor_id in &transfer.predecessor_move_ids {
@@ -579,6 +634,35 @@ mod tests {
     }
 
     #[test]
+    fn missing_yard_bounds_fail_closed() {
+        let scenario = Scenario {
+            placements: vec![placement("p-1", "block-1", rect(0, 0, 2, 2), 0, 2)],
+            ..Scenario::default()
+        };
+        assert!(has_code(&verify(&scenario), ViolationCode::MissingYardBounds));
+    }
+
+    #[test]
+    fn out_of_bounds_blocks_and_transfer_corridors_are_rejected() {
+        let yard_bounds = Some(Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 10,
+            max_y: 10,
+        });
+        let block = placement("p-1", "block-1", rect(9, 0, 11, 2), 0, 2);
+        let move_outside = transfer("move-1", "block-2", rect(9, 1, 11, 2), 0, 2, "tug-1");
+        let report = verify(&Scenario {
+            yard_bounds,
+            placements: vec![block],
+            transfers: vec![move_outside],
+            ..Scenario::default()
+        });
+        assert!(has_code(&report, ViolationCode::OutOfBoundsPlacement));
+        assert!(has_code(&report, ViolationCode::OutOfBoundsTransferCorridor));
+    }
+
+    #[test]
     fn empty_scenario_is_not_mistaken_for_a_qualified_yard_plan() {
         let report = verify(&Scenario::default());
         assert!(!report.is_feasible());
@@ -681,6 +765,12 @@ mod tests {
     #[test]
     fn unsupported_footprints_never_become_free_space() {
         let scenario = Scenario {
+            yard_bounds: Some(Rect {
+                min_x: 0,
+                min_y: 0,
+                max_x: 10,
+                max_y: 10,
+            }),
             placements: vec![placement(
                 "p-1",
                 "block-1",
@@ -701,11 +791,19 @@ mod tests {
     fn verifier_output_is_stable_under_input_permutation() {
         let a = placement("p-a", "block-a", rect(0, 0, 3, 3), 0, 4);
         let b = placement("p-b", "block-b", rect(2, 2, 4, 4), 1, 5);
+        let yard_bounds = Some(Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 10,
+            max_y: 10,
+        });
         let forward = verify(&Scenario {
+            yard_bounds,
             placements: vec![a.clone(), b.clone()],
             ..Scenario::default()
         });
         let reverse = verify(&Scenario {
+            yard_bounds,
             placements: vec![b, a],
             ..Scenario::default()
         });
@@ -716,7 +814,14 @@ mod tests {
     fn vehicle_overlap_is_detected_but_endpoint_contact_is_allowed() {
         let a = transfer("m-a", "block-a", rect(0, 0, 1, 1), 0, 3, "tug-1");
         let b = transfer("m-b", "block-b", rect(4, 0, 5, 1), 2, 4, "tug-1");
+        let yard_bounds = Some(Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 10,
+            max_y: 10,
+        });
         let report = verify(&Scenario {
+            yard_bounds,
             transfers: vec![a.clone(), b],
             ..Scenario::default()
         });
@@ -724,6 +829,7 @@ mod tests {
 
         let endpoint = transfer("m-c", "block-c", rect(7, 0, 8, 1), 3, 5, "tug-1");
         let report = verify(&Scenario {
+            yard_bounds,
             transfers: vec![a, endpoint],
             ..Scenario::default()
         });
