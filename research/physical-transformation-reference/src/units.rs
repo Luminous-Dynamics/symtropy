@@ -7,10 +7,10 @@
 //! Type checking prevents mixing quantities across the wrapper boundary, while
 //! runtime checks reject non-finite, overflowed, and invalid positive quantities.
 
+use crate::Check;
 use crate::mechanics::{
     self, AxialBarResult, CantileverTipLoadResult, SimplySupportedUniformLoadResult,
 };
-use crate::Check;
 
 const MILLIMETERS_TO_METERS: f64 = 1.0e-3;
 const KILONEWTONS_TO_NEWTONS: f64 = 1.0e3;
@@ -143,7 +143,10 @@ pub struct SecondMomentM4(f64);
 
 impl SecondMomentM4 {
     pub fn from_meters4(value: f64) -> Check<Self> {
-        Ok(Self(positive(value, "second moment in metres to the fourth")?))
+        Ok(Self(positive(
+            value,
+            "second moment in metres to the fourth",
+        )?))
     }
 
     pub fn from_millimeters4(value: f64) -> Check<Self> {
@@ -165,7 +168,10 @@ pub struct DistributedLoadNPerM(f64);
 
 impl DistributedLoadNPerM {
     pub fn from_newtons_per_meter(value: f64) -> Check<Self> {
-        Ok(Self(finite(value, "distributed load in newtons per metre")?))
+        Ok(Self(finite(
+            value,
+            "distributed load in newtons per metre",
+        )?))
     }
 
     pub fn from_kilonewtons_per_meter(value: f64) -> Check<Self> {
