@@ -2425,6 +2425,31 @@ mod tests {
             receipt.entries.iter().filter(|entry| entry.role == "license_evidence").count(),
             2
         );
+
+        // A manifest with an incorrect upstream Git blob pin must reject even
+        // when its SHA-256 still matches the actual copied evidence bytes.
+        let mut wrong_blob_manifest: serde_json::Value =
+            serde_json::from_slice(&manifest_bytes).unwrap();
+        wrong_blob_manifest["boards"][0]["license_evidence_git_blob_sha1"] =
+            serde_json::Value::String("0".repeat(40));
+        let wrong_blob_bytes = serde_json::to_vec(&wrong_blob_manifest).unwrap();
+        assert!(
+            verify_dataset_files(&wrong_blob_bytes, &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("immutable source repository Git blob")
+        );
+
+        // Manifest construction must reject a copied file that does not match
+        // its declared upstream Git blob ID, before it emits a new manifest.
+        let mut wrong_intake_blob = intake.clone();
+        wrong_intake_blob.boards[0].license_evidence_git_blob_sha1 = Some("0".repeat(40));
+        let wrong_intake_bytes = serde_json::to_vec(&wrong_intake_blob).unwrap();
+        assert!(
+            build_dataset_manifest(&split_config_bytes, &wrong_intake_bytes, &root)
+                .unwrap_err()
+                .contains("source repository Git blob SHA-1")
+        );
+
         std::fs::write(
             root.join("license-evidence/board-easy-1.txt"),
             b"modified after manifest creation\n",
