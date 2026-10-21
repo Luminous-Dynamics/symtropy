@@ -446,7 +446,7 @@ mod tests {
         let rotation_indices = result
             .dof_descriptors
             .iter()
-            .filter_map(|descriptor| match descriptor.kind {
+            .filter_map(|descriptor| match &descriptor.kind {
                 BeamPinDofKind::MemberEndRotation { .. } => Some(descriptor.index),
                 _ => None,
             })
