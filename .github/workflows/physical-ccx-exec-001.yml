@@ -222,7 +222,7 @@ jobs:
 
           cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
             --request "$REQUEST" --validator-revision "$source_sha" > "$OUT/request-validation.json"
-          jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
+          jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_status == "UNRESOLVED"' \
             "$OUT/request-validation.json" >/dev/null
 
           # Validate each exact request independently. Validation is a preflight, not solver evidence.
@@ -231,7 +231,7 @@ jobs:
             cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
               --request "$CASE_REQUEST" --validator-revision "$source_sha" \
               > "$OUT/request-validation-n${n}.json"
-            jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_qualified == false' \
+            jq -e '.request_validation == "PASS" and .solver_invoked == false and .physical_result_status == "UNRESOLVED"' \
               "$OUT/request-validation-n${n}.json" >/dev/null
             cp "$CASE_REQUEST" "$OUT/request-n${n}.json"
           done
@@ -528,6 +528,33 @@ jobs:
             and .physical_result_qualified == false
           ' "$OUT/mesh-trend-report.json" > /dev/null
 
+          # Add the independent numerical parser report digest to each successful
+          # process receipt after output normalization has completed.
+          for name in n1-u n2-u n4-u n1-u-repeat; do
+            R="$OUT/$name"
+            report="$R/displacement-report.json"
+            report_status="$(jq -r '.numeric_reference_status' "$report")"
+            test "$report_status" = "PASS"
+            report_sha="$(sha256sum "$report" | cut -d ' ' -f 1)"
+            jq --arg report_sha "$report_sha" --arg report_status "$report_status" \
+              '.numerical_report_sha256=$report_sha
+               | .numerical_report_kind="analytical_displacement"
+               | .numerical_report_status=$report_status' \
+              "$R/process-receipt.json" > "$R/process-receipt.json.tmp"
+            mv "$R/process-receipt.json.tmp" "$R/process-receipt.json"
+          done
+          R="$OUT/n1-rf"
+          report="$R/rf-normalization-report.json"
+          report_status="$(jq -r '.normalization_status' "$report")"
+          test "$report_status" = "PASS"
+          report_sha="$(sha256sum "$report" | cut -d ' ' -f 1)"
+          jq --arg report_sha "$report_sha" --arg report_status "$report_status" \
+            '.numerical_report_sha256=$report_sha
+             | .numerical_report_kind="restricted_rf_normalization"
+             | .numerical_report_status=$report_status' \
+            "$R/process-receipt.json" > "$R/process-receipt.json.tmp"
+          mv "$R/process-receipt.json.tmp" "$R/process-receipt.json"
+
           # Verify each actual process receipt against the exact source, request, build,
           # executable, input, stdout/stderr log, and outputs still on disk.
           for name in n1-u n2-u n4-u n1-u-repeat n1-rf; do
@@ -538,6 +565,20 @@ jobs:
             esac
             request_sha_case="$(sha256sum "$CASE_REQUEST" | cut -d ' ' -f 1)"
             R="$OUT/$name"
+            case "$name" in
+              n1-rf)
+                report="$R/rf-normalization-report.json"
+                expected_report_kind="restricted_rf_normalization"
+                observed_report_status="$(jq -r '.normalization_status' "$report")"
+                ;;
+              *)
+                report="$R/displacement-report.json"
+                expected_report_kind="analytical_displacement"
+                observed_report_status="$(jq -r '.numeric_reference_status' "$report")"
+                ;;
+            esac
+            report_sha="$(sha256sum "$report" | cut -d ' ' -f 1)"
+            test "$observed_report_status" = "PASS"
             deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
             dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
             frd_sha="$(sha256sum "$R/model.frd" | cut -d ' ' -f 1)"
@@ -560,6 +601,9 @@ jobs:
                and .dat_sha256 == $dat_sha
                and .frd_sha256 == $frd_sha
                and .process_log_sha256 == $log_sha
+               and .numerical_report_sha256 == $report_sha
+               and .numerical_report_kind == $expected_report_kind
+               and .numerical_report_status == $observed_report_status
                and .process_exit_status == 0
                and .process_status == "PASS"
                and .solver_execution_attested_by_this_receipt == false
@@ -570,10 +614,21 @@ jobs:
               "$R/process-receipt.json" >/dev/null
           done
 
+          # Hash the exact machine-readable reports referenced by the summary.
+          u1_report_sha="$(sha256sum "$OUT/n1-u/displacement-report.json" | cut -d ' ' -f 1)"
+          u2_report_sha="$(sha256sum "$OUT/n2-u/displacement-report.json" | cut -d ' ' -f 1)"
+          u4_report_sha="$(sha256sum "$OUT/n4-u/displacement-report.json" | cut -d ' ' -f 1)"
+          repeat_report_sha="$(sha256sum "$OUT/n1-u-repeat/displacement-report.json" | cut -d ' ' -f 1)"
+          rf_report_sha="$(sha256sum "$OUT/n1-rf/rf-normalization-report.json" | cut -d ' ' -f 1)"
+          mesh_report_sha="$(sha256sum "$OUT/mesh-trend-report.json" | cut -d ' ' -f 1)"
+
           # Write one summary retaining independent U, RF, repeated-run, and tamper statuses.
           jq -n \
             --arg source_sha "$source_sha" --arg request_sha "$request_sha" \
             --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+            --arg u1_report_sha "$u1_report_sha" --arg u2_report_sha "$u2_report_sha" \
+            --arg u4_report_sha "$u4_report_sha" --arg repeat_report_sha "$repeat_report_sha" \
+            --arg rf_report_sha "$rf_report_sha" --arg mesh_report_sha "$mesh_report_sha" \
             --argjson u1 "$u1" --argjson u1repeat "$u1repeat" \
             --argjson u2 "$u2" --argjson u4 "$u4" \
             --argjson rf_x "$(jq -r '.normalized_output.reaction_forces[0].force_n[0]' "$R/rf-normalization-report.json")" \
@@ -585,6 +640,11 @@ jobs:
               build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
               analytical_expected_tip_displacement_m:$expected,
               tip_displacements_m:{n1:$u1,n1_repeat:$u1repeat,n2:$u2,n4:$u4},
+              numerical_report_sha256:{
+                n1_displacement:$u1_report_sha,n2_displacement:$u2_report_sha,
+                n4_displacement:$u4_report_sha,n1_repeat_displacement:$repeat_report_sha,
+                support_reaction:$rf_report_sha,mesh_trend:$mesh_report_sha
+              },
               support_reaction_force_x_n:$rf_x,
               support_force_balance_residual_n:($rf_x + 1000),
               repeat_max_abs_delta_m:((($u1 - $u1repeat) | if . < 0 then -. else . end)),
