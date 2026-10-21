@@ -47,6 +47,10 @@ jobs:
       - name: Run Clippy with warnings denied
         run: cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify metamorphic test mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_mechanics_mutations.sh
+
       - name: Run frozen fixture and verify exact-head receipt
         shell: bash
         run: |
