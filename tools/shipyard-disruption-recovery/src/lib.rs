@@ -783,6 +783,40 @@ mod tests {
     }
 
     #[test]
+    fn new_exclusion_zone_marks_affected_transfer_and_measures_recovery() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 1, 1), 0, 8)],
+            transfers: vec![transfer("move-a", "block-a", 5, 8, "tug-1")],
+            ..Scenario::default()
+        };
+        let mut candidate_transfer = transfer("move-a", "block-a", 5, 8, "tug-1");
+        candidate_transfer.corridor = rect(7, 8, 8, 9);
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: baseline.placements.clone(),
+            transfers: vec![candidate_transfer],
+            ..Scenario::default()
+        };
+        let disruption = Disruption {
+            new_exclusion_zones: vec![zone("zone-a", rect(8, 8, 9, 9), 5, 8)],
+            ..empty_disruption(5)
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption,
+        });
+
+        assert!(report.accepted, "{:?}", report.violations);
+        assert!(!report.metrics.baseline_feasible_after_disruption);
+        assert_eq!(report.affected_reservation_ids, vec!["move-a"]);
+        assert_eq!(report.metrics.changed_transfer_reservations, 1);
+        assert_eq!(report.metrics.unaffected_transfer_churn, 0);
+        assert_eq!(report.metrics.recovery_horizon_ticks, Some(3));
+    }
+
+    #[test]
     fn candidate_churn_on_unaffected_reservation_is_measured_separately() {
         let baseline = Scenario {
             yard_bounds: Some(yard()),
