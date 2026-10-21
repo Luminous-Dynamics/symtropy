@@ -252,7 +252,7 @@ This motivates a narrow, testable adaptation—not another tuned task-value heur
 ### Policy
 
 The added `online_adaptive_value` policy uses the same expected terminal belief-risk scorer as the fixed-prior policy, but adapts only nuisance factors directly observable from its own released observations:
-- a Dirichlet-smoothed histogram of source-arrival delay, initialized from the declared public delay prior with six pseudo-observations;
+- a Dirichlet-smoothed histogram of source-arrival delay, initialized from the declared public delay prior with six pseudo-observations; records whose source time is clipped to tick zero are treated as censored and excluded from exact-delay counts
 - a Beta-smoothed distractor-frequency estimate, initialized around the public distractor prior with four pseudo-observations;
 - no hidden profile, latent truth, unchosen observation, evaluator label, or future data is exposed to the policy.
 
