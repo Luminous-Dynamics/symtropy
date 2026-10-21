@@ -118,78 +118,170 @@ pub enum PreferenceProbeError {
     EmptyAlternatives,
     EmptyScenarios,
     EmptyQuestions,
-    InputLimitExceeded { field: &'static str, maximum: usize },
-    InvalidIdentifier { field: &'static str, index: usize },
-    DuplicateIdentifier { field: &'static str, id: String },
-    DuplicateQuestionPair { left: String, right: String },
-    CriterionVectorLength { candidate_id: String, actual: usize, expected: usize },
-    ScoreOutOfRange { candidate_id: String, criterion_id: String, score_bps: u16 },
-    AlternativeNotVerified { candidate_id: String, status: VerificationStatus },
-    InvalidDigest { candidate_id: String, field: &'static str },
-    StaleReceiptBinding { candidate_id: String },
-    ScenarioWeightLength { scenario_id: String, actual: usize, expected: usize },
-    ScenarioWeightOutOfRange { scenario_id: String, weight_bps: u16 },
-    ScenarioWeightSum { scenario_id: String, actual: u32 },
-    UnknownQuestionCandidate { question_id: String, candidate_id: String },
-    SelfComparison { question_id: String },
-    IndifferenceMarginOutOfRange { actual: u64, maximum: u64 },
-    RegretInvariantViolation { question_id: String },
+    InputLimitExceeded {
+        field: &'static str,
+        maximum: usize,
+    },
+    InvalidIdentifier {
+        field: &'static str,
+        index: usize,
+    },
+    DuplicateIdentifier {
+        field: &'static str,
+        id: String,
+    },
+    DuplicateQuestionPair {
+        left: String,
+        right: String,
+    },
+    CriterionVectorLength {
+        candidate_id: String,
+        actual: usize,
+        expected: usize,
+    },
+    ScoreOutOfRange {
+        candidate_id: String,
+        criterion_id: String,
+        score_bps: u16,
+    },
+    AlternativeNotVerified {
+        candidate_id: String,
+        status: VerificationStatus,
+    },
+    InvalidDigest {
+        candidate_id: String,
+        field: &'static str,
+    },
+    StaleReceiptBinding {
+        candidate_id: String,
+    },
+    ScenarioWeightLength {
+        scenario_id: String,
+        actual: usize,
+        expected: usize,
+    },
+    ScenarioWeightOutOfRange {
+        scenario_id: String,
+        weight_bps: u16,
+    },
+    ScenarioWeightSum {
+        scenario_id: String,
+        actual: u32,
+    },
+    UnknownQuestionCandidate {
+        question_id: String,
+        candidate_id: String,
+    },
+    SelfComparison {
+        question_id: String,
+    },
+    IndifferenceMarginOutOfRange {
+        actual: u64,
+        maximum: u64,
+    },
+    RegretInvariantViolation {
+        question_id: String,
+    },
 }
 
 impl fmt::Display for PreferenceProbeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyCriteria => write!(f, "preference probe has no criteria"),
-            Self::EmptyAlternatives => write!(f, "preference probe has fewer than two alternatives"),
+            Self::EmptyAlternatives => {
+                write!(f, "preference probe has fewer than two alternatives")
+            }
             Self::EmptyScenarios => write!(f, "preference probe has no preference scenarios"),
             Self::EmptyQuestions => write!(f, "preference probe has no pairwise questions"),
             Self::InputLimitExceeded { field, maximum } => {
                 write!(f, "{field} exceeds the supported maximum of {maximum}")
             }
             Self::InvalidIdentifier { field, index } => {
-                write!(f, "{field} at index {index} is blank or has surrounding whitespace")
+                write!(
+                    f,
+                    "{field} at index {index} is blank or has surrounding whitespace"
+                )
             }
             Self::DuplicateIdentifier { field, id } => {
                 write!(f, "duplicate {field} identifier {id:?}")
             }
             Self::DuplicateQuestionPair { left, right } => {
-                write!(f, "pairwise question for {left:?} and {right:?} is duplicated")
+                write!(
+                    f,
+                    "pairwise question for {left:?} and {right:?} is duplicated"
+                )
             }
-            Self::CriterionVectorLength { candidate_id, actual, expected } => write!(
+            Self::CriterionVectorLength {
+                candidate_id,
+                actual,
+                expected,
+            } => write!(
                 f,
                 "candidate {candidate_id:?} has {actual} criterion scores, expected {expected}"
             ),
-            Self::ScoreOutOfRange { candidate_id, criterion_id, score_bps } => write!(
+            Self::ScoreOutOfRange {
+                candidate_id,
+                criterion_id,
+                score_bps,
+            } => write!(
                 f,
                 "candidate {candidate_id:?} has out-of-range score {score_bps} for {criterion_id:?}"
             ),
-            Self::AlternativeNotVerified { candidate_id, status } => {
-                write!(f, "candidate {candidate_id:?} is not hard-verified: {status:?}")
+            Self::AlternativeNotVerified {
+                candidate_id,
+                status,
+            } => {
+                write!(
+                    f,
+                    "candidate {candidate_id:?} is not hard-verified: {status:?}"
+                )
             }
-            Self::InvalidDigest { candidate_id, field } => {
+            Self::InvalidDigest {
+                candidate_id,
+                field,
+            } => {
                 write!(f, "candidate {candidate_id:?} has a malformed {field}")
             }
             Self::StaleReceiptBinding { candidate_id } => {
-                write!(f, "candidate {candidate_id:?} receipt binds a different revision")
+                write!(
+                    f,
+                    "candidate {candidate_id:?} receipt binds a different revision"
+                )
             }
-            Self::ScenarioWeightLength { scenario_id, actual, expected } => write!(
+            Self::ScenarioWeightLength {
+                scenario_id,
+                actual,
+                expected,
+            } => write!(
                 f,
                 "scenario {scenario_id:?} has {actual} weights, expected {expected}"
             ),
-            Self::ScenarioWeightOutOfRange { scenario_id, weight_bps } => write!(
+            Self::ScenarioWeightOutOfRange {
+                scenario_id,
+                weight_bps,
+            } => write!(
                 f,
                 "scenario {scenario_id:?} has out-of-range weight {weight_bps}"
             ),
-            Self::ScenarioWeightSum { scenario_id, actual } => write!(
+            Self::ScenarioWeightSum {
+                scenario_id,
+                actual,
+            } => write!(
                 f,
                 "scenario {scenario_id:?} weights sum to {actual}, expected 10000"
             ),
-            Self::UnknownQuestionCandidate { question_id, candidate_id } => write!(
+            Self::UnknownQuestionCandidate {
+                question_id,
+                candidate_id,
+            } => write!(
                 f,
                 "question {question_id:?} references unknown candidate {candidate_id:?}"
             ),
             Self::SelfComparison { question_id } => {
-                write!(f, "question {question_id:?} compares a candidate with itself")
+                write!(
+                    f,
+                    "question {question_id:?} compares a candidate with itself"
+                )
             }
             Self::IndifferenceMarginOutOfRange { actual, maximum } => write!(
                 f,
@@ -358,7 +450,10 @@ pub fn compute_resident_preference_probe(
         }
         for (value, field) in [
             (alternative.revision_sha256.as_str(), "revision SHA-256"),
-            (alternative.verifier_receipt_sha256.as_str(), "receipt SHA-256"),
+            (
+                alternative.verifier_receipt_sha256.as_str(),
+                "receipt SHA-256",
+            ),
             (
                 alternative.verified_revision_sha256.as_str(),
                 "receipt-bound revision SHA-256",
@@ -449,10 +544,7 @@ pub fn compute_resident_preference_probe(
             alternatives
                 .iter()
                 .map(|alternative| {
-                    utility_numerator(
-                        &alternative.criterion_scores_bps,
-                        &scenario.weights_bps,
-                    )
+                    utility_numerator(&alternative.criterion_scores_bps, &scenario.weights_bps)
                 })
                 .collect::<Vec<_>>()
         })
@@ -534,15 +626,14 @@ pub fn compute_resident_preference_probe(
         for (scenario_index, scenario_utilities) in utilities.iter().enumerate() {
             let left_utility = scenario_utilities[left_index];
             let right_utility = scenario_utilities[right_index];
-            let outcome_index = if left_utility.abs_diff(right_utility)
-                <= request.indifference_margin_units
-            {
-                2
-            } else if left_utility > right_utility {
-                0
-            } else {
-                1
-            };
+            let outcome_index =
+                if left_utility.abs_diff(right_utility) <= request.indifference_margin_units {
+                    2
+                } else if left_utility > right_utility {
+                    0
+                } else {
+                    1
+                };
             partitions[outcome_index].push(scenario_index);
         }
 
@@ -582,9 +673,9 @@ pub fn compute_resident_preference_probe(
 
     let mut frontier_question_ids = Vec::new();
     for question in &results {
-        let dominated = results
-            .iter()
-            .any(|other| other.question_id != question.question_id && question_dominates(other, question));
+        let dominated = results.iter().any(|other| {
+            other.question_id != question.question_id && question_dominates(other, question)
+        });
         if !dominated {
             frontier_question_ids.push(question.question_id.clone());
         }
@@ -608,7 +699,11 @@ mod tests {
     use super::*;
 
     fn alternative(id: &str, scores: &[u16]) -> PreferenceAlternative {
-        let revision = format!("{:064x}", id.bytes().fold(1_u64, |value, byte| value + u64::from(byte)));
+        let revision = format!(
+            "{:064x}",
+            id.bytes()
+                .fold(1_u64, |value, byte| value + u64::from(byte))
+        );
         PreferenceAlternative {
             candidate_id: id.to_owned(),
             revision_sha256: revision.clone(),
@@ -619,7 +714,13 @@ mod tests {
         }
     }
 
-    fn question(id: &str, left: &str, right: &str, cost: u32, duration: u32) -> PairwisePreferenceQuestion {
+    fn question(
+        id: &str,
+        left: &str,
+        right: &str,
+        cost: u32,
+        duration: u32,
+    ) -> PairwisePreferenceQuestion {
         PairwisePreferenceQuestion {
             question_id: id.to_owned(),
             left_candidate_id: left.to_owned(),
@@ -641,8 +742,14 @@ mod tests {
                 alternative("high-support", &[0, 10_000]),
             ],
             scenarios: vec![
-                PreferenceScenario { scenario_id: "cost-first".to_owned(), weights_bps: vec![10_000, 0] },
-                PreferenceScenario { scenario_id: "support-first".to_owned(), weights_bps: vec![0, 10_000] },
+                PreferenceScenario {
+                    scenario_id: "cost-first".to_owned(),
+                    weights_bps: vec![10_000, 0],
+                },
+                PreferenceScenario {
+                    scenario_id: "support-first".to_owned(),
+                    weights_bps: vec![0, 10_000],
+                },
             ],
             questions: vec![
                 question("ask-extremes", "low-cost", "high-support", 2, 8),
@@ -652,10 +759,7 @@ mod tests {
         }
     }
 
-    fn direct_utility(
-        alternative: &PreferenceAlternative,
-        scenario: &PreferenceScenario,
-    ) -> u64 {
+    fn direct_utility(alternative: &PreferenceAlternative, scenario: &PreferenceScenario) -> u64 {
         alternative
             .criterion_scores_bps
             .iter()
@@ -713,8 +817,7 @@ mod tests {
         for scenario in &input.scenarios {
             let left_utility = direct_utility(left, scenario);
             let right_utility = direct_utility(right, scenario);
-            let outcome = if left_utility.abs_diff(right_utility)
-                <= input.indifference_margin_units
+            let outcome = if left_utility.abs_diff(right_utility) <= input.indifference_margin_units
             {
                 2
             } else if left_utility > right_utility {
@@ -742,12 +845,20 @@ mod tests {
     fn extreme_pair_question_reduces_known_minimax_regret_to_zero() {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
         assert_eq!(report.baseline_minimax_regret_units, 40_000_000);
-        let question = report.questions.iter().find(|q| q.question_id == "ask-extremes").unwrap();
+        let question = report
+            .questions
+            .iter()
+            .find(|q| q.question_id == "ask-extremes")
+            .unwrap();
         assert_eq!(question.post_answer_worst_case_regret_units, 0);
         assert_eq!(question.worst_case_regret_reduction_units, 40_000_000);
         assert_eq!(
             question.answer_counts,
-            PreferenceAnswerCounts::ExactModelPartition { left_preferred: 1, right_preferred: 1, indifferent: 0 }
+            PreferenceAnswerCounts::ExactModelPartition {
+                left_preferred: 1,
+                right_preferred: 1,
+                indifferent: 0
+            }
         );
     }
 
@@ -805,7 +916,10 @@ mod tests {
     fn scenario_partition_never_increases_worst_case_regret() {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
         for question in &report.questions {
-            assert!(question.post_answer_worst_case_regret_units <= report.baseline_minimax_regret_units);
+            assert!(
+                question.post_answer_worst_case_regret_units
+                    <= report.baseline_minimax_regret_units
+            );
             assert_eq!(
                 question.worst_case_regret_reduction_units,
                 report.baseline_minimax_regret_units - question.post_answer_worst_case_regret_units
@@ -819,7 +933,12 @@ mod tests {
         input.scenarios.truncate(1);
         let report = compute_resident_preference_probe(&input).expect("valid single model");
         assert_eq!(report.baseline_minimax_regret_units, 0);
-        assert!(report.questions.iter().all(|q| q.worst_case_regret_reduction_units == 0));
+        assert!(
+            report
+                .questions
+                .iter()
+                .all(|q| q.worst_case_regret_reduction_units == 0)
+        );
     }
 
     #[test]
@@ -871,7 +990,8 @@ mod tests {
                     ));
                 }
             }
-            let report = compute_resident_preference_probe(&input).expect("valid generated request");
+            let report =
+                compute_resident_preference_probe(&input).expect("valid generated request");
             let expected_frontier = report
                 .questions
                 .iter()
@@ -948,14 +1068,20 @@ mod tests {
         blocked.alternatives[0].hard_feasibility = VerificationStatus::Blocked;
         assert!(matches!(
             compute_resident_preference_probe(&blocked),
-            Err(PreferenceProbeError::AlternativeNotVerified { status: VerificationStatus::Blocked, .. })
+            Err(PreferenceProbeError::AlternativeNotVerified {
+                status: VerificationStatus::Blocked,
+                ..
+            })
         ));
 
         let mut unknown = request();
         unknown.alternatives[0].hard_feasibility = VerificationStatus::Indeterminate;
         assert!(matches!(
             compute_resident_preference_probe(&unknown),
-            Err(PreferenceProbeError::AlternativeNotVerified { status: VerificationStatus::Indeterminate, .. })
+            Err(PreferenceProbeError::AlternativeNotVerified {
+                status: VerificationStatus::Indeterminate,
+                ..
+            })
         ));
 
         let mut stale = request();
@@ -990,7 +1116,13 @@ mod tests {
         ));
 
         let mut duplicate_pair = request();
-        duplicate_pair.questions.push(question("reverse-same-pair", "high-support", "low-cost", 2, 8));
+        duplicate_pair.questions.push(question(
+            "reverse-same-pair",
+            "high-support",
+            "low-cost",
+            2,
+            8,
+        ));
         assert!(matches!(
             compute_resident_preference_probe(&duplicate_pair),
             Err(PreferenceProbeError::DuplicateQuestionPair { .. })
@@ -1002,10 +1134,26 @@ mod tests {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
         // The two lower-effort questions split the two models just as effectively
         // as the extremes question and should dominate that more costly question.
-        assert!(!report.frontier_question_ids.contains(&"ask-extremes".to_owned()));
-        assert!(report.frontier_question_ids.contains(&"ask-balanced-cost".to_owned()));
-        assert!(report.frontier_question_ids.contains(&"ask-balanced-support".to_owned()));
-        let extreme = report.questions.iter().find(|q| q.question_id == "ask-extremes").unwrap();
+        assert!(
+            !report
+                .frontier_question_ids
+                .contains(&"ask-extremes".to_owned())
+        );
+        assert!(
+            report
+                .frontier_question_ids
+                .contains(&"ask-balanced-cost".to_owned())
+        );
+        assert!(
+            report
+                .frontier_question_ids
+                .contains(&"ask-balanced-support".to_owned())
+        );
+        let extreme = report
+            .questions
+            .iter()
+            .find(|q| q.question_id == "ask-extremes")
+            .unwrap();
         assert_eq!(extreme.worst_case_regret_reduction_units, 40_000_000);
         assert_eq!(extreme.query_cost_units, 2);
         assert_eq!(extreme.query_duration_units, 8);
@@ -1031,7 +1179,8 @@ mod tests {
                 .collect();
             input.scenarios = (0..6)
                 .map(|scenario_index| {
-                    let first = (u32::from(seed) * 113 + u32::from(scenario_index) * 1_907) % 10_001;
+                    let first =
+                        (u32::from(seed) * 113 + u32::from(scenario_index) * 1_907) % 10_001;
                     PreferenceScenario {
                         scenario_id: format!("s-{scenario_index}"),
                         weights_bps: vec![first as u16, 10_000 - first as u16],
