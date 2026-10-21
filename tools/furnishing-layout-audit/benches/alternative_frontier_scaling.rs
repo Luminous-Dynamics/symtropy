@@ -22,6 +22,7 @@ fn candidate(index: usize, count: usize, profile: &str) -> AlternativeCandidate 
         candidate_id: format!("candidate-{index:05}"),
         revision_sha256: Some(format!("{:064x}", index + 1)),
         verifier_receipt_sha256: Some(format!("{:064x}", index + count + 1)),
+        verified_revision_sha256: Some(format!("{:064x}", index + 1)),
         verification: VerificationStatus::Verified,
         objectives: vec![
             ObjectiveObservation {
