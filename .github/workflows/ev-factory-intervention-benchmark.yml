@@ -7,6 +7,7 @@ on:
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
       - "tools/ev-passenger-cost-frontier/Cargo.toml"
       - "docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md"
+      - "docs/research/EV_FACTORY_PAIRED_INTERVENTION_EFFECTS_V0_1.md"
       - ".github/workflows/ev-factory-intervention-benchmark.yml"
   push:
     branches: [main]
@@ -56,6 +57,8 @@ jobs:
             and .output_never_exceeds_released_input
             and .all_buffers_respected_capacity
             and .station_time_accounting_within_horizon
+            and (.replication_outcomes | length) == 120
+            and all(.replication_outcomes[]; .seed > 0 and .good_units_per_hour >= 0 and .baseline_good_units_per_hour >= 0)
           ' ev-factory-simulation-report.json
       - name: Rank interventions with baseline-only diagnostic signals
         run: |
@@ -64,6 +67,7 @@ jobs:
             ev-factory-simulation-report.json > ev-factory-intervention-ranking-report.json
           jq -e --arg digest "$EXPECTED_SHA256" '
             .benchmark_id == "EV-FACTORY-INTERVENTION-BENCH-001"
+            and .practical_equivalence_margin_units_per_hour == 0.05
             and .source_simulation_report_sha256 == $digest
             and .source_simulation_replication_count == 20
             and .source_simulation_seed_count == 20
@@ -71,11 +75,37 @@ jobs:
             and .candidate_count == 5
             and (.candidates | length) == 5
             and (.method_scores | length) == 4
+            and (.paired_intervention_comparisons | length) == 10
+            and all(.paired_intervention_comparisons[]; .paired_effect_a_minus_b.sample_count == 20 and .practical_equivalence_margin_units_per_hour == 0.05 and .probability_a_beats_b_beyond_margin >= 0 and .probability_a_beats_b_beyond_margin <= 1 and .probability_b_beats_a_beyond_margin >= 0 and .probability_b_beats_a_beyond_margin <= 1)
+            and .robust_best_station_id == "end-of-line-test"
+            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
             and all(.method_scores[]; (.ranked_station_ids | length) == 5 and .absolute_regret_units_per_hour_vs_point_estimate_oracle != null and .spearman_rank_correlation_vs_oracle != null and .kendall_tau_b_vs_oracle != null)
             and .results_are_synthetic_model_conditional
             and (.result_scores_are_field_sota_claims == false)
             and (.production_release_authorized == false)
           ' ev-factory-intervention-ranking-report.json
+      - name: Practical-margin sensitivity panel
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json 0.01 > ev-factory-intervention-margin-001.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json 2.5 > ev-factory-intervention-margin-250.json
+          jq -e '
+            .practical_equivalence_margin_units_per_hour == 0.01
+            and .robust_best_station_id == "end-of-line-test"
+            and .paired_effect_recommendation_status == "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
+          ' ev-factory-intervention-margin-001.json
+          jq -e '
+            .practical_equivalence_margin_units_per_hour == 2.5
+            and .robust_best_station_id == null
+            and .paired_effect_recommendation_status == "no_robust_best_intervention_detected_abstain"
+          ' ev-factory-intervention-margin-250.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
+            ev-factory-simulation-report.json 0 > invalid-margin.json 2> invalid-margin.stderr; then
+            echo "zero practical margin unexpectedly accepted"
+            exit 1
+          fi
+          grep -Fq "practical margin must be a finite positive number" invalid-margin.stderr
       - name: Verify deterministic ranking report
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- \
@@ -85,7 +115,9 @@ jobs:
         run: |
           jq '.benchmark_id = "unreviewed-benchmark"' ev-factory-simulation-report.json > invalid-intervention-source.json
           jq '.replication_seeds[1] = .replication_seeds[0]' ev-factory-simulation-report.json > invalid-intervention-seeds.json
-          for invalid in invalid-intervention-source.json invalid-intervention-seeds.json; do
+          jq '.replication_outcomes[1].seed = 999999' ev-factory-simulation-report.json > invalid-intervention-outcome-seed.json
+          jq '.replication_outcomes[1].paired_good_units_per_hour_delta_vs_baseline = 99' ev-factory-simulation-report.json > invalid-intervention-delta.json
+          for invalid in invalid-intervention-source.json invalid-intervention-seeds.json invalid-intervention-outcome-seed.json invalid-intervention-delta.json; do
             if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_intervention_benchmark -- "$invalid" >/dev/null 2>&1; then
               echo "invalid simulation report unexpectedly accepted: $invalid"
               exit 1
@@ -99,13 +131,18 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_intervention_benchmark.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
             docs/research/EV_FACTORY_INTERVENTION_RANKING_BENCHMARK_V0_1.md \
+            docs/research/EV_FACTORY_PAIRED_INTERVENTION_EFFECTS_V0_1.md \
             ev-factory-simulation-report.json \
-            ev-factory-intervention-ranking-report.json > ev-factory-intervention-ranking.sha256
+            ev-factory-intervention-ranking-report.json \
+            ev-factory-intervention-margin-001.json \
+            ev-factory-intervention-margin-250.json > ev-factory-intervention-ranking.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ev-factory-intervention-ranking-report
           path: |
             ev-factory-simulation-report.json
             ev-factory-intervention-ranking-report.json
+            ev-factory-intervention-margin-001.json
+            ev-factory-intervention-margin-250.json
             ev-factory-intervention-ranking.sha256
           if-no-files-found: error

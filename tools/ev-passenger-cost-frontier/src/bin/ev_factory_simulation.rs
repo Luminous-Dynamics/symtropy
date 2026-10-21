@@ -101,6 +101,7 @@ struct Report {
     max_variant_skip_seconds: u64,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
+    replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
@@ -165,6 +166,16 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct ReplicationOutcome {
+    seed: u64,
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    good_units_per_hour: f64,
+    baseline_good_units_per_hour: f64,
+    paired_good_units_per_hour_delta_vs_baseline: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -602,6 +613,29 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    let mut replication_outcomes = Vec::with_capacity(runs.len() * report.scenario_count);
+    for run in &runs {
+        let baseline = run
+            .scenarios
+            .first()
+            .ok_or_else(|| "replication_baseline_scenario_missing".to_string())?;
+        for scenario in &run.scenarios {
+            let delta = if scenario.scenario_id == "baseline" {
+                None
+            } else {
+                Some(scenario.measured_good_units_per_hour - baseline.measured_good_units_per_hour)
+            };
+            replication_outcomes.push(ReplicationOutcome {
+                seed: run.seed,
+                scenario_id: scenario.scenario_id.clone(),
+                intervention_station_id: scenario.intervention_station_id.clone(),
+                good_units_per_hour: scenario.measured_good_units_per_hour,
+                baseline_good_units_per_hour: baseline.measured_good_units_per_hour,
+                paired_good_units_per_hour_delta_vs_baseline: delta,
+            });
+        }
+    }
+    report.replication_outcomes = replication_outcomes;
     let mut station_statistics = Vec::new();
     for scenario_index in 0..report.scenario_count {
         for station_index in 0..runs[0].scenarios[scenario_index].stations.len() {
@@ -769,6 +803,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         max_variant_skip_seconds: catalog.max_variant_skip_seconds,
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
+        replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
@@ -1540,7 +1575,10 @@ mod tests {
         let aware_report =
             evaluate_catalog(&variant_aware).expect("variant-aware no-setup control");
         assert_eq!(fifo_report.scenarios, aware_report.scenarios);
-        assert_eq!(fifo_report.scenario_statistics, aware_report.scenario_statistics);
+        assert_eq!(
+            fifo_report.scenario_statistics,
+            aware_report.scenario_statistics
+        );
         assert_eq!(
             fifo_report.station_sequence_statistics,
             aware_report.station_sequence_statistics
@@ -1568,6 +1606,48 @@ mod tests {
         assert_eq!(metrics.output_transfers_after_warmup, 5);
         assert_eq!(metrics.out_of_order_output_transfers_after_warmup, 2);
         assert_eq!(high_water, Some(15));
+    }
+
+    #[test]
+    fn replication_outcomes_preserve_seed_pairing_and_scenario_identity() {
+        let report = evaluate_catalog(&fixture()).expect("replicated simulation");
+        assert_eq!(
+            report.replication_outcomes.len(),
+            20 * report.scenario_count
+        );
+        for seed in &report.replication_seeds {
+            let outcomes: Vec<_> = report
+                .replication_outcomes
+                .iter()
+                .filter(|outcome| outcome.seed == *seed)
+                .collect();
+            assert_eq!(outcomes.len(), report.scenario_count);
+            let baseline = outcomes
+                .iter()
+                .find(|outcome| outcome.scenario_id == "baseline")
+                .expect("per-seed baseline");
+            assert!(
+                baseline
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_none()
+            );
+            for outcome in outcomes
+                .iter()
+                .filter(|outcome| outcome.scenario_id != "baseline")
+            {
+                let delta = outcome
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .expect("intervention paired delta");
+                assert!(
+                    (delta - (outcome.good_units_per_hour - baseline.good_units_per_hour)).abs()
+                        < 1e-12
+                );
+                assert_eq!(
+                    outcome.baseline_good_units_per_hour,
+                    baseline.good_units_per_hour
+                );
+            }
+        }
     }
 
     #[test]

@@ -16,6 +16,7 @@ struct SimulationReport {
     dispatch_policy: String,
     scenarios: Vec<SimulationScenario>,
     scenario_statistics: Vec<SimulationScenarioStatistic>,
+    replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistic>,
     release_ready: bool,
     output_never_exceeds_released_input: bool,
@@ -44,6 +45,16 @@ struct SimulationScenarioStatistic {
     scenario_id: String,
     intervention_station_id: Option<String>,
     paired_good_units_per_hour_delta_vs_baseline: Option<DistributionSummary>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ReplicationOutcome {
+    seed: u64,
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    good_units_per_hour: f64,
+    baseline_good_units_per_hour: f64,
+    paired_good_units_per_hour_delta_vs_baseline: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -121,6 +132,19 @@ struct MethodScore {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct PairedInterventionComparison {
+    station_a_id: String,
+    station_b_id: String,
+    difference_definition: String,
+    mean_paired_effect_a_minus_b_units_per_hour: f64,
+    paired_effect_a_minus_b: DistributionSummary,
+    probability_a_beats_b_beyond_margin: f64,
+    probability_b_beats_a_beyond_margin: f64,
+    practical_equivalence_margin_units_per_hour: f64,
+    decision: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct Report {
     schema_version: String,
     benchmark_id: String,
@@ -136,6 +160,10 @@ struct Report {
     runner_up_station_ci_upper: Option<f64>,
     nonoverlapping_interval_screen_separates_top_two: bool,
     interval_screen_note: String,
+    practical_equivalence_margin_units_per_hour: f64,
+    paired_intervention_comparisons: Vec<PairedInterventionComparison>,
+    robust_best_station_id: Option<String>,
+    paired_effect_recommendation_status: String,
     method_scores: Vec<MethodScore>,
     results_are_synthetic_model_conditional: bool,
     result_scores_are_field_sota_claims: bool,
@@ -145,10 +173,23 @@ struct Report {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json>");
+    if !(2..=3).contains(&args.len()) {
+        eprintln!(
+            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]"
+        );
         process::exit(2);
     }
+    let practical_margin = if args.len() == 3 {
+        match args[2].parse::<f64>() {
+            Ok(value) if value.is_finite() && value > 0.0 => value,
+            _ => {
+                eprintln!("practical margin must be a finite positive number");
+                process::exit(2);
+            }
+        }
+    } else {
+        0.05
+    };
     let report_text = match fs::read_to_string(&args[1]) {
         Ok(value) => value,
         Err(error) => {
@@ -164,7 +205,7 @@ fn main() {
         }
     };
     let source_digest = format!("{:x}", Sha256::digest(report_text.as_bytes()));
-    let report = match evaluate(&simulation, &source_digest) {
+    let report = match evaluate(&simulation, &source_digest, practical_margin) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("intervention benchmark rejected input: {error}");
@@ -294,12 +335,102 @@ fn validate_simulation_report(input: &SimulationReport) -> Result<(), String> {
     }) {
         return Err("baseline_sequence_metrics_invalid".into());
     }
+
+    let expected_outcome_count = input.replication_count * (stations.len() + 1);
+    if input.replication_outcomes.len() != expected_outcome_count {
+        return Err("per_seed_outcome_count_must_match_seeds_times_scenarios".into());
+    }
+    let known_scenarios: BTreeSet<String> = input
+        .scenarios
+        .iter()
+        .map(|scenario| scenario.scenario_id.clone())
+        .collect();
+    let mut seen_outcomes = BTreeSet::new();
+    let mut outcomes_by_seed: BTreeMap<u64, Vec<&ReplicationOutcome>> = BTreeMap::new();
+    for outcome in &input.replication_outcomes {
+        if !seeds.contains(&outcome.seed)
+            || !known_scenarios.contains(&outcome.scenario_id)
+            || !outcome.good_units_per_hour.is_finite()
+            || outcome.good_units_per_hour < 0.0
+            || !outcome.baseline_good_units_per_hour.is_finite()
+            || outcome.baseline_good_units_per_hour < 0.0
+            || !seen_outcomes.insert((outcome.seed, outcome.scenario_id.clone()))
+        {
+            return Err("per_seed_outcome_has_invalid_seed_scenario_value_or_duplicate".into());
+        }
+        if outcome.scenario_id == "baseline" {
+            if outcome.intervention_station_id.is_some()
+                || outcome
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .is_some()
+                || (outcome.good_units_per_hour - outcome.baseline_good_units_per_hour).abs() > 1e-9
+            {
+                return Err("per_seed_baseline_outcome_shape_or_value_invalid".into());
+            }
+        } else {
+            let station_id = outcome
+                .intervention_station_id
+                .as_ref()
+                .ok_or_else(|| "per_seed_intervention_outcome_missing_station_id".to_string())?;
+            let scenario = input
+                .scenarios
+                .iter()
+                .find(|scenario| scenario.scenario_id == outcome.scenario_id)
+                .ok_or_else(|| "per_seed_outcome_scenario_missing".to_string())?;
+            if scenario.intervention_station_id.as_ref() != Some(station_id) {
+                return Err("per_seed_outcome_intervention_station_mismatch".into());
+            }
+            let delta = outcome
+                .paired_good_units_per_hour_delta_vs_baseline
+                .ok_or_else(|| "per_seed_intervention_delta_missing".to_string())?;
+            if !delta.is_finite()
+                || (delta - (outcome.good_units_per_hour - outcome.baseline_good_units_per_hour))
+                    .abs()
+                    > 1e-9
+            {
+                return Err("per_seed_intervention_delta_does_not_match_paired_outputs".into());
+            }
+        }
+        outcomes_by_seed
+            .entry(outcome.seed)
+            .or_default()
+            .push(outcome);
+    }
+    for seed in &input.replication_seeds {
+        let rows = outcomes_by_seed
+            .get(seed)
+            .ok_or_else(|| "seed_has_no_replication_outcomes".to_string())?;
+        if rows.len() != stations.len() + 1 {
+            return Err("each_seed_must_have_baseline_and_every_intervention".into());
+        }
+        let baseline_row = rows
+            .iter()
+            .find(|outcome| outcome.scenario_id == "baseline")
+            .ok_or_else(|| "seed_missing_paired_baseline".to_string())?;
+        for outcome in rows
+            .iter()
+            .filter(|outcome| outcome.scenario_id != "baseline")
+        {
+            if (outcome.baseline_good_units_per_hour - baseline_row.good_units_per_hour).abs()
+                > 1e-9
+            {
+                return Err("seed_outcomes_do_not_share_same_baseline_rate".into());
+            }
+        }
+    }
     Ok(())
 }
 
-fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, String> {
+fn evaluate(
+    input: &SimulationReport,
+    report_digest: &str,
+    practical_equivalence_margin: f64,
+) -> Result<Report, String> {
     if !valid_sha256(report_digest) {
         return Err("source_simulation_report_sha256_must_be_64_hex_characters".into());
+    }
+    if !practical_equivalence_margin.is_finite() || practical_equivalence_margin <= 0.0 {
+        return Err("practical_equivalence_margin_must_be_finite_and_positive".into());
     }
     validate_simulation_report(input)?;
     let baseline = input
@@ -369,6 +500,94 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
         _ => false,
     };
 
+    let replication_outcomes: BTreeMap<(u64, String), &ReplicationOutcome> = input
+        .replication_outcomes
+        .iter()
+        .map(|outcome| ((outcome.seed, outcome.scenario_id.clone()), outcome))
+        .collect();
+    let mut paired_comparisons = Vec::new();
+    for first in 0..candidates.len() {
+        for second in (first + 1)..candidates.len() {
+            let station_a = &candidates[first].station_id;
+            let station_b = &candidates[second].station_id;
+            let scenario_a = format!("add-one-server-{station_a}");
+            let scenario_b = format!("add-one-server-{station_b}");
+            let mut difference_samples = Vec::with_capacity(input.replication_count);
+            let mut a_win_count = 0usize;
+            let mut b_win_count = 0usize;
+            for seed in &input.replication_seeds {
+                let outcome_a = replication_outcomes
+                    .get(&(*seed, scenario_a.clone()))
+                    .ok_or_else(|| format!("missing_seed_scenario_outcome_{seed}_{scenario_a}"))?;
+                let outcome_b = replication_outcomes
+                    .get(&(*seed, scenario_b.clone()))
+                    .ok_or_else(|| format!("missing_seed_scenario_outcome_{seed}_{scenario_b}"))?;
+                let gain_a = outcome_a
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .ok_or_else(|| "paired_gain_missing_for_station_a".to_string())?;
+                let gain_b = outcome_b
+                    .paired_good_units_per_hour_delta_vs_baseline
+                    .ok_or_else(|| "paired_gain_missing_for_station_b".to_string())?;
+                let difference = gain_a - gain_b;
+                if difference > practical_equivalence_margin {
+                    a_win_count += 1;
+                } else if difference < -practical_equivalence_margin {
+                    b_win_count += 1;
+                }
+                difference_samples.push(difference);
+            }
+            let paired_effect = summarize_distribution(&difference_samples)?;
+            let lower = paired_effect.mean_confidence_95_lower;
+            let upper = paired_effect.mean_confidence_95_upper;
+            let decision = paired_interval_decision(lower, upper, practical_equivalence_margin);
+            paired_comparisons.push(PairedInterventionComparison {
+                station_a_id: station_a.clone(),
+                station_b_id: station_b.clone(),
+                difference_definition: "gain_a(seed)-gain_b(seed); each gain is same-seed intervention output minus that same seed's baseline output".into(),
+                mean_paired_effect_a_minus_b_units_per_hour: paired_effect.mean,
+                paired_effect_a_minus_b: paired_effect,
+                probability_a_beats_b_beyond_margin: a_win_count as f64 / input.replication_count as f64,
+                probability_b_beats_a_beyond_margin: b_win_count as f64 / input.replication_count as f64,
+                practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
+                decision: decision.into(),
+            });
+        }
+    }
+    let robust_best_station_id = oracle_ranked.first().and_then(|top| {
+        let candidate_id = top.station_id.as_str();
+        let beats_all = candidates.iter().all(|other| {
+            if other.station_id == top.station_id {
+                return true;
+            }
+            paired_comparisons
+                .iter()
+                .find(|comparison| {
+                    (comparison.station_a_id == top.station_id
+                        && comparison.station_b_id == other.station_id)
+                        || (comparison.station_a_id == other.station_id
+                            && comparison.station_b_id == top.station_id)
+                })
+                .is_some_and(|comparison| {
+                    if comparison.station_a_id == top.station_id {
+                        comparison.decision == "station_a_meaningfully_better_under_paired_model"
+                    } else {
+                        comparison.decision == "station_b_meaningfully_better_under_paired_model"
+                    }
+                })
+        });
+        if beats_all {
+            Some(candidate_id.to_string())
+        } else {
+            None
+        }
+    });
+    let paired_effect_recommendation_status = if robust_best_station_id.is_some() {
+        "unique_best_intervention_separated_from_all_candidates_by_paired_intervals"
+    } else {
+        "no_robust_best_intervention_detected_abstain"
+    }
+    .to_string();
+
     let methods: Vec<(DiagnosticMethod, fn(&StationCandidate) -> f64)> = vec![
         (DiagnosticMethod::UtilizationMaximum, |candidate| {
             candidate.utilization_fraction
@@ -391,7 +610,7 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
                 score,
                 &candidates,
                 &oracle_ranked,
-                intervals_separate,
+                robust_best_station_id.as_deref(),
             )
         })
         .collect();
@@ -409,7 +628,11 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
         runner_up_station_by_mean_paired_gain: runner_up.station_id.clone(),
         runner_up_station_ci_upper: runner_up.oracle_paired_gain_ci_95_upper,
         nonoverlapping_interval_screen_separates_top_two: intervals_separate,
-        interval_screen_note: "Non-overlap of the two individual mean confidence intervals is a conservative descriptive screen, not a paired hypothesis test. The report lacks a paired interval for the difference between intervention effects; without that, abstain from a firm intervention recommendation.".into(),
+        interval_screen_note: "Legacy descriptive screen only; paired_intervention_comparisons is the primary comparison of intervention-vs-intervention effects.".into(),
+        practical_equivalence_margin_units_per_hour: practical_equivalence_margin,
+        paired_intervention_comparisons: paired_comparisons,
+        robust_best_station_id,
+        paired_effect_recommendation_status,
         method_scores,
         results_are_synthetic_model_conditional: true,
         result_scores_are_field_sota_claims: false,
@@ -418,12 +641,102 @@ fn evaluate(input: &SimulationReport, report_digest: &str) -> Result<Report, Str
     })
 }
 
+fn paired_interval_decision(lower: Option<f64>, upper: Option<f64>, margin: f64) -> &'static str {
+    match (lower, upper) {
+        (Some(lo), Some(_hi)) if lo > margin => "station_a_meaningfully_better_under_paired_model",
+        (Some(_lo), Some(hi)) if hi < -margin => "station_b_meaningfully_better_under_paired_model",
+        (Some(lo), Some(hi)) if lo >= -margin && hi <= margin => {
+            "practically_equivalent_within_declared_margin"
+        }
+        _ => "inconclusive_under_paired_interval",
+    }
+}
+
+fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err("paired_distribution_requires_nonempty_finite_samples".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let count = sorted.len();
+    let mean = sorted.iter().sum::<f64>() / count as f64;
+    let sample_standard_deviation = if count > 1 {
+        let squared_error = sorted
+            .iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>();
+        Some((squared_error / (count - 1) as f64).sqrt())
+    } else {
+        None
+    };
+    let confidence = sample_standard_deviation.map(|sd| {
+        let margin = student_t_critical_95((count - 1) as u32) * sd / (count as f64).sqrt();
+        (mean - margin, mean + margin)
+    });
+    Ok(DistributionSummary {
+        sample_count: count,
+        mean,
+        sample_standard_deviation,
+        minimum: sorted[0],
+        p05: quantile_sorted(&sorted, 0.05),
+        median: quantile_sorted(&sorted, 0.50),
+        p95: quantile_sorted(&sorted, 0.95),
+        maximum: sorted[count - 1],
+        mean_confidence_95_lower: confidence.map(|bounds| bounds.0),
+        mean_confidence_95_upper: confidence.map(|bounds| bounds.1),
+    })
+}
+
+fn quantile_sorted(sorted: &[f64], probability: f64) -> f64 {
+    let position = probability.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let fraction = position - lower_index as f64;
+    sorted[lower_index] * (1.0 - fraction) + sorted[upper_index] * fraction
+}
+
+fn student_t_critical_95(degrees_of_freedom: u32) -> f64 {
+    match degrees_of_freedom {
+        0 => f64::NAN,
+        1 => 12.706,
+        2 => 4.303,
+        3 => 3.182,
+        4 => 2.776,
+        5 => 2.571,
+        6 => 2.447,
+        7 => 2.365,
+        8 => 2.306,
+        9 => 2.262,
+        10 => 2.228,
+        11 => 2.201,
+        12 => 2.179,
+        13 => 2.160,
+        14 => 2.145,
+        15 => 2.131,
+        16 => 2.120,
+        17 => 2.110,
+        18 => 2.101,
+        19 => 2.093,
+        20 => 2.086,
+        21 => 2.080,
+        22 => 2.074,
+        23 => 2.069,
+        24 => 2.064,
+        25 => 2.060,
+        26 => 2.056,
+        27 => 2.052,
+        28 => 2.048,
+        29 => 2.045,
+        _ => 1.960,
+    }
+}
+
 fn score_method(
     method: DiagnosticMethod,
     score: fn(&StationCandidate) -> f64,
     candidates: &[StationCandidate],
     oracle_ranked: &[StationCandidate],
-    oracle_interval_separates_top_two: bool,
+    robust_best_station_id: Option<&str>,
 ) -> MethodScore {
     let mut ranked = candidates.to_vec();
     ranked.sort_by(|a, b| {
@@ -482,17 +795,12 @@ fn score_method(
         .is_some_and(|station_id| station_id == &oracle_ranked[0].station_id);
     let disposition = if abstained {
         "abstain_signal_tie".to_string()
-    } else if !oracle_interval_separates_top_two {
-        "ranking_ambiguous_under_individual_interval_screen_no_recommendation".to_string()
-    } else if selected.is_some_and(|candidate| {
-        candidate
-            .oracle_paired_gain_ci_95_lower
-            .is_some_and(|lower| lower > 0.0)
-    }) && exact_agreement
-    {
-        "matches_top_synthetic_counterfactual_only_not_field_recommendation".to_string()
+    } else if robust_best_station_id.is_none() {
+        "paired_intervention_effects_not_separated_no_recommendation".to_string()
+    } else if predicted.as_deref() == robust_best_station_id {
+        "matches_robust_best_synthetic_counterfactual_only_not_field_recommendation".to_string()
     } else {
-        "diagnostic_signal_not_sufficient_for_intervention_recommendation".to_string()
+        "diagnostic_signal_not_sufficient_for_robust_intervention_recommendation".to_string()
     };
     MethodScore {
         method: method.name().to_string(),
@@ -695,6 +1003,66 @@ mod tests {
                 .max_by(|a, b| a.utilization_fraction.total_cmp(&b.utilization_fraction))
                 .unwrap()
                 .station_id
+        );
+    }
+
+    #[test]
+    fn paired_effect_of_effects_detects_clear_advantage_and_equivalence() {
+        let a_gains = [1.0, 1.0, 1.0, 1.0, 1.0];
+        let b_gains = [0.2, 0.2, 0.2, 0.2, 0.2];
+        let differences: Vec<f64> = a_gains
+            .iter()
+            .zip(b_gains.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+        let summary = summarize_distribution(&differences).expect("paired summary");
+        assert!((summary.mean - 0.8).abs() < 1e-12);
+        assert_eq!(summary.mean_confidence_95_lower, Some(0.8));
+        assert_eq!(summary.mean_confidence_95_upper, Some(0.8));
+        let margin = 0.05;
+        assert!(summary.mean_confidence_95_lower.unwrap() > margin);
+
+        let equal_differences = [0.01, 0.02, 0.00, 0.01, 0.02];
+        let equal = summarize_distribution(&equal_differences).expect("equivalence summary");
+        assert!(equal.mean_confidence_95_lower.unwrap() >= -margin);
+        assert!(equal.mean_confidence_95_upper.unwrap() <= margin);
+    }
+
+    #[test]
+    fn paired_intervention_difference_is_seed_aligned_and_not_marginal_ci_overlap() {
+        let baseline = [10.0, 11.0, 9.0, 12.0, 10.5];
+        let a_output = [12.0, 13.0, 11.0, 14.0, 12.5];
+        let b_output = [11.0, 13.0, 10.0, 13.0, 11.5];
+        let paired_effects: Vec<f64> = baseline
+            .iter()
+            .enumerate()
+            .map(|(i, base)| (a_output[i] - base) - (b_output[i] - base))
+            .collect();
+        assert_eq!(paired_effects, vec![1.0, 0.0, 1.0, 1.0, 1.0]);
+        let summary = summarize_distribution(&paired_effects).expect("paired effect of effects");
+        assert_eq!(summary.sample_count, 5);
+        assert!((summary.mean - 0.8).abs() < 1e-12);
+    }
+
+    #[test]
+    fn margin_is_explicit_and_can_change_equivalence_decision() {
+        let lower = Some(0.08);
+        let upper = Some(0.08);
+        assert_eq!(
+            paired_interval_decision(lower, upper, 0.05),
+            "station_a_meaningfully_better_under_paired_model"
+        );
+        assert_eq!(
+            paired_interval_decision(lower, upper, 0.10),
+            "practically_equivalent_within_declared_margin"
+        );
+        assert_eq!(
+            paired_interval_decision(Some(0.02), Some(0.12), 0.05),
+            "inconclusive_under_paired_interval"
+        );
+        assert_eq!(
+            paired_interval_decision(None, None, 0.05),
+            "inconclusive_under_paired_interval"
         );
     }
 
