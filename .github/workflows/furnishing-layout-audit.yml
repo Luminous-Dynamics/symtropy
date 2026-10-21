@@ -62,4 +62,6 @@ jobs:
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
       - name: Benchmark evidence-qualified frontier at 25/100/1000/10000 alternatives
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench alternative_frontier_scaling
+      - name: Benchmark interval-valued frontier against full pairwise report
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench interval_frontier_scaling
 
