@@ -91,7 +91,7 @@ This remains a synthetic small-displacement, 2D pin-jointed-truss code-verificat
 
 ### Interval enclosures: uncertainty is not a sensitivity multiplier
 
-The reduced-truss extension [PHYS-UQ-TRUSS-001 #2500](https://github.com/Luminous-Dynamics/symtropy/issues/2500) / [draft PR #2501](https://github.com/Luminous-Dynamics/symtropy/pull/2501) propagates declared bounds for geometry, axial stiffness and load through a reduced 2x2 linear-elastic truss. It uses a geometry-specific determinant identity and refuses to issue displacement enclosures when strict positivity of the determinant cannot be established.
+The reduced-truss extension [PHYS-UQ-TRUSS-001 #2500](https://github.com/Luminous-Dynamics/symtropy/issues/2500) / [draft PR #2501](https://github.com/Luminous-Dynamics/symtropy/pull/2501) propagates declared bounds for geometry, axial rigidities `EA`, and loads through a reduced 2x2 linear-elastic truss, deriving each effective member stiffness as `EA/L` across the geometry bounds. It uses a geometry-specific determinant identity and refuses to issue displacement enclosures when strict positivity of the determinant cannot be established.
 
 This is not a confidence interval: declared ranges are not probability distributions, and scenario bounds are not measured/calibrated uncertainty. Nor does a bounded corner grid prove interval soundness. Sound enclosures depend on arithmetic semantics, outward rounding and conformance tests; the independent interval-conformance gate remains a dependency. Record finite enclosure width and unresolved/abstention separately from reference error, mesh convergence and physical validation. A wide enclosure is evidence of low decision resolution, not a PASS.
 
