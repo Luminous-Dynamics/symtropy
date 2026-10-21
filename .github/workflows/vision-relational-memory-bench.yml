@@ -139,7 +139,9 @@ jobs:
           cat vis-active-query.tsv
 
           grep -Fq "VALUE_CALIBRATION" vis-active-query.tsv
-          awk -F '\t' '$1 == "VALUE_CALIBRATION" && $2 == "family" { if (NF != 11) exit 1; header++ } $1 == "VALUE_CALIBRATION" && ($2 == "development" || $2 == "held_out") { if (NF != 11) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "VALUE_CALIBRATION" && $2 == "family" { if (NF != 12) exit 1; header++ } $1 == "VALUE_CALIBRATION" && ($2 == "development" || $2 == "held_out") { if (NF != 12) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 2 || seen["development"] != 1 || seen["held_out"] != 1) exit 1 }' vis-active-query.tsv
+          grep -Fq "VALUE_REALIZED_STRATA" vis-active-query.tsv
+          awk -F '\t' '$1 == "VALUE_REALIZED_STRATA" && $2 == "family" { if (NF != 8) exit 1; header++ } $1 == "VALUE_REALIZED_STRATA" && ($2 == "development" || $2 == "held_out") { if (NF != 8) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
           grep -Fq "VALUE_RANKING" vis-active-query.tsv
           awk -F '\t' '$1 == "VALUE_RANKING" && $2 == "family" { if (NF != 11) exit 1; header++ } $1 == "VALUE_RANKING" && ($2 == "development" || $2 == "held_out") { if (NF != 11) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 2 || seen["development"] != 1 || seen["held_out"] != 1) exit 1 }' vis-active-query.tsv
       - name: Upload both reproducible reports
