@@ -88,12 +88,8 @@ pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamMo
             None
         };
 
-        let eigen_residual = normalized_eigen_residual(
-            &stiffness_reduced,
-            &mass_reduced,
-            eigenvalue,
-            &shape_free,
-        )?;
+        let eigen_residual =
+            normalized_eigen_residual(&stiffness_reduced, &mass_reduced, eigenvalue, &shape_free)?;
         let mass_norm = quadratic_form(&mass_reduced, &shape_free)?;
         let mut shape_global = vec![0.0; assembly.stiffness_global.len()];
         for (free_index, global_index) in assembly.free_dof_indices.iter().enumerate() {
@@ -185,9 +181,7 @@ fn mass_inner_product(mass: &Matrix, left: &[f64], right: &[f64]) -> Check<f64> 
 
 #[cfg(test)]
 mod tests {
-    use crate::beam_pin_assembly::{
-        BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss,
-    };
+    use crate::beam_pin_assembly::{BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
 
     use super::{BeamModeClass, solve_beam_pin_assembly_modes};
 
@@ -243,7 +237,12 @@ mod tests {
         let assembly = fixture();
         let result = solve_beam_pin_assembly_modes(&assembly).expect("modal result");
         assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
-        assert!(result.modes.iter().all(|mode| mode.class == BeamModeClass::Elastic));
+        assert!(
+            result
+                .modes
+                .iter()
+                .all(|mode| mode.class == BeamModeClass::Elastic)
+        );
         assert!(result.modes.windows(2).all(|pair| {
             pair[0].frequency_hz.expect("elastic mode")
                 < pair[1].frequency_hz.expect("elastic mode")
@@ -272,13 +271,8 @@ mod tests {
         }
         let result = solve_beam_pin_assembly_modes(&assembly).expect("classified mechanism");
         assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
-        assert!(
-            result
-                .modes
-                .iter()
-                .any(|mode| {
-                    mode.class == BeamModeClass::NearZeroOrMechanism && mode.frequency_hz.is_none()
-                })
-        );
+        assert!(result.modes.iter().any(|mode| {
+            mode.class == BeamModeClass::NearZeroOrMechanism && mode.frequency_hz.is_none()
+        }));
     }
 }
