@@ -102,7 +102,7 @@ pub fn beam_modal_participation_properties(
             return Err("global DOF indices must be unique and cover the matrix".to_owned());
         }
         seen[descriptor.index] = true;
-        match descriptor.kind {
+        match &descriptor.kind {
             BeamPinDofKind::NodeTranslationX { .. } => influence_x[descriptor.index] = 1.0,
             BeamPinDofKind::NodeTranslationY { .. } => influence_y[descriptor.index] = 1.0,
             BeamPinDofKind::MemberEndRotation { .. }
@@ -292,6 +292,50 @@ mod tests {
         assert!((y_mode.effective_modal_mass_ratio_y - 1.0).abs() < 1.0e-12);
         assert!((y_mode.cumulative_effective_mass_ratio_x - 1.0).abs() < 1.0e-12);
         assert!((y_mode.cumulative_effective_mass_ratio_y - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn participation_is_invariant_to_arbitrary_mode_vector_scaling() {
+        let assembly = assembly(vec![vec![2.0, 0.0], vec![0.0, 3.0]]);
+        let baseline = beam_modal_participation_properties(&assembly, &result())
+            .expect("baseline participation");
+        let mut scaled_modes = result();
+        scaled_modes.modes[0]
+            .shape_global_dofs
+            .iter_mut()
+            .for_each(|value| *value *= 2.0);
+        scaled_modes.modes[1]
+            .shape_global_dofs
+            .iter_mut()
+            .for_each(|value| *value *= 5.0);
+        let scaled = beam_modal_participation_properties(&assembly, &scaled_modes)
+            .expect("rescaled modes");
+        for index in 0..baseline.modes.len() {
+            assert!(
+                (baseline.modes[index].effective_modal_mass_x_kg
+                    - scaled.modes[index].effective_modal_mass_x_kg)
+                    .abs()
+                    < 1.0e-12
+            );
+            assert!(
+                (baseline.modes[index].effective_modal_mass_y_kg
+                    - scaled.modes[index].effective_modal_mass_y_kg)
+                    .abs()
+                    < 1.0e-12
+            );
+            assert!(
+                (baseline.modes[index].effective_modal_mass_ratio_x
+                    - scaled.modes[index].effective_modal_mass_ratio_x)
+                    .abs()
+                    < 1.0e-12
+            );
+            assert!(
+                (baseline.modes[index].effective_modal_mass_ratio_y
+                    - scaled.modes[index].effective_modal_mass_ratio_y)
+                    .abs()
+                    < 1.0e-12
+            );
+        }
     }
 
     #[test]
