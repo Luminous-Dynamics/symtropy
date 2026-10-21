@@ -184,7 +184,9 @@ impl ModalRequest {
         }
         let area_m2 = std::f64::consts::PI * self.radius_m * self.radius_m;
         if !area_m2.is_finite() || area_m2 <= 0.0 {
-            return Err("derived cross-sectional area is outside the supported numeric range".to_owned());
+            return Err(
+                "derived cross-sectional area is outside the supported numeric range".to_owned(),
+            );
         }
         Ok(FixedFreeBar {
             length_m: self.length_m,
@@ -406,7 +408,9 @@ mod tests {
 
     #[test]
     fn frozen_request_drives_the_reported_physical_parameters() {
-        let canonical = REQUEST.strip_suffix('\n').expect("frozen request is LF-terminated");
+        let canonical = REQUEST
+            .strip_suffix('\n')
+            .expect("frozen request is LF-terminated");
         let request = parse_request(canonical).expect("valid frozen modal request");
         assert_eq!(request.fixture_id, FIXTURE_ID);
         assert_eq!(request.length_m, 1.0);
@@ -420,9 +424,17 @@ mod tests {
 
     #[test]
     fn request_parser_rejects_duplicate_unknown_and_unsupported_fields() {
-        let canonical = REQUEST.strip_suffix('\n').expect("frozen request is LF-terminated");
+        let canonical = REQUEST
+            .strip_suffix('\n')
+            .expect("frozen request is LF-terminated");
         assert!(parse_request(&format!("{canonical}|elements=2")).is_err());
         assert!(parse_request(&format!("{canonical}|unreviewed=1")).is_err());
-        assert!(parse_request(&canonical.replace("schema=modal-bar-request-v0.1", "schema=modal-bar-request-v0.2")).is_err());
+        assert!(
+            parse_request(&canonical.replace(
+                "schema=modal-bar-request-v0.1",
+                "schema=modal-bar-request-v0.2"
+            ))
+            .is_err()
+        );
     }
 }
