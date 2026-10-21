@@ -65,7 +65,7 @@ Hydrodynamic resistance/propulsion, stability, structural design, maneuverabilit
 - Freeze input corpus, train/tune/test partition, constraints, evaluation code and baseline configuration before comparing methods.
 - Tune on a development set only. Keep a hidden or sealed test set for the final comparison; do not revise expected outcomes after seeing candidate results without a versioned correction.
 - Match vessel class, work scope, price year, currency, region, service life, throughput, tax/tender scope and allocation policy for cost comparisons.
-- Keep planned quantities, simulated estimates, observed quantities, rate-card estimates and posted financial actuals as separate fields.
+- Keep planned quantities, simulated estimates, observed quantities, rate-card estimates and posted financial actuals as separate fields. Require delta-versus-cumulative-snapshot semantics before external MES/ERP ingestion; this is tracked in [SHIPYARD-EVENT-SEMANTICS-001 #2458](https://github.com/Luminous-Dynamics/symtropy/issues/2458).
 - Report unknown and unallocated amounts explicitly. Never infer a zero from absent evidence.
 - Report point estimate, interval and uncertainty/calibration method when the evidence supports them; otherwise mark the uncertainty as unquantified.
 - Retain failures, timeouts and negative controls in the report. Publish raw outputs and environment metadata, not only a headline score.
