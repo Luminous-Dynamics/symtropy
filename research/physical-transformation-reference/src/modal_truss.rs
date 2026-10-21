@@ -729,15 +729,18 @@ mod tests {
         .expect("consistent modal solution");
         let kxx = result.stiffness_matrix_n_per_m[0][0];
         let kxy = result.stiffness_matrix_n_per_m[0][1];
-        for (mode, eigenvalue) in result
-            .modes
-            .iter()
-            .zip(eigenvalue_oracle(ModalTrussMassFormulation::Consistent).iter())
-        {
-            let raw = [1.0, (*eigenvalue - kxx) / kxy];
+        let kyy = result.stiffness_matrix_n_per_m[1][1];
+        let stiffness_discriminant = ((kxx - kyy).powi(2) + 4.0 * kxy * kxy).sqrt();
+        let stiffness_eigenvalues = [
+            (kxx + kyy - stiffness_discriminant) / 2.0,
+            (kxx + kyy + stiffness_discriminant) / 2.0,
+        ];
+        for (mode, stiffness_eigenvalue) in result.modes.iter().zip(stiffness_eigenvalues.iter()) {
+            let raw = [1.0, (*stiffness_eigenvalue - kxx) / kxy];
             let norm = (raw[0] * raw[0] + raw[1] * raw[1]).sqrt();
             let expected = [raw[0] / norm, raw[1] / norm];
-            let actual_norm = (mode.shape[0] * mode.shape[0] + mode.shape[1] * mode.shape[1]).sqrt();
+            let actual_norm =
+                (mode.shape[0] * mode.shape[0] + mode.shape[1] * mode.shape[1]).sqrt();
             let actual = [mode.shape[0] / actual_norm, mode.shape[1] / actual_norm];
             let dot = actual[0] * expected[0] + actual[1] * expected[1];
             let modal_assurance = dot * dot;
