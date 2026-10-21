@@ -13,6 +13,7 @@ use std::f64::consts::PI;
 const MAX_ELEMENTS: usize = 128;
 
 type Matrix = Vec<Vec<f64>>;
+type Eigenpair = (f64, Vec<f64>);
 
 /// The element mass approximation is part of the model contract, not a solver
 /// implementation detail. The two formulations can differ materially on
@@ -231,7 +232,7 @@ fn ensure_finite_matrix(name: &str, matrix: &Matrix) -> Check<()> {
 fn generalized_symmetric_eigenpairs(
     stiffness: &Matrix,
     mass: &Matrix,
-) -> Check<Vec<(f64, Vec<f64>)>> {
+) -> Check<Vec<Eigenpair>> {
     let lower = cholesky_lower(mass)?;
     let inverse_lower = inverse_lower_triangular(&lower)?;
     let transformed_left = matrix_multiply(&inverse_lower, stiffness);
