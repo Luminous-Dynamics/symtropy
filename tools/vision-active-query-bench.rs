@@ -965,6 +965,22 @@ fn report() {
         let (lo, hi) = bootstrap_ci(&deltas, seed);
         println!("PAIRWISE\t{}\texpected_task_loss_reduction_minus_value_of_information\t{}\t{:.4}\t{:.4}\t{:.4}",
             family.name(), deltas.len(), mean_delta, lo, hi);
+
+        let adaptive_index = PolicyKind::ALL.iter()
+            .position(|policy| *policy == PolicyKind::OnlineAdaptiveValue)
+            .expect("online adaptive value policy is declared");
+        let adaptive = &cells[family_index * PolicyKind::ALL.len() + adaptive_index];
+        let adaptive_deltas: Vec<f64> = adaptive.paired_deltas_vs_rr.iter()
+            .zip(expected.paired_deltas_vs_rr.iter())
+            .map(|(adaptive_delta, expected_delta)| adaptive_delta - expected_delta)
+            .collect();
+        let adaptive_delta = adaptive_deltas.iter().sum::<f64>()
+            / adaptive_deltas.len().max(1) as f64;
+        let adaptive_seed = mix64(ROOT_SEED ^ 0x4144_4150_5456_4558
+            ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB));
+        let (adaptive_lo, adaptive_hi) = bootstrap_ci(&adaptive_deltas, adaptive_seed);
+        println!("PAIRWISE\t{}\tonline_adaptive_value_minus_expected_task_loss_reduction\t{}\t{:.4}\t{:.4}\t{:.4}",
+            family.name(), adaptive_deltas.len(), adaptive_delta, adaptive_lo, adaptive_hi);
     }
 
     println!("STRATUM\tfamily\tstratum\tlevel\tpolicy\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
@@ -1556,6 +1572,36 @@ mod tests {
         }
         assert!(terminal_decision_risk(state.probabilities(HORIZON - 1)) <= STOP_COST_PER_OBSERVATION);
         assert_eq!(state.choose_action(HORIZON - 1), QUERY_COUNT);
+    }
+
+    #[test]
+    fn online_adaptive_value_updates_only_from_observed_nuisance_features() {
+        let mut state = PolicyState::new(PolicyKind::OnlineAdaptiveValue, 22);
+        let initial_delays = state.adaptive_delay_priors();
+        let initial_distractor = state.adaptive_distractor_probability();
+        assert!((initial_distractor - PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0).abs() < 1e-12);
+        assert!((initial_delays.iter().map(|(_, p)| *p).sum::<f64>() - 1.0).abs() < 1e-12);
+
+        state.observe(0, Evidence {
+            key: 3,
+            value: true,
+            source_tick: 2,
+            arrival_tick: 7,
+            confidence: 950,
+        });
+        let adapted_delays = state.adaptive_delay_priors();
+        assert!(adapted_delays[5].1 > initial_delays[5].1);
+        assert!(state.adaptive_distractor_probability() > initial_distractor);
+
+        state.observe(1, Evidence {
+            key: QUERY_KEYS[1] as u8,
+            value: true,
+            source_tick: 8,
+            arrival_tick: 8,
+            confidence: 950,
+        });
+        assert!(state.adaptive_distractor_probability()
+            < (PRIOR_DISTRACTOR_PER_THOUSAND / 1_000.0 + 1.0) / 2.0);
     }
 
     #[test]
