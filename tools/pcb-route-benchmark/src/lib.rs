@@ -833,7 +833,8 @@ pub fn verify_dataset_files(
         ));
     }
 
-    let mut entries = Vec::with_capacity(manifest.boards.len());
+    let mut entries = Vec::with_capacity(manifest.boards.len() * 2);
+    let mut verified_license_evidence_count = 0usize;
     for board in &manifest.boards {
         let relative_path = board
             .relative_path
@@ -873,21 +874,87 @@ pub fn verify_dataset_files(
         }
         entries.push(DatasetFileVerificationEntry {
             board_id: board.board_id.clone(),
+            role: "source_board".into(),
             relative_path: relative_path.to_string(),
             byte_len: bytes.len() as u64,
             sha256: digest,
         });
+
+        if manifest.evidence_class == "external_benchmark" {
+            let evidence_relative_path = board
+                .license_evidence_relative_path
+                .as_deref()
+                .ok_or_else(|| format!("{}: license-evidence path is missing", board.board_id))?;
+            validate_relative_path(
+                evidence_relative_path,
+                &format!("{} license evidence", board.board_id),
+            )?;
+            let expected_evidence_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
+                format!("{}: license-evidence SHA-256 is missing", board.board_id)
+            })?;
+            let evidence_path = root
+                .join(evidence_relative_path)
+                .canonicalize()
+                .map_err(|error| {
+                    format!(
+                        "{}: cannot resolve license-evidence file {}: {error}",
+                        board.board_id, evidence_relative_path
+                    )
+                })?;
+            if !evidence_path.starts_with(&root) {
+                return Err(format!(
+                    "{}: license-evidence file resolves outside the dataset root",
+                    board.board_id
+                ));
+            }
+            if !evidence_path.is_file() {
+                return Err(format!(
+                    "{}: license-evidence path is not a regular file: {}",
+                    board.board_id, evidence_relative_path
+                ));
+            }
+            let evidence_bytes = fs::read(&evidence_path).map_err(|error| {
+                format!(
+                    "{}: cannot read license-evidence file {}: {error}",
+                    board.board_id, evidence_relative_path
+                )
+            })?;
+            if evidence_bytes.is_empty() {
+                return Err(format!("{}: license-evidence file is empty", board.board_id));
+            }
+            let evidence_digest = sha256_hex(&evidence_bytes);
+            if evidence_digest != expected_evidence_sha {
+                return Err(format!(
+                    "{}: license-evidence bytes SHA-256 does not match the pinned manifest",
+                    board.board_id
+                ));
+            }
+            entries.push(DatasetFileVerificationEntry {
+                board_id: board.board_id.clone(),
+                role: "license_evidence".into(),
+                relative_path: evidence_relative_path.to_string(),
+                byte_len: evidence_bytes.len() as u64,
+                sha256: evidence_digest,
+            });
+            verified_license_evidence_count += 1;
+        }
     }
-    entries.sort_by(|a, b| a.board_id.cmp(&b.board_id));
+    entries.sort_by(|a, b| {
+        a.board_id
+            .cmp(&b.board_id)
+            .then_with(|| a.role.cmp(&b.role))
+            .then_with(|| a.relative_path.cmp(&b.relative_path))
+    });
 
     Ok(DatasetFileVerificationReceipt {
         schema: "pcb-route-dataset-file-verification-v0.1".into(),
         evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
         dataset_manifest_sha256: sha256_hex(manifest_bytes),
-        verified_board_count: entries.len(),
+        verified_board_count: manifest.boards.len(),
+        verified_license_evidence_count,
         entries,
-        authority: "dataset_source_bytes_match_pinned_manifest_only".into(),
-        claim_ceiling: "This receipt verifies source file paths and byte digests under the declared dataset root. It does not route boards, validate board semantics, authorize a benchmark score, or establish manufacturing/physical quality.".into(),
+        authority: "dataset_source_and_license_evidence_bytes_match_pinned_manifest_only".into(),
+        claim_ceiling: "This receipt verifies source-board and license-evidence file paths and byte digests under the declared dataset root. It does not determine whether a license label is a correct legal interpretation, route boards, authorize a benchmark score, or establish physical/manufacturing quality.".into(),
     })
 }
 
