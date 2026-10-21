@@ -714,8 +714,20 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
         let baseline_id = req_token(pair, "baseline_output_id")?;
         let scaled_id = req_token(pair, "scaled_output_id")?;
         let scaling_exponent = req_number(pair, "scaling_exponent")?;
-        if ![1.0, 2.0].contains(&scaling_exponent) {
-            return Err(format!("{at}.scaling_exponent must be 1 or 2"));
+        let expected_exponent = match kind.as_str() {
+            "displacement" | "stress" | "reaction_force" | "reaction_moment" => 1.0,
+            "energy_balance" => 2.0,
+            _ => {
+                return Err(format!(
+                    "{at}.output_kind '{}' is not in the v0.1 load-scaling relation envelope",
+                    kind
+                ));
+            }
+        };
+        if scaling_exponent != expected_exponent {
+            return Err(format!(
+                "{at}.scaling_exponent must be {expected_exponent} for output kind '{kind}'"
+            ));
         }
         if !kinds.insert(kind.clone())
             || !baseline_ids.insert(baseline_id.clone())
@@ -1080,6 +1092,19 @@ mod tests {
             .unwrap();
         assert_eq!(scaled["expected_scaled_value"], 0.04);
         assert_eq!(scaled["status"], "PASS");
+    }
+
+    #[test]
+    fn output_kind_and_response_exponent_must_agree() {
+        let bundle = make_bundle(2.0, 1.0);
+        let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
+        manifest["output_pairs"][0]["output_kind"] = json!("energy_balance");
+        manifest["output_pairs"][0]["scaling_exponent"] = json!(1);
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        assert!(parse_manifest(&bytes).is_err());
+
+        manifest["output_pairs"][0]["scaling_exponent"] = json!(2);
+        assert!(parse_manifest(&serde_json::to_vec(&manifest).unwrap()).is_ok());
     }
 
     #[test]
