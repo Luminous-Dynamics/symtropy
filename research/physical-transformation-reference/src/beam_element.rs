@@ -7,7 +7,7 @@
 //! damping, geometric stiffness, nonlinear kinematics and joint-release
 //! assembly are outside this module.
 
-use crate::Check;
+#![allow(clippy::needless_range_loop)] // Matrix assembly deliberately indexes coupled DOFs.\n\nuse crate::Check;
 
 pub type Matrix6 = [[f64; 6]; 6];
 
@@ -285,12 +285,26 @@ mod tests {
             SECOND_MOMENT_M4,
         )
         .expect("doubled density element");
+        let doubled_inertia = euler_bernoulli_frame_element(
+            LENGTH_M,
+            AREA_M2,
+            YOUNGS_MODULUS_PA,
+            DENSITY_KG_M3,
+            2.0 * SECOND_MOMENT_M4,
+        )
+        .expect("doubled second-moment element");
         let base_rotary = base.rotary_inertia_mass_local[2][2];
         close(
             doubled_density.rotary_inertia_mass_local[2][2],
             2.0 * base_rotary,
             1.0e-13,
             "rotary mass density scaling",
+        );
+        close(
+            doubled_inertia.rotary_inertia_mass_local[2][2],
+            2.0 * base_rotary,
+            1.0e-13,
+            "rotary mass second-moment scaling",
         );
         close(
             base_rotary,
