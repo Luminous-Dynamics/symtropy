@@ -174,7 +174,9 @@ struct Report {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if !(2..=3).contains(&args.len()) {
-        eprintln!("usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]");
+        eprintln!(
+            "usage: ev_factory_intervention_benchmark <simulation-report.json> [practical-margin-units-per-hour]"
+        );
         process::exit(2);
     }
     let practical_margin = if args.len() == 3 {
@@ -537,11 +539,7 @@ fn evaluate(
             let paired_effect = summarize_distribution(&difference_samples)?;
             let lower = paired_effect.mean_confidence_95_lower;
             let upper = paired_effect.mean_confidence_95_upper;
-            let decision = paired_interval_decision(
-                lower,
-                upper,
-                practical_equivalence_margin,
-            );
+            let decision = paired_interval_decision(lower, upper, practical_equivalence_margin);
             paired_comparisons.push(PairedInterventionComparison {
                 station_a_id: station_a.clone(),
                 station_b_id: station_b.clone(),
@@ -643,18 +641,10 @@ fn evaluate(
     })
 }
 
-fn paired_interval_decision(
-    lower: Option<f64>,
-    upper: Option<f64>,
-    margin: f64,
-) -> &'static str {
+fn paired_interval_decision(lower: Option<f64>, upper: Option<f64>, margin: f64) -> &'static str {
     match (lower, upper) {
-        (Some(lo), Some(_hi)) if lo > margin => {
-            "station_a_meaningfully_better_under_paired_model"
-        }
-        (Some(_lo), Some(hi)) if hi < -margin => {
-            "station_b_meaningfully_better_under_paired_model"
-        }
+        (Some(lo), Some(_hi)) if lo > margin => "station_a_meaningfully_better_under_paired_model",
+        (Some(_lo), Some(hi)) if hi < -margin => "station_b_meaningfully_better_under_paired_model",
         (Some(lo), Some(hi)) if lo >= -margin && hi <= margin => {
             "practically_equivalent_within_declared_margin"
         }
