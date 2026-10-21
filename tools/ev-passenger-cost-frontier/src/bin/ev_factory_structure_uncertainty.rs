@@ -704,9 +704,15 @@ mod tests {
             "active_power_kw": 0.0,
             "floor_area_sqm": 0.0
         }));
-        for family in value["model_families"].as_array().expect("families") {
+        let family_ids: Vec<Value> = value["model_families"]
+            .as_array()
+            .expect("families")
+            .iter()
+            .map(|family| family["model_id"].clone())
+            .collect();
+        for model_id in family_ids {
             value["outcomes"].as_array_mut().expect("outcomes").push(json!({
-                "model_id": family["model_id"],
+                "model_id": model_id,
                 "action_id": "over-budget-action",
                 "incremental_good_units_per_hour": 99.0
             }));
