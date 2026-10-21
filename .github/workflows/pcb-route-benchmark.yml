@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   synthetic-contract:
@@ -30,6 +30,30 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all -- --check
+
+      # The formatter step is deliberately not a warning-only gate. If this
+      # source branch is owned by this repository and rustfmt changed the Rust
+      # files, commit only those mechanical changes after checking the remote
+      # branch still points at the tested pull-request head.
+      - name: Commit canonical rustfmt output to same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- tools/pcb-route-benchmark/src; then
+            echo "Rust sources already match rustfmt."
+            exit 0
+          fi
+          remote_head="$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | cut -f1)"
+          test "$remote_head" = "$EXPECTED_HEAD"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/pcb-route-benchmark/src/lib.rs tools/pcb-route-benchmark/src/main.rs
+          git commit -m "style(PCB route bench): commit canonical rustfmt output"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
 
       - name: Unit tests
         run: cargo test --manifest-path tools/pcb-route-benchmark/Cargo.toml
