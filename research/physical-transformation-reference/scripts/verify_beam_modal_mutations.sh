@@ -55,6 +55,11 @@ run_mutation() {
       perl -0pi -e 's/let mass_norm = quadratic_form\(&mass_reduced, &shape_free\)\?;/let mass_norm = shape_free.iter().map(|value| value * value).sum::<f64>();/' "$source"
       grep -Fq 'let mass_norm = shape_free.iter().map(|value| value * value).sum::<f64>();' "$source"
       ;;
+    negative_mode_misclassified_as_mechanism)
+      grep -Fq 'if eigenvalue < -zero_tolerance {' "$source"
+      perl -0pi -e 's/if eigenvalue < -zero_tolerance \{/if eigenvalue < -zero_tolerance \&\& false {/' "$source"
+      grep -Fq 'if eigenvalue < -zero_tolerance && false {' "$source"
+      ;;
     *)
       printf 'Unknown beam modal mutation: %s\n' "$mutation" >&2
       return 2
@@ -90,6 +95,10 @@ run_mutation \
   "wrong-modal-norm" \
   euclidean_instead_of_generalized_mass_norm \
   modes_preserve_all_free_dofs_and_have_small_residuals
+run_mutation \
+  "negative-mode-misclassified" \
+  negative_mode_misclassified_as_mechanism \
+  negative_eigenvalues_are_reported_as_unstable_not_silently_dropped
 
 test "$modal_sha256" = "$(sha256sum "$crate_dir/src/beam_modal.rs" | awk '{print $1}')"
 
@@ -125,6 +134,12 @@ jq -n \
       {
         id: "PHYS-BEAM-MOD-GENERALIZED-MASS-001",
         expected_test: "modes_preserve_all_free_dofs_and_have_small_residuals",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
+        expected_test: "negative_eigenvalues_are_reported_as_unstable_not_silently_dropped",
         disposition: "detected"
       }
     ],
