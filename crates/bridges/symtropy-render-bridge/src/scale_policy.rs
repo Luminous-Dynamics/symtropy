@@ -571,4 +571,44 @@ mod tests {
             Err(ApparentScaleError::InvalidSizeThresholds)
         );
     }
+    #[test]
+    fn perspective_projection_is_scale_invariant_across_three_hundred_orders() {
+        let projection = |radius: f64| {
+            projected_sphere_diameter_px(
+                radius,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 1_440,
+                    vertical_fov_radians: PI / 3.0,
+                    centre_distance: radius * 1.0e6,
+                },
+            )
+            .expect("well-separated finite sphere must project")
+        };
+        let reference = projection(1.0);
+        assert!(reference.is_finite() && reference > 0.0);
+
+        for exponent in [-150, -100, -50, 0, 50, 100, 150] {
+            let radius = 10.0_f64.powi(exponent);
+            let actual = projection(radius);
+            let relative_error = (actual - reference).abs() / reference;
+            assert!(
+                actual.is_finite() && relative_error <= 1.0e-12,
+                "radius=1e{exponent}: reference={reference:e}, actual={actual:e}, relative_error={relative_error:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn repeated_threshold_jitter_does_not_chatter_over_long_trace() {
+        let mut latch =
+            ScaleBandLatch::new(ApparentSizeBand::PointSource, 0.1).expect("valid latch");
+        for frame in 0..20_000 {
+            let diameter = if frame % 2 == 0 { 0.96 } else { 1.04 };
+            assert_eq!(
+                latch.update(diameter, PROFILE),
+                Ok(ApparentSizeBand::PointSource),
+                "band changed during threshold jitter at frame {frame}"
+            );
+        }
+    }
 }
