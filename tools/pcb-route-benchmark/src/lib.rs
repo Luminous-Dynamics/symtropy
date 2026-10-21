@@ -951,6 +951,7 @@ pub fn verify_dataset_files(
             relative_path: relative_path.to_string(),
             byte_len: bytes.len() as u64,
             sha256: digest,
+            git_blob_sha1: None,
         });
 
         if manifest.evidence_class == "external_benchmark" {
@@ -1002,12 +1003,26 @@ pub fn verify_dataset_files(
                     board.board_id
                 ));
             }
+            let expected_git_blob_sha = board
+                .license_evidence_git_blob_sha1
+                .as_deref()
+                .ok_or_else(|| {
+                    format!("{}: license-evidence Git blob SHA-1 is missing", board.board_id)
+                })?;
+            let observed_git_blob_sha = git_blob_sha1(&evidence_bytes);
+            if observed_git_blob_sha != expected_git_blob_sha {
+                return Err(format!(
+                    "{}: license-evidence bytes do not match the immutable source repository Git blob",
+                    board.board_id
+                ));
+            }
             entries.push(DatasetFileVerificationEntry {
                 board_id: board.board_id.clone(),
                 role: "license_evidence".into(),
                 relative_path: evidence_relative_path.to_string(),
                 byte_len: evidence_bytes.len() as u64,
                 sha256: evidence_digest,
+                git_blob_sha1: Some(observed_git_blob_sha),
             });
             verified_license_evidence_count += 1;
         }
