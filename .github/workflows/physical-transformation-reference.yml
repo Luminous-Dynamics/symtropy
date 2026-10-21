@@ -271,6 +271,8 @@ jobs:
             and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
             and .input.length_m == 1
             and .input.radius_m == 0.01
+            and .input.area_m2 > 0.0003141592653
+            and .input.area_m2 < 0.0003141592655
             and .input.youngs_modulus_pa == 210000000000
             and .input.density_kg_m3 == 7800
             and .input.elements == 16
