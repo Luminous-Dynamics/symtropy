@@ -1226,7 +1226,22 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
 fn refill_source_buffer(state: &mut SimState, catalog: &Catalog) {
     while state.source_buffer.len() < catalog.source_buffer_capacity {
         match state.supplier_backlog.pop_front() {
-            Some(job) => state.source_buffer.push_back(job),
+            Some(job) => {
+                let job_id = job.id;
+                let variant_id = job.variant;
+                state.source_buffer.push_back(job);
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::BufferEnter,
+                    job_id,
+                    variant_id,
+                    None,
+                    None,
+                    Some("source-material".into()),
+                    None,
+                );
+            }
             None => break,
         }
     }
@@ -1570,7 +1585,34 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     if state.now >= catalog.warmup_seconds {
                         state.measured_good_units += 1;
                     }
+                    let record = state.job_records.get_mut(&job.id)
+                        .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_final_good", job.id))?;
+                    if record.final_good_at_seconds.replace(state.now).is_some() {
+                        return Err(format!("job_{}_final_good_terminal_record_duplicated", job.id));
+                    }
+                    record_lifecycle_event(
+                        state,
+                        catalog,
+                        JobLifecycleEventKind::FinalGoodCompletion,
+                        job.id,
+                        job.variant,
+                        Some(station_index),
+                        Some(server_index),
+                        None,
+                        None,
+                    );
                 } else {
+                    record_lifecycle_event(
+                        state,
+                        catalog,
+                        JobLifecycleEventKind::BufferEnter,
+                        job.id,
+                        job.variant,
+                        Some(station_index),
+                        Some(server_index),
+                        Some(format!("buffer-after-{}", catalog.stations[station_index].station_id)),
+                        None,
+                    );
                     let mut queued_job = job;
                     queued_job.queued_since_seconds = state.now;
                     state.buffers[station_index].push_back(queued_job);
@@ -1627,6 +1669,39 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 let Some(job) = job else {
                     continue;
                 };
+                let input_buffer_id = if station_index == 0 {
+                    "source-material".to_string()
+                } else {
+                    format!("buffer-after-{}", catalog.stations[station_index - 1].station_id)
+                };
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::BufferExit,
+                    job.id,
+                    job.variant,
+                    Some(station_index),
+                    Some(server_index),
+                    Some(input_buffer_id),
+                    None,
+                );
+                let job_record = state.job_records.get_mut(&job.id)
+                    .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_station_start", job.id))?;
+                if job_record.attempts_started_by_station[station_index] == 0 {
+                    job_record.first_attempt_started_at_by_station[station_index] = Some(state.now);
+                }
+                job_record.attempts_started_by_station[station_index] += 1;
+                record_lifecycle_event(
+                    state,
+                    catalog,
+                    JobLifecycleEventKind::StationStart,
+                    job.id,
+                    job.variant,
+                    Some(station_index),
+                    Some(server_index),
+                    None,
+                    Some(job_record.attempts_started_by_station[station_index]),
+                );
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
