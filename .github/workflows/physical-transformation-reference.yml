@@ -325,7 +325,14 @@ jobs:
             and .condition_reject_threshold == 0.001
             and (.cases | length == 9)
             and .duplicate_run_bytes_identical == true
-            and (.cases | all(.[]; if .disposition == "accepted" then
+            and (.cases | all(.[]; 
+                  (.vertical_rhs_perturbation_n | type == "number" and isfinite and . > 0)
+                  and (.vertical_rhs_perturbation_relative_amplitude | type == "number" and isfinite and . > 0)
+                  and (.vertical_rhs_plus_relative_displacement_change | type == "number" and isfinite and . >= 0)
+                  and (.vertical_rhs_minus_relative_displacement_change | type == "number" and isfinite and . >= 0)
+                  and (.vertical_rhs_plus_amplification | type == "number" and isfinite and . >= 0)
+                  and (.vertical_rhs_minus_amplification | type == "number" and isfinite and . >= 0)
+                  and (if .disposition == "accepted" then
                   (.observed_displacement_m | type == "array" and length == 2)
                   and (.forward_error_relative | type == "number" and isfinite)
                   and (.backward_error_relative | type == "number" and isfinite)
@@ -345,6 +352,7 @@ jobs:
                   and (.backward_error_relative == null)
                   and (.solver_error | type == "string" and length > 0)
                 else false end))
+            and (.cases[-1].vertical_rhs_plus_amplification > .cases[0].vertical_rhs_plus_amplification)
             and ([.cases[].condition_infinity] as $conditions
               | all(range(0; ($conditions | length) - 1); $conditions[.] < $conditions[. + 1]))
             and (.condition_reject_threshold as $threshold
