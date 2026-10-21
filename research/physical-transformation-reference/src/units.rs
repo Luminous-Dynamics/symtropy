@@ -6,6 +6,17 @@
 //! quantity type and pass canonical SI values to the analytical reference.
 //! Type checking prevents mixing quantities across the wrapper boundary, while
 //! runtime checks reject non-finite, overflowed, and invalid positive quantities.
+//!
+//! Quantity families cannot be accidentally interchanged at the typed wrapper:
+//!
+//! ```compile_fail
+//! use physical_transformation_reference::units::{self, AreaM2, LengthM, YoungsModulusPa};
+//!
+//! let length = LengthM::from_meters(1.0).unwrap();
+//! let area = AreaM2::from_square_meters(0.01).unwrap();
+//! let modulus = YoungsModulusPa::from_pascals(200.0e9).unwrap();
+//! let _ = units::axial_bar(length, length, area, modulus); // LengthM is not ForceN.
+//! ```
 
 use crate::Check;
 use crate::mechanics::{
