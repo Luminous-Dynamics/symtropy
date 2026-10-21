@@ -1236,6 +1236,166 @@ mod tests {
     }
 
     #[test]
+    fn conditioning_sweep_separates_backward_residual_from_forward_error() {
+        // Deliberately approach the collinear, near-mechanism limit. A small
+        // residual is not enough: it must be interpreted through the independent
+        // condition estimate, and severely ill-conditioned cases must abstain.
+        const HEIGHTS_M: [f64; 9] = [
+            1.0, 0.1, 0.01, 0.001, 1.0e-4, 1.0e-5, 1.0e-6, 1.0e-7, 1.0e-8,
+        ];
+        const SPAN_M: f64 = 4.0;
+        const APEX_X_M: f64 = 1.0;
+        const AXIAL_STIFFNESS_A_N_PER_M: f64 = 1.0e9;
+        const AXIAL_STIFFNESS_B_N_PER_M: f64 = 2.0e9;
+        const YOUNGS_MODULUS_PA: f64 = 200.0e9;
+        const TARGET_UX_M: f64 = 1.0e-6;
+        const TARGET_UY_M: f64 = -2.0e-6;
+        const REJECT_CONDITION_TIMES_EPSILON: f64 = 1.0e-3;
+
+        for (case_index, height_m) in HEIGHTS_M.into_iter().enumerate() {
+            let length_a_m = APEX_X_M.hypot(height_m);
+            let length_b_m = (APEX_X_M - SPAN_M).hypot(height_m);
+            let cosine_a = APEX_X_M / length_a_m;
+            let sine_a = height_m / length_a_m;
+            let cosine_b = (APEX_X_M - SPAN_M) / length_b_m;
+            let sine_b = height_m / length_b_m;
+
+            // Independent 2x2 reduced stiffness oracle for two axial members.
+            let kxx = AXIAL_STIFFNESS_A_N_PER_M * cosine_a * cosine_a
+                + AXIAL_STIFFNESS_B_N_PER_M * cosine_b * cosine_b;
+            let kxy = AXIAL_STIFFNESS_A_N_PER_M * cosine_a * sine_a
+                + AXIAL_STIFFNESS_B_N_PER_M * cosine_b * sine_b;
+            let kyy = AXIAL_STIFFNESS_A_N_PER_M * sine_a * sine_a
+                + AXIAL_STIFFNESS_B_N_PER_M * sine_b * sine_b;
+            let direction_cross = cosine_a * sine_b - sine_a * cosine_b;
+            // This determinant identity avoids the cancellation in a*d - b*b
+            // as the apex approaches the support line.
+            let determinant = AXIAL_STIFFNESS_A_N_PER_M
+                * AXIAL_STIFFNESS_B_N_PER_M
+                * direction_cross
+                * direction_cross;
+            assert!(
+                determinant.is_finite() && determinant > 0.0,
+                "case {case_index} h={height_m:.3e}: invalid independent determinant"
+            );
+
+            let matrix_inf_norm = (kxx.abs() + kxy.abs()).max(kxy.abs() + kyy.abs());
+            let inverse_inf_norm = ((kyy.abs() + kxy.abs()) / determinant)
+                .max((kxx.abs() + kxy.abs()) / determinant);
+            let condition_inf = matrix_inf_norm * inverse_inf_norm;
+            let condition_times_epsilon = condition_inf * f64::EPSILON;
+            assert!(
+                condition_inf.is_finite()
+                    && condition_inf >= 1.0
+                    && condition_times_epsilon.is_finite(),
+                "case {case_index} h={height_m:.3e}: invalid condition estimate {condition_inf:.3e}"
+            );
+
+            // Generate the applied load from a fixed target displacement using
+            // the independent matrix, rather than reading the production solve.
+            let force_x_n = kxx * TARGET_UX_M + kxy * TARGET_UY_M;
+            let force_y_n = kxy * TARGET_UX_M + kyy * TARGET_UY_M;
+            assert!(force_x_n.is_finite() && force_y_n.is_finite());
+
+            let mut input = asymmetric_two_bar_truss();
+            for node in &mut input.nodes {
+                if node.id == "B" {
+                    node.x_m = SPAN_M;
+                } else if node.id == "C" {
+                    node.x_m = APEX_X_M;
+                    node.y_m = height_m;
+                    node.force_x_n = force_x_n;
+                    node.force_y_n = force_y_n;
+                }
+            }
+            for bar in &mut input.bars {
+                let length_m = if bar.id == "AC" { length_a_m } else { length_b_m };
+                let axial_stiffness = if bar.id == "AC" {
+                    AXIAL_STIFFNESS_A_N_PER_M
+                } else {
+                    AXIAL_STIFFNESS_B_N_PER_M
+                };
+                bar.area_m2 = axial_stiffness * length_m / YOUNGS_MODULUS_PA;
+                bar.youngs_modulus_pa = YOUNGS_MODULUS_PA;
+            }
+
+            let solved = solve(&input);
+            if condition_times_epsilon >= REJECT_CONDITION_TIMES_EPSILON {
+                let error = solved.expect_err(
+                    "a numerically unresolved near-mechanism must not issue displacements",
+                );
+                assert!(
+                    error.contains("singular or numerically unresolved")
+                        || error.contains("singular truss"),
+                    "case {case_index} h={height_m:.3e}: wrong fail-closed reason: {error}"
+                );
+                continue;
+            }
+
+            let result = solved.unwrap_or_else(|error| {
+                panic!(
+                    "well-conditioned case {case_index} h={height_m:.3e}, cond_inf={condition_inf:.3e} unexpectedly failed: {error}"
+                )
+            });
+            let apex = node(&result, "C");
+            let solved_ux = apex.displacement_x_m;
+            let solved_uy = apex.displacement_y_m;
+            assert!(
+                solved_ux.is_finite() && solved_uy.is_finite(),
+                "case {case_index} h={height_m:.3e}: non-finite displacement"
+            );
+
+            let forward_error = (solved_ux - TARGET_UX_M)
+                .abs()
+                .max((solved_uy - TARGET_UY_M).abs())
+                / TARGET_UY_M.abs().max(TARGET_UX_M.abs());
+            let residual_x = kxx * solved_ux + kxy * solved_uy - force_x_n;
+            let residual_y = kxy * solved_ux + kyy * solved_uy - force_y_n;
+            let backward_numerator = residual_x.abs().max(residual_y.abs());
+            let displacement_inf_norm = solved_ux.abs().max(solved_uy.abs());
+            let force_inf_norm = force_x_n.abs().max(force_y_n.abs());
+            let backward_denominator =
+                matrix_inf_norm * displacement_inf_norm + force_inf_norm;
+            assert!(
+                backward_denominator.is_finite() && backward_denominator > 0.0,
+                "case {case_index} h={height_m:.3e}: invalid backward-error scale"
+            );
+            let backward_error = backward_numerator / backward_denominator;
+            let condition_amplified_backward = condition_inf * backward_error;
+            assert!(
+                backward_error.is_finite()
+                    && condition_amplified_backward.is_finite()
+                    && condition_amplified_backward < 0.25,
+                "case {case_index} h={height_m:.3e}: residual cannot certify forward error; cond_inf={condition_inf:.3e}, backward={backward_error:.3e}"
+            );
+
+            // Standard condition-amplified backward-error term plus an explicit
+            // roundoff allowance for the independently assembled matrix and the
+            // production element assembly being arithmetically equivalent, not
+            // bitwise identical. This tolerance is frozen before observing cases.
+            let forward_error_bound = condition_amplified_backward
+                / (1.0 - condition_amplified_backward)
+                + 16.0 * condition_times_epsilon
+                + 1.0e-10;
+            assert!(
+                forward_error <= forward_error_bound.max(1.0e-8),
+                "case {case_index} h={height_m:.3e}: forward error {forward_error:.3e} exceeds condition-aware bound {forward_error_bound:.3e}; cond_inf={condition_inf:.3e}, backward={backward_error:.3e}"
+            );
+            for (label, residual) in [
+                ("force", result.equilibrium.normalized_force_residual),
+                ("moment", result.equilibrium.normalized_moment_residual),
+                ("free-DOF", result.equilibrium.normalized_free_dof_residual),
+                ("energy", result.energy.normalized_residual),
+            ] {
+                assert!(
+                    residual.is_finite() && residual < 1.0e-12,
+                    "case {case_index} h={height_m:.3e}: normalized {label} residual={residual:.3e}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn fixed_seed_parameter_sweep_matches_symmetric_truss_closed_form() {
         // Fixed seed and bounded ranges make every case reproducible. These are
         // numerical coverage ranges for the declared linear-elastic model, not
