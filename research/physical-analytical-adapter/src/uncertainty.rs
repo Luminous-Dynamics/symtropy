@@ -1193,6 +1193,54 @@ mod tests {
     }
 
     #[test]
+    fn deterministic_interior_truss_samples_are_enclosed() {
+        let nominal = BTreeMap::from([
+            ("span_m".to_owned(), 4.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 0.75),
+            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
+            ("axial_stiffness_b_n_per_m".to_owned(), 2.0e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -500.0),
+        ]);
+        let bounds = BTreeMap::from([
+            ("span_m".to_owned(), Interval::new(3.9, 4.1).unwrap()),
+            ("apex_x_m".to_owned(), Interval::new(0.8, 1.2).unwrap()),
+            ("apex_height_m".to_owned(), Interval::new(0.6, 0.9).unwrap()),
+            ("axial_stiffness_a_n_per_m".to_owned(), Interval::new(0.9e9, 1.1e9).unwrap()),
+            ("axial_stiffness_b_n_per_m".to_owned(), Interval::new(1.8e9, 2.2e9).unwrap()),
+            ("force_x_n".to_owned(), Interval::new(900.0, 1_100.0).unwrap()),
+            ("force_y_n".to_owned(), Interval::new(-600.0, -400.0).unwrap()),
+        ]);
+        let enclosure = propagate_planar_truss_two_bar(&nominal, &bounds).unwrap();
+        let mut state = 0xbb67_ae85_84ca_a73b_u64;
+        for _ in 0..512 {
+            let point: BTreeMap<String, f64> = PLANAR_TRUSS_INPUT_KEYS
+                .iter()
+                .map(|key| {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    let unit = (state >> 11) as f64 / ((1_u64 << 53) as f64);
+                    let range = bounds[*key];
+                    ((*key).to_owned(), range.lower + unit * (range.upper - range.lower))
+                })
+                .collect();
+            let exact = evaluate_planar_truss_two_bar_point(&point).unwrap();
+            assert_enclosed(enclosure.kxx_n_per_m, exact[0]);
+            assert_enclosed(enclosure.kxy_n_per_m, exact[1]);
+            assert_enclosed(enclosure.kyy_n_per_m, exact[2]);
+            assert_enclosed(enclosure.determinant_n2_per_m2, exact[3]);
+            assert_enclosed(enclosure.displacement_x_m, exact[4]);
+            assert_enclosed(enclosure.displacement_y_m, exact[5]);
+            assert_enclosed(enclosure.length_a_m, exact[6]);
+            assert_enclosed(enclosure.length_b_m, exact[7]);
+            assert!(exact[8] <= enclosure.condition_infinity_upper);
+            assert!(exact[9] <= enclosure.condition_times_machine_epsilon_upper);
+        }
+    }
+
+    #[test]
     fn truss_invalid_height_or_nonpositive_member_stiffness_abstains() {
         let (nominal, _) = truss_fixture((0.01, 0.02));
         let mut crossing_zero = truss_fixture((0.0, 0.02)).1;
