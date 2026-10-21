@@ -1924,6 +1924,18 @@ mod tests {
         evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).expect("run validates")
     }
 
+    fn valid_run_with_seed(raw: &str, seed: u64) -> ValidatedRun {
+        let mut value: serde_json::Value = serde_json::from_str(raw).expect("fixture JSON");
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["seed"] = serde_json::Value::from(seed);
+        let original_id = value["run_id"].as_str().expect("run ID").to_string();
+        value["run_id"] = serde_json::Value::String(format!("{original_id}-seed-{seed}"));
+        let bytes = serde_json::to_vec(&value).expect("seeded fixture run");
+        evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD)
+            .expect("seeded run validates")
+    }
+
     #[test]
     fn dataset_intake_hashes_actual_bytes_and_rejects_path_escape() {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
@@ -2256,6 +2268,67 @@ mod tests {
             .unwrap_err()
             .contains("DRC engine pin differs"));
     }
+
+
+    #[test]
+    fn replicated_comparison_bootstraps_boards_not_repeated_attempts() {
+        let seeds = [17_u64, 23, 31];
+        let baseline: Vec<ValidatedRun> = seeds
+            .iter()
+            .map(|seed| valid_run_with_seed(BASELINE, *seed))
+            .collect();
+        let treatment: Vec<ValidatedRun> = seeds
+            .iter()
+            .map(|seed| valid_run_with_seed(TREATMENT, *seed))
+            .collect();
+
+        let comparison =
+            compare_replicated_runs(&baseline, &treatment, EVALUATOR_HEAD).unwrap();
+        assert_eq!(comparison.summary.board_count, 6);
+        assert_eq!(comparison.summary.seed_count, 3);
+        assert_eq!(comparison.summary.paired_attempt_count, 18);
+        assert_eq!(comparison.summary.baseline_valid_attempts, 6);
+        assert_eq!(comparison.summary.treatment_valid_attempts, 12);
+        assert!(
+            (comparison.summary.baseline_completion_rate - 1.0 / 3.0).abs() < 1e-9
+        );
+        assert!(
+            (comparison.summary.treatment_completion_rate - 2.0 / 3.0).abs() < 1e-9
+        );
+        assert!(
+            (comparison.summary.completion_delta_percentage_points - 100.0 / 3.0).abs()
+                < 1e-8
+        );
+        assert_eq!(comparison.summary.completion_delta_95_ci_board_clustered.resamples, 10_000);
+        assert_eq!(comparison.boards.len(), 6);
+        assert_eq!(comparison.seed_pairs.len(), 3);
+        assert!(comparison
+            .summary
+            .completion_delta_95_ci_board_clustered
+            .bootstrap_seed_sha256
+            != comparison
+                .summary
+                .mean_elapsed_delta_95_ci_board_clustered_ms
+                .bootstrap_seed_sha256);
+
+        let mismatched = vec![
+            valid_run_with_seed(TREATMENT, 17),
+            valid_run_with_seed(TREATMENT, 99),
+            valid_run_with_seed(TREATMENT, 31),
+        ];
+        assert!(compare_replicated_runs(&baseline, &mismatched, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("identical declared seed sets"));
+
+        let duplicate = vec![
+            valid_run_with_seed(BASELINE, 17),
+            valid_run_with_seed(BASELINE, 17),
+        ];
+        assert!(index_replicated_runs(&duplicate, "baseline")
+            .unwrap_err()
+            .contains("duplicate seed"));
+    }
+
 
     #[test]
     fn commit_id_validation_supports_sha1_and_sha256_lengths() {
