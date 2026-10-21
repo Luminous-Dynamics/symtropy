@@ -301,6 +301,10 @@ jobs:
           lib_source_sha256="$(sha256sum research/physical-transformation-reference/src/lib.rs | awk '{print $1}')"
           cargo_manifest_sha256="$(sha256sum research/physical-transformation-reference/Cargo.toml | awk '{print $1}')"
           conditioning_schema_sha256="$(sha256sum research/physical-transformation-reference/schemas/planar-truss-conditioning-receipt-v0.1.schema.json | awk '{print $1}')"
+          rustc_version="$(rustc --version)"
+          cargo_version="$(cargo --version)"
+          target_triple="$(rustc -vV | sed -n 's/^host: //p')"
+          test -n "$target_triple"
           jq empty research/physical-transformation-reference/schemas/planar-truss-conditioning-receipt-v0.1.schema.json
 
           cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-conditioning -- \
@@ -315,8 +319,16 @@ jobs:
             --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
             --arg lib_source_sha256 "$lib_source_sha256" \
             --arg cargo_manifest_sha256 "$cargo_manifest_sha256" \
-            --arg conditioning_schema_sha256 "$conditioning_schema_sha256" '
+            --arg conditioning_schema_sha256 "$conditioning_schema_sha256" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            --arg target_triple "$target_triple" '
             . + {
+              toolchain: {
+                rustc: $rustc_version,
+                cargo: $cargo_version,
+                target_triple: $target_triple
+              },
               source_sha256: {
                 planar_truss_rs: $truss_source_sha256,
                 truss_conditioning_rs: $conditioning_source_sha256,
@@ -337,8 +349,14 @@ jobs:
             --arg conditioning_bin_sha256 "$conditioning_bin_sha256" \
             --arg lib_source_sha256 "$lib_source_sha256" \
             --arg cargo_manifest_sha256 "$cargo_manifest_sha256" \
-            --arg conditioning_schema_sha256 "$conditioning_schema_sha256" '
+            --arg conditioning_schema_sha256 "$conditioning_schema_sha256" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            --arg target_triple "$target_triple" '
             .schema_version == "planar-truss-conditioning-receipt-v0.1"
+            and .toolchain.rustc == $rustc_version
+            and .toolchain.cargo == $cargo_version
+            and .toolchain.target_triple == $target_triple
             and .benchmark_id == "PHYS-TRUSS-CONDITION-001"
             and .source_commit == $source_commit
             and .source_sha256.planar_truss_rs == $truss_source_sha256
