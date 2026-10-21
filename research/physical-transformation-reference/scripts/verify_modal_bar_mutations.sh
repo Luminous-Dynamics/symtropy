@@ -90,7 +90,7 @@ run_mutation \
 run_mutation \
   "frequency-two-pi-conversion" \
   frequency_conversion_2pi \
-  analytical_spectrum_has_odd_integer_ratios
+  single_element_mass_formulations_reproduce_closed_form_ratios
 run_mutation \
   "eigenvector-rotation" \
   eigenvector_rotation \
