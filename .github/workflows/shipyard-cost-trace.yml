@@ -36,6 +36,9 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --all --manifest-path tools/shipyard-cost-trace/Cargo.toml -- --check
 
+      - name: Verify frozen golden-ledger corpus digest
+        run: echo "73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295  tools/shipyard-cost-trace/tests/fixtures/golden-ledger-v0.tsv" | sha256sum --check --status
+
       - name: Run isolated tests offline
         run: cargo test --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml
 
