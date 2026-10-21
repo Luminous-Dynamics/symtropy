@@ -614,6 +614,9 @@ fn bind_output(
         .filter(|unit| !unit.trim().is_empty() && unit.len() <= 64)
         .ok_or_else(|| "scored load-scaling output requires an explicit non-empty unit".to_owned())?
         .to_owned();
+    if expected_kind == "strain_energy" && declared_unit != "J" {
+        return Err("strain_energy outputs must declare SI joules ('J')".to_owned());
+    }
     let expected_sha = req_str(output, "sha256")?;
     if req_str(verified, "observed_sha256")? != expected_sha {
         return Err(format!(
@@ -716,7 +719,7 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
         let scaling_exponent = req_number(pair, "scaling_exponent")?;
         let expected_exponent = match kind.as_str() {
             "displacement" | "stress" | "reaction_force" | "reaction_moment" => 1.0,
-            "energy_balance" => 2.0,
+            "strain_energy" => 2.0,
             _ => {
                 return Err(format!(
                     "{at}.output_kind '{}' is not in the v0.1 load-scaling relation envelope",
@@ -911,14 +914,6 @@ mod tests {
     }
 
     fn make_bundle(alpha: f64, scaled_output_multiplier: f64) -> Bundle {
-        make_bundle_with_exponent(alpha, scaled_output_multiplier, 1)
-    }
-
-    fn make_bundle_with_exponent(
-        alpha: f64,
-        scaled_output_multiplier: f64,
-        exponent: i32,
-    ) -> Bundle {
         let mut baseline: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
@@ -964,7 +959,7 @@ mod tests {
             "scene_revision":scene_revision,
             "case_id":"load-scaling-synthetic-case",
             "observables":[
-                {"observable_id":"tip_ux","value":0.01 * alpha.powi(exponent) * scaled_output_multiplier,"unit":"m"},
+                {"observable_id":"tip_ux","value":0.01 * alpha * scaled_output_multiplier,"unit":"m"},
                 {"observable_id":"tip_uy","value":0.0,"unit":"m"}
             ]
         });
@@ -1038,7 +1033,7 @@ mod tests {
             "load_scale_factor":alpha,
             "absolute_tolerance":1e-12,
             "relative_tolerance":1e-10,
-            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement","scaling_exponent":exponent}]
+            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement","scaling_exponent":1}]
         });
         Bundle {
             root,
@@ -1080,25 +1075,29 @@ mod tests {
     }
 
     #[test]
-    fn quadratic_observable_uses_explicit_squared_load_factor() {
-        let report = assess(&make_bundle_with_exponent(2.0, 1.0, 2));
-        assert_eq!(report["relation_status"], "PASS");
-        let results = report["output_results"][0]["observable_results"]
-            .as_array()
-            .unwrap();
-        let scaled = results
-            .iter()
-            .find(|value| value["observable_id"] == "tip_ux")
-            .unwrap();
-        assert_eq!(scaled["expected_scaled_value"], 0.04);
-        assert_eq!(scaled["status"], "PASS");
+    fn strain_energy_quadratic_relation_math_is_explicit() {
+        let baseline = BTreeMap::from([(
+            "total_strain_energy".to_owned(),
+            ObservedObservable { value: 0.01, unit: "J".to_owned() },
+        )]);
+        let scaled = BTreeMap::from([(
+            "total_strain_energy".to_owned(),
+            ObservedObservable { value: 0.04, unit: "J".to_owned() },
+        )]);
+        let (results, violations, unresolved, count) =
+            compare_observables(&baseline, &scaled, 2.0, 2, 1e-12, 1e-10);
+        assert_eq!(count, 1);
+        assert_eq!(violations, 0);
+        assert_eq!(unresolved, 0);
+        assert_eq!(results[0]["expected_scaled_value"], 0.04);
+        assert_eq!(results[0]["status"], "PASS");
     }
 
     #[test]
     fn output_kind_and_response_exponent_must_agree() {
         let bundle = make_bundle(2.0, 1.0);
         let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
-        manifest["output_pairs"][0]["output_kind"] = json!("energy_balance");
+        manifest["output_pairs"][0]["output_kind"] = json!("strain_energy");
         manifest["output_pairs"][0]["scaling_exponent"] = json!(1);
         let bytes = serde_json::to_vec(&manifest).unwrap();
         assert!(parse_manifest(&bytes).is_err());
