@@ -9,8 +9,7 @@ use physical_transformation_reference::beam_pin_assembly::{
 use std::env;
 use std::process::ExitCode;
 
-const FROZEN_REQUEST: &str =
-    include_str!("../../fixtures/beam_pin_assembly_request_v0_1.txt");
+const FROZEN_REQUEST: &str = include_str!("../../fixtures/beam_pin_assembly_request_v0_1.txt");
 
 fn main() -> ExitCode {
     match run() {
@@ -227,7 +226,10 @@ fn descriptors_json(
                             json_quote(node_id)
                         )
                     }
-                    BeamPinDofKind::MemberEndRotation { member_id, at_start } => {
+                    BeamPinDofKind::MemberEndRotation {
+                        member_id,
+                        at_start,
+                    } => {
                         format!(
                             "\"kind\":\"member-end-rotation\",\"member_id\":{},\"at_start\":{}",
                             json_quote(member_id),
