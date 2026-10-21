@@ -53,6 +53,17 @@
         "source_ref": "fixture-only",
         "uncertainty_relative": null
       }
+    },
+    {
+      "condition_id": "lateral-guide-b",
+      "target_id": "bar-end-b",
+      "kind": "fixed",
+      "dofs": ["uy", "uz"],
+      "provenance": {
+        "evidence_class": "synthetic",
+        "source_ref": "fixture-only",
+        "uncertainty_relative": null
+      }
     }
   ],
   "required_outputs": ["displacement", "reaction_force"],
