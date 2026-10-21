@@ -58,6 +58,10 @@ pub struct IntakeBoard {
     pub required_nets: u32,
     pub license: String,
     pub source_url: String,
+    #[serde(default)]
+    pub license_evidence_relative_path: Option<String>,
+    #[serde(default)]
+    pub license_evidence_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -69,6 +73,12 @@ pub struct BoardPin {
     pub license: String,
     pub source_url: String,
     pub relative_path: Option<String>,
+    #[serde(default)]
+    pub license_evidence_relative_path: Option<String>,
+    #[serde(default)]
+    pub license_evidence_sha256: Option<String>,
+    #[serde(default)]
+    pub license_evidence_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -221,6 +231,7 @@ pub struct RunSummary {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct DatasetFileVerificationEntry {
     pub board_id: String,
+    pub role: String,
     pub relative_path: String,
     pub byte_len: u64,
     pub sha256: String,
@@ -232,6 +243,7 @@ pub struct DatasetFileVerificationReceipt {
     pub evaluator_git_head: String,
     pub dataset_manifest_sha256: String,
     pub verified_board_count: usize,
+    pub verified_license_evidence_count: usize,
     pub entries: Vec<DatasetFileVerificationEntry>,
     pub authority: String,
     pub claim_ceiling: String,
