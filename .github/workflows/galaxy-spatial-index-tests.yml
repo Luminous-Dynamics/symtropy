@@ -5,9 +5,12 @@ on:
     branches: ["feat/solar-system-hierarchy-selection-004"]
     paths:
       - "crates/bridges/symtropy-render-bridge/src/galaxy_spatial.rs"
+      - "crates/bridges/symtropy-render-bridge/src/galaxy_catalog.rs"
       - "crates/bridges/symtropy-render-bridge/src/lib.rs"
       - "docs/research/RENDER_GALAXY_SPATIAL_006.md"
+      - "docs/research/RENDER_GALAXY_CATALOG_007.md"
       - "benchmarks/render/GALAXY-SCALE-01.json"
+      - "benchmarks/render/GALAXY-CATALOG-01.json"
       - ".github/workflows/galaxy-spatial-index-tests.yml"
   workflow_dispatch:
 
@@ -30,10 +33,13 @@ jobs:
       - name: Validate galaxy benchmark contract
         run: |
           jq -e '(.schema_version == "1.0.0") and (.fixture_id == "GALAXY-SCALE-01") and (.coordinate_domain.maximum_octree_depth == 36) and (.coordinate_domain.morton_bits_at_max_depth == 108) and ((.correctness_invariants | length) >= 10)' benchmarks/render/GALAXY-SCALE-01.json
+          jq -e '(.schema_version == "1.0.0") and (.fixture_id == "GALAXY-CATALOG-01") and ((.cases | length) >= 8)' benchmarks/render/GALAXY-CATALOG-01.json
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run focused render bridge tests
         run: cargo test -p symtropy-render-bridge --lib galaxy_spatial
+      - name: Run focused catalog summary tests
+        run: cargo test -p symtropy-render-bridge --lib galaxy_catalog
       - name: Run all render bridge tests
         run: cargo test -p symtropy-render-bridge --lib
       - name: Run strict render bridge Clippy

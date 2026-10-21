@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "GALAXY-CATALOG-01",
+  "status": "proposed_unmeasured",
+  "purpose": "Correctness contract for provenance-compatible, evidence-separated multiresolution galactic tile summaries.",
+  "context_fields": [
+    "catalog_snapshot_digest",
+    "frame_epoch_transform_digest",
+    "source_selection_digest",
+    "payload_schema_digest",
+    "license_attribution_digest",
+    "evidence_layer"
+  ],
+  "evidence_layers": [
+    "observed_catalog",
+    "inferred_population_model",
+    "synthetic_presentation"
+  ],
+  "coverage_states": [
+    "complete_within_selection",
+    "partial",
+    "unknown"
+  ],
+  "cases": [
+    {
+      "case_id": "ROLLUP-8-CHILDREN",
+      "invariant": "all eight complete direct children sum row counts and produce complete parent coverage"
+    },
+    {
+      "case_id": "MISSING-CHILD",
+      "invariant": "seven complete children cannot produce a complete parent"
+    },
+    {
+      "case_id": "EMPTY-VS-UNKNOWN",
+      "invariant": "complete empty tile and unknown tile are distinguishable"
+    },
+    {
+      "case_id": "DUPLICATE-CHILD",
+      "invariant": "same child octant cannot be merged twice; rejected merge is atomic"
+    },
+    {
+      "case_id": "SNAPSHOT-MISMATCH",
+      "invariant": "different catalog snapshots cannot merge"
+    },
+    {
+      "case_id": "FRAME-EPOCH-MISMATCH",
+      "invariant": "different frame/epoch transform digests cannot merge"
+    },
+    {
+      "case_id": "EVIDENCE-LAYER-MISMATCH",
+      "invariant": "observed, inferred and synthetic layers cannot be blended"
+    },
+    {
+      "case_id": "NON-DIRECT-CHILD",
+      "invariant": "only immediate child summaries can be merged"
+    },
+    {
+      "case_id": "COUNT-OVERFLOW",
+      "invariant": "checked overflow leaves prior aggregate state unchanged"
+    },
+    {
+      "case_id": "MISSING-LINEAGE",
+      "invariant": "all-zero required digest rejects"
+    }
+  ],
+  "benchmark_next_steps": [
+    "quantified fixed-point photometric flux conservation by named band/unit schema",
+    "uncertainty/covariance summaries with model-versioned interpretation",
+    "data-backed source-identity uniqueness and partition receipts",
+    "release-mode 1M and 10M record aggregation throughput/memory",
+    "reproducible larger-scale storage projection, distinctly marked extrapolated"
+  ],
+  "claim_ceiling": [
+    "Summary record counts are not estimates of all physical stars.",
+    "Coverage is relative to the declared dataset selection, not the whole Milky Way.",
+    "No photometric flux, population count estimate or completeness claim is made by this initial implementation.",
+    "No speed superiority claim is made."
+  ]
+}
