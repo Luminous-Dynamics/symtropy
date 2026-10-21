@@ -6,7 +6,7 @@ use std::{
     env, fs, process,
 };
 
-const MAX_EXACT_OPTIONS: usize = 20;
+const MAX_EXACT_OPTIONS: usize = 10;
 const EPSILON: f64 = 1e-9;
 const CLAIM_CEILING: &str = "Synthetic independent coefficient-interval decision benchmark only. It does not establish calibrated uncertainty bounds, field accuracy, industry SOTA, ROI, safety compliance, purchase approval or production release.";
 
