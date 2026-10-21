@@ -16,6 +16,8 @@ pub type Matrix6 = [[f64; 6]; 6];
 /// dimensions because the generalized coordinates include length and angle.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EulerBernoulliElementMatrices {
+    /// Reference element length used in these local matrices.
+    pub length_m: f64,
     /// Local stiffness matrix.
     pub stiffness_local: Matrix6,
     /// Total consistent mass matrix (translational plus rotary inertia).
@@ -24,6 +26,120 @@ pub struct EulerBernoulliElementMatrices {
     pub translational_mass_local: Matrix6,
     /// Rotary-inertia contribution in transverse-bending DOFs only.
     pub rotary_inertia_mass_local: Matrix6,
+}
+
+/// Global-axis matrices for a straight element whose end-coordinate delta
+/// is explicitly provided. DOF order is [ux1, uy1, theta1, ux2, uy2, theta2].
+#[derive(Clone, Debug, PartialEq)]
+pub struct GlobalEulerBernoulliElementMatrices {
+    pub length_m: f64,
+    pub direction_cosine: f64,
+    pub direction_sine: f64,
+    pub stiffness_global: Matrix6,
+    pub mass_global: Matrix6,
+    pub translational_mass_global: Matrix6,
+    pub rotary_inertia_mass_global: Matrix6,
+}
+
+/// Transform the local element matrices to global coordinates using the
+/// supplied end-coordinate delta. The measured length must match the length
+/// used to form the local matrices, otherwise the request is rejected.
+pub fn transform_element_to_global(
+    local: &EulerBernoulliElementMatrices,
+    delta_x_m: f64,
+    delta_y_m: f64,
+) -> Check<GlobalEulerBernoulliElementMatrices> {
+    if !delta_x_m.is_finite() || !delta_y_m.is_finite() {
+        return Err("element coordinate deltas must be finite".to_owned());
+    }
+    let geometric_length = delta_x_m.hypot(delta_y_m);
+    validate_positive("geometric_length_m", geometric_length)?;
+    let length_scale = geometric_length.max(local.length_m);
+    if (geometric_length - local.length_m).abs() > 1.0e-10 * length_scale {
+        return Err("element geometry length does not match local matrix length".to_owned());
+    }
+
+    let cosine = delta_x_m / geometric_length;
+    let sine = delta_y_m / geometric_length;
+    let transform = coordinate_transform(cosine, sine);
+    let stiffness = congruence_transform(&local.stiffness_local, &transform);
+    let mass = congruence_transform(&local.mass_local, &transform);
+    let translational_mass =
+        congruence_transform(&local.translational_mass_local, &transform);
+    let rotary_mass = congruence_transform(&local.rotary_inertia_mass_local, &transform);
+
+    ensure_finite_matrix("stiffness_global", &stiffness)?;
+    ensure_finite_matrix("mass_global", &mass)?;
+    ensure_finite_matrix("translational_mass_global", &translational_mass)?;
+    ensure_finite_matrix("rotary_inertia_mass_global", &rotary_mass)?;
+
+    Ok(GlobalEulerBernoulliElementMatrices {
+        length_m: geometric_length,
+        direction_cosine: cosine,
+        direction_sine: sine,
+        stiffness_global: stiffness,
+        mass_global: mass,
+        translational_mass_global: translational_mass,
+        rotary_inertia_mass_global: rotary_mass,
+    })
+}
+
+fn coordinate_transform(cosine: f64, sine: f64) -> Matrix6 {
+    [
+        [cosine, sine, 0.0, 0.0, 0.0, 0.0],
+        [-sine, cosine, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, cosine, sine, 0.0],
+        [0.0, 0.0, 0.0, -sine, cosine, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    ]
+}
+
+fn transpose6(matrix: &Matrix6) -> Matrix6 {
+    let mut transposed = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for col in 0..6 {
+            transposed[col][row] = matrix[row][col];
+        }
+    }
+    transposed
+}
+
+fn multiply6(left: &Matrix6, right: &Matrix6) -> Matrix6 {
+    let mut product = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for inner in 0..6 {
+            for col in 0..6 {
+                product[row][col] += left[row][inner] * right[inner][col];
+            }
+        }
+    }
+    product
+}
+
+fn congruence_transform(local: &Matrix6, transform: &Matrix6) -> Matrix6 {
+    multiply6(&multiply6(&transpose6(transform), local), transform)
+}
+
+fn matrix_vector_product(matrix: &Matrix6, vector: &[f64; 6]) -> [f64; 6] {
+    let mut product = [0.0; 6];
+    for row in 0..6 {
+        for col in 0..6 {
+            product[row] += matrix[row][col] * vector[col];
+        }
+    }
+    product
+}
+
+fn matrix_infinity_norm(matrix: &Matrix6) -> f64 {
+    matrix
+        .iter()
+        .map(|row| row.iter().map(|value| value.abs()).sum::<f64>())
+        .fold(0.0_f64, f64::max)
+}
+
+fn vector_infinity_norm(vector: &[f64; 6]) -> f64 {
+    vector.iter().map(|value| value.abs()).fold(0.0_f64, f64::max)
 }
 
 /// Build local matrices for a straight, uniform Euler-Bernoulli frame element.
@@ -120,6 +236,7 @@ pub fn euler_bernoulli_frame_element(
     ensure_finite_matrix("mass_local", &mass)?;
 
     Ok(EulerBernoulliElementMatrices {
+        length_m,
         stiffness_local: stiffness,
         mass_local: mass,
         translational_mass_local: translational_mass,
@@ -275,6 +392,57 @@ mod tests {
     }
 
     #[test]
+    fn transverse_translational_mass_matches_closed_form_entrywise() {
+        // Independent Hermite-shape integral: integral rho*A*N^T*N dx.
+        let matrices = matrices();
+        let factor = DENSITY_KG_M3 * AREA_M2 * LENGTH_M / 420.0;
+        let l2 = LENGTH_M.powi(2);
+        let expected = [
+            [156.0, 22.0 * LENGTH_M, 54.0, -13.0 * LENGTH_M],
+            [22.0 * LENGTH_M, 4.0 * l2, 13.0 * LENGTH_M, -3.0 * l2],
+            [54.0, 13.0 * LENGTH_M, 156.0, -22.0 * LENGTH_M],
+            [-13.0 * LENGTH_M, -3.0 * l2, -22.0 * LENGTH_M, 4.0 * l2],
+        ];
+        let indices = [1, 2, 4, 5];
+        for row in 0..4 {
+            for col in 0..4 {
+                close(
+                    matrices.translational_mass_local[indices[row]][indices[col]],
+                    expected[row][col] * factor,
+                    1.0e-13,
+                    "transverse translational mass entry",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rotary_inertia_mass_matches_closed_form_entrywise() {
+        // Independent derivative-shape integral:
+        // integral rho*I*(dN/dx)^T*(dN/dx) dx.
+        let matrices = matrices();
+        let factor = DENSITY_KG_M3 * SECOND_MOMENT_M4 / (30.0 * LENGTH_M);
+        let l2 = LENGTH_M.powi(2);
+        let expected = [
+            [36.0, 3.0 * LENGTH_M, -36.0, 3.0 * LENGTH_M],
+            [3.0 * LENGTH_M, 4.0 * l2, -3.0 * LENGTH_M, -l2],
+            [-36.0, -3.0 * LENGTH_M, 36.0, -3.0 * LENGTH_M],
+            [3.0 * LENGTH_M, -l2, -3.0 * LENGTH_M, 4.0 * l2],
+        ];
+        let indices = [1, 2, 4, 5];
+        for row in 0..4 {
+            for col in 0..4 {
+                close(
+                    matrices.rotary_inertia_mass_local[indices[row]][indices[col]],
+                    expected[row][col] * factor,
+                    1.0e-13,
+                    "rotary-inertia mass entry",
+                );
+            }
+        }
+    }
+
+    #[test]
     fn rotary_inertia_is_separate_and_scales_with_density_and_second_moment() {
         let base = matrices();
         let doubled_density = euler_bernoulli_frame_element(
@@ -318,6 +486,105 @@ mod tests {
             1.0e-13,
             "total rotational DOF mass",
         );
+    }
+
+    #[test]
+    fn horizontal_transform_is_the_identity() {
+        let local = matrices();
+        let global = super::transform_element_to_global(&local, LENGTH_M, 0.0)
+            .expect("horizontal transform");
+        assert_eq!(global.stiffness_global, local.stiffness_local);
+        assert_eq!(global.mass_global, local.mass_local);
+        assert_eq!(global.translational_mass_global, local.translational_mass_local);
+        assert_eq!(global.rotary_inertia_mass_global, local.rotary_inertia_mass_local);
+        assert_eq!(global.direction_cosine, 1.0);
+        assert_eq!(global.direction_sine, 0.0);
+    }
+
+    #[test]
+    fn inclined_transform_preserves_energy_and_matrix_symmetry() {
+        let local = matrices();
+        let angle_rad = 0.713;
+        let cosine = angle_rad.cos();
+        let sine = angle_rad.sin();
+        let dx = LENGTH_M * cosine;
+        let dy = LENGTH_M * sine;
+        let global = super::transform_element_to_global(&local, dx, dy)
+            .expect("inclined transform");
+        let transform = super::coordinate_transform(cosine, sine);
+        let q_global = [0.003, -0.008, 0.02, 0.011, 0.004, -0.013];
+        let q_local = super::matrix_vector_product(&transform, &q_global);
+        let local_force = super::matrix_vector_product(&local.stiffness_local, &q_local);
+        let global_force = super::matrix_vector_product(&global.stiffness_global, &q_global);
+        let local_energy = q_local
+            .iter()
+            .zip(local_force)
+            .map(|(q, force)| q * force)
+            .sum::<f64>();
+        let global_energy = q_global
+            .iter()
+            .zip(global_force)
+            .map(|(q, force)| q * force)
+            .sum::<f64>();
+        close(local_energy, global_energy, 1.0e-12, "coordinate-invariant strain energy");
+
+        for row in 0..6 {
+            for col in 0..6 {
+                close(
+                    global.stiffness_global[row][col],
+                    global.stiffness_global[col][row],
+                    1.0e-12,
+                    "global stiffness symmetry",
+                );
+                close(
+                    global.mass_global[row][col],
+                    global.mass_global[col][row],
+                    1.0e-12,
+                    "global mass symmetry",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rigid_body_translation_and_rotation_have_zero_internal_force() {
+        let local = matrices();
+        let angle_rad = 0.713;
+        let dx = LENGTH_M * angle_rad.cos();
+        let dy = LENGTH_M * angle_rad.sin();
+        let global = super::transform_element_to_global(&local, dx, dy)
+            .expect("inclined transform");
+        let translations = [[0.4, -0.7, 0.0, 0.4, -0.7, 0.0]];
+        let rotation = 0.015;
+        let rotations = [[
+            0.0,
+            0.0,
+            rotation,
+            -rotation * dy,
+            rotation * dx,
+            rotation,
+        ]];
+
+        for q in translations.iter().chain(rotations.iter()) {
+            let force = super::matrix_vector_product(&global.stiffness_global, q);
+            let normalized_residual = force
+                .iter()
+                .map(|value| value.abs())
+                .fold(0.0_f64, f64::max)
+                / (super::matrix_infinity_norm(&global.stiffness_global)
+                    * super::vector_infinity_norm(q));
+            assert!(
+                normalized_residual < 1.0e-12,
+                "rigid-body mode has normalized stiffness residual {normalized_residual:.17e}"
+            );
+        }
+    }
+
+    #[test]
+    fn transform_rejects_geometry_length_mismatch() {
+        let local = matrices();
+        assert!(super::transform_element_to_global(&local, LENGTH_M * 1.01, 0.0).is_err());
+        assert!(super::transform_element_to_global(&local, f64::NAN, 0.0).is_err());
     }
 
     #[test]
