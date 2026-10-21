@@ -497,6 +497,62 @@ fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<
     dominators
 }
 
+/// Compute exact dominance witnesses by maintaining only the current frontier.
+///
+/// This adaptive path is used for four or more objectives. Each candidate is
+/// compared with current non-dominated candidates only: if a frontier point
+/// dominates it, processing stops; otherwise any frontier points it dominates
+/// are removed and receive this candidate as a valid witness. The worst case
+/// remains O(n²) when almost every point is non-dominated, but dominated
+/// distributions require comparisons against a much smaller frontier.
+fn incremental_frontier_dominators(
+    rankable: &[RankableCandidate<'_>],
+) -> BTreeMap<String, String> {
+    let mut frontier: Vec<&RankableCandidate<'_>> = Vec::new();
+    let mut dominators = BTreeMap::new();
+
+    for candidate in rankable {
+        let mut candidate_dominator = None;
+        let mut dominated_frontier_ids = Vec::new();
+
+        for existing in &frontier {
+            if dominates(existing, candidate) {
+                candidate_dominator = Some(existing.candidate.candidate_id.clone());
+                break;
+            }
+            if dominates(candidate, existing) {
+                dominated_frontier_ids.push(existing.candidate.candidate_id.clone());
+            }
+        }
+
+        if let Some(witness_id) = candidate_dominator {
+            dominators.insert(candidate.candidate.candidate_id.clone(), witness_id);
+            continue;
+        }
+
+        if !dominated_frontier_ids.is_empty() {
+            let dominated_ids = dominated_frontier_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>();
+            frontier.retain(|existing| {
+                !dominated_ids.contains(existing.candidate.candidate_id.as_str())
+            });
+            for dominated_id in dominated_frontier_ids {
+                dominators.insert(
+                    dominated_id,
+                    candidate.candidate.candidate_id.clone(),
+                );
+            }
+        }
+        // rankable is sorted by stable candidate ID, so appending preserves
+        // deterministic frontier scan order independent of request order.
+        frontier.push(candidate);
+    }
+
+    dominators
+}
+
 /// Compute a Pareto frontier without scalarizing objectives.
 ///
 /// Only alternatives marked Verified by the caller's independent verifier can
@@ -512,9 +568,10 @@ fn three_dimensional_dominators(rankable: &[RankableCandidate<'_>]) -> BTreeMap<
 /// units, evidence-admission rules, and any justified normalization upstream.
 ///
 /// Two- and three-objective inputs use exact O(n log n) sweep-line frontiers.
-/// Inputs with more than three objective dimensions use worst-case quadratic
-/// comparison. Only one dominance witness is stored per excluded candidate,
-/// keeping output memory linear in candidate count.
+/// Four-or-more-dimensional inputs maintain an exact incremental frontier:
+/// this is often cheaper on dominated data, though worst-case time remains O(n²).
+/// Only one dominance witness is stored per excluded candidate, keeping output
+/// memory linear in candidate count.
 ///
 /// This function checks digest shape but does not authenticate digests or
 /// receipts. The claim of independent verification originates outside this
@@ -608,21 +665,19 @@ pub fn compute_pareto_frontier(
         3 => Some(three_dimensional_dominators(&rankable)),
         _ => None,
     };
+    let incremental_dominators = (objective_count >= 4)
+        .then(|| incremental_frontier_dominators(&rankable));
 
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        // Two/three-objective inputs use an exact sweep result; higher-dimensional
-        // inputs retain the independent pairwise fallback. No weights are invented.
+        // Two/three objectives use exact sweeps; four-or-more objectives use an
+        // exact incremental frontier. No approximate pruning or scalar weights.
         let first_dominator = if let Some(dominators) = &sweep_dominators {
             dominators.get(&candidate.candidate.candidate_id).cloned()
+        } else if let Some(dominators) = &incremental_dominators {
+            dominators.get(&candidate.candidate.candidate_id).cloned()
         } else {
-            rankable
-                .iter()
-                .find(|other| {
-                    other.candidate.candidate_id != candidate.candidate.candidate_id
-                        && dominates(other, candidate)
-                })
-                .map(|other| other.candidate.candidate_id.clone())
+            unreachable!("every objective count selects an exact ranking path")
         };
 
         let disposition = if let Some(witness) = first_dominator {
@@ -1123,6 +1178,53 @@ mod tests {
         let report = compute_pareto_frontier(&candidates).expect("four-objective schema is valid");
         assert_eq!(report.frontier_ids, vec!["a", "b", "d"]);
         assert_eq!(report.frontier_ids, pairwise_frontier_ids(&candidates));
+    }
+
+    #[test]
+    fn incremental_frontier_matches_pairwise_for_four_six_and_eight_dimensions() {
+        for dimensions in [4_usize, 6, 8] {
+            let candidates = (0..257)
+                .map(|index| {
+                    let objectives = (0..dimensions)
+                        .map(|axis| {
+                            let value = ((index * (axis * 2 + 17)
+                                + axis * 31
+                                + (index * index) % 97)
+                                % 211) as f64
+                                - 105.0;
+                            let direction = if axis % 2 == 0 {
+                                ObjectiveDirection::Minimize
+                            } else {
+                                ObjectiveDirection::Maximize
+                            };
+                            let unit = format!("u{axis}");
+                            let dimension = format!("objective_{axis}");
+                            objective_in_unit(&dimension, &unit, direction, value)
+                        })
+                        .collect::<Vec<_>>();
+                    candidate(
+                        &format!("generated-{index:03}"),
+                        VerificationStatus::Verified,
+                        objectives,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let report =
+                compute_pareto_frontier(&candidates).expect("generated schema is valid");
+            assert_eq!(
+                report.frontier_ids,
+                pairwise_frontier_ids(&candidates),
+                "dimensions={dimensions}"
+            );
+            assert_report_witnesses_valid(&report, &candidates);
+            let mut reversed = candidates.clone();
+            reversed.reverse();
+            assert_eq!(
+                compute_pareto_frontier(&reversed).expect("reversed schema is valid"),
+                report,
+                "dimensions={dimensions}"
+            );
+        }
     }
 
     #[test]
