@@ -489,6 +489,39 @@ mod tests {
     }
 
     #[test]
+    fn every_non_admitted_objective_state_is_excluded() {
+        for evidence in [
+            ObjectiveEvidence::Provisional,
+            ObjectiveEvidence::Unknown,
+            ObjectiveEvidence::Conflicting,
+            ObjectiveEvidence::Blocked,
+        ] {
+            let mut uncertain = candidate(
+                "uncertain",
+                VerificationStatus::Verified,
+                two_objectives(1.0, 100.0),
+            );
+            uncertain.objectives[0].evidence = evidence;
+            let admitted = candidate(
+                "admitted",
+                VerificationStatus::Verified,
+                two_objectives(10.0, 70.0),
+            );
+            let report = compute_pareto_frontier(&[uncertain, admitted])
+                .expect("non-admitted values must be reported as exclusions");
+            assert_eq!(report.frontier_ids, vec!["admitted"], "{evidence:?}");
+            assert!(!report.ranking_complete, "{evidence:?}");
+            assert!(
+                matches!(
+                    disposition(&report, "uncertain"),
+                    CandidateDisposition::ExcludedUnrankable(_)
+                ),
+                "{evidence:?}"
+            );
+        }
+    }
+
+    #[test]
     fn result_is_invariant_to_candidate_and_objective_input_order() {
         let a = candidate("a", VerificationStatus::Verified, two_objectives(10.0, 70.0));
         let mut b = candidate("b", VerificationStatus::Verified, two_objectives(12.0, 90.0));
