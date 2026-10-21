@@ -132,12 +132,18 @@ pub fn parse_reaction_only_rr_bytes(
             parse_finite(fields[2], index + 1)?,
             parse_finite(fields[3], index + 1)?,
         ];
-        if rows.insert(node_id, ReactionRow {
-            node_id,
-            force,
-            source_line: index + 1,
-            raw_line: trimmed.to_owned(),
-        }).is_some() {
+        if rows
+            .insert(
+                node_id,
+                ReactionRow {
+                    node_id,
+                    force,
+                    source_line: index + 1,
+                    raw_line: trimmed.to_owned(),
+                },
+            )
+            .is_some()
+        {
             return Err(format!("duplicate RR row for node ID {node_id}"));
         }
     }
@@ -146,15 +152,22 @@ pub fn parse_reaction_only_rr_bytes(
     if observed != expected {
         let missing: Vec<u64> = expected.difference(&observed).copied().collect();
         let extra: Vec<u64> = observed.difference(&expected).copied().collect();
-        return Err(format!("RR node inventory mismatch; missing={missing:?}, extra={extra:?}"));
+        return Err(format!(
+            "RR node inventory mismatch; missing={missing:?}, extra={extra:?}"
+        ));
     }
 
-    let nodes: Vec<Value> = rows.values().map(|row| json!({
-        "node_id": row.node_id,
-        "force_components_as_written": row.force,
-        "source_line": row.source_line,
-        "raw_line": row.raw_line
-    })).collect();
+    let nodes: Vec<Value> = rows
+        .values()
+        .map(|row| {
+            json!({
+                "node_id": row.node_id,
+                "force_components_as_written": row.force,
+                "source_line": row.source_line,
+                "raw_line": row.raw_line
+            })
+        })
+        .collect();
     Ok(json!({
         "schema_version": "calculix-rr-parsed-reactions-v0.1",
         "parse_status": "PASS",
@@ -187,7 +200,9 @@ fn deck_declares_rr_for_set(deck: &str, expected_nset: &str) -> Check<bool> {
         let params: Vec<&str> = line.split(',').skip(1).collect();
         let card_nset = params.iter().find_map(|parameter| {
             let (key, value) = parameter.split_once('=')?;
-            key.trim().eq_ignore_ascii_case("nset").then_some(value.trim())
+            key.trim()
+                .eq_ignore_ascii_case("nset")
+                .then_some(value.trim())
         });
         if !card_nset.is_some_and(|value| value.eq_ignore_ascii_case(expected_nset)) {
             continue;
@@ -257,8 +272,11 @@ fn parse_finite(value: &str, line_number: usize) -> Check<f64> {
 }
 
 fn validate_token(value: &str, label: &str) -> Check<()> {
-    if value.is_empty() || value.len() > 128
-        || !value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.'))
     {
         return Err(format!("{label} is not a valid stable token"));
     }
@@ -284,7 +302,10 @@ mod tests {
         .unwrap();
         assert_eq!(report["parse_status"], "PASS");
         assert_eq!(report["source_semantics"], "reaction_only_RR");
-        assert_eq!(report["nodes"][0]["force_components_as_written"][0], -1000.0);
+        assert_eq!(
+            report["nodes"][0]["force_components_as_written"][0],
+            -1000.0
+        );
         assert_eq!(report["nodes"][1]["force_components_as_written"][0], 1000.0);
         assert_eq!(report["physical_result_qualified"], false);
         assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
@@ -292,7 +313,8 @@ mod tests {
 
     #[test]
     fn RF_only_output_is_not_accepted_as_reaction_data() {
-        let rf_only = " forces (fx,fy,fz) for set FIXED and time 1.0\n 1 0.0 0.0 0.0\n 2 0.0 0.0 0.0\n";
+        let rf_only =
+            " forces (fx,fy,fz) for set FIXED and time 1.0\n 1 0.0 0.0 0.0\n 2 0.0 0.0 0.0\n";
         assert!(
             parse_reaction_only_rr_bytes(
                 DECK_WITH_RR.as_bytes(),
@@ -343,7 +365,8 @@ mod tests {
             )
             .is_err()
         );
-        let unexpected = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n2 0 0 0\n3 0 0 0\n";
+        let unexpected =
+            "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n2 0 0 0\n3 0 0 0\n";
         assert!(
             parse_reaction_only_rr_bytes(
                 DECK_WITH_RR.as_bytes(),
@@ -353,7 +376,8 @@ mod tests {
             )
             .is_err()
         );
-        let duplicate = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n1 1 0 0\n2 0 0 0\n";
+        let duplicate =
+            "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 0 0 0\n1 1 0 0\n2 0 0 0\n";
         assert!(
             parse_reaction_only_rr_bytes(
                 DECK_WITH_RR.as_bytes(),
@@ -376,7 +400,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(parsed["time_value"], 1.0);
-        let nonfinite = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 NaN 0 0\n2 1 0 0\n";
+        let nonfinite =
+            "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 NaN 0 0\n2 1 0 0\n";
         assert!(
             parse_reaction_only_rr_bytes(
                 DECK_WITH_RR.as_bytes(),
@@ -386,7 +411,8 @@ mod tests {
             )
             .is_err()
         );
-        let malformed = "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 1.0E+ 0 0\n2 1 0 0\n";
+        let malformed =
+            "reaction forces (rfx,rfy,rfz) for set FIXED and time 1.0\n1 1.0E+ 0 0\n2 1 0 0\n";
         assert!(
             parse_reaction_only_rr_bytes(
                 DECK_WITH_RR.as_bytes(),
@@ -420,13 +446,8 @@ mod tests {
             .is_err()
         );
         assert!(
-            parse_reaction_only_rr_bytes(
-                DECK_WITH_RR.as_bytes(),
-                &[0xff, 0xfe],
-                "FIXED",
-                &[1, 2],
-            )
-            .is_err()
+            parse_reaction_only_rr_bytes(DECK_WITH_RR.as_bytes(), &[0xff, 0xfe], "FIXED", &[1, 2],)
+                .is_err()
         );
     }
 }
