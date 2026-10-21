@@ -1,60 +1,86 @@
-# Receipt-bound linear load-scaling relation v0.1
+# Receipt-bound load-scaling relation v0.1
 
-## Purpose
+**Implementation:** `research/physical-solver-contract/src/load_scaling.rs`.  
+**CLI:** `--load-scaling-manifest` with baseline/scaled request and receipt pairs.  
+**Research parent:** [PHYS-META-001 #2409](https://github.com/Luminous-Dynamics/symtropy/issues/2409).  
+**Claim ceiling:** metamorphic numerical consistency only; no physical validation or solver qualification.
 
-This relation adds one property-based code-verification check to the physical-solver contract. When a supported linear-static model is unchanged and all applied point-force vectors are multiplied by a positive scalar alpha, normalized response observables are expected to multiply by alpha.
+## Why this relation matters
 
-This is a consistency check, not an analytical solution and not physical validation. A wrong solver can still satisfy a scaling relation.
+For small-strain linear elasticity with fixed geometry, material/operator, boundary conditions, mesh, and solver configuration, scaling all applied point forces by positive `alpha` should scale linear response quantities (e.g., displacement, strain, stress and reaction resultants) by `alpha`. This checks a relation across two runs, complementing analytical-reference checks.
 
-## Strict applicability envelope
+It is not universal: contact state, plasticity, geometric nonlinearity, follower loads, damage, load-dependent boundary conditions or a changed solve configuration can invalidate this property. The assessor accepts only requests that declare `analytical_linear_elastic` or `continuum_linear_elastic` fidelity and `static_linear_elastic` as the sole requested physics, with point-force loads. All non-load request semantics must match; only `request_id` and point-force vectors may differ.
 
-The current implementation scores only:
-- model fidelity `analytical_linear_elastic` or `continuum_linear_elastic`;
-- requested physics exactly `static_linear_elastic`;
-- one unchanged scene digest/revision and coordinate frame;
-- identical materials, boundary conditions, unit declarations, acceptance policy, required-output inventory and every other non-load request field;
-- identical non-vector load metadata and IDs, with only point-force `vector_xyz` values transformed;
-- a strictly positive load factor different from one;
-- matching normalized-observable IDs and units for both runs.
+## Relation manifest
 
-Distributed loads, pressure, body acceleration, geometric nonlinearity, nonlinear materials, contact, damage/fracture, dynamics, thermal coupling and mixed-physics requests are unresolved/out of scope. A case outside these preconditions must not be counted as a relation pass.
+The manifest binds the exact baseline and scaled request SHA-256 values. It names the case, scale factor, shared absolute and relative tolerances and exact output pairs. Every required output kind must be covered; each selected output must be unique, receipt-declared, byte-verified and normalized with exact request/scene identity.
 
-## Relation and scoring
+Each output pair declares `scaling_exponent`:
+- `1`: linear response, for example displacement, stress, strain or reaction resultants;
+- `2`: quadratic response under the same linear-elastic assumptions, for example strain energy when derived from the same linear system.
 
-For every declared scalar observable:
+The assessor permits only exponents 1 and 2; it does not infer an exponent from an output name, unit or solver label. Callers are responsible for selecting the physically correct relation for the named observables.
+
+For a baseline observable (q) and load factor (alpha>0), the checked relation is:
 
 ```text
-expected_scaled_value = baseline_value * alpha
-absolute_error = abs(scaled_observed_value - expected_scaled_value)
-allowed_error = absolute_tolerance + relative_tolerance * abs(expected_scaled_value)
+q_scaled ~= q_baseline * alpha^p
 ```
 
-The relative-error field is undefined when the expected scaled value is zero. Arithmetic overflow or unit disagreement makes the relation UNRESOLVED. An eligible, fully evidenced result outside tolerance is FAIL.
+where (p) is the explicit per-output exponent. The acceptance criterion is `absolute_error <= absolute_tolerance + relative_tolerance * abs(expected)`. If the expected value is zero, relative error is undefined rather than fabricated as zero. Non-finite expectations or errors are `UNRESOLVED`; valid finite deviations outside tolerance are `FAIL`.
 
-Every required output kind must have exactly one output pair in the manifest. The manifest binds both exact request-byte SHA-256 digests and freezes the positive scale factor and comparison tolerances. Both runs must have PASS receipts and PASS artifact-byte verification before scoring.
+## Fail-closed evidence
+
+- Baseline and scaled requests must have distinct request IDs and bind the same scene revision, coordinate frame, physics regime and all non-load inputs.
+- The relation manifest must bind exact canonical request bytes.
+- Every scaled load vector must equal the declared positive factor times its baseline vector component by component.
+- Every required output kind must have exactly one declared output pair.
+- Both solver receipts and every output's bytes must verify before comparison.
+- Each normalized output must bind exact request SHA, request ID, scene SHA/revision and case ID.
+- Observable inventories, units and receipt-declared output units must match.
+- Missing, malformed, stale or unsupported artifacts, changed model inputs and unit mismatches are `UNRESOLVED`, not a numerical PASS.
+- Reports keep `physical_result_qualified=false` and `real_world_validation_status=UNRESOLVED`.
+
+## Initial synthetic tests
+
+Tests use hand-authored normalized JSON and synthetic receipts; no external FEM solver executes in the test fixture.
+
+1. Exact linear response scaling -> PASS.
+2. Response scaled by an extra 10% -> FAIL.
+3. Exact zero response -> relative error undefined.
+4. Request load not matching the declared factor -> UNRESOLVED.
+5. Manifest/request digest drift -> UNRESOLVED.
+6. Tampered normalized artifact -> UNRESOLVED.
+7. Modified Young's modulus between runs -> UNRESOLVED.
+8. Nonlinear fidelity -> UNRESOLVED.
+9. Factor one (no transformation) -> rejected as a meaningless scaling case.
+10. Explicit quadratic exponent two -> verifies scaling by (alpha^2).
+11. Unsupported exponent (e.g. three) -> rejected.
+
+These controls test the assessor's decisions, not FEM accuracy or physical validation.
 
 ## CLI
 
-After building the contract crate:
-
 ```sh
 cargo run --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
-  --request ./runs/baseline/request.json \
-  --receipt ./runs/baseline/receipt.json \
-  --scaled-request ./runs/scaled/request.json \
-  --scaled-receipt ./runs/scaled/receipt.json \
-  --artifact-root ./runs \
-  --load-scaling-manifest ./benchmarks/load-scaling-relation.json
+  --request baseline/request.json \
+  --receipt baseline/receipt.json \
+  --scaled-request scaled/request.json \
+  --scaled-receipt scaled/receipt.json \
+  --artifact-root ./artifacts \
+  --load-scaling-manifest ./relation.json
 ```
 
-The artifact root must contain both run output bundles at the paths recorded by their receipts.
+The output is machine-readable JSON. A mathematical relation PASS does not prove that an independently trusted executable produced the artifacts or that the model represents a real system.
 
-## Synthetic tests
+## Extensions not yet claimed
 
-Tests cover exact linear response scaling, a deliberately wrong scaled response, zero-valued observables with undefined relative error, a request whose force vector does not match the declared factor, manifest digest drift, tampered output bytes, non-load material changes and nonlinear model fidelity. All test receipts are synthetic; no external FEM solver is run by these tests.
-
-The CI CLI fixture additionally exercises one eligible synthetic PASS and a tampered-output UNRESOLVED control. It is only evidence that the contract and CLI behave correctly on known inputs.
+- Vector/tensor-valued normalized observables and coordinate-transform relations.
+- Superposition with three receipt-bound runs and unchanged operator/boundary data.
+- Generated strata, blind holdouts and surviving-mutant reports.
+- NAFEMS/MMS/independent analytical case coverage and actual solver execution.
+- Measurement-based physical validation.
 
 ## Claim ceiling
 
-A PASS indicates only that the declared, receipt-bound observables obey the load-scaling relation within the frozen tolerances under the asserted narrow linear-static envelope. It does not prove the finite-element equations are implemented correctly, the chosen model represents reality, the reference/load interpretation is independent, or the structure is safe.
+The evaluator checks a declared load-scaling relation under a narrow linear-static request envelope. It does not prove solver correctness, material/geometry fidelity, mesh adequacy, physical realism, engineering safety or any performance advantage over existing FEM systems.
