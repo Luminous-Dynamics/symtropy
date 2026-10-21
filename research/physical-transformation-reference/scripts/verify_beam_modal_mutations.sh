@@ -60,6 +60,12 @@ run_mutation() {
       perl -0pi -e 's/if eigenvalue < -zero_tolerance \{/if eigenvalue < -zero_tolerance \&\& false {/' "$source"
       grep -Fq 'if eigenvalue < -zero_tolerance && false {' "$source"
       ;;
+    hermite_rotation_interpolation_sign)
+      grep -Fq 'let transverse = h1 * transverse_i' "$source"
+      grep -Fq '+ h2 * element_length * rotation_i' "$source"
+      perl -0pi -e 's/\+ h2 \* element_length \* rotation_i/- h2 * element_length * rotation_i/' "$source"
+      grep -Fq '- h2 * element_length * rotation_i' "$source"
+      ;;
     *)
       printf 'Unknown beam modal mutation: %s\n' "$mutation" >&2
       return 2
@@ -99,6 +105,10 @@ run_mutation \
   "negative-mode-misclassified" \
   negative_mode_misclassified_as_mechanism \
   negative_eigenvalues_are_reported_as_unstable_not_silently_dropped
+run_mutation \
+  "hermite-rotation-interpolation-sign" \
+  hermite_rotation_interpolation_sign \
+  fixed_grid_mode_sampling_is_invariant_for_rigid_rotation_across_meshes
 
 test "$modal_sha256" = "$(sha256sum "$crate_dir/src/beam_modal.rs" | awk '{print $1}')"
 
@@ -140,6 +150,12 @@ jq -n \
       {
         id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
         expected_test: "negative_eigenvalues_are_reported_as_unstable_not_silently_dropped",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MOD-HERMITE-SAMPLING-001",
+        expected_test: "fixed_grid_mode_sampling_is_invariant_for_rigid_rotation_across_meshes",
         disposition: "detected"
       }
     ],
