@@ -23,6 +23,7 @@ struct OutputPair {
     kind: String,
     baseline_id: String,
     scaled_id: String,
+    scaling_exponent: i32,
 }
 
 struct RelationManifest {
@@ -337,7 +338,7 @@ pub fn assess_load_scaling_relation_bytes(
         let (results, violations, unresolved, count) = compare_observables(
             &baseline_observables,
             &scaled_observables,
-            manifest.scale_factor,
+            manifest.scale_factor.powi(pair.scaling_exponent),
             manifest.absolute_tolerance,
             manifest.relative_tolerance,
         );
@@ -696,12 +697,16 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
         let at = format!("manifest.output_pairs[{index}]");
         exact_keys(
             pair,
-            &["output_kind", "baseline_output_id", "scaled_output_id"],
+            &["output_kind", "baseline_output_id", "scaled_output_id", "scaling_exponent"],
             &at,
         )?;
         let kind = req_token(pair, "output_kind")?;
         let baseline_id = req_token(pair, "baseline_output_id")?;
         let scaled_id = req_token(pair, "scaled_output_id")?;
+        let scaling_exponent = req_number(pair, "scaling_exponent")?;
+        if ![1.0, 2.0].contains(&scaling_exponent) {
+            return Err(format!("{at}.scaling_exponent must be 1 or 2"));
+        }
         if !kinds.insert(kind.clone())
             || !baseline_ids.insert(baseline_id.clone())
             || !scaled_ids.insert(scaled_id.clone())
@@ -712,6 +717,7 @@ fn parse_manifest(bytes: &[u8]) -> Check<RelationManifest> {
             kind,
             baseline_id,
             scaled_id,
+            scaling_exponent: scaling_exponent as i32,
         });
     }
     Ok(RelationManifest {
@@ -883,6 +889,10 @@ mod tests {
     }
 
     fn make_bundle(alpha: f64, scaled_output_multiplier: f64) -> Bundle {
+        make_bundle_with_exponent(alpha, scaled_output_multiplier, 1)
+    }
+
+    fn make_bundle_with_exponent(alpha: f64, scaled_output_multiplier: f64, exponent: i32) -> Bundle {
         let mut baseline: Value = serde_json::from_str(include_str!(
             "../../../schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json"
         ))
@@ -928,7 +938,7 @@ mod tests {
             "scene_revision":scene_revision,
             "case_id":"load-scaling-synthetic-case",
             "observables":[
-                {"observable_id":"tip_ux","value":0.01 * alpha * scaled_output_multiplier,"unit":"m"},
+                {"observable_id":"tip_ux","value":0.01 * alpha.powi(exponent) * scaled_output_multiplier,"unit":"m"},
                 {"observable_id":"tip_uy","value":0.0,"unit":"m"}
             ]
         });
@@ -1002,7 +1012,7 @@ mod tests {
             "load_scale_factor":alpha,
             "absolute_tolerance":1e-12,
             "relative_tolerance":1e-10,
-            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement"}]
+            "output_pairs":[{"output_kind":"displacement","baseline_output_id":"baseline-displacement","scaled_output_id":"scaled-displacement","scaling_exponent":1}]
         });
         Bundle {
             root,
@@ -1041,6 +1051,25 @@ mod tests {
         let report = assess(&make_bundle(2.0, 1.1));
         assert_eq!(report["relation_status"], "FAIL");
         assert_eq!(report["violation_count"], 1);
+    }
+
+    #[test]
+    fn quadratic_observable_uses_explicit_squared_load_factor() {
+        let report = assess(&make_bundle_with_exponent(2.0, 1.0, 2));
+        assert_eq!(report["relation_status"], "PASS");
+        let results = report["output_results"][0]["observable_results"].as_array().unwrap();
+        let scaled = results.iter().find(|value| value["observable_id"] == "tip_ux").unwrap();
+        assert_eq!(scaled["expected_scaled_value"], 0.04);
+        assert_eq!(scaled["status"], "PASS");
+    }
+
+    #[test]
+    fn unsupported_scaling_exponent_is_rejected() {
+        let bundle = make_bundle(2.0, 1.0);
+        let mut manifest: Value = serde_json::from_slice(&bundle.manifest).unwrap();
+        manifest["output_pairs"][0]["scaling_exponent"] = json!(3);
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        assert!(parse_manifest(&bytes).is_err());
     }
 
     #[test]
