@@ -54,6 +54,9 @@ jobs:
             and .dispatch_policy == "fifo"
             and .maximum_consecutive_skips == 3
             and .maximum_queue_age_seconds == 900
+            and (.replication_seeds | length) == 20
+            and .replication_seeds[0] == .seed
+            and ((.replication_seeds | unique | length) == 20)
             and .input_evidence_class == "synthetic"
             and .calibration_gate == "unknown"
             and .local_compliance_gate == "unknown"
