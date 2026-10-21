@@ -219,7 +219,7 @@ fn parse_request(request: &str) -> Result<ModalRequest, String> {
         "elements",
     ];
     if fields.len() != REQUIRED_FIELDS.len()
-        || REQUIRED_FIELDS.iter().any(|key| !fields.contains_key(key))
+        || REQUIRED_FIELDS.iter().any(|key| !fields.contains_key(*key))
     {
         return Err("request must contain exactly the seven frozen schema fields".to_owned());
     }
