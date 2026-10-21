@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+#![allow(clippy::needless_range_loop)] // dense modal Gram matrices use coupled indexed products.
 //! Basis-invariant comparison of clustered / repeated structural modes.
 //!
 //! A scalar vector MAC can be low when two solvers choose different
