@@ -256,3 +256,10 @@ Usage:
 The receipt includes the raw DRC report digest, policy digest, exact reported version/source, counts by severity/type, routing and non-routing finding types, unconnected-item count and schematic-parity count. The run verifier cross-checks those derived facts against normalized per-board rows; a fabricated normalized `routing_drc_violation_types: []` can no longer hide a real `tracks_crossing` finding when the raw artifact is present.
 
 This is a software evidence gate against the pinned KiCad output format—not a claim that the taxonomy is sufficient for every board class, nor a substitute for source netlist parity, design signoff, physical measurement or manufacturing qualification.
+
+
+## License-evidence bytes are part of dataset intake
+
+An upstream PCBench `metadata.json` record is provenance metadata, not legal clearance on its own. For every external board, the intake schema now requires a declared source URL, a non-placeholder license label, a relative path to a non-empty copy of the source license/evidence text, and the URL from which that evidence was obtained. Manifest construction hashes the license-evidence bytes; `verify-dataset` reopens the file beneath the dataset root and rejects any byte mismatch. The manifest binds the source-board SHA-256 separately from the license-evidence SHA-256.
+
+This proves which evidence bytes were used, not that the SPDX classification is legally correct or that the license covers every board artifact. The 30-board D3 pilot metadata audit currently has 14 source-repository license files whose content blob hashes were checked; 16 candidates still lack a verified source-license record, and none is benchmark-eligible yet because the exact source repository commit, actual prepared-board bytes, and required-net counts must still be pinned. License evidence retrieved from a moving `master` ref must be upgraded to an immutable source commit before the final manifest is authorized. Keep unlicensed or ambiguous candidates out of public benchmark execution; replace them only under a documented deterministic selection rule, never silently.
