@@ -6,8 +6,8 @@
 
 use shipyard_cost_trace::{
     AuditReport, EventKind, EvidencePermission, FinancialActualTotal, FinancialTransaction,
-    LedgerEvent, QuantityDisposition, QuantityEvent, QuantityRate, QuantityReconciliation,
-    QuantityAggregationSemantics, RateCardCostTotal, Stage,
+    LedgerEvent, QuantityAggregationSemantics, QuantityDisposition, QuantityEvent, QuantityRate,
+    QuantityReconciliation, RateCardCostTotal, Stage,
 };
 
 const GOLDEN_TSV: &str = include_str!("fixtures/golden-ledger-v0.tsv");
