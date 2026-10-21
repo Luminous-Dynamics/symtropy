@@ -166,8 +166,8 @@ fn definitely_overlapping(
 
 #[cfg(test)]
 mod tests {
-    use super::{ClosedRange, IntervalRect, OverlapClassification, RangeError};
     use super::super::Rect;
+    use super::{ClosedRange, IntervalRect, OverlapClassification, RangeError};
 
     fn range(min: f64, max: f64) -> ClosedRange {
         ClosedRange::new(min, max).expect("test ranges are valid")
@@ -182,7 +182,6 @@ mod tests {
         )
         .expect("test rectangle is valid")
     }
-
 
     // Test-only independent endpoint enumerator: 4 interval dimensions per
     // rectangle, hence 2^8 exact rectangle pairs. Every coordinate predicate
@@ -240,9 +239,8 @@ mod tests {
     }
 
     fn shift(rect: IntervalRect, dx: f64, dy: f64) -> IntervalRect {
-        let shift_range = |bounds: ClosedRange, delta: f64| {
-            range(bounds.min() + delta, bounds.max() + delta)
-        };
+        let shift_range =
+            |bounds: ClosedRange, delta: f64| range(bounds.min() + delta, bounds.max() + delta);
         IntervalRect::new(
             shift_range(rect.x(), dx),
             shift_range(rect.y(), dy),
@@ -253,9 +251,7 @@ mod tests {
     }
 
     fn widen(rect: IntervalRect, delta: f64) -> IntervalRect {
-        let widen_range = |value: ClosedRange| {
-            range(value.min() - delta, value.max() + delta)
-        };
+        let widen_range = |value: ClosedRange| range(value.min() - delta, value.max() + delta);
         IntervalRect::new(
             widen_range(rect.x()),
             widen_range(rect.y()),
