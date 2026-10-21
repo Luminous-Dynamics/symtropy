@@ -600,13 +600,18 @@ mod tests {
                 .iter()
                 .all(|summary| summary.sample_count == 3 && summary.independent_unit_count == 3)
         );
-        assert!(report
-            .scored_cases
-            .iter()
-            .all(|case| case.evaluation_split == EvaluationSplit::HeldOut));
-        assert!(report.excluded_cases.iter().any(|case| {
-            case.case_id == "calibration-001" && case.reason == "not_held_out"
-        }));
+        assert!(
+            report
+                .scored_cases
+                .iter()
+                .all(|case| case.evaluation_split == EvaluationSplit::HeldOut)
+        );
+        assert!(
+            report
+                .excluded_cases
+                .iter()
+                .any(|case| case.case_id == "calibration-001" && case.reason == "not_held_out")
+        );
     }
 
     #[test]
