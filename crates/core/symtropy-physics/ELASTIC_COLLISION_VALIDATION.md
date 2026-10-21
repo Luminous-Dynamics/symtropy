@@ -86,3 +86,10 @@ For an isolated 1D collision, the analytical kinetic-energy change also obeys:
 where `mu = m1*m2/(m1+m2)` is reduced mass. The code independently computes final energy from the analytical final velocities and compares the observed result. The sweep requires momentum agreement and a positive kinetic-energy loss for each inelastic case, but does not treat an arbitrary fixed Joule threshold as universal across masses/speeds.
 
 This tests mathematical consistency across a frozen parameter envelope. It is not a stochastic property-based campaign, does not explore collision shapes or oblique contact, and does not promote the loss to physical heat. The normal-impact energy-to-reservoir theorem remains #810.
+
+
+## Separate low-speed solver-policy control
+
+A separate test uses equal-mass spheres approaching at 0.4 m/s each (0.8 m/s relative speed), below the engine's 1 m/s restitution threshold. It verifies that the solver suppresses the elastic rebound under its anti-jitter policy. This fixture is explicitly *not* scored against the ideal restitution law, because the engine intentionally modifies the ideal law in this speed regime.
+
+Keeping this case separate makes the contract visible: the 30-case physical-law sweep tests active restitution above the threshold; the low-speed fixture tests an implementation policy below it. Reports must not silently mix the two regimes or advertise the thresholded engine as an ideal collision model at all speeds.
