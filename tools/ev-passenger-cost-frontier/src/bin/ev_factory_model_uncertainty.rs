@@ -190,7 +190,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         fixture.constraints.active_power_kw_limit,
         fixture.constraints.floor_area_sqm_limit,
     ];
-    if limits.iter().any(|value| !value.is_finite() || *value < 0.0) {
+    if limits
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
         return Err("design_constraints_must_be_finite_and_nonnegative".into());
     }
 
@@ -263,11 +266,15 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
             || interaction.option_a_id >= interaction.option_b_id
             || !scenario_ids.contains(&interaction.scenario_id)
             || !interaction.incremental_good_units_per_hour.is_finite()
-            || !interaction.uncertainty_half_width_units_per_hour.is_finite()
+            || !interaction
+                .uncertainty_half_width_units_per_hour
+                .is_finite()
             || interaction.uncertainty_half_width_units_per_hour < 0.0
             || !seen_interactions.insert(key)
         {
-            return Err("interaction_effect_unknown_noncanonical_duplicate_or_invalid_uncertainty".into());
+            return Err(
+                "interaction_effect_unknown_noncanonical_duplicate_or_invalid_uncertainty".into(),
+            );
         }
     }
     if seen_interactions != expected_pairs {
@@ -335,7 +342,13 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
         return Err("no_feasible_design_including_hold_capital".into());
     }
 
-    assign_regret_bounds(&mut designs, &scenarios, &options, &option_effects, &interactions);
+    assign_regret_bounds(
+        &mut designs,
+        &scenarios,
+        &options,
+        &option_effects,
+        &interactions,
+    );
     mark_pareto_frontier(&mut designs);
 
     let mut feasible: Vec<&Design> = designs.iter().filter(|design| design.feasible).collect();
@@ -343,25 +356,43 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
         .iter()
         .min_by(|a, b| nominal_preference_cmp(a, b))
         .ok_or_else(|| "no_nominal_feasible_design".to_string())?)
-        .clone();
+    .clone();
     let interval_best = (**feasible
         .iter()
         .min_by(|a, b| interval_preference_cmp(a, b))
         .ok_or_else(|| "no_interval_robust_feasible_design".to_string())?)
-        .clone();
+    .clone();
     let minimax_regret = (**feasible
         .iter()
         .min_by(|a, b| regret_preference_cmp(a, b))
         .ok_or_else(|| "no_minimax_regret_feasible_design".to_string())?)
-        .clone();
+    .clone();
 
     let mut objectives = vec![
-        Objective { field: "interval_lower_bound_worst_case_gain_units_per_hour".into(), direction: "maximize".into() },
-        Objective { field: "capex".into(), direction: "minimize".into() },
-        Objective { field: "staffed_labor_hours_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "energy_kwh_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "emissions_kgco2e_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "floor_area_sqm".into(), direction: "minimize".into() },
+        Objective {
+            field: "interval_lower_bound_worst_case_gain_units_per_hour".into(),
+            direction: "maximize".into(),
+        },
+        Objective {
+            field: "capex".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "staffed_labor_hours_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "energy_kwh_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "emissions_kgco2e_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "floor_area_sqm".into(),
+            direction: "minimize".into(),
+        },
     ];
     objectives.sort_by(|a, b| a.field.cmp(&b.field));
 
@@ -384,14 +415,19 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
         feasible_design_count: feasible_count,
         infeasible_design_count: designs.len() - feasible_count,
         nominal_scenario_robust_best_design_id: nominal_best.design_id.clone(),
-        nominal_scenario_robust_best_gain_units_per_hour: nominal_best.nominal_worst_case_gain_units_per_hour,
+        nominal_scenario_robust_best_gain_units_per_hour: nominal_best
+            .nominal_worst_case_gain_units_per_hour,
         interval_robust_best_design_id: interval_best.design_id.clone(),
-        interval_robust_best_lower_bound_gain_units_per_hour: interval_best.interval_lower_bound_worst_case_gain_units_per_hour,
+        interval_robust_best_lower_bound_gain_units_per_hour: interval_best
+            .interval_lower_bound_worst_case_gain_units_per_hour,
         minimax_regret_design_id: minimax_regret.design_id.clone(),
-        minimax_regret_upper_bound_units_per_hour: minimax_regret.interval_robust_regret_upper_bound_units_per_hour,
+        minimax_regret_upper_bound_units_per_hour: minimax_regret
+            .interval_robust_regret_upper_bound_units_per_hour,
         nominal_choice_regret_upper_bound_units_per_hour: nominal_regret,
-        nominal_choice_and_interval_robust_choice_differ: nominal_best.design_id != interval_best.design_id,
-        nominal_choice_and_minimax_regret_choice_differ: nominal_best.design_id != minimax_regret.design_id,
+        nominal_choice_and_interval_robust_choice_differ: nominal_best.design_id
+            != interval_best.design_id,
+        nominal_choice_and_minimax_regret_choice_differ: nominal_best.design_id
+            != minimax_regret.design_id,
         objective_definition: objectives,
         pareto_frontier_design_ids: frontier_ids,
         designs,
@@ -425,7 +461,10 @@ fn evaluate_design(
         .map(|option| option.staffed_labor_hours_per_shift)
         .sum();
     let power: f64 = chosen.iter().map(|option| option.active_power_kw).sum();
-    let energy: f64 = chosen.iter().map(|option| option.energy_kwh_per_shift).sum();
+    let energy: f64 = chosen
+        .iter()
+        .map(|option| option.energy_kwh_per_shift)
+        .sum();
     let area: f64 = chosen.iter().map(|option| option.floor_area_sqm).sum();
 
     let mut scenario_gains = Vec::with_capacity(scenarios.len());
@@ -455,7 +494,12 @@ fn evaluate_design(
                 let (mean, half_width) = interactions
                     .get(&(scenario.scenario_id.clone(), a.clone(), b.clone()))
                     .copied()
-                    .ok_or_else(|| format!("interaction_effect_missing_for_{}_{}_{}", scenario.scenario_id, a, b))?;
+                    .ok_or_else(|| {
+                        format!(
+                            "interaction_effect_missing_for_{}_{}_{}",
+                            scenario.scenario_id, a, b
+                        )
+                    })?;
                 nominal += mean;
                 lower += mean - half_width;
             }
@@ -548,8 +592,15 @@ fn assign_regret_bounds(
                 let mut nominal_gap = 0.0;
                 let mut interval_gap = 0.0;
                 for option in options {
-                    let delta = (if challenger.contains(&option.option_id) { 1_i32 } else { 0_i32 })
-                        - (if candidate.contains(&option.option_id) { 1_i32 } else { 0_i32 });
+                    let delta = (if challenger.contains(&option.option_id) {
+                        1_i32
+                    } else {
+                        0_i32
+                    }) - (if candidate.contains(&option.option_id) {
+                        1_i32
+                    } else {
+                        0_i32
+                    });
                     if delta == 0 {
                         continue;
                     }
@@ -564,19 +615,26 @@ fn assign_regret_bounds(
                     for j in (i + 1)..options.len() {
                         let option_a = &options[i].option_id;
                         let option_b = &options[j].option_id;
-                        let challenger_has_pair = challenger.contains(option_a) && challenger.contains(option_b);
-                        let candidate_has_pair = candidate.contains(option_a) && candidate.contains(option_b);
+                        let challenger_has_pair =
+                            challenger.contains(option_a) && challenger.contains(option_b);
+                        let candidate_has_pair =
+                            candidate.contains(option_a) && candidate.contains(option_b);
                         let delta = (if challenger_has_pair { 1_i32 } else { 0_i32 })
                             - (if candidate_has_pair { 1_i32 } else { 0_i32 });
                         if delta == 0 {
                             continue;
                         }
                         let (mean, half_width) = interactions
-                            .get(&(scenario.scenario_id.clone(), option_a.clone(), option_b.clone()))
+                            .get(&(
+                                scenario.scenario_id.clone(),
+                                option_a.clone(),
+                                option_b.clone(),
+                            ))
                             .copied()
                             .expect("validated complete interaction effects");
                         nominal_gap += f64::from(delta) * mean;
-                        interval_gap += f64::from(delta) * mean + f64::from(delta.abs()) * half_width;
+                        interval_gap +=
+                            f64::from(delta) * mean + f64::from(delta.abs()) * half_width;
                     }
                 }
                 nominal_regret = nominal_regret.max(nominal_gap);
@@ -673,7 +731,10 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.exact_design_space_size, 32);
         assert_eq!(first.designs.len(), 32);
-        assert_eq!(first.feasible_design_count + first.infeasible_design_count, 32);
+        assert_eq!(
+            first.feasible_design_count + first.infeasible_design_count,
+            32
+        );
         assert!(!first.scenario_probabilities_used);
         assert!(!first.expected_value_reported);
         assert!(!first.roi_computed);
@@ -687,12 +748,17 @@ mod tests {
         let report = evaluate(&fixture, "fixture-digest".into()).expect("report");
         for design in report.designs.iter().filter(|design| design.feasible) {
             assert!(design.capex <= fixture.constraints.capex_budget + EPSILON);
-            assert!(design.staffed_labor_hours_per_shift <= fixture.constraints.staffed_labor_hours_per_shift_limit + EPSILON);
+            assert!(
+                design.staffed_labor_hours_per_shift
+                    <= fixture.constraints.staffed_labor_hours_per_shift_limit + EPSILON
+            );
             assert!(design.active_power_kw <= fixture.constraints.active_power_kw_limit + EPSILON);
             assert!(design.floor_area_sqm <= fixture.constraints.floor_area_sqm_limit + EPSILON);
             assert!(design.infeasibility_reasons.is_empty());
-            assert!(design.interval_robust_regret_upper_bound_units_per_hour + EPSILON
-                >= design.nominal_worst_case_regret_units_per_hour);
+            assert!(
+                design.interval_robust_regret_upper_bound_units_per_hour + EPSILON
+                    >= design.nominal_worst_case_regret_units_per_hour
+            );
         }
         for design in report.designs.iter().filter(|design| !design.feasible) {
             assert!(!design.infeasibility_reasons.is_empty());
@@ -735,15 +801,17 @@ mod tests {
         assert!(
             (nominal.interval_lower_bound_worst_case_gain_units_per_hour + 0.11).abs() < EPSILON
         );
-        assert!(
-            (minimax.interval_robust_regret_upper_bound_units_per_hour - 6.41).abs() < EPSILON
-        );
+        assert!((minimax.interval_robust_regret_upper_bound_units_per_hour - 6.41).abs() < EPSILON);
         assert!(report.nominal_choice_and_interval_robust_choice_differ);
         assert!(!report.nominal_choice_and_minimax_regret_choice_differ);
-        assert!(interval.interval_lower_bound_worst_case_gain_units_per_hour
-            >= nominal.interval_lower_bound_worst_case_gain_units_per_hour - EPSILON);
-        assert!(minimax.interval_robust_regret_upper_bound_units_per_hour
-            <= nominal.interval_robust_regret_upper_bound_units_per_hour + EPSILON);
+        assert!(
+            interval.interval_lower_bound_worst_case_gain_units_per_hour
+                >= nominal.interval_lower_bound_worst_case_gain_units_per_hour - EPSILON
+        );
+        assert!(
+            minimax.interval_robust_regret_upper_bound_units_per_hour
+                <= nominal.interval_robust_regret_upper_bound_units_per_hour + EPSILON
+        );
     }
 
     #[test]
@@ -777,7 +845,8 @@ mod tests {
         for effect in &mut exact_fixture.interaction_effects {
             effect.uncertainty_half_width_units_per_hour = 0.0;
         }
-        let report = evaluate(&exact_fixture, "zero-width-fixture".into()).expect("exact intervals");
+        let report =
+            evaluate(&exact_fixture, "zero-width-fixture".into()).expect("exact intervals");
         for design in report.designs.iter().filter(|design| design.feasible) {
             assert!(
                 (design.nominal_worst_case_gain_units_per_hour
@@ -827,8 +896,14 @@ mod tests {
     #[test]
     fn duplicate_main_effect_reverse_pair_and_invalid_uncertainty_fail_closed() {
         let mut duplicate = fixture();
-        duplicate.option_effects.push(duplicate.option_effects[0].clone());
-        assert!(validate_fixture(&duplicate).expect_err("duplicate main effect").contains("option_effect_unknown"));
+        duplicate
+            .option_effects
+            .push(duplicate.option_effects[0].clone());
+        assert!(
+            validate_fixture(&duplicate)
+                .expect_err("duplicate main effect")
+                .contains("option_effect_unknown")
+        );
 
         let mut reverse_pair = fixture();
         reverse_pair.interaction_effects.push(InteractionEffect {
@@ -838,29 +913,47 @@ mod tests {
             incremental_good_units_per_hour: 0.8,
             uncertainty_half_width_units_per_hour: 0.1,
         });
-        assert!(validate_fixture(&reverse_pair).expect_err("reverse pair").contains("interaction_effect_unknown"));
+        assert!(
+            validate_fixture(&reverse_pair)
+                .expect_err("reverse pair")
+                .contains("interaction_effect_unknown")
+        );
 
         let mut invalid_width = fixture();
         invalid_width.option_effects[0].uncertainty_half_width_units_per_hour = -0.1;
-        assert!(validate_fixture(&invalid_width).expect_err("negative width").contains("invalid_uncertainty"));
+        assert!(
+            validate_fixture(&invalid_width)
+                .expect_err("negative width")
+                .contains("invalid_uncertainty")
+        );
     }
 
     #[test]
     fn incomplete_interaction_catalog_and_exact_search_cap_fail_closed() {
         let mut incomplete = fixture();
         incomplete.interaction_effects.pop();
-        assert!(validate_fixture(&incomplete).expect_err("incomplete interactions").contains("must_cover_every_scenario_pair"));
+        assert!(
+            validate_fixture(&incomplete)
+                .expect_err("incomplete interactions")
+                .contains("must_cover_every_scenario_pair")
+        );
 
         let mut oversized = fixture();
-        oversized.options = (0..11).map(|index| DesignOption {
-            option_id: format!("option-{index:02}"),
-            label: "synthetic".into(),
-            capex: 0.0,
-            staffed_labor_hours_per_shift: 0.0,
-            active_power_kw: 0.0,
-            energy_kwh_per_shift: 0.0,
-            floor_area_sqm: 0.0,
-        }).collect();
-        assert!(validate_fixture(&oversized).expect_err("size limit").contains("exact-enumeration"));
+        oversized.options = (0..11)
+            .map(|index| DesignOption {
+                option_id: format!("option-{index:02}"),
+                label: "synthetic".into(),
+                capex: 0.0,
+                staffed_labor_hours_per_shift: 0.0,
+                active_power_kw: 0.0,
+                energy_kwh_per_shift: 0.0,
+                floor_area_sqm: 0.0,
+            })
+            .collect();
+        assert!(
+            validate_fixture(&oversized)
+                .expect_err("size limit")
+                .contains("exact-enumeration")
+        );
     }
 }
