@@ -266,6 +266,18 @@ fn verify_asymmetric_reference_outcome(result: &PlanarTrussResult) -> Result<(),
     close(bc.axial_stress_pa, -25_000.0, 1.0e-6, "asymmetric BC stress")?;
     close(ac.axial_strain, -1.5e-7, 1.0e-15, "asymmetric AC strain")?;
     close(bc.axial_strain, -1.25e-7, 1.0e-15, "asymmetric BC strain")?;
+    close(
+        ac.axial_extension_m,
+        -1.5e-7 * 10.0_f64.sqrt(),
+        1.0e-15,
+        "asymmetric AC extension",
+    )?;
+    close(
+        bc.axial_extension_m,
+        -1.25e-7 * 18.0_f64.sqrt(),
+        1.0e-15,
+        "asymmetric BC extension",
+    )?;
 
     let expected_energy_j = 3.9375e-4;
     close(result.energy.strain_energy_j, expected_energy_j, 1.0e-12, "asymmetric strain energy")?;
@@ -496,5 +508,17 @@ mod tests {
         let mut result = solve(&input).expect("valid fixture");
         result.equilibrium.normalized_force_residual = f64::NAN;
         assert!(verify_reference_outcome(&result, "symmetric").is_err());
+    }
+
+    #[test]
+    fn asymmetric_receipt_verification_pins_known_answer_and_energy() {
+        let input = asymmetric_two_bar_reference_fixture();
+        let result = solve(&input).expect("valid asymmetric fixture");
+        verify_reference_outcome(&result, "asymmetric")
+            .expect("asymmetric known-answer and energy gates should pass");
+
+        let mut bad_energy = result;
+        bad_energy.energy.strain_energy_j *= 2.0;
+        assert!(verify_reference_outcome(&bad_energy, "asymmetric").is_err());
     }
 }
