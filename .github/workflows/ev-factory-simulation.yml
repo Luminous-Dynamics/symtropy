@@ -53,6 +53,10 @@ jobs:
             and (.stations | all(.[]; .servers > 0 and .good_yield_fraction > 0 and .good_yield_fraction <= 1))
             and .dispatch_policy == "fifo"
             and .maximum_consecutive_skips == 3
+            and .maximum_queue_age_seconds == 900
+            and (.replication_seeds | length) == 20
+            and .replication_seeds[0] == .seed
+            and ((.replication_seeds | unique | length) == 20)
             and .input_evidence_class == "synthetic"
             and .calibration_gate == "unknown"
             and .local_compliance_gate == "unknown"
@@ -98,7 +102,8 @@ jobs:
             and .random_stream_policy == "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream"
             and .dispatch_policy == "fifo"
             and .maximum_consecutive_skips == 3
-            and all(.scenarios[]; .dispatch_policy == "fifo" and .maximum_consecutive_skips == 3 and (.variant_wait_statistics | length) == 3)
+            and .maximum_queue_age_seconds == 900
+            and all(.scenarios[]; .dispatch_policy == "fifo" and .maximum_consecutive_skips == 3 and .maximum_queue_age_seconds == 900 and (.variant_wait_statistics | length) == 3)
             and all(.scenario_statistics[]; ((.variant_wait_statistics | length) == 3) and all(.variant_wait_statistics[]; .sample_count.sample_count == 20))
             and .replication_count == 20
             and (.replication_seeds | length) == 20
@@ -133,6 +138,7 @@ jobs:
             .benchmark_id == "EV-FACTORY-SIM-001"
             and .dispatch_policy == "minimize_changeover"
             and .maximum_consecutive_skips == 3
+            and .maximum_queue_age_seconds == 900
             and .replication_count == 20
             and (.replication_seeds | length) == 20
             and (.scenario_statistics | length) == 6
@@ -168,6 +174,9 @@ jobs:
               benchmark_id: $fifo[0].benchmark_id,
               fifo_dispatch_policy: $fifo[0].dispatch_policy,
               variant_aware_dispatch_policy: $aware[0].dispatch_policy,
+              maximum_queue_age_seconds: $fifo[0].maximum_queue_age_seconds,
+              variant_aware_maximum_queue_age_seconds: $aware[0].maximum_queue_age_seconds,
+              maximum_queue_age_matches: ($fifo[0].maximum_queue_age_seconds == $aware[0].maximum_queue_age_seconds),
               replication_seeds_equal: ($fifo[0].replication_seeds == $aware[0].replication_seeds),
               replication_records_matched_by_seed_and_scenario: ($fifo_keys == $aware_keys),
               replication_count: $fifo[0].replication_count,
@@ -300,6 +309,9 @@ jobs:
             and .benchmark_id == "EV-FACTORY-SIM-001"
             and .fifo_dispatch_policy == "fifo"
             and .variant_aware_dispatch_policy == "minimize_changeover"
+            and .maximum_queue_age_seconds == 900
+            and .variant_aware_maximum_queue_age_seconds == 900
+            and .maximum_queue_age_matches
             and .replication_seeds_equal
             and .replication_records_matched_by_seed_and_scenario
             and .replication_count == 20
@@ -365,6 +377,17 @@ jobs:
             exit 1
           fi
           grep -q "maximum_consecutive_skips_must_be_positive" ev-factory-invalid-skip-budget.stderr
+
+      - name: Negative control - zero queue age threshold must fail closed
+        run: |
+          jq '.maximum_queue_age_seconds = 0' \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json > ev-factory-invalid-queue-age.json
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+            ev-factory-invalid-queue-age.json > /dev/null 2> ev-factory-invalid-queue-age.stderr; then
+            echo "invalid zero queue-age threshold was incorrectly accepted" >&2
+            exit 1
+          fi
+          grep -q "maximum_queue_age_seconds_must_be_positive" ev-factory-invalid-queue-age.stderr
 
       - name: Hash source, fixture and reports
         run: |

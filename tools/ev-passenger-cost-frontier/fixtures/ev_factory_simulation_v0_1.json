@@ -2,11 +2,15 @@
   "schema_version": "0.1.0",
   "benchmark_id": "EV-FACTORY-SIM-001",
   "seed": 20261020,
+  "replication_seeds": [20261020, 20261021, 20261022, 20261023, 20261024, 20261025, 20261026, 20261027, 20261028, 20261029, 20261030, 20261031, 20261032, 20261033, 20261034, 20261035, 20261036, 20261037, 20261038, 20261039],
   "horizon_seconds": 604800,
   "warmup_seconds": 86400,
   "productive_seconds_per_year": 12960000,
   "variant_count": 3,
   "variant_batch_size": 20,
+  "dispatch_policy": "fifo",
+  "maximum_consecutive_skips": 3,
+  "maximum_queue_age_seconds": 900,
   "mean_supply_interarrival_seconds": 235,
   "supply_interarrival_variability_fraction": 0.55,
   "source_buffer_capacity": 8,
@@ -93,29 +97,5 @@
       "note": "Synthetic test duration and yield; not a homologation, battery safety or product-release test specification."
     }
   ],
-  "claim_ceiling": "Synthetic line-design sensitivity only; all rates, yields, variability, breakdown/repair values, buffer sizes, source timing, and annual operating hours are assumptions. Not measured site performance, a calibrated digital twin, a safety case or a machinery investment recommendation.",
-  "replication_seeds": [
-    20261020,
-    20261021,
-    20261022,
-    20261023,
-    20261024,
-    20261025,
-    20261026,
-    20261027,
-    20261028,
-    20261029,
-    20261030,
-    20261031,
-    20261032,
-    20261033,
-    20261034,
-    20261035,
-    20261036,
-    20261037,
-    20261038,
-    20261039
-  ],
-  "dispatch_policy": "fifo",
-  "maximum_consecutive_skips": 3
+  "claim_ceiling": "Synthetic line-design sensitivity only; all rates, yields, variability, breakdown/repair values, buffer sizes, source timing, and annual operating hours are assumptions. Not measured site performance, a calibrated digital twin, a safety case or a machinery investment recommendation."
 }

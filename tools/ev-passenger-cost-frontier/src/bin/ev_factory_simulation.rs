@@ -26,6 +26,8 @@ struct Catalog {
     dispatch_policy: DispatchPolicy,
     #[serde(default = "default_maximum_consecutive_skips")]
     maximum_consecutive_skips: u32,
+    #[serde(default = "default_maximum_queue_age_seconds")]
+    maximum_queue_age_seconds: u64,
     mean_supply_interarrival_seconds: f64,
     supply_interarrival_variability_fraction: f64,
     source_buffer_capacity: usize,
@@ -81,6 +83,10 @@ fn default_maximum_consecutive_skips() -> u32 {
     3
 }
 
+fn default_maximum_queue_age_seconds() -> u64 {
+    900
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum GateStatus {
@@ -99,6 +105,7 @@ struct Report {
     random_stream_policy: String,
     dispatch_policy: DispatchPolicy,
     maximum_consecutive_skips: u32,
+    maximum_queue_age_seconds: u64,
     scenario_count: usize,
     scenario_statistics: Vec<ScenarioStatistics>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
@@ -123,6 +130,7 @@ struct ScenarioResult {
     scenario_id: String,
     dispatch_policy: DispatchPolicy,
     maximum_consecutive_skips: u32,
+    maximum_queue_age_seconds: u64,
     intervention_station_id: Option<String>,
     added_servers: usize,
     released_jobs_total: u64,
@@ -509,6 +517,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     }
     if catalog.maximum_consecutive_skips == 0 {
         return Err("maximum_consecutive_skips_must_be_positive".into());
+    }
+    if catalog.maximum_queue_age_seconds == 0 {
+        return Err("maximum_queue_age_seconds_must_be_positive".into());
     }
     validate_positive_finite(
         "mean_supply_interarrival_seconds",
@@ -902,6 +913,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
             "entity_keyed_service_quality_failure; dedicated_supplier_arrival_stream".to_string(),
         dispatch_policy: catalog.dispatch_policy,
         maximum_consecutive_skips: catalog.maximum_consecutive_skips,
+        maximum_queue_age_seconds: catalog.maximum_queue_age_seconds,
         scenario_count: scenarios.len(),
         scenario_statistics: Vec::new(),
         station_sequence_statistics: Vec::new(),
@@ -1124,6 +1136,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         scenario_id: baseline_id,
         dispatch_policy: catalog.dispatch_policy,
         maximum_consecutive_skips: catalog.maximum_consecutive_skips,
+        maximum_queue_age_seconds: catalog.maximum_queue_age_seconds,
         intervention_station_id: extra_server_at
             .map(|index| catalog.stations[index].station_id.clone()),
         added_servers: if extra_server_at.is_some() { 1 } else { 0 },
@@ -1222,18 +1235,21 @@ fn select_queued_job(
     last_variant: Option<usize>,
     policy: DispatchPolicy,
     maximum_consecutive_skips: u32,
+    now_seconds: u64,
+    maximum_queue_age_seconds: u64,
 ) -> Option<Job> {
     if policy == DispatchPolicy::Fifo || last_variant.is_none() || queue.is_empty() {
         return queue.pop_front();
     }
 
-    // Aging forces the oldest job after it has been bypassed the configured
-    // maximum number of times. Otherwise, select the oldest job matching this
-    // server's last variant. Position-based removal preserves FIFO within each
-    // variant and makes all tie-breaking deterministic.
-    if queue
-        .front()
-        .is_some_and(|job| job.consecutive_skips >= maximum_consecutive_skips)
+    // Elapsed age is a priority override at the next dispatch opportunity,
+    // not a guaranteed wait SLA. The skip counter remains a separate guard.
+    // Otherwise, select the oldest matching variant; removing by position
+    // preserves FIFO within each variant and deterministic tie-breaking.
+    let oldest = queue.front().expect("queue is not empty");
+    let elapsed_queue_age = now_seconds.saturating_sub(oldest.enqueued_at_seconds);
+    if elapsed_queue_age >= maximum_queue_age_seconds
+        || oldest.consecutive_skips >= maximum_consecutive_skips
     {
         return queue.pop_front();
     }
@@ -1480,6 +1496,8 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         last_variant,
                         catalog.dispatch_policy,
                         catalog.maximum_consecutive_skips,
+                        state.now,
+                        catalog.maximum_queue_age_seconds,
                     );
                     if value.is_some() {
                         refill_source_buffer(state, catalog);
@@ -1491,6 +1509,8 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                         last_variant,
                         catalog.dispatch_policy,
                         catalog.maximum_consecutive_skips,
+                        state.now,
+                        catalog.maximum_queue_age_seconds,
                     )
                 };
                 let Some(job) = job else {
@@ -1596,18 +1616,27 @@ mod tests {
         let original = include_str!("../../fixtures/ev_factory_simulation_v0_1.json");
         let legacy = original
             .replace("  \"dispatch_policy\": \"fifo\",\n", "")
-            .replace("  \"maximum_consecutive_skips\": 3,\n", "");
+            .replace("  \"maximum_consecutive_skips\": 3,\n", "")
+            .replace("  \"maximum_queue_age_seconds\": 900,\n", "");
         let catalog: Catalog = serde_json::from_str(&legacy).expect("legacy fixture parses");
         assert_eq!(catalog.dispatch_policy, DispatchPolicy::Fifo);
         assert_eq!(catalog.maximum_consecutive_skips, 3);
+        assert_eq!(catalog.maximum_queue_age_seconds, 900);
     }
 
     #[test]
     fn changeover_policy_preserves_fifo_within_variant_and_bounds_skips() {
         let mut queue =
             VecDeque::from([test_job(10, 0, 0), test_job(11, 1, 0), test_job(12, 1, 0)]);
-        let first = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
-            .expect("oldest matching variant");
+        let first = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("oldest matching variant");
         assert_eq!(
             first.id, 11,
             "FIFO is preserved within the matching variant"
@@ -1615,25 +1644,58 @@ mod tests {
         assert_eq!(queue[0].id, 10);
         assert_eq!(queue[0].consecutive_skips, 1);
 
-        let second = select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
-            .expect("next matching-variant job");
+        let second = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("next matching-variant job");
         assert_eq!(
             second.id, 12,
             "later same-variant job cannot overtake an earlier one of its variant"
         );
         assert_eq!(queue[0].consecutive_skips, 2);
 
-        let forced_oldest =
-            select_queued_job(&mut queue, Some(1), DispatchPolicy::MinimizeChangeover, 2)
-                .expect("max-skip aging forces the oldest job");
+        let forced_oldest = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            2,
+            0,
+            900,
+        )
+        .expect("max-skip aging forces the oldest job");
         assert_eq!(forced_oldest.id, 10);
+    }
+
+    #[test]
+    fn changeover_policy_forces_oldest_at_elapsed_queue_age_threshold() {
+        let mut oldest = test_job(10, 0, 0);
+        oldest.enqueued_at_seconds = 20;
+        let matching = test_job(11, 1, 0);
+        let mut queue = VecDeque::from([oldest, matching]);
+
+        let selected = select_queued_job(
+            &mut queue,
+            Some(1),
+            DispatchPolicy::MinimizeChangeover,
+            3,
+            120,
+            100,
+        )
+        .expect("age-threshold override selects oldest job");
+        assert_eq!(selected.id, 10);
+        assert_eq!(queue.front().map(|job| job.id), Some(11));
     }
 
     #[test]
     fn fifo_policy_and_no_match_fall_back_to_oldest_queue_entry() {
         let mut fifo = VecDeque::from([test_job(2, 1, 0), test_job(1, 0, 0)]);
         assert_eq!(
-            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3)
+            select_queued_job(&mut fifo, Some(0), DispatchPolicy::Fifo, 3, 0, 900,)
                 .expect("FIFO")
                 .id,
             2
@@ -1645,7 +1707,9 @@ mod tests {
                 &mut no_match,
                 Some(1),
                 DispatchPolicy::MinimizeChangeover,
-                3
+                3,
+                0,
+                900
             )
             .expect("fallback")
             .id,
@@ -1914,6 +1978,18 @@ mod tests {
         validate_catalog(&catalog).expect("fixture validates");
         assert_eq!(catalog.buffer_capacities.len(), catalog.stations.len() - 1);
         assert_eq!(catalog.stations.len() + 1, 6);
+        assert_eq!(catalog.replication_seeds.len(), 20);
+        assert_eq!(catalog.replication_seeds.first(), Some(&catalog.seed));
+        assert_eq!(
+            catalog
+                .replication_seeds
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len(),
+            20,
+            "paired benchmark fixture must carry 20 unique, explicit seeds",
+        );
     }
 
     #[test]
@@ -1965,6 +2041,10 @@ mod tests {
 
         let mut catalog = fixture();
         catalog.maximum_consecutive_skips = 0;
+        assert!(validate_catalog(&catalog).is_err());
+
+        let mut catalog = fixture();
+        catalog.maximum_queue_age_seconds = 0;
         assert!(validate_catalog(&catalog).is_err());
     }
 
