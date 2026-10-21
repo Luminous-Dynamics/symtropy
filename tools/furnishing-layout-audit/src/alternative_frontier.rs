@@ -253,6 +253,97 @@ fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> boo
     strictly_better
 }
 
+/// Convert an objective into a minimization coordinate without retaining signed zero.
+fn minimization_coordinate(objective: &ObjectiveObservation) -> f64 {
+    let value = if objective.value == 0.0 {
+        0.0
+    } else {
+        objective.value
+    };
+    match objective.direction {
+        ObjectiveDirection::Minimize => value,
+        ObjectiveDirection::Maximize => -value,
+    }
+}
+
+/// Find one deterministic dominator per dominated candidate in two dimensions.
+///
+/// This sweep is O(n log n): sort by the first minimization coordinate, then
+/// maintain the smallest second coordinate seen in earlier coordinate groups.
+/// Equal first-coordinate points are processed as a group so identical points
+/// do not incorrectly dominate one another.
+fn two_dimensional_dominators(
+    rankable: &[RankableCandidate<'_>],
+) -> BTreeMap<String, String> {
+    let mut points = rankable
+        .iter()
+        .map(|candidate| {
+            (
+                candidate.candidate.candidate_id.as_str(),
+                minimization_coordinate(candidate.objectives[0]),
+                minimization_coordinate(candidate.objectives[1]),
+            )
+        })
+        .collect::<Vec<_>>();
+    points.sort_by(|left, right| {
+        left.1
+            .total_cmp(&right.1)
+            .then_with(|| left.2.total_cmp(&right.2))
+            .then_with(|| left.0.cmp(right.0))
+    });
+
+    let mut dominators = BTreeMap::new();
+    let mut prefix_min_y: Option<(f64, String)> = None;
+    let mut group_start = 0;
+
+    while group_start < points.len() {
+        let group_x = points[group_start].1;
+        let mut group_end = group_start + 1;
+        while group_end < points.len() && points[group_end].1 == group_x {
+            group_end += 1;
+        }
+
+        // Within an equal-x group, points are sorted by y then stable ID.
+        let group_min_y = points[group_start].2;
+        let group_min_id = points[group_start].0.to_owned();
+        if let Some((best_y, witness_id)) = &prefix_min_y {
+            if *best_y <= group_min_y {
+                // A strictly smaller x coordinate makes this a real
+                // dominator even when the y coordinates are exactly equal.
+                for point in &points[group_start..group_end] {
+                    dominators.insert(point.0.to_owned(), witness_id.clone());
+                }
+            } else {
+                // No prior x group dominates the minimum-y points. Those
+                // points form this group's frontier; a group minimum
+                // dominates each point with a strictly larger y coordinate.
+                for point in &points[group_start..group_end] {
+                    if point.2 > group_min_y {
+                        dominators.insert(point.0.to_owned(), group_min_id.clone());
+                    }
+                }
+            }
+        } else {
+            for point in &points[group_start..group_end] {
+                if point.2 > group_min_y {
+                    dominators.insert(point.0.to_owned(), group_min_id.clone());
+                }
+            }
+        }
+
+        match &prefix_min_y {
+            None => prefix_min_y = Some((group_min_y, group_min_id)),
+            Some((best_y, _)) if group_min_y < *best_y => {
+                prefix_min_y = Some((group_min_y, group_min_id));
+            }
+            Some(_) => {}
+        }
+        group_start = group_end;
+    }
+
+    dominators
+}
+
 /// Compute a Pareto frontier without scalarizing objectives.
 ///
 /// Only alternatives marked Verified by the caller's independent verifier can
@@ -267,9 +358,10 @@ fn dominates(left: &RankableCandidate<'_>, right: &RankableCandidate<'_>) -> boo
 /// this function invents neither weights nor tolerances. Callers must define
 /// units, evidence-admission rules, and any justified normalization upstream.
 ///
-/// The algorithm uses worst-case quadratic comparison time for arbitrary
-/// objective vectors, but stores only one dominance witness per excluded
-/// candidate so output memory remains linear in candidate count.
+/// Two-objective inputs use an O(n log n) sweep-line frontier. Higher-dimensional
+/// inputs use worst-case quadratic comparison time. Only one dominance witness
+/// is stored per excluded candidate, keeping output memory linear in candidate
+/// count.
 ///
 /// This function checks digest shape but does not authenticate digests or
 /// receipts. The claim of independent verification originates outside this
@@ -355,17 +447,28 @@ pub fn compute_pareto_frontier(
         }
     }
 
+    let two_dimensional = rankable
+        .first()
+        .is_some_and(|candidate| candidate.objectives.len() == 2);
+    let sweep_dominators = two_dimensional.then(|| two_dimensional_dominators(&rankable));
+
     let mut frontier_ids = Vec::new();
     for candidate in &rankable {
-        // Rankable candidates are sorted by ID, so the first witness is stable.
-        // Keeping one witness bounds report storage even for heavily dominated sets.
-        let first_dominator = rankable
-            .iter()
-            .find(|other| {
-                other.candidate.candidate_id != candidate.candidate.candidate_id
-                    && dominates(other, candidate)
-            })
-            .map(|other| other.candidate.candidate_id.clone());
+        // Two-objective inputs use the sweep result; higher-dimensional inputs
+        // retain the general pairwise verifier. Neither path invents weights.
+        let first_dominator = if let Some(dominators) = &sweep_dominators {
+            dominators
+                .get(&candidate.candidate.candidate_id)
+                .cloned()
+        } else {
+            rankable
+                .iter()
+                .find(|other| {
+                    other.candidate.candidate_id != candidate.candidate.candidate_id
+                        && dominates(other, candidate)
+                })
+                .map(|other| other.candidate.candidate_id.clone())
+        };
 
         let disposition = if let Some(witness) = first_dominator {
             CandidateDisposition::DominatedBy(witness)
@@ -628,6 +731,93 @@ mod tests {
             compute_pareto_frontier(&[a, b]),
             Err(FrontierError::IncompatibleObjectiveSchemas { .. })
         ));
+    }
+
+    #[test]
+    fn two_dimensional_sweep_matches_pairwise_dominance_on_adversarial_points() {
+        let specs = [
+            ("a", 1.0, 8.0),
+            ("b", 2.0, 7.0),
+            ("c", 2.0, 9.0),
+            ("d", 3.0, 6.0),
+            ("e", 3.0, 6.0),
+            ("f", 4.0, 8.0),
+            ("g", 5.0, 4.0),
+            ("h", 6.0, 3.0),
+            ("i", 6.0, 3.0),
+            ("j", 6.0, 7.0),
+            ("k", 7.0, 2.0),
+            ("l", 8.0, 1.0),
+        ];
+        let candidates = specs
+            .iter()
+            .map(|(id, cost, coverage)| {
+                candidate(
+                    id,
+                    VerificationStatus::Verified,
+                    two_objectives(*cost, *coverage),
+                )
+            })
+            .collect::<Vec<_>>();
+        let report = compute_pareto_frontier(&candidates).expect("valid adversarial fixture");
+
+        let mut reference = Vec::new();
+        for (index, subject) in candidates.iter().enumerate() {
+            let mut objectives = subject.objectives.iter().collect::<Vec<_>>();
+            objectives.sort_by_key(|objective| objective.dimension.clone());
+            let subject_rankable = RankableCandidate {
+                candidate: subject,
+                objectives,
+            };
+            let is_dominated = candidates.iter().enumerate().any(|(other_index, other)| {
+                if index == other_index {
+                    return false;
+                }
+                let mut other_objectives = other.objectives.iter().collect::<Vec<_>>();
+                other_objectives.sort_by_key(|objective| objective.dimension.clone());
+                dominates(
+                    &RankableCandidate {
+                        candidate: other,
+                        objectives: other_objectives,
+                    },
+                    &subject_rankable,
+                )
+            });
+            if !is_dominated {
+                reference.push(subject.candidate_id.clone());
+            }
+        }
+        reference.sort();
+        assert_eq!(report.frontier_ids, reference);
+
+        for result in &report.candidates {
+            if let CandidateDisposition::DominatedBy(witness_id) = &result.disposition {
+                let witness = candidates
+                    .iter()
+                    .find(|candidate| &candidate.candidate_id == witness_id)
+                    .expect("reported witness must be a candidate");
+                let subject = candidates
+                    .iter()
+                    .find(|candidate| candidate.candidate_id == result.candidate_id)
+                    .expect("reported subject must be a candidate");
+                let mut witness_objectives =
+                    witness.objectives.iter().collect::<Vec<_>>();
+                witness_objectives.sort_by_key(|objective| objective.dimension.clone());
+                let mut subject_objectives =
+                    subject.objectives.iter().collect::<Vec<_>>();
+                subject_objectives.sort_by_key(|objective| objective.dimension.clone());
+                assert!(dominates(
+                    &RankableCandidate {
+                        candidate: witness,
+                        objectives: witness_objectives,
+                    },
+                    &RankableCandidate {
+                        candidate: subject,
+                        objectives: subject_objectives,
+                    }
+                ));
+            }
+        }
     }
 
     #[test]
