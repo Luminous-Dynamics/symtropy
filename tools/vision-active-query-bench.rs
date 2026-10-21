@@ -710,6 +710,7 @@ struct Accumulator {
     state_bytes_sum: u64,
     scoring_work_units_sum: u64,
     paired_deltas_vs_rr: Vec<f64>,
+    paired_objective_deltas_vs_rr: Vec<f64>,
 }
 
 impl Accumulator {
@@ -1025,7 +1026,7 @@ fn report_stop_cost_sensitivity() {
 }
 
 fn report_marginal_value_stop() {
-    println!("MARGINAL_STOP\tfamily\tcost_per_request\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requests_used\tcost_adjusted_objective\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
+    println!("MARGINAL_STOP\tfamily\tcost_per_request\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requests_used\tcost_adjusted_objective\tdelta_loss_vs_round_robin\tloss_bootstrap95_lo\tloss_bootstrap95_hi\tobjective_delta_vs_round_robin\tobjective_bootstrap95_lo\tobjective_bootstrap95_hi");
     let mut cells = vec![
         Accumulator::default();
         Family::ALL.len() * MARGINAL_VALUE_COST_GRID.len()
@@ -1053,6 +1054,10 @@ fn report_marginal_value_stop() {
                         run.outcome,
                         Some(run.outcome.loss - round_robin.outcome.loss),
                     );
+                    let objective_delta =
+                        (run.outcome.loss + cost * run.actions.len() as f64)
+                        - (round_robin.outcome.loss + cost * HORIZON as f64);
+                    cells[index].paired_objective_deltas_vs_rr.push(objective_delta);
                 }
             }
         }
@@ -1070,9 +1075,15 @@ fn report_marginal_value_stop() {
                 ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
                 ^ (cost_index as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9));
             let (lo, hi) = bootstrap_ci(&cell.paired_deltas_vs_rr, seed);
-            println!("MARGINAL_STOP\t{}\t{:.5}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.5}\t{:.4}\t{:.4}\t{:.4}",
+            let objective_delta = cell.paired_objective_deltas_vs_rr.iter().sum::<f64>()
+                / cell.paired_objective_deltas_vs_rr.len().max(1) as f64;
+            let objective_seed = mix64(seed ^ 0x4F42_4A45_4354_4956);
+            let (objective_lo, objective_hi) =
+                bootstrap_ci(&cell.paired_objective_deltas_vs_rr, objective_seed);
+            println!("MARGINAL_STOP\t{}\t{:.5}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.5}\t{:.4}\t{:.4}\t{:.4}\t{:.5}\t{:.5}\t{:.5}",
                 family.name(), cost, cell.episodes, cell.mean_loss(), cell.answer_rate(),
-                cell.accuracy(), mean_requests, objective, delta, lo, hi);
+                cell.accuracy(), mean_requests, objective, delta, lo, hi,
+                objective_delta, objective_lo, objective_hi);
         }
     }
 
@@ -1105,12 +1116,19 @@ fn report_marginal_value_stop() {
     let held_delta = held_cell.paired_deltas_vs_rr.iter().sum::<f64>()
         / held_cell.paired_deltas_vs_rr.len().max(1) as f64;
     let seed = mix64(ROOT_SEED ^ 0x4341_4C49_4252_4154);
-    let (lo, hi) = bootstrap_ci(&held_cell.paired_deltas_vs_rr, seed);
+    let (loss_lo, loss_hi) = bootstrap_ci(&held_cell.paired_deltas_vs_rr, seed);
+    let objective_delta = held_cell.paired_objective_deltas_vs_rr.iter().sum::<f64>()
+        / held_cell.paired_objective_deltas_vs_rr.len().max(1) as f64;
+    let (objective_lo, objective_hi) = bootstrap_ci(
+        &held_cell.paired_objective_deltas_vs_rr,
+        mix64(seed ^ 0x4F42_4A45_4354_4956),
+    );
 
-    println!("MARGINAL_STOP_CALIBRATION\tselection_rule\tselected_cost_per_request\tdevelopment_episodes\tdevelopment_objective\theld_out_episodes\theld_out_mean_loss\theld_out_mean_requests\theld_out_objective\tdelta_loss_vs_round_robin\tbootstrap95_lo\tbootstrap95_hi");
-    println!("MARGINAL_STOP_CALIBRATION\tminimum_development_mean(loss+cost*requests)\t{:.5}\t{}\t{:.5}\t{}\t{:.4}\t{:.3}\t{:.5}\t{:.4}\t{:.4}\t{:.4}",
+    println!("MARGINAL_STOP_CALIBRATION\tselection_rule\tselected_cost_per_request\tdevelopment_episodes\tdevelopment_objective\theld_out_episodes\theld_out_mean_loss\theld_out_mean_requests\theld_out_objective\tdelta_loss_vs_round_robin\tloss_bootstrap95_lo\tloss_bootstrap95_hi\tobjective_delta_vs_round_robin\tobjective_bootstrap95_lo\tobjective_bootstrap95_hi");
+    println!("MARGINAL_STOP_CALIBRATION\tminimum_development_mean(loss+cost*requests)\t{:.5}\t{}\t{:.5}\t{}\t{:.4}\t{:.3}\t{:.5}\t{:.4}\t{:.4}\t{:.4}\t{:.5}\t{:.5}\t{:.5}",
         selected_cost, dev_cell.episodes, selected_objective, held_cell.episodes,
-        held_cell.mean_loss(), held_requests, held_objective, held_delta, lo, hi);
+        held_cell.mean_loss(), held_requests, held_objective, held_delta,
+        loss_lo, loss_hi, objective_delta, objective_lo, objective_hi);
 }
 
 fn main() {
