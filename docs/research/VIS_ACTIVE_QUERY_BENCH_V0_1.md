@@ -232,5 +232,7 @@ The report separates development and held-out families and includes (empty strat
 
 This is a post-hoc simulator diagnostic, not task-loss improvement, a claim about correctness calibration in the physical world, or evidence that the candidate selector should be used. Negative realized risk drops are possible and retained. Because confidence/delay/corruption distributions differ by family, a growing gap in held-out strata would support focusing on sensor/world model mismatch before attempting more policy tuning. Results are bootstrapped across episodes rather than treating multiple observations from the same episode as independent samples.
 
+The report also emits a separate `VALUE_RANKING` audit per family: how often the highest-predicted candidate is also the best candidate under the sampled realized belief-risk drop, pairwise ranking concordance, and realized one-step regret relative to that hindsight-best candidate. Intervals resample episodes, each of which contributes its mean across the 12 fixed states. Since a single sampled observation can be noisy, this is a ranking diagnostic—not an oracle value function, expected action utility, or deployable policy baseline.
+
 The protocol deliberately uses the **same belief-risk function** in predicted and realized values to test whether the expected-value calculation matches observed risk changes under the generated stream. It does not pretend that this score is the environment's true task loss.
 
