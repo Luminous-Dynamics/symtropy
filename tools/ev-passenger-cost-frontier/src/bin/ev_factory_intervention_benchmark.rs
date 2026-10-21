@@ -1017,31 +1017,36 @@ mod tests {
     ) -> Option<usize> {
         let sample_count = samples.first()?.len();
         (0..samples.len()).find(|&candidate| {
-            (0..samples.len()).filter(|&other| other != candidate).all(|other| {
-                let differences: Vec<f64> = samples[candidate]
-                    .iter()
-                    .zip(samples[other].iter())
-                    .map(|(a, b)| a - b)
-                    .collect();
-                let Ok(summary) = summarize_distribution(&differences) else {
-                    return false;
-                };
-                let (lower, upper) = if familywise {
-                    let critical = student_t_critical_bonferroni_10((sample_count - 1) as u32);
-                    let Some(sd) = summary.sample_standard_deviation else {
+            (0..samples.len())
+                .filter(|&other| other != candidate)
+                .all(|other| {
+                    let differences: Vec<f64> = samples[candidate]
+                        .iter()
+                        .zip(samples[other].iter())
+                        .map(|(a, b)| a - b)
+                        .collect();
+                    let Ok(summary) = summarize_distribution(&differences) else {
                         return false;
                     };
-                    let half_width = critical * sd / (sample_count as f64).sqrt();
-                    (Some(summary.mean - half_width), Some(summary.mean + half_width))
-                } else {
-                    (
-                        summary.mean_confidence_95_lower,
-                        summary.mean_confidence_95_upper,
-                    )
-                };
-                paired_interval_decision(lower, upper, practical_margin)
-                    == "station_a_meaningfully_better_under_paired_model"
-            })
+                    let (lower, upper) = if familywise {
+                        let critical = student_t_critical_bonferroni_10((sample_count - 1) as u32);
+                        let Some(sd) = summary.sample_standard_deviation else {
+                            return false;
+                        };
+                        let half_width = critical * sd / (sample_count as f64).sqrt();
+                        (
+                            Some(summary.mean - half_width),
+                            Some(summary.mean + half_width),
+                        )
+                    } else {
+                        (
+                            summary.mean_confidence_95_lower,
+                            summary.mean_confidence_95_upper,
+                        )
+                    };
+                    paired_interval_decision(lower, upper, practical_margin)
+                        == "station_a_meaningfully_better_under_paired_model"
+                })
         })
     }
 
@@ -1054,8 +1059,7 @@ mod tests {
         for _ in 0..replications {
             let shared = 0.3 * centered_normal_approx(state);
             for (candidate, mean) in means.iter().enumerate() {
-                let idiosyncratic = 0.953_939_201_416_945_7
-                    * centered_normal_approx(state);
+                let idiosyncratic = 0.953_939_201_416_945_7 * centered_normal_approx(state);
                 samples[candidate].push(mean + shared + idiosyncratic);
             }
         }
@@ -1191,10 +1195,16 @@ mod tests {
         let mut familywise_false_winners = 0usize;
         for _ in 0..NULL_TRIALS {
             let samples = synthetic_paired_samples(&mut state, &null_means, REPLICATIONS);
-            pointwise_false_winners +=
-                if selected_robust_winner(&samples, false, 0.05).is_some() { 1 } else { 0 };
-            familywise_false_winners +=
-                if selected_robust_winner(&samples, true, 0.05).is_some() { 1 } else { 0 };
+            pointwise_false_winners += if selected_robust_winner(&samples, false, 0.05).is_some() {
+                1
+            } else {
+                0
+            };
+            familywise_false_winners += if selected_robust_winner(&samples, true, 0.05).is_some() {
+                1
+            } else {
+                0
+            };
         }
         let pointwise_rate = pointwise_false_winners as f64 / NULL_TRIALS as f64;
         let familywise_rate = familywise_false_winners as f64 / NULL_TRIALS as f64;
@@ -1214,10 +1224,13 @@ mod tests {
         for _ in 0..POWER_TRIALS {
             let samples = synthetic_paired_samples(&mut state, &separated_means, REPLICATIONS);
             correct_familywise_selections +=
-                if selected_robust_winner(&samples, true, 0.05) == Some(0) { 1 } else { 0 };
+                if selected_robust_winner(&samples, true, 0.05) == Some(0) {
+                    1
+                } else {
+                    0
+                };
         }
-        let correct_selection_rate =
-            correct_familywise_selections as f64 / POWER_TRIALS as f64;
+        let correct_selection_rate = correct_familywise_selections as f64 / POWER_TRIALS as f64;
         assert!(
             correct_selection_rate >= 0.90,
             "separated-winner smoke power fell below 90%: {correct_selection_rate:.4}"
