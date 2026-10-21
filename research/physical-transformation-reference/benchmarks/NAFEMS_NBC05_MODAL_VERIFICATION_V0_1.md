@@ -1,7 +1,7 @@
 # Modal Truss Verification Contract v0.1
 
 **Tracking:** [PHYS-MODAL-TRUSS-001 #2531](https://github.com/Luminous-Dynamics/symtropy/issues/2531)  
-**Status:** benchmark intake contract plus a 1D axial-bar modal prototype with mode-shape diagnostics; no modal truss solver or NBC05 reproduction is qualified.  
+**Status:** benchmark intake contract plus a 1D axial-bar modal prototype with mode-shape diagnostics and deterministic receipt candidate; no modal truss solver or NBC05 reproduction is qualified.  
 **Model class:** undamped, linear, small-motion free vibration. Separate from the static planar-truss reference.
 
 ## Why this is a model-class boundary
@@ -63,7 +63,8 @@ For the 1 m, 210 GPa, 7800 kg/m³ values displayed in NBC05, the fundamental is 
 
 - [Implemented prototype] Assemble reduced axial-bar stiffness and consistent or row-sum lumped mass matrices in SI units; solve the small generalized symmetric eigenproblem through Cholesky reduction and a Jacobi eigensolve.
 - [Implemented tests] Compare the single-element consistent/lumped frequencies with closed-form frequency ratios, check first-mode convergence across 1, 2, 4, 8, and 16 elements, check that the second mode is within 5% at 8 elements for this bar test, and assert mass normalization and generalized-eigenpair residuals for computed modes.
-- [Remaining] Add independent analytical mode-shape checks, a generalized-eigenproblem mutation audit, and a request-bound M0 receipt with canonical input hash and solver/mass-formulation metadata. This prototype is not yet independently qualified.
+- [Implemented in receipt candidate] Freeze canonical request bytes, SHA-256 the canonical input, bind outputs to the exact source commit and source-tree digest, run twice for byte-identical output, and gate the two 8-element consistent-mass frequencies against independently computed discrete-system values and analytical frequency error.
+- [Remaining] Add dedicated generalized-eigenproblem mutation tests and independent analytical shape checks. The receipt workflow is part of the stacked draft and must pass at its exact head before its evidence is qualified.
 
 ### M1 — Independent small-matrix eigenproblem
 
