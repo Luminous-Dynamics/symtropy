@@ -189,7 +189,10 @@ fn main() {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        return Err("usage: ev_factory_economic_frontier <simulation-report.json> <economic-fixture.json>".into());
+        return Err(
+            "usage: ev_factory_economic_frontier <simulation-report.json> <economic-fixture.json>"
+                .into(),
+        );
     }
     let simulation_bytes =
         fs::read(&args[1]).map_err(|error| format!("cannot read simulation report: {error}"))?;
@@ -201,31 +204,67 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("economic fixture JSON/schema invalid: {error}"))?;
     validate_inputs(&simulation, &economics)?;
 
-    let mut candidates = Vec::with_capacity(economics.sites.len() * economics.station_profiles.len());
+    let mut candidates =
+        Vec::with_capacity(economics.sites.len() * economics.station_profiles.len());
     for site in &economics.sites {
         for station_profile in &economics.station_profiles {
             let scenario_id = format!("add-one-server-{}", station_profile.station_id);
             let delta = simulation
                 .scenario_statistics
                 .iter()
-                .find(|row| row.scenario_id == scenario_id
-                    && row.intervention_station_id.as_deref() == Some(station_profile.station_id.as_str()))
+                .find(|row| {
+                    row.scenario_id == scenario_id
+                        && row.intervention_station_id.as_deref()
+                            == Some(station_profile.station_id.as_str())
+                })
                 .and_then(|row| row.paired_good_units_per_hour_delta_vs_baseline.as_ref())
-                .ok_or_else(|| format!("paired_output_delta_missing_for_{}", station_profile.station_id))?;
-            let operating = simulation.station_operating_statistics
+                .ok_or_else(|| {
+                    format!(
+                        "paired_output_delta_missing_for_{}",
+                        station_profile.station_id
+                    )
+                })?;
+            let operating = simulation
+                .station_operating_statistics
                 .iter()
-                .find(|row| row.scenario_id == scenario_id && row.station_id == station_profile.station_id)
-                .ok_or_else(|| format!("station_operating_summary_missing_for_{}", station_profile.station_id))?;
-            let scenario = simulation.scenarios
+                .find(|row| {
+                    row.scenario_id == scenario_id && row.station_id == station_profile.station_id
+                })
+                .ok_or_else(|| {
+                    format!(
+                        "station_operating_summary_missing_for_{}",
+                        station_profile.station_id
+                    )
+                })?;
+            let scenario = simulation
+                .scenarios
                 .iter()
-                .find(|row| row.scenario_id == scenario_id
-                    && row.intervention_station_id.as_deref() == Some(station_profile.station_id.as_str()))
-                .ok_or_else(|| format!("station_intervention_scenario_missing_for_{}", station_profile.station_id))?;
-            let station_state = scenario.stations
+                .find(|row| {
+                    row.scenario_id == scenario_id
+                        && row.intervention_station_id.as_deref()
+                            == Some(station_profile.station_id.as_str())
+                })
+                .ok_or_else(|| {
+                    format!(
+                        "station_intervention_scenario_missing_for_{}",
+                        station_profile.station_id
+                    )
+                })?;
+            let station_state = scenario
+                .stations
                 .iter()
                 .find(|row| row.station_id == station_profile.station_id)
-                .ok_or_else(|| format!("station_state_missing_for_{}", station_profile.station_id))?;
-            let candidate = calculate_candidate(site, station_profile, delta, operating, station_state.server_count, &scenario_id)?;
+                .ok_or_else(|| {
+                    format!("station_state_missing_for_{}", station_profile.station_id)
+                })?;
+            let candidate = calculate_candidate(
+                site,
+                station_profile,
+                delta,
+                operating,
+                station_state.server_count,
+                &scenario_id,
+            )?;
             candidates.push(candidate);
         }
     }
@@ -241,7 +280,8 @@ fn run() -> Result<(), String> {
         let mut frontier_ids = Vec::new();
         for &candidate_index in &eligible_indices {
             let candidate = &candidates[candidate_index];
-            let dominated = eligible_indices.iter()
+            let dominated = eligible_indices
+                .iter()
                 .copied()
                 .filter(|other_index| *other_index != candidate_index)
                 .any(|other_index| dominates(&candidates[other_index], candidate));
@@ -260,12 +300,30 @@ fn run() -> Result<(), String> {
     }
 
     let objectives = vec![
-        Objective { field: "annual_incremental_good_units_mean".into(), direction: "maximize".into() },
-        Objective { field: "incremental_capex_local".into(), direction: "minimize".into() },
-        Objective { field: "annual_incremental_opex_local".into(), direction: "minimize".into() },
-        Objective { field: "annual_incremental_energy_kwh".into(), direction: "minimize".into() },
-        Objective { field: "annual_incremental_emissions_kgco2e".into(), direction: "minimize".into() },
-        Objective { field: "incremental_floor_area_sqm".into(), direction: "minimize".into() },
+        Objective {
+            field: "annual_incremental_good_units_mean".into(),
+            direction: "maximize".into(),
+        },
+        Objective {
+            field: "incremental_capex_local".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_opex_local".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_energy_kwh".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "annual_incremental_emissions_kgco2e".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "incremental_floor_area_sqm".into(),
+            direction: "minimize".into(),
+        },
     ];
     let report = Report {
         schema_version: "0.1.0".into(),
@@ -291,7 +349,10 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -> Result<(), String> {
+fn validate_inputs(
+    simulation: &SimulationReport,
+    economics: &EconomicCatalog,
+) -> Result<(), String> {
     if simulation.schema_version != "0.1.0"
         || simulation.benchmark_id != "EV-FACTORY-SIM-001"
         || simulation.input_evidence_class != "synthetic"
@@ -305,11 +366,19 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
         return Err("simulation_report_failed_synthetic_credibility_contract".into());
     }
     let mut unique_seeds = BTreeSet::new();
-    if simulation.replication_seeds.iter().any(|seed| *seed == 0 || !unique_seeds.insert(*seed)) {
+    if simulation
+        .replication_seeds
+        .iter()
+        .any(|seed| *seed == 0 || !unique_seeds.insert(*seed))
+    {
         return Err("simulation_seed_list_must_be_positive_and_unique".into());
     }
     let mut seeds = BTreeSet::new();
-    if simulation.replication_seeds.iter().any(|seed| *seed == 0 || !seeds.insert(*seed)) {
+    if simulation
+        .replication_seeds
+        .iter()
+        .any(|seed| *seed == 0 || !seeds.insert(*seed))
+    {
         return Err("simulation_seed_list_must_be_positive_and_unique".into());
     }
     if economics.schema_version != "0.1.0"
@@ -345,7 +414,10 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
                 site.grid_kgco2e_per_kwh,
             ])
         {
-            return Err(format!("site_profile_{}_invalid_or_not_synthetic", site.site_id));
+            return Err(format!(
+                "site_profile_{}_invalid_or_not_synthetic",
+                site.site_id
+            ));
         }
     }
     let mut station_ids = BTreeSet::new();
@@ -368,36 +440,55 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
                 profile.incremental_floor_area_sqm,
             ])
         {
-            return Err(format!("station_profile_{}_invalid_or_not_synthetic", profile.station_id));
+            return Err(format!(
+                "station_profile_{}_invalid_or_not_synthetic",
+                profile.station_id
+            ));
         }
     }
-    let baseline = simulation.scenarios.iter()
+    let baseline = simulation
+        .scenarios
+        .iter()
         .find(|row| row.scenario_id == "baseline")
         .ok_or_else(|| "simulation_baseline_scenario_missing".to_string())?;
     if baseline.intervention_station_id.is_some() {
         return Err("baseline_scenario_must_not_name_intervention".into());
     }
-    let baseline_stations: BTreeSet<String> = baseline.stations.iter()
+    let baseline_stations: BTreeSet<String> = baseline
+        .stations
+        .iter()
         .map(|station| station.station_id.clone())
         .collect();
     if baseline_stations != station_ids {
         return Err("station_economic_profiles_must_match_simulator_station_ids_exactly".into());
     }
-    for row in simulation.scenario_statistics.iter().filter(|row| row.scenario_id != "baseline") {
-        let gain = row.paired_good_units_per_hour_delta_vs_baseline.as_ref()
+    for row in simulation
+        .scenario_statistics
+        .iter()
+        .filter(|row| row.scenario_id != "baseline")
+    {
+        let gain = row
+            .paired_good_units_per_hour_delta_vs_baseline
+            .as_ref()
             .ok_or_else(|| "intervention_paired_gain_distribution_missing".to_string())?;
         if row.intervention_station_id.is_none()
             || gain.sample_count != simulation.replication_count
             || !gain.mean.is_finite()
-            || gain.mean_confidence_95_lower.is_some_and(|value| !value.is_finite())
-            || gain.mean_confidence_95_upper.is_some_and(|value| !value.is_finite())
+            || gain
+                .mean_confidence_95_lower
+                .is_some_and(|value| !value.is_finite())
+            || gain
+                .mean_confidence_95_upper
+                .is_some_and(|value| !value.is_finite())
         {
-            return Err("intervention_gain_distribution_failed_numeric_or_seed_count_checks".into());
+            return Err(
+                "intervention_gain_distribution_failed_numeric_or_seed_count_checks".into(),
+            );
         }
     }
     let expected_outcome_count = simulation.replication_count * (station_ids.len() + 1);
-    if simulation.station_operating_statistics.len() !=
-        simulation.scenario_statistics.len() * station_ids.len()
+    if simulation.station_operating_statistics.len()
+        != simulation.scenario_statistics.len() * station_ids.len()
         || simulation.scenario_statistics.len() != station_ids.len() + 1
         || simulation.station_operating_statistics.iter().any(|row| {
             row.busy_fraction.sample_count != simulation.replication_count
@@ -429,7 +520,10 @@ fn validate_inputs(simulation: &SimulationReport, economics: &EconomicCatalog) -
             scenario.scenario_id == expected_scenario
                 && scenario.intervention_station_id.as_deref() == Some(profile.station_id.as_str())
         }) {
-            return Err(format!("simulation_missing_station_intervention_{}", profile.station_id));
+            return Err(format!(
+                "simulation_missing_station_intervention_{}",
+                profile.station_id
+            ));
         }
     }
     Ok(())
@@ -450,9 +544,15 @@ fn calculate_candidate(
         * site.shifts_per_day as f64
         * site.paid_hours_per_shift;
     let annual_incremental_good_units = gain.mean * annual_hours;
-    let annual_ci_lower = gain.mean_confidence_95_lower.map(|value| value * annual_hours);
-    let annual_ci_upper = gain.mean_confidence_95_upper.map(|value| value * annual_hours);
-    let confidently_positive = gain.mean_confidence_95_lower.is_some_and(|value| value > 0.0);
+    let annual_ci_lower = gain
+        .mean_confidence_95_lower
+        .map(|value| value * annual_hours);
+    let annual_ci_upper = gain
+        .mean_confidence_95_upper
+        .map(|value| value * annual_hours);
+    let confidently_positive = gain
+        .mean_confidence_95_lower
+        .is_some_and(|value| value > 0.0);
     let capex_local = profile.capex_usd_per_added_server * site.local_currency_per_usd;
     let annual_labor_hours = profile.operators_per_added_server_per_shift * annual_hours;
     let annual_labor_cost = annual_labor_hours * site.fully_loaded_labor_cost_per_hour_local;
@@ -463,9 +563,10 @@ fn calculate_candidate(
     let annual_energy_cost = annual_energy_kwh * site.electricity_cost_per_kwh_local;
     let annual_emissions = annual_energy_kwh * site.grid_kgco2e_per_kwh;
     let annual_maintenance_cost = capex_local * profile.annual_maintenance_fraction_of_capex;
-    let annual_lease_cost = profile.incremental_floor_area_sqm
-        * site.building_lease_cost_per_sqm_year_local;
-    let annual_opex = annual_labor_cost + annual_energy_cost + annual_maintenance_cost + annual_lease_cost;
+    let annual_lease_cost =
+        profile.incremental_floor_area_sqm * site.building_lease_cost_per_sqm_year_local;
+    let annual_opex =
+        annual_labor_cost + annual_energy_cost + annual_maintenance_cost + annual_lease_cost;
     let capex_per_capacity_unit = if confidently_positive && annual_incremental_good_units > 0.0 {
         Some(capex_local / annual_incremental_good_units)
     } else {
@@ -506,7 +607,8 @@ fn calculate_candidate(
         capex_per_incremental_annual_good_unit_local: capex_per_capacity_unit,
         annual_opex_per_incremental_good_unit_local: opex_per_incremental_unit,
         cost_inputs_are_synthetic: true,
-        energy_duty_basis: "scenario_station_average_busy_fraction_proxied_as_exchangeable_added_server".into(),
+        energy_duty_basis:
+            "scenario_station_average_busy_fraction_proxied_as_exchangeable_added_server".into(),
         pareto_eligible_under_declared_model: confidently_positive,
         pareto_frontier_member: false,
         deployment_authorized: false,
@@ -515,13 +617,15 @@ fn calculate_candidate(
 }
 
 fn dominates(left: &EconomicCandidate, right: &EconomicCandidate) -> bool {
-    let no_worse = left.annual_incremental_good_units_mean >= right.annual_incremental_good_units_mean
+    let no_worse = left.annual_incremental_good_units_mean
+        >= right.annual_incremental_good_units_mean
         && left.incremental_capex_local <= right.incremental_capex_local
         && left.annual_incremental_opex_local <= right.annual_incremental_opex_local
         && left.annual_incremental_energy_kwh <= right.annual_incremental_energy_kwh
         && left.annual_incremental_emissions_kgco2e <= right.annual_incremental_emissions_kgco2e
         && left.incremental_floor_area_sqm <= right.incremental_floor_area_sqm;
-    let strictly_better = left.annual_incremental_good_units_mean > right.annual_incremental_good_units_mean
+    let strictly_better = left.annual_incremental_good_units_mean
+        > right.annual_incremental_good_units_mean
         || left.incremental_capex_local < right.incremental_capex_local
         || left.annual_incremental_opex_local < right.annual_incremental_opex_local
         || left.annual_incremental_energy_kwh < right.annual_incremental_energy_kwh
@@ -542,7 +646,14 @@ fn sha256(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
 
-    fn candidate(output: f64, capex: f64, opex: f64, energy: f64, emissions: f64, area: f64) -> EconomicCandidate {
+    fn candidate(
+        output: f64,
+        capex: f64,
+        opex: f64,
+        energy: f64,
+        emissions: f64,
+        area: f64,
+    ) -> EconomicCandidate {
         EconomicCandidate {
             site_id: "test".into(),
             country_or_region: "synthetic".into(),
@@ -570,8 +681,8 @@ mod tests {
             annual_incremental_maintenance_cost_local: 1.0,
             annual_incremental_floor_lease_cost_local: 1.0,
             annual_incremental_opex_local: opex,
-            capex_per_incremental_annual_good_unit_local: Some(capex/output),
-            annual_opex_per_incremental_good_unit_local: Some(opex/output),
+            capex_per_incremental_annual_good_unit_local: Some(capex / output),
+            annual_opex_per_incremental_good_unit_local: Some(opex / output),
             cost_inputs_are_synthetic: true,
             energy_duty_basis: "test".into(),
             pareto_eligible_under_declared_model: true,
@@ -633,7 +744,8 @@ mod tests {
             down_fraction: gain.clone(),
             accounted_fraction: gain.clone(),
         };
-        let row = calculate_candidate(&site, &profile, &gain, &operating, 2, "intervention").unwrap();
+        let row =
+            calculate_candidate(&site, &profile, &gain, &operating, 2, "intervention").unwrap();
         assert_eq!(row.annual_scheduled_operating_hours, 3200.0);
         assert_eq!(row.annual_incremental_labor_hours, 3200.0);
         assert_eq!(row.annual_incremental_labor_cost_local, 32000.0);
@@ -645,7 +757,10 @@ mod tests {
         assert_eq!(row.annual_incremental_floor_lease_cost_local, 8.0);
         assert_eq!(row.annual_incremental_opex_local, 51228.0);
         assert_eq!(row.annual_incremental_good_units_mean, 3200.0);
-        assert_eq!(row.capex_per_incremental_annual_good_unit_local, Some(0.0625));
+        assert_eq!(
+            row.capex_per_incremental_annual_good_unit_local,
+            Some(0.0625)
+        );
     }
 
     #[test]
@@ -708,7 +823,15 @@ mod tests {
             down_fraction: duty.clone(),
             accounted_fraction: duty,
         };
-        let row = calculate_candidate(&site, &profile, &uncertain_gain, &operating, 2, "intervention").unwrap();
+        let row = calculate_candidate(
+            &site,
+            &profile,
+            &uncertain_gain,
+            &operating,
+            2,
+            "intervention",
+        )
+        .unwrap();
         assert!(!row.output_gain_confidently_positive_under_simulation);
         assert!(!row.pareto_eligible_under_declared_model);
         assert!(row.capex_per_incremental_annual_good_unit_local.is_none());
