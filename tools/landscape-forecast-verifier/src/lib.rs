@@ -452,7 +452,11 @@ pub fn evaluate_fixture(
         let covered_count = rows.iter().filter(|row| row.5).count();
         let interval_coverage = covered_count as f64 / n;
         let mean_interval_width = rows.iter().map(|row| row.7).sum::<f64>() / n;
-        let independent_unit_count = rows.iter().map(|row| row.1.as_str()).collect::<BTreeSet<_>>().len();
+        let independent_unit_count = rows
+            .iter()
+            .map(|row| row.1.as_str())
+            .collect::<BTreeSet<_>>()
+            .len();
         let interval_level = key.interval_level_micros as f64 / 1_000_000.0;
 
         metric_summaries.push(MetricSummary {
@@ -596,8 +600,13 @@ mod tests {
                 .iter()
                 .all(|summary| summary.sample_count == 3 && summary.independent_unit_count == 3)
         );
-        assert!(report.scored_cases.iter().all(|case| case.evaluation_split == EvaluationSplit::HeldOut));
-        assert!(report.excluded_cases.iter().any(|case| case.case_id == "calibration-001" && case.reason == "not_held_out"));
+        assert!(report
+            .scored_cases
+            .iter()
+            .all(|case| case.evaluation_split == EvaluationSplit::HeldOut));
+        assert!(report.excluded_cases.iter().any(|case| {
+            case.case_id == "calibration-001" && case.reason == "not_held_out"
+        }));
     }
 
     #[test]
