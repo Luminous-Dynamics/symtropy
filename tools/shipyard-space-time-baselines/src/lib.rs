@@ -384,7 +384,7 @@ pub fn first_fit_bottom_left(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeSet;
+    use std::collections::BTreeSet as CellSet;
 
     fn yard() -> Rect {
         Rect {
@@ -416,8 +416,8 @@ mod tests {
     }
 
     fn rect_of(placement: &Placement) -> Rect {
-        match placement.footprint {
-            Footprint::AxisAlignedRect(rect) => rect,
+        match &placement.footprint {
+            Footprint::AxisAlignedRect(rect) => *rect,
             Footprint::Unsupported { .. } => panic!("baseline must emit supported rectangles"),
         }
     }
@@ -436,7 +436,7 @@ mod tests {
         // A small independent cell oracle checks that simultaneous placements share no cell.
         for (index, left) in scenario.placements.iter().enumerate() {
             let left_rect = rect_of(left);
-            let left_cells: BTreeSet<(i64, i64)> = (left_rect.min_x..left_rect.max_x)
+            let left_cells: CellSet<(i64, i64)> = (left_rect.min_x..left_rect.max_x)
                 .flat_map(|x| (left_rect.min_y..left_rect.max_y).map(move |y| (x, y)))
                 .collect();
             for right in scenario.placements.iter().skip(index + 1) {
@@ -444,7 +444,7 @@ mod tests {
                     continue;
                 }
                 let right_rect = rect_of(right);
-                let right_cells: BTreeSet<(i64, i64)> = (right_rect.min_x..right_rect.max_x)
+                let right_cells: CellSet<(i64, i64)> = (right_rect.min_x..right_rect.max_x)
                     .flat_map(|x| (right_rect.min_y..right_rect.max_y).map(move |y| (x, y)))
                     .collect();
                 assert!(left_cells.is_disjoint(&right_cells));
@@ -482,7 +482,7 @@ mod tests {
             first_fit_bottom_left(yard(), &[request("r-a", "block-a", 3, 3, 0, 5)], &zones)
                 .unwrap();
         assert!(matches!(
-            scenario.placements[0].footprint,
+            &scenario.placements[0].footprint,
             Footprint::AxisAlignedRect(Rect { min_x: 5, .. })
         ));
         assert!(verify(&scenario).is_feasible());
