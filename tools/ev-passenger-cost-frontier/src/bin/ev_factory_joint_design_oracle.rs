@@ -146,8 +146,8 @@ fn run() -> Result<(), String> {
     if args.len() != 2 {
         return Err("usage: ev_factory_joint_design_oracle <synthetic-design-fixture.json>".into());
     }
-    let input_bytes = fs::read(&args[1])
-        .map_err(|error| format!("cannot read joint-design fixture: {error}"))?;
+    let input_bytes =
+        fs::read(&args[1]).map_err(|error| format!("cannot read joint-design fixture: {error}"))?;
     let fixture: Fixture = serde_json::from_slice(&input_bytes)
         .map_err(|error| format!("joint-design fixture JSON/schema invalid: {error}"))?;
     validate_fixture(&fixture)?;
@@ -181,7 +181,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         fixture.constraints.active_power_kw_limit,
         fixture.constraints.floor_area_sqm_limit,
     ];
-    if limits.iter().any(|value| !value.is_finite() || *value < 0.0) {
+    if limits
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
         return Err("design_constraints_must_be_finite_and_nonnegative".into());
     }
 
@@ -243,9 +246,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
                 interaction.option_b_id.clone(),
             ))
         {
-            return Err(
-                "interaction_effect_unknown_noncanonical_duplicate_or_nonfinite".into(),
-            );
+            return Err("interaction_effect_unknown_noncanonical_duplicate_or_nonfinite".into());
         }
     }
     Ok(())
@@ -330,16 +331,39 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
     let search_comparisons = vec![
         comparison("no-change", no_change, exact_best, 0),
         comparison("best-single-intervention", best_single, exact_best, 0),
-        comparison("greedy-marginal-worst-case-gain", &greedy_design, exact_best, greedy_extensions),
+        comparison(
+            "greedy-marginal-worst-case-gain",
+            &greedy_design,
+            exact_best,
+            greedy_extensions,
+        ),
     ];
 
     let mut objectives = vec![
-        Objective { field: "worst_case_incremental_good_units_per_hour".into(), direction: "maximize".into() },
-        Objective { field: "capex".into(), direction: "minimize".into() },
-        Objective { field: "staffed_labor_hours_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "energy_kwh_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "emissions_kgco2e_per_shift".into(), direction: "minimize".into() },
-        Objective { field: "floor_area_sqm".into(), direction: "minimize".into() },
+        Objective {
+            field: "worst_case_incremental_good_units_per_hour".into(),
+            direction: "maximize".into(),
+        },
+        Objective {
+            field: "capex".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "staffed_labor_hours_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "energy_kwh_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "emissions_kgco2e_per_shift".into(),
+            direction: "minimize".into(),
+        },
+        Objective {
+            field: "floor_area_sqm".into(),
+            direction: "minimize".into(),
+        },
     ];
     objectives.sort_by(|a, b| a.field.cmp(&b.field));
 
@@ -360,7 +384,8 @@ fn evaluate(fixture: &Fixture, source_fixture_sha256: String) -> Result<Report, 
         feasible_design_count: feasible_count,
         infeasible_design_count: designs.len() - feasible_count,
         exact_robust_best_design_id: exact_best.design_id.clone(),
-        exact_robust_best_worst_case_incremental_good_units_per_hour: exact_best.worst_case_incremental_good_units_per_hour,
+        exact_robust_best_worst_case_incremental_good_units_per_hour: exact_best
+            .worst_case_incremental_good_units_per_hour,
         objective_definition: objectives,
         search_comparisons,
         pareto_frontier_design_ids: frontier_ids,
@@ -479,16 +504,28 @@ fn preference_cmp(a: &Design, b: &Design) -> Ordering {
         .total_cmp(&a.worst_case_incremental_good_units_per_hour)
         .then_with(|| a.capex.total_cmp(&b.capex))
         .then_with(|| a.energy_kwh_per_shift.total_cmp(&b.energy_kwh_per_shift))
-        .then_with(|| a.staffed_labor_hours_per_shift.total_cmp(&b.staffed_labor_hours_per_shift))
+        .then_with(|| {
+            a.staffed_labor_hours_per_shift
+                .total_cmp(&b.staffed_labor_hours_per_shift)
+        })
         .then_with(|| a.design_id.cmp(&b.design_id))
 }
 
-fn comparison(method: &str, selected: &Design, exact_best: &Design, evaluated: usize) -> SearchComparison {
+fn comparison(
+    method: &str,
+    selected: &Design,
+    exact_best: &Design,
+    evaluated: usize,
+) -> SearchComparison {
     SearchComparison {
         method: method.into(),
         selected_design_id: selected.design_id.clone(),
-        worst_case_incremental_good_units_per_hour: selected.worst_case_incremental_good_units_per_hour,
-        regret_vs_exact_oracle_good_units_per_hour: (exact_best.worst_case_incremental_good_units_per_hour - selected.worst_case_incremental_good_units_per_hour).max(0.0),
+        worst_case_incremental_good_units_per_hour: selected
+            .worst_case_incremental_good_units_per_hour,
+        regret_vs_exact_oracle_good_units_per_hour: (exact_best
+            .worst_case_incremental_good_units_per_hour
+            - selected.worst_case_incremental_good_units_per_hour)
+            .max(0.0),
         feasible: selected.feasible,
         candidate_extensions_evaluated: evaluated,
     }
@@ -503,16 +540,29 @@ fn greedy_search(
 ) -> Result<(Design, usize), String> {
     let mut selected = BTreeSet::<String>::new();
     let mut current = evaluate_design(
-        fixture, options, scenarios, option_effects, interactions, &selected,
+        fixture,
+        options,
+        scenarios,
+        option_effects,
+        interactions,
+        &selected,
     )?;
     let mut extensions_evaluated = 0usize;
     loop {
         let mut best_extension: Option<Design> = None;
-        for option in options.iter().filter(|option| !selected.contains(&option.option_id)) {
+        for option in options
+            .iter()
+            .filter(|option| !selected.contains(&option.option_id))
+        {
             let mut candidate_set = selected.clone();
             candidate_set.insert(option.option_id.clone());
             let candidate = evaluate_design(
-                fixture, options, scenarios, option_effects, interactions, &candidate_set,
+                fixture,
+                options,
+                scenarios,
+                option_effects,
+                interactions,
+                &candidate_set,
             )?;
             extensions_evaluated += 1;
             if !candidate.feasible
@@ -547,9 +597,10 @@ fn mark_pareto_frontier(designs: &mut [Design]) {
         .filter_map(|(index, design)| design.feasible.then_some(index))
         .collect();
     for &index in &feasible_indices {
-        let dominated = feasible_indices.iter().copied().any(|other| {
-            other != index && dominates(&designs[other], &designs[index])
-        });
+        let dominated = feasible_indices
+            .iter()
+            .copied()
+            .any(|other| other != index && dominates(&designs[other], &designs[index]));
         designs[index].pareto_frontier_member = !dominated;
     }
 }
@@ -596,8 +647,11 @@ mod tests {
             first.feasible_design_count + first.infeasible_design_count,
             32
         );
-        let ids: BTreeSet<String> =
-            first.designs.iter().map(|design| design.design_id.clone()).collect();
+        let ids: BTreeSet<String> = first
+            .designs
+            .iter()
+            .map(|design| design.design_id.clone())
+            .collect();
         assert_eq!(ids.len(), 32);
         assert!(!first.scenario_probabilities_used);
         assert!(!first.expected_value_reported);
@@ -630,7 +684,10 @@ mod tests {
         let report = evaluate(&fixture(), "fixture-digest".into()).expect("report");
         let exact = report.exact_robust_best_worst_case_incremental_good_units_per_hour;
         assert!(exact > 0.0);
-        assert_eq!(report.exact_robust_best_design_id, "add-body-prep+add-eol-test+improve-yield");
+        assert_eq!(
+            report.exact_robust_best_design_id,
+            "add-body-prep+add-eol-test+improve-yield"
+        );
         let best_single = report
             .search_comparisons
             .iter()
@@ -643,7 +700,10 @@ mod tests {
             .expect("greedy baseline");
         assert!(best_single.regret_vs_exact_oracle_good_units_per_hour > 0.0);
         assert!(greedy.regret_vs_exact_oracle_good_units_per_hour > 0.0);
-        assert!(greedy.worst_case_incremental_good_units_per_hour >= best_single.worst_case_incremental_good_units_per_hour);
+        assert!(
+            greedy.worst_case_incremental_good_units_per_hour
+                >= best_single.worst_case_incremental_good_units_per_hour
+        );
     }
 
     #[test]
@@ -652,16 +712,23 @@ mod tests {
         let options = fixture.options.clone();
         let mut lookup = BTreeMap::new();
         for effect in &fixture.option_effects {
-            lookup.insert((effect.scenario_id.clone(), effect.option_id.clone()), effect.incremental_good_units_per_hour);
+            lookup.insert(
+                (effect.scenario_id.clone(), effect.option_id.clone()),
+                effect.incremental_good_units_per_hour,
+            );
         }
         let mut interactions = BTreeMap::new();
         for row in &fixture.interaction_effects {
-            interactions.insert((row.scenario_id.clone(), row.option_a_id.clone(), row.option_b_id.clone()), row.incremental_good_units_per_hour);
+            interactions.insert(
+                (
+                    row.scenario_id.clone(),
+                    row.option_a_id.clone(),
+                    row.option_b_id.clone(),
+                ),
+                row.incremental_good_units_per_hour,
+            );
         }
-        let selected = BTreeSet::from([
-            "add-body-prep".to_string(),
-            "add-eol-test".to_string(),
-        ]);
+        let selected = BTreeSet::from(["add-body-prep".to_string(), "add-eol-test".to_string()]);
         let design = evaluate_design(
             &fixture,
             &options,
@@ -669,17 +736,34 @@ mod tests {
             &lookup,
             &interactions,
             &selected,
-        ).expect("combined design");
+        )
+        .expect("combined design");
         let body = lookup[&("body-prep-constrained".into(), "add-body-prep".into())];
         let eol = lookup[&("body-prep-constrained".into(), "add-eol-test".into())];
-        assert!((design.incremental_good_units_per_hour_by_scenario.iter().find(|row| row.scenario_id == "body-prep-constrained").unwrap().incremental_good_units_per_hour - (body + eol + 0.8)).abs() < EPSILON);
+        assert!(
+            (design
+                .incremental_good_units_per_hour_by_scenario
+                .iter()
+                .find(|row| row.scenario_id == "body-prep-constrained")
+                .unwrap()
+                .incremental_good_units_per_hour
+                - (body + eol + 0.8))
+                .abs()
+                < EPSILON
+        );
     }
 
     #[test]
     fn duplicate_main_effect_and_noncanonical_interaction_fail_closed() {
         let mut fixture = fixture();
-        fixture.option_effects.push(fixture.option_effects[0].clone());
-        assert!(validate_fixture(&fixture).expect_err("duplicate main effect rejected").contains("option_effect_unknown"));
+        fixture
+            .option_effects
+            .push(fixture.option_effects[0].clone());
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("duplicate main effect rejected")
+                .contains("option_effect_unknown")
+        );
         let mut fixture = fixture();
         fixture.interaction_effects.push(InteractionEffect {
             scenario_id: "body-prep-constrained".into(),
@@ -687,24 +771,38 @@ mod tests {
             option_b_id: "add-body-prep".into(),
             incremental_good_units_per_hour: 0.5,
         });
-        assert!(validate_fixture(&fixture).expect_err("noncanonical pair rejected").contains("interaction_effect_unknown"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("noncanonical pair rejected")
+                .contains("interaction_effect_unknown")
+        );
     }
 
     #[test]
     fn exact_search_size_limit_and_invalid_resources_fail_closed() {
         let mut fixture = fixture();
-        fixture.options = (0..21).map(|index| DesignOption {
-            option_id: format!("option-{index:02}"),
-            label: "synthetic".into(),
-            capex: 1.0,
-            staffed_labor_hours_per_shift: 0.0,
-            active_power_kw: 0.0,
-            energy_kwh_per_shift: 0.0,
-            floor_area_sqm: 0.0,
-        }).collect();
-        assert!(validate_fixture(&fixture).expect_err("exact-search cap enforced").contains("exact-enumeration"));
+        fixture.options = (0..21)
+            .map(|index| DesignOption {
+                option_id: format!("option-{index:02}"),
+                label: "synthetic".into(),
+                capex: 1.0,
+                staffed_labor_hours_per_shift: 0.0,
+                active_power_kw: 0.0,
+                energy_kwh_per_shift: 0.0,
+                floor_area_sqm: 0.0,
+            })
+            .collect();
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("exact-search cap enforced")
+                .contains("exact-enumeration")
+        );
         let mut fixture = fixture();
         fixture.options[0].capex = -1.0;
-        assert!(validate_fixture(&fixture).expect_err("negative resource rejected").contains("resource_inputs_invalid"));
+        assert!(
+            validate_fixture(&fixture)
+                .expect_err("negative resource rejected")
+                .contains("resource_inputs_invalid")
+        );
     }
 }
