@@ -53,7 +53,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             build-essential gfortran make curl tar bzip2 ca-certificates \
-            diffutils file binutils jq perl python3 coreutils git patch
+            diffutils file binutils jq perl python3 coreutils git patch unzip
 
       - name: Checkout exact Symtropy source head
         uses: actions/checkout@v4
@@ -135,7 +135,9 @@ jobs:
             make --version | head -n 1
             ld --version | head -n 1
             echo "=== package inventory ==="
-            dpkg-query -W -f='${binary:Package}=${Version}\n' | sort
+            dpkg-query -W -f='${binary:Package}=${Version}\n' | sort \
+              > "$RUNNER_TEMP/ccx-evidence/package-inventory.txt"
+            cat "$RUNNER_TEMP/ccx-evidence/package-inventory.txt"
             echo "=== build log ==="
           } > "$RUNNER_TEMP/ccx-evidence/build-identity.log"
           (
@@ -145,6 +147,8 @@ jobs:
           ) 2>&1 | tee "$RUNNER_TEMP/ccx-evidence/ccx-build.log"
           CCX="$WORK/out/ccx"
           test -x "$CCX"
+          spooles_sha="$(sha256sum "$WORK/deps/spooles.2.2.tgz" | cut -d ' ' -f 1)"
+          test "$spooles_sha" = "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"
           ldd "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt"
           sha256sum "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256"
           {
@@ -154,7 +158,7 @@ jobs:
             echo "builder_repository_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
             echo "ccx_source_url=http://www.dhondt.de/ccx_2.22.src.tar.bz2"
             echo "ccx_source_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
-            echo "spooles_sha256=a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"
+            echo "spooles_sha256=$spooles_sha"
             echo "with_pardiso=$WITH_PARDISO"
             echo "with_pastix=$WITH_PASTIX"
             echo "with_arpack=$WITH_ARPACK"
@@ -163,7 +167,7 @@ jobs:
             echo "fortran_compiler=$(gfortran --version | head -n 1)"
             echo "make_version=$(make --version | head -n 1)"
             echo "linker_version=$(ld --version | head -n 1)"
-            echo "installed_package_inventory_sha256=$(sha256sum "$RUNNER_TEMP/ccx-evidence/build-identity.log" | cut -d ' ' -f 1)"
+            echo "package_inventory_sha256=$(sha256sum "$RUNNER_TEMP/ccx-evidence/package-inventory.txt" | cut -d ' ' -f 1)"
             echo "ccx_executable_sha256=$(sha256sum "$CCX" | cut -d ' ' -f 1)"
           } > "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt"
           jq -n \
@@ -171,7 +175,7 @@ jobs:
             --arg image "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30" \
             --arg source_url "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
             --arg source_sha "$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)" \
-            --arg spooles_sha "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd" \
+            --arg spooles_sha "$spooles_sha" \
             --arg exe_sha "$(sha256sum "$CCX" | cut -d ' ' -f 1)" \
             --arg toolchain_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt" | cut -d ' ' -f 1)" \
             --arg build_log_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/ccx-build.log" | cut -d ' ' -f 1)" \
@@ -191,6 +195,8 @@ jobs:
             }' > "$RUNNER_TEMP/ccx-evidence/build-manifest.json"
           cp "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" \
             "$RUNNER_TEMP/ccx-evidence/CalculiX-PROVENANCE.md"
+          sha256sum "$RUNNER_TEMP/ccx-evidence/package-inventory.txt" \
+            > "$RUNNER_TEMP/ccx-evidence/package-inventory.sha256"
 
       - name: Run real CCX cases and independently audit U and RF outputs
         id: execute_cases
