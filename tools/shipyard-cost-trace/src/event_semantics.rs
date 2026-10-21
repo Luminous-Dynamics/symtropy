@@ -287,7 +287,7 @@ pub fn normalize_quantities(
             | QuantityRecordKind::Reversal { target_record_id } => Some(target_record_id.as_str()),
             QuantityRecordKind::Delta { .. } | QuantityRecordKind::CumulativeSnapshot { .. } => {
                 None
-            },
+            }
         };
         let Some(target_id) = target_id else {
             continue;
@@ -737,9 +737,11 @@ mod tests {
             ),
         ];
         let errors = normalize_quantities(&records, cutoff()).unwrap_err();
-        assert!(errors
-            .iter()
-            .any(|error| error.contains("multiple applicable corrections/reversals")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("multiple applicable corrections/reversals"))
+        );
     }
 
     #[test]
@@ -768,13 +770,27 @@ mod tests {
         );
 
         let duplicate_sequence = vec![
-            record("first", 1, 100, 100, QuantityRecordKind::Delta { quantity: 1.0 }),
-            record("second", 1, 200, 200, QuantityRecordKind::Delta { quantity: 2.0 }),
+            record(
+                "first",
+                1,
+                100,
+                100,
+                QuantityRecordKind::Delta { quantity: 1.0 },
+            ),
+            record(
+                "second",
+                1,
+                200,
+                200,
+                QuantityRecordKind::Delta { quantity: 2.0 },
+            ),
         ];
-        assert!(normalize_quantities(&duplicate_sequence, cutoff())
-            .unwrap_err()
-            .iter()
-            .any(|error| error.contains("duplicate sequence")));
+        assert!(
+            normalize_quantities(&duplicate_sequence, cutoff())
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("duplicate sequence"))
+        );
     }
 
     #[test]
