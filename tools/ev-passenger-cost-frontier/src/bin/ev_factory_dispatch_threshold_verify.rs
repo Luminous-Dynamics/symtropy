@@ -345,7 +345,7 @@ mod tests {
         let values: Vec<f64> = (1..=20).map(|value| value as f64).collect();
         let (mean, sd) = moments(&values).expect("moments");
         assert!(approximately_equal(mean, 10.5));
-        assert!(approximately_equal(sd, (35.0_f64).sqrt() * 20.0_f64.sqrt() / (20.0 - 1.0).sqrt()));
+        assert!(approximately_equal(sd, 35.0_f64.sqrt()));
         assert!(moments(&values[..19]).is_err());
     }
 
