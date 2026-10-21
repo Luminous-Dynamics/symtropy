@@ -129,17 +129,23 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 fn field_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{key}_missing_or_not_string"))
 }
 
 fn field_bool(value: &Value, key: &str) -> Result<bool, String> {
-    value.get(key).and_then(Value::as_bool)
+    value
+        .get(key)
+        .and_then(Value::as_bool)
         .ok_or_else(|| format!("{key}_missing_or_not_bool"))
 }
 
 fn field_u64(value: &Value, key: &str) -> Result<u64, String> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{key}_missing_or_not_u64"))
 }
 
@@ -148,7 +154,9 @@ fn field_usize(value: &Value, key: &str) -> Result<usize, String> {
 }
 
 fn field_f64(value: &Value, key: &str) -> Result<f64, String> {
-    let result = value.get(key).and_then(Value::as_f64)
+    let result = value
+        .get(key)
+        .and_then(Value::as_f64)
         .ok_or_else(|| format!("{key}_missing_or_not_number"))?;
     if !result.is_finite() {
         return Err(format!("{key}_must_be_finite"));
@@ -157,14 +165,25 @@ fn field_f64(value: &Value, key: &str) -> Result<f64, String> {
 }
 
 fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
-    value.get(key).and_then(Value::as_array).map(Vec::as_slice)
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
         .ok_or_else(|| format!("{key}_missing_or_not_array"))
 }
 
-fn get_distribution(value: &Value, key: &str, expected_count: Option<usize>) -> Result<DistributionSummary, String> {
+fn get_distribution(
+    value: &Value,
+    key: &str,
+    expected_count: Option<usize>,
+) -> Result<DistributionSummary, String> {
     let distribution: DistributionSummary = serde_json::from_value(
-        value.get(key).cloned().ok_or_else(|| format!("{key}_missing"))?
-    ).map_err(|error| format!("{key}_invalid_distribution:{error}"))?;
+        value
+            .get(key)
+            .cloned()
+            .ok_or_else(|| format!("{key}_missing"))?,
+    )
+    .map_err(|error| format!("{key}_invalid_distribution:{error}"))?;
     if distribution.sample_count == 0
         || !distribution.mean.is_finite()
         || distribution.minimum > distribution.maximum
@@ -185,8 +204,12 @@ fn summarize(values: &[f64]) -> Result<DistributionSummary, String> {
     let mean = sorted.iter().sum::<f64>() / count as f64;
     let sd = if count > 1 {
         Some(
-            (sorted.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
-                / (count - 1) as f64).sqrt()
+            (sorted
+                .iter()
+                .map(|value| (value - mean).powi(2))
+                .sum::<f64>()
+                / (count - 1) as f64)
+                .sqrt(),
         )
     } else {
         None
@@ -348,15 +371,18 @@ fn not_estimable_metric(
         source_fields: required_fields,
         evidence_class: "not_available".into(),
         unavailable_reason: Some(reason.into()),
-        interpretation: "A null/not-estimable result is intentional; it is not zero and must not be imputed.".into(),
+        interpretation:
+            "A null/not-estimable result is intentional; it is not zero and must not be imputed."
+                .into(),
     }
 }
 
 fn baseline_scenario<'a>(report: &'a Value) -> Result<&'a Value, String> {
     let scenarios = array(report, "scenarios")?;
-    scenarios.iter().find(|scenario| {
-        scenario.get("scenario_id").and_then(Value::as_str) == Some("baseline")
-    }).ok_or_else(|| "primary_seed_baseline_scenario_missing".to_string())
+    scenarios
+        .iter()
+        .find(|scenario| scenario.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+        .ok_or_else(|| "primary_seed_baseline_scenario_missing".to_string())
 }
 
 fn build_report(
@@ -391,12 +417,23 @@ fn build_report(
         return Err("simulation_catalog_dispatch_policy_mismatch".into());
     }
     let seeds: Vec<u64> = array(simulation, "replication_seeds")?
-        .iter().map(|value| value.as_u64().ok_or_else(|| "replication_seed_not_u64".to_string()))
+        .iter()
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "replication_seed_not_u64".to_string())
+        })
         .collect::<Result<_, _>>()?;
     let catalog_seeds: Vec<u64> = array(catalog, "replication_seeds")?
-        .iter().map(|value| value.as_u64().ok_or_else(|| "catalog_seed_not_u64".to_string()))
+        .iter()
+        .map(|value| {
+            value
+                .as_u64()
+                .ok_or_else(|| "catalog_seed_not_u64".to_string())
+        })
         .collect::<Result<_, _>>()?;
-    if seeds != catalog_seeds || seeds.is_empty()
+    if seeds != catalog_seeds
+        || seeds.is_empty()
         || field_usize(simulation, "replication_count")? != seeds.len()
     {
         return Err("catalog_simulation_seed_order_or_count_mismatch".into());
@@ -417,17 +454,27 @@ fn build_report(
     }
     let throughput = summarize(&baseline_outcomes)?;
     let productive_seconds_per_year = field_u64(simulation, "productive_seconds_per_year")?;
-    let annualized: Vec<f64> = baseline_outcomes.iter()
+    let annualized: Vec<f64> = baseline_outcomes
+        .iter()
         .map(|rate| rate * productive_seconds_per_year as f64 / 3600.0)
         .collect();
     let annualized_summary = summarize(&annualized)?;
 
     let scenario_statistics = array(simulation, "scenario_statistics")?;
-    let baseline_stats = scenario_statistics.iter().find(|item| {
-        item.get("scenario_id").and_then(Value::as_str) == Some("baseline")
-    }).ok_or_else(|| "baseline_scenario_statistics_missing".to_string())?;
-    let scrap_distribution = get_distribution(baseline_stats, "scrapped_jobs_total", Some(replication_count))?;
-    let rework_distribution = get_distribution(baseline_stats, "measured_rework_attempts", Some(replication_count))?;
+    let baseline_stats = scenario_statistics
+        .iter()
+        .find(|item| item.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+        .ok_or_else(|| "baseline_scenario_statistics_missing".to_string())?;
+    let scrap_distribution = get_distribution(
+        baseline_stats,
+        "scrapped_jobs_total",
+        Some(replication_count),
+    )?;
+    let rework_distribution = get_distribution(
+        baseline_stats,
+        "measured_rework_attempts",
+        Some(replication_count),
+    )?;
 
     let mut metrics = Vec::new();
     metrics.push(computed_distribution_metric(
@@ -498,14 +545,36 @@ fn build_report(
     for station in station_rows {
         let station_id = field_str(station, "station_id")?;
         for (suffix, name, field, definition) in [
-            ("busy_fraction", "Busy fraction of server-seconds", "busy_fraction", "Busy server-seconds / total measured server-seconds"),
-            ("blocked_fraction", "Blocked fraction of server-seconds", "blocked_fraction", "Server-seconds waiting to transfer completed output / total measured server-seconds"),
-            ("starved_fraction", "Starved fraction of server-seconds", "starved_fraction", "Idle server-seconds while the immediately upstream input queue is empty / total measured server-seconds"),
-            ("down_fraction", "Down fraction of server-seconds", "down_fraction", "Server-seconds in the simulator's down state / total measured server-seconds"),
+            (
+                "busy_fraction",
+                "Busy fraction of server-seconds",
+                "busy_fraction",
+                "Busy server-seconds / total measured server-seconds",
+            ),
+            (
+                "blocked_fraction",
+                "Blocked fraction of server-seconds",
+                "blocked_fraction",
+                "Server-seconds waiting to transfer completed output / total measured server-seconds",
+            ),
+            (
+                "starved_fraction",
+                "Starved fraction of server-seconds",
+                "starved_fraction",
+                "Idle server-seconds while the immediately upstream input queue is empty / total measured server-seconds",
+            ),
+            (
+                "down_fraction",
+                "Down fraction of server-seconds",
+                "down_fraction",
+                "Server-seconds in the simulator's down state / total measured server-seconds",
+            ),
         ] {
             let val = field_f64(station, field)?;
             if !(0.0..=1.0).contains(&val) {
-                return Err(format!("station_{station_id}_{field}_outside_fraction_range"));
+                return Err(format!(
+                    "station_{station_id}_{field}_outside_fraction_range"
+                ));
             }
             metrics.push(computed_scalar_metric(
                 &format!("station.{station_id}.{suffix}"),
@@ -525,7 +594,10 @@ fn build_report(
         }
     }
 
-    for key in ["supplier_backlog_average_units", "source_buffer_average_units"] {
+    for key in [
+        "supplier_backlog_average_units",
+        "source_buffer_average_units",
+    ] {
         let value = field_f64(baseline, key)?;
         if value < 0.0 {
             return Err(format!("{key}_must_be_nonnegative"));
@@ -570,14 +642,33 @@ fn build_report(
         ));
     }
 
-    for station in array(simulation, "station_sequence_statistics")?.iter().filter(|item| {
-        item.get("scenario_id").and_then(Value::as_str) == Some("baseline")
-    }) {
+    for station in array(simulation, "station_sequence_statistics")?
+        .iter()
+        .filter(|item| item.get("scenario_id").and_then(Value::as_str) == Some("baseline"))
+    {
         let station_id = field_str(station, "station_id")?;
         for (suffix, name, field, unit, formula) in [
-            ("changeovers_started", "Changeovers started", "changeovers_started", "changeovers", "Count of starts that incur a variant changeover per replication."),
-            ("output_transfers", "Output transfers", "output_transfers", "transfers", "Count of accepted output transfers during the measured window per replication."),
-            ("out_of_order_output_transfers", "Out-of-order output transfers (job-ID proxy)", "out_of_order_output_transfers", "transfers", "Count of transfers where job ID is below the station's prior transfer high-water ID."),
+            (
+                "changeovers_started",
+                "Changeovers started",
+                "changeovers_started",
+                "changeovers",
+                "Count of starts that incur a variant changeover per replication.",
+            ),
+            (
+                "output_transfers",
+                "Output transfers",
+                "output_transfers",
+                "transfers",
+                "Count of accepted output transfers during the measured window per replication.",
+            ),
+            (
+                "out_of_order_output_transfers",
+                "Out-of-order output transfers (job-ID proxy)",
+                "out_of_order_output_transfers",
+                "transfers",
+                "Count of transfers where job ID is below the station's prior transfer high-water ID.",
+            ),
         ] {
             let summary = get_distribution(station, field, Some(replication_count))?;
             metrics.push(computed_distribution_metric(
@@ -804,8 +895,14 @@ mod tests {
     #[test]
     fn unavailable_oee_and_energy_are_null_not_zero() {
         let metrics = not_estimable_metrics();
-        let oee = metrics.iter().find(|metric| metric.kpi_id == "overall_equipment_effectiveness").unwrap();
-        let energy = metrics.iter().find(|metric| metric.kpi_id == "energy_per_good_unit").unwrap();
+        let oee = metrics
+            .iter()
+            .find(|metric| metric.kpi_id == "overall_equipment_effectiveness")
+            .unwrap();
+        let energy = metrics
+            .iter()
+            .find(|metric| metric.kpi_id == "energy_per_good_unit")
+            .unwrap();
         assert_eq!(oee.computability, Computability::NotEstimable);
         assert_eq!(oee.value, None);
         assert_eq!(oee.distribution, None);
