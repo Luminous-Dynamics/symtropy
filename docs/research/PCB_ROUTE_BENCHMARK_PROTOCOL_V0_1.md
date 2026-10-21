@@ -216,3 +216,14 @@ The board—not each random attempt—is the generalization unit. For multi-atte
 The Rust CLI now also exposes `verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT`. It validates the report against the pinned dataset manifest, then canonicalizes every completed attempt's output-board and raw DRC-report path under the declared run root, reads those bytes, computes SHA-256, and checks them against the hashes in the run report. It rejects missing paths/digests for completed attempts, path traversal, root-escaping symlinks, duplicate relative paths/canonical files, and digest mismatches. Its receipt binds the report/manifest hashes and exact evaluator commit.
 
 That closes an integrity gap between "the normalized JSON says a board was clean" and "the native output board and DRC report that the claim refers to are actually present and hash-matched." It **still does not prove the normalized metric fields were extracted faithfully from the raw DRC JSON**; the eventual PCBWorld adapter must parse the pinned engine report, cross-check counts/types and preserve the raw DRC output and invocation metadata. The synthetic tests exercise filesystem/digest contract only, never an actual router.
+
+
+## Outcome and observability are separate axes
+
+The CSV adapter now reports both `success_rate_over_all_rows` / `clean_pass_rate_over_all_rows` and `success_rate_over_metric_reporting_rows` / `clean_pass_rate_over_metric_reporting_rows`, together with their respective observed-row counts. This is intentional:
+
+- **Outcome over all attempts** keeps crashes, timeouts, skipped runs and missing measurements visible in the attempt denominator. It is the conservative operational-yield view.
+- **Outcome among metric-reporting rows** describes only records that actually expose the metric. It must always be accompanied by measurement coverage, because it can look artificially strong if failed attempts fail to emit metrics.
+- Never overwrite missing values with a synthetic false metric. Preserve the raw status/metric absence, show both views and publish the full denominator.
+
+The new regression fixture includes an explicit crashed attempt with no `success` or `clean_pass` report: the conservative rate changes from 2/3 to 2/4, while the observed-metric rate remains 2/3 and reported-metric coverage falls to 3/4. This distinguishes algorithm quality from the benchmark adapter's observability rather than conflating them.
