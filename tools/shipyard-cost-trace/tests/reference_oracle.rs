@@ -266,6 +266,31 @@ fn reference_evaluate(events: &[LedgerEvent]) -> AuditReport {
 }
 
 #[test]
+fn frozen_corpus_shape_and_event_identity_are_pinned() {
+    let events = frozen_fixture();
+    let mut event_ids: Vec<&str> = events.iter().map(|event| event.event_id.as_str()).collect();
+    event_ids.sort_unstable();
+    event_ids.dedup();
+
+    assert_eq!(events.len(), 16);
+    assert_eq!(event_ids.len(), 16);
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event.kind, EventKind::Quantity(_)))
+            .count(),
+        12
+    );
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event.kind, EventKind::FinancialActual(_)))
+            .count(),
+        4
+    );
+}
+
+#[test]
 fn independent_reference_evaluator_matches_frozen_mixed_shipyard_ledger() {
     let events = frozen_fixture();
     let expected = reference_evaluate(&events);
