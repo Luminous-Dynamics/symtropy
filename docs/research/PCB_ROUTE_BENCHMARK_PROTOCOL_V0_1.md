@@ -122,3 +122,49 @@ Example:
       verify-dataset pinned-dataset-manifest.json /path/to/immutable/PCBWorld/data
 
 This is a separate gate from report validation: a report's digest must match the input board digest pinned by the manifest, and the intake receipt must show that the manifest digest corresponds to the actual bytes in the dataset tree. Keep the original dataset read-only throughout runs. The unit test writes temporary synthetic files to test digest tampering and path escape; those test bytes are not PCB layouts and are not benchmark evidence.
+
+
+## Deterministic manifest builder from a pinned PCBWorld split
+
+The intake path now has a first-party Rust manifest builder rather than requiring manual SHA entry. Prepare an intake specification whose board list is the *declared evaluation subset*—for example, 30 licensed boards stratified across the upstream easy/medium/hard test lists. Each row must state board ID, upstream difficulty, required-net count, verified license and an HTTPS source URL. The specification also declares the exact PCBWorld source commit, split name, benchmark/dataset/split IDs and release version.
+
+Example intake-spec shape:
+
+    {
+      "schema": "pcb-route-intake-spec-v0.1",
+      "benchmark_id": "pcbworld-bench",
+      "benchmark_version": "v1.1.1",
+      "dataset_id": "pcbench-d3",
+      "split_id": "d3-test-pilot30-v0.1",
+      "source_url": "https://github.com/LGAI-Research/PCBWorld",
+      "source_split_commit_sha": "PINNED_40_HEX_UPSTREAM_COMMIT",
+      "split_name": "test",
+      "boards": [
+        {
+          "board_id": "EXACT_ID_FROM_D3_JSON",
+          "difficulty": "easy",
+          "required_nets": 4,
+          "license": "VERIFIED_LICENSE_IDENTIFIER",
+          "source_url": "HTTPS_URL_TO_ORIGINAL_BOARD_SOURCE"
+        }
+      ]
+    }
+
+Build the manifest from the exact upstream `d3.json`, intake-spec bytes, and local processed D3 root:
+
+    export PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)"
+    cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+      build-manifest /pinned/PCBWorld/configs/datasets/d3.json \
+      intake-spec.json /data/pcbworld/pcbench/exacad_sorted \
+      > pinned-dataset-manifest.json
+
+Then verify the actual file bytes before a run:
+
+    cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+      verify-dataset pinned-dataset-manifest.json \
+      /data/pcbworld/pcbench/exacad_sorted \
+      > dataset-intake-receipt.json
+
+The builder proves each selected ID belongs to the explicitly named difficulty/split array in the supplied D3 configuration, derives the relative board path from D3's `board_filename`, hashes the board bytes it actually reads, and binds hashes of the raw split-config and intake-spec bytes plus the source Git commit into the resulting manifest. It rejects absent boards, unknown license placeholders, non-HTTPS provenance, unsafe paths, duplicate IDs and IDs outside the pinned split. Keep `d3.json`, PCBWorld commit, engine submodule, intake spec, manifest and intake receipt as the experiment's immutable inputs.
+
+**Do not treat the two identical D3 train/test lists as a train/test holdout.** An explicitly selected 30-board pilot is a pipeline qualification subset; freeze the selection before routing methods are compared, then run the entire declared split for the final score. A future source-family holdout should be a separate disclosed split, not inferred from D3's mirrored keys.
