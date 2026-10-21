@@ -51,6 +51,38 @@ fn run() -> Result<String, String> {
         .map(serialize_case)
         .collect::<Vec<_>>()
         .join(",");
+    let height_schedule_json = report
+        .case_definition
+        .apex_height_schedule_m
+        .iter()
+        .map(|height| number(*height))
+        .collect::<Vec<_>>()
+        .join(",");
+    let case_definition = format!(
+        concat!(
+            "{{",
+            "\\"model\\":{},",
+            "\\"base_span_m\\":{},",
+            "\\"apex_x_m\\":{},",
+            "\\"axial_stiffness_a_n_per_m\\":{},",
+            "\\"axial_stiffness_b_n_per_m\\":{},",
+            "\\"youngs_modulus_pa\\":{},",
+            "\\"target_displacement_m\\":[{},{}],",
+            "\\"vertical_rhs_perturbation_relative_amplitude\\":{},",
+            "\\"apex_height_schedule_m\\":[{}]",
+            "}}"
+        ),
+        quote(&report.case_definition.model),
+        number(report.case_definition.base_span_m),
+        number(report.case_definition.apex_x_m),
+        number(report.case_definition.axial_stiffness_a_n_per_m),
+        number(report.case_definition.axial_stiffness_b_n_per_m),
+        number(report.case_definition.youngs_modulus_pa),
+        number(report.case_definition.target_displacement_m[0]),
+        number(report.case_definition.target_displacement_m[1]),
+        number(report.case_definition.vertical_rhs_perturbation_relative_amplitude),
+        height_schedule_json
+    );
     let source_commit = quote(&source_commit);
     let benchmark_id = quote(&report.benchmark_id);
     let claim_ceiling = quote(&report.claim_ceiling);
@@ -60,6 +92,7 @@ fn run() -> Result<String, String> {
             "{{",
             "\"schema_version\":\"planar-truss-conditioning-receipt-v0.1\",",
             "\"benchmark_id\":{},",
+            "\"case_definition\":{},",
             "\"source_commit\":{},",
             "\"evidence_class\":\"software-test-run\",",
             "\"result\":\"pass\",",
@@ -73,6 +106,7 @@ fn run() -> Result<String, String> {
             "}}"
         ),
         benchmark_id,
+        case_definition,
         source_commit,
         number(report.machine_epsilon),
         number(report.condition_reject_threshold),
