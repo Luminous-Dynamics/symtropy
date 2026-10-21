@@ -64,6 +64,9 @@ pub struct AlternativeCandidate {
     pub revision_sha256: Option<String>,
     /// SHA-256 digest identifying the independent verifier receipt, if available.
     pub verifier_receipt_sha256: Option<String>,
+    /// Exact candidate revision SHA-256 that the receipt claims to have verified.
+    /// This is a caller-provided receipt field, not independently authenticated here.
+    pub verified_revision_sha256: Option<String>,
     /// Result from the independent hard-constraint verifier.
     pub verification: VerificationStatus,
     /// Objective observations; all rankable candidates must share the same schema.
@@ -92,6 +95,8 @@ pub struct CandidateResult {
     pub revision_sha256: Option<String>,
     /// Independent verifier receipt digest passed through for traceability.
     pub verifier_receipt_sha256: Option<String>,
+    /// Candidate revision digest claimed by the verifier receipt.
+    pub verified_revision_sha256: Option<String>,
     /// Ranking or exclusion result; never a substitute for the independent verifier.
     pub disposition: CandidateDisposition,
 }
@@ -179,6 +184,15 @@ fn objective_exclusion_reasons(candidate: &AlternativeCandidate) -> Vec<String> 
     }
     if !valid_sha256(candidate.verifier_receipt_sha256.as_deref()) {
         reasons.push("missing or malformed independent verifier receipt SHA-256 digest".to_owned());
+    }
+    if !valid_sha256(candidate.verified_revision_sha256.as_deref()) {
+        reasons.push(
+            "missing or malformed verifier-receipt candidate revision SHA-256 digest".to_owned(),
+        );
+    } else if candidate.verified_revision_sha256 != candidate.revision_sha256 {
+        reasons.push(
+            "independent verifier receipt is bound to a different candidate revision".to_owned(),
+        );
     }
     if candidate.objectives.is_empty() {
         reasons.push("no objective observations supplied".to_owned());
@@ -291,12 +305,14 @@ pub fn compute_pareto_frontier(
                 candidate_id: candidate.candidate_id.clone(),
                 revision_sha256: candidate.revision_sha256.clone(),
                 verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                verified_revision_sha256: candidate.verified_revision_sha256.clone(),
                 disposition: CandidateDisposition::ExcludedBlocked,
             }),
             VerificationStatus::Indeterminate => results.push(CandidateResult {
                 candidate_id: candidate.candidate_id.clone(),
                 revision_sha256: candidate.revision_sha256.clone(),
                 verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                verified_revision_sha256: candidate.verified_revision_sha256.clone(),
                 disposition: CandidateDisposition::ExcludedIndeterminate,
             }),
             VerificationStatus::Verified => {
@@ -307,6 +323,7 @@ pub fn compute_pareto_frontier(
                         candidate_id: candidate.candidate_id.clone(),
                         revision_sha256: candidate.revision_sha256.clone(),
                         verifier_receipt_sha256: candidate.verifier_receipt_sha256.clone(),
+                        verified_revision_sha256: candidate.verified_revision_sha256.clone(),
                         disposition: CandidateDisposition::ExcludedUnrankable(reasons),
                     });
                     continue;
@@ -360,6 +377,7 @@ pub fn compute_pareto_frontier(
             candidate_id: candidate.candidate.candidate_id.clone(),
             revision_sha256: candidate.candidate.revision_sha256.clone(),
             verifier_receipt_sha256: candidate.candidate.verifier_receipt_sha256.clone(),
+            verified_revision_sha256: candidate.candidate.verified_revision_sha256.clone(),
             disposition,
         });
     }
@@ -428,6 +446,7 @@ mod tests {
             candidate_id: id.to_owned(),
             revision_sha256: Some("a".repeat(64)),
             verifier_receipt_sha256: Some("b".repeat(64)),
+            verified_revision_sha256: Some("a".repeat(64)),
             verification,
             objectives,
         }
@@ -609,6 +628,45 @@ mod tests {
             compute_pareto_frontier(&[a, b]),
             Err(FrontierError::IncompatibleObjectiveSchemas { .. })
         ));
+    }
+
+    #[test]
+    fn stale_verifier_receipt_cannot_rank_an_edited_revision() {
+        let mut stale = candidate(
+            "edited",
+            VerificationStatus::Verified,
+            two_objectives(1.0, 100.0),
+        );
+        stale.revision_sha256 = Some("c".repeat(64));
+        // The receipt still refers to the prior candidate revision.
+        stale.verified_revision_sha256 = Some("a".repeat(64));
+        let current = candidate(
+            "current",
+            VerificationStatus::Verified,
+            two_objectives(10.0, 70.0),
+        );
+        let report = compute_pareto_frontier(&[stale, current])
+            .expect("stale binding is an explicit exclusion, not a panic");
+        assert_eq!(report.frontier_ids, vec!["current"]);
+        assert!(!report.ranking_complete);
+        assert!(matches!(
+            disposition(&report, "edited"),
+            CandidateDisposition::ExcludedUnrankable(reasons)
+                if reasons.iter().any(|reason| reason.contains("different candidate revision"))
+        ));
+        let edited = report
+            .candidates
+            .iter()
+            .find(|result| result.candidate_id == "edited")
+            .expect("excluded candidate remains in the report");
+        assert_eq!(
+            edited.revision_sha256.as_deref(),
+            Some("c".repeat(64).as_str())
+        );
+        assert_eq!(
+            edited.verified_revision_sha256.as_deref(),
+            Some("a".repeat(64).as_str())
+        );
     }
 
     #[test]
