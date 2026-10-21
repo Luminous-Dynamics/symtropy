@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn RF_only_output_is_not_accepted_as_reaction_data() {
+    fn rf_only_output_is_not_accepted_as_reaction_data() {
         let rf_only =
             " forces (fx,fy,fz) for set FIXED and time 1.0\n 1 0.0 0.0 0.0\n 2 0.0 0.0 0.0\n";
         assert!(
