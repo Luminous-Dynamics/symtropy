@@ -350,7 +350,7 @@ enum PolicyKind {
 }
 
 impl PolicyKind {
-    const ALL: [Self; 8] = [
+    const ALL: [Self; 9] = [
         Self::RoundRobin,
         Self::UniformRandom,
         Self::LeastObserved,
