@@ -293,8 +293,7 @@ fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
     let scale = matrix
         .iter()
         .flatten()
-        .map(f64::abs)
-        .fold(0.0_f64, f64::max);
+        .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
     if !scale.is_finite() || scale <= 0.0 {
         return Err("eigenproblem matrix has no finite positive scale".to_string());
     }
