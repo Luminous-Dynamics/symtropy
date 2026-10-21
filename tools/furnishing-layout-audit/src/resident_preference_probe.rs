@@ -732,10 +732,13 @@ mod tests {
     #[test]
     fn question_frontier_preserves_tradeoffs_without_weighted_scalarization() {
         let report = compute_resident_preference_probe(&request()).expect("valid probe");
-        assert!(report.frontier_question_ids.contains(&"ask-extremes".to_owned()));
-        assert!(!report.frontier_question_ids.is_empty());
-        // Cost/effort dimensions remain distinct from regret reduction.
+        // The two lower-effort questions split the two models just as effectively
+        // as the extremes question and should dominate that more costly question.
+        assert!(!report.frontier_question_ids.contains(&"ask-extremes".to_owned()));
+        assert!(report.frontier_question_ids.contains(&"ask-balanced-cost".to_owned()));
+        assert!(report.frontier_question_ids.contains(&"ask-balanced-support".to_owned()));
         let extreme = report.questions.iter().find(|q| q.question_id == "ask-extremes").unwrap();
+        assert_eq!(extreme.worst_case_regret_reduction_units, 40_000_000);
         assert_eq!(extreme.query_cost_units, 2);
         assert_eq!(extreme.query_duration_units, 8);
     }
