@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
     collections::{BTreeSet, BinaryHeap, VecDeque},
@@ -93,6 +94,7 @@ enum GateStatus {
 struct Report {
     schema_version: String,
     benchmark_id: String,
+    source_catalog_sha256: String,
     seed: u64,
     replication_count: usize,
     replication_seeds: Vec<u64>,
@@ -409,13 +411,14 @@ fn main() {
         eprintln!("invalid factory simulation catalog: {error}");
         process::exit(2);
     }
-    let report = match evaluate_catalog(&catalog) {
+    let mut report = match evaluate_catalog(&catalog) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("factory simulation failed: {error}");
             process::exit(2);
         }
     };
+    report.source_catalog_sha256 = format!("{:x}", Sha256::digest(input.as_bytes()));
     match serde_json::to_string_pretty(&report) {
         Ok(value) => println!("{value}"),
         Err(error) => {
@@ -794,6 +797,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
     Ok(Report {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
+        source_catalog_sha256: String::new(),
         seed: catalog.seed,
         replication_count: 1,
         replication_seeds: vec![catalog.seed],
