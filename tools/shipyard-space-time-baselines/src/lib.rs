@@ -623,19 +623,6 @@ fn exact_tiny_search_recursive(
     ExactSearchProgress::ProvenInfeasible
 }
 
-fn exact_tiny_search(
-    yard_bounds: Rect,
-    requests: &[PlacementRequest],
-    exclusion_zones: &[ExclusionZone],
-) -> Option<ExactSearchOutcome> {
-    exact_tiny_search_with_budget(
-        yard_bounds,
-        requests,
-        exclusion_zones,
-        EXACT_TINY_NODE_BUDGET,
-    )
-}
-
 fn exact_tiny_search_with_budget(
     yard_bounds: Rect,
     requests: &[PlacementRequest],
@@ -699,6 +686,20 @@ pub fn first_fit_portfolio(
     requests: &[PlacementRequest],
     exclusion_zones: &[ExclusionZone],
 ) -> Result<PortfolioResult, Vec<BaselineError>> {
+    first_fit_portfolio_with_budget(
+        yard_bounds,
+        requests,
+        exclusion_zones,
+        EXACT_TINY_NODE_BUDGET,
+    )
+}
+
+fn first_fit_portfolio_with_budget(
+    yard_bounds: Rect,
+    requests: &[PlacementRequest],
+    exclusion_zones: &[ExclusionZone],
+    exact_node_budget: usize,
+) -> Result<PortfolioResult, Vec<BaselineError>> {
     match first_fit_heuristic_portfolio(yard_bounds, requests, exclusion_zones) {
         Ok(result) => Ok(result),
         Err(errors)
@@ -706,7 +707,12 @@ pub fn first_fit_portfolio(
                 .first()
                 .is_some_and(|error| error.code == BaselineErrorCode::AllPoliciesFailed) =>
         {
-            match exact_tiny_search(yard_bounds, requests, exclusion_zones) {
+            match exact_tiny_search_with_budget(
+                yard_bounds,
+                requests,
+                exclusion_zones,
+                exact_node_budget,
+            ) {
                 Some(ExactSearchOutcome::Found(scenario, nodes_examined)) => {
                     let report = verify(&scenario);
                     if !report.is_feasible() {
@@ -1098,8 +1104,11 @@ mod tests {
             max_x: 5,
             max_y: 5,
         };
-        let outcome = exact_tiny_search_with_budget(small_yard, &requests, &[], 1).unwrap();
-        assert!(matches!(outcome, ExactSearchOutcome::BudgetExceeded(1)));
+        let errors = first_fit_portfolio_with_budget(small_yard, &requests, &[], 1).unwrap_err();
+        assert_eq!(
+            errors[0].code,
+            BaselineErrorCode::ExactSearchBudgetExceeded
+        );
     }
 
     #[test]
