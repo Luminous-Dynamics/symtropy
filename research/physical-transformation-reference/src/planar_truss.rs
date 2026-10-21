@@ -791,6 +791,31 @@ mod tests {
         assert!(result.equilibrium.normalized_moment_residual < 1.0e-12);
         assert!(result.equilibrium.normalized_free_dof_residual < 1.0e-12);
         assert!(result.claim_ceiling.contains("not member bending/buckling"));
+
+        let expected_strain_energy = 0.5 * 1_000.0 * expected_displacement.abs();
+        close(
+            result.energy.strain_energy_j,
+            expected_strain_energy,
+            expected_strain_energy.abs() * 1.0e-10,
+            "closed-form strain energy",
+        );
+        close(
+            result.energy.external_work_j,
+            expected_strain_energy,
+            expected_strain_energy.abs() * 1.0e-10,
+            "closed-form external work",
+        );
+        close(
+            result.energy.residual_j,
+            0.0,
+            expected_strain_energy.abs() * 1.0e-10,
+            "closed-form energy residual",
+        );
+        assert!(
+            result.energy.normalized_residual < 1.0e-12,
+            "normalized energy residual={:.17e}",
+            result.energy.normalized_residual
+        );
     }
 
     fn next_unit_interval(seed: &mut u64) -> f64 {
@@ -943,6 +968,30 @@ mod tests {
                 result.equilibrium.normalized_free_dof_residual < 1.0e-12,
                 "case {case_index} normalized free-DOF residual={:.17e}",
                 result.equilibrium.normalized_free_dof_residual
+            );
+            let expected_energy = 0.5 * load_n * expected_apex_y.abs();
+            close(
+                result.energy.strain_energy_j,
+                expected_energy,
+                scale_tolerance(expected_energy, 1.0e-10, 1.0e-15),
+                &format!("case {case_index} strain energy"),
+            );
+            close(
+                result.energy.external_work_j,
+                expected_energy,
+                scale_tolerance(expected_energy, 1.0e-10, 1.0e-15),
+                &format!("case {case_index} external work"),
+            );
+            close(
+                result.energy.residual_j,
+                0.0,
+                scale_tolerance(expected_energy, 1.0e-10, 1.0e-15),
+                &format!("case {case_index} energy residual"),
+            );
+            assert!(
+                result.energy.normalized_residual < 1.0e-12,
+                "case {case_index} normalized energy residual={:.17e}",
+                result.energy.normalized_residual
             );
         }
     }
