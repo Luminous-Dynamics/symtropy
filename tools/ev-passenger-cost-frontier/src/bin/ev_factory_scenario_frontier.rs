@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -93,14 +93,16 @@ fn main() {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        return Err("usage: ev_factory_scenario_frontier <base-fixture.json> <output-directory>".into());
+        return Err(
+            "usage: ev_factory_scenario_frontier <base-fixture.json> <output-directory>".into(),
+        );
     }
     let fixture_path = PathBuf::from(&args[1]);
     let output_dir = PathBuf::from(&args[2]);
     fs::create_dir_all(&output_dir)
         .map_err(|error| format!("cannot create output directory: {error}"))?;
-    let base_text = fs::read(&fixture_path)
-        .map_err(|error| format!("cannot read base fixture: {error}"))?;
+    let base_text =
+        fs::read(&fixture_path).map_err(|error| format!("cannot read base fixture: {error}"))?;
     let base: Value = serde_json::from_slice(&base_text)
         .map_err(|error| format!("invalid base fixture JSON: {error}"))?;
     validate_base_fixture(&base)?;
@@ -123,10 +125,16 @@ fn run() -> Result<(), String> {
         let mut fixture = base.clone();
         apply_family(&mut fixture, &spec.family_id)?;
         if fixture["replication_seeds"] != seeds || fixture["seed"] != base["seed"] {
-            return Err(format!("family_{}_changed_the_declared_seed_catalog", spec.family_id));
+            return Err(format!(
+                "family_{}_changed_the_declared_seed_catalog",
+                spec.family_id
+            ));
         }
         if fixture["input_evidence_class"] != "synthetic" || fixture["release_ready"] == true {
-            return Err(format!("family_{}_changed_evidence_or_release_boundary", spec.family_id));
+            return Err(format!(
+                "family_{}_changed_evidence_or_release_boundary",
+                spec.family_id
+            ));
         }
         let fixture_bytes = pretty_json(&fixture)?;
         let fixture_sha = sha256(fixture_bytes.as_bytes());
@@ -135,9 +143,17 @@ fn run() -> Result<(), String> {
         fs::write(&fixture_path, &fixture_bytes)
             .map_err(|error| format!("cannot write family fixture: {error}"))?;
         let simulation_output = run_child(&simulator, &[fixture_path.as_path()])?;
-        let simulation_value: Value = serde_json::from_slice(&simulation_output)
-            .map_err(|error| format!("family_{}_produced_invalid_simulation_JSON: {error}", spec.family_id))?;
-        validate_simulation_output(&simulation_value, seeds.as_array().map(Vec::len).unwrap_or(0))?;
+        let simulation_value: Value =
+            serde_json::from_slice(&simulation_output).map_err(|error| {
+                format!(
+                    "family_{}_produced_invalid_simulation_JSON: {error}",
+                    spec.family_id
+                )
+            })?;
+        validate_simulation_output(
+            &simulation_value,
+            seeds.as_array().map(Vec::len).unwrap_or(0),
+        )?;
         let simulation_bytes = pretty_json(&simulation_value)?;
         let simulation_sha = sha256(simulation_bytes.as_bytes());
         fs::write(&simulation_path, &simulation_bytes)
@@ -148,24 +164,41 @@ fn run() -> Result<(), String> {
         let mut default_value: Option<Value> = None;
         for margin in MARGINS {
             let margin_slug = margin_slug(margin);
-            let ranking_output =
-                run_child_with_margin(&evaluator, &simulation_path, margin)?;
-            let ranking_value: Value = serde_json::from_slice(&ranking_output)
-                .map_err(|error| format!("family_{}_margin_{}_invalid_ranking_JSON: {error}", spec.family_id, margin_slug))?;
-            let ranking: RankingSummary = serde_json::from_value(ranking_value.clone())
-                .map_err(|error| format!("family_{}_margin_{}_invalid_ranking_schema: {error}", spec.family_id, margin_slug))?;
+            let ranking_output = run_child_with_margin(&evaluator, &simulation_path, margin)?;
+            let ranking_value: Value =
+                serde_json::from_slice(&ranking_output).map_err(|error| {
+                    format!(
+                        "family_{}_margin_{}_invalid_ranking_JSON: {error}",
+                        spec.family_id, margin_slug
+                    )
+                })?;
+            let ranking: RankingSummary =
+                serde_json::from_value(ranking_value.clone()).map_err(|error| {
+                    format!(
+                        "family_{}_margin_{}_invalid_ranking_schema: {error}",
+                        spec.family_id, margin_slug
+                    )
+                })?;
             if ranking.benchmark_id != "EV-FACTORY-INTERVENTION-BENCH-001"
                 || ranking.source_simulation_report_sha256 != simulation_sha
-                || ranking.source_simulation_replication_count != seeds.as_array().map(Vec::len).unwrap_or(0)
-                || ranking.source_simulation_seed_count != seeds.as_array().map(Vec::len).unwrap_or(0)
+                || ranking.source_simulation_replication_count
+                    != seeds.as_array().map(Vec::len).unwrap_or(0)
+                || ranking.source_simulation_seed_count
+                    != seeds.as_array().map(Vec::len).unwrap_or(0)
                 || !ranking.results_are_synthetic_model_conditional
                 || ranking.production_release_authorized
             {
-                return Err(format!("family_{}_margin_{}_ranking_report_mismatch", spec.family_id, margin_slug));
+                return Err(format!(
+                    "family_{}_margin_{}_ranking_report_mismatch",
+                    spec.family_id, margin_slug
+                ));
             }
             let ranking_bytes = pretty_json(&ranking_value)?;
             let ranking_sha = sha256(ranking_bytes.as_bytes());
-            let ranking_path = output_dir.join(format!("{}.margin-{}.ranking.json", spec.family_id, margin_slug));
+            let ranking_path = output_dir.join(format!(
+                "{}.margin-{}.ranking.json",
+                spec.family_id, margin_slug
+            ));
             fs::write(&ranking_path, &ranking_bytes)
                 .map_err(|error| format!("cannot write ranking report: {error}"))?;
             margin_results.push(MarginResult {
@@ -182,15 +215,24 @@ fn run() -> Result<(), String> {
         let ranking = default_ranking
             .ok_or_else(|| format!("family_{}_missing_default_margin_result", spec.family_id))?;
         let default_value = default_value.expect("default margin report stored");
-        let best = ranking.candidates.iter()
-            .max_by(|left, right| left.mean_paired_gain_units_per_hour.total_cmp(&right.mean_paired_gain_units_per_hour))
+        let best = ranking
+            .candidates
+            .iter()
+            .max_by(|left, right| {
+                left.mean_paired_gain_units_per_hour
+                    .total_cmp(&right.mean_paired_gain_units_per_hour)
+            })
             .ok_or_else(|| format!("family_{}_has_no_candidates", spec.family_id))?;
         let release_ready = simulation_value["release_ready"] == true
             || default_value["production_release_authorized"] == true;
         if release_ready {
-            return Err(format!("family_{}_unexpected_release_authorization", spec.family_id));
+            return Err(format!(
+                "family_{}_unexpected_release_authorization",
+                spec.family_id
+            ));
         }
-        let outcome_rows = simulation_value["replication_outcomes"].as_array()
+        let outcome_rows = simulation_value["replication_outcomes"]
+            .as_array()
             .map(Vec::len)
             .ok_or_else(|| format!("family_{}_missing_per_seed_outcomes", spec.family_id))?;
         family_results.push(FamilyResult {
@@ -199,7 +241,12 @@ fn run() -> Result<(), String> {
             simulation_report_sha256: simulation_sha,
             simulation_outcome_rows: outcome_rows,
             replication_count: ranking.source_simulation_replication_count,
-            replication_seeds: seeds.as_array().unwrap().iter().filter_map(Value::as_u64).collect(),
+            replication_seeds: seeds
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(Value::as_u64)
+                .collect(),
             point_estimate_best_station_id: best.station_id.clone(),
             robust_best_station_at_default_margin: ranking.robust_best_station_id.clone(),
             candidates: ranking.candidates.clone(),
@@ -210,7 +257,8 @@ fn run() -> Result<(), String> {
         });
     }
 
-    let nominal = family_results.iter()
+    let nominal = family_results
+        .iter()
         .find(|family| family.family.family_id == "nominal")
         .ok_or_else(|| "nominal_family_missing".to_string())?;
     let nominal_point_best = nominal.point_estimate_best_station_id.clone();
@@ -231,16 +279,21 @@ fn run() -> Result<(), String> {
             None => unresolved += 1,
         }
         if let Some(selected) = nominal_choice {
-            let best_gain = family.candidates.iter()
+            let best_gain = family
+                .candidates
+                .iter()
                 .map(|candidate| candidate.mean_paired_gain_units_per_hour)
                 .fold(f64::NEG_INFINITY, f64::max);
-            let selected_gain = family.candidates.iter()
+            let selected_gain = family
+                .candidates
+                .iter()
                 .find(|candidate| candidate.station_id == selected)
                 .map(|candidate| candidate.mean_paired_gain_units_per_hour);
             if let Some(selected_gain) = selected_gain {
                 let regret = (best_gain - selected_gain).max(0.0);
                 family.nominal_selection_regret_units_per_hour = Some(regret);
-                worst_case_regret = Some(worst_case_regret.map_or(regret, |current| current.max(regret)));
+                worst_case_regret =
+                    Some(worst_case_regret.map_or(regret, |current| current.max(regret)));
             }
         }
     }
@@ -251,7 +304,10 @@ fn run() -> Result<(), String> {
         source_fixture_sha256: base_sha,
         family_count: family_results.len(),
         replication_count_per_family: seeds.as_array().map(Vec::len).unwrap_or(0),
-        scenarios_per_family: family_results.first().map(|family| family.simulation_outcome_rows / family.replication_count.max(1)).unwrap_or(0),
+        scenarios_per_family: family_results
+            .first()
+            .map(|family| family.simulation_outcome_rows / family.replication_count.max(1))
+            .unwrap_or(0),
         practical_equivalence_margins_units_per_hour: MARGINS.to_vec(),
         nominal_point_estimate_best_station_id: nominal_point_best,
         nominal_robust_best_station_id: nominal_robust_best,
@@ -264,7 +320,8 @@ fn run() -> Result<(), String> {
         production_release_authorized: false,
         claim_ceiling: CLAIM_CEILING.into(),
     };
-    let report_bytes = pretty_json(&serde_json::to_value(&report).map_err(|error| error.to_string())?)?;
+    let report_bytes =
+        pretty_json(&serde_json::to_value(&report).map_err(|error| error.to_string())?)?;
     let manifest_path = output_dir.join("ev-factory-scenario-frontier-report.json");
     fs::write(&manifest_path, &report_bytes)
         .map_err(|error| format!("cannot write robustness report: {error}"))?;
@@ -273,7 +330,11 @@ fn run() -> Result<(), String> {
 }
 
 fn sibling_executable(directory: &Path, name: &str) -> PathBuf {
-    directory.join(if cfg!(windows) { format!("{name}.exe") } else { name.into() })
+    directory.join(if cfg!(windows) {
+        format!("{name}.exe")
+    } else {
+        name.into()
+    })
 }
 
 fn run_child(executable: &Path, args: &[&Path]) -> Result<Vec<u8>, String> {
@@ -284,7 +345,10 @@ fn run_child(executable: &Path, args: &[&Path]) -> Result<Vec<u8>, String> {
     if !output.status.success() {
         return Err(format!(
             "{} failed with status {}: {}",
-            executable.file_name().and_then(|name| name.to_str()).unwrap_or("child"),
+            executable
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("child"),
             output.status,
             String::from_utf8_lossy(&output.stderr)
         ));
@@ -292,7 +356,11 @@ fn run_child(executable: &Path, args: &[&Path]) -> Result<Vec<u8>, String> {
     Ok(output.stdout)
 }
 
-fn run_child_with_margin(executable: &Path, report_path: &Path, margin: f64) -> Result<Vec<u8>, String> {
+fn run_child_with_margin(
+    executable: &Path,
+    report_path: &Path,
+    margin: f64,
+) -> Result<Vec<u8>, String> {
     let output = Command::new(executable)
         .arg(report_path)
         .arg(margin.to_string())
@@ -301,7 +369,10 @@ fn run_child_with_margin(executable: &Path, report_path: &Path, margin: f64) -> 
     if !output.status.success() {
         return Err(format!(
             "{} failed with status {}: {}",
-            executable.file_name().and_then(|name| name.to_str()).unwrap_or("child"),
+            executable
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("child"),
             output.status,
             String::from_utf8_lossy(&output.stderr)
         ));
@@ -351,22 +422,33 @@ fn apply_family(fixture: &mut Value, family_id: &str) -> Result<(), String> {
         }
         "changeover-small-batches" => {
             fixture["variant_batch_size"] = json!(5);
-            for station in fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())? {
+            for station in fixture["stations"]
+                .as_array_mut()
+                .ok_or_else(|| "stations_must_be_array".to_string())?
+            {
                 multiply_number(station, "changeover_seconds", 3.0)?;
             }
         }
         "yield-rework-stress" => {
-            for station in fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())? {
-                let current = station["good_yield_fraction"].as_f64().ok_or_else(|| "good_yield_fraction_must_be_numeric".to_string())?;
+            for station in fixture["stations"]
+                .as_array_mut()
+                .ok_or_else(|| "stations_must_be_array".to_string())?
+            {
+                let current = station["good_yield_fraction"]
+                    .as_f64()
+                    .ok_or_else(|| "good_yield_fraction_must_be_numeric".to_string())?;
                 station["good_yield_fraction"] = json!((current - 0.02).max(0.90));
             }
         }
         "tight-buffers" => {
             halve_positive(fixture, "source_buffer_capacity")?;
             halve_buffer_capacities(fixture)?;
-        },
+        }
         "downtime-stress" => {
-            for station in fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())? {
+            for station in fixture["stations"]
+                .as_array_mut()
+                .ok_or_else(|| "stations_must_be_array".to_string())?
+            {
                 multiply_number(station, "mean_time_between_failures_seconds", 0.5)?;
                 multiply_number(station, "mean_time_to_repair_seconds", 1.5)?;
             }
@@ -374,9 +456,14 @@ fn apply_family(fixture: &mut Value, family_id: &str) -> Result<(), String> {
         "mixed-stress" => {
             multiply_number(fixture, "mean_supply_interarrival_seconds", 1.20)?;
             station_multiply(fixture, "body-preparation", "mean_cycle_seconds", 1.15)?;
-            for station in fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())? {
+            for station in fixture["stations"]
+                .as_array_mut()
+                .ok_or_else(|| "stations_must_be_array".to_string())?
+            {
                 multiply_number(station, "changeover_seconds", 1.5)?;
-                let current = station["good_yield_fraction"].as_f64().ok_or_else(|| "good_yield_fraction_must_be_numeric".to_string())?;
+                let current = station["good_yield_fraction"]
+                    .as_f64()
+                    .ok_or_else(|| "good_yield_fraction_must_be_numeric".to_string())?;
                 station["good_yield_fraction"] = json!((current - 0.01).max(0.90));
             }
             halve_positive(fixture, "source_buffer_capacity")?;
@@ -387,16 +474,26 @@ fn apply_family(fixture: &mut Value, family_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn station_multiply(fixture: &mut Value, station_id: &str, field: &str, factor: f64) -> Result<(), String> {
-    let stations = fixture["stations"].as_array_mut().ok_or_else(|| "stations_must_be_array".to_string())?;
-    let station = stations.iter_mut()
+fn station_multiply(
+    fixture: &mut Value,
+    station_id: &str,
+    field: &str,
+    factor: f64,
+) -> Result<(), String> {
+    let stations = fixture["stations"]
+        .as_array_mut()
+        .ok_or_else(|| "stations_must_be_array".to_string())?;
+    let station = stations
+        .iter_mut()
         .find(|station| station["station_id"].as_str() == Some(station_id))
         .ok_or_else(|| format!("station_{station_id}_not_found"))?;
     multiply_number(station, field, factor)
 }
 
 fn multiply_number(value: &mut Value, field: &str, factor: f64) -> Result<(), String> {
-    let current = value[field].as_f64().ok_or_else(|| format!("{field}_must_be_numeric"))?;
+    let current = value[field]
+        .as_f64()
+        .ok_or_else(|| format!("{field}_must_be_numeric"))?;
     let changed = current * factor;
     if !changed.is_finite() || changed <= 0.0 {
         return Err(format!("{field}_mutation_out_of_range"));
@@ -419,7 +516,9 @@ fn halve_buffer_capacities(fixture: &mut Value) -> Result<(), String> {
 }
 
 fn halve_positive(value: &mut Value, field: &str) -> Result<(), String> {
-    let current = value[field].as_u64().ok_or_else(|| format!("{field}_must_be_positive_integer"))?;
+    let current = value[field]
+        .as_u64()
+        .ok_or_else(|| format!("{field}_must_be_positive_integer"))?;
     value[field] = json!((current / 2).max(1));
     Ok(())
 }
@@ -451,10 +550,12 @@ fn margin_slug(margin: f64) -> String {
 }
 
 fn pretty_json(value: &Value) -> Result<String, String> {
-    serde_json::to_string_pretty(value).map(|mut text| {
-        text.push('\n');
-        text
-    }).map_err(|error| error.to_string())
+    serde_json::to_string_pretty(value)
+        .map(|mut text| {
+            text.push('\n');
+            text
+        })
+        .map_err(|error| error.to_string())
 }
 
 fn sha256(data: &[u8]) -> String {
@@ -497,7 +598,7 @@ mod tests {
         assert_eq!(fixture["replication_seeds"], original_seeds);
         assert_eq!(fixture["input_evidence_class"], "synthetic");
         assert_eq!(fixture["release_ready"], false);
-        assert_eq!(fixture["buffer_capacities"], json!([1,2,1]));
+        assert_eq!(fixture["buffer_capacities"], json!([1, 2, 1]));
         assert_eq!(fixture["stations"][0]["mean_cycle_seconds"], json!(230.0));
         assert_eq!(fixture["stations"][0]["changeover_seconds"], json!(45.0));
         assert_eq!(fixture["stations"][0]["good_yield_fraction"], json!(0.98));
@@ -515,7 +616,13 @@ mod tests {
         assert_eq!(sha256(&first), sha256(&second));
         let mut family = base.clone();
         multiply_number(&mut family, "mean_supply_interarrival_seconds", 1.3).unwrap();
-        assert_eq!(family["supply_interarrival_variability_fraction"], base["supply_interarrival_variability_fraction"]);
-        assert_ne!(sha256(&serde_json::to_vec(&family).unwrap()), sha256(&first));
+        assert_eq!(
+            family["supply_interarrival_variability_fraction"],
+            base["supply_interarrival_variability_fraction"]
+        );
+        assert_ne!(
+            sha256(&serde_json::to_vec(&family).unwrap()),
+            sha256(&first)
+        );
     }
 }
