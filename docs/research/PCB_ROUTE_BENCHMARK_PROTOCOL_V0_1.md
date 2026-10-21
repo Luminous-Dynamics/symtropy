@@ -104,3 +104,8 @@ The industry scorecard therefore has two layers:
 2. **External context only:** FreeRouting's own versioned live benchmark and tier tables, clearly labelled as its own fixture suite. Compare its methodology (clean DRC, fully routed, timeouts, failures, board tiers) and then reproduce a comparable shared-board run before numerical head-to-head claims.
 
 FreeRouting reference: https://github.com/freerouting/freerouting/blob/master/website/benchmarks.html. Snapshot values above were read from its page generated 2026-10-20; record a fresh page timestamp and exact tool version before any future publication.
+
+
+### Raw evidence digests are mandatory for a valid completion
+
+Each per-board attempt now includes `drc_report_sha256`, the SHA-256 of the raw DRC report generated for that saved output board. When the digest is absent, an otherwise connected zero-violation summary is categorized as `evidence_incomplete`, not a valid completion. A malformed digest rejects the report. A normalized row's string alone is not proof of correct provenance: the actual adapter must hash the real DRC bytes and bind the report to the exact output-board digest, DRC engine and DRC policy. The synthetic fixtures use explicitly synthetic digests and must never be presented as real KiCad measurements.
