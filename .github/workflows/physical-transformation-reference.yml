@@ -120,6 +120,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify modal-subspace comparison mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_subspace_mutations.sh
+
+      - name: Re-verify modal-subspace production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/modal_subspace.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -467,11 +480,11 @@ jobs:
           cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-chain-modal-sweep-reference -- \
             --source-commit "$source_commit" > beam-chain-modal-sweep-raw-b.json
           cmp --silent beam-chain-modal-sweep-raw-a.json beam-chain-modal-sweep-raw-b.json
-          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_sweep_request_v0_1.txt)"
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_chain_subspace_sweep_request_v0_1.txt)"
           test "$(jq -r '.request_canonical' beam-chain-modal-sweep-raw-a.json)" = "$request_canonical"
-          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          test "$request_canonical" = "schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|sample_points_per_member=17|frequency_cluster_relative_gap=0.001|shape_metric=mass-weighted-principal-angles|cluster_policy=same-rank-compare-only-when-partition-matches"
           request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
-          test "$request_sha256" = "1a662e356f23b2683f569268e81edff6fad3859863dc325dd14a04d465878439"
+          test "$request_sha256" = "0abeee5bbbc6d777d8e6450da27836998b4588b3b5b551af965fb7e89cd2d6c8"
           crate_tree_sha256="$(
             git ls-files research/physical-transformation-reference |
               LC_ALL=C sort |
@@ -516,6 +529,26 @@ jobs:
             and all(.mesh_results[1:][]; (.mode_shape_mac_low_six_from_previous_mesh | length) == 6)
             and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[]; length == 6))
             and all(.mesh_results[1:][]; all(.mode_shape_mac_low_six_from_previous_mesh[][]; . >= 0 and . <= 1))
+            and (.mesh_results[0].clustered_mode_subspace_comparison_from_previous_mesh == null)
+            and all(.mesh_results[1:][]; (
+              .clustered_mode_subspace_comparison_from_previous_mesh.status == "compared"
+              or .clustered_mode_subspace_comparison_from_previous_mesh.status == "abstain-cluster-partition-changed"
+            ))
+            and all(.mesh_results[1:][]; (
+              if .clustered_mode_subspace_comparison_from_previous_mesh.status == "compared"
+              then
+                (.clustered_mode_subspace_comparison_from_previous_mesh.comparisons | length) > 0
+                and all(.clustered_mode_subspace_comparison_from_previous_mesh.comparisons[];
+                  .multiplicity > 0
+                  and (.principal_mac_values | length) == .multiplicity
+                  and all(.principal_mac_values[]; . >= 0 and . <= 1)
+                  and .worst_principal_mac >= 0 and .worst_principal_mac <= 1
+                  and .mean_principal_mac >= 0 and .mean_principal_mac <= 1
+                )
+              else
+                .clustered_mode_subspace_comparison_from_previous_mesh.comparisons == []
+              end
+            ))
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-chain-modal-sweep-receipt.json
 
@@ -538,5 +571,6 @@ jobs:
             beam-pin-modal-receipt.json
             beam-chain-mesh-mutation-receipt.json
             beam-chain-modal-sweep-receipt.json
+            modal-subspace-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90

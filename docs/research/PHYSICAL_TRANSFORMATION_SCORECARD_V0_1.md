@@ -106,6 +106,26 @@ These are proposed engineering gates. They are not achieved results or universal
 
 The P5 and P9 percentages are proposed stretch targets to challenge the team, not literature-derived universal acceptance limits. Revise them only before a benchmark round, with a written rationale and preserved old results—not after seeing the outcome.
 
+### 4.1 Modal validation: clustered eigenvalues and basis-invariant mode checks
+
+A modal benchmark cannot compare only sorted frequency values. Equal or tightly clustered eigenvalues permit different valid eigenvector bases within the same eigenspace. OpenSees' own [eigen-command documentation](https://opensees.github.io/OpenSeesDocumentation/user/manual/analysis/eigen.html) warns that ARPACK may return correct eigenvalues but incorrect eigenvectors for repeated or closely spaced eigenvalues; its [modal-properties command](https://opensees.github.io/OpenSeesDocumentation/user/manual/analysis/modalProperties.html) also exposes generalized modal mass, participation factors and cumulative participation masses.
+
+Use two comparison modes:
+- **Isolated modes:** pair by a predeclared frequency window plus mass-weighted vector MAC, with eigenpair residual and mass-normalization checks.
+- **Repeated/clustered modes:** match equal-dimensional frequency clusters first; compare their spans using mass-weighted principal angles (squared singular values of the whitened cross-Gram matrix). Report every principal MAC value, its minimum, and its mean. Do not fail a physically equivalent eigenspace just because solvers rotate/sign-flip the basis; do not let a good mean hide one mismatched direction.
+
+The new [mass-weighted modal-subspace comparison prototype](https://github.com/Luminous-Dynamics/symtropy/pull/2582) implements the basis-invariant comparison for equal-dimensional clusters and a separate frequency-clustering helper with an explicit relative-gap tolerance. Tests cover basis rotation, arbitrary vector scales, mass-unit scaling, non-Euclidean mass inner products, changed subspaces, scale-invariant frequency grouping, and fail-closed singular inputs. Cluster correspondence/multiplicity across two models still needs an explicit matching policy; the helper is not a complete modal-validation system. Its mutation and exact-head CI remain required.
+
+Proposed software gates for well-conditioned analytic cases (targets, not claimed industry-wide universal limits):
+- relative eigenvalue/frequency error <= (10^{-10}) against an independently derived oracle when floating-point conditioning permits;
+- normalized generalized-eigenpair residual <= (10^{-10});
+- modal mass normalization and off-diagonal mass orthogonality residual <= (10^{-10});
+- a deliberately repeated eigenvalue test must retain multiplicity and achieve minimum principal MAC >= (1-10^{-10}) for the exact same analytic subspace, even after a nonsingular basis rotation;
+- an orthogonal/changed subspace must produce the analytically expected principal MAC spectrum (including zero), not merely frequencies that happen to match;
+- measured comparisons to a published solver output must use the source's rounding precision and explicitly distinguish numerical reference reproduction from physical validation.
+
+Do not universalize these tight software gates to an experimental structure. Real measurements require uncertainty-aware tolerances, a predeclared error budget, mesh/time-step convergence, model-form sensitivity and independent validation data.
+
 ## 5. Metrics that must remain separate
 
 - Exact state-transition correctness and false acceptance rate.

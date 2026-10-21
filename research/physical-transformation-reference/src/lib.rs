@@ -15,6 +15,7 @@ pub mod beam_pin_assembly;
 pub mod deconstruction;
 pub mod mechanics;
 pub mod modal_bar;
+pub mod modal_subspace;
 pub mod nafems_nbc05;
 pub mod planar_truss;
 
