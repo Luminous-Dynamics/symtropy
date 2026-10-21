@@ -1517,7 +1517,13 @@ mod tests {
         assert_eq!(baseline.receipt.summary.timeout_cases, 1);
         assert_eq!(baseline.receipt.summary.tool_error_cases, 1);
         assert_eq!(baseline.receipt.summary.reported_unconnected_item_total, 1);
-        assert_eq!(baseline.receipt.summary.cases_missing_unconnected_item_count, 2);
+        assert_eq!(
+            baseline
+                .receipt
+                .summary
+                .cases_missing_unconnected_item_count,
+            2
+        );
     }
 
     #[test]
