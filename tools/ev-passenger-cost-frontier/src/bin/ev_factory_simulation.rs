@@ -2301,8 +2301,12 @@ mod tests {
             let station_id = station_summary.station_id.clone();
             let eligible_starts: Vec<_> = first_starts
                 .iter()
-                .filter(|((_, station), timestamp)| {
-                    station == &station_id && **timestamp >= catalog.warmup_seconds
+                .filter(|((job_id, station), timestamp)| {
+                    station == &station_id
+                        && **timestamp >= catalog.warmup_seconds
+                        && releases
+                            .get(job_id)
+                            .is_some_and(|released_at| *released_at >= catalog.warmup_seconds)
                 })
                 .map(|(key, _)| key)
                 .collect();
