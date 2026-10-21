@@ -17,4 +17,8 @@ path = "src/main.rs"
 name = "planar-truss-reference"
 path = "src/bin/planar-truss-reference.rs"
 
+[[bin]]
+name = "modal-bar-reference"
+path = "src/bin/modal-bar-reference.rs"
+
 [workspace]

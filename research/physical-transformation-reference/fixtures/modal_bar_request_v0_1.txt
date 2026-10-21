@@ -1,0 +1,1 @@
+schema=modal-bar-request-v0.1|fixture=PHYS-AXIAL-BAR-001|length_m=1|area_m2=0.01|youngs_modulus_pa=210000000000|density_kg_m3=7800|element_count=8|requested_modes=2|mass_formulation=consistent

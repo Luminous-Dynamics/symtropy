@@ -222,6 +222,61 @@ jobs:
             and .acceptance.energy_oracle == "strain_energy_and_external_work_match_half_load_dot_displacement"
           ' planar-truss-sweep-receipt.json
 
+      - name: Generate and verify deterministic axial-modal receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+            --source-commit "$source_commit" > modal-bar-reference-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+            --source-commit "$source_commit" > modal-bar-reference-raw-b.json
+          cmp --silent modal-bar-reference-raw-a.json modal-bar-reference-raw-b.json
+          request_canonical="$(jq -r '.request_canonical' modal-bar-reference-raw-a.json)"
+          fixture_canonical="$(cat research/physical-transformation-reference/fixtures/modal_bar_request_v0_1.txt)"
+          test "$request_canonical" = "$fixture_canonical"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "09deaeee97a2ca613713dd4889bff732173c60c63571e27481494c1bdfb85fa7"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of UTF-8 request_canonical bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' modal-bar-reference-raw-a.json > modal-bar-reference-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "axial-bar-modal-receipt-v0.1"
+            and .benchmark_id == "PHYS-AXIAL-BAR-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "synthetic"
+            and .result == "pass"
+            and .model.mass_formulation == "consistent"
+            and .model.element_count == 8
+            and .model.requested_modes == 2
+            and (.modes | length == 2)
+            and (.modes[0].frequency_hz - 1299.2710715733335 | abs < 1e-6)
+            and (.modes[1].frequency_hz - 3948.037301111085 | abs < 1e-6)
+            and (.modes | all(.[]; (.shape_free_dofs | length) == 8))
+            and .checks.max_relative_frequency_error < 0.05
+            and .checks.max_normalized_eigen_residual < 1e-10
+            and .checks.max_mass_norm_residual < 1e-10
+            and .checks.max_off_diagonal_mass_orthogonality_residual < 1e-10
+            and (.claim_ceiling | contains("not_modal_truss_nbc05"))
+          ' modal-bar-reference-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -231,5 +286,6 @@ jobs:
             planar-truss-mutation-receipt.json
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
+            modal-bar-reference-receipt.json
           if-no-files-found: error
           retention-days: 90
