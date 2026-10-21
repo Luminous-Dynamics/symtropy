@@ -493,12 +493,16 @@ pub fn evaluate_fixture(
         let unit_count = independent_unit_count as f64;
         let unit_macro_bias = by_unit
             .values()
-            .map(|unit_rows| unit_rows.iter().map(|row| row.2).sum::<f64>() / unit_rows.len() as f64)
+            .map(|unit_rows| {
+                unit_rows.iter().map(|row| row.2).sum::<f64>() / unit_rows.len() as f64
+            })
             .sum::<f64>()
             / unit_count;
         let unit_macro_mae = by_unit
             .values()
-            .map(|unit_rows| unit_rows.iter().map(|row| row.3).sum::<f64>() / unit_rows.len() as f64)
+            .map(|unit_rows| {
+                unit_rows.iter().map(|row| row.3).sum::<f64>() / unit_rows.len() as f64
+            })
             .sum::<f64>()
             / unit_count;
         let unit_macro_rmse = by_unit
@@ -510,7 +514,9 @@ pub fn evaluate_fixture(
             / unit_count;
         let unit_macro_baseline_mae = by_unit
             .values()
-            .map(|unit_rows| unit_rows.iter().map(|row| row.6).sum::<f64>() / unit_rows.len() as f64)
+            .map(|unit_rows| {
+                unit_rows.iter().map(|row| row.6).sum::<f64>() / unit_rows.len() as f64
+            })
             .sum::<f64>()
             / unit_count;
         let unit_macro_interval_coverage = by_unit
@@ -522,7 +528,9 @@ pub fn evaluate_fixture(
             / unit_count;
         let unit_macro_interval_score = by_unit
             .values()
-            .map(|unit_rows| unit_rows.iter().map(|row| row.8).sum::<f64>() / unit_rows.len() as f64)
+            .map(|unit_rows| {
+                unit_rows.iter().map(|row| row.8).sum::<f64>() / unit_rows.len() as f64
+            })
             .sum::<f64>()
             / unit_count;
         let interval_level = key.interval_level_micros as f64 / 1_000_000.0;
