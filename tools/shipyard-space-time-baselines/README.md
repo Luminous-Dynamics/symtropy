@@ -14,7 +14,7 @@ The nested Cargo crate has no external dependencies and uses the sibling space-t
 
 ## Policy contract
 
-Requests are processed in input order. For each rectangular block request, candidate lower-left coordinates are derived from yard and obstacle boundaries and tested in deterministic ascending (y, x) order. Reservations may reuse a floor region only when their half-open occupancy intervals do not overlap. Active rectangular exclusion zones block placement. Any invalid input, unsupported exclusion geometry, or unsatisfied request rejects the entire call; no partial plan is returned.
+Caller-order first-fit processes requests in supplied order. Decreasing-area first-fit sorts by descending area, maximum side, width and height, then ascending reservation ID; area multiplication uses i128 to avoid overflow. Both policies derive a deterministic candidate set from yard and obstacle boundaries and test candidates in ascending (y, x) order. Reservations may reuse a floor region only when their half-open occupancy intervals do not overlap. Active rectangular exclusion zones block placement. Any invalid input, unsupported exclusion geometry, or unsatisfied request rejects the entire call; no partial plan is returned.
 
 Every output scenario is passed to the independent space-time verifier. The baseline cannot override a violation or mark the result feasible itself.
 
