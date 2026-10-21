@@ -240,8 +240,8 @@ mod tests {
     }
 
     fn shift(rect: IntervalRect, dx: f64, dy: f64) -> IntervalRect {
-        let shift_range = |range: ClosedRange, delta: f64| {
-            range(range.min() + delta, range.max() + delta)
+        let shift_range = |bounds: ClosedRange, delta: f64| {
+            range(bounds.min() + delta, bounds.max() + delta)
         };
         IntervalRect::new(
             shift_range(rect.x(), dx),
