@@ -1097,6 +1097,37 @@ mod tests {
     }
 
     #[test]
+    fn symmetric_truss_reduces_to_diagonal_known_answer() {
+        let point = BTreeMap::from([
+            ("span_m".to_owned(), 2.0),
+            ("apex_x_m".to_owned(), 1.0),
+            ("apex_height_m".to_owned(), 1.0),
+            ("axial_stiffness_a_n_per_m".to_owned(), 1.0e9),
+            ("axial_stiffness_b_n_per_m".to_owned(), 1.0e9),
+            ("force_x_n".to_owned(), 1_000.0),
+            ("force_y_n".to_owned(), -2_000.0),
+        ]);
+        let exact = evaluate_planar_truss_two_bar_point(&point).unwrap();
+        assert_near(exact[0], 1.0e9);
+        assert_near(exact[1], 0.0);
+        assert_near(exact[2], 1.0e9);
+        assert_near(exact[3], 1.0e18);
+        assert_near(exact[4], 1.0e-6);
+        assert_near(exact[5], -2.0e-6);
+        assert_near(exact[8], 1.0);
+        assert_near(exact[9], f64::EPSILON);
+
+        let bounds: BTreeMap<String, Interval> = point
+            .iter()
+            .map(|(key, value)| (key.clone(), Interval::exact(*value).unwrap()))
+            .collect();
+        let enclosure = propagate_planar_truss_two_bar(&point, &bounds).unwrap();
+        assert_enclosed(enclosure.displacement_x_m, 1.0e-6);
+        assert_enclosed(enclosure.displacement_y_m, -2.0e-6);
+        assert!(enclosure.determinant_n2_per_m2.lower > 0.0);
+    }
+
+    #[test]
     fn truss_point_intervals_enclose_independent_2x2_known_answer() {
         let (nominal, bounds) = truss_fixture((0.74, 0.76));
         let enclosure = propagate_planar_truss_two_bar(&nominal, &bounds)
