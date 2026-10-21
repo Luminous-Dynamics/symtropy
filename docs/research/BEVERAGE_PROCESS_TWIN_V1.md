@@ -70,6 +70,24 @@ A simulator passing conservation checks does not prove its chemistry or sensory 
 - Forecasts are scored against held-out batches/site/time windows if suitable data exist. Synthetic scenarios are contract tests only.
 - No automated control, operation instructions, safety certification, product-quality claim, or SOTA claim without plant-specific, independently reviewed evidence.
 
+## Quantitative benchmark ladder: separate forecast accuracy from savings
+
+The South African brewery normalization study is a useful local industry anchor. Kirstein and Brent derived multivariable linear-regression models from data at 58 SABMiller sites and evaluated them on six separate sites; the paper reports water-use prediction errors up to 6%, electrical energy up to 7%, and thermal energy up to 6% for the reported holdout sites. Its authors considered errors below 10% sufficient for investigating normalized performance opportunities. These are reported historical results from that dataset and method, not a baseline already reproduced by Luminous Dynamics.
+
+A fair process-twin benchmark should therefore have distinct gates:
+
+1. **Data integrity:** reconcile metering periods, treatment of missing intervals, unit conversions, production mix, functional unit and site-level grouping before scoring.
+2. **Forecast reproduction:** implement a simple, interpretable normalization model using declared drivers (throughput/capacity utilization, packaging mix, ambient and water temperatures, and relevant energy-cost terms when available). Report per-site MAE and relative error. Target at most 10% error as an initial comparability gate, then explore a <=7% stretch target on an equivalent held-out-site task. Do not claim a win over the 2017 result unless the feature set, site independence, target definition and metric denominator are genuinely comparable.
+3. **Counterfactual opportunity:** report predicted expected usage conditional on uncontrollable / contextual drivers separately from the *actionable* gap attributable to controllable operating drivers. Correlation and normalized residuals generate hypotheses, not proof that an intervention will cause savings.
+4. **Prospective intervention:** pre-register the operating change, compare under matched product mix and quality-conforming saleable output, retain all batches and missing-meter intervals in the report, and estimate paired uncertainty. A proposed stretch is at least 10% lower normalized water use *or* energy use, with no supported degradation in the other resource measure, yield or product-quality constraints.
+5. **Industry comparison:** BIER's participating-site summary reports 3% lower water-use ratio and 4% lower energy-use ratio over 2020–2024 (as well as 11% lower emissions ratio). These are sector-level temporal trends, not randomized counterfactual effects. An individual pilot's 10% target is a deliberate improvement ambition, not evidence that the pilot has already outperformed industry or a directly apples-to-apples ranking.
+
+Publish three outputs side by side: the normalized usage forecast and its held-out error; the expected-versus-observed resource gap with its assumptions and uncertainty; and the measured intervention outcome under a pre-registered matched comparison. Never merge these into one score or turn a prediction residual into a claimed saving.
+
+Sources:
+- Kirstein & Brent (2017), *An investigation into the normalisation of water and energy usage in the brewery industry*: https://doi.org/10.7166/28-4-1726
+- BIER (published 22 April 2026), *2025 Water, Energy, and Emissions Benchmarking Summary*: https://www.bieroundtable.com/2025-water-energy-and-emissions-benchmarking-summary-bier
+
 ## Benchmark ambitions
 
 The proposed research target is a prospective pilot that reduces at least one preregistered normalized resource metric—water or energy per saleable product unit—by at least 10%, with no statistically supported degradation in the other resource metric, saleable yield, defined product-quality endpoints or safety gates. This is a stretch goal, not a universal limit or achieved result.
