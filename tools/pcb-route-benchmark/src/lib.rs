@@ -313,6 +313,7 @@ pub struct PairedSummary {
     pub completion_delta_percentage_points: f64,
     pub treatment_only_valid_completions: usize,
     pub baseline_only_valid_completions: usize,
+    pub completion_sign_test_two_sided_p_value: Option<f64>,
     pub both_valid: usize,
     pub neither_valid: usize,
     pub completion_delta_95_ci_percentage_points: ConfidenceInterval,
@@ -373,6 +374,10 @@ pub struct ReplicatedSummary {
     pub baseline_completion_rate: f64,
     pub treatment_completion_rate: f64,
     pub completion_delta_percentage_points: f64,
+    pub completion_treatment_better_boards: usize,
+    pub completion_baseline_better_boards: usize,
+    pub completion_tied_boards: usize,
+    pub completion_sign_test_two_sided_p_value: Option<f64>,
     pub completion_delta_95_ci_board_clustered: ConfidenceInterval,
     pub mean_elapsed_delta_ms_treatment_minus_baseline: f64,
     pub mean_elapsed_delta_95_ci_board_clustered_ms: ConfidenceInterval,
@@ -1476,6 +1481,10 @@ pub fn compare_runs(
             completion_delta_percentage_points: 100.0 * (treatment_valid as f64 - baseline_valid as f64) / n as f64,
             treatment_only_valid_completions: treatment_only,
             baseline_only_valid_completions: baseline_only,
+            completion_sign_test_two_sided_p_value: exact_paired_sign_test_p_value(
+                treatment_only,
+                baseline_only,
+            ),
             both_valid: both,
             neither_valid: neither,
             completion_delta_95_ci_percentage_points: ConfidenceInterval {
@@ -1688,6 +1697,22 @@ pub fn compare_replicated_runs(
     let paired_attempt_count = board_count * seed_count;
     let baseline_rate = baseline_valid_attempts as f64 / paired_attempt_count as f64;
     let treatment_rate = treatment_valid_attempts as f64 / paired_attempt_count as f64;
+    let completion_treatment_better_boards = completion_cluster_deltas
+        .iter()
+        .filter(|delta| **delta > 0.0)
+        .count();
+    let completion_baseline_better_boards = completion_cluster_deltas
+        .iter()
+        .filter(|delta| **delta < 0.0)
+        .count();
+    let completion_tied_boards = completion_cluster_deltas
+        .iter()
+        .filter(|delta| **delta == 0.0)
+        .count();
+    let completion_sign_test_two_sided_p_value = exact_paired_sign_test_p_value(
+        completion_treatment_better_boards,
+        completion_baseline_better_boards,
+    );
 
     let seed_material = seed_pairs
         .iter()
@@ -1749,6 +1774,10 @@ pub fn compare_replicated_runs(
             baseline_completion_rate: baseline_rate,
             treatment_completion_rate: treatment_rate,
             completion_delta_percentage_points: (treatment_rate - baseline_rate) * 100.0,
+            completion_treatment_better_boards,
+            completion_baseline_better_boards,
+            completion_tied_boards,
+            completion_sign_test_two_sided_p_value,
             completion_delta_95_ci_board_clustered: ConfidenceInterval {
                 lower_95: completion_ci.0 * 100.0,
                 upper_95: completion_ci.1 * 100.0,
@@ -1823,6 +1852,24 @@ fn index_replicated_runs<'a>(
     }
 
     Ok(indexed)
+}
+
+fn exact_paired_sign_test_p_value(positive: usize, negative: usize) -> Option<f64> {
+    let trials = positive + negative;
+    if trials == 0 {
+        return None;
+    }
+
+    // Under the null, each discordant paired unit is equally likely to favour
+    // either method. Calculate the two-sided exact Binomial(n, 0.5) tail.
+    let lower_tail = positive.min(negative);
+    let mut probability = 0.5_f64.powi(trials as i32);
+    let mut cumulative = probability;
+    for successes in 1..=lower_tail {
+        probability *= (trials - successes + 1) as f64 / successes as f64;
+        cumulative += probability;
+    }
+    Some((2.0 * cumulative).min(1.0))
 }
 
 fn bool_as_f64(value: bool) -> f64 {
@@ -2304,6 +2351,15 @@ mod tests {
         );
         assert_eq!(comparison.summary.treatment_only_valid_completions, 2);
         assert_eq!(comparison.summary.baseline_only_valid_completions, 0);
+        assert!(
+            (comparison
+                .summary
+                .completion_sign_test_two_sided_p_value
+                .unwrap()
+                - 0.5)
+                .abs()
+                < 1e-12
+        );
         assert_eq!(comparison.summary.jointly_valid_board_count, 2);
         assert_eq!(
             comparison
@@ -2367,6 +2423,18 @@ mod tests {
                 .resamples,
             10_000
         );
+        assert_eq!(comparison.summary.completion_treatment_better_boards, 2);
+        assert_eq!(comparison.summary.completion_baseline_better_boards, 0);
+        assert_eq!(comparison.summary.completion_tied_boards, 4);
+        assert!(
+            (comparison
+                .summary
+                .completion_sign_test_two_sided_p_value
+                .unwrap()
+                - 0.5)
+                .abs()
+                < 1e-12
+        );
         assert_eq!(comparison.boards.len(), 6);
         assert_eq!(comparison.seed_pairs.len(), 3);
         assert!(
@@ -2398,6 +2466,17 @@ mod tests {
         assert!(index_replicated_runs(&duplicate, "baseline")
             .unwrap_err()
             .contains("duplicate seed"));
+    }
+
+    #[test]
+    fn exact_sign_test_uses_discordant_pairs_and_reports_small_sample_uncertainty() {
+        assert!(exact_paired_sign_test_p_value(0, 0).is_none());
+        assert!((exact_paired_sign_test_p_value(1, 0).unwrap() - 1.0).abs() < 1e-12);
+        assert!((exact_paired_sign_test_p_value(2, 0).unwrap() - 0.5).abs() < 1e-12);
+        assert!(
+            (exact_paired_sign_test_p_value(10, 0).unwrap() - (2.0 / 1024.0)).abs() < 1e-12
+        );
+        assert!((exact_paired_sign_test_p_value(4, 4).unwrap() - 1.0).abs() < 1e-12);
     }
 
     #[test]
