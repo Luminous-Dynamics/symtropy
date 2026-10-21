@@ -14,10 +14,7 @@ use std::time::{Duration, Instant};
 
 fn candidate(index: usize, count: usize, profile: &str) -> AlternativeCandidate {
     let (cost, coverage) = match profile {
-        "tradeoff-heavy" => (
-            index as f64 + 1.0,
-            index as f64 / count.max(1) as f64,
-        ),
+        "tradeoff-heavy" => (index as f64 + 1.0, index as f64 / count.max(1) as f64),
         "dominated-chain" => (index as f64 + 1.0, 1.0 / (index as f64 + 1.0)),
         _ => unreachable!("only named benchmark profiles are used"),
     };
@@ -61,10 +58,14 @@ fn run_profile(count: usize, profile: &str, iterations: usize) {
         .map(|index| candidate(index, count, profile))
         .collect::<Vec<_>>();
 
-    let reference = compute_pareto_frontier(&candidates)
-        .expect("synthetic profile must be comparable");
+    let reference =
+        compute_pareto_frontier(&candidates).expect("synthetic profile must be comparable");
     assert!(reference.ranking_complete);
-    let expected_frontier = if profile == "tradeoff-heavy" { count } else { 1 };
+    let expected_frontier = if profile == "tradeoff-heavy" {
+        count
+    } else {
+        1
+    };
     assert_eq!(reference.frontier_ids.len(), expected_frontier);
 
     let mut durations = Vec::with_capacity(iterations);
