@@ -24,6 +24,8 @@ const EARTH_RADIUS_M: f64 = 6_371_008.4;
 const MOON_MEAN_DISTANCE_M: f64 = 384_400_000.0;
 const FOV_RADIANS: f64 = PI / 3.0;
 const VIEWPORT_HEIGHT_PX: u32 = 720;
+const POSITION_ERROR_BUDGET_FRACTION_OF_PIXEL: f64 = 0.05;
+const MIN_POSITION_ERROR_BUDGET_M: f64 = 0.001;
 const TRANSITION_SECONDS: f32 = 2.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -723,6 +725,17 @@ fn band_index(band: ApparentSizeBand) -> usize {
     }
 }
 
+fn position_error_budget_m(distance_m: f64, viewport_height_px: u32) -> Option<f64> {
+    if !distance_m.is_finite() || distance_m <= 0.0 || viewport_height_px == 0 {
+        return None;
+    }
+    let one_pixel_world_m =
+        2.0 * (FOV_RADIANS / 2.0).tan() * distance_m / f64::from(viewport_height_px);
+    let budget_m = (one_pixel_world_m * POSITION_ERROR_BUDGET_FRACTION_OF_PIXEL)
+        .max(MIN_POSITION_ERROR_BUDGET_M);
+    budget_m.is_finite().then_some(budget_m)
+}
+
 fn render_radius_for_band(
     physical_radius_m: f64,
     distance_m: f64,
@@ -792,9 +805,11 @@ fn update_scene(
             continue;
         }
 
-        let one_pixel_world_m =
-            2.0 * (FOV_RADIANS / 2.0).tan() * distance_m / f64::from(viewport_height_px);
-        let error_budget_m = (one_pixel_world_m * 0.05).max(0.001);
+        let Some(error_budget_m) = position_error_budget_m(distance_m, viewport_height_px) else {
+            state.precision_rejections = state.precision_rejections.saturating_add(1);
+            *visibility = Visibility::Hidden;
+            continue;
+        };
         let relative_f32 = match body
             .position
             .relative_to_f32_with_error_budget(&state.camera_position, error_budget_m)
@@ -878,17 +893,21 @@ fn update_scene(
         let end_distance = end_relative[0]
             .hypot(end_relative[1])
             .hypot(end_relative[2]);
-        let pixel_error_budget = |distance: f64| {
-            (2.0 * (FOV_RADIANS / 2.0).tan() * distance / f64::from(viewport_height_px) * 0.05)
-                .max(0.001)
+        let (Some(start_error_budget), Some(end_error_budget)) = (
+            position_error_budget_m(start_distance, viewport_height_px),
+            position_error_budget_m(end_distance, viewport_height_px),
+        ) else {
+            state.precision_rejections = state.precision_rejections.saturating_add(1);
+            *visibility = Visibility::Hidden;
+            continue;
         };
         let start_f32 = segment.start.relative_to_f32_with_error_budget(
             &state.camera_position,
-            pixel_error_budget(start_distance),
+            start_error_budget,
         );
         let end_f32 = segment.end.relative_to_f32_with_error_budget(
             &state.camera_position,
-            pixel_error_budget(end_distance),
+            end_error_budget,
         );
         let (Ok(start_f32), Ok(end_f32)) = (start_f32, end_f32) else {
             state.precision_rejections = state.precision_rejections.saturating_add(1);
@@ -1162,6 +1181,29 @@ mod tests {
             assert_eq!(camera.frame(), focus.frame());
             assert!(camera.relative_to_meters(&focus).is_ok());
         }
+    }
+
+    #[test]
+    fn position_error_budget_scales_with_distance_and_render_resolution() {
+        let distance_m = AU_M;
+        let base = position_error_budget_m(distance_m, 720).expect("valid baseline budget");
+        let doubled_distance =
+            position_error_budget_m(distance_m * 2.0, 720).expect("valid doubled distance");
+        let doubled_resolution =
+            position_error_budget_m(distance_m, 1_440).expect("valid doubled resolution");
+
+        assert!(((doubled_distance / base) - 2.0).abs() < 1e-12);
+        assert!(((doubled_resolution / base) - 0.5).abs() < 1e-12);
+        assert_eq!(position_error_budget_m(1e-6, 720), Some(MIN_POSITION_ERROR_BUDGET_M));
+    }
+
+    #[test]
+    fn position_error_budget_rejects_non_finite_or_undefined_inputs() {
+        assert_eq!(position_error_budget_m(0.0, 720), None);
+        assert_eq!(position_error_budget_m(-1.0, 720), None);
+        assert_eq!(position_error_budget_m(f64::NAN, 720), None);
+        assert_eq!(position_error_budget_m(f64::INFINITY, 720), None);
+        assert_eq!(position_error_budget_m(AU_M, 0), None);
     }
 
     #[test]
