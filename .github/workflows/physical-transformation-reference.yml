@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
-          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml -- \
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin physical-transformation-reference -- \
             --source-commit "$source_commit" > physical-transformation-reference-receipt.json
           jq -e --arg source_commit "$source_commit" '
             .schema_version == "physical-transform-receipt-v0.1"
