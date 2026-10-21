@@ -62,8 +62,8 @@ jobs:
           grep -Fq $'META\ttruth_access\tevaluator only' lifecycle-metrics.tsv
           grep -Fq $'METRIC\tarrival_overwrite\t2' lifecycle-metrics.tsv
           grep -Fq $'METRIC\tquery_preserving\t6' lifecycle-metrics.tsv
-          test "$(awk -F '\\t' '$1 == "METRIC" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
-          test "$(awk -F '\\t' '$1 == "PAIR" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
+          test "$(awk -F '\t' '$1 == "METRIC" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
+          test "$(awk -F '\t' '$1 == "PAIR" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
           awk -F '\t' '$1 == "METRIC_HEADER" { if (NF != 15) exit 1; h++ } $1 == "METRIC" { if (NF != 15) exit 1; n++ } $1 == "PAIR_HEADER" { if (NF != 7) exit 1; p++ } $1 == "PAIR" { if (NF != 7) exit 1; q++ } END { if (h != 1 || n != 20 || p != 1 || q != 20) exit 1 }' lifecycle-metrics.tsv
           sha256sum lifecycle-metrics.tsv > lifecycle-metrics.sha256
           sha256sum -c lifecycle-metrics.sha256
