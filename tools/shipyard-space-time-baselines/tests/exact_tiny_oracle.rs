@@ -150,7 +150,10 @@ fn exhaustive_small_instances_never_allow_a_false_feasible_first_fit_plan() {
     assert_eq!(exact_feasible, 154, "exact feasibility reference changed");
     assert_eq!(baseline_solved, 150, "first-fit reference coverage changed");
     assert_eq!(baseline_missed_feasible, 4, "first-fit miss count changed");
-    assert_eq!(baseline_rejected_infeasible, 62, "infeasible rejection count changed");
+    assert_eq!(
+        baseline_rejected_infeasible, 62,
+        "infeasible rejection count changed"
+    );
 
     // One frozen counterexample proves first-fit is a baseline rather than an exact solver.
     // An exact arrangement exists, but the deterministic greedy sequence misses it.
