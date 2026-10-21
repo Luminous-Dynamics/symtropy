@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - feat/furnishing-spatial-index-benchmark-v0-3-20261020
+      - feat/interior-verified-pareto-frontier-v0-1-20261021-clean
   pull_request:
-    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020"]
+    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
@@ -58,4 +59,6 @@ jobs:
           free -h || true
       - name: Benchmark functional-envelope oracle at 25/100/1000/10000 tasks
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench functional_envelope_scaling
+      - name: Benchmark evidence-qualified frontier at 25/100/1000/10000 alternatives
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench alternative_frontier_scaling
 
