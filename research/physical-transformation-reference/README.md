@@ -16,7 +16,7 @@
 - Explicit units, positive-domain checks, non-finite/overflow rejection, signed load behavior, and frozen known-answer outputs for stress, strain, extension, cantilever deflection, simply supported midspan deflection and bending stress.
 - Frozen synthetic fixture: three topology components and two connections; disconnecting one edge changes graph connectivity from one connected component to two, and reconnecting it returns the graph to one. A separate component is then recovered through the state transition and its declared 1,000 mg reconciles exactly to recovery outputs.
 - Negative controls for duplicate events, failed transactional mutation, dangling endpoints, self-connections, support state, connected-component recovery, unbalanced component recovery, standalone ledger imbalance, numeric overflow and malformed identifiers.
-- The current focused crate suite contains 37 library unit tests, 3 truss-receipt CLI unit tests, and 4 integration oracle tests, plus compile-fail/doctest coverage where present. The counts are verified per exact-head CI run; mutation-harness runs are reported separately.
+- The current focused crate suite contains 37 library unit tests, 3 truss-receipt CLI unit tests, 3 modal-receipt CLI unit tests, and 4 integration oracle tests, plus compile-fail/doctest coverage where present. The counts are verified per exact-head CI run; mutation-harness runs are reported separately.
 - Deterministic JSON receipt bound to the 40-character source commit supplied by the caller, including state-bound recovered-component count and mass.
 - Planar truss reference: dependency-free 2D pin-jointed linear-elastic stiffness assembly, deterministic dense solve, closed-form symmetric V-truss oracle, explicit support reactions and normalized force/moment/free-DOF residuals, fail-closed singular mechanism detection, and scale-invariant pivot tolerance. Scope is capped at 128 nodes / 512 bars and excludes bending, buckling, nonlinear response, contact, fracture, dynamics, and physical validation.
 - A second independent known-answer case uses asymmetric bar geometry, unequal axial stiffness, and mixed horizontal/vertical load. It pins both apex displacement components, signed member responses, support reactions, equilibrium residuals, and energy/work balance. It specifically exercises the stiffness cross-coupling terms that cancel under the symmetric vertical-load fixture; a zeroed-{cs} mutation is required to fail this oracle.
@@ -36,9 +36,12 @@ cargo run --locked --manifest-path research/physical-transformation-reference/Ca
   --source-commit "$(git rev-parse HEAD)"
 cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin planar-truss-reference -- \
   --source-commit "$(git rev-parse HEAD)"
+cargo run --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin modal-bar-reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+bash research/physical-transformation-reference/scripts/verify_modal_bar_mutations.sh
 ```
 
-The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics; CI adds the SHA-256 request digest and pins the expected digest. Neither receipt is a claim of verified real-world evidence.
+The default CLI emits the topology/material/analytical-reference receipt. The `planar-truss-reference` binary emits the frozen V-truss receipt with request canonicalization and equilibrium diagnostics. The `modal-bar-reference` binary parses its seven-field frozen request, derives area from the declared radius, evaluates both mass formulations, and emits the 1/2/4/8/16-element convergence ladder. CI hashes the canonical request and source tree, requires repeated receipts to be byte-identical, and uploads the receipt. A separate isolated-mutant harness targets five modal formula/numerical defects; it must show the original modal test suite passing and each mutant detected. These receipts are software verification evidence, not physical validation or a full NAFEMS Challenge 5 reproduction.
 
 ## Paradigm shift
 
@@ -59,7 +62,7 @@ For the wider industry matrix and proposed numerical acceptance targets, see [PH
 ## Benchmark ladder
 
 1. **Software invariants (implemented slice):** deterministic replay, transactional rejection, graph connectivity and exact integer mass balance.
-2. **Analytical mechanics (initial slice implemented):** unit-aware axial bar, cantilever tip load, and simply supported uniform-load cases with independently pinned expected values and declared tolerances.
+2. **Analytical mechanics (initial slice implemented):** unit-aware axial bar, cantilever tip load, and simply supported uniform-load cases with independently pinned expected values and declared tolerances. A separate modal axial-bar subproblem now checks consistent/lumped mass, exact frequency limits, and two-mode mesh convergence; the complete 2D NAFEMS Challenge 5 model is still future work.
 3. **Solver adapter:** pin solver/version, boundary conditions, mesh and convergence information; report error and residuals.
 4. **Physical fracture/contact:** use a rights-cleared measured dataset or controlled instrumented experiment, including uncertainty and held-out cases.
 5. **Construction planning:** temporary supports, connection prerequisites, assembly sequence and tool accessibility.
