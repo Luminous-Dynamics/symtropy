@@ -175,7 +175,10 @@ fn unrankable_reasons(candidate: &IntervalAlternativeCandidate) -> Vec<String> {
         {
             reasons.push("objective dimension is blank or has surrounding whitespace".to_owned());
         } else if !seen.insert(objective.dimension.as_str()) {
-            reasons.push(format!("duplicate objective dimension {:?}", objective.dimension));
+            reasons.push(format!(
+                "duplicate objective dimension {:?}",
+                objective.dimension
+            ));
         }
         if objective.unit.trim().is_empty() || objective.unit != objective.unit.trim() {
             reasons.push(format!(
@@ -328,7 +331,10 @@ pub fn compute_interval_frontier(
                 }
                 let mut objectives = candidate.objectives.iter().collect::<Vec<_>>();
                 objectives.sort_by_key(|objective| objective.dimension.clone());
-                rankable.push(RankableIntervalCandidate { candidate, objectives });
+                rankable.push(RankableIntervalCandidate {
+                    candidate,
+                    objectives,
+                });
             }
         }
     }
@@ -458,8 +464,18 @@ mod tests {
     #[test]
     fn intervals_that_are_separated_guarantee_dominance() {
         let input = vec![
-            candidate("better", VerificationStatus::Verified, (10.0, 12.0), (80.0, 85.0)),
-            candidate("worse", VerificationStatus::Verified, (14.0, 16.0), (70.0, 75.0)),
+            candidate(
+                "better",
+                VerificationStatus::Verified,
+                (10.0, 12.0),
+                (80.0, 85.0),
+            ),
+            candidate(
+                "worse",
+                VerificationStatus::Verified,
+                (14.0, 16.0),
+                (70.0, 75.0),
+            ),
         ];
         let report = compute_interval_frontier(&input).expect("valid interval schema");
         assert_eq!(report.frontier_ids, vec!["better"]);
@@ -476,24 +492,34 @@ mod tests {
         // A midpoint-only ranking would claim a dominates b in both objectives,
         // but neither interval is separated enough to guarantee that relation.
         let input = vec![
-            candidate("a", VerificationStatus::Verified, (10.0, 20.0), (80.0, 100.0)),
-            candidate("b", VerificationStatus::Verified, (15.0, 25.0), (75.0, 85.0)),
+            candidate(
+                "a",
+                VerificationStatus::Verified,
+                (10.0, 20.0),
+                (80.0, 100.0),
+            ),
+            candidate(
+                "b",
+                VerificationStatus::Verified,
+                (15.0, 25.0),
+                (75.0, 85.0),
+            ),
         ];
         let report = compute_interval_frontier(&input).expect("valid interval schema");
         assert_eq!(report.frontier_ids, vec!["a", "b"]);
-        assert_eq!(result(&report, "a"), &IntervalCandidateDisposition::OnFrontier);
-        assert_eq!(result(&report, "b"), &IntervalCandidateDisposition::OnFrontier);
+        assert_eq!(
+            result(&report, "a"),
+            &IntervalCandidateDisposition::OnFrontier
+        );
+        assert_eq!(
+            result(&report, "b"),
+            &IntervalCandidateDisposition::OnFrontier
+        );
     }
 
     #[test]
     fn every_guaranteed_dominance_holds_for_all_interval_endpoints() {
-        let bounds = [
-            (0.0, 0.0),
-            (0.0, 1.0),
-            (1.0, 1.0),
-            (-1.0, 2.0),
-            (2.0, 3.0),
-        ];
+        let bounds = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (-1.0, 2.0), (2.0, 3.0)];
         for cost_left in bounds {
             for cost_right in bounds {
                 for coverage_left in bounds {
@@ -582,8 +608,18 @@ mod tests {
     #[test]
     fn equal_or_touching_intervals_without_strict_separation_remain_tied() {
         let input = vec![
-            candidate("a", VerificationStatus::Verified, (10.0, 12.0), (80.0, 90.0)),
-            candidate("b", VerificationStatus::Verified, (12.0, 15.0), (75.0, 80.0)),
+            candidate(
+                "a",
+                VerificationStatus::Verified,
+                (10.0, 12.0),
+                (80.0, 90.0),
+            ),
+            candidate(
+                "b",
+                VerificationStatus::Verified,
+                (12.0, 15.0),
+                (75.0, 80.0),
+            ),
         ];
         let report = compute_interval_frontier(&input).expect("valid touching intervals");
         assert_eq!(report.frontier_ids, vec!["a", "b"]);
@@ -592,9 +628,24 @@ mod tests {
     #[test]
     fn blocked_and_indeterminate_candidates_never_enter_frontier() {
         let input = vec![
-            candidate("verified", VerificationStatus::Verified, (10.0, 12.0), (80.0, 85.0)),
-            candidate("blocked", VerificationStatus::Blocked, (0.0, 1.0), (99.0, 100.0)),
-            candidate("unknown-gate", VerificationStatus::Indeterminate, (0.0, 1.0), (99.0, 100.0)),
+            candidate(
+                "verified",
+                VerificationStatus::Verified,
+                (10.0, 12.0),
+                (80.0, 85.0),
+            ),
+            candidate(
+                "blocked",
+                VerificationStatus::Blocked,
+                (0.0, 1.0),
+                (99.0, 100.0),
+            ),
+            candidate(
+                "unknown-gate",
+                VerificationStatus::Indeterminate,
+                (0.0, 1.0),
+                (99.0, 100.0),
+            ),
         ];
         let report = compute_interval_frontier(&input).expect("valid interval schema");
         assert_eq!(report.frontier_ids, vec!["verified"]);
@@ -617,9 +668,14 @@ mod tests {
             (99.0, 100.0),
         );
         unknown.objectives[0].evidence = ObjectiveEvidence::Unknown;
-        let known = candidate("known", VerificationStatus::Verified, (10.0, 12.0), (80.0, 85.0));
-        let report = compute_interval_frontier(&[unknown, known])
-            .expect("excluded evidence is explicit");
+        let known = candidate(
+            "known",
+            VerificationStatus::Verified,
+            (10.0, 12.0),
+            (80.0, 85.0),
+        );
+        let report =
+            compute_interval_frontier(&[unknown, known]).expect("excluded evidence is explicit");
         assert_eq!(report.frontier_ids, vec!["known"]);
         assert!(!report.ranking_complete);
         assert!(matches!(
@@ -670,7 +726,12 @@ mod tests {
             kind: IntervalSemanticsKind::DeterministicEnvelope,
             basis_id: "alternate-envelope-v2".to_owned(),
         };
-        let a = candidate("a", VerificationStatus::Verified, (12.0, 13.0), (70.0, 71.0));
+        let a = candidate(
+            "a",
+            VerificationStatus::Verified,
+            (12.0, 13.0),
+            (70.0, 71.0),
+        );
         assert!(matches!(
             compute_interval_frontier(&[a.clone(), different_semantics]),
             Err(IntervalFrontierError::IncompatibleObjectiveSchemas { .. })
@@ -742,9 +803,24 @@ mod tests {
     #[test]
     fn frontier_is_deterministic_under_input_order() {
         let candidates = vec![
-            candidate("a", VerificationStatus::Verified, (10.0, 20.0), (70.0, 90.0)),
-            candidate("b", VerificationStatus::Verified, (15.0, 25.0), (75.0, 95.0)),
-            candidate("c", VerificationStatus::Verified, (30.0, 35.0), (40.0, 45.0)),
+            candidate(
+                "a",
+                VerificationStatus::Verified,
+                (10.0, 20.0),
+                (70.0, 90.0),
+            ),
+            candidate(
+                "b",
+                VerificationStatus::Verified,
+                (15.0, 25.0),
+                (75.0, 95.0),
+            ),
+            candidate(
+                "c",
+                VerificationStatus::Verified,
+                (30.0, 35.0),
+                (40.0, 45.0),
+            ),
         ];
         let first = compute_interval_frontier(&candidates).expect("valid schema");
         let mut reverse = candidates.clone();
@@ -759,8 +835,18 @@ mod tests {
             compute_interval_frontier(&[]),
             Err(IntervalFrontierError::EmptyRequest)
         );
-        let a = candidate("duplicate", VerificationStatus::Verified, (1.0, 2.0), (80.0, 90.0));
-        let b = candidate("duplicate", VerificationStatus::Verified, (4.0, 5.0), (60.0, 70.0));
+        let a = candidate(
+            "duplicate",
+            VerificationStatus::Verified,
+            (1.0, 2.0),
+            (80.0, 90.0),
+        );
+        let b = candidate(
+            "duplicate",
+            VerificationStatus::Verified,
+            (4.0, 5.0),
+            (60.0, 70.0),
+        );
         assert_eq!(
             compute_interval_frontier(&[a, b]),
             Err(IntervalFrontierError::DuplicateCandidateId(
