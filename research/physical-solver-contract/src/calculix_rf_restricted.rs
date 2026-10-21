@@ -57,6 +57,16 @@ struct RfRow {
     raw_line: String,
 }
 
+struct SupportCatalogContext<'a> {
+    case_id: &'a str,
+    request_id: &'a str,
+    request_sha256: &'a str,
+    scene_sha256: &'a str,
+    scene_revision: u64,
+    coordinate_frame_id: &'a str,
+    deck_sha256: &'a str,
+}
+
 /// Prove the restricted stock-CCX RF equivalence conditions, then normalize one exact RF section.
 ///
 /// This function never treats RF as reactions in general. It accepts only a deliberately
@@ -197,17 +207,16 @@ pub fn normalize_restricted_rf_bytes(
                 .to_owned(),
         );
     }
-    let catalog_nodes = parse_support_catalog(
-        &catalog,
-        &case_id,
-        &request_id,
-        &request_sha256,
-        &scene_sha256,
+    let catalog_context = SupportCatalogContext {
+        case_id: &case_id,
+        request_id: &request_id,
+        request_sha256: &request_sha256,
+        scene_sha256,
         scene_revision,
-        &coordinate_frame_id,
-        &deck_sha256,
-        &support_ids,
-    )?;
+        coordinate_frame_id: &coordinate_frame_id,
+        deck_sha256: &deck_sha256,
+    };
+    let catalog_nodes = parse_support_catalog(&catalog, &catalog_context, &support_ids)?;
     for support in &catalog_nodes {
         let deck_position = parsed_deck.nodes.get(&support.node_id).ok_or_else(|| {
             format!(
@@ -400,13 +409,7 @@ fn ensure_unique_map(map: &[LoadNodeMap], at: &str) -> Check<()> {
 
 fn parse_support_catalog(
     catalog: &Value,
-    case_id: &str,
-    request_id: &str,
-    request_sha256: &str,
-    scene_sha256: &str,
-    scene_revision: u64,
-    coordinate_frame_id: &str,
-    deck_sha256: &str,
+    context: &SupportCatalogContext<'_>,
     expected_support_ids: &BTreeSet<u64>,
 ) -> Check<Vec<SupportNode>> {
     exact_keys(
@@ -427,13 +430,13 @@ fn parse_support_catalog(
         "node catalogue",
     )?;
     if field_str(catalog, "schema_version", "node catalogue")? != CATALOG_SCHEMA
-        || field_str(catalog, "case_id", "node catalogue")? != case_id
-        || field_str(catalog, "request_id", "node catalogue")? != request_id
-        || field_sha(catalog, "request_sha256", "node catalogue")? != request_sha256
-        || field_sha(catalog, "scene_sha256", "node catalogue")? != scene_sha256
-        || field_u64(catalog, "scene_revision", "node catalogue")? != scene_revision
-        || field_str(catalog, "coordinate_frame_id", "node catalogue")? != coordinate_frame_id
-        || field_sha(catalog, "deck_sha256", "node catalogue")? != deck_sha256
+        || field_str(catalog, "case_id", "node catalogue")? != context.case_id
+        || field_str(catalog, "request_id", "node catalogue")? != context.request_id
+        || field_sha(catalog, "request_sha256", "node catalogue")? != context.request_sha256
+        || field_sha(catalog, "scene_sha256", "node catalogue")? != context.scene_sha256
+        || field_u64(catalog, "scene_revision", "node catalogue")? != context.scene_revision
+        || field_str(catalog, "coordinate_frame_id", "node catalogue")? != context.coordinate_frame_id
+        || field_sha(catalog, "deck_sha256", "node catalogue")? != context.deck_sha256
     {
         return Err("support-node catalogue identity/frame/deck digest mismatch".to_owned());
     }
@@ -561,9 +564,9 @@ fn request_point_loads(
             ));
         }
         let vector = field_vec3(load, "vector_xyz", &at)?;
-        for component in 0..3 {
-            if vector[component] != 0.0 {
-                result.insert((node_id, (component + 1) as u8), vector[component]);
+        for (component, magnitude) in vector.iter().enumerate() {
+            if *magnitude != 0.0 {
+                result.insert((node_id, (component + 1) as u8), *magnitude);
             }
         }
     }
