@@ -346,9 +346,6 @@ impl Memory {
         let before_best = self.best_entry(observation.key);
         let prior_id = before_best.map(|e| e.observation.id);
         let incoming_order = (observation.source_tick, observation.id);
-        let is_newer = before_best
-            .map(|e| incoming_order > (e.observation.source_tick, e.observation.id))
-            .unwrap_or(true);
         let index = self.items.iter().position(|e| e.observation.key == observation.key);
         let mut evicted: Option<Entry> = None;
         let mut accepted = false;
@@ -580,7 +577,10 @@ fn run_episode(
                 &episode.query_keys,
                 episode_index,
             );
-            receipt_count += 1 + u64::from(applied.compression.is_some());
+            receipt_count += 1;
+            if applied.compression.is_some() {
+                receipt_count += 1;
+            }
             if capture_receipts {
                 receipts.push(applied.primary.clone());
                 if let Some(ref receipt) = applied.compression {
@@ -643,7 +643,7 @@ fn run_episode(
     } else {
         let predicted_positive = cited
             .iter()
-            .filter(|entry| entry.is_some_and(|e| e.observation.value))
+            .filter(|entry| entry.as_ref().is_some_and(|e| e.observation.value))
             .count();
         if (predicted_positive >= 2) == target { 0.0 } else { 1.0 }
     };
@@ -974,6 +974,59 @@ mod tests {
             m2.apply(*o, Policy::EventLedger, 4, &a.query_keys, 7);
         }
         assert_eq!(m1.digest(), m2.digest());
+    }
+
+
+    #[test]
+    fn event_ledger_reports_capacity_eviction_as_compression() {
+        let query = [0, 1, 2];
+        let mut memory = Memory::default();
+        memory.apply(obs(0, false, 1, 1, 10), Policy::EventLedger, 2, &query, 0);
+        memory.apply(obs(1, true, 2, 2, 20), Policy::EventLedger, 2, &query, 0);
+        let result = memory.apply(obs(2, true, 3, 3, 30), Policy::EventLedger, 2, &query, 0);
+        assert_eq!(memory.items.len(), 2);
+        assert_eq!(result.evicted.unwrap().observation.id, 10);
+        let compression = result.compression.unwrap();
+        assert_eq!(compression.operation, "compression");
+        assert_eq!(compression.evicted_id, Some(10));
+        assert_eq!(compression.before_digest, result.primary.before_digest);
+        assert_eq!(compression.after_digest, result.primary.after_digest);
+    }
+
+    #[test]
+    fn equal_source_tick_tie_break_is_deterministic() {
+        let query = [0, 1, 2];
+        let mut memory = Memory::default();
+        memory.apply(obs(0, true, 3, 3, 40), Policy::SourceTimeLatest, 3, &query, 0);
+        memory.apply(obs(0, false, 3, 4, 20), Policy::SourceTimeLatest, 3, &query, 0);
+        assert_eq!(memory.best_entry(0).unwrap().observation.id, 40);
+    }
+
+    #[test]
+    fn query_preserving_projection_survives_distractor_burst() {
+        let query = [0, 1, 2];
+        let mut memory = Memory::default();
+        for i in 0..64_u64 {
+            let key = (3 + (i as usize % 5)) as u8;
+            memory.apply(
+                obs(key, i % 2 == 0, (i + 1) as u16, (i + 1) as u16, 1_000 + i),
+                Policy::QueryPreserving,
+                3,
+                &query,
+                0,
+            );
+        }
+        for key in query {
+            memory.apply(
+                obs(key, key % 2 == 0, 100, 100, 2_000 + key as u64),
+                Policy::QueryPreserving,
+                3,
+                &query,
+                0,
+            );
+        }
+        assert_eq!(memory.items.len(), 3);
+        assert!(query.into_iter().all(|key| memory.best_entry(key).is_some()));
     }
 
     #[test]
