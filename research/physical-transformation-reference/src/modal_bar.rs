@@ -48,8 +48,7 @@ pub fn analytical_fixed_free_axial_bar_frequencies(
 
     let mut frequencies = Vec::with_capacity(requested_modes);
     for mode in 1..=requested_modes {
-        let frequency =
-            (2 * mode - 1) as f64 * wave_speed / (4.0 * length_m);
+        let frequency = (2 * mode - 1) as f64 * wave_speed / (4.0 * length_m);
         if !frequency.is_finite() || frequency <= 0.0 {
             return Err("analytical frequency is not finite and positive".to_string());
         }
@@ -344,8 +343,7 @@ fn symmetric_jacobi_eigenvalues(mut matrix: Matrix) -> Check<Vec<f64>> {
         let mut largest_off_diagonal = 0.0_f64;
         for row in 0..size {
             for col in (row + 1)..size {
-                largest_off_diagonal =
-                    largest_off_diagonal.max(matrix[row][col].abs());
+                largest_off_diagonal = largest_off_diagonal.max(matrix[row][col].abs());
             }
         }
         if largest_off_diagonal <= tolerance {
@@ -388,11 +386,7 @@ mod tests {
         .expect("analytical frequencies")
     }
 
-    fn solve(
-        elements: usize,
-        modes: usize,
-        formulation: MassMatrixFormulation,
-    ) -> Vec<f64> {
+    fn solve(elements: usize, modes: usize, formulation: MassMatrixFormulation) -> Vec<f64> {
         fixed_free_axial_bar_frequencies(
             LENGTH_M,
             AREA_M2,
@@ -414,9 +408,7 @@ mod tests {
         let frequencies = exact(4);
         for mode in 1..frequencies.len() {
             let expected_ratio = (2 * mode + 1) as f64 / (2 * mode - 1) as f64;
-            assert!(
-                (frequencies[mode] / frequencies[mode - 1] - expected_ratio).abs() < 1.0e-12
-            );
+            assert!((frequencies[mode] / frequencies[mode - 1] - expected_ratio).abs() < 1.0e-12);
         }
         assert!((frequencies[0] - 1297.0).abs() < 1.0);
     }
@@ -505,42 +497,45 @@ mod tests {
 
     #[test]
     fn invalid_domains_and_unavailable_modes_fail_closed() {
-        assert!(analytical_fixed_free_axial_bar_frequencies(
-            0.0,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            1,
-        )
-        .is_err());
-        assert!(fixed_free_axial_bar_frequencies(
-            LENGTH_M,
-            AREA_M2,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            0,
-            1,
-            MassMatrixFormulation::Consistent,
-        )
-        .is_err());
-        assert!(fixed_free_axial_bar_frequencies(
-            LENGTH_M,
-            AREA_M2,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            2,
-            3,
-            MassMatrixFormulation::Consistent,
-        )
-        .is_err());
-        assert!(fixed_free_axial_bar_frequencies(
-            LENGTH_M,
-            AREA_M2,
-            YOUNGS_MODULUS_PA,
-            DENSITY_KG_M3,
-            1,
-            1,
-            MassMatrixFormulation::Lumped,
-        )
-        .is_ok());
+        assert!(
+            analytical_fixed_free_axial_bar_frequencies(0.0, YOUNGS_MODULUS_PA, DENSITY_KG_M3, 1,)
+                .is_err()
+        );
+        assert!(
+            fixed_free_axial_bar_frequencies(
+                LENGTH_M,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                0,
+                1,
+                MassMatrixFormulation::Consistent,
+            )
+            .is_err()
+        );
+        assert!(
+            fixed_free_axial_bar_frequencies(
+                LENGTH_M,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                2,
+                3,
+                MassMatrixFormulation::Consistent,
+            )
+            .is_err()
+        );
+        assert!(
+            fixed_free_axial_bar_frequencies(
+                LENGTH_M,
+                AREA_M2,
+                YOUNGS_MODULUS_PA,
+                DENSITY_KG_M3,
+                1,
+                1,
+                MassMatrixFormulation::Lumped,
+            )
+            .is_ok()
+        );
     }
 }
