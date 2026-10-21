@@ -356,7 +356,7 @@ jobs:
             3600=ev-factory-age-3600-report.json \
             > ev-factory-age-threshold-sensitivity.json
           jq -e '
-            .schema_version == "ev-factory-age-threshold-sensitivity/0.1"
+            .schema_version == "ev-factory-age-threshold-sensitivity/0.2"
             and .benchmark_id == "EV-FACTORY-SIM-001"
             and .baseline_policy == "fifo"
             and .candidate_policy == "minimize_changeover"
@@ -367,7 +367,20 @@ jobs:
             and all(.threshold_results[]; (.scenario_deltas | length) == 6 and (.station_deltas | length) == 30)
             and all(.threshold_results[]; all(.scenario_deltas[]; .good_units_per_hour_delta.sample_count == 20 and .good_units_total_delta.sample_count == 20 and .scrapped_jobs_delta.sample_count == 20 and .rework_attempts_delta.sample_count == 20 and (.per_variant_wait_deltas | length) == 3))
             and all(.threshold_results[]; all(.station_deltas[]; .changeovers_delta.sample_count == 20 and .out_of_order_output_transfers_delta.sample_count == 20))
-            and (.multiplicity_adjustment | contains("none"))
+            and (.multiplicity_adjustment | contains("Holm"))
+            and .confirmatory_throughput_family.family_id == "ev-factory-age-throughput-primary-v1"
+            and .confirmatory_throughput_family.family_size == 24
+            and .confirmatory_throughput_family.familywise_alpha == 0.05
+            and (.confirmatory_throughput_family.tests | length) == 24
+            and all(.confirmatory_throughput_family.tests[];
+              .pair_count == 20
+              and (.positive_deltas + .negative_deltas + .tied_deltas) == .pair_count
+              and .raw_exact_sign_test_p_value >= 0
+              and .raw_exact_sign_test_p_value <= 1
+              and .holm_adjusted_p_value >= .raw_exact_sign_test_p_value
+              and .holm_adjusted_p_value <= 1
+              and .reject_null_at_alpha_0_05 == (.holm_adjusted_p_value <= 0.05)
+            )
           ' ev-factory-age-threshold-sensitivity.json
 
       - name: Run PCB cell routes and assert fail-closed invariants
