@@ -1027,8 +1027,10 @@ mod tests {
 
             let area_a = stiffness_a * length_a / youngs_modulus_pa;
             let area_b = stiffness_b * length_b / youngs_modulus_pa;
-            let kxx = stiffness_a * cosine_a * cosine_a + stiffness_b * cosine_b * cosine_b;
-            let kxy = stiffness_a * cosine_a * sine_a + stiffness_b * cosine_b * sine_b;
+            let kxx = stiffness_a * cosine_a * cosine_a
+                + stiffness_b * cosine_b * cosine_b;
+            let kxy = stiffness_a * cosine_a * sine_a
+                + stiffness_b * cosine_b * sine_b;
             let kyy = stiffness_a * sine_a * sine_a + stiffness_b * sine_b * sine_b;
             let determinant = kxx * kyy - kxy * kxy;
             assert!(
