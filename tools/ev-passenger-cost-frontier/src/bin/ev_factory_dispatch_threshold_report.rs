@@ -170,8 +170,7 @@ fn run() -> Result<(), String> {
     for (age, r) in &candidates {
         results.push(compare(*age, &base_ix, r, &index(r)?)?);
     }
-    let confirmatory_throughput_family =
-        build_confirmatory_throughput_family(&results, 0.05)?;
+    let confirmatory_throughput_family = build_confirmatory_throughput_family(&results, 0.05)?;
     let expected_tests = THRESHOLDS.len() * base.scenario_count;
     if confirmatory_throughput_family.family_size != expected_tests || expected_tests != 24 {
         return Err(format!(
@@ -218,7 +217,9 @@ fn build_confirmatory_throughput_family(
                 || unique_seeds.len() != 20
                 || pairs.iter().any(|pair| !pair.delta.is_finite())
             {
-                return Err("confirmatory_throughput_test_requires_twenty_unique_finite_pairs".into());
+                return Err(
+                    "confirmatory_throughput_test_requires_twenty_unique_finite_pairs".into(),
+                );
             }
             let positive_deltas = pairs.iter().filter(|pair| pair.delta > 0.0).count();
             let negative_deltas = pairs.iter().filter(|pair| pair.delta < 0.0).count();
@@ -621,8 +622,14 @@ mod tests {
     fn exact_sign_test_has_known_two_sided_values_and_tie_semantics() {
         let all_positive = exact_two_sided_sign_test_p_value(20, 0).expect("valid sign test");
         assert!((all_positive - (2.0 / 1_048_576.0)).abs() < 1e-12);
-        assert_eq!(exact_two_sided_sign_test_p_value(10, 10).expect("balanced signs"), 1.0);
-        assert_eq!(exact_two_sided_sign_test_p_value(0, 0).expect("all ties"), 1.0);
+        assert_eq!(
+            exact_two_sided_sign_test_p_value(10, 10).expect("balanced signs"),
+            1.0
+        );
+        assert_eq!(
+            exact_two_sided_sign_test_p_value(0, 0).expect("all ties"),
+            1.0
+        );
         assert!(exact_two_sided_sign_test_p_value(21, 0).is_err());
     }
 
