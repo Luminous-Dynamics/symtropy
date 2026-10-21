@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
 
 pub const DRC_POLICY_SCHEMA: &str = "kicad-drc-routing-policy-v0.1";
 pub const DRC_RECEIPT_SCHEMA: &str = "kicad-drc-evidence-receipt-v0.1";
@@ -16,6 +20,143 @@ pub struct KicadDrcRoutingPolicy {
     pub blocking_severities: Vec<String>,
     pub block_unconnected_items: bool,
     pub block_schematic_parity: bool,
+}
+
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct BoardKicadDrcVerification {
+    pub board_id: String,
+    pub drc_report_relative_path: String,
+    pub evidence: KicadDrcEvidenceReceipt,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct KicadRunArtifactVerificationReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub run_artifact_verification: crate::RunArtifactVerificationReceipt,
+    pub policy_sha256: String,
+    pub verified_drc_board_count: usize,
+    pub boards: Vec<BoardKicadDrcVerification>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
+/// Verify actual output/DRC file bytes, then parse each completed attempt's
+/// KiCad DRC JSON and compare derived findings with the normalized run report.
+pub fn verify_run_artifacts_with_kicad_drc_policy(
+    report_bytes: &[u8],
+    manifest_bytes: &[u8],
+    run_root: &Path,
+    policy_bytes: &[u8],
+    evaluator_git_head: &str,
+) -> Result<KicadRunArtifactVerificationReceipt, String> {
+    let validated =
+        crate::evaluate_report_bytes(report_bytes, manifest_bytes, evaluator_git_head)?;
+    let policy_sha256 = sha256_hex(policy_bytes);
+    if validated.report.drc_policy_sha256 != policy_sha256 {
+        return Err(
+            "run report DRC policy SHA-256 does not match the supplied policy bytes".into(),
+        );
+    }
+
+    let artifact_verification = crate::verify_run_artifacts(
+        report_bytes,
+        manifest_bytes,
+        run_root,
+        evaluator_git_head,
+    )?;
+    let canonical_root = run_root
+        .canonicalize()
+        .map_err(|error| format!("cannot canonicalize run-artifact root: {error}"))?;
+    let mut boards = Vec::new();
+
+    for case in &validated.report.cases {
+        if case.execution_status != crate::ExecutionStatus::Completed {
+            continue;
+        }
+        if !case.drc_evaluated {
+            return Err(format!(
+                "{}: completed run has raw DRC evidence but says drc_evaluated=false",
+                case.board_id
+            ));
+        }
+        let normalized_unconnected = case.unconnected_item_count.ok_or_else(|| {
+            format!(
+                "{}: completed run lacks a normalized unconnected_item_count",
+                case.board_id
+            )
+        })?;
+        let output_relative_path = case.output_board_relative_path.as_deref().ok_or_else(|| {
+            format!("{}: output-board path is missing", case.board_id)
+        })?;
+        let expected_source = Path::new(output_relative_path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                format!(
+                    "{}: output-board path has no valid filename",
+                    case.board_id
+                )
+            })?;
+        let drc_relative_path = case.drc_report_relative_path.as_deref().ok_or_else(|| {
+            format!("{}: DRC-report path is missing", case.board_id)
+        })?;
+        let drc_bytes = fs::read(canonical_root.join(drc_relative_path)).map_err(|error| {
+            format!(
+                "{}: cannot read verified DRC report {}: {error}",
+                case.board_id, drc_relative_path
+            )
+        })?;
+        let evidence = evaluate_kicad_drc_report_bytes(
+            &drc_bytes,
+            policy_bytes,
+            expected_source,
+            &validated.report.drc_engine.version,
+        )
+        .map_err(|error| format!("{}: raw KiCad DRC report rejected: {error}", case.board_id))?;
+
+        if normalized_unconnected != evidence.unconnected_item_count as u32 {
+            return Err(format!(
+                "{}: normalized unconnected-item count {} disagrees with raw KiCad DRC count {}",
+                case.board_id, normalized_unconnected, evidence.unconnected_item_count
+            ));
+        }
+        let mut normalized_routing_types = case.routing_drc_violation_types.clone();
+        normalized_routing_types.sort();
+        if normalized_routing_types != evidence.routing_blocking_violation_types {
+            return Err(format!(
+                "{}: normalized routing DRC types {:?} disagree with raw KiCad DRC types {:?}",
+                case.board_id,
+                normalized_routing_types,
+                evidence.routing_blocking_violation_types
+            ));
+        }
+        if case.valid_route_completion && !evidence.route_drc_pass {
+            return Err(format!(
+                "{}: normalized report claims valid completion but raw KiCad DRC policy fails",
+                case.board_id
+            ));
+        }
+
+        boards.push(BoardKicadDrcVerification {
+            board_id: case.board_id.clone(),
+            drc_report_relative_path: drc_relative_path.to_string(),
+            evidence,
+        });
+    }
+
+    boards.sort_by(|left, right| left.board_id.cmp(&right.board_id));
+    Ok(KicadRunArtifactVerificationReceipt {
+        schema: "pcb-route-kicad-run-artifact-verification-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        run_artifact_verification: artifact_verification,
+        policy_sha256,
+        verified_drc_board_count: boards.len(),
+        boards,
+        authority: "raw_kicad_drc_json_and_output_byte_verification_under_pinned_policy_only".into(),
+        claim_ceiling: "This receipt verifies that output/DRC file bytes match their declared hashes and that normalized routing findings/unconnected counts match the raw KiCad JSON under the policy digest. It does not prove policy sufficiency, schematic intent, electrical integrity, manufacturing quality, physical conformity, safety or production readiness.".into(),
+    })
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -334,6 +475,151 @@ mod tests {
         format!(
             r#"[{{"type":"{kind}","description":"fixture {kind}","severity":"{severity}","items":[{{"uuid":"11111111-1111-4111-8111-111111111111","description":"track","pos":{{"x":1.0,"y":2.0}}}}]}}]"#
         )
+    }
+
+
+    fn synthetic_drc_report(
+        source: &str,
+        routing_types: &[String],
+        unconnected_count: u32,
+        nonrouting_count: u32,
+    ) -> Vec<u8> {
+        let mut violations = Vec::new();
+        let mut next_id = 1u32;
+        for kind in routing_types {
+            violations.push(serde_json::json!({
+                "type": kind,
+                "description": format!("synthetic route violation: {kind}"),
+                "severity": "error",
+                "items": [{
+                    "uuid": format!("11111111-1111-4111-8111-{:012x}", next_id),
+                    "description": "synthetic track",
+                    "pos": {"x": 1.0, "y": 2.0}
+                }]
+            }));
+            next_id += 1;
+        }
+        for index in 0..nonrouting_count {
+            violations.push(serde_json::json!({
+                "type": "lib_footprint_mismatch",
+                "description": "synthetic non-routing finding",
+                "severity": "error",
+                "items": [{
+                    "uuid": format!("22222222-2222-4222-8222-{:012x}", index + 1),
+                    "description": "synthetic footprint",
+                    "pos": {"x": 3.0, "y": 4.0}
+                }]
+            }));
+        }
+        let unconnected = (0..unconnected_count)
+            .map(|index| serde_json::json!({
+                "type": "unconnected_items",
+                "description": "synthetic unconnected item",
+                "severity": "error",
+                "items": [{
+                    "uuid": format!("33333333-3333-4333-8333-{:012x}", index + 1),
+                    "description": "synthetic pad",
+                    "pos": {"x": 5.0, "y": 6.0}
+                }]
+            }))
+            .collect::<Vec<_>>();
+        serde_json::to_vec(&serde_json::json!({
+            "$schema": "https://schemas.kicad.org/drc.v1.json",
+            "source": source,
+            "date": "2026-10-21T10:00:00+00:00",
+            "kicad_version": "9.0.9",
+            "coordinate_units": "mm",
+            "included_severities": ["error", "warning"],
+            "violations": violations,
+            "unconnected_items": unconnected,
+            "schematic_parity": [],
+            "ignored_checks": []
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn strict_run_artifact_verifier_reconciles_normalized_metrics_with_raw_drc_json() {
+        let policy_bytes = include_bytes!("../fixtures/kicad-drc-routing-policy-v0_1.json");
+        let policy_sha256 = sha256_hex(policy_bytes);
+        let mut value: serde_json::Value = serde_json::from_str(
+            include_str!("../fixtures/synthetic-baseline-run-v0_1.json")
+        ).unwrap();
+        value["dataset_manifest_sha256"] = serde_json::Value::String(
+            sha256_hex(include_bytes!("../fixtures/synthetic-dataset-manifest-v0_1.json"))
+        );
+        value["drc_policy_sha256"] = serde_json::Value::String(policy_sha256.clone());
+
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-kicad-artifacts-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outputs")).unwrap();
+        fs::create_dir_all(root.join("drc")).unwrap();
+
+        for case in value["cases"].as_array_mut().unwrap() {
+            if case["execution_status"] != "completed" {
+                case["output_board_relative_path"] = serde_json::Value::Null;
+                case["drc_report_relative_path"] = serde_json::Value::Null;
+                continue;
+            }
+            let board_id = case["board_id"].as_str().unwrap().to_string();
+            let output_relative = format!("outputs/{board_id}.kicad_pcb");
+            let drc_relative = format!("drc/{board_id}.json");
+            let output_bytes = format!("synthetic output board bytes for {board_id}\n");
+            let routing_types: Vec<String> = serde_json::from_value(
+                case["routing_drc_violation_types"].clone()
+            ).unwrap();
+            let unconnected = case["unconnected_item_count"].as_u64().unwrap_or(0) as u32;
+            let nonrouting = if board_id == "upstream-drc-006" { 3 } else { 0 };
+            let drc_bytes = synthetic_drc_report(
+                &format!("{board_id}.kicad_pcb"),
+                &routing_types,
+                unconnected,
+                nonrouting,
+            );
+
+            fs::write(root.join(&output_relative), output_bytes.as_bytes()).unwrap();
+            fs::write(root.join(&drc_relative), &drc_bytes).unwrap();
+            case["output_board_sha256"] = serde_json::Value::String(sha256_hex(output_bytes.as_bytes()));
+            case["drc_report_sha256"] = serde_json::Value::String(sha256_hex(&drc_bytes));
+            case["output_board_relative_path"] = serde_json::Value::String(output_relative);
+            case["drc_report_relative_path"] = serde_json::Value::String(drc_relative);
+        }
+
+        let report_bytes = serde_json::to_vec(&value).unwrap();
+        let receipt = verify_run_artifacts_with_kicad_drc_policy(
+            &report_bytes,
+            include_bytes!("../fixtures/synthetic-dataset-manifest-v0_1.json"),
+            &root,
+            policy_bytes,
+            EVALUATOR_HEAD,
+        )
+        .expect("raw DRC evidence matches normalized report");
+        assert_eq!(receipt.verified_drc_board_count, 4);
+        let crossing = receipt.boards.iter().find(|board| board.board_id == "crossing-003").unwrap();
+        assert_eq!(crossing.evidence.routing_blocking_violation_types, vec!["tracks_crossing", "tracks_crossing"]);
+        assert!(!crossing.evidence.route_drc_pass);
+        let upstream = receipt.boards.iter().find(|board| board.board_id == "upstream-drc-006").unwrap();
+        assert_eq!(upstream.evidence.nonrouting_blocking_violation_types.len(), 3);
+        assert!(upstream.evidence.route_drc_pass);
+        assert!(!upstream.evidence.board_drc_clean);
+
+        value["cases"][2]["routing_drc_violation_types"] = serde_json::json!([]);
+        let dishonest_report = serde_json::to_vec(&value).unwrap();
+        assert!(
+            verify_run_artifacts_with_kicad_drc_policy(
+                &dishonest_report,
+                include_bytes!("../fixtures/synthetic-dataset-manifest-v0_1.json"),
+                &root,
+                policy_bytes,
+                EVALUATOR_HEAD,
+            )
+            .unwrap_err()
+            .contains("disagree with raw KiCad DRC types")
+        );
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]
