@@ -1685,12 +1685,15 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     Some(input_buffer_id),
                     None,
                 );
-                let job_record = state.job_records.get_mut(&job.id)
-                    .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_station_start", job.id))?;
-                if job_record.attempts_started_by_station[station_index] == 0 {
-                    job_record.first_attempt_started_at_by_station[station_index] = Some(state.now);
-                }
-                job_record.attempts_started_by_station[station_index] += 1;
+                let attempt_number = {
+                    let job_record = state.job_records.get_mut(&job.id)
+                        .ok_or_else(|| format!("job_{}_lifecycle_record_missing_at_station_start", job.id))?;
+                    if job_record.attempts_started_by_station[station_index] == 0 {
+                        job_record.first_attempt_started_at_by_station[station_index] = Some(state.now);
+                    }
+                    job_record.attempts_started_by_station[station_index] += 1;
+                    job_record.attempts_started_by_station[station_index]
+                };
                 record_lifecycle_event(
                     state,
                     catalog,
@@ -1700,7 +1703,7 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     Some(station_index),
                     Some(server_index),
                     None,
-                    Some(job_record.attempts_started_by_station[station_index]),
+                    Some(attempt_number),
                 );
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
