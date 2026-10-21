@@ -271,3 +271,7 @@ Do not promote the adaptive scorer merely because it beats the fixed scorer. It 
 ### What this does not claim
 
 This only learns nuisance rates that are observable from released data. It does not solve sensor-noise identifiability, establish the causal correctness of any observation model, or prove a robotics benefit. Synthetic mean loss and estimated scoring-work units must remain separate from native ActiveArena/RoboMME success and measured hardware performance.
+
+### Online nuisance estimates are separately audited
+
+The follow-on `NUISANCE_ADAPTATION` table evaluates the adaptive policy's final estimates against the simulator profile **after each run**. It reports per-episode delay-distribution MAE, distractor-rate absolute error and signed bias, plus exact-delay sample counts and intervals bootstrapped over episodes. The true profile is used only by the evaluator for scoring; neither policy action nor prior update sees it. Delay samples clipped at source tick zero remain censored and do not enter the exact-delay histogram. This extra table prevents a task-loss difference from being misattributed to successful adaptation when the rate estimates themselves have not converged.
