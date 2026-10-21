@@ -409,7 +409,12 @@ mod tests {
     #[test]
     fn refuses_f32_conversion_when_precision_budget_is_exceeded() {
         let origin = pos([0; 3], [0.0; 3]);
-        let one_au = pos([142_665, 0, 0], [WORLD_CELL_SIZE_METERS * 0.5, 0.0, 0.0]);
+        // Half a cell is exactly f32-representable here; add 123 m so the
+        // expected rejection measures real precision loss against the 1 m budget.
+        let one_au = pos(
+            [142_665, 0, 0],
+            [WORLD_CELL_SIZE_METERS * 0.5 + 123.0, 0.0, 0.0],
+        );
         assert_eq!(
             one_au.relative_to_f32_with_error_budget(&origin, 1.0),
             Err(LargeWorldError::RenderPrecisionBudgetExceeded)
