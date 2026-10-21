@@ -214,6 +214,13 @@ pub fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
         }
 
         let p = &case.prediction;
+        let expected_scope_key = format!("{}|{}", case.spatial_scope, case.temporal_stratum);
+        if p.scope_key != expected_scope_key {
+            errors.push(format!(
+                "{}: prediction.scope_key must match declared spatial_scope and temporal_stratum ({expected_scope_key})",
+                case.case_id
+            ));
+        }
         for (name, value) in [
             ("prediction.mean", p.mean),
             ("prediction.lower", p.lower),
@@ -580,6 +587,10 @@ mod tests {
         let mut invalid_interval = fixture();
         invalid_interval.cases[0].prediction.lower = -1.0;
         assert!(validate_fixture(&invalid_interval).is_err());
+
+        let mut wrong_scope = fixture();
+        wrong_scope.cases[0].prediction.scope_key = "parcel|wet-season-2026".to_owned();
+        assert!(validate_fixture(&wrong_scope).is_err());
 
         let mut duplicate = fixture();
         duplicate.cases[1].case_id = duplicate.cases[0].case_id.clone();
