@@ -382,7 +382,10 @@ fn validate_job_lifecycle_evidence(
     primary_seed: u64,
     expected_released_jobs: u64,
 ) -> Result<bool, String> {
-    let Some(events) = baseline.get("job_lifecycle_events").and_then(Value::as_array) else {
+    let Some(events) = baseline
+        .get("job_lifecycle_events")
+        .and_then(Value::as_array)
+    else {
         return Ok(false);
     };
     let Some(summary) = baseline.get("job_lifecycle_summary") else {
@@ -407,9 +410,7 @@ fn validate_job_lifecycle_evidence(
             return Err("lifecycle_event_schema_seed_scenario_or_evidence_mismatch".into());
         }
         let sequence = field_u64(event, "event_sequence")?;
-        if sequence != index as u64
-            || previous_sequence.is_some_and(|prior| sequence <= prior)
-        {
+        if sequence != index as u64 || previous_sequence.is_some_and(|prior| sequence <= prior) {
             return Err("lifecycle_event_sequence_not_contiguous_and_monotonic".into());
         }
         previous_sequence = Some(sequence);
@@ -434,8 +435,12 @@ fn validate_job_lifecycle_evidence(
     }
     if release_ids.len() as u64 != expected_released_jobs
         || terminal_counts.len() != release_ids.len()
-        || release_ids.iter().any(|job_id| terminal_counts.get(job_id) != Some(&1))
-        || terminal_counts.keys().any(|job_id| !release_ids.contains(job_id))
+        || release_ids
+            .iter()
+            .any(|job_id| terminal_counts.get(job_id) != Some(&1))
+        || terminal_counts
+            .keys()
+            .any(|job_id| !release_ids.contains(job_id))
     {
         return Err("lifecycle_ledger_release_terminal_coverage_mismatch".into());
     }
@@ -474,7 +479,8 @@ fn validate_job_lifecycle_evidence(
                 return Err("first_pass_yield_present_without_observed_outcomes".into());
             }
         } else {
-            let ratio = yield_value.and_then(Value::as_f64)
+            let ratio = yield_value
+                .and_then(Value::as_f64)
                 .ok_or_else(|| "first_pass_yield_missing_with_observed_outcomes".to_string())?;
             if !ratio.is_finite() || (ratio - passed as f64 / observed as f64).abs() > 1e-9 {
                 return Err("first_pass_yield_arithmetic_mismatch".into());
@@ -913,8 +919,16 @@ fn append_lifecycle_kpis(
         return Ok(());
     }
 
-    let p50 = optional_distribution(baseline_stats, "per_seed_median_good_job_lead_time_seconds", None)?;
-    let p95 = optional_distribution(baseline_stats, "per_seed_p95_good_job_lead_time_seconds", None)?;
+    let p50 = optional_distribution(
+        baseline_stats,
+        "per_seed_median_good_job_lead_time_seconds",
+        None,
+    )?;
+    let p95 = optional_distribution(
+        baseline_stats,
+        "per_seed_p95_good_job_lead_time_seconds",
+        None,
+    )?;
     for (metric_id, name, formula_id, formula, distribution) in [
         (
             "median_good_job_lead_time_seconds",
@@ -997,11 +1011,31 @@ fn append_lifecycle_kpis(
             return Err("duplicate_station_first_pass_summary".into());
         }
         for (suffix, name, field) in [
-            ("first_attempts_started_in_cohort", "First attempts started in eligible cohort", "first_attempts_started_in_cohort"),
-            ("first_attempts_with_observed_outcome", "Observed first-attempt outcomes", "observed_first_attempts"),
-            ("first_attempt_passed", "First attempts passed", "first_attempt_passed"),
-            ("first_attempt_failed", "First attempts failed", "first_attempt_failed"),
-            ("unresolved_first_attempts_at_horizon", "Unresolved first attempts at horizon", "unresolved_first_attempts_at_horizon"),
+            (
+                "first_attempts_started_in_cohort",
+                "First attempts started in eligible cohort",
+                "first_attempts_started_in_cohort",
+            ),
+            (
+                "first_attempts_with_observed_outcome",
+                "Observed first-attempt outcomes",
+                "observed_first_attempts",
+            ),
+            (
+                "first_attempt_passed",
+                "First attempts passed",
+                "first_attempt_passed",
+            ),
+            (
+                "first_attempt_failed",
+                "First attempts failed",
+                "first_attempt_failed",
+            ),
+            (
+                "unresolved_first_attempts_at_horizon",
+                "Unresolved first attempts at horizon",
+                "unresolved_first_attempts_at_horizon",
+            ),
         ] {
             let distribution = get_distribution(station_summary, field, Some(replication_count))?;
             metrics.push(computed_distribution_metric(
@@ -1021,13 +1055,13 @@ fn append_lifecycle_kpis(
                 "Synthetic cohort count; not a plant quality result.",
             ));
         }
-        if let Some(yield_summary) = optional_distribution(
-            station_summary,
-            "observed_first_pass_yield_fraction",
-            None,
-        )? {
+        if let Some(yield_summary) =
+            optional_distribution(station_summary, "observed_first_pass_yield_fraction", None)?
+        {
             if yield_summary.sample_count > replication_count {
-                return Err(format!("station_{station_id}_first_pass_yield_sample_count_exceeds_replications"));
+                return Err(format!(
+                    "station_{station_id}_first_pass_yield_sample_count_exceeds_replications"
+                ));
             }
             metrics.push(computed_distribution_metric(
                 &format!("station.{station_id}.first_pass_yield"),
