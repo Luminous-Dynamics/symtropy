@@ -95,7 +95,12 @@ fn run() -> Result<String, String> {
         .collect::<Vec<_>>()
         .join(",");
 
-    let analytical_json = analytical.iter().copied().map(number).collect::<Vec<_>>().join(",");
+    let analytical_json = analytical
+        .iter()
+        .copied()
+        .map(number)
+        .collect::<Vec<_>>()
+        .join(",");
     let max_relative_error = modes
         .iter()
         .zip(&analytical)
@@ -148,8 +153,18 @@ fn run() -> Result<String, String> {
         modes_json,
         analytical_json,
         number(max_relative_error),
-        number(modes.iter().map(|mode| mode.normalized_eigen_residual).fold(0.0_f64, f64::max)),
-        number(modes.iter().map(|mode| mode.mass_norm_residual).fold(0.0_f64, f64::max)),
+        number(
+            modes
+                .iter()
+                .map(|mode| mode.normalized_eigen_residual)
+                .fold(0.0_f64, f64::max)
+        ),
+        number(
+            modes
+                .iter()
+                .map(|mode| mode.mass_norm_residual)
+                .fold(0.0_f64, f64::max)
+        ),
         number(orthogonality_residual),
     ))
 }
@@ -229,21 +244,35 @@ fn verify_modes(
             || mode.frequency_hz <= 0.0
             || (mode.frequency_hz - target).abs() / target > 0.05
         {
-            return Err(format!("mode {} exceeds the analytical frequency-error gate", index + 1));
+            return Err(format!(
+                "mode {} exceeds the analytical frequency-error gate",
+                index + 1
+            ));
         }
-        if !mode.normalized_eigen_residual.is_finite()
-            || mode.normalized_eigen_residual >= 1.0e-10
+        if !mode.normalized_eigen_residual.is_finite() || mode.normalized_eigen_residual >= 1.0e-10
         {
-            return Err(format!("mode {} exceeds the eigen-residual gate", index + 1));
+            return Err(format!(
+                "mode {} exceeds the eigen-residual gate",
+                index + 1
+            ));
         }
         if !mode.mass_norm_residual.is_finite() || mode.mass_norm_residual >= 1.0e-10 {
-            return Err(format!("mode {} exceeds the unit-modal-mass gate", index + 1));
+            return Err(format!(
+                "mode {} exceeds the unit-modal-mass gate",
+                index + 1
+            ));
         }
         if mode.shape_free_dofs.iter().any(|value| !value.is_finite()) {
-            return Err(format!("mode {} contains a non-finite shape component", index + 1));
+            return Err(format!(
+                "mode {} contains a non-finite shape component",
+                index + 1
+            ));
         }
     }
-    if !modes.windows(2).all(|pair| pair[0].frequency_hz < pair[1].frequency_hz) {
+    if !modes
+        .windows(2)
+        .all(|pair| pair[0].frequency_hz < pair[1].frequency_hz)
+    {
         return Err("modal frequencies are not strictly ascending".to_owned());
     }
     let orthogonality = max_modal_orthogonality(modes, mass)?;
