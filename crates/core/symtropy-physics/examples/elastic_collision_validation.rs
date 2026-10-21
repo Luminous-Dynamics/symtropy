@@ -204,7 +204,7 @@ kinetic_energy_final,pass"
                     result.kinetic_energy_final,
                     result.passed
                 );
-                failures += usize::from(!result.passed);
+                failures += if result.passed { 0 } else { 1 };
             }
             Err(error) => {
                 eprintln!("{error}");
