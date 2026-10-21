@@ -39,12 +39,6 @@ fn candidate(index: usize, count: usize, profile: &str, dimensions: usize) -> Al
         "dominated-chain" => index as f64 + 1.0,
         _ => unreachable!("only named benchmark profiles are used"),
     };
-    let effort = match profile {
-        "tradeoff-heavy" => (count - index) as f64,
-        "dominated-chain" => index as f64 + 1.0,
-        _ => unreachable!("only named benchmark profiles are used"),
-    };
-
     let mut objectives = vec![
         observation("install_cost", "USD", ObjectiveDirection::Minimize, cost),
         observation(
@@ -67,7 +61,24 @@ fn candidate(index: usize, count: usize, profile: &str, dimensions: usize) -> Al
             "install_effort",
             "hours",
             ObjectiveDirection::Minimize,
-            effort,
+            match profile {
+                "tradeoff-heavy" => (count - index) as f64,
+                "dominated-chain" => index as f64 + 1.0,
+                _ => unreachable!("only named benchmark profiles are used"),
+            },
+        ));
+    }
+    for axis in 4..dimensions {
+        let value = match profile {
+            "tradeoff-heavy" => (count - index + axis) as f64,
+            "dominated-chain" => (index + axis + 1) as f64,
+            _ => unreachable!("only named benchmark profiles are used"),
+        };
+        objectives.push(observation(
+            &format!("objective_{axis}"),
+            &format!("unit_{axis}"),
+            ObjectiveDirection::Minimize,
+            value,
         ));
     }
 
@@ -146,11 +157,18 @@ fn main() {
             run_profile(count, "tradeoff-heavy", dimensions, iterations);
             run_profile(count, "dominated-chain", dimensions, iterations);
         }
-        // Keep the quadratic fallback benchmark tractable while still exposing
-        // its dimensionality cost and checking the larger input size.
-        if count <= 1_000 {
+        // Four dimensions now use the incremental exact frontier through 10k.
+        // Six/eight-dimensional fallback growth is measured through 1k to keep
+        // worst-case CI time bounded while exposing dimensionality effects.
+        if count <= 1_000 || count == 10_000 {
             run_profile(count, "tradeoff-heavy", 4, iterations);
             run_profile(count, "dominated-chain", 4, iterations);
+        }
+        if count <= 1_000 {
+            for dimensions in [6_usize, 8] {
+                run_profile(count, "tradeoff-heavy", dimensions, iterations);
+                run_profile(count, "dominated-chain", dimensions, iterations);
+            }
         }
     }
 }
