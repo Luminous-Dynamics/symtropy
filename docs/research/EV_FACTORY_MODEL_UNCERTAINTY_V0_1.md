@@ -49,7 +49,7 @@ All numbers are deterministic fixture values. They must not be interpreted as fo
 - Every option/scenario main-effect pair has a finite mean and non-negative half-width.
 - Every option pair in every scenario has an explicit interaction mean and half-width; a missing interaction is not silently assumed to be zero.
 - Duplicate/reversed pairs, incomplete catalogs, unknown IDs, invalid resources and negative/non-finite uncertainty widths are rejected.
-- Enumerate every binary design for up to 20 options and report hard-constraint reasons.
+- Enumerate every binary design for up to 10 options and report hard-constraint reasons. The cap is intentionally conservative because exact interval-regret computation compares every feasible design pair; the next scale-up should use a bounded search or branch-and-bound oracle.
 - Exclude infeasible designs from all decision selectors and from the Pareto frontier.
 - SHA-256 the exact raw fixture bytes; require byte-identical output for a repeated run.
 - Explicitly report no scenario probabilities, expected-value estimate, ROI, field SOTA claim or production authorization.
