@@ -956,6 +956,25 @@ mod tests {
     }
 
     #[test]
+    fn clean_connected_route_without_raw_drc_digest_is_evidence_incomplete() {
+        let mut value: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["cases"][0]["drc_report_sha256"] = serde_json::Value::Null;
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let run = evaluate_report_bytes(&bytes, MANIFEST.as_bytes(), EVALUATOR_HEAD).unwrap();
+        let case = run
+            .receipt
+            .cases
+            .iter()
+            .find(|c| c.board_id == "easy-001")
+            .unwrap();
+        assert_eq!(case.disposition, Disposition::EvidenceIncomplete);
+        assert!(case.reason_codes.contains(&"DRC_REPORT_DIGEST_MISSING".to_string()));
+        assert!(!case.valid_route_completion);
+    }
+
+    #[test]
     fn nonrouting_upstream_drc_is_reported_separately() {
         let baseline = valid_run(BASELINE);
         let upstream = baseline
