@@ -227,11 +227,27 @@ jobs:
             status=$?
             set -e
             end_epoch="$(date +%s)"
-            test "$status" -eq 0 || {
+            if [ "$status" -ne 0 ]; then
+              jq -n --arg name "$name" --arg source_sha "$source_sha" \
+                --arg request_sha "$request_sha" --arg exe_sha "$exe_sha" \
+                --arg deck_sha "$(sha256sum "$run_dir/model.inp" | cut -d ' ' -f 1)" \
+                --argjson exit_status "$status" \
+                --argjson dat_present "$(test -s "$run_dir/model.dat" && echo true || echo false)" \
+                --argjson frd_present "$(test -s "$run_dir/model.frd" && echo true || echo false)" \
+                '{
+                  schema_version:"calculix-process-receipt-v0.1",
+                  case_id:$name,source_sha:$source_sha,request_sha256:$request_sha,
+                  solver_executable_sha256:$exe_sha,input_deck_sha256:$deck_sha,
+                  process_exit_status:$exit_status,dat_output_present:$dat_present,
+                  frd_output_present:$frd_present,process_status:"FAIL",
+                  timeout_exit_status:124,
+                  solver_execution_attested_by_this_receipt:false,
+                  physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
+                }' > "$run_dir/failure-process-receipt.json"
               echo "CCX case $name exited $status" >&2
               cat "$run_dir/process.log" >&2
               return 1
-            }
+            fi
             test -s "$run_dir/model.dat"
             test -s "$run_dir/model.frd"
             jq -n --arg name "$name" --arg source_sha "$source_sha" \
@@ -469,13 +485,25 @@ jobs:
           done
           cp -a "$OUT" "$ROOT/ccx-exec-001-raw-cases"
 
+      - name: Collect failure-preserving evidence files
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p symtropy/.ccx-exec-001-evidence
+          if [ -d "$RUNNER_TEMP/ccx-evidence" ]; then
+            cp -a "$RUNNER_TEMP/ccx-evidence/." symtropy/.ccx-exec-001-evidence/
+          fi
+          if ! find symtropy/.ccx-exec-001-evidence -type f -print -quit | grep -q .; then
+            printf 'No evidence files were produced before the earlier step failed.\n' \
+              > symtropy/.ccx-exec-001-evidence/NO_EVIDENCE.txt
+          fi
+
       - name: Upload build provenance, raw solver outputs, and audit reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ccx-exec-001-${{ github.event.pull_request.head.sha || github.sha }}
-          path: |
-            ${{ runner.temp }}/ccx-evidence/**
+          path: symtropy/.ccx-exec-001-evidence/**
           if-no-files-found: warn
           retention-days: 90
 
