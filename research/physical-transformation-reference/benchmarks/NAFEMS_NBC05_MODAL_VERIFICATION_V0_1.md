@@ -65,7 +65,8 @@ For the 1 m, 210 GPa, 7800 kg/m³ values displayed in NBC05, the fundamental is 
 - [Implemented tests] Compare the single-element consistent/lumped frequencies with closed-form frequency ratios, check first-mode convergence across 1, 2, 4, 8, and 16 elements, check that the second mode is within 5% at 8 elements for this bar test, and assert mass normalization and generalized-eigenpair residuals for computed modes.
 - [Implemented in receipt candidate] Freeze canonical request bytes, SHA-256 the canonical input, bind outputs to the exact source commit and source-tree digest, run twice for byte-identical output, and gate the two 8-element consistent-mass frequencies against independently computed discrete-system values and analytical frequency error.
 - [In draft mutation audit] Five isolated source mutants target consistent-mass diagonal/off-diagonal terms, Hz conversion, Jacobi eigenvector rotation, and the transposed-Cholesky back-solve. The script requires the named test to fail and verifies the production source hash remains unchanged. Exact-head CI has to pass before this is accepted as mutation-sensitivity evidence.
-- [Remaining] Add independent analytical shape checks and make the cross-mode mass-orthogonality check part of a separately pinned known-answer test. The receipt workflow must pass at its exact head before evidence is qualified.
+- [Implemented test] Compare the first three consistent- and lumped-mass mode shapes against independently sampled analytical sine shapes using sign-invariant MAC, with a predeclared threshold of (1-10^{-12}).
+- [Remaining] Keep cross-mode mass orthogonality in the request-bound receipt, add a dedicated known-answer test for that metric, and extend mutation coverage to the shape oracle. The receipt workflow must pass at its exact head before evidence is qualified.
 
 ### M1 — Independent small-matrix eigenproblem
 
