@@ -138,6 +138,10 @@ pub struct BoardAttempt {
     pub cpu_ms: Option<u64>,
     pub peak_memory_bytes: Option<u64>,
     pub output_board_sha256: Option<String>,
+    #[serde(default)]
+    pub output_board_relative_path: Option<String>,
+    #[serde(default)]
+    pub drc_report_relative_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -218,6 +222,28 @@ pub struct DatasetFileVerificationReceipt {
     pub dataset_manifest_sha256: String,
     pub verified_board_count: usize,
     pub entries: Vec<DatasetFileVerificationEntry>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct RunArtifactVerificationEntry {
+    pub board_id: String,
+    pub role: String,
+    pub relative_path: String,
+    pub byte_len: u64,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct RunArtifactVerificationReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub run_id: String,
+    pub input_report_sha256: String,
+    pub dataset_manifest_sha256: String,
+    pub verified_artifact_count: usize,
+    pub entries: Vec<RunArtifactVerificationEntry>,
     pub authority: String,
     pub claim_ceiling: String,
 }
@@ -708,6 +734,167 @@ pub fn verify_dataset_files(
         authority: "dataset_source_bytes_match_pinned_manifest_only".into(),
         claim_ceiling: "This receipt verifies source file paths and byte digests under the declared dataset root. It does not route boards, validate board semantics, authorize a benchmark score, or establish manufacturing/physical quality.".into(),
     })
+}
+
+
+pub fn verify_run_artifacts(
+    report_bytes: &[u8],
+    manifest_bytes: &[u8],
+    run_root: &Path,
+    evaluator_git_head: &str,
+) -> Result<RunArtifactVerificationReceipt, String> {
+    // Validate report identity, board coverage, and all declared metrics first.
+    let validated = evaluate_report_bytes(report_bytes, manifest_bytes, evaluator_git_head)?;
+    let root = run_root.canonicalize().map_err(|error| {
+        format!(
+            "cannot canonicalize run-artifact root {}: {error}",
+            run_root.display()
+        )
+    })?;
+    if !root.is_dir() {
+        return Err(format!("run-artifact root is not a directory: {}", root.display()));
+    }
+
+    let mut seen_relative = BTreeSet::new();
+    let mut seen_files = BTreeSet::new();
+    let mut entries = Vec::new();
+
+    for case in &validated.report.cases {
+        let is_completed = case.execution_status == ExecutionStatus::Completed;
+        let pairs = [
+            (
+                "output_board",
+                case.output_board_relative_path.as_deref(),
+                case.output_board_sha256.as_deref(),
+            ),
+            (
+                "drc_report",
+                case.drc_report_relative_path.as_deref(),
+                case.drc_report_sha256.as_deref(),
+            ),
+        ];
+
+        for (role, relative_path, expected_sha256) in pairs {
+            if relative_path.is_none() && expected_sha256.is_none() {
+                if is_completed {
+                    return Err(format!(
+                        "{}: completed result lacks {role} path and SHA-256",
+                        case.board_id
+                    ));
+                }
+                continue;
+            }
+            let relative_path = relative_path.ok_or_else(|| {
+                format!("{}: {role} digest is supplied but its file path is missing", case.board_id)
+            })?;
+            let expected_sha256 = expected_sha256.ok_or_else(|| {
+                format!("{}: {role} path is supplied but its SHA-256 is missing", case.board_id)
+            })?;
+            validate_artifact_relative_path(relative_path, &case.board_id)?;
+            require_sha256(expected_sha256, &format!("{} {role} SHA-256", case.board_id))?;
+
+            if !seen_relative.insert(relative_path.to_string()) {
+                return Err(format!("duplicate run-artifact path: {relative_path}"));
+            }
+            let candidate = root.join(relative_path);
+            let actual_path = candidate.canonicalize().map_err(|error| {
+                format!(
+                    "{}: cannot resolve {role} file {}: {error}",
+                    case.board_id, relative_path
+                )
+            })?;
+            if !actual_path.starts_with(&root) {
+                return Err(format!(
+                    "{}: {role} file resolves outside the run-artifact root",
+                    case.board_id
+                ));
+            }
+            if !actual_path.is_file() {
+                return Err(format!(
+                    "{}: {role} path is not a regular file: {relative_path}",
+                    case.board_id
+                ));
+            }
+            if !seen_files.insert(actual_path.clone()) {
+                return Err(format!(
+                    "multiple run-artifact roles resolve to the same file: {relative_path}"
+                ));
+            }
+
+            let bytes = fs::read(&actual_path).map_err(|error| {
+                format!("{}: cannot read {role} file: {error}", case.board_id)
+            })?;
+            let actual_sha256 = sha256_hex(&bytes);
+            if actual_sha256 != expected_sha256 {
+                return Err(format!(
+                    "{}: {role} file SHA-256 does not match the run report",
+                    case.board_id
+                ));
+            }
+            entries.push(RunArtifactVerificationEntry {
+                board_id: case.board_id.clone(),
+                role: role.to_string(),
+                relative_path: relative_path.to_string(),
+                byte_len: bytes.len() as u64,
+                sha256: actual_sha256,
+            });
+        }
+
+        if is_completed
+            && (!case.drc_evaluated
+                || case.output_board_sha256.is_none()
+                || case.drc_report_sha256.is_none())
+        {
+            return Err(format!(
+                "{}: completed attempt lacks required DRC/output evidence",
+                case.board_id
+            ));
+        }
+    }
+
+    entries.sort_by(|a, b| {
+        a.board_id
+            .cmp(&b.board_id)
+            .then_with(|| a.role.cmp(&b.role))
+            .then_with(|| a.relative_path.cmp(&b.relative_path))
+    });
+
+    Ok(RunArtifactVerificationReceipt {
+        schema: "pcb-route-run-artifact-verification-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        run_id: validated.report.run_id,
+        input_report_sha256: sha256_hex(report_bytes),
+        dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        verified_artifact_count: entries.len(),
+        entries,
+        authority: "run_report_paths_and_declared_output_digests_match_actual_file_bytes".into(),
+        claim_ceiling: "This receipt proves that the declared output-board and DRC-report paths exist beneath the run root and match the report's SHA-256 values. It does not by itself prove the normalized DRC metrics were faithfully extracted, nor any physical quality, signal/power integrity, safety or production readiness.".into(),
+    })
+}
+
+fn validate_artifact_relative_path(relative_path: &str, board_id: &str) -> Result<(), String> {
+    if relative_path.trim().is_empty()
+        || relative_path.contains(char::from(92))
+        || relative_path.contains(':')
+        || relative_path.bytes().any(|byte| byte == 0)
+        || Path::new(relative_path).is_absolute()
+        || relative_path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err(format!(
+            "{board_id}: unsafe run-artifact-relative path: {relative_path}"
+        ));
+    }
+    if Path::new(relative_path)
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(format!(
+            "{board_id}: run-artifact path contains a non-normal component: {relative_path}"
+        ));
+    }
+    Ok(())
 }
 
 fn validate_report(
@@ -1710,4 +1897,86 @@ mod tests {
         assert!(!is_commit_sha(&"g".repeat(40)));
         assert!(!is_commit_sha(&"a".repeat(39)));
     }
+    #[test]
+    fn run_artifact_verifier_binds_actual_output_and_drc_bytes() {
+        let mut value: serde_json::Value = serde_json::from_str(BASELINE).expect("baseline fixture");
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-run-artifacts-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("outputs")).unwrap();
+        std::fs::create_dir_all(root.join("drc")).unwrap();
+
+        for case in value["cases"].as_array_mut().unwrap() {
+            if case["execution_status"] != "completed" {
+                case["output_board_relative_path"] = serde_json::Value::Null;
+                case["drc_report_relative_path"] = serde_json::Value::Null;
+                continue;
+            }
+            let board_id = case["board_id"].as_str().unwrap().to_string();
+            let output_relative = format!("outputs/{board_id}.kicad_pcb");
+            let drc_relative = format!("drc/{board_id}.json");
+            let output_bytes = format!("synthetic output board bytes for {board_id}\n");
+            let drc_bytes = format!(
+                "{{\"synthetic_fixture\":true,\"board_id\":\"{board_id}\"}}\n"
+            );
+            std::fs::write(root.join(&output_relative), output_bytes.as_bytes()).unwrap();
+            std::fs::write(root.join(&drc_relative), drc_bytes.as_bytes()).unwrap();
+            case["output_board_sha256"] =
+                serde_json::Value::String(sha256_hex(output_bytes.as_bytes()));
+            case["drc_report_sha256"] = serde_json::Value::String(sha256_hex(drc_bytes.as_bytes()));
+            case["output_board_relative_path"] = serde_json::Value::String(output_relative);
+            case["drc_report_relative_path"] = serde_json::Value::String(drc_relative);
+        }
+
+        let report_bytes = serde_json::to_vec(&value).unwrap();
+        let receipt = verify_run_artifacts(
+            &report_bytes,
+            MANIFEST.as_bytes(),
+            &root,
+            EVALUATOR_HEAD,
+        )
+        .expect("all declared output/DRC bytes verify");
+        assert_eq!(receipt.verified_artifact_count, 8);
+        assert_eq!(receipt.entries.len(), 8);
+        assert!(receipt.entries.iter().all(|entry| entry.byte_len > 0));
+        assert_eq!(receipt.run_id, "synthetic-baseline-001");
+
+        let tampered_path = root.join(&receipt.entries[0].relative_path);
+        std::fs::write(&tampered_path, b"tampered after report creation").unwrap();
+        assert!(
+            verify_run_artifacts(&report_bytes, MANIFEST.as_bytes(), &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("SHA-256 does not match")
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn run_artifact_verifier_rejects_traversal_and_path_aliases() {
+        let mut value: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
+        value["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(MANIFEST.as_bytes()));
+        value["cases"][0]["output_board_relative_path"] =
+            serde_json::Value::String("../outside.kicad_pcb".into());
+        value["cases"][0]["drc_report_relative_path"] =
+            serde_json::Value::String("drc/easy-001.json".into());
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-run-artifacts-negative-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        assert!(
+            verify_run_artifacts(&bytes, MANIFEST.as_bytes(), &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("unsafe run-artifact-relative path")
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
 }
