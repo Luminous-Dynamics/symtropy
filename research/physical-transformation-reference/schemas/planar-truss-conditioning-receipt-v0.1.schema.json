@@ -63,7 +63,7 @@
       }
     },
     "source_digest_algorithm": {
-      "const": "SHA-256 of each exact listed UTF-8 source/manifest file"
+      "const": "SHA-256 of each exact listed UTF-8 source, manifest, or schema file"
     },
     "duplicate_run_bytes_identical": { "const": true }
   },
