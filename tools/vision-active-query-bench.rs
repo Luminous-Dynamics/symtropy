@@ -1213,7 +1213,18 @@ mod tests {
 
         let mut free = PolicyState::new(PolicyKind::MarginalValueStop, 18);
         free.stop_cost_per_observation = 0.0;
-        assert!(free.choose_action(0) < QUERY_COUNT);
+        for tick in 0..QUERY_COUNT {
+            let action = free.choose_action(tick);
+            assert!(action < QUERY_COUNT);
+            free.observe(action, Evidence {
+                key: QUERY_KEYS[action] as u8,
+                value: true,
+                source_tick: tick as u8,
+                arrival_tick: tick as u8,
+                confidence: 950,
+            });
+        }
+        assert_eq!(free.relevant_counts, [1; QUERY_COUNT]);
     }
 
     #[test]
@@ -1226,6 +1237,14 @@ mod tests {
             &episode, PolicyKind::RiskThresholdStop, 1234, HORIZON, 0.12
         );
         assert!(high.actions.len() <= low.actions.len());
+
+        let marginal_low = run_policy_with_budget_and_stop_cost(
+            &episode, PolicyKind::MarginalValueStop, 5678, HORIZON, 0.00025
+        );
+        let marginal_high = run_policy_with_budget_and_stop_cost(
+            &episode, PolicyKind::MarginalValueStop, 5678, HORIZON, 0.003
+        );
+        assert!(marginal_high.actions.len() <= marginal_low.actions.len());
     }
 
     #[test]
