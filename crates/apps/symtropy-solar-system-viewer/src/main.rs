@@ -901,14 +901,12 @@ fn update_scene(
             *visibility = Visibility::Hidden;
             continue;
         };
-        let start_f32 = segment.start.relative_to_f32_with_error_budget(
-            &state.camera_position,
-            start_error_budget,
-        );
-        let end_f32 = segment.end.relative_to_f32_with_error_budget(
-            &state.camera_position,
-            end_error_budget,
-        );
+        let start_f32 = segment
+            .start
+            .relative_to_f32_with_error_budget(&state.camera_position, start_error_budget);
+        let end_f32 = segment
+            .end
+            .relative_to_f32_with_error_budget(&state.camera_position, end_error_budget);
         let (Ok(start_f32), Ok(end_f32)) = (start_f32, end_f32) else {
             state.precision_rejections = state.precision_rejections.saturating_add(1);
             *visibility = Visibility::Hidden;
@@ -1194,7 +1192,10 @@ mod tests {
 
         assert!(((doubled_distance / base) - 2.0).abs() < 1e-12);
         assert!(((doubled_resolution / base) - 0.5).abs() < 1e-12);
-        assert_eq!(position_error_budget_m(1e-6, 720), Some(MIN_POSITION_ERROR_BUDGET_M));
+        assert_eq!(
+            position_error_budget_m(1e-6, 720),
+            Some(MIN_POSITION_ERROR_BUDGET_M)
+        );
     }
 
     #[test]
