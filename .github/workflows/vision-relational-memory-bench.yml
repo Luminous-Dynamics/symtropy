@@ -102,6 +102,7 @@ jobs:
           /tmp/vis-active-query-bench > vis-active-query-repeat.tsv
           cmp vis-active-query.tsv vis-active-query-repeat.tsv
           grep -Fq "value_of_information" vis-active-query.tsv
+          grep -Fq "marginal_value_stop" vis-active-query.tsv
           grep -Fq "expected_task_loss_reduction" vis-active-query.tsv
           grep -Fq "risk_threshold_stop" vis-active-query.tsv
           grep -Fq "Risk-threshold stop baseline" vis-active-query.tsv
@@ -116,18 +117,21 @@ jobs:
           grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
           grep -Fq "profile_high_distractor_rate" vis-active-query.tsv
           test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
-          test "$(grep -c '^development' vis-active-query.tsv)" -eq 8
-          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 8
-          awk -F '\t' '$1 == "family" { if (NF != 15) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 15) exit 1; rows++ } END { if (header != 1 || rows != 16) exit 1 }' vis-active-query.tsv
+          test "$(grep -c '^development' vis-active-query.tsv)" -eq 9
+          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 9
+          awk -F '\t' '$1 == "family" { if (NF != 15) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 15) exit 1; rows++ } END { if (header != 1 || rows != 18) exit 1 }' vis-active-query.tsv
           awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
           grep -Fq "PAIRWISE" vis-active-query.tsv
           grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
           awk -F '\t' '$1 == "PAIRWISE" { if (NF != 7) exit 1; n++ } END { if (n != 3) exit 1 }' vis-active-query.tsv
           grep -Fq "sensing-budget Pareto frontier" vis-active-query.tsv
           grep -Fq "Requests are evenly scheduled across the fixed 48-tick horizon" vis-active-query.tsv
-          awk -F '\t' '$1 == "BUDGET" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "BUDGET" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 80 || seen[8] != 16 || seen[16] != 16 || seen[24] != 16 || seen[32] != 16 || seen[48] != 16) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "BUDGET" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "BUDGET" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 90 || seen[8] != 18 || seen[16] != 18 || seen[24] != 18 || seen[32] != 18 || seen[48] != 18) exit 1 }' vis-active-query.tsv
           grep -Fq "STOP_SENSITIVITY" vis-active-query.tsv
           awk -F '\t' '$1 == "STOP_SENSITIVITY" && $2 == "family" { if (NF != 14) exit 1; header++ } $1 == "STOP_SENSITIVITY" && ($2 == "development" || $2 == "held_out") { if (NF != 14) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 8 || seen["0.010"] != 2 || seen["0.040"] != 2 || seen["0.080"] != 2 || seen["0.120"] != 2) exit 1 }' vis-active-query.tsv
+          grep -Fq "MARGINAL_STOP_CALIBRATION" vis-active-query.tsv
+          awk -F '\t' '$1 == "MARGINAL_STOP" && $2 == "family" { if (NF != 12) exit 1; header++ } $1 == "MARGINAL_STOP" && ($2 == "development" || $2 == "held_out") { if (NF != 12) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "MARGINAL_STOP_CALIBRATION" { if (NF != 12) exit 1; rows++ } END { if (rows != 2) exit 1 }' vis-active-query.tsv
           sha256sum vis-active-query.tsv > vis-active-query.sha256
           sha256sum -c vis-active-query.sha256
           cat vis-active-query.tsv
