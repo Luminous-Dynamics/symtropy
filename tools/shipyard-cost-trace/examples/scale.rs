@@ -1,6 +1,6 @@
 use shipyard_cost_trace::{
-    EventKind, EvidencePermission, LedgerEvent, QuantityAggregationSemantics, QuantityEvent,
-    Stage, audit,
+    EventKind, EvidencePermission, LedgerEvent, QuantityAggregationSemantics, QuantityEvent, Stage,
+    audit,
 };
 use std::time::Instant;
 
