@@ -76,7 +76,7 @@ This is an internal microbenchmark, not an external SOTA result. End-to-end eval
 
 ## Three-objective follow-up
 
-A separate stacked draft [PR #2518](https://github.com/Luminous-Dynamics/symtropy/pull/2518) adds an exact three-objective sweep using a compressed y-coordinate index and Fenwick prefix-minimum witnesses. It defers updates across equal-x groups and resolves equal-y candidates separately so identical points do not dominate one another. The new generated-grid and adversarial tests compare its output against the brute-force dominance oracle. This remains unproven until exact-head CI completes; four or more dimensions still use the pairwise fallback. The benchmark matrix now includes 2D and 3D profiles at 25/100/1,000/10,000 candidates, plus 4D fallback cases through 1,000 candidates.
+A separate stacked draft [PR #2519](https://github.com/Luminous-Dynamics/symtropy/pull/2519) adds an exact three-objective sweep using a compressed y-coordinate index and Fenwick prefix-minimum witnesses. It defers updates across equal-x groups and resolves equal-y candidates separately so identical points do not dominate one another. The new generated-grid and adversarial tests compare its output against the brute-force dominance oracle. This remains unproven until exact-head CI completes; four or more dimensions still use the pairwise fallback. The benchmark matrix now includes 2D and 3D profiles at 25/100/1,000/10,000 candidates, plus 4D fallback cases through 1,000 candidates.
 
 ## Claim ceiling
 
