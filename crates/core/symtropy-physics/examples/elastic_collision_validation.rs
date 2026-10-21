@@ -288,6 +288,23 @@ mod tests {
                         result.passed,
                         "closed-form mismatch for {case:?}: {result:?}"
                     );
+
+                    // Independent energy-loss identity for an isolated 1D
+                    // binary collision: ΔK = 1/2 μ (1-e²) (u1-u2)².
+                    let reduced_mass = mass_a * mass_b / (mass_a + mass_b);
+                    let relative_speed = velocity_a_initial - velocity_b_initial;
+                    let expected_energy_loss = 0.5
+                        * reduced_mass
+                        * (1.0 - restitution * restitution)
+                        * relative_speed
+                        * relative_speed;
+                    let observed_energy_loss =
+                        result.kinetic_energy_initial - result.kinetic_energy_final;
+                    assert!(
+                        (observed_energy_loss - expected_energy_loss).abs()
+                            <= ENERGY_TOLERANCE,
+                        "energy-loss identity mismatch for {case:?}: expected={expected_energy_loss:.12e}, observed={observed_energy_loss:.12e}"
+                    );
                     assert!(
                         (result.momentum_final - result.momentum_initial).abs()
                             <= MOMENTUM_TOLERANCE
