@@ -123,6 +123,42 @@ On the locked benchmark suite, aim for at least 20% lower mean normalized simple
 
 The initial digital-twin corpus can test deterministic selection logic and failure handling, but synthetic optimization wins remain synthetic. Never allow predicted yield or a utility sum to compensate for safety/quality failure, water-rights/ecological limits, or a model operating outside its evidence-supported domain.
 
+## Phase-aware adaptation under abnormal fermentation
+
+The next paradigm shift is to make the twin adapt to **how much trustworthy evidence is available**, rather than committing to one estimator for every regime. During early abnormal operation, only a truncated prefix may exist; later, additional measurements can improve identifiability enough to justify a different estimator. The system must also distinguish genuine process shifts from sensor bias, sampling gaps and other competing explanations.
+
+A relevant 2026 industrial comparator is Kim et al., *Effect of data availability on in-line adaptation of fermentation mechanistic models under abnormal conditions*, Chemical Engineering Journal Advances 26, 101157, DOI https://doi.org/10.1016/j.ceja.2026.101157. The paper evaluates 30 industrial contaminated fed-batch runs and reports that, in early sparse-data conditions, Bayesian adaptation reduced post-detection prediction error relative to genetic-algorithm fitting by 26% for substrate and 44% for product concentrations. With larger available datasets, the genetic-algorithm fit was reported to improve accuracy relative to Bayesian estimation by 25% and 19%, respectively. The study uses confidential industrial data, so these numbers are **published literature comparators, not independently reproduced results or a public data benchmark**, and they are not a beverage-specific performance baseline.
+
+### Benchmark protocol
+
+For every eligible dataset, evaluate the same abnormality-detection timestamp and then disclose only the data that would actually be available at each truncated prefix. Compare at least:
+- a fixed mechanistic parameter fit using the available prefix;
+- a Bayesian posterior update on that identical prefix;
+- a population/evolutionary optimizer, fitted only to that same prefix;
+- the predeclared phase-aware switching policy;
+- a simple persistence or last-valid-model baseline.
+
+Use multiple fixed prefixes, including early sparse and later richer observation regimes. Do not hand the early estimator later measurements, and do not choose the switch point after inspecting held-out outcomes. Fit/tune each comparator on permitted training data only.
+
+Report separately:
+- substrate and product concentration error by endpoint and prefix;
+- relative improvement over the strongest fixed estimator with paired uncertainty over genuinely independent batches;
+- interval coverage and width, proper scoring rules, and posterior/parameter identifiability diagnostics;
+- abnormality detection delay, missed events, false alarms per batch and performance when sensor faults mimic process shifts;
+- hard-constraint violations, abstention/escalation frequency and whether a recommendation arrives before the decision deadline;
+- inference latency (median and p95), data quantity needed before the policy switches, and performance by disturbance severity;
+- loss of product quality/yield or resource efficiency only when those outcomes are actually observed and appropriately linked.
+
+The machine-readable scenario corpus is `docs/research/beverage-abnormal-adaptation-scenarios-v1.json`, with schema `docs/research/beverage-abnormal-adaptation-scenarios-v1.schema.json`. Fourteen synthetic cases cover early-versus-late estimator choice, low identifiability, sensor-bias confusion, future-data leakage, miscalibration, out-of-domain batches, hard-limit rejection, false alarms, late recommendations, and the confidential-data claim boundary. They test policy semantics; they do not reproduce the industrial paper.
+
+### Proposed stretch target
+
+First reproduce a like-for-like public-data benchmark before comparing the published percentages. Then aim for the adaptive policy to reduce mean post-detection prediction error by **at least 15% relative to the best fixed-estimator baseline** on locked early-prefix holdouts, with paired uncertainty supporting improvement, calibrated 90% prediction intervals in a predeclared tolerance band (initially 85–95% empirical coverage across enough independent batches), no increase in hard-constraint violations, and a declared p95 latency within the decision deadline. Also report worst-batch outcomes and false-alarm/detection-delay tradeoffs; do not optimize the mean by sacrificing a small subset of batches.
+
+When independent data are insufficient to estimate calibration, false-alarm burden or paired uncertainty, return `INDETERMINATE` rather than claiming superiority. The 15% target is a proposed research target, not an observed result. It must not be presented as beating the 2026 study without the same data, process, endpoints, detection points and metrics.
+
+**Safety boundary:** this benchmark qualifies estimation and decision-support evidence, not automatic actuation, contamination diagnosis, food safety, batch salvage, or feed changes. The model may recommend abstention and escalation, but a predicted state is not a microbiological test or a substitute for a validated process-specific safety procedure.
+
 ## Benchmark ambitions
 
 The proposed research target is a prospective pilot that reduces at least one preregistered normalized resource metric—water or energy per saleable product unit—by at least 10%, with no statistically supported degradation in the other resource metric, saleable yield, defined product-quality endpoints or safety gates. This is a stretch goal, not a universal limit or achieved result.
