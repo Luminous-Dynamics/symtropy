@@ -1,0 +1,109 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-VOI-001",
+  "evidence_class": "synthetic",
+  "currency": "USD",
+  "claim_ceiling": "All scenario effects and measurement costs/times are illustrative synthetic inputs, not measured factory data, vendor quotes, expected value, ROI or production guidance.",
+  "scenarios": [
+    {
+      "scenario_id": "supplier-arrival-variability",
+      "action_effects": [
+        { "action_id": "hold-capital", "incremental_good_units_per_hour": 0.0 },
+        { "action_id": "add-eol-server", "incremental_good_units_per_hour": 0.4 },
+        { "action_id": "add-body-prep-server", "incremental_good_units_per_hour": 0.3 },
+        { "action_id": "improve-yield", "incremental_good_units_per_hour": 0.2 }
+      ]
+    },
+    {
+      "scenario_id": "body-prep-constrained",
+      "action_effects": [
+        { "action_id": "hold-capital", "incremental_good_units_per_hour": 0.0 },
+        { "action_id": "add-eol-server", "incremental_good_units_per_hour": 0.8 },
+        { "action_id": "add-body-prep-server", "incremental_good_units_per_hour": 1.8 },
+        { "action_id": "improve-yield", "incremental_good_units_per_hour": 0.6 }
+      ]
+    },
+    {
+      "scenario_id": "eol-test-constrained",
+      "action_effects": [
+        { "action_id": "hold-capital", "incremental_good_units_per_hour": 0.0 },
+        { "action_id": "add-eol-server", "incremental_good_units_per_hour": 2.2 },
+        { "action_id": "add-body-prep-server", "incremental_good_units_per_hour": 0.4 },
+        { "action_id": "improve-yield", "incremental_good_units_per_hour": 0.5 }
+      ]
+    },
+    {
+      "scenario_id": "low-yield-rework",
+      "action_effects": [
+        { "action_id": "hold-capital", "incremental_good_units_per_hour": 0.0 },
+        { "action_id": "add-eol-server", "incremental_good_units_per_hour": 0.5 },
+        { "action_id": "add-body-prep-server", "incremental_good_units_per_hour": 0.7 },
+        { "action_id": "improve-yield", "incremental_good_units_per_hour": 2.0 }
+      ]
+    }
+  ],
+  "actions": [
+    { "action_id": "hold-capital", "label": "Defer capital intervention" },
+    { "action_id": "add-eol-server", "label": "Add one end-of-line test server" },
+    { "action_id": "add-body-prep-server", "label": "Add one body-preparation server" },
+    { "action_id": "improve-yield", "label": "Improve yield and rework" }
+  ],
+  "measurements": [
+    {
+      "measurement_id": "cycle-time-study",
+      "label": "Line-side cycle-time and queue study",
+      "evidence_class": "synthetic",
+      "cost_amount": 500.0,
+      "currency": "USD",
+      "duration_hours": 2.0,
+      "observations": [
+        { "scenario_id": "supplier-arrival-variability", "outcome": "flow-pressure" },
+        { "scenario_id": "body-prep-constrained", "outcome": "flow-pressure" },
+        { "scenario_id": "eol-test-constrained", "outcome": "test-pressure" },
+        { "scenario_id": "low-yield-rework", "outcome": "quality-loss" }
+      ]
+    },
+    {
+      "measurement_id": "quality-rework-audit",
+      "label": "Good-unit, scrap and rework audit",
+      "evidence_class": "synthetic",
+      "cost_amount": 300.0,
+      "currency": "USD",
+      "duration_hours": 4.0,
+      "observations": [
+        { "scenario_id": "supplier-arrival-variability", "outcome": "nominal-rework" },
+        { "scenario_id": "body-prep-constrained", "outcome": "nominal-rework" },
+        { "scenario_id": "eol-test-constrained", "outcome": "nominal-rework" },
+        { "scenario_id": "low-yield-rework", "outcome": "high-rework" }
+      ]
+    },
+    {
+      "measurement_id": "supplier-delivery-audit",
+      "label": "Supplier arrival variability audit",
+      "evidence_class": "synthetic",
+      "cost_amount": 150.0,
+      "currency": "USD",
+      "duration_hours": 1.0,
+      "observations": [
+        { "scenario_id": "supplier-arrival-variability", "outcome": "unstable-arrivals" },
+        { "scenario_id": "body-prep-constrained", "outcome": "stable-arrivals" },
+        { "scenario_id": "eol-test-constrained", "outcome": "stable-arrivals" },
+        { "scenario_id": "low-yield-rework", "outcome": "stable-arrivals" }
+      ]
+    },
+    {
+      "measurement_id": "line-side-visual-audit",
+      "label": "Broad line-side observation with low discriminatory power",
+      "evidence_class": "synthetic",
+      "cost_amount": 450.0,
+      "currency": "USD",
+      "duration_hours": 3.0,
+      "observations": [
+        { "scenario_id": "supplier-arrival-variability", "outcome": "unstable-arrivals" },
+        { "scenario_id": "body-prep-constrained", "outcome": "stable-arrivals" },
+        { "scenario_id": "eol-test-constrained", "outcome": "stable-arrivals" },
+        { "scenario_id": "low-yield-rework", "outcome": "stable-arrivals" }
+      ]
+    }
+  ]
+}
