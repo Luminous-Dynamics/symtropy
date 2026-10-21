@@ -222,6 +222,73 @@ jobs:
             and .acceptance.energy_oracle == "strain_energy_and_external_work_match_half_load_dot_displacement"
           ' planar-truss-sweep-receipt.json
 
+      - name: Generate deterministic asymmetric-truss sweep receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          truss_source_sha256="$(sha256sum research/physical-transformation-reference/src/planar_truss.rs | awk '{print $1}')"
+          jq -n \
+            --arg source_commit "$source_commit" \
+            --arg truss_source_sha256 "$truss_source_sha256" \
+            '{
+              schema_version: "planar-truss-asymmetric-sweep-receipt-v0.1",
+              benchmark_id: "PHYS-TRUSS-ASYM-SWEEP-001",
+              source_commit: $source_commit,
+              source_sha256: {planar_truss_rs: $truss_source_sha256},
+              evidence_class: "software-test-run",
+              result: "pass",
+              test: "planar_truss::tests::fixed_seed_asymmetric_sweep_matches_independent_two_dof_oracle",
+              deterministic_generator: {
+                family: "64-bit linear congruential generator",
+                seed_hex: "0x4153594D54525553",
+                multiplier: "6364136223846793005",
+                increment: "1442695040888963407",
+                output: "top 53 state bits divided by 2^53"
+              },
+              case_count: 128,
+              ranges: {
+                base_span_m: {min: 2.0, max: 6.0},
+                apex_x_fraction_of_span: {min: 0.2, max: 0.8},
+                apex_y_m: {min: 0.5, max: 3.0},
+                youngs_modulus_pa: {min: 50000000000, max: 210000000000},
+                axial_stiffness_a_n_per_m: {min: 10000000, max: 10000000000},
+                axial_stiffness_b_n_per_m: {min: 7000000, max: 13000000000},
+                apex_force_x_n: {min: -3000.0, max: 3000.0},
+                apex_force_y_n: {min: -3000.0, max: 3000.0}
+              },
+              checks_per_case: 21,
+              total_scalar_checks: 2688,
+              acceptance: {
+                relative_tolerance: 1.0e-9,
+                field_specific_absolute_floors: true,
+                normalized_force_residual_lt: 1.0e-12,
+                normalized_moment_residual_lt: 1.0e-12,
+                normalized_free_dof_residual_lt: 1.0e-12,
+                normalized_energy_residual_lt: 1.0e-12,
+                oracle: "independent inverse of the reduced 2x2 stiffness matrix",
+                alternating_node_and_bar_input_order: true
+              },
+              claim_ceiling: "synthetic static small-displacement linear-elastic asymmetric 2D pin-jointed truss software reference only; no physical validation, modal analysis, buckling, code compliance, or structural safety claim"
+            }' > planar-truss-asymmetric-sweep-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg truss_source_sha256 "$truss_source_sha256" '
+            .schema_version == "planar-truss-asymmetric-sweep-receipt-v0.1"
+            and .benchmark_id == "PHYS-TRUSS-ASYM-SWEEP-001"
+            and .source_commit == $source_commit
+            and .source_sha256.planar_truss_rs == $truss_source_sha256
+            and (.source_sha256.planar_truss_rs | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .case_count == 128
+            and .checks_per_case == 21
+            and .total_scalar_checks == 2688
+            and .acceptance.normalized_force_residual_lt == 1e-12
+            and .acceptance.normalized_moment_residual_lt == 1e-12
+            and .acceptance.normalized_free_dof_residual_lt == 1e-12
+            and .acceptance.normalized_energy_residual_lt == 1e-12
+            and .acceptance.oracle == "independent inverse of the reduced 2x2 stiffness matrix"
+          ' planar-truss-asymmetric-sweep-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -231,5 +298,6 @@ jobs:
             planar-truss-mutation-receipt.json
             planar-truss-reference-receipt.json
             planar-truss-sweep-receipt.json
+            planar-truss-asymmetric-sweep-receipt.json
           if-no-files-found: error
           retention-days: 90
