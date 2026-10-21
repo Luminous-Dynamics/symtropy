@@ -30,7 +30,8 @@ jobs:
         run: |
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
           jq -e '
-            .benchmark_id == "EV-FACTORY-SIM-001"
+            (.seed) as $seed
+            | .benchmark_id == "EV-FACTORY-SIM-001"
             and .input_evidence_class == "synthetic"
             and (.replication_seeds | length) == 20
           ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
@@ -52,7 +53,7 @@ jobs:
             and (.scenarios[0].job_lifecycle_events | length) > 0
             and .scenarios[0].job_lifecycle_summary.event_count_in_ledger == (.scenarios[0].job_lifecycle_events | length)
             and (.scenarios[1:] | all(.[]; (.job_lifecycle_events | length) == 0))
-            and (.scenarios[0].job_lifecycle_events | all(.[]; .schema_version == "0.1.0" and .seed == $ARGS.named.seed and .scenario_id == "baseline" and .evidence_class == "synthetic"))
+            and (.scenarios[0].job_lifecycle_events | all(.[]; .schema_version == "0.1.0" and .seed == $seed and .scenario_id == "baseline" and .evidence_class == "synthetic"))
             and .scenarios[0].job_lifecycle_summary.eligible_released_jobs_after_warmup == (.scenarios[0].job_lifecycle_summary.accepted_good_jobs_in_cohort + .scenarios[0].job_lifecycle_summary.scrapped_jobs_in_cohort + .scenarios[0].job_lifecycle_summary.right_censored_jobs_at_horizon)
             and .scenarios[0].job_lifecycle_summary.good_job_lead_time_seconds.sample_count == .scenarios[0].job_lifecycle_summary.accepted_good_jobs_in_cohort
             and (.scenarios[0].job_lifecycle_summary.station_first_pass_yield | length) == 5
@@ -65,7 +66,7 @@ jobs:
             and .output_never_exceeds_released_input
             and .all_buffers_respected_capacity
             and .station_time_accounting_within_horizon
-          ' --argjson seed "$(jq '.seed' ev-factory-lifecycle-report.json)" ev-factory-lifecycle-report.json
+          ' ev-factory-lifecycle-report.json
       - name: Verify deterministic report replay
         run: |
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
