@@ -35,7 +35,20 @@ Unsupported: multiple RR sections/steps, missing or ambiguous section, multi-set
 - explicit warnings that unit system and coordinate frame are not inferred by the parser;
 - `physical_result_qualified=false` and `real_world_validation_status=UNRESOLVED`.
 
-The parser intentionally does not call the values newtons. CalculiX input files have no intrinsic unit system; downstream normalization may assign SI units only when the exact, verified request/deck contract establishes that convention.
+`normalize_reaction_only_rr_bytes(request_bytes, deck_bytes, dat_bytes, manifest_bytes, node_catalog_bytes)` is the next pure-Rust bridge. It joins parsed RR force vectors to a separately supplied support-node catalogue only when the catalogue and manifest bind the exact request, scene revision, frame, deck digest, node-catalogue digest and expected support-node inventory. Version 0.1 accepts only the same named frame without transforms and explicit SI request units (m, N); unsupported or mismatched metadata returns an error rather than a normalized value.
+
+The normalizer emits:
+- a payload conforming to `physical-equilibrium-reaction-forces-v0.1`;
+- the normalized payload SHA-256;
+- exact request, deck, `.dat`, manifest and node-catalogue digests;
+- an explicit statement of unit and frame provenance;
+- `physical_result_qualified=false` and `real_world_validation_status=UNRESOLVED`.
+
+Schemas: `calculix-rr-normalization-manifest-v0.1.schema.json`, `physical-support-node-catalog-v0.1.schema.json`, and `calculix-rr-normalization-report-v0.1.schema.json`.
+
+Neither function currently creates a solver receipt or authenticates execution. Before use in the equilibrium auditor, the caller must persist the raw deck, raw `.dat`, support-node catalogue and normalized output under an artifact root and declare their exact digests as receipt input/output artifacts. The existing byte verifier must check those artifacts before numerical scoring.
+
+The parser intentionally does not call the values newtons. CalculiX input files have no intrinsic unit system; downstream normalization assigns SI units only because the exact request and manifest state that convention and the request is bound by digest—not because the RR output itself carries units.
 
 ## Adversarial controls
 
