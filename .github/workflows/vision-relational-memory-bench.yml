@@ -8,6 +8,7 @@ on:
       - "tools/vision-active-query-bench.rs"
       - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
       - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
+      - "docs/research/VIS_EXTERNAL_BENCHMARK_MATRIX_V0_1.md"
       - ".github/workflows/vision-relational-memory-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -17,6 +18,7 @@ on:
       - "tools/vision-active-query-bench.rs"
       - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
       - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
+      - "docs/research/VIS_EXTERNAL_BENCHMARK_MATRIX_V0_1.md"
       - ".github/workflows/vision-relational-memory-bench.yml"
   workflow_dispatch:
 
