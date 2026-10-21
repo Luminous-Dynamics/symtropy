@@ -764,6 +764,38 @@ mod tests {
     }
 
     #[test]
+    fn portfolio_bounding_area_time_score_matches_independent_tick_sweep() {
+        let requests = [
+            request("r-a", "block-a", 4, 3, 0, 4),
+            request("r-b", "block-b", 3, 2, 2, 7),
+            request("r-c", "block-c", 2, 2, 4, 8),
+        ];
+        let result = first_fit_portfolio(yard(), &requests, &[]).unwrap();
+
+        let mut expected = 0u128;
+        for tick in 0..8 {
+            let mut active_rects = Vec::new();
+            for placement in &result.scenario.placements {
+                if placement.occupied.start_tick <= tick && tick < placement.occupied.end_tick {
+                    if let Footprint::AxisAlignedRect(rect) = &placement.footprint {
+                        active_rects.push(*rect);
+                    }
+                }
+            }
+            if active_rects.is_empty() {
+                continue;
+            }
+            let min_x = active_rects.iter().map(|rect| rect.min_x).min().unwrap();
+            let min_y = active_rects.iter().map(|rect| rect.min_y).min().unwrap();
+            let max_x = active_rects.iter().map(|rect| rect.max_x).max().unwrap();
+            let max_y = active_rects.iter().map(|rect| rect.max_y).max().unwrap();
+            expected += u128::try_from((max_x - min_x) * (max_y - min_y)).unwrap();
+        }
+
+        assert_eq!(result.score.bounding_area_time, expected);
+    }
+
+    #[test]
     fn portfolio_is_input_order_invariant_and_returns_independently_verified_plan() {
         let requests = [
             request("r-a", "block-a", 1, 1, 0, 8),
