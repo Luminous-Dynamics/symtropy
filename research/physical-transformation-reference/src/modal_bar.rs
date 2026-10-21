@@ -538,6 +538,16 @@ mod tests {
     const AREA_M2: f64 = 1.0;
     const YOUNGS_MODULUS_PA: f64 = 210.0e9;
     const DENSITY_KG_M3: f64 = 7800.0;
+    const MODAL_SWEEP_REQUEST: &str = concat!(
+        "schema=modal-bar-sweep-request-v0.1|fixture=PHYS-AXIAL-BAR-SWEEP-001",
+        "|seed_hex=0x4D4F44414C534331|lcg_multiplier=6364136223846793005",
+        "|lcg_increment=1442695040888963407|cases=128|length_m=0.2..5.0",
+        "|area_m2=1e-8..1e-2|youngs_modulus_pa=30e9..210e9",
+        "|density_kg_m3=1000..16000|elements=1..16",
+        "|mass_formulation=consistent,lumped|modes=all",
+        "|independent_oracle=closed_form_discrete_eigenvalues",
+        "|checks=oracle_rel_lt_2e-9,area_rel_lt_2e-10,inverse_length_rel_lt_2e-10"
+    );
 
     fn exact(mode_count: usize) -> Vec<f64> {
         analytical_fixed_free_axial_bar_frequencies(
@@ -778,6 +788,10 @@ mod tests {
 
     #[test]
     fn fixed_seed_128_case_modal_sweep_matches_discrete_oracle_and_scale_laws() {
+        assert_eq!(
+            include_str!("../fixtures/modal_bar_sweep_request_v0_1.txt").trim_end_matches('\n'),
+            MODAL_SWEEP_REQUEST
+        );
         let mut state = 0x4D4F_4441_4C53_4331_u64;
         let mut maximum_oracle_error = 0.0_f64;
         let mut maximum_area_scaling_error = 0.0_f64;
@@ -875,6 +889,23 @@ mod tests {
         assert!(maximum_oracle_error < 2.0e-9);
         assert!(maximum_area_scaling_error < 2.0e-10);
         assert!(maximum_length_scaling_error < 2.0e-10);
+        println!(
+            concat!(
+                "MODAL_SWEEP_JSON {{",
+                "\"schema_version\":\"modal-bar-sweep-test-result-v0.1\",",
+                "\"benchmark_id\":\"PHYS-AXIAL-BAR-SWEEP-001\",",
+                "\"case_count\":128,",
+                "\"mass_formulation_count\":2,",
+                "\"modes_checked\":\"all_modes_for_each_case\",",
+                "\"max_oracle_relative_error\":{:.17e},",
+                "\"max_area_scaling_relative_error\":{:.17e},",
+                "\"max_inverse_length_scaling_relative_error\":{:.17e}",
+                "}}"
+            ),
+            maximum_oracle_error,
+            maximum_area_scaling_error,
+            maximum_length_scaling_error
+        );
     }
 
     #[test]
