@@ -1034,7 +1034,7 @@ fn report_stop_cost_sensitivity() {
 }
 
 fn report_marginal_value_stop() {
-    println!("MARGINAL_STOP\tfamily\tcost_per_request\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requests_used\tcost_adjusted_objective\tdelta_loss_vs_round_robin\tloss_bootstrap95_lo\tloss_bootstrap95_hi\tobjective_delta_vs_round_robin\tobjective_bootstrap95_lo\tobjective_bootstrap95_hi");
+    println!("MARGINAL_STOP\tfamily\tcost_per_request\tepisodes\tmean_loss\tanswer_rate\taccuracy_when_answered\tmean_requests_used\testimated_scoring_work_units_per_episode\tcost_adjusted_objective\tdelta_loss_vs_round_robin\tloss_bootstrap95_lo\tloss_bootstrap95_hi\tobjective_delta_vs_round_robin\tobjective_bootstrap95_lo\tobjective_bootstrap95_hi");
     let mut cells = vec![
         Accumulator::default();
         Family::ALL.len() * MARGINAL_VALUE_COST_GRID.len()
@@ -1088,10 +1088,10 @@ fn report_marginal_value_stop() {
             let objective_seed = mix64(seed ^ 0x4F42_4A45_4354_4956);
             let (objective_lo, objective_hi) =
                 bootstrap_ci(&cell.paired_objective_deltas_vs_rr, objective_seed);
-            println!("MARGINAL_STOP\t{}\t{:.5}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.5}\t{:.4}\t{:.4}\t{:.4}\t{:.5}\t{:.5}\t{:.5}",
+            println!("MARGINAL_STOP\t{}\t{:.5}\t{}\t{:.4}\t{:.4}\t{}\t{:.3}\t{:.1}\t{:.5}\t{:.4}\t{:.4}\t{:.4}\t{:.5}\t{:.5}\t{:.5}",
                 family.name(), cost, cell.episodes, cell.mean_loss(), cell.answer_rate(),
-                cell.accuracy(), mean_requests, objective, delta, lo, hi,
-                objective_delta, objective_lo, objective_hi);
+                cell.accuracy(), mean_requests, cell.mean_scoring_work_units(), objective,
+                delta, lo, hi, objective_delta, objective_lo, objective_hi);
         }
     }
 
