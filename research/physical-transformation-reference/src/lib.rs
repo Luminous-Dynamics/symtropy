@@ -11,6 +11,7 @@ pub type Check<T> = Result<T, String>;
 
 pub mod deconstruction;
 pub mod mechanics;
+pub mod units;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Component {
