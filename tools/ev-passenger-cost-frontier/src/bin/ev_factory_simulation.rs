@@ -1981,7 +1981,12 @@ mod tests {
         assert_eq!(catalog.replication_seeds.len(), 20);
         assert_eq!(catalog.replication_seeds.first(), Some(&catalog.seed));
         assert_eq!(
-            catalog.replication_seeds.iter().copied().collect::<BTreeSet<_>>().len(),
+            catalog
+                .replication_seeds
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len(),
             20,
             "paired benchmark fixture must carry 20 unique, explicit seeds",
         );
