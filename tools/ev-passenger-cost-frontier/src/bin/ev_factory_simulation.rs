@@ -690,7 +690,10 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 if station.station_id != reference_station.station_id
                     || station.server_count != reference_station.server_count
                 {
-                    return Err("replications_returned_inconsistent_station_identity_or_server_count".into());
+                    return Err(
+                        "replications_returned_inconsistent_station_identity_or_server_count"
+                            .into(),
+                    );
                 }
                 busy.push(station.busy_fraction);
                 blocked.push(station.blocked_fraction);
@@ -1702,7 +1705,10 @@ mod tests {
     #[test]
     fn operating_state_summaries_cover_each_station_and_scenario_across_seeds() {
         let report = evaluate_catalog(&fixture()).expect("replicated simulation");
-        assert_eq!(report.station_operating_statistics.len(), report.scenario_count * 5);
+        assert_eq!(
+            report.station_operating_statistics.len(),
+            report.scenario_count * 5
+        );
         assert!(report.station_operating_statistics.iter().all(|item| {
             item.busy_fraction.sample_count == 20
                 && item.blocked_fraction.sample_count == 20
@@ -1715,11 +1721,18 @@ mod tests {
                 && (0.0..=1.0).contains(&item.down_fraction.mean)
                 && item.server_count > 0
         }));
-        let baseline_eol = report.station_operating_statistics.iter()
+        let baseline_eol = report
+            .station_operating_statistics
+            .iter()
             .find(|item| item.scenario_id == "baseline" && item.station_id == "end-of-line-test")
             .expect("baseline EOL operating statistics");
-        let added_eol = report.station_operating_statistics.iter()
-            .find(|item| item.scenario_id == "add-one-server-end-of-line-test" && item.station_id == "end-of-line-test")
+        let added_eol = report
+            .station_operating_statistics
+            .iter()
+            .find(|item| {
+                item.scenario_id == "add-one-server-end-of-line-test"
+                    && item.station_id == "end-of-line-test"
+            })
             .expect("intervention EOL operating statistics");
         assert_eq!(baseline_eol.server_count + 1, added_eol.server_count);
     }
