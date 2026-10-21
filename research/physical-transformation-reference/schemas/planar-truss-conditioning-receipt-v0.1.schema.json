@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation-reference/planar-truss-conditioning-receipt-v0.1.schema.json",
+  "title": "Planar Truss Conditioning Receipt v0.1",
+  "description": "Published source-bound receipt for a synthetic two-bar truss conditioning and RHS-sensitivity sweep. This schema does not define physical validation or structural safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "source_commit",
+    "evidence_class",
+    "result",
+    "machine_epsilon",
+    "condition_reject_threshold",
+    "case_count",
+    "accepted_case_count",
+    "rejected_case_count",
+    "cases",
+    "claim_ceiling",
+    "source_sha256",
+    "source_digest_algorithm",
+    "duplicate_run_bytes_identical"
+  ],
+  "properties": {
+    "schema_version": { "const": "planar-truss-conditioning-receipt-v0.1" },
+    "benchmark_id": { "const": "PHYS-TRUSS-CONDITION-001" },
+    "source_commit": { "$ref": "#/$defs/gitSha1" },
+    "evidence_class": { "const": "software-test-run" },
+    "result": { "const": "pass" },
+    "machine_epsilon": { "type": "number", "exclusiveMinimum": 0 },
+    "condition_reject_threshold": { "const": 0.001 },
+    "case_count": { "const": 9 },
+    "accepted_case_count": { "const": 7 },
+    "rejected_case_count": { "const": 2 },
+    "cases": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": { "$ref": "#/$defs/case" }
+    },
+    "claim_ceiling": {
+      "const": "synthetic static small-displacement linear-elastic 2D pin-jointed truss conditioning test only; no physical validation, external FEM qualification, or structural safety claim"
+    },
+    "source_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planar_truss_rs",
+        "truss_conditioning_rs",
+        "planar_truss_conditioning_bin_rs",
+        "lib_rs",
+        "cargo_toml",
+        "conditioning_receipt_schema_json"
+      ],
+      "properties": {
+        "planar_truss_rs": { "$ref": "#/$defs/sha256" },
+        "truss_conditioning_rs": { "$ref": "#/$defs/sha256" },
+        "planar_truss_conditioning_bin_rs": { "$ref": "#/$defs/sha256" },
+        "lib_rs": { "$ref": "#/$defs/sha256" },
+        "cargo_toml": { "$ref": "#/$defs/sha256" },
+        "conditioning_receipt_schema_json": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "source_digest_algorithm": {
+      "const": "SHA-256 of each exact listed UTF-8 source/manifest file"
+    },
+    "duplicate_run_bytes_identical": { "const": true }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "vec2": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false
+    },
+    "nullableNonnegative": {
+      "anyOf": [
+        { "type": "number", "minimum": 0 },
+        { "type": "null" }
+      ]
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_index",
+        "apex_height_m",
+        "reduced_stiffness_n_per_m",
+        "determinant_n2_per_m2",
+        "condition_infinity",
+        "reciprocal_condition_infinity",
+        "condition_times_machine_epsilon",
+        "target_displacement_m",
+        "applied_load_n",
+        "vertical_rhs_perturbation_n",
+        "vertical_rhs_perturbation_relative_amplitude",
+        "vertical_rhs_plus_relative_displacement_change",
+        "vertical_rhs_minus_relative_displacement_change",
+        "vertical_rhs_plus_amplification",
+        "vertical_rhs_minus_amplification",
+        "disposition",
+        "observed_displacement_m",
+        "forward_error_relative",
+        "backward_error_relative",
+        "condition_amplified_backward_error",
+        "forward_error_bound",
+        "forward_error_acceptance_limit",
+        "normalized_force_residual",
+        "normalized_moment_residual",
+        "normalized_free_dof_residual",
+        "normalized_energy_residual",
+        "solver_error"
+      ],
+      "properties": {
+        "case_index": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "apex_height_m": { "type": "number", "exclusiveMinimum": 0 },
+        "reduced_stiffness_n_per_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kxx", "kxy", "kyy"],
+          "properties": {
+            "kxx": { "type": "number" },
+            "kxy": { "type": "number" },
+            "kyy": { "type": "number" }
+          }
+        },
+        "determinant_n2_per_m2": { "type": "number", "exclusiveMinimum": 0 },
+        "condition_infinity": { "type": "number", "minimum": 1 },
+        "reciprocal_condition_infinity": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "condition_times_machine_epsilon": { "type": "number", "exclusiveMinimum": 0 },
+        "target_displacement_m": { "$ref": "#/$defs/vec2" },
+        "applied_load_n": { "$ref": "#/$defs/vec2" },
+        "vertical_rhs_perturbation_n": { "type": "number", "exclusiveMinimum": 0 },
+        "vertical_rhs_perturbation_relative_amplitude": { "type": "number", "exclusiveMinimum": 0 },
+        "vertical_rhs_plus_relative_displacement_change": { "type": "number", "minimum": 0 },
+        "vertical_rhs_minus_relative_displacement_change": { "type": "number", "minimum": 0 },
+        "vertical_rhs_plus_amplification": { "type": "number", "minimum": 0 },
+        "vertical_rhs_minus_amplification": { "type": "number", "minimum": 0 },
+        "disposition": { "enum": ["accepted", "rejected_numerically_unresolved"] },
+        "observed_displacement_m": {
+          "anyOf": [
+            { "$ref": "#/$defs/vec2" },
+            { "type": "null" }
+          ]
+        },
+        "forward_error_relative": { "$ref": "#/$defs/nullableNonnegative" },
+        "backward_error_relative": { "$ref": "#/$defs/nullableNonnegative" },
+        "condition_amplified_backward_error": { "$ref": "#/$defs/nullableNonnegative" },
+        "forward_error_bound": { "$ref": "#/$defs/nullableNonnegative" },
+        "forward_error_acceptance_limit": { "$ref": "#/$defs/nullableNonnegative" },
+        "normalized_force_residual": { "$ref": "#/$defs/nullableNonnegative" },
+        "normalized_moment_residual": { "$ref": "#/$defs/nullableNonnegative" },
+        "normalized_free_dof_residual": { "$ref": "#/$defs/nullableNonnegative" },
+        "normalized_energy_residual": { "$ref": "#/$defs/nullableNonnegative" },
+        "solver_error": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "disposition": { "const": "accepted" } } },
+          "then": {
+            "properties": {
+              "observed_displacement_m": { "$ref": "#/$defs/vec2" },
+              "forward_error_relative": { "type": "number", "minimum": 0 },
+              "backward_error_relative": { "type": "number", "minimum": 0 },
+              "condition_amplified_backward_error": { "type": "number", "minimum": 0 },
+              "forward_error_bound": { "type": "number", "minimum": 0 },
+              "forward_error_acceptance_limit": { "type": "number", "minimum": 0 },
+              "normalized_force_residual": { "type": "number", "minimum": 0 },
+              "normalized_moment_residual": { "type": "number", "minimum": 0 },
+              "normalized_free_dof_residual": { "type": "number", "minimum": 0 },
+              "normalized_energy_residual": { "type": "number", "minimum": 0 },
+              "solver_error": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "rejected_numerically_unresolved" } } },
+          "then": {
+            "properties": {
+              "observed_displacement_m": { "type": "null" },
+              "forward_error_relative": { "type": "null" },
+              "backward_error_relative": { "type": "null" },
+              "condition_amplified_backward_error": { "type": "null" },
+              "forward_error_bound": { "type": "null" },
+              "forward_error_acceptance_limit": { "type": "null" },
+              "normalized_force_residual": { "type": "null" },
+              "normalized_moment_residual": { "type": "null" },
+              "normalized_free_dof_residual": { "type": "null" },
+              "normalized_energy_residual": { "type": "null" },
+              "solver_error": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
