@@ -51,7 +51,7 @@ A mutant counts as detected only when its named test appears as FAILED. A compil
 
 ## Receipt fields and interpretation
 
-The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these seven deliberately selected mutations. The fifth mutation targets the 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1`; the sixth mutation targets the strain-energy half-factor and must be detected by the independent energy oracle. It must not be represented as a global mutation score or a physical-accuracy metric.
+The receipt binds the exact 40-character source commit, SHA-256 of `planar_truss.rs`, Rust/Cargo versions, control outcome, stable mutation IDs, intended test names, per-mutant disposition and counts. The summary is limited to these seven deliberately selected mutations. The third mutation targets the 128-case closed-form parameter sweep, whose bounds, fixed seed, and scalar-check count are published separately in `planar-truss-sweep-receipt-v0.1`; the fourth mutation targets the strain-energy half-factor; the fifth zeros the off-diagonal `cs` coupling and is required to fail the asymmetric oracle. It must not be represented as a global mutation score or a physical-accuracy metric.
 
 ## Claim boundary
 
