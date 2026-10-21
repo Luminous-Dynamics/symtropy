@@ -76,7 +76,9 @@ pub fn normalize_restricted_rf_bytes(
         ("node catalogue", node_catalog_bytes, MAX_JSON_BYTES),
     ] {
         if bytes.is_empty() || bytes.len() > limit {
-            return Err(format!("{name} JSON is empty or exceeds the {limit}-byte budget"));
+            return Err(format!(
+                "{name} JSON is empty or exceeds the {limit}-byte budget"
+            ));
         }
     }
     if deck_bytes.is_empty() || deck_bytes.len() > MAX_DECK_BYTES {
@@ -98,14 +100,27 @@ pub fn normalize_restricted_rf_bytes(
     exact_keys(
         &manifest,
         &[
-            "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
-            "scene_revision", "coordinate_frame_id", "node_set", "deck_sha256",
-            "node_catalog_sha256", "support_node_map", "load_node_map", "units", "provenance"
+            "schema_version",
+            "case_id",
+            "request_id",
+            "request_sha256",
+            "scene_sha256",
+            "scene_revision",
+            "coordinate_frame_id",
+            "node_set",
+            "deck_sha256",
+            "node_catalog_sha256",
+            "support_node_map",
+            "load_node_map",
+            "units",
+            "provenance",
         ],
         "manifest",
     )?;
     if field_str(&manifest, "schema_version", "manifest")? != MANIFEST_SCHEMA {
-        return Err(format!("manifest.schema_version must equal {MANIFEST_SCHEMA}"));
+        return Err(format!(
+            "manifest.schema_version must equal {MANIFEST_SCHEMA}"
+        ));
     }
     let case_id = token_field(&manifest, "case_id", "manifest")?;
     let request_id = field_str(&manifest, "request_id", "manifest")?.to_owned();
@@ -117,7 +132,10 @@ pub fn normalize_restricted_rf_bytes(
         || field_sha(&manifest, "deck_sha256", "manifest")? != deck_sha256
         || field_sha(&manifest, "node_catalog_sha256", "manifest")? != node_catalog_sha256
     {
-        return Err("manifest request/deck/node-catalogue SHA-256 binding does not match exact bytes".to_owned());
+        return Err(
+            "manifest request/deck/node-catalogue SHA-256 binding does not match exact bytes"
+                .to_owned(),
+        );
     }
     if field_str(&request, "request_id", "request")? != request_id
         || field_sha(&request, "scene_sha256", "request")? != scene_sha256
@@ -130,7 +148,9 @@ pub fn normalize_restricted_rf_bytes(
     require_si_units(&request, "request")?;
     require_si_units(&manifest, "manifest")?;
     validate_provenance(
-        manifest.get("provenance").ok_or_else(|| "manifest.provenance is required".to_owned())?,
+        manifest
+            .get("provenance")
+            .ok_or_else(|| "manifest.provenance is required".to_owned())?,
         "manifest.provenance",
     )?;
 
@@ -158,13 +178,24 @@ pub fn normalize_restricted_rf_bytes(
     if parsed_deck.node_print_set != node_set {
         return Err("RF output request is not bound to the manifest support node set".to_owned());
     }
-    let deck_support_set = parsed_deck.node_sets.get(&node_set)
+    let deck_support_set = parsed_deck
+        .node_sets
+        .get(&node_set)
         .ok_or_else(|| format!("deck has no explicit node set '{node_set}'"))?;
     if deck_support_set != &support_ids {
         return Err("deck support node set differs from manifest support_node_map".to_owned());
     }
-    if parsed_deck.boundary_dofs.iter().map(|(node, _)| *node).collect::<BTreeSet<_>>() != support_ids {
-        return Err("all prescribed-boundary nodes must exactly match the declared support-node inventory".to_owned());
+    if parsed_deck
+        .boundary_dofs
+        .iter()
+        .map(|(node, _)| *node)
+        .collect::<BTreeSet<_>>()
+        != support_ids
+    {
+        return Err(
+            "all prescribed-boundary nodes must exactly match the declared support-node inventory"
+                .to_owned(),
+        );
     }
     let catalog_nodes = parse_support_catalog(
         &catalog,
@@ -178,17 +209,28 @@ pub fn normalize_restricted_rf_bytes(
         &support_ids,
     )?;
     for support in &catalog_nodes {
-        let deck_position = parsed_deck.nodes.get(&support.node_id)
-            .ok_or_else(|| format!("support node {} does not occur in deck node inventory", support.node_id))?;
+        let deck_position = parsed_deck.nodes.get(&support.node_id).ok_or_else(|| {
+            format!(
+                "support node {} does not occur in deck node inventory",
+                support.node_id
+            )
+        })?;
         if deck_position != &support.position_m {
-            return Err(format!("support node {} coordinates differ between deck and independent catalogue", support.node_id));
+            return Err(format!(
+                "support node {} coordinates differ between deck and independent catalogue",
+                support.node_id
+            ));
         }
     }
 
-    let declared_support_map: BTreeMap<&str, u64> = support_map.iter()
-        .map(|item| (item.target_id.as_str(), item.node_id)).collect();
-    let declared_load_map: BTreeMap<&str, u64> = load_map.iter()
-        .map(|item| (item.target_id.as_str(), item.node_id)).collect();
+    let declared_support_map: BTreeMap<&str, u64> = support_map
+        .iter()
+        .map(|item| (item.target_id.as_str(), item.node_id))
+        .collect();
+    let declared_load_map: BTreeMap<&str, u64> = load_map
+        .iter()
+        .map(|item| (item.target_id.as_str(), item.node_id))
+        .collect();
     let expected_boundary = request_boundary_dofs(&request, &declared_support_map)?;
     if expected_boundary != parsed_deck.boundary_dofs {
         return Err("deck zero-displacement DOF inventory differs from the exact request boundary conditions".to_owned());
@@ -200,22 +242,34 @@ pub fn normalize_restricted_rf_bytes(
             parsed_deck.cloads
         ));
     }
-    if parsed_deck.cloads.keys().any(|(node, _)| support_ids.contains(node)) {
-        return Err("a CLOAD is applied to a support node; RF would include that concentrated load".to_owned());
+    if parsed_deck
+        .cloads
+        .keys()
+        .any(|(node, _)| support_ids.contains(node))
+    {
+        return Err(
+            "a CLOAD is applied to a support node; RF would include that concentrated load"
+                .to_owned(),
+        );
     }
 
     let dat_text = std::str::from_utf8(dat_bytes)
         .map_err(|_| "CalculiX .dat output must be UTF-8/ASCII text".to_owned())?;
     let rf_rows = parse_rf_section(dat_text, &node_set, &support_ids)?;
-    let positions: BTreeMap<u64, [f64; 3]> = catalog_nodes.iter()
-        .map(|node| (node.node_id, node.position_m)).collect();
-    let normalized_forces: Vec<Value> = rf_rows.iter().map(|row| {
-        json!({
-            "reaction_id": format!("node-{}", row.node_id),
-            "force_n": row.force_n,
-            "position_m": positions[&row.node_id],
+    let positions: BTreeMap<u64, [f64; 3]> = catalog_nodes
+        .iter()
+        .map(|node| (node.node_id, node.position_m))
+        .collect();
+    let normalized_forces: Vec<Value> = rf_rows
+        .iter()
+        .map(|row| {
+            json!({
+                "reaction_id": format!("node-{}", row.node_id),
+                "force_n": row.force_n,
+                "position_m": positions[&row.node_id],
+            })
         })
-    }).collect();
+        .collect();
     let normalized = json!({
         "schema_version": "physical-equilibrium-reaction-forces-v0.1",
         "case_id": case_id,
@@ -285,16 +339,23 @@ fn require_linear_static_request(request: &Value) -> Check<()> {
     }
     let physics = field_string_array(request, "requested_physics", "request")?;
     if physics.as_slice() != ["static_linear_elastic"] {
-        return Err("restricted RF path requires static_linear_elastic as the sole physics".to_owned());
+        return Err(
+            "restricted RF path requires static_linear_elastic as the sole physics".to_owned(),
+        );
     }
-    if !field_string_array(request, "required_outputs", "request")?.iter().any(|value| value == "reaction_force") {
+    if !field_string_array(request, "required_outputs", "request")?
+        .iter()
+        .any(|value| value == "reaction_force")
+    {
         return Err("request must explicitly require reaction_force".to_owned());
     }
     Ok(())
 }
 
 fn require_si_units(value: &Value, at: &str) -> Check<()> {
-    let units = value.get("units").ok_or_else(|| format!("{at}.units is required"))?;
+    let units = value
+        .get("units")
+        .ok_or_else(|| format!("{at}.units is required"))?;
     if field_str(units, "length", &format!("{at}.units"))? != "m"
         || field_str(units, "force", &format!("{at}.units"))? != "N"
     {
@@ -304,7 +365,9 @@ fn require_si_units(value: &Value, at: &str) -> Check<()> {
 }
 
 fn parse_node_map(value: &Value, key: &str, at: &str) -> Check<Vec<LoadNodeMap>> {
-    let array = value.get(key).and_then(Value::as_array)
+    let array = value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be an array"))?;
     let mut result = Vec::with_capacity(array.len());
     for (index, entry) in array.iter().enumerate() {
@@ -326,7 +389,10 @@ fn ensure_unique_map(map: &[LoadNodeMap], at: &str) -> Check<()> {
             return Err(format!("{at} duplicates target ID '{}'", item.target_id));
         }
         if !nodes.insert(item.node_id) {
-            return Err(format!("{at} maps more than one target to node {}", item.node_id));
+            return Err(format!(
+                "{at} maps more than one target to node {}",
+                item.node_id
+            ));
         }
     }
     Ok(())
@@ -346,8 +412,17 @@ fn parse_support_catalog(
     exact_keys(
         catalog,
         &[
-            "schema_version", "case_id", "request_id", "request_sha256", "scene_sha256",
-            "scene_revision", "coordinate_frame_id", "deck_sha256", "units", "nodes", "provenance"
+            "schema_version",
+            "case_id",
+            "request_id",
+            "request_sha256",
+            "scene_sha256",
+            "scene_revision",
+            "coordinate_frame_id",
+            "deck_sha256",
+            "units",
+            "nodes",
+            "provenance",
         ],
         "node catalogue",
     )?;
@@ -362,13 +437,22 @@ fn parse_support_catalog(
     {
         return Err("support-node catalogue identity/frame/deck digest mismatch".to_owned());
     }
-    let catalog_units = catalog.get("units").ok_or_else(|| "node catalogue.units is required".to_owned())?;
+    let catalog_units = catalog
+        .get("units")
+        .ok_or_else(|| "node catalogue.units is required".to_owned())?;
     exact_keys(catalog_units, &["length"], "node catalogue.units")?;
     if field_str(catalog_units, "length", "node catalogue.units")? != "m" {
         return Err("node catalogue length unit must be m".to_owned());
     }
-    validate_provenance(catalog.get("provenance").ok_or_else(|| "node catalogue.provenance missing".to_owned())?, "node catalogue.provenance")?;
-    let values = catalog.get("nodes").and_then(Value::as_array)
+    validate_provenance(
+        catalog
+            .get("provenance")
+            .ok_or_else(|| "node catalogue.provenance missing".to_owned())?,
+        "node catalogue.provenance",
+    )?;
+    let values = catalog
+        .get("nodes")
+        .and_then(Value::as_array)
         .ok_or_else(|| "node catalogue.nodes must be an array".to_owned())?;
     let mut result = Vec::with_capacity(values.len());
     let mut seen = BTreeSet::new();
@@ -380,10 +464,15 @@ fn parse_support_catalog(
         if !seen.insert(node_id) {
             return Err(format!("{at}.node_id duplicates {node_id}"));
         }
-        result.push(SupportNode { node_id, position_m });
+        result.push(SupportNode {
+            node_id,
+            position_m,
+        });
     }
     if &seen != expected_support_ids {
-        return Err("support-node catalogue IDs differ from the declared support inventory".to_owned());
+        return Err(
+            "support-node catalogue IDs differ from the declared support inventory".to_owned(),
+        );
     }
     Ok(result)
 }
@@ -392,7 +481,9 @@ fn request_boundary_dofs(
     request: &Value,
     support_map: &BTreeMap<&str, u64>,
 ) -> Check<BTreeSet<(u64, u8)>> {
-    let conditions = request.get("boundary_conditions").and_then(Value::as_array)
+    let conditions = request
+        .get("boundary_conditions")
+        .and_then(Value::as_array)
         .ok_or_else(|| "request.boundary_conditions must be an array".to_owned())?;
     let mut result = BTreeSet::new();
     for (index, condition) in conditions.iter().enumerate() {
@@ -401,9 +492,12 @@ fn request_boundary_dofs(
             return Err(format!("{at} is not a fixed displacement condition"));
         }
         let target = field_str(condition, "target_id", &at)?;
-        let node_id = *support_map.get(target)
-            .ok_or_else(|| format!("{at}.target_id '{target}' has no exact support-node mapping"))?;
-        let dofs = condition.get("dofs").and_then(Value::as_array)
+        let node_id = *support_map.get(target).ok_or_else(|| {
+            format!("{at}.target_id '{target}' has no exact support-node mapping")
+        })?;
+        let dofs = condition
+            .get("dofs")
+            .and_then(Value::as_array)
             .ok_or_else(|| format!("{at}.dofs must be an array"))?;
         if dofs.is_empty() {
             return Err(format!("{at}.dofs must not be empty"));
@@ -414,7 +508,11 @@ fn request_boundary_dofs(
                 Some("ux") => 1,
                 Some("uy") => 2,
                 Some("uz") => 3,
-                Some(other) => return Err(format!("{at} DOF '{other}' outside translational T3D2 envelope")),
+                Some(other) => {
+                    return Err(format!(
+                        "{at} DOF '{other}' outside translational T3D2 envelope"
+                    ));
+                }
                 None => return Err(format!("{at}.dofs entries must be strings")),
             };
             if !local_seen.insert(dof) || !result.insert((node_id, dof)) {
@@ -430,7 +528,9 @@ fn request_point_loads(
     load_map: &BTreeMap<&str, u64>,
     deck_nodes: &BTreeMap<u64, [f64; 3]>,
 ) -> Check<BTreeMap<(u64, u8), f64>> {
-    let loads = request.get("loads").and_then(Value::as_array)
+    let loads = request
+        .get("loads")
+        .and_then(Value::as_array)
         .ok_or_else(|| "request.loads must be an array".to_owned())?;
     if loads.is_empty() {
         return Err("request.loads must not be empty".to_owned());
@@ -446,14 +546,19 @@ fn request_point_loads(
         if !used_targets.insert(target_id) {
             return Err(format!("{at}.target_id duplicates '{target_id}'"));
         }
-        let node_id = *load_map.get(target_id)
-            .ok_or_else(|| format!("{at}.target_id '{target_id}' has no exact load-node mapping"))?;
+        let node_id = *load_map.get(target_id).ok_or_else(|| {
+            format!("{at}.target_id '{target_id}' has no exact load-node mapping")
+        })?;
         if !deck_nodes.contains_key(&node_id) {
-            return Err(format!("{at} maps to node {node_id}, which is absent from deck"));
+            return Err(format!(
+                "{at} maps to node {node_id}, which is absent from deck"
+            ));
         }
         let frame = field_str(load, "coordinate_frame_id", &at)?;
         if frame != field_str(request, "coordinate_frame_id", "request")? {
-            return Err(format!("{at} coordinate frame differs from the global request frame"));
+            return Err(format!(
+                "{at} coordinate frame differs from the global request frame"
+            ));
         }
         let vector = field_vec3(load, "vector_xyz", &at)?;
         for component in 0..3 {
@@ -478,7 +583,13 @@ fn parse_cards(deck: &str) -> Check<Vec<Card>> {
         }
         if trimmed.starts_with('*') {
             let mut pieces = trimmed.split(',');
-            let name = pieces.next().unwrap_or("").trim().trim_start_matches('*').trim().to_ascii_uppercase();
+            let name = pieces
+                .next()
+                .unwrap_or("")
+                .trim()
+                .trim_start_matches('*')
+                .trim()
+                .to_ascii_uppercase();
             if name.is_empty() {
                 return Err(format!("empty keyword at deck line {line_number}"));
             }
@@ -488,18 +599,34 @@ fn parse_cards(deck: &str) -> Check<Vec<Card>> {
                 if part.is_empty() {
                     return Err(format!("empty parameter at deck line {line_number}"));
                 }
-                let (key, value) = part.split_once('=')
-                    .map(|(key, value)| (key.trim().to_ascii_uppercase(), Some(value.trim().to_owned())))
+                let (key, value) = part
+                    .split_once('=')
+                    .map(|(key, value)| {
+                        (
+                            key.trim().to_ascii_uppercase(),
+                            Some(value.trim().to_owned()),
+                        )
+                    })
                     .unwrap_or((part.to_ascii_uppercase(), None));
-                let value = value.ok_or_else(|| format!("unsupported bare parameter '{key}' at deck line {line_number}"))?;
-                if key.is_empty() || value.is_empty() || params.insert(key.clone(), value).is_some() {
-                    return Err(format!("invalid or duplicate parameter '{key}' at deck line {line_number}"));
+                let value = value.ok_or_else(|| {
+                    format!("unsupported bare parameter '{key}' at deck line {line_number}")
+                })?;
+                if key.is_empty() || value.is_empty() || params.insert(key.clone(), value).is_some()
+                {
+                    return Err(format!(
+                        "invalid or duplicate parameter '{key}' at deck line {line_number}"
+                    ));
                 }
             }
-            cards.push(Card { name, params, data: Vec::new() });
+            cards.push(Card {
+                name,
+                params,
+                data: Vec::new(),
+            });
         } else {
-            let card = cards.last_mut()
-                .ok_or_else(|| format!("deck data occurs before any keyword at line {line_number}"))?;
+            let card = cards.last_mut().ok_or_else(|| {
+                format!("deck data occurs before any keyword at line {line_number}")
+            })?;
             card.data.push((line_number, trimmed.to_owned()));
         }
     }
@@ -542,40 +669,64 @@ fn validate_and_parse_deck(cards: &[Card], expected_node_set: &str) -> Check<Par
     for card in cards {
         match card.name.as_str() {
             "HEADING" => {
-                if have_heading || !card.params.is_empty() { return Err("v0.1 permits at most one parameter-free HEADING".to_owned()); }
+                if have_heading || !card.params.is_empty() {
+                    return Err("v0.1 permits at most one parameter-free HEADING".to_owned());
+                }
                 have_heading = true;
             }
             "NODE" => {
-                if have_node || !card.params.is_empty() { return Err("v0.1 permits exactly one parameter-free NODE card".to_owned()); }
+                if have_node || !card.params.is_empty() {
+                    return Err("v0.1 permits exactly one parameter-free NODE card".to_owned());
+                }
                 have_node = true;
                 for (line, row) in &card.data {
                     let f = csv_fields(row);
-                    if f.len() != 4 { return Err(format!("NODE row at deck line {line} must contain node ID and x,y,z")); }
+                    if f.len() != 4 {
+                        return Err(format!(
+                            "NODE row at deck line {line} must contain node ID and x,y,z"
+                        ));
+                    }
                     let id = parse_id(f[0], *line, "node ID")?;
-                    let xyz = [parse_finite(f[1], *line)?, parse_finite(f[2], *line)?, parse_finite(f[3], *line)?];
-                    if nodes.insert(id, xyz).is_some() { return Err(format!("duplicate node ID {id}")); }
+                    let xyz = [
+                        parse_finite(f[1], *line)?,
+                        parse_finite(f[2], *line)?,
+                        parse_finite(f[3], *line)?,
+                    ];
+                    if nodes.insert(id, xyz).is_some() {
+                        return Err(format!("duplicate node ID {id}"));
+                    }
                 }
             }
             "NSET" => {
                 only_params(card, &["NSET"])?;
                 let name = param(card, "NSET")?.to_ascii_uppercase();
                 validate_token(&name, "NSET name")?;
-                if node_sets.contains_key(&name) { return Err(format!("duplicate NSET '{name}'")); }
+                if node_sets.contains_key(&name) {
+                    return Err(format!("duplicate NSET '{name}'"));
+                }
                 let mut values = BTreeSet::new();
                 for (line, row) in &card.data {
                     for field in csv_fields(row) {
                         if field.eq_ignore_ascii_case("GENERATE") {
-                            return Err("NSET GENERATE is not supported in RF proof v0.1".to_owned());
+                            return Err(
+                                "NSET GENERATE is not supported in RF proof v0.1".to_owned()
+                            );
                         }
                         let id = parse_id(field, *line, "NSET node ID")?;
-                        if !values.insert(id) { return Err(format!("NSET '{name}' repeats node ID {id}")); }
+                        if !values.insert(id) {
+                            return Err(format!("NSET '{name}' repeats node ID {id}"));
+                        }
                     }
                 }
-                if values.is_empty() { return Err(format!("NSET '{name}' is empty")); }
+                if values.is_empty() {
+                    return Err(format!("NSET '{name}' is empty"));
+                }
                 node_sets.insert(name, values);
             }
             "ELEMENT" => {
-                if have_element { return Err("v0.1 permits exactly one ELEMENT card".to_owned()); }
+                if have_element {
+                    return Err("v0.1 permits exactly one ELEMENT card".to_owned());
+                }
                 have_element = true;
                 only_params(card, &["TYPE", "ELSET"])?;
                 if !param(card, "TYPE")?.eq_ignore_ascii_case("T3D2") {
@@ -585,7 +736,11 @@ fn validate_and_parse_deck(cards: &[Card], expected_node_set: &str) -> Check<Par
                 validate_token(&element_set, "element set name")?;
                 for (line, row) in &card.data {
                     let f = csv_fields(row);
-                    if f.len() != 3 { return Err(format!("T3D2 element row at deck line {line} requires element ID and two node IDs")); }
+                    if f.len() != 3 {
+                        return Err(format!(
+                            "T3D2 element row at deck line {line} requires element ID and two node IDs"
+                        ));
+                    }
                     let eid = parse_id(f[0], *line, "element ID")?;
                     let n1 = parse_id(f[1], *line, "element node ID")?;
                     let n2 = parse_id(f[2], *line, "element node ID")?;
@@ -596,106 +751,199 @@ fn validate_and_parse_deck(cards: &[Card], expected_node_set: &str) -> Check<Par
                 }
             }
             "MATERIAL" => {
-                if have_material { return Err("v0.1 permits one MATERIAL only".to_owned()); }
+                if have_material {
+                    return Err("v0.1 permits one MATERIAL only".to_owned());
+                }
                 have_material = true;
                 only_params(card, &["NAME"])?;
                 let name = param(card, "NAME")?.to_ascii_uppercase();
                 validate_token(&name, "material name")?;
                 material_names.insert(name);
-                if !card.data.is_empty() { return Err("MATERIAL card must not contain data rows in v0.1".to_owned()); }
+                if !card.data.is_empty() {
+                    return Err("MATERIAL card must not contain data rows in v0.1".to_owned());
+                }
             }
             "ELASTIC" => {
-                if have_elastic || !card.params.is_empty() { return Err("v0.1 permits one parameter-free ELASTIC card".to_owned()); }
+                if have_elastic || !card.params.is_empty() {
+                    return Err("v0.1 permits one parameter-free ELASTIC card".to_owned());
+                }
                 have_elastic = true;
-                if card.data.len() != 1 { return Err("ELASTIC must have exactly one isotropic data row".to_owned()); }
+                if card.data.len() != 1 {
+                    return Err("ELASTIC must have exactly one isotropic data row".to_owned());
+                }
                 let f = csv_fields(&card.data[0].1);
-                if f.len() != 2 { return Err("ELASTIC row must contain E and Poisson ratio".to_owned()); }
+                if f.len() != 2 {
+                    return Err("ELASTIC row must contain E and Poisson ratio".to_owned());
+                }
                 let e = parse_finite(f[0], card.data[0].0)?;
                 let nu = parse_finite(f[1], card.data[0].0)?;
-                if e <= 0.0 || !(-1.0..0.5).contains(&nu) { return Err("ELASTIC constants are outside the stable isotropic range".to_owned()); }
+                if e <= 0.0 || !(-1.0..0.5).contains(&nu) {
+                    return Err(
+                        "ELASTIC constants are outside the stable isotropic range".to_owned()
+                    );
+                }
                 elastic_modulus_pa = Some(e);
                 poisson_ratio = Some(nu);
             }
             "SOLID SECTION" => {
-                if have_section { return Err("v0.1 permits one SOLID SECTION only".to_owned()); }
+                if have_section {
+                    return Err("v0.1 permits one SOLID SECTION only".to_owned());
+                }
                 have_section = true;
                 only_params(card, &["ELSET", "MATERIAL"])?;
                 section_elset = param(card, "ELSET")?.to_ascii_uppercase();
                 section_material = param(card, "MATERIAL")?.to_ascii_uppercase();
-                if card.data.len() != 1 { return Err("T3D2 SOLID SECTION must have exactly one area row".to_owned()); }
+                if card.data.len() != 1 {
+                    return Err("T3D2 SOLID SECTION must have exactly one area row".to_owned());
+                }
                 let f = csv_fields(&card.data[0].1);
-                if f.len() != 1 { return Err("T3D2 section area row must have one numeric value".to_owned()); }
+                if f.len() != 1 {
+                    return Err("T3D2 section area row must have one numeric value".to_owned());
+                }
                 let area = parse_finite(f[0], card.data[0].0)?;
-                if area <= 0.0 { return Err("T3D2 section area must be strictly positive".to_owned()); }
+                if area <= 0.0 {
+                    return Err("T3D2 section area must be strictly positive".to_owned());
+                }
                 section_area_m2 = Some(area);
             }
             "BOUNDARY" => {
-                if have_boundary || !card.params.is_empty() { return Err("v0.1 permits one parameter-free BOUNDARY card".to_owned()); }
+                if have_boundary || !card.params.is_empty() {
+                    return Err("v0.1 permits one parameter-free BOUNDARY card".to_owned());
+                }
                 have_boundary = true;
                 for (line, row) in &card.data {
                     let f = csv_fields(row);
-                    if f.len() != 4 { return Err(format!("BOUNDARY row at deck line {line} must contain node, first DOF, last DOF, zero value")); }
+                    if f.len() != 4 {
+                        return Err(format!(
+                            "BOUNDARY row at deck line {line} must contain node, first DOF, last DOF, zero value"
+                        ));
+                    }
                     let node = parse_id(f[0], *line, "boundary node ID")?;
                     let first = parse_dof(f[1], *line)?;
                     let last = parse_dof(f[2], *line)?;
                     let value = parse_finite(f[3], *line)?;
-                    if first > last || value != 0.0 { return Err(format!("BOUNDARY at deck line {line} must be a zero-value translational constraint with ordered DOFs")); }
+                    if first > last || value != 0.0 {
+                        return Err(format!(
+                            "BOUNDARY at deck line {line} must be a zero-value translational constraint with ordered DOFs"
+                        ));
+                    }
                     for dof in first..=last {
-                        if !boundary_dofs.insert((node, dof)) { return Err(format!("duplicate BOUNDARY DOF for node {node}, DOF {dof}")); }
+                        if !boundary_dofs.insert((node, dof)) {
+                            return Err(format!(
+                                "duplicate BOUNDARY DOF for node {node}, DOF {dof}"
+                            ));
+                        }
                     }
                 }
             }
             "CLOAD" => {
-                if have_cload || !card.params.is_empty() { return Err("v0.1 permits one parameter-free CLOAD card".to_owned()); }
+                if have_cload || !card.params.is_empty() {
+                    return Err("v0.1 permits one parameter-free CLOAD card".to_owned());
+                }
                 have_cload = true;
                 for (line, row) in &card.data {
                     let f = csv_fields(row);
-                    if f.len() != 3 { return Err(format!("CLOAD row at deck line {line} must contain node, DOF, magnitude")); }
+                    if f.len() != 3 {
+                        return Err(format!(
+                            "CLOAD row at deck line {line} must contain node, DOF, magnitude"
+                        ));
+                    }
                     let node = parse_id(f[0], *line, "CLOAD node ID")?;
                     let dof = parse_dof(f[1], *line)?;
                     let value = parse_finite(f[2], *line)?;
-                    if value == 0.0 { return Err(format!("zero CLOAD row at deck line {line} is non-canonical and unsupported")); }
-                    if cloads.insert((node, dof), value).is_some() { return Err(format!("duplicate CLOAD node/DOF ({node},{dof})")); }
+                    if value == 0.0 {
+                        return Err(format!(
+                            "zero CLOAD row at deck line {line} is non-canonical and unsupported"
+                        ));
+                    }
+                    if cloads.insert((node, dof), value).is_some() {
+                        return Err(format!("duplicate CLOAD node/DOF ({node},{dof})"));
+                    }
                 }
             }
             "STEP" => {
-                if have_step || !card.params.is_empty() || !card.data.is_empty() { return Err("v0.1 permits one parameter-free STEP card".to_owned()); }
+                if have_step || !card.params.is_empty() || !card.data.is_empty() {
+                    return Err("v0.1 permits one parameter-free STEP card".to_owned());
+                }
                 have_step = true;
                 step_count += 1;
             }
             "STATIC" => {
-                if have_static || !card.params.is_empty() || card.data.len() > 1 { return Err("v0.1 permits one parameter-free STATIC card with at most one control row".to_owned()); }
+                if have_static || !card.params.is_empty() || card.data.len() > 1 {
+                    return Err(
+                        "v0.1 permits one parameter-free STATIC card with at most one control row"
+                            .to_owned(),
+                    );
+                }
                 have_static = true;
                 static_count += 1;
                 for (line, row) in &card.data {
                     let f = csv_fields(row);
-                    if f.is_empty() || f.len() > 4 { return Err(format!("STATIC control row at deck line {line} has invalid field count")); }
-                    for value in f { let n = parse_finite(value, *line)?; if n <= 0.0 { return Err(format!("STATIC control value at deck line {line} must be positive")); } }
+                    if f.is_empty() || f.len() > 4 {
+                        return Err(format!(
+                            "STATIC control row at deck line {line} has invalid field count"
+                        ));
+                    }
+                    for value in f {
+                        let n = parse_finite(value, *line)?;
+                        if n <= 0.0 {
+                            return Err(format!(
+                                "STATIC control value at deck line {line} must be positive"
+                            ));
+                        }
+                    }
                 }
             }
             "NODE PRINT" => {
-                if have_print { return Err("v0.1 permits exactly one NODE PRINT card".to_owned()); }
+                if have_print {
+                    return Err("v0.1 permits exactly one NODE PRINT card".to_owned());
+                }
                 have_print = true;
                 only_params(card, &["NSET"])?;
                 node_print_set = param(card, "NSET")?.to_ascii_uppercase();
                 validate_token(&node_print_set, "NODE PRINT NSET")?;
-                if card.data.len() != 1 || csv_fields(&card.data[0].1).len() != 1 || !csv_fields(&card.data[0].1)[0].eq_ignore_ascii_case("RF") {
-                    return Err("NODE PRINT must request RF only, without other output keys".to_owned());
+                if card.data.len() != 1
+                    || csv_fields(&card.data[0].1).len() != 1
+                    || !csv_fields(&card.data[0].1)[0].eq_ignore_ascii_case("RF")
+                {
+                    return Err(
+                        "NODE PRINT must request RF only, without other output keys".to_owned()
+                    );
                 }
             }
             "END STEP" => {
-                if have_end_step || !card.params.is_empty() || !card.data.is_empty() { return Err("v0.1 permits one parameter-free END STEP".to_owned()); }
+                if have_end_step || !card.params.is_empty() || !card.data.is_empty() {
+                    return Err("v0.1 permits one parameter-free END STEP".to_owned());
+                }
                 have_end_step = true;
             }
-            other => return Err(format!("unsupported deck keyword '*{other}' in restricted RF proof v0.1")),
+            other => {
+                return Err(format!(
+                    "unsupported deck keyword '*{other}' in restricted RF proof v0.1"
+                ));
+            }
         }
     }
 
-    if !have_node || nodes.is_empty() || !have_element || elements.is_empty()
-        || !have_boundary || boundary_dofs.is_empty() || !have_cload || cloads.is_empty()
-        || !have_print || node_print_set != expected_node_set
-        || !have_step || !have_static || !have_end_step || step_count != 1 || static_count != 1
-        || !have_material || material_names.len() != 1 || !have_elastic || !have_section
+    if !have_node
+        || nodes.is_empty()
+        || !have_element
+        || elements.is_empty()
+        || !have_boundary
+        || boundary_dofs.is_empty()
+        || !have_cload
+        || cloads.is_empty()
+        || !have_print
+        || node_print_set != expected_node_set
+        || !have_step
+        || !have_static
+        || !have_end_step
+        || step_count != 1
+        || static_count != 1
+        || !have_material
+        || material_names.len() != 1
+        || !have_elastic
+        || !have_section
     {
         return Err("deck is incomplete for restricted static-linear T3D2 RF semantics".to_owned());
     }
@@ -705,28 +953,58 @@ fn validate_and_parse_deck(cards: &[Card], expected_node_set: &str) -> Check<Par
     if section_elset != element_set || element_members.is_empty() {
         return Err("SOLID SECTION ELSET must exactly match the sole T3D2 element set".to_owned());
     }
-    for node in boundary_dofs.iter().map(|(node, _)| node).chain(cloads.keys().map(|(node, _)| node)) {
-        if !nodes.contains_key(node) { return Err(format!("load/boundary node {node} is absent from NODE inventory")); }
+    for node in boundary_dofs
+        .iter()
+        .map(|(node, _)| node)
+        .chain(cloads.keys().map(|(node, _)| node))
+    {
+        if !nodes.contains_key(node) {
+            return Err(format!(
+                "load/boundary node {node} is absent from NODE inventory"
+            ));
+        }
     }
     for (eid, endpoints) in &elements {
         if !endpoints.iter().all(|node| nodes.contains_key(node)) {
             return Err(format!("element {eid} refers to a missing node"));
         }
-        if !element_members.contains(eid) { return Err(format!("element {eid} is absent from its declared ELSET")); }
+        if !element_members.contains(eid) {
+            return Err(format!("element {eid} is absent from its declared ELSET"));
+        }
     }
-    let connected: BTreeSet<u64> = elements.values().flat_map(|nodes| nodes.iter().copied()).collect();
-    if !boundary_dofs.iter().map(|(node, _)| *node).collect::<BTreeSet<_>>().is_subset(&connected)
-        || !cloads.keys().map(|(node, _)| *node).collect::<BTreeSet<_>>().is_subset(&connected)
+    let connected: BTreeSet<u64> = elements
+        .values()
+        .flat_map(|nodes| nodes.iter().copied())
+        .collect();
+    if !boundary_dofs
+        .iter()
+        .map(|(node, _)| *node)
+        .collect::<BTreeSet<_>>()
+        .is_subset(&connected)
+        || !cloads
+            .keys()
+            .map(|(node, _)| *node)
+            .collect::<BTreeSet<_>>()
+            .is_subset(&connected)
     {
-        return Err("all load and boundary nodes must belong to the T3D2 element inventory".to_owned());
+        return Err(
+            "all load and boundary nodes must belong to the T3D2 element inventory".to_owned(),
+        );
     }
     node_sets.iter().try_for_each(|(name, members)| {
-        if !members.iter().all(|id| nodes.contains_key(id)) { return Err(format!("NSET '{name}' references a missing node")); }
+        if !members.iter().all(|id| nodes.contains_key(id)) {
+            return Err(format!("NSET '{name}' references a missing node"));
+        }
         Ok(())
     })?;
     Ok(ParsedDeck {
-        nodes, elements, node_sets, boundary_dofs, cloads,
-        node_print_set, elastic_modulus_pa: elastic_modulus_pa.expect("checked above"),
+        nodes,
+        elements,
+        node_sets,
+        boundary_dofs,
+        cloads,
+        node_print_set,
+        elastic_modulus_pa: elastic_modulus_pa.expect("checked above"),
         poisson_ratio: poisson_ratio.expect("checked above"),
         section_area_m2: section_area_m2.expect("checked above"),
     })
@@ -751,22 +1029,33 @@ fn parse_rf_section(dat: &str, node_set: &str, expected: &BTreeSet<u64>) -> Chec
         }
     }
     if headers.len() != 1 {
-        return Err(format!("expected exactly one RF section for set '{node_set}', observed {}", headers.len()));
+        return Err(format!(
+            "expected exactly one RF section for set '{node_set}', observed {}",
+            headers.len()
+        ));
     }
     let start = headers[0];
     let mut rows = BTreeMap::<u64, RfRow>::new();
     for (index, raw) in lines.iter().enumerate().skip(start + 1) {
         let trimmed = raw.trim();
         if trimmed.is_empty() {
-            if !rows.is_empty() { break; }
+            if !rows.is_empty() {
+                break;
+            }
             continue;
         }
         let lower = trimmed.to_ascii_lowercase();
-        if lower.starts_with("forces (") || lower.starts_with("reaction forces (") || lower.starts_with("internal forces ") || lower.starts_with("total forces ") {
+        if lower.starts_with("forces (")
+            || lower.starts_with("reaction forces (")
+            || lower.starts_with("internal forces ")
+            || lower.starts_with("total forces ")
+        {
             break;
         }
         let fields = csv_fields(trimmed);
-        if fields.is_empty() { continue; }
+        if fields.is_empty() {
+            continue;
+        }
         let node_id = match fields[0].parse::<u64>() {
             Ok(id) => id,
             Err(_) => {
@@ -777,20 +1066,40 @@ fn parse_rf_section(dat: &str, node_set: &str, expected: &BTreeSet<u64>) -> Chec
                 break;
             }
         };
-        if fields.len() != 4 { return Err(format!("RF row at .dat line {} must have node ID and three force components", index + 1)); }
-        if !expected.contains(&node_id) { return Err(format!("RF section contains unexpected node {node_id}")); }
+        if fields.len() != 4 {
+            return Err(format!(
+                "RF row at .dat line {} must have node ID and three force components",
+                index + 1
+            ));
+        }
+        if !expected.contains(&node_id) {
+            return Err(format!("RF section contains unexpected node {node_id}"));
+        }
         let force = [
             parse_finite(fields[1], index + 1)?,
             parse_finite(fields[2], index + 1)?,
             parse_finite(fields[3], index + 1)?,
         ];
-        if rows.insert(node_id, RfRow { node_id, force_n: force, source_line: index + 1, raw_line: trimmed.to_owned() }).is_some() {
+        if rows
+            .insert(
+                node_id,
+                RfRow {
+                    node_id,
+                    force_n: force,
+                    source_line: index + 1,
+                    raw_line: trimmed.to_owned(),
+                },
+            )
+            .is_some()
+        {
             return Err(format!("RF section duplicates node {node_id}"));
         }
     }
     let observed: BTreeSet<u64> = rows.keys().copied().collect();
     if &observed != expected {
-        return Err(format!("RF support-node inventory mismatch; expected={expected:?}, observed={observed:?}"));
+        return Err(format!(
+            "RF support-node inventory mismatch; expected={expected:?}, observed={observed:?}"
+        ));
     }
     Ok(rows.into_values().collect())
 }
@@ -805,7 +1114,8 @@ fn parse_rf_header(line: &str) -> Check<(String, f64)> {
         return Err("unsupported RF output header grammar".to_owned());
     };
     let _ = prefix;
-    let (name, time) = tail.split_once(" and time ")
+    let (name, time) = tail
+        .split_once(" and time ")
         .ok_or_else(|| "RF output header is missing 'and time'".to_owned())?;
     Ok((name.trim().to_owned(), parse_finite(time.trim(), 0)?))
 }
@@ -818,24 +1128,37 @@ fn csv_fields(row: &str) -> Vec<&str> {
 
 fn parse_finite(value: &str, line: usize) -> Check<f64> {
     let normalized = value.replace(['d', 'D'], "E");
-    let result = normalized.parse::<f64>()
+    let result = normalized
+        .parse::<f64>()
         .map_err(|_| format!("invalid finite numeric token '{value}' at line {line}"))?;
-    if !result.is_finite() { return Err(format!("non-finite numeric token at line {line}")); }
+    if !result.is_finite() {
+        return Err(format!("non-finite numeric token at line {line}"));
+    }
     Ok(result)
 }
 
 fn parse_id(value: &str, line: usize, label: &str) -> Check<u64> {
-    value.parse::<u64>().ok().filter(|id| *id > 0)
+    value
+        .parse::<u64>()
+        .ok()
+        .filter(|id| *id > 0)
         .ok_or_else(|| format!("invalid {label} '{value}' at line {line}"))
 }
 
 fn parse_dof(value: &str, line: usize) -> Check<u8> {
-    value.parse::<u8>().ok().filter(|dof| (1..=3).contains(dof))
+    value
+        .parse::<u8>()
+        .ok()
+        .filter(|dof| (1..=3).contains(dof))
         .ok_or_else(|| format!("DOF '{value}' at line {line} is outside translational DOFs 1..3"))
 }
 
 fn only_params(card: &Card, allowed: &[&str]) -> Check<()> {
-    if card.params.keys().any(|key| !allowed.contains(&key.as_str())) {
+    if card
+        .params
+        .keys()
+        .any(|key| !allowed.contains(&key.as_str()))
+    {
         return Err(format!("unsupported parameter on *{}", card.name));
     }
     for required in allowed {
@@ -847,14 +1170,20 @@ fn only_params(card: &Card, allowed: &[&str]) -> Check<()> {
 }
 
 fn param<'a>(card: &'a Card, key: &str) -> Check<&'a str> {
-    card.params.get(key).map(String::as_str).ok_or_else(|| format!("*{} requires {key}", card.name))
+    card.params
+        .get(key)
+        .map(String::as_str)
+        .ok_or_else(|| format!("*{} requires {key}", card.name))
 }
 
-
 fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
-    let object = value.as_object().ok_or_else(|| format!("{at} must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{at} must be an object"))?;
     for key in expected {
-        if !object.contains_key(*key) { return Err(format!("{at}.{key} is required")); }
+        if !object.contains_key(*key) {
+            return Err(format!("{at}.{key} is required"));
+        }
     }
     if let Some(key) = object.keys().find(|key| !expected.contains(&key.as_str())) {
         return Err(format!("{at} contains unsupported field '{key}'"));
@@ -863,7 +1192,9 @@ fn exact_keys(value: &Value, expected: &[&str], at: &str) -> Check<()> {
 }
 
 fn field_str<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key} must be a string"))
 }
 
@@ -874,34 +1205,51 @@ fn token_field(value: &Value, key: &str, at: &str) -> Check<String> {
 }
 
 fn field_sha<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a str> {
-    let text = value.get(key).and_then(Value::as_str)
+    let text = value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{at}.{key} must be a string"))?;
-    if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+    if text.len() != 64
+        || !text
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
         return Err(format!("{at}.{key} must be lowercase SHA-256 hex"));
     }
     Ok(text)
 }
 
 fn field_u64(value: &Value, key: &str, at: &str) -> Check<u64> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{at}.{key} must be a non-negative integer"))
 }
 
 fn field_vec3(value: &Value, key: &str, at: &str) -> Check<[f64; 3]> {
-    let values = value.get(key).and_then(Value::as_array)
+    let values = value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{at}.{key} must be a 3-component vector"))?;
-    if values.len() != 3 { return Err(format!("{at}.{key} must contain exactly three components")); }
+    if values.len() != 3 {
+        return Err(format!("{at}.{key} must contain exactly three components"));
+    }
     let mut result = [0.0; 3];
     for (index, component) in values.iter().enumerate() {
-        result[index] = component.as_f64().filter(|n| n.is_finite())
+        result[index] = component
+            .as_f64()
+            .filter(|n| n.is_finite())
             .ok_or_else(|| format!("{at}.{key}[{index}] must be finite numeric"))?;
     }
     Ok(result)
 }
 
 fn validate_token(value: &str, label: &str) -> Check<()> {
-    if value.is_empty() || value.len() > 128
-        || !value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | ':'))
     {
         return Err(format!("{label} is not a valid stable token"));
     }
@@ -1035,7 +1383,7 @@ RF
             request,
             deck,
             dat,
-            manifest:serde_json::to_vec(&manifest_value).unwrap(),
+            manifest: serde_json::to_vec(&manifest_value).unwrap(),
             catalog,
         }
     }
@@ -1058,9 +1406,15 @@ RF
     fn clean_allowlisted_rf_fixture_proves_restricted_equivalence_without_physical_qualification() {
         let report = assess(&bundle()).unwrap();
         assert_eq!(report["normalization_status"], "PASS");
-        assert_eq!(report["source_semantics"], "RF_under_restricted_deck_equivalence");
+        assert_eq!(
+            report["source_semantics"],
+            "RF_under_restricted_deck_equivalence"
+        );
         assert_eq!(report["restricted_equivalence_proved"], true);
-        assert_eq!(report["normalized_output"]["reaction_forces"][0]["force_n"][0], -1000.0);
+        assert_eq!(
+            report["normalized_output"]["reaction_forces"][0]["force_n"][0],
+            -1000.0
+        );
         assert_eq!(report["physical_result_qualified"], false);
         assert_eq!(report["real_world_validation_status"], "UNRESOLVED");
     }
@@ -1069,14 +1423,25 @@ RF
     fn any_distributed_load_keyword_is_rejected_by_allowlist() {
         let deck = DECK.replace("*CLOAD", "*DLOAD\nBAR,GRAV,-9.81,0,0,-1\n*CLOAD");
         let report = bundle_with(&deck, DAT);
-        assert!(assess(&report).unwrap_err().contains("unsupported deck keyword '*DLOAD'"));
+        assert!(
+            assess(&report)
+                .unwrap_err()
+                .contains("unsupported deck keyword '*DLOAD'")
+        );
     }
 
     #[test]
     fn frame_transform_keyword_is_rejected() {
-        let deck = DECK.replace("*BOUNDARY", "*TRANSFORM,NSET=SUPPORT\n1,0,0,0,0,1,0\n*BOUNDARY");
+        let deck = DECK.replace(
+            "*BOUNDARY",
+            "*TRANSFORM,NSET=SUPPORT\n1,0,0,0,0,1,0\n*BOUNDARY",
+        );
         let report = bundle_with(&deck, DAT);
-        assert!(assess(&report).unwrap_err().contains("unsupported deck keyword '*TRANSFORM'"));
+        assert!(
+            assess(&report)
+                .unwrap_err()
+                .contains("unsupported deck keyword '*TRANSFORM'")
+        );
     }
 
     #[test]
@@ -1094,7 +1459,11 @@ RF
     #[test]
     fn reaction_only_section_is_not_substituted_for_stock_rf_section() {
         let dat = DAT.replace("forces (fx,fy,fz)", "reaction forces (rfx,rfy,rfz)");
-        assert!(assess(&bundle_with(DECK, &dat)).unwrap_err().contains("reaction-only output section is not admitted"));
+        assert!(
+            assess(&bundle_with(DECK, &dat))
+                .unwrap_err()
+                .contains("reaction-only output section is not admitted")
+        );
     }
 
     #[test]
@@ -1103,7 +1472,11 @@ RF
         let mut manifest: Value = serde_json::from_slice(&b.manifest).unwrap();
         manifest["deck_sha256"] = json!("d".repeat(64));
         b.manifest = serde_json::to_vec(&manifest).unwrap();
-        assert!(assess(&b).unwrap_err().contains("manifest request/deck/node-catalogue SHA-256"));
+        assert!(
+            assess(&b)
+                .unwrap_err()
+                .contains("manifest request/deck/node-catalogue SHA-256")
+        );
     }
 
     #[test]
@@ -1113,9 +1486,11 @@ RF
         let mut manifest: Value = serde_json::from_slice(&b.manifest).unwrap();
         manifest["load_node_map"][0]["node_id"] = json!(1);
         b.manifest = serde_json::to_vec(&manifest).unwrap();
-        assert!(assess(&b)
-            .unwrap_err()
-            .contains("load-node inventory intersects prescribed-support inventory"));
+        assert!(
+            assess(&b)
+                .unwrap_err()
+                .contains("load-node inventory intersects prescribed-support inventory")
+        );
     }
 
     #[test]
