@@ -42,6 +42,16 @@ const STOP_COST_GRID: [f64; 4] = [0.01, 0.04, 0.08, 0.12];
 // Marginal risk-reduction thresholds are calibrated on development episodes only.
 // Costs are task-loss units per request; the objective is loss + cost * requests.
 const MARGINAL_VALUE_COST_GRID: [f64; 7] = [0.0, 0.00025, 0.0005, 0.001, 0.0015, 0.002, 0.003];
+const VALUE_CALIBRATION_TICKS: [usize; 12] = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44];
+const VALUE_CALIBRATION_STRATA: [&str; 7] = [
+    "all_candidates",
+    "relevant_observation",
+    "distractor_observation",
+    "source_delay_le_2",
+    "source_delay_gt_2",
+    "high_confidence_ge_900",
+    "low_confidence_lt_900",
+];
 const CONFIDENCE_TIERS: [(u16, f64); 3] = [(950, 0.75), (850, 0.20), (650, 0.05)];
 const DELAY_PRIORS: [(usize, f64); 6] = [
     (0, 0.167), (1, 0.167), (2, 0.292), (3, 0.125), (4, 0.125), (5, 0.124),
@@ -1139,11 +1149,122 @@ fn report_marginal_value_stop() {
         loss_lo, loss_hi, objective_delta, objective_lo, objective_hi);
 }
 
+fn report_value_calibration() {
+    println!("VALUE_CALIBRATION\tfamily\tstratum\tepisodes\tcandidate_observations\tmean_predicted_risk_reduction\tmean_realized_belief_risk_drop\tmean_prediction_minus_realized\tbootstrap95_lo\tbootstrap95_hi\tmean_absolute_gap");
+    for (family_index, family) in Family::ALL.iter().copied().enumerate() {
+        let mut predicted_by_episode: Vec<Vec<f64>> =
+            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+        let mut realized_by_episode: Vec<Vec<f64>> =
+            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+        let mut errors_by_episode: Vec<Vec<f64>> =
+            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+        let mut abs_gap_by_episode: Vec<Vec<f64>> =
+            (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+        let mut observations_by_stratum = [0_u64; 7];
+
+        for replicate in 0..REPLICATES {
+            for pair in 0..PAIRS {
+                let seed = seed_for(replicate, pair, family);
+                let episode = ActiveEpisode::generate(seed, family);
+                let actor_seed = mix64(seed ^ 0x5641_4C55_4543_414C);
+                let mut policy =
+                    PolicyState::new(PolicyKind::ExpectedTaskLossReduction, actor_seed);
+                let mut predicted: Vec<Vec<f64>> =
+                    (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+                let mut realized: Vec<Vec<f64>> =
+                    (0..VALUE_CALIBRATION_STRATA.len()).map(|_| Vec::new()).collect();
+
+                for tick in 0..HORIZON {
+                    if VALUE_CALIBRATION_TICKS.contains(&tick) {
+                        // The state is the reference policy's pre-action information set.
+                        // The evaluator enumerates all candidate potential observations
+                        // after the fact; none of these alternatives are exposed to policy.
+                        let scores = policy.expected_task_loss_reduction_scores(tick);
+                        let before = terminal_decision_risk(policy.probabilities(HORIZON - 1));
+                        for action in 0..QUERY_COUNT {
+                            let evidence = episode.observations[tick][action];
+                            let mut counterfactual = policy.clone();
+                            counterfactual.observe(action, evidence);
+                            let after = terminal_decision_risk(
+                                counterfactual.probabilities(HORIZON - 1)
+                            );
+                            let realized_drop = before - after;
+                            let delay = usize::from(evidence.arrival_tick)
+                                .saturating_sub(usize::from(evidence.source_tick));
+                            let relevant = evidence.key() as usize == QUERY_KEYS[action];
+                            let active = [
+                                true,
+                                relevant,
+                                !relevant,
+                                delay <= 2,
+                                delay > 2,
+                                evidence.confidence >= 900,
+                                evidence.confidence < 900,
+                            ];
+                            for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
+                                if active[stratum] {
+                                    predicted[stratum].push(scores[action]);
+                                    realized[stratum].push(realized_drop);
+                                    observations_by_stratum[stratum] += 1;
+                                }
+                            }
+                        }
+                    }
+
+                    // Advance the reference policy using only its selected observation.
+                    let action = policy.choose_action(tick);
+                    if action < QUERY_COUNT {
+                        policy.observe(action, episode.observations[tick][action]);
+                    }
+                }
+
+                for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
+                    if predicted[stratum].is_empty() { continue; }
+                    let predicted_mean = predicted[stratum].iter().sum::<f64>()
+                        / predicted[stratum].len() as f64;
+                    let realized_mean = realized[stratum].iter().sum::<f64>()
+                        / realized[stratum].len() as f64;
+                    let error = predicted_mean - realized_mean;
+                    let abs_gap = predicted[stratum].iter()
+                        .zip(realized[stratum].iter())
+                        .map(|(p, r)| (p - r).abs())
+                        .sum::<f64>() / predicted[stratum].len() as f64;
+                    predicted_by_episode[stratum].push(predicted_mean);
+                    realized_by_episode[stratum].push(realized_mean);
+                    errors_by_episode[stratum].push(error);
+                    abs_gap_by_episode[stratum].push(abs_gap);
+                }
+            }
+        }
+
+        for stratum in 0..VALUE_CALIBRATION_STRATA.len() {
+            let predictions = &predicted_by_episode[stratum];
+            let realizations = &realized_by_episode[stratum];
+            let errors = &errors_by_episode[stratum];
+            let abs_gaps = &abs_gap_by_episode[stratum];
+            let mean_predicted = predictions.iter().sum::<f64>() / predictions.len().max(1) as f64;
+            let mean_realized = realizations.iter().sum::<f64>() / realizations.len().max(1) as f64;
+            let mean_error = errors.iter().sum::<f64>() / errors.len().max(1) as f64;
+            let mean_abs_gap = abs_gaps.iter().sum::<f64>() / abs_gaps.len().max(1) as f64;
+            let ci_seed = mix64(ROOT_SEED
+                ^ 0x5641_4C43_414C_4942
+                ^ (family_index as u64).wrapping_mul(0x94D0_49BB_1331_11EB)
+                ^ (stratum as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9));
+            let (lo, hi) = bootstrap_ci(errors, ci_seed);
+            println!("VALUE_CALIBRATION\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.6}",
+                family.name(), VALUE_CALIBRATION_STRATA[stratum], errors.len(),
+                observations_by_stratum[stratum], mean_predicted, mean_realized,
+                mean_error, lo, hi, mean_abs_gap);
+        }
+    }
+}
+
 fn main() {
     report();
     report_budget_frontier();
     report_stop_cost_sensitivity();
     report_marginal_value_stop();
+    report_value_calibration();
 }
 
 #[cfg(test)]
