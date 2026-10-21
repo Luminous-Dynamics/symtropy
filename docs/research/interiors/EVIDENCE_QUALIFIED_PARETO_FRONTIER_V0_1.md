@@ -19,7 +19,7 @@ This utility is downstream of verification. It does not implement or replace the
 - Each objective names a stable dimension, explicit unit or normalized scale, minimize/maximize direction, finite numeric value, and evidence-admission state. Dimension, unit, and direction must match exactly across the ranking set; this utility performs no currency conversion or hidden normalization.
 - Only objective observations explicitly marked AcceptedByPolicy are rankable. Provisional, Unknown, Conflicting, and Blocked observations exclude that candidate from ranking and cause the report to state that the frontier is incomplete.
 - Every rankable candidate must use the same objective dimensions, units/scales, and directions. A mismatch fails closed; the program does not guess conversions or pretend the alternatives are comparable.
-- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative. With exactly two objective dimensions, an O(n log n) sweep computes the frontier and one deterministic dominance witness per dominated candidate; inputs with more than two objective dimensions use the conservative O(n²) pairwise path.
+- Comparisons use the supplied finite floating-point values directly. There are no hidden epsilon tolerances, normalization rules, utility weights, or tie-breaks that erase a non-dominated alternative. Exactly two objectives use an O(n log n) sweep; exactly three objectives use an O(n log n) sweep with a y-prefix Fenwick tree and explicit equal-coordinate handling. Four or more objective dimensions retain the conservative O(n²) pairwise path.
 - Reports are sorted deterministically by candidate ID; objective order and request order do not affect the frontier. Each dominated candidate stores one deterministic dominance witness rather than every dominator, keeping report memory linear in candidate count.
 - The resident retains final choice. Pareto membership is not a statement that an alternative is universally best.
 
@@ -51,7 +51,7 @@ Proposed acceptance targets (not measured performance claims):
 - fail-closed behavior for incomparable objective schemas;
 - exact-head formatting, unit tests, and strict Clippy passing.
 
-The frontier utility has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. Candidate construction is outside the timed section; each profile asserts expected frontier cardinality and reports p50/p95/max duration. The two-objective sweep is O(n log n); the general higher-dimensional fallback is O(n²). The harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module.
+The frontier utility has a dependency-free scaling probe at 25, 100, 1,000, and 10,000 alternatives. Candidate construction is outside the timed section; each profile asserts expected frontier cardinality and reports p50/p95/max duration. The two- and three-objective sweeps are O(n log n); the general four-or-more-dimensional fallback is O(n²). The harness does not measure peak memory. The five-sample 10,000-candidate profile is exploratory, not a stable p95 service-level target. Existing collision-oracle timings are not measurements of this module.
 
 ### Exact-head performance evidence
 
@@ -73,6 +73,10 @@ Source records: pairwise baseline exact head `f1bf1b56df568854714dddab834ba3e505
 A second exact-head run after the documentation/CI-wiring change (`046fca1de725f29ea20aed52bbdcfe313fffe9bc`, [run #39588862002](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39588862002)) re-ran the same harness on a separate hosted-runner execution. It measured tradeoff-heavy p50 values of 0.016 / 0.060 / 0.740 / 8.080 ms and dominated-chain p50 values of 0.019 / 0.084 / 1.018 / 11.840 ms at 25 / 100 / 1,000 / 10,000 alternatives. Latest-run p95 values were respectively 0.021 / 0.091 / 0.869 / 9.163 ms and 0.023 / 0.110 / 1.120 / 12.461 ms. This confirms the same scaling shape but also shows run-to-run variation; the exact-host baseline has not been controlled. The observed 10,000-tradeoff p50 reduction versus the earlier pairwise baseline is about 95× on this retest and about 117× on the first optimized run, not a guaranteed speedup factor.
 
 This is an internal microbenchmark, not an external SOTA result. End-to-end evaluation must compare identical verified candidate sets against transparent rules, human-curated trade-offs, and commercial/research workflows using identical inputs, objective definitions, and an independent evaluator.
+
+## Three-objective follow-up
+
+A separate stacked draft [PR #2518](https://github.com/Luminous-Dynamics/symtropy/pull/2518) adds an exact three-objective sweep using a compressed y-coordinate index and Fenwick prefix-minimum witnesses. It defers updates across equal-x groups and resolves equal-y candidates separately so identical points do not dominate one another. The new generated-grid and adversarial tests compare its output against the brute-force dominance oracle. This remains unproven until exact-head CI completes; four or more dimensions still use the pairwise fallback. The benchmark matrix now includes 2D and 3D profiles at 25/100/1,000/10,000 candidates, plus 4D fallback cases through 1,000 candidates.
 
 ## Claim ceiling
 
