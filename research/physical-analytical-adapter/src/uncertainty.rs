@@ -1210,8 +1210,8 @@ mod tests {
             ("span_m".to_owned(), 4.0),
             ("apex_x_m".to_owned(), 1.0),
             ("apex_height_m".to_owned(), 0.75),
-            ("axial_rigidity_a_n".to_owned(), 1.0e9),
-            ("axial_rigidity_b_n".to_owned(), 2.0e9),
+            ("axial_rigidity_a_n".to_owned(), 1.25e9),
+            ("axial_rigidity_b_n".to_owned(), 6.18465843842649e9),
             ("force_x_n".to_owned(), 1_000.0),
             ("force_y_n".to_owned(), -500.0),
         ]);
@@ -1253,7 +1253,7 @@ mod tests {
     }
 
     #[test]
-    fn truss_invalid_height_or_nonpositive_member_stiffness_abstains() {
+    fn truss_invalid_height_or_nonpositive_axial_rigidity_abstains() {
         let (nominal, _) = truss_fixture((0.01, 0.02));
         let mut crossing_zero = truss_fixture((0.0, 0.02)).1;
         assert!(
@@ -1267,7 +1267,7 @@ mod tests {
         let (_, mut bad_stiffness) = truss_fixture((0.01, 0.02));
         bad_stiffness.insert(
             "axial_rigidity_a_n".to_owned(),
-            Interval::new(0.0, 1.01e9).unwrap(),
+            Interval::new(0.0, 1.3e9).unwrap(),
         );
         assert!(propagate_planar_truss_two_bar(&nominal, &bad_stiffness).is_err());
     }
