@@ -451,6 +451,11 @@ pub fn first_fit_portfolio(
     requests: &[PlacementRequest],
     exclusion_zones: &[ExclusionZone],
 ) -> Result<PortfolioResult, Vec<BaselineError>> {
+    let input_errors = validate_inputs(yard_bounds, requests, exclusion_zones);
+    if !input_errors.is_empty() {
+        return Err(input_errors);
+    }
+
     let policies = [
         PortfolioPolicy::CallerOrder,
         PortfolioPolicy::DecreasingArea,
@@ -464,12 +469,19 @@ pub fn first_fit_portfolio(
 
     for policy in policies {
         let ordered = order_requests(requests, policy);
-        if let Ok(scenario) = first_fit_bottom_left(yard_bounds, &ordered, exclusion_zones) {
+        if let Ok(mut scenario) = first_fit_bottom_left(yard_bounds, &ordered, exclusion_zones) {
             feasible_candidates += 1;
+            scenario
+                .placements
+                .sort_by(|left, right| left.reservation_id.cmp(&right.reservation_id));
+            scenario.transfers.sort_by(|left, right| left.id.cmp(&right.id));
+            scenario
+                .exclusion_zones
+                .sort_by(|left, right| left.id.cmp(&right.id));
             let score = portfolio_score(&scenario);
             if best
                 .as_ref()
-                .is_none_or(|(_, _, best_score)| score < *best_score)
+                .map_or(true, |(_, _, best_score)| score.cmp(best_score).is_lt())
             {
                 best = Some((policy, scenario, score));
             }
@@ -749,6 +761,26 @@ mod tests {
         let left = first_fit_bottom_left(yard(), &requests, &[]).unwrap();
         let right = first_fit_bottom_left(yard(), &requests, &[]).unwrap();
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn portfolio_is_input_order_invariant_and_returns_independently_verified_plan() {
+        let requests = [
+            request("r-a", "block-a", 1, 1, 0, 8),
+            request("r-b", "block-b", 2, 2, 0, 8),
+            request("r-c", "block-c", 3, 2, 0, 8),
+            request("r-d", "block-d", 1, 3, 0, 8),
+        ];
+        let mut reversed = requests.clone();
+        reversed.reverse();
+
+        let forward = first_fit_portfolio(yard(), &requests, &[]).unwrap();
+        let reverse = first_fit_portfolio(yard(), &reversed, &[]).unwrap();
+        assert_eq!(forward.scenario, reverse.scenario);
+        assert_eq!(forward.policies_attempted, 6);
+        assert!(forward.feasible_candidates > 0);
+        assert!(verify(&forward.scenario).is_feasible());
+        assert!(forward.score.bounding_area_time > 0);
     }
 
     #[test]
