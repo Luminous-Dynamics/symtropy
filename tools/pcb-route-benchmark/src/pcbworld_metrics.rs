@@ -881,6 +881,7 @@ board-b,1,19,crashed,,,,,,,,,,,,,,,
         let one_board_only = format!(
             "{HEADER}{}",
             CSV.lines()
+                .skip(1)
                 .filter(|line| !line.starts_with("board-b,"))
                 .collect::<Vec<_>>()
                 .join("\n")
