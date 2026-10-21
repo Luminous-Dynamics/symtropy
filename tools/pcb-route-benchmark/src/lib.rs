@@ -580,8 +580,12 @@ pub fn compare_runs(
     let mut via_delta = Vec::new();
     let (mut treatment_only, mut baseline_only, mut both, mut neither) = (0usize, 0usize, 0usize, 0usize);
 
-    for (board_id, b) in &base {
-        let t = treat[board_id];
+    for (board_id, b) in base.iter() {
+        let b = *b;
+        let t = treat
+            .get(*board_id)
+            .copied()
+            .ok_or_else(|| format!("paired result missing board {board_id}"))?;
         if b.input_board_sha256 != t.input_board_sha256 || b.required_nets != t.required_nets {
             return Err(format!("{board_id}: paired inputs differ"));
         }
