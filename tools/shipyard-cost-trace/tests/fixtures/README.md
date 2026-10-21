@@ -44,6 +44,10 @@ No estimate-plus-invoice grand total is defined or emitted. The hull-002 transac
 - Different build/configuration revisions remain separate.
 - The output must be invariant to reordering this valid event set.
 
+## Corpus identity
+
+The raw UTF-8 TSV (LF line endings, including its final newline) has SHA-256 `73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295` at the commit that introduced this corpus. Recompute this digest whenever the TSV changes; do not substitute the Git blob SHA-1 for this digest.
+
 ## Reproduction
 
 ```sh

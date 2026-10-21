@@ -60,6 +60,10 @@ Report makespan, weighted tardiness, overtime, work-in-process, setup/changeover
 
 Hydrodynamic resistance/propulsion, stability, structural design, maneuverability, safety and certification require their own validated models and test evidence. Compare CFD/propulsion work to applicable ITTC benchmark cases and test conditions. Report speed, draft, trim, displacement, loading, environmental conditions and uncertainty. An improvement at one design point must not be presented as whole-voyage fuel savings.
 
+### Frozen ledger fixture currently in the repository
+
+The initial mixed-ledger TSV corpus is `tests/fixtures/golden-ledger-v0.tsv` with raw-byte SHA-256 `73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295` (LF line endings with final newline). This is one valid-input fixture corpus, not the entire shipyard benchmark suite. Add separate versioned manifests for negative controls, disruption scenarios and real-data evaluations; each must have its own digest and provenance record.
+
 ## 2. Fair comparison rules
 
 - Freeze input corpus, train/tune/test partition, constraints, evaluation code and baseline configuration before comparing methods.
