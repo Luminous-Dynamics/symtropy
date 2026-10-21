@@ -51,9 +51,7 @@ fn frozen_fixture() -> Vec<LedgerEvent> {
                         None
                     } else {
                         Some(QuantityRate {
-                            unit_rate: fields[9]
-                                .parse()
-                                .expect("valid frozen rate-card unit rate"),
+                            unit_rate: fields[9].parse().expect("valid frozen rate-card unit rate"),
                             currency_basis_id: fields[10].to_owned(),
                             minor_unit_exponent: fields[11]
                                 .parse()
@@ -64,17 +62,13 @@ fn frozen_fixture() -> Vec<LedgerEvent> {
                     EventKind::Quantity(QuantityEvent {
                         quantity_key: fields[6].to_owned(),
                         unit: fields[7].to_owned(),
-                        quantity: fields[8]
-                            .parse()
-                            .expect("valid frozen quantity"),
+                        quantity: fields[8].parse().expect("valid frozen quantity"),
                         rate,
                     })
                 }
                 "financial" => EventKind::FinancialActual(FinancialTransaction {
                     transaction_ref: fields[13].to_owned(),
-                    amount_minor_units: fields[14]
-                        .parse()
-                        .expect("valid frozen financial amount"),
+                    amount_minor_units: fields[14].parse().expect("valid frozen financial amount"),
                     currency_basis_id: fields[10].to_owned(),
                     minor_unit_exponent: fields[11]
                         .parse()
@@ -213,8 +207,20 @@ fn reference_evaluate(events: &[LedgerEvent]) -> AuditReport {
     }
 
     quantities.sort_by(|a, b| {
-        (&a.build_id, &a.configuration_sha256, &a.task_id, &a.quantity_key, &a.unit)
-            .cmp(&(&b.build_id, &b.configuration_sha256, &b.task_id, &b.quantity_key, &b.unit))
+        (
+            &a.build_id,
+            &a.configuration_sha256,
+            &a.task_id,
+            &a.quantity_key,
+            &a.unit,
+        )
+            .cmp(&(
+                &b.build_id,
+                &b.configuration_sha256,
+                &b.task_id,
+                &b.quantity_key,
+                &b.unit,
+            ))
     });
     rate_costs.sort_by(|a, b| {
         (
@@ -325,10 +331,7 @@ fn independent_reference_evaluator_matches_frozen_mixed_shipyard_ledger() {
     let aluminium_actual_rate = actual
         .rate_card_costs
         .iter()
-        .find(|row| {
-            row.quantity_key == "material.aluminium.issued.kg"
-                && row.stage == Stage::Observed
-        })
+        .find(|row| row.quantity_key == "material.aluminium.issued.kg" && row.stage == Stage::Observed)
         .expect("observed aluminium issue estimate");
     assert_eq!(aluminium_actual_rate.amount, 31_250.0);
 
