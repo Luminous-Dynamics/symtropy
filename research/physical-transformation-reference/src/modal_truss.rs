@@ -183,7 +183,9 @@ pub fn analyze_planar_modal_truss(
         }
     }
     if free_global_dofs.is_empty() {
-        return Err("modal analysis requires at least one unrestrained degree of freedom".to_owned());
+        return Err(
+            "modal analysis requires at least one unrestrained degree of freedom".to_owned(),
+        );
     }
 
     let free_count = free_global_dofs.len();
@@ -210,19 +212,18 @@ pub fn analyze_planar_modal_truss(
     symmetrize(&mut symmetric);
 
     let (eigenvalues, transformed_modes) = symmetric_eigenpairs(symmetric)?;
-    let largest_eigenvalue = eigenvalues
-        .iter()
-        .copied()
-        .fold(0.0_f64, f64::max);
+    let largest_eigenvalue = eigenvalues.iter().copied().fold(0.0_f64, f64::max);
     if !largest_eigenvalue.is_finite() || largest_eigenvalue <= 0.0 {
-        return Err("the free-degree stiffness system has no positive modal scale; inspect mechanisms".to_owned());
+        return Err(
+            "the free-degree stiffness system has no positive modal scale; inspect mechanisms"
+                .to_owned(),
+        );
     }
     let zero_threshold = largest_eigenvalue * ZERO_MODE_RELATIVE_TOLERANCE;
-    if eigenvalues
-        .iter()
-        .any(|value| *value < -zero_threshold)
-    {
-        return Err("generalized eigenproblem produced a materially negative eigenvalue".to_owned());
+    if eigenvalues.iter().any(|value| *value < -zero_threshold) {
+        return Err(
+            "generalized eigenproblem produced a materially negative eigenvalue".to_owned(),
+        );
     }
 
     let mut modes = Vec::with_capacity(free_count);
@@ -243,13 +244,14 @@ pub fn analyze_planar_modal_truss(
         } else {
             0.0
         };
-        let normalized_eigen_residual =
-            eigen_residual(&stiffness, &mass, &shape, *eigenvalue);
+        let normalized_eigen_residual = eigen_residual(&stiffness, &mass, &shape, *eigenvalue);
         if !frequency_hz.is_finite()
             || !normalized_eigen_residual.is_finite()
             || shape.iter().any(|component| !component.is_finite())
         {
-            return Err("modal solution contains a non-finite frequency, shape, or residual".to_owned());
+            return Err(
+                "modal solution contains a non-finite frequency, shape, or residual".to_owned(),
+            );
         }
         modes.push(ModalTrussMode {
             omega_squared_rad2_s2: *eigenvalue,
@@ -341,7 +343,9 @@ fn cholesky_lower(matrix: &[Vec<f64>]) -> Check<Vec<Vec<f64>>> {
             let value = matrix[i][j] - correction;
             if i == j {
                 if !value.is_finite() || value <= 0.0 {
-                    return Err("reduced mass matrix is not numerically positive definite".to_owned());
+                    return Err(
+                        "reduced mass matrix is not numerically positive definite".to_owned()
+                    );
                 }
                 lower[i][j] = value.sqrt();
             } else {
@@ -441,7 +445,12 @@ fn symmetric_eigenpairs(mut matrix: Vec<Vec<f64>>) -> Check<(Vec<f64>, Vec<Vec<f
                 return Err("generalized eigenproblem produced a non-finite eigenvalue".to_owned());
             }
             let sorted_vectors: Vec<Vec<f64>> = (0..n)
-                .map(|row| order.iter().map(|column| eigenvectors[row][*column]).collect())
+                .map(|row| {
+                    order
+                        .iter()
+                        .map(|column| eigenvectors[row][*column])
+                        .collect()
+                })
                 .collect();
             return Ok((values, sorted_vectors));
         }
@@ -474,10 +483,8 @@ fn symmetric_eigenpairs(mut matrix: Vec<Vec<f64>>) -> Check<(Vec<f64>, Vec<Vec<f
             matrix[p][k] = new_p;
             matrix[q][k] = new_q;
         }
-        matrix[p][p] =
-            cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
-        matrix[q][q] =
-            sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
+        matrix[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
+        matrix[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
         matrix[p][q] = 0.0;
         matrix[q][p] = 0.0;
 
@@ -507,11 +514,7 @@ fn eigen_residual(
     let numerator = euclidean_norm(&residual);
     let denominator = euclidean_norm(&k_phi) + eigenvalue.abs() * euclidean_norm(&m_phi);
     if denominator == 0.0 {
-        if numerator == 0.0 {
-            0.0
-        } else {
-            f64::INFINITY
-        }
+        if numerator == 0.0 { 0.0 } else { f64::INFINITY }
     } else {
         numerator / denominator
     }
@@ -645,9 +648,8 @@ mod tests {
             ModalTrussMassFormulation::Consistent,
             ModalTrussMassFormulation::RowSumLumped,
         ] {
-            let result =
-                analyze_planar_modal_truss(&asymmetric_two_bar_fixture(), formulation)
-                    .expect("well-constrained asymmetric modal truss");
+            let result = analyze_planar_modal_truss(&asymmetric_two_bar_fixture(), formulation)
+                .expect("well-constrained asymmetric modal truss");
             let length_ac = 10.0_f64.sqrt();
             let length_bc = 18.0_f64.sqrt();
             let k_ac = E * AREA_AC / length_ac;
@@ -784,7 +786,10 @@ mod tests {
             ModalModeClassification::NearZeroRigidBodyOrMechanism
         );
         assert_eq!(result.modes[0].frequency_hz, 0.0);
-        assert_eq!(result.modes[1].classification, ModalModeClassification::Elastic);
+        assert_eq!(
+            result.modes[1].classification,
+            ModalModeClassification::Elastic
+        );
     }
 
     #[test]
@@ -808,11 +813,9 @@ mod tests {
             bar.youngs_modulus_pa *= 9.0;
             bar.density_kg_m3 *= 9.0;
         }
-        let material_result = analyze_planar_modal_truss(
-            &material_scaled,
-            ModalTrussMassFormulation::Consistent,
-        )
-        .expect("E/rho-scaled modal solution");
+        let material_result =
+            analyze_planar_modal_truss(&material_scaled, ModalTrussMassFormulation::Consistent)
+                .expect("E/rho-scaled modal solution");
 
         let mut length_scaled = asymmetric_two_bar_fixture();
         for node in &mut length_scaled.nodes {
@@ -824,7 +827,12 @@ mod tests {
                 .expect("length-scaled modal solution");
 
         for (original, scaled) in reference.modes.iter().zip(area_result.modes.iter()) {
-            close_relative(scaled.frequency_hz, original.frequency_hz, 1.0e-10, "area scale");
+            close_relative(
+                scaled.frequency_hz,
+                original.frequency_hz,
+                1.0e-10,
+                "area scale",
+            );
         }
         for (original, scaled) in reference.modes.iter().zip(material_result.modes.iter()) {
             close_relative(
@@ -856,7 +864,12 @@ mod tests {
             .expect("reordered input");
         assert_eq!(a.modes.len(), b.modes.len());
         for (left, right) in a.modes.iter().zip(b.modes.iter()) {
-            close_relative(left.frequency_hz, right.frequency_hz, 1.0e-10, "order invariant");
+            close_relative(
+                left.frequency_hz,
+                right.frequency_hz,
+                1.0e-10,
+                "order invariant",
+            );
         }
     }
 
