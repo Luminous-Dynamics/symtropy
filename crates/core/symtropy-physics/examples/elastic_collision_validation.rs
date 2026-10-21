@@ -118,8 +118,12 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
             break;
         }
     }
-    let contact_step = contact_step
-        .ok_or_else(|| format!("{}: no collision detected within {MAX_STEPS} steps", case.name))?;
+    let contact_step = contact_step.ok_or_else(|| {
+        format!(
+            "{}: no collision detected within {MAX_STEPS} steps",
+            case.name
+        )
+    })?;
 
     let observed_a = world
         .body(body_a)
@@ -132,8 +136,8 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     let final_state = world.invariant_snapshot();
 
     let (expected_a, expected_b) = expected_velocities(case);
-    let expected_energy = 0.5 * case.mass_a * expected_a * expected_a
-        + 0.5 * case.mass_b * expected_b * expected_b;
+    let expected_energy =
+        0.5 * case.mass_a * expected_a * expected_a + 0.5 * case.mass_b * expected_b * expected_b;
     let velocity_error = (observed_a - expected_a)
         .abs()
         .max((observed_b - expected_b).abs());
@@ -233,10 +237,7 @@ mod tests {
         assert!(result.passed, "{result:?}");
         assert!((result.velocity_a_observed + 1.0).abs() <= VELOCITY_TOLERANCE);
         assert!((result.velocity_b_observed - 1.0).abs() <= VELOCITY_TOLERANCE);
-        assert!(
-            (result.kinetic_energy_final - result.kinetic_energy_initial).abs()
-                <= ENERGY_TOLERANCE
-        );
+        assert!((result.kinetic_energy_final - result.kinetic_energy_initial).abs() <= ENERGY_TOLERANCE);
     }
 
     #[test]
