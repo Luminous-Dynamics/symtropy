@@ -26,11 +26,21 @@ pub struct Fv4ModeFrequency {
     pub frequency_hz: f64,
 }
 
+/// Semantic role of the frequency values. This prevents a target list or a
+/// normalized-factor record from being mistaken for an actual solver output.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Fv4FrequencyRole {
+    ReferenceTarget,
+    SolverResult,
+    ReferencePlusNormalizedFactors,
+}
+
 /// Result table for one named source/solver variant.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Fv4FrequencyVariant {
     pub id: Fv4ResultVariant,
     pub source_url: &'static str,
+    pub frequency_role: Fv4FrequencyRole,
     pub frequencies: [Fv4ModeFrequency; 6],
     /// Published errors are supplied for the LS-DYNA source only.
     pub published_error_percent: Option<[f64; 6]>,
@@ -78,6 +88,7 @@ pub fn published_variants() -> [Fv4FrequencyVariant; 5] {
         Fv4FrequencyVariant {
             id: Fv4ResultVariant::NafemsTargetAsPublishedByAnsys,
             source_url: "https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-062.html",
+            frequency_role: Fv4FrequencyRole::ReferenceTarget,
             frequencies: mode_table(NAFEMS_TARGETS_HZ),
             published_error_percent: None,
             published_normalized_factors: None,
@@ -86,6 +97,7 @@ pub fn published_variants() -> [Fv4FrequencyVariant; 5] {
         Fv4FrequencyVariant {
             id: Fv4ResultVariant::AnsysLsDynaVm062,
             source_url: "https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-062.html",
+            frequency_role: Fv4FrequencyRole::SolverResult,
             frequencies: mode_table(LSDYNA_RESULTS_HZ),
             published_error_percent: Some(LSDYNA_PUBLISHED_ERRORS_PERCENT),
             published_normalized_factors: None,
@@ -94,6 +106,7 @@ pub fn published_variants() -> [Fv4FrequencyVariant; 5] {
         Fv4FrequencyVariant {
             id: Fv4ResultVariant::AltairOptiStructOsV0410,
             source_url: "https://2022.help.altair.com/2022/hwsolvers/os/topics/solvers/os/nafems_test_problem_fv4_r.htm",
+            frequency_role: Fv4FrequencyRole::ReferencePlusNormalizedFactors,
             frequencies: mode_table(ALTAIR_TARGETS_HZ),
             published_error_percent: None,
             published_normalized_factors: Some(ALTAIR_NORMALIZED_FACTORS),
@@ -102,6 +115,7 @@ pub fn published_variants() -> [Fv4FrequencyVariant; 5] {
         Fv4FrequencyVariant {
             id: Fv4ResultVariant::AnsysMechanicalApdlBeam188,
             source_url: "https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/ans_vm/vmp09t4.html",
+            frequency_role: Fv4FrequencyRole::SolverResult,
             frequencies: mode_table(APDL_BEAM188_HZ),
             published_error_percent: None,
             published_normalized_factors: None,
@@ -110,6 +124,7 @@ pub fn published_variants() -> [Fv4FrequencyVariant; 5] {
         Fv4FrequencyVariant {
             id: Fv4ResultVariant::AnsysMechanicalApdlBeam189,
             source_url: "https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/ans_vm/vmp09t4.html",
+            frequency_role: Fv4FrequencyRole::SolverResult,
             frequencies: mode_table(APDL_BEAM189_HZ),
             published_error_percent: None,
             published_normalized_factors: None,
@@ -163,7 +178,7 @@ pub fn relative_errors_percent(
 mod tests {
     use super::{
         ALTAIR_NORMALIZED_FACTORS, ALTAIR_TARGETS_HZ, APDL_BEAM188_HZ, APDL_BEAM189_HZ,
-        Fv4ResultVariant, LSDYNA_PUBLISHED_ERRORS_PERCENT, LSDYNA_RESULTS_HZ,
+        Fv4FrequencyRole, Fv4ResultVariant, LSDYNA_PUBLISHED_ERRORS_PERCENT, LSDYNA_RESULTS_HZ,
         NAFEMS_TARGETS_HZ, close_pair_relative_gap, mode_table, published_variants,
         relative_errors_percent,
     };
@@ -205,12 +220,18 @@ mod tests {
         assert_eq!(variants[2].id, Fv4ResultVariant::AltairOptiStructOsV0410);
         assert_eq!(variants[2].frequencies[3].frequency_hz, 9.972);
         assert_eq!(variants[2].published_normalized_factors, Some(ALTAIR_NORMALIZED_FACTORS));
+        assert_eq!(variants[0].frequency_role, Fv4FrequencyRole::ReferenceTarget);
+        assert_eq!(variants[1].frequency_role, Fv4FrequencyRole::SolverResult);
+        assert_eq!(
+            variants[2].frequency_role,
+            Fv4FrequencyRole::ReferencePlusNormalizedFactors
+        );
         assert_ne!(variants[3].id, variants[4].id);
         assert_eq!(variants[3].frequencies[0].frequency_hz, APDL_BEAM188_HZ[0]);
         assert_eq!(variants[4].frequencies[0].frequency_hz, APDL_BEAM189_HZ[0]);
         assert_eq!(variants[1].published_normalized_factors, None);
         assert_eq!(variants[1].frequencies[3].frequency_hz, 9.960);
-        assert_eq!(ALTAIR_TARGETS_HZ[3] - NAFEMS_TARGETS_HZ[3], 0.001);
+        assert!((ALTAIR_TARGETS_HZ[3] - NAFEMS_TARGETS_HZ[3] - 0.001).abs() < 1.0e-12);
         assert!(variants.iter().all(|variant| variant.claim_ceiling.contains("no FV4 solve")));
         assert!(
             (APDL_BEAM188_HZ[1] - APDL_BEAM188_HZ[0]).abs() / APDL_BEAM188_HZ[0] < 0.003
