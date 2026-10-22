@@ -244,6 +244,12 @@ The `DispatchStabilityPolicy` exposes a `freeze_before_tick` commitment boundary
 
 Seven unit tests cover a physically valid but frozen-plan-changing candidate, exact boundary semantics, explicit waiver for affected frozen work, separate churn/geometry budget violations, a frozen transfer reassignment, total rework limits separate from unaffected churn, and a monotonicity control where relaxing numeric budgets cannot add policy violations. These are authored tests awaiting exact-head CI. The policy is a decision boundary, not a planner or a safety certification.
 
+## Independent dispatch-policy grid oracle
+
+The integration test \`tests/dispatch_policy_oracle.rs\` enumerates 512 combinations of a known two-placement/one-transfer fixture. The grid varies (1) whether a future placement moves, (2) whether a transfer changes vehicle, (3) the freeze boundary from tick 0 through 7, (4) total changed-placement and changed-transfer budgets, (5) unaffected-placement churn budget, and (6) rectangle-shift budget. A separate predicate computes the expected decision from the fixture's known deltas and half-open freeze rule rather than calling the policy's helper methods.
+
+Frozen target totals are 191 operationally accepted candidates, 96 cases with a frozen-placement violation, 64 with a frozen-transfer violation, and 193 candidates rejected by numeric budgets when neither frozen violation applies. Freeze-condition totals can overlap across the two violation classes; the per-case assertion checks each class and the final accept/reject value. Every candidate is expected to remain physically feasible, so the test specifically distinguishes physical feasibility from the operational policy. These are synthetic oracle targets awaiting exact-head CI, not industrial results.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
