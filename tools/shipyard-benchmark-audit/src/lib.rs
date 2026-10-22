@@ -659,15 +659,27 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                     }
                     if let Some(v)=field(verifier,"evidence_sha256") { check_hash(v,&format!("{}.verifier.evidence_sha256",path),&mut errors); }
                     if let Some(s)=outcome.as_deref() {
-                        if matches!(s,"verified-feasible"|"verified-infeasible") && status.as_deref()!=Some("passed") {
-                            errors.push(format!("{}.verifier.status: feasibility classifications require passed verification",path));
-                        }
-                        if matches!(s,"unknown"|"timeout"|"invalid-output"|"not-run") && status.as_deref()==Some("passed") {
+                        let reference_label=reference.as_deref();
+                        let oracle_label=oracle_outcome.as_deref();
+                        let expected_status=match (s,reference_label,oracle_label) {
+                            ("verified-feasible",Some("feasible"),Some("match")) => Some("passed"),
+                            ("verified-infeasible",Some("infeasible"),Some("match")) => Some("passed"),
+                            ("verified-feasible",Some("infeasible"),Some("mismatch")) => Some("failed"),
+                            ("verified-infeasible",Some("feasible"),Some("mismatch")) => Some("failed"),
+                            ("verified-feasible",Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable")) => Some("passed"),
+                            ("unknown"|"timeout"|"invalid-output"|"not-run",_,_) => None,
+                            _ => None,
+                        };
+                        if let Some(expected)=expected_status {
+                            if status.as_deref()!=Some(expected) {
+                                errors.push(format!("{}.verifier.status: expected '{}' for the recorded candidate/reference outcome",path,expected));
+                            }
+                        } else if matches!(s,"unknown"|"timeout"|"invalid-output"|"not-run") && status.as_deref()==Some("passed") {
                             errors.push(format!("{}.verifier.status: outcome '{}' is inconsistent with passed classification",path,s));
                         }
                         if s=="verified-infeasible" {
-                            let oracle_proves_infeasible = reference.as_deref()==Some("infeasible") && oracle_outcome.as_deref()==Some("match");
-                            let explicitly_measured_false_infeasible = reference.as_deref()==Some("feasible") && oracle_outcome.as_deref()==Some("mismatch");
+                            let oracle_proves_infeasible = reference_label==Some("infeasible") && oracle_label==Some("match");
+                            let explicitly_measured_false_infeasible = reference_label==Some("feasible") && oracle_label==Some("mismatch");
                             if !oracle_proves_infeasible && !explicitly_measured_false_infeasible {
                                 errors.push(format!("{}.outcome: infeasibility cannot be inferred from heuristic exhaustion, timeout, or an unknown reference",path));
                             }
@@ -683,7 +695,7 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                         (Some("verified-infeasible"),Some("infeasible"),Some("match"))=>{},
                         (Some("verified-feasible"),Some("infeasible"),Some("mismatch"))=>{},
                         (Some("verified-infeasible"),Some("feasible"),Some("mismatch"))=>{},
-                        (Some("unknown"|"timeout"|"invalid-output"|"not-run"),Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable"))=>{},
+                        (Some("unknown"|"timeout"|"invalid-output"|"not-run"),_,Some("unknown"|"not-applicable"))=>{},
                         (Some("verified-feasible"|"verified-infeasible"),Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable"))=>{},
                         (_,Some("feasible"|"infeasible"),Some("unknown"|"not-applicable"))=>{
                             errors.push(format!("{}.verifier.oracle_outcome: known reference outcome requires match or mismatch for a classified result",path));
