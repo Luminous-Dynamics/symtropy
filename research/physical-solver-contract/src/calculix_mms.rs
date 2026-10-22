@@ -355,16 +355,16 @@ fn integrate_body_force_on_triangle(
             let shape = [1.0 - r, r * (1.0 - s), r * s];
             let mut x = 0.0;
             let mut y = 0.0;
-            for local in 0..3 {
-                x += shape[local] * points[local][0];
-                y += shape[local] * points[local][1];
+            for (shape_value, point) in shape.iter().zip(points.iter()) {
+                x += shape_value * point[0];
+                y += shape_value * point[1];
             }
             let field = manufactured_field(parameters, x, y)?;
             let weight = determinant * r * wr * ws * parameters.thickness_m;
-            for local in 0..3 {
-                let force = &mut global_loads[node_indices[local]];
-                force[0] += weight * shape[local] * field.body_force_x_n_m3;
-                force[1] += weight * shape[local] * field.body_force_y_n_m3;
+            for (&node_index, &shape_value) in node_indices.iter().zip(shape.iter()) {
+                let force = &mut global_loads[node_index];
+                force[0] += weight * shape_value * field.body_force_x_n_m3;
+                force[1] += weight * shape_value * field.body_force_y_n_m3;
             }
         }
     }
@@ -501,11 +501,11 @@ pub fn audit_nodal_displacements(
         let mut uh_dy = 0.0;
         let mut vh_dx = 0.0;
         let mut vh_dy = 0.0;
-        for local in 0..3 {
-            uh_dx += dndx[local] * disp[local][0];
-            uh_dy += dndy[local] * disp[local][0];
-            vh_dx += dndx[local] * disp[local][1];
-            vh_dy += dndy[local] * disp[local][1];
+        for (local, displacement) in disp.iter().enumerate() {
+            uh_dx += dndx[local] * displacement[0];
+            uh_dy += dndy[local] * displacement[0];
+            vh_dx += dndx[local] * displacement[1];
+            vh_dy += dndy[local] * displacement[1];
         }
         let sigma_h_xx = d * (uh_dx + parameters.poisson_ratio * vh_dy);
         let sigma_h_yy = d * (parameters.poisson_ratio * uh_dx + vh_dy);
@@ -517,9 +517,9 @@ pub fn audit_nodal_displacements(
                 let mut x = 0.0;
                 let mut y = 0.0;
                 let mut uh = [0.0, 0.0];
-                for local in 0..3 {
-                    x += shape[local] * nodes[local].x_m;
-                    y += shape[local] * nodes[local].y_m;
+                for (local, node) in nodes.iter().enumerate() {
+                    x += shape[local] * node.x_m;
+                    y += shape[local] * node.y_m;
                     uh[0] += shape[local] * disp[local][0];
                     uh[1] += shape[local] * disp[local][1];
                 }
