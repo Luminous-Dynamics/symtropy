@@ -45,7 +45,7 @@ impl QuestionPolicy {
     ];
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PolicyQuestionAnswer {
     pub question_id: String,
     pub observed_answer: ObservedPreferenceAnswer,
