@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.1",
+  "case_id": "lunar-seed-utility-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_boundary": "Synthetic control/accounting fixture only; not lunar site data, hardware sizing, or qualification.",
+  "design_basis_sha256": "145a9b2f4280f101ffde2c87f3230c299763557a03c8cac91546c5e939d4e575",
+  "interval_seconds": 3600,
+  "battery": {
+    "capacity_wh": 20000,
+    "initial_state_of_charge_wh": 16000,
+    "max_charge_input_wh_per_interval": 10000,
+    "max_discharge_withdrawal_wh_per_interval": 12000,
+    "charge_efficiency_ppm": 900000,
+    "discharge_efficiency_ppm": 900000
+  },
+  "resource_process": {
+    "process_id": "synthetic-regolith-volatile-recovery",
+    "batch_energy_wh": 5000,
+    "feed_mass_g_per_batch": 10000,
+    "contained_water_fraction_ppm": 100000,
+    "water_recovery_fraction_ppm": 800000
+  },
+  "source_references": [
+    "https://www.nasa.gov/moonbase-systems/",
+    "https://www.nasa.gov/lunar-surface-technology/",
+    "https://www.nasa.gov/overview-in-situ-resource-utilization/"
+  ],
+  "intervals": [
+    {
+      "id": "U00_sunrise_solar",
+      "solar_generation_wh": 12000,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U01_solar",
+      "solar_generation_wh": 8000,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U02_dark_1",
+      "solar_generation_wh": 0,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U03_dark_2",
+      "solar_generation_wh": 0,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U04_dark_3",
+      "solar_generation_wh": 0,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U05_dark_4",
+      "solar_generation_wh": 0,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U06_solar_recovery",
+      "solar_generation_wh": 12000,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    },
+    {
+      "id": "U07_solar",
+      "solar_generation_wh": 8000,
+      "firm_generation_wh": 0,
+      "critical_load_wh": 4000,
+      "process_batch_feed_g": 10000
+    }
+  ]
+}
