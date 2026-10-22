@@ -114,6 +114,7 @@ The P5 and P9 percentages are proposed stretch targets to challenge the team, no
 - Uncertainty coverage, interval width and abstention rate.
 - Construction sequence feasibility and unsatisfied prerequisites.
 - Measured material recovery, contamination and unaccounted mass.
+- Directional participation factors, effective modal mass ratios, and cumulative participation must be reported separately from eigenfrequency error and MAC. Follow the full-mass denominator convention, including restrained-node translational mass; do not renormalize missing cumulative mass to 100%.
 - Wall time, peak memory, energy use, throughput and scaling.
 - Interchange completeness and semantic loss through IFC import/export.
 
