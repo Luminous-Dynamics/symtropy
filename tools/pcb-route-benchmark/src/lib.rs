@@ -41,6 +41,10 @@ pub struct DatasetManifest {
     pub source_split_name: Option<String>,
     #[serde(default)]
     pub intake_metadata_sha256: Option<String>,
+    #[serde(default)]
+    pub license_audit_manifest_relative_path: Option<String>,
+    #[serde(default)]
+    pub license_audit_manifest_sha256: Option<String>,
     pub boards: Vec<BoardPin>,
 }
 
@@ -57,6 +61,8 @@ pub struct IntakeSpec {
     pub source_split_config_url: String,
     pub source_split_config_git_blob_sha1: String,
     pub source_split_config_relative_path: String,
+    pub license_audit_manifest_relative_path: String,
+    pub license_audit_manifest_sha256: String,
     pub split_name: String,
     pub boards: Vec<IntakeBoard>,
 }
@@ -67,16 +73,8 @@ pub struct IntakeBoard {
     pub board_id: String,
     pub difficulty: String,
     pub required_nets: u32,
-    pub license: String,
-    pub source_url: String,
-    #[serde(default)]
-    pub license_evidence_relative_path: Option<String>,
-    #[serde(default)]
-    pub license_evidence_url: Option<String>,
-    #[serde(default)]
-    pub license_evidence_source_commit_sha: Option<String>,
-    #[serde(default)]
-    pub license_evidence_git_blob_sha1: Option<String>,
+    /// Local dataset-root path for the exact license text independently pinned by the audit.
+    pub license_evidence_relative_path: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -88,6 +86,12 @@ pub struct BoardPin {
     pub license: String,
     pub source_url: String,
     pub relative_path: Option<String>,
+    #[serde(default)]
+    pub original_source_repository: Option<String>,
+    #[serde(default)]
+    pub source_metadata_path: Option<String>,
+    #[serde(default)]
+    pub source_metadata_git_blob_sha1: Option<String>,
     #[serde(default)]
     pub license_evidence_relative_path: Option<String>,
     #[serde(default)]
@@ -245,6 +249,68 @@ pub struct RunSummary {
     pub p90_peak_memory_bytes_all_attempts: Option<f64>,
     pub median_wirelength_mm_valid_completions: Option<f64>,
     pub median_via_count_valid_completions: Option<f64>,
+}
+
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct LicenseAuditManifest {
+    pub schema: String,
+    pub status: String,
+    #[serde(default)]
+    pub evidence_class: Option<String>,
+    pub upstream: LicenseAuditUpstream,
+    pub boards: Vec<LicenseAuditBoard>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct LicenseAuditUpstream {
+    pub pcbworld_repository: String,
+    pub pcbworld_commit_sha: String,
+    pub d3_split_config_path: String,
+    pub d3_split_config_git_blob_sha1: String,
+    pub pcbench_repository: String,
+    pub pcbench_commit_sha: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct LicenseAuditBoard {
+    pub board_id: String,
+    pub difficulty: String,
+    pub pcbench_directory: String,
+    pub metadata_path: String,
+    pub metadata_git_blob_sha1: String,
+    pub original_source_repository: String,
+    #[serde(default)]
+    pub pcbench_reported_licenses: Vec<LicenseAuditReportedLicense>,
+    pub primary_source_license_review: String,
+    pub benchmark_eligibility: String,
+    #[serde(default)]
+    pub primary_source_license_evidence: Option<PrimarySourceLicenseEvidence>,
+    #[serde(default)]
+    pub license_match_status: Option<String>,
+    #[serde(default)]
+    pub prepared_board_relative_path: Option<String>,
+    #[serde(default)]
+    pub prepared_board_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct LicenseAuditReportedLicense {
+    #[serde(default)]
+    pub spdx_id: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PrimarySourceLicenseEvidence {
+    pub repository: String,
+    pub file_path: String,
+    pub git_blob_sha1: String,
+    pub resolved_spdx_id: String,
+    pub blob_url: String,
+    pub source_commit_sha: String,
+    pub blob_hash_reverified_at_pinned_commit: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
