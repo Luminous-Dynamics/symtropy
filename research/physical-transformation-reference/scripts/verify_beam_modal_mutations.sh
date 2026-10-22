@@ -60,6 +60,11 @@ run_mutation() {
       perl -0pi -e 's/BeamModeClass::NegativeOrUnstable/BeamModeClass::Elastic/' "$source"
       grep -Fq 'BeamModeClass::Elastic' "$source"
       ;;
+    mac_loses_sign_invariance)
+      grep -Fq 'let value = inner * inner / (reference_norm * candidate_norm);' "$source"
+      perl -0pi -e 's/let value = inner \* inner \/ \(reference_norm \* candidate_norm\);/let value = inner \/ (reference_norm * candidate_norm);/' "$source"
+      grep -Fq 'let value = inner / (reference_norm * candidate_norm);' "$source"
+      ;;
     *)
       printf 'Unknown beam modal mutation: %s\n' "$mutation" >&2
       return 2
@@ -101,6 +106,11 @@ run_mutation \
   negative_mode_misclassified_as_elastic \
   negative_eigenvalues_are_reported_as_unstable_not_dropped
 
+run_mutation \
+  "mac-sign-invariance-removed" \
+  mac_loses_sign_invariance \
+  modal_assurance_criterion_is_sign_invariant_and_fail_closed
+
 test "$modal_sha256" = "$(sha256sum "$crate_dir/src/beam_modal.rs" | awk '{print $1}')"
 
 jq -n \
@@ -140,6 +150,12 @@ jq -n \
       {
         id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
         expected_test: "negative_eigenvalues_are_reported_as_unstable_not_dropped",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MOD-MAC-SIGN-001",
+        expected_test: "modal_assurance_criterion_is_sign_invariant_and_fail_closed",
         disposition: "detected"
       }
     ],
