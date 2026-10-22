@@ -1,0 +1,267 @@
+name: PHYS-EVID-01A Endpoint Claim Identity Qualification
+
+on:
+  push:
+    branches:
+      - ci/endpoint-claim-identity-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-endpoint-claim-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SUBJECT_SHA: b4d36558d7acf7196fd4c0f97140cd288d2c21ce
+      PARENT_SHA: e8753451e522ec343dc9669685ddc404f1cdade6
+      CONTRACT_BLOB: d76a6e242541975485cd75b3b5d75f43de151b45
+      SOURCE_BLOB: 42a3f9ed3b529240c466c65730d014341dff65ae
+      LIB_BLOB: 906ccb95ff17a6d9f59f8a31e06fa5f9b3e8385a
+      VECTOR_BLOB: d12f2e5c785a344e392331f6bc29e456ead2985c
+      ORACLE_BLOB: 8945267a6309d3602779aed8af14647f910dc9d0
+      PREDECESSOR_ENDPOINT_SOURCE_BLOB: 3d00108424f48cea946cfc5db0abb3c9d0414586
+      PREDECESSOR_ENDPOINT_VECTOR_BLOB: dcb6d3b74f3d06b30dcb336131e594c4353005ca
+      PREDECESSOR_ENDPOINT_ORACLE_BLOB: fdc5a7b3b97f5408e59927522a9fc86c4ad2bfc7
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact-head and five-file scope gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA..$SUBJECT_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$PARENT_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/CANONICAL_ENDPOINT_CLAIM_IDENTITY_V01.md
+            src/endpoint_claim_identity.rs
+            src/lib.rs
+            tests/fixtures/endpoint_claim_identity_v1_vector.json
+            tests/verify_endpoint_claim_identity_v1.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Freeze product and predecessor blob identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/CANONICAL_ENDPOINT_CLAIM_IDENTITY_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/endpoint_claim_identity.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/endpoint_claim_identity_v1_vector.json")" = "$VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_endpoint_claim_identity_v1.py")" = "$ORACLE_BLOB"
+
+          test "$(git rev-parse "$PARENT_SHA:src/endpoint_sample_codec.rs")" = "$PREDECESSOR_ENDPOINT_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/endpoint_sample_codec.rs")" = "$PREDECESSOR_ENDPOINT_SOURCE_BLOB"
+          test "$(git rev-parse "$PARENT_SHA:tests/fixtures/endpoint_sample_v1_vector.json")" = "$PREDECESSOR_ENDPOINT_VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/endpoint_sample_v1_vector.json")" = "$PREDECESSOR_ENDPOINT_VECTOR_BLOB"
+          test "$(git rev-parse "$PARENT_SHA:tests/verify_endpoint_sample_v1.py")" = "$PREDECESSOR_ENDPOINT_ORACLE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_endpoint_sample_v1.py")" = "$PREDECESSOR_ENDPOINT_ORACLE_BLOB"
+
+      - name: Independent Python semantic-transcript oracle
+        run: python3 tests/verify_endpoint_claim_identity_v1.py
+
+      - name: Static position/value authority audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/endpoint_claim_identity.rs')
+          text = path.read_text()
+
+          required = [
+              'decode_endpoint_sample_v1(frame)',
+              'ENDPOINT_SAMPLE_CLAIM_POSITION_V1_MAGIC',
+              'ENDPOINT_SAMPLE_CLAIM_VALUE_V1_MAGIC',
+              'b"endpoint-sample-v1\\0"',
+              'POSITION_FIXED_V1_LEN: usize = 157',
+              'POSITION_PER_AXIS_V1_LEN: usize = 16',
+              'VALUE_FIXED_V1_LEN: usize = 55',
+              'VALUE_PER_AXIS_V1_LEN: usize = 32',
+              'EndpointSampleClaimComparisonV1::DistinctPosition',
+              'EndpointSampleClaimComparisonV1::Duplicate',
+              'EndpointSampleClaimComparisonV1::Contradiction',
+          ]
+          for needle in required:
+              assert needle in text, needle
+
+          # Semantic position must be built from decoded session semantics, not
+          # by copying nested/outer framing bytes.
+          assert 'session_binding_frame()' not in text
+          assert 'decode_physics_evidence_frame_v1' not in text.split('#[cfg(test)]', 1)[0]
+          assert 'encode_physics_evidence_frame_v1' not in text.split('#[cfg(test)]', 1)[0]
+
+          position = text.split('let mut position =', 1)[1].split('let mut value =', 1)[0]
+          for needle in [
+              'session.session_id_bytes()',
+              'session.physical_authority_raw()',
+              'session.world_generation_raw()',
+              'session.temporal_incarnation_raw()',
+              'session.session_profile_code()',
+              'decoded.step_index()',
+              'decoded.target_net_id()',
+              'decoded.anchor_net_id()',
+              'decoded.center_offset_bits(axis)',
+              'decoded.half_extent_bits(axis)',
+          ]:
+              assert needle in position, needle
+          for forbidden in [
+              'decoded.membership()',
+              'decoded.target_translation_bits',
+              'decoded.anchor_translation_bits',
+              'decoded.region_center_bits',
+              'decoded.offset_from_center_bits',
+          ]:
+              assert forbidden not in position, forbidden
+
+          value = text.split('let mut value =', 1)[1].split('Ok(CanonicalEndpointSampleClaimV1', 1)[0]
+          for needle in [
+              'decoded.membership()',
+              'decoded.target_translation_bits(axis)',
+              'decoded.anchor_translation_bits(axis)',
+              'decoded.region_center_bits(axis)',
+              'decoded.offset_from_center_bits(axis)',
+          ]:
+              assert needle in value, needle
+          for forbidden in [
+              'session.session_id_bytes()',
+              'decoded.step_index()',
+              'decoded.target_net_id()',
+              'decoded.anchor_net_id()',
+              'decoded.center_offset_bits(axis)',
+              'decoded.half_extent_bits(axis)',
+          ]:
+              assert forbidden not in value, forbidden
+
+          production = text.split('#[cfg(test)]', 1)[0]
+          for forbidden in [
+              'DefaultHasher',
+              'std::hash',
+              'Hasher',
+              'HashMap',
+              'pub fn new(',
+              'pub fn from_fields',
+              'pub fn from_raw',
+          ]:
+              assert forbidden not in production, forbidden
+
+          # No durable consumer/action surface belongs in unauthenticated 01A.
+          for forbidden in [
+              'ActionKey',
+              'compare_and_set',
+              'settlement',
+              'escrow',
+              'execute_payment',
+          ]:
+              assert forbidden not in production, forbidden
+
+          # Public transcript wrappers expose bytes read-only; private storage
+          # prevents caller-selected transcript construction through fields.
+          assert re.search(r'pub struct CanonicalEndpointSampleClaimPositionV1\s*\{\s*bytes: Vec<u8>', production, re.S)
+          assert re.search(r'pub struct CanonicalEndpointSampleClaimValueV1\s*\{\s*bytes: Vec<u8>', production, re.S)
+          print('PHYS-EVID-01A static authority audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Workspace rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Integration library check
+        run: cargo check -p symtropy-launcher --lib --locked
+
+      - name: PHYS-EVID-01A semantic corpus
+        run: cargo test -p symtropy-launcher --lib endpoint_claim_identity::tests --locked -- --nocapture
+
+      - name: PHYS-EVID-02C endpoint codec regression
+        run: cargo test -p symtropy-launcher --lib endpoint_sample_codec::tests --locked -- --nocapture
+
+      - name: PHYS-EVID-02B and PHYS-EVID-05 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --lib evidence_session_binding_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib evidence_session::tests --locked -- --nocapture
+
+      - name: PHYS-OBS-05 and PHYS-OBS-03 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --test qualified_stamped_endpoint_v01 --locked -- --nocapture
+          cargo test -p symtropy-physics --test authority_endpoint_box_v01 --locked -- --nocapture
+
+      - name: Warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-launcher --lib --locked -- -D warnings
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/endpoint_claim_identity.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/endpoint_claim_identity_v1_vector.json)" = "$VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_endpoint_claim_identity_v1.py)" = "$ORACLE_BLOB"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-01A endpoint claim semantic identity v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'parent_sha': os.environ['PARENT_SHA'],
+              'position_transcript': {
+                  'version': 1,
+                  'length_formula': '157 + 16*D',
+                  'd3_length': 205,
+              },
+              'value_transcript': {
+                  'version': 1,
+                  'length_formula': '55 + 32*D',
+                  'd3_length': 151,
+              },
+              'classification': ['DistinctPosition', 'Duplicate', 'Contradiction'],
+              'predecessor_pass_laundering': False,
+              'authentication_claimed': False,
+              'cryptographic_commitment_claimed': False,
+              'trusted_replay_state_claimed': False,
+              'side_effect_authority_claimed': False,
+              'continuous_occupancy_claimed': False,
+              'settlement_claimed': False,
+          }
+          Path('phys-evid-01a-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-01a-endpoint-claim-identity-receipt
+          path: phys-evid-01a-receipt.json
+          if-no-files-found: error
