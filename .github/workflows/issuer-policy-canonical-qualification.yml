@@ -1,0 +1,220 @@
+name: PHYS-EVID-03B1A Canonical Issuer Policy Qualification
+
+on:
+  push:
+    branches:
+      - ci/issuer-policy-canonical-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-issuer-policy-canonical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUBJECT_SHA: 509b4ea5af6167218c6e0c4ecaafdaff520d0705
+      BASE_SHA: c9ff0eb980389fd72b876488a7acfbbd5acc4780
+      CONTRACT_BLOB: fe342df69a408110238498681a2dc8b269e17a36
+      SOURCE_BLOB: b7c0e89c653d8b7dcdd16fbefdb43ef1ca3dfe08
+      LIB_BLOB: 2b2abc235296cd44a78e57fb99b6001a3492f8d4
+      FIXTURE_BLOB: 3bdac8266bbb542bcd2456243e9e6df9ad5241c9
+      TEST_BLOB: dc84c236bfebfdf99a77241b737217b2c71f68c5
+      ORACLE_BLOB: a9f4ed0df06ad5a696ffbc77646fd20b5ede8d06
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact one-commit six-file scope gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          test "$(git rev-list --count "$BASE_SHA..$SUBJECT_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            crates/core/symtropy-physics/ISSUER_AUTHORIZATION_POLICY_CANONICAL_V01.md
+            crates/core/symtropy-physics/src/issuer_policy.rs
+            crates/core/symtropy-physics/src/lib.rs
+            crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json
+            crates/core/symtropy-physics/tests/issuer_policy_canonical_v01.rs
+            crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Freeze product blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/ISSUER_AUTHORIZATION_POLICY_CANONICAL_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/issuer_policy.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json")" = "$FIXTURE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/issuer_policy_canonical_v01.rs")" = "$TEST_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py")" = "$ORACLE_BLOB"
+
+      - name: Prove no dependency or lockfile change
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA:Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.toml")"
+          test "$(git rev-parse "$BASE_SHA:Cargo.lock")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.lock")"
+          test "$(git rev-parse "$BASE_SHA:crates/core/symtropy-physics/Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/Cargo.toml")"
+          test -z "$(git diff --name-only "$BASE_SHA" "$SUBJECT_SHA" -- Cargo.toml Cargo.lock crates/core/symtropy-physics/Cargo.toml)"
+
+      - name: Independent language-neutral issuer-policy oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py
+
+      - name: Static representation-only authority audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('crates/core/symtropy-physics/src/issuer_policy.rs')
+          text = path.read_text()
+
+          required = [
+              'b"symtropy-physics-issuer-policy\\0"',
+              'pub const ISSUER_POLICY_FORMAT_VERSION_V1: u32 = 1;',
+              'pub const MAX_ISSUER_POLICY_ENTRIES_V1: usize = 1024;',
+              'pub const MAX_PHYSICAL_AUTHORITIES_PER_ENTRY_V1: usize = 64;',
+              'pub fn encode_issuer_authorization_policy_v1(',
+              'pub fn decode_issuer_authorization_policy_v1(',
+              'IssuerPolicyV1Error::ZeroPhysicalAuthorityId',
+              'IssuerPolicyV1Error::UnsortedCredentialIds',
+              'IssuerPolicyV1Error::TrailingBytes',
+              'entries.sort_unstable_by_key(|entry| entry.credential_id);',
+              'if entry_count > MAX_ISSUER_POLICY_ENTRIES_V1',
+              'if authority_count > MAX_PHYSICAL_AUTHORITIES_PER_ENTRY_V1',
+          ]
+          for needle in required:
+              assert needle in text, needle
+
+          decoded_policy = re.search(
+              r'pub struct DecodedIssuerAuthorizationPolicyV1\s*\{(?P<body>.*?)\n\}',
+              text,
+              re.S,
+          )
+          assert decoded_policy, 'decoded policy struct'
+          assert 'pub policy_revision' not in decoded_policy.group('body')
+          assert 'pub entries' not in decoded_policy.group('body')
+
+          decoded_entry = re.search(
+              r'pub struct DecodedIssuerAuthorizationEntryV1\s*\{(?P<body>.*?)\n\}',
+              text,
+              re.S,
+          )
+          assert decoded_entry, 'decoded entry struct'
+          for forbidden_field in [
+              'pub credential_id', 'pub status', 'pub physical_authority_ids',
+              'pub claim_profiles', 'pub session_profiles',
+              'pub attestation_suites', 'pub crypto_policy_profiles',
+          ]:
+              assert forbidden_field not in decoded_entry.group('body'), forbidden_field
+
+          for forbidden in [
+              'TrustedIssuerAuthorizationPolicyV1', 'IssuerAuthorizedPersistentPhysicsEvidenceV1',
+              'Sha256', 'sha2', 'blake3', 'verify_signature', 'sign_', 'ActionKey',
+              'compare_and_set', 'settlement', 'escrow', 'SystemTime', 'Instant::now',
+          ]:
+              assert forbidden not in text, forbidden
+
+          print('PHYS-EVID-03B1A representation-only static audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format and crate check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check -p symtropy-physics --locked
+
+      - name: Dedicated issuer-policy semantic corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --test issuer_policy_canonical_v01 --locked -- --nocapture
+
+      - name: Physics library regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --lib --locked
+
+      - name: Warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/src/issuer_policy.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json)" = "$FIXTURE_BLOB"
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py)" = "$ORACLE_BLOB"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-03B1A canonical issuer authorization policy representation v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'base_sha': os.environ['BASE_SHA'],
+              'policy_format_version': 1,
+              'golden_policy_length': 237,
+              'max_entries': 1024,
+              'max_physical_authorities_per_entry': 64,
+              'max_profile_tags_per_scope': 8,
+              'exact_byte_policy_equality': True,
+              'decoded_fields_private': True,
+              'wildcard_scope_supported': False,
+              'cargo_manifest_changed': False,
+              'cargo_lock_changed': False,
+              'policy_authenticity_claimed': False,
+              'trusted_policy_claimed': False,
+              'b0_crypto_validity_claimed': False,
+              'issuer_authorization_claimed': False,
+              'trusted_time_claimed': False,
+              'historical_key_validity_claimed': False,
+              'contradiction_resolution_claimed': False,
+              'side_effect_authority_claimed': False,
+              'settlement_claimed': False,
+          }
+          Path('phys-evid-03b1a-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-03b1a-issuer-policy-receipt
+          path: phys-evid-03b1a-receipt.json
+          if-no-files-found: error
