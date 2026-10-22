@@ -1,0 +1,396 @@
+{
+  "suite_id": "SAWLOG-EVIDENCE-CONTRACT",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Schema validity and declared volume-accounting checks only; no optimization, grading, legal-harvest, sustainability, or commercial-performance claim.",
+  "units": {
+    "length": "mm",
+    "volume": "mm3",
+    "uncertainty": "parts_per_million"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "SYNTHETIC_TAPERED_STRAIGHT_COMPLETE",
+      "evidence_class": "synthetic",
+      "accounting_tolerance_ppm": 10000,
+      "log": {
+        "log_id": "SYN-LOG-0001",
+        "species_code": "SYN-HARDWOOD-A",
+        "species_evidence_state": "synthetic",
+        "length_mm": 3000,
+        "gross_volume_mm3": 245044227,
+        "gross_volume_method": "synthetic_reference_volume",
+        "source": {
+          "source_id": "synthetic-reference-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-15",
+          "method": "synthetic_reference_volume",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 10000
+        },
+        "stations": [
+          {
+            "axial_position_mm": 0,
+            "major_diameter_mm": 400,
+            "minor_diameter_mm": 380,
+            "center_x_mm": 0,
+            "center_y_mm": 0,
+            "ellipse_rotation_mdeg": 0,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 1000,
+            "major_diameter_mm": 350,
+            "minor_diameter_mm": 340,
+            "center_x_mm": 5,
+            "center_y_mm": -2,
+            "ellipse_rotation_mdeg": 1000,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 2000,
+            "major_diameter_mm": 300,
+            "minor_diameter_mm": 290,
+            "center_x_mm": 10,
+            "center_y_mm": -5,
+            "ellipse_rotation_mdeg": 1500,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 3000,
+            "major_diameter_mm": 250,
+            "minor_diameter_mm": 240,
+            "center_x_mm": 15,
+            "center_y_mm": -8,
+            "ellipse_rotation_mdeg": 2000,
+            "uncertainty_ppm": 10000
+          }
+        ],
+        "defects": [],
+        "geometry_source": {
+          "source_id": "synthetic-geometry-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-15",
+          "method": "synthetic_section_geometry",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 10000
+        }
+      },
+      "machine": {
+        "machine_id": "SYN-SAW-01",
+        "kerf_mm": 3,
+        "sawing_variation_mm": 1,
+        "target_thickness_mm": 25,
+        "target_width_mm": 100,
+        "green_allowance_mm": 3,
+        "grade_rule_id": "SYN-GRADE-RULE",
+        "grade_rule_version": "0.1"
+      },
+      "observation": {
+        "status": "complete",
+        "observed_at": "2026-01-15",
+        "measurement_uncertainty_ppm": 10000,
+        "boards": [
+          {
+            "board_id": "SYN-BOARD-0001",
+            "length_mm": 2500,
+            "width_mm": 100,
+            "thickness_mm": 25,
+            "grade_label": "SYN-GRADE-A",
+            "grade_evidence_state": "qualified",
+            "intended_application": "structural",
+            "inspection_pass": true
+          },
+          {
+            "board_id": "SYN-BOARD-0002",
+            "length_mm": 2500,
+            "width_mm": 100,
+            "thickness_mm": 25,
+            "grade_label": "SYN-GRADE-B",
+            "grade_evidence_state": "observed",
+            "intended_application": "non_structural",
+            "inspection_pass": true
+          }
+        ],
+        "byproducts": {
+          "sawdust_volume_mm3": 15000000,
+          "chips_volume_mm3": 8000000,
+          "bark_volume_mm3": 4000000,
+          "slabs_and_trim_volume_mm3": 205544227,
+          "rejects_volume_mm3": 0
+        }
+      },
+      "geometry_tolerance_ppm": 10000
+    },
+    {
+      "scenario_id": "SYNTHETIC_SWEEP_AND_KNOT_PARTIAL",
+      "evidence_class": "synthetic",
+      "accounting_tolerance_ppm": 20000,
+      "log": {
+        "log_id": "SYN-LOG-0002",
+        "species_code": "SYN-HARDWOOD-B",
+        "species_evidence_state": "synthetic",
+        "length_mm": 3200,
+        "gross_volume_mm3": 290000000,
+        "gross_volume_method": "synthetic_reference_volume",
+        "source": {
+          "source_id": "synthetic-reference-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-16",
+          "method": "synthetic_reference_volume",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 20000
+        },
+        "stations": [
+          {
+            "axial_position_mm": 0,
+            "major_diameter_mm": 420,
+            "minor_diameter_mm": 360,
+            "center_x_mm": 0,
+            "center_y_mm": 0,
+            "ellipse_rotation_mdeg": 0,
+            "uncertainty_ppm": 20000
+          },
+          {
+            "axial_position_mm": 800,
+            "major_diameter_mm": 390,
+            "minor_diameter_mm": 350,
+            "center_x_mm": 20,
+            "center_y_mm": -8,
+            "ellipse_rotation_mdeg": 5000,
+            "uncertainty_ppm": 20000
+          },
+          {
+            "axial_position_mm": 1600,
+            "major_diameter_mm": 350,
+            "minor_diameter_mm": 315,
+            "center_x_mm": 35,
+            "center_y_mm": -12,
+            "ellipse_rotation_mdeg": 9000,
+            "uncertainty_ppm": 20000
+          },
+          {
+            "axial_position_mm": 2400,
+            "major_diameter_mm": 310,
+            "minor_diameter_mm": 290,
+            "center_x_mm": 40,
+            "center_y_mm": -15,
+            "ellipse_rotation_mdeg": 11000,
+            "uncertainty_ppm": 20000
+          },
+          {
+            "axial_position_mm": 3200,
+            "major_diameter_mm": 270,
+            "minor_diameter_mm": 250,
+            "center_x_mm": 42,
+            "center_y_mm": -18,
+            "ellipse_rotation_mdeg": 12000,
+            "uncertainty_ppm": 20000
+          }
+        ],
+        "defects": [
+          {
+            "defect_id": "SYN-DEFECT-KNOT-1",
+            "kind": "knot",
+            "axial_start_mm": 900,
+            "axial_end_mm": 1250,
+            "circumferential_angle_mdeg": 90000,
+            "radial_depth_mm": 25,
+            "evidence_state": "observed"
+          },
+          {
+            "defect_id": "SYN-DEFECT-SWEEP-1",
+            "kind": "sweep",
+            "axial_start_mm": 0,
+            "axial_end_mm": 3200,
+            "circumferential_angle_mdeg": null,
+            "radial_depth_mm": null,
+            "evidence_state": "estimated"
+          }
+        ],
+        "geometry_source": {
+          "source_id": "synthetic-geometry-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-16",
+          "method": "synthetic_section_geometry_with_centerline_offset",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 20000
+        }
+      },
+      "machine": {
+        "machine_id": "SYN-SAW-02",
+        "kerf_mm": 4,
+        "sawing_variation_mm": 2,
+        "target_thickness_mm": 32,
+        "target_width_mm": 120,
+        "green_allowance_mm": 4,
+        "grade_rule_id": "SYN-GRADE-RULE",
+        "grade_rule_version": "0.1"
+      },
+      "observation": {
+        "status": "partial",
+        "observed_at": "2026-01-16",
+        "measurement_uncertainty_ppm": 20000,
+        "boards": [
+          {
+            "board_id": "SYN-BOARD-0003",
+            "length_mm": 2400,
+            "width_mm": 120,
+            "thickness_mm": 32,
+            "grade_label": "SYN-GRADE-STRUCTURAL",
+            "grade_evidence_state": "qualified",
+            "intended_application": "structural",
+            "inspection_pass": true
+          },
+          {
+            "board_id": "SYN-BOARD-0004",
+            "length_mm": 2400,
+            "width_mm": 120,
+            "thickness_mm": 32,
+            "grade_label": "SYN-GRADE-COMMON",
+            "grade_evidence_state": "observed",
+            "intended_application": "non_structural",
+            "inspection_pass": true
+          },
+          {
+            "board_id": "SYN-BOARD-0005",
+            "length_mm": 2300,
+            "width_mm": 100,
+            "thickness_mm": 25,
+            "grade_label": null,
+            "grade_evidence_state": "unknown",
+            "intended_application": "unknown",
+            "inspection_pass": false
+          }
+        ],
+        "byproducts": {
+          "sawdust_volume_mm3": 12000000,
+          "chips_volume_mm3": 10000000,
+          "bark_volume_mm3": 6000000,
+          "slabs_and_trim_volume_mm3": 100000000,
+          "rejects_volume_mm3": 4000000
+        }
+      },
+      "geometry_tolerance_ppm": 50000
+    },
+    {
+      "scenario_id": "SYNTHETIC_GEOMETRY_ERROR_ABOVE_TARGET",
+      "evidence_class": "synthetic",
+      "accounting_tolerance_ppm": 10000,
+      "log": {
+        "log_id": "SYN-LOG-0003",
+        "species_code": "SYN-HARDWOOD-A",
+        "species_evidence_state": "synthetic",
+        "length_mm": 3000,
+        "gross_volume_mm3": 270000000,
+        "gross_volume_method": "synthetic_reference_volume",
+        "source": {
+          "source_id": "synthetic-reference-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-17",
+          "method": "synthetic_reference_volume",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 10000
+        },
+        "stations": [
+          {
+            "axial_position_mm": 0,
+            "major_diameter_mm": 400,
+            "minor_diameter_mm": 380,
+            "center_x_mm": 0,
+            "center_y_mm": 0,
+            "ellipse_rotation_mdeg": 0,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 1000,
+            "major_diameter_mm": 350,
+            "minor_diameter_mm": 340,
+            "center_x_mm": 5,
+            "center_y_mm": -2,
+            "ellipse_rotation_mdeg": 1000,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 2000,
+            "major_diameter_mm": 300,
+            "minor_diameter_mm": 290,
+            "center_x_mm": 10,
+            "center_y_mm": -5,
+            "ellipse_rotation_mdeg": 1500,
+            "uncertainty_ppm": 10000
+          },
+          {
+            "axial_position_mm": 3000,
+            "major_diameter_mm": 250,
+            "minor_diameter_mm": 240,
+            "center_x_mm": 15,
+            "center_y_mm": -8,
+            "ellipse_rotation_mdeg": 2000,
+            "uncertainty_ppm": 10000
+          }
+        ],
+        "defects": [],
+        "geometry_source": {
+          "source_id": "synthetic-geometry-generator-v1",
+          "license": "CC0-1.0 synthetic fixture",
+          "measured_at": "2026-01-17",
+          "method": "synthetic_section_geometry_with_sparse_station_error",
+          "instrument_id": null,
+          "calibration_status": "not_applicable",
+          "uncertainty_ppm": 10000
+        }
+      },
+      "machine": {
+        "machine_id": "SYN-SAW-01",
+        "kerf_mm": 3,
+        "sawing_variation_mm": 1,
+        "target_thickness_mm": 25,
+        "target_width_mm": 100,
+        "green_allowance_mm": 3,
+        "grade_rule_id": "SYN-GRADE-RULE",
+        "grade_rule_version": "0.1"
+      },
+      "observation": {
+        "status": "partial",
+        "observed_at": "2026-01-17",
+        "measurement_uncertainty_ppm": 10000,
+        "boards": [
+          {
+            "board_id": "SYN-BOARD-0006",
+            "length_mm": 2500,
+            "width_mm": 100,
+            "thickness_mm": 25,
+            "grade_label": "SYN-GRADE-A",
+            "grade_evidence_state": "qualified",
+            "intended_application": "structural",
+            "inspection_pass": true
+          },
+          {
+            "board_id": "SYN-BOARD-0007",
+            "length_mm": 2500,
+            "width_mm": 100,
+            "thickness_mm": 25,
+            "grade_label": "SYN-GRADE-B",
+            "grade_evidence_state": "observed",
+            "intended_application": "non_structural",
+            "inspection_pass": true
+          }
+        ],
+        "byproducts": {
+          "sawdust_volume_mm3": 15000000,
+          "chips_volume_mm3": 8000000,
+          "bark_volume_mm3": 4000000,
+          "slabs_and_trim_volume_mm3": 205544227,
+          "rejects_volume_mm3": 0
+        }
+      },
+      "geometry_tolerance_ppm": 50000
+    }
+  ]
+}
