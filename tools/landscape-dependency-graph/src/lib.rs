@@ -648,6 +648,91 @@ mod tests {
     }
 
     #[test]
+    fn adding_declared_failures_never_increases_service_availability() {
+        let fixture: Fixture = serde_json::from_slice(&fixture_bytes()).unwrap();
+        for scenario in &fixture.scenarios {
+            let original = evaluate_scenario(&fixture, scenario);
+            let mut node_failure = scenario.clone();
+            if !node_failure.failed_node_ids.iter().any(|id| id == "soil_infiltration") {
+                node_failure.failed_node_ids.push("soil_infiltration".to_owned());
+            }
+            let after_node_failure = evaluate_scenario(&fixture, &node_failure);
+            assert!(
+                after_node_failure.supported_service_count <= original.supported_service_count,
+                "adding a node failure improved service support in {}",
+                scenario.scenario_id
+            );
+
+            let mut edge_failure = scenario.clone();
+            if !edge_failure.disabled_edge_ids.iter().any(|id| id == "edge-heat-built-shade") {
+                edge_failure.disabled_edge_ids.push("edge-heat-built-shade".to_owned());
+            }
+            let after_edge_failure = evaluate_scenario(&fixture, &edge_failure);
+            assert!(
+                after_edge_failure.supported_service_count <= original.supported_service_count,
+                "disabling an edge improved service support in {}",
+                scenario.scenario_id
+            );
+        }
+    }
+
+    #[test]
+    fn every_unsupported_node_exposes_a_direct_blocker() {
+        let fixture: Fixture = serde_json::from_slice(&fixture_bytes()).unwrap();
+        for scenario in &fixture.scenarios {
+            let report = evaluate_scenario(&fixture, scenario);
+            for node in report.node_assessments.iter().filter(|node| !node.operational) {
+                if node.self_failed {
+                    continue;
+                }
+                assert!(
+                    !node.unsatisfied_groups.is_empty(),
+                    "unsupported node {} has no declared blocker in {}",
+                    node.node_id,
+                    scenario.scenario_id
+                );
+                for group in &node.unsatisfied_groups {
+                    assert!(
+                        group.provider_alternatives.iter().all(|provider| provider.status != "operational"),
+                        "unsatisfied group {} has an operational provider in {}",
+                        group.requirement_group_id,
+                        node.node_id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn declared_node_limit_has_an_exact_boundary() {
+        let mut fixture: Fixture = serde_json::from_slice(&fixture_bytes()).unwrap();
+        for index in 0..89 {
+            fixture.nodes.push(Node {
+                node_id: format!("boundary-node-{index:03}"),
+                label: format!("Boundary node {index}"),
+                layer: "technical".to_owned(),
+                is_service: false,
+                required_dependency_groups: Vec::new(),
+            });
+        }
+        assert_eq!(fixture.nodes.len(), 100);
+        assert!(validate_fixture(&fixture).is_ok());
+        fixture.nodes.push(Node {
+            node_id: "boundary-node-over-limit".to_owned(),
+            label: "Over-limit node".to_owned(),
+            layer: "technical".to_owned(),
+            is_service: false,
+            required_dependency_groups: Vec::new(),
+        });
+        assert!(
+            validate_fixture(&fixture)
+                .unwrap_err()
+                .iter()
+                .any(|error| error.contains("nodes must contain 1..=100 entries"))
+        );
+    }
+
+    #[test]
     fn identical_inputs_emit_identical_report_bytes() {
         let bytes = fixture_bytes();
         let semantics = semantics_bytes();
