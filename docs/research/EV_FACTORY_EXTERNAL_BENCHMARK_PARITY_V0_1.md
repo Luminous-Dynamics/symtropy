@@ -2,7 +2,7 @@
 
 **Related dispatch-policy evaluation:** [EV-FACTORY-DESIGN-003 #2445](https://github.com/Luminous-Dynamics/symtropy/issues/2445)  
 **Current EV-line experiments:** [PR #2443](https://github.com/Luminous-Dynamics/symtropy/pull/2443), [age fairness override #2457](https://github.com/Luminous-Dynamics/symtropy/pull/2457), [threshold sweep #2467](https://github.com/Luminous-Dynamics/symtropy/pull/2467), [multiplicity correction #2545](https://github.com/Luminous-Dynamics/symtropy/pull/2545)  
-**Status:** pinned input parity plus exhaustive exact makespan oracles for three tiny instances; external dispatch-policy baselines have not yet been run by this harness.
+**Status:** pinned input parity plus exhaustive exact makespan oracles and four deterministic greedy serial-schedule baselines on three tiny instances. This remains a small static makespan screen, not external-paper reproduction or a SOTA claim.
 
 ## Why a second benchmark stratum is required
 
@@ -52,3 +52,17 @@ Two public sources provide complementary references:
 ## Claim ceiling
 
 This v0.2 contribution implements finite exhaustive makespan oracles for three tiny public instances and configures independent upstream CP-SAT cross-checks under the explicitly stated setup semantics. No new exact-head CI pass is claimed until the branch workflows complete. It does not run a dispatching policy, reproduce an external paper, compare Symtropy with SOTA, estimate factory output or due-date performance, or authorize plant decisions.
+
+
+## First executable schedule-construction comparison (PR #2700)
+
+The same pinned instances now have an optional `--dispatch-baselines` mode, separate from the structural parity report. It schedules all operations with deterministic serial schedule generation and compares four simple rules with the exhaustive optimum:
+
+- `job_index_order`: lower job ID, then operation position; projected completion and IDs break ties.
+- `shortest_processing_time`: shortest eligible operation-machine processing time, then projected completion and IDs.
+- `minimum_setup_plus_processing`: smallest machine-specific transition setup plus processing duration, then projected completion and IDs.
+- `earliest_completion_time`: smallest projected processing completion, then setup-plus-processing and stable identifiers.
+
+Machine assignment is integrated into candidate selection; only operations whose job predecessors are already placed can be chosen. Every schedule is independently checked for operation completeness/uniqueness, eligible machine and processing time, job precedence, setup-transition identity, first-operation zero setup, and machine non-overlap under the pinned anticipatory setup semantics. Reports include exact makespan, absolute and relative optimality gaps, and the full schedule trace for each policy.
+
+CI checks against exact makespans 70, 112 and 233, rejects a greedy result below the exhaustive optimum, and repeats every report byte-for-byte. This measures four explicit baseline heuristics on only three tiny static cases; it does not reproduce the dynamic due-date/tardiness DRSS study and does not support a SOTA or factory-performance claim. Next valid work is scaling the matched protocol to a larger independently pinned benchmark slice with reference-rule parity and held-out instances.

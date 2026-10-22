@@ -143,6 +143,52 @@ struct OracleAccumulator {
     best: Option<OracleCandidate>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GreedyRule {
+    JobIndexOrder,
+    ShortestProcessingTime,
+    MinimumSetupPlusProcessing,
+    EarliestCompletionTime,
+}
+
+impl GreedyRule {
+    fn name(self) -> &'static str {
+        match self {
+            Self::JobIndexOrder => "job_index_order",
+            Self::ShortestProcessingTime => "shortest_processing_time",
+            Self::MinimumSetupPlusProcessing => "minimum_setup_plus_processing",
+            Self::EarliestCompletionTime => "earliest_completion_time",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct DispatchBaselineResult {
+    policy: String,
+    makespan: u64,
+    absolute_gap_vs_exact: u64,
+    relative_gap_fraction_vs_exact: f64,
+    schedule_valid: bool,
+    schedule: Vec<OperationSchedule>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct DispatchBaselineReport {
+    schema_version: String,
+    status: String,
+    benchmark_id: String,
+    source_commit: String,
+    source_instance_path: String,
+    expected_source_git_blob_sha1: String,
+    observed_jobs: usize,
+    observed_machines: usize,
+    observed_operations: usize,
+    exact_oracle_makespan: u64,
+    exact_oracle_exhaustive: bool,
+    policies: Vec<DispatchBaselineResult>,
+    claim_ceiling: String,
+}
+
 fn main() {
     if let Err(error) = run() {
         eprintln!("external_jobshop_parity_error: {error}");
@@ -152,8 +198,13 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
+    if args.len() == 4 && args[1] == "--dispatch-baselines" {
+        return run_dispatch_baselines(&args[2], &args[3]);
+    }
     if args.len() != 3 {
-        return Err("usage: ev-external-jobshop-parity <instance.fjs> <manifest.json>".into());
+        return Err(
+            "usage: ev-external-jobshop-parity <instance.fjs> <manifest.json>".into(),
+        );
     }
     let instance_text =
         fs::read_to_string(&args[1]).map_err(|error| format!("cannot_read_instance: {error}"))?;
@@ -796,6 +847,339 @@ fn evaluate_machine_sequences(
     })
 }
 
+fn run_dispatch_baselines(instance_path: &str, manifest_path: &str) -> Result<(), String> {
+    let instance_text = fs::read_to_string(instance_path)
+        .map_err(|error| format!("cannot_read_instance: {error}"))?;
+    let manifest_text = fs::read_to_string(manifest_path)
+        .map_err(|error| format!("cannot_read_manifest: {error}"))?;
+    let manifest: Manifest = serde_json::from_str(&manifest_text)
+        .map_err(|error| format!("invalid_manifest_json: {error}"))?;
+    validate_manifest(&manifest)?;
+    let parsed = parse_instance(&instance_text)?;
+    validate_expected_structure(&manifest.expected_structure, &parsed)?;
+    let exact = solve_tiny_instance(&parsed)?;
+
+    let rules = [
+        GreedyRule::JobIndexOrder,
+        GreedyRule::ShortestProcessingTime,
+        GreedyRule::MinimumSetupPlusProcessing,
+        GreedyRule::EarliestCompletionTime,
+    ];
+    let mut policies = Vec::with_capacity(rules.len());
+    for rule in rules {
+        let (makespan, schedule) = build_greedy_schedule(&parsed, rule)?;
+        validate_generated_schedule(&parsed, &schedule)?;
+        if makespan < exact.optimal_makespan {
+            return Err(format!(
+                "greedy_policy_{}_beat_exhaustive_exact_oracle",
+                rule.name()
+            ));
+        }
+        let absolute_gap = makespan - exact.optimal_makespan;
+        policies.push(DispatchBaselineResult {
+            policy: rule.name().into(),
+            makespan,
+            absolute_gap_vs_exact: absolute_gap,
+            relative_gap_fraction_vs_exact: absolute_gap as f64
+                / exact.optimal_makespan as f64,
+            schedule_valid: true,
+            schedule,
+        });
+    }
+
+    let report = DispatchBaselineReport {
+        schema_version: "external-jobshop-dispatch-baselines/0.1".into(),
+        status: "greedy_serial_schedule_baselines_compared_with_exact_oracle".into(),
+        benchmark_id: manifest.benchmark_id,
+        source_commit: manifest.source.commit,
+        source_instance_path: manifest.source.instance_path,
+        expected_source_git_blob_sha1: manifest.source.instance_git_blob_sha1,
+        observed_jobs: parsed.jobs,
+        observed_machines: parsed.machines,
+        observed_operations: parsed.operations.len(),
+        exact_oracle_makespan: exact.optimal_makespan,
+        exact_oracle_exhaustive: exact.exhaustive_for_declared_instance,
+        policies,
+        claim_ceiling: "Four deterministic greedy serial-schedule construction baselines are evaluated on pinned tiny static FJSP-SDST cases. No due-date or tardiness results, paper reproduction, SOTA claim, or production claim is established.".into(),
+    };
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report)
+            .map_err(|error| format!("cannot_serialize_dispatch_baseline_report: {error}"))?
+    );
+    Ok(())
+}
+
+fn build_greedy_schedule(
+    parsed: &ParsedInstance,
+    rule: GreedyRule,
+) -> Result<(u64, Vec<OperationSchedule>), String> {
+    let operation_count = parsed.operations.len();
+    let mut scheduled: Vec<Option<OperationSchedule>> = vec![None; operation_count];
+    let mut machine_last_operation = vec![None; parsed.machines];
+    let mut machine_available_at = vec![0u64; parsed.machines];
+
+    while scheduled.iter().any(Option::is_none) {
+        let mut candidates = Vec::new();
+        for operation in &parsed.operations {
+            if scheduled[operation.operation_id].is_some() {
+                continue;
+            }
+            let job_ready_at = if operation.position_in_job == 0 {
+                0
+            } else {
+                let predecessor = parsed
+                    .operations
+                    .iter()
+                    .find(|candidate| {
+                        candidate.job_id == operation.job_id
+                            && candidate.position_in_job + 1 == operation.position_in_job
+                    })
+                    .ok_or_else(|| {
+                        format!("greedy_policy_{}_missing_job_predecessor", rule.name())
+                    })?;
+                let Some(predecessor_schedule) = scheduled[predecessor.operation_id].as_ref() else {
+                    // Operations whose job precedence is not yet satisfied are not
+                    // candidates this iteration; another ready operation must be
+                    // selected before this operation can enter the candidate set.
+                    continue;
+                };
+                predecessor_schedule.completion_time
+            };
+
+            for option in &operation.machine_options {
+                let machine_index = option
+                    .machine_id_upstream
+                    .checked_sub(1)
+                    .ok_or_else(|| "machine_id_zero_is_invalid".to_string())?;
+                if machine_index >= parsed.machines {
+                    return Err("greedy_policy_machine_id_out_of_range".into());
+                }
+                if option.processing_time == 0 {
+                    return Err("greedy_policy_zero_processing_time".into());
+                }
+                let previous_operation = machine_last_operation[machine_index];
+                let setup_time = match previous_operation {
+                    Some(previous) => *parsed
+                        .setup_times
+                        .get(machine_index)
+                        .and_then(|matrix| matrix.get(previous))
+                        .and_then(|row| row.get(operation.operation_id))
+                        .ok_or_else(|| "greedy_policy_setup_lookup_out_of_range".to_string())?,
+                    None => 0,
+                };
+                let machine_ready_at = if previous_operation.is_some() {
+                    machine_available_at[machine_index]
+                        .checked_add(setup_time)
+                        .ok_or_else(|| "greedy_policy_setup_time_overflow".to_string())?
+                } else {
+                    0
+                };
+                let processing_start = job_ready_at.max(machine_ready_at);
+                let completion_time = processing_start
+                    .checked_add(option.processing_time)
+                    .ok_or_else(|| "greedy_policy_processing_time_overflow".to_string())?;
+                candidates.push(OperationSchedule {
+                    operation_id: operation.operation_id,
+                    job_id: operation.job_id,
+                    position_in_job: operation.position_in_job,
+                    machine_id_upstream: option.machine_id_upstream,
+                    setup_time_before_processing: setup_time,
+                    processing_time: option.processing_time,
+                    processing_start,
+                    completion_time,
+                });
+            }
+        }
+
+        let selected = candidates
+            .into_iter()
+            .min_by(|left, right| compare_greedy_candidates(left, right, rule))
+            .ok_or_else(|| format!("greedy_policy_{}_has_no_eligible_action", rule.name()))?;
+        let operation_id = selected.operation_id;
+        let machine_index = selected
+            .machine_id_upstream
+            .checked_sub(1)
+            .ok_or_else(|| "selected_machine_id_zero_is_invalid".to_string())?;
+        if scheduled[operation_id].is_some() {
+            return Err("greedy_policy_scheduled_an_operation_twice".into());
+        }
+        machine_last_operation[machine_index] = Some(operation_id);
+        machine_available_at[machine_index] = selected.completion_time;
+        scheduled[operation_id] = Some(selected);
+    }
+
+    let schedule = scheduled
+        .into_iter()
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(|| "greedy_policy_schedule_contains_unscheduled_operation".to_string())?;
+    let makespan = schedule
+        .iter()
+        .map(|operation| operation.completion_time)
+        .max()
+        .ok_or_else(|| "greedy_policy_schedule_is_empty".to_string())?;
+    Ok((makespan, schedule))
+}
+
+fn compare_greedy_candidates(
+    left: &OperationSchedule,
+    right: &OperationSchedule,
+    rule: GreedyRule,
+) -> std::cmp::Ordering {
+    let left_setup_work = left
+        .setup_time_before_processing
+        .saturating_add(left.processing_time);
+    let right_setup_work = right
+        .setup_time_before_processing
+        .saturating_add(right.processing_time);
+    match rule {
+        GreedyRule::JobIndexOrder => (
+            left.job_id,
+            left.position_in_job,
+            left.completion_time,
+            left.operation_id,
+            left.machine_id_upstream,
+        )
+            .cmp(&(
+                right.job_id,
+                right.position_in_job,
+                right.completion_time,
+                right.operation_id,
+                right.machine_id_upstream,
+            )),
+        GreedyRule::ShortestProcessingTime => (
+            left.processing_time,
+            left.completion_time,
+            left.operation_id,
+            left.machine_id_upstream,
+        )
+            .cmp(&(
+                right.processing_time,
+                right.completion_time,
+                right.operation_id,
+                right.machine_id_upstream,
+            )),
+        GreedyRule::MinimumSetupPlusProcessing => (
+            left_setup_work,
+            left.completion_time,
+            left.operation_id,
+            left.machine_id_upstream,
+        )
+            .cmp(&(
+                right_setup_work,
+                right.completion_time,
+                right.operation_id,
+                right.machine_id_upstream,
+            )),
+        GreedyRule::EarliestCompletionTime => (
+            left.completion_time,
+            left_setup_work,
+            left.operation_id,
+            left.machine_id_upstream,
+        )
+            .cmp(&(
+                right.completion_time,
+                right_setup_work,
+                right.operation_id,
+                right.machine_id_upstream,
+            )),
+    }
+}
+
+fn validate_generated_schedule(
+    parsed: &ParsedInstance,
+    schedule: &[OperationSchedule],
+) -> Result<(), String> {
+    if schedule.len() != parsed.operations.len() {
+        return Err("generated_schedule_operation_count_mismatch".into());
+    }
+    let mut by_operation = vec![None; parsed.operations.len()];
+    for scheduled in schedule {
+        let operation = parsed
+            .operations
+            .get(scheduled.operation_id)
+            .ok_or_else(|| "generated_schedule_operation_id_out_of_range".to_string())?;
+        if by_operation[scheduled.operation_id].replace(scheduled).is_some() {
+            return Err("generated_schedule_duplicate_operation".into());
+        }
+        if operation.job_id != scheduled.job_id
+            || operation.position_in_job != scheduled.position_in_job
+        {
+            return Err("generated_schedule_job_identity_mismatch".into());
+        }
+        if !operation.machine_options.iter().any(|option| {
+            option.machine_id_upstream == scheduled.machine_id_upstream
+                && option.processing_time == scheduled.processing_time
+        }) {
+            return Err("generated_schedule_used_ineligible_machine_or_time".into());
+        }
+        if scheduled.completion_time
+            != scheduled
+                .processing_start
+                .checked_add(scheduled.processing_time)
+                .ok_or_else(|| "generated_schedule_processing_time_overflow".to_string())?
+        {
+            return Err("generated_schedule_completion_mismatch".into());
+        }
+    }
+
+    for operation in &parsed.operations {
+        let current = by_operation[operation.operation_id]
+            .ok_or_else(|| "generated_schedule_missing_operation".to_string())?;
+        if operation.position_in_job > 0 {
+            let predecessor = parsed
+                .operations
+                .iter()
+                .find(|candidate| {
+                    candidate.job_id == operation.job_id
+                        && candidate.position_in_job + 1 == operation.position_in_job
+                })
+                .ok_or_else(|| "generated_schedule_missing_predecessor_definition".to_string())?;
+            let previous = by_operation[predecessor.operation_id]
+                .ok_or_else(|| "generated_schedule_missing_predecessor_schedule".to_string())?;
+            if current.processing_start < previous.completion_time {
+                return Err("generated_schedule_job_precedence_violation".into());
+            }
+        }
+    }
+
+    for machine_index in 0..parsed.machines {
+        let mut machine_operations = schedule
+            .iter()
+            .filter(|operation| operation.machine_id_upstream == machine_index + 1)
+            .collect::<Vec<_>>();
+        machine_operations.sort_by_key(|operation| {
+            (operation.processing_start, operation.operation_id)
+        });
+        if let Some(first) = machine_operations.first() {
+            if first.setup_time_before_processing != 0 {
+                return Err("generated_schedule_first_machine_setup_must_be_zero".into());
+            }
+        }
+        for pair in machine_operations.windows(2) {
+            let previous = pair[0];
+            let current = pair[1];
+            let expected_setup = *parsed
+                .setup_times
+                .get(machine_index)
+                .and_then(|matrix| matrix.get(previous.operation_id))
+                .and_then(|row| row.get(current.operation_id))
+                .ok_or_else(|| "generated_schedule_setup_lookup_out_of_range".to_string())?;
+            if current.setup_time_before_processing != expected_setup {
+                return Err("generated_schedule_setup_transition_mismatch".into());
+            }
+            let earliest = previous
+                .completion_time
+                .checked_add(expected_setup)
+                .ok_or_else(|| "generated_schedule_setup_time_overflow".to_string())?;
+            if current.processing_start < earliest {
+                return Err("generated_schedule_machine_overlap_or_setup_violation".into());
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -831,6 +1215,40 @@ mod tests {
 
     fn fixture_case_03() -> &'static str {
         include_str!("../fixtures/fattahi_setup_03.fjs")
+    }
+
+    #[test]
+    fn greedy_schedule_baselines_are_valid_deterministic_and_not_better_than_exact() {
+        let cases = [
+            (fixture(), manifest(), 70),
+            (fixture_case_02(), manifest_case_02(), 112),
+            (fixture_case_03(), manifest_case_03(), 233),
+        ];
+        let rules = [
+            GreedyRule::JobIndexOrder,
+            GreedyRule::ShortestProcessingTime,
+            GreedyRule::MinimumSetupPlusProcessing,
+            GreedyRule::EarliestCompletionTime,
+        ];
+        for (input, manifest, expected_optimum) in cases {
+            validate_manifest(&manifest).expect("source manifest remains pinned");
+            let parsed = parse_instance(input).expect("pinned static instance parses");
+            validate_expected_structure(&manifest.expected_structure, &parsed)
+                .expect("pinned source structure matches manifest");
+            let exact = solve_tiny_instance(&parsed).expect("exhaustive oracle");
+            assert_eq!(exact.optimal_makespan, expected_optimum);
+            for rule in rules {
+                let first = build_greedy_schedule(&parsed, rule)
+                    .expect("baseline produces a complete schedule");
+                validate_generated_schedule(&parsed, &first.1)
+                    .expect("baseline schedule satisfies independent validator");
+                assert!(first.0 >= exact.optimal_makespan);
+                let replay = build_greedy_schedule(&parsed, rule)
+                    .expect("deterministic replay");
+                assert_eq!(first, replay);
+                assert_eq!(first.1.len(), parsed.operations.len());
+            }
+        }
     }
 
     #[test]
