@@ -144,7 +144,6 @@ impl Mesh {
         Ok(loads)
     }
 
-
     /// Evaluate exact-continuum errors of a P1 finite-element field.
     ///
     /// This is a postprocessor, not a solver. The nodal displacement slice must
@@ -444,7 +443,6 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     Ok(())
 }
 
-
 fn energy_density(strain: ccx_mms_p1_oracle::Strain2, lambda: f64, mu: f64) -> f64 {
     lambda * (strain.xx + strain.yy).powi(2)
         + 2.0 * mu * (strain.xx.powi(2) + strain.yy.powi(2) + 2.0 * strain.xy.powi(2))
@@ -598,7 +596,6 @@ mod tests {
         let measured = relative_load_difference(&baseline, &tampered).unwrap();
         assert!(measured > 1.0e-5, "tamper signal={measured:e}");
     }
-
 
     #[test]
     fn exact_nodal_interpolation_exhibits_expected_l2_and_energy_orders() {
