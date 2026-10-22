@@ -480,8 +480,13 @@ pub fn evaluate_question_policy(
         });
     }
 
-    compute_response_robustness(request, channel)
-        .map_err(PolicyEvaluationError::InvalidChannel)?;
+    match compute_response_robustness(request, channel) {
+        Ok(_) => {}
+        Err(ResponseRobustnessError::InvalidProbe(error)) => {
+            return Err(PolicyEvaluationError::InvalidBaseRequest(error));
+        }
+        Err(error) => return Err(PolicyEvaluationError::InvalidChannel(error)),
+    }
 
     if !valid_identifier(&held_out_model.scenario_id) {
         return Err(PolicyEvaluationError::InvalidHeldOutModel(
