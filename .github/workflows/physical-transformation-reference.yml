@@ -247,6 +247,19 @@ jobs:
             and (.physical_comparator_status | contains("not asserted as numerical golden targets"))
           ' beam-mesh-convergence-receipt.json
 
+      - name: Verify principal-angle subspace-MAC mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_subspace_mac_mutations.sh
+
+      - name: Re-verify principal-angle subspace-MAC source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_subspace_mac.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify beam mode-tracking mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_beam_mode_tracking_mutations.sh
@@ -316,6 +329,10 @@ jobs:
             and (.levels[3].pairs_from_previous | all(.[]; .mac.common_translation_dof_count == 18 and .mac.common_rotation_dof_count == 10))
             and .total_mode_pairs == 18
             and (.defined_combined_mac_count + .unresolved_combined_mac_count == .total_mode_pairs)
+            and .subspace_status == "complete"
+            and .defined_subspace_mac_count == 3
+            and .unresolved_subspace_mac_count == 0
+            and (.levels[1:] | all(.[]; .subspace_mac_unresolved_reason == null and (.subspace_mac_from_previous.principal_cosines | length) == 6 and (.subspace_mac_from_previous.principal_cosines | all(.[]; . >= 0 and . <= 1)) and .subspace_mac_from_previous.mean_squared_principal_cosine >= 0 and .subspace_mac_from_previous.mean_squared_principal_cosine <= 1 and .subspace_mac_from_previous.normalized_chordal_distance >= 0 and .subspace_mac_from_previous.normalized_chordal_distance <= 1))
             and (.claim_ceiling | contains("no 200-element/member NAFEMS reproduction"))
           ' beam-mode-tracking-receipt.json
 
@@ -619,6 +636,7 @@ jobs:
             beam-mesh-convergence-mutation-receipt.json
             beam-mesh-convergence-receipt.json
             beam-mode-tracking-mutation-receipt.json
+            beam-subspace-mac-mutation-receipt.json
             beam-mode-tracking-receipt.json
           if-no-files-found: error
           retention-days: 90
