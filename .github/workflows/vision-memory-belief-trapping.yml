@@ -1,0 +1,75 @@
+name: VIS-MEM-014 Belief Trapping and Progress Recovery
+
+on:
+  push:
+    branches: ["research/vis-mem-belief-trapping-v0-1"]
+    paths:
+      - "tools/vision-memory-belief-trapping.rs"
+      - ".github/workflows/vision-memory-belief-trapping.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-belief-trapping.rs"
+      - ".github/workflows/vision-memory-belief-trapping.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-014-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-belief-trapping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run deterministic tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-belief-trapping.rs -o /tmp/vis-mem-trap-tests
+          /tmp/vis-mem-trap-tests
+
+      - name: Replay report and validate schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-belief-trapping.rs -o /tmp/vis-mem-trap
+          /tmp/vis-mem-trap > vis-mem-trap.tsv
+          /tmp/vis-mem-trap > vis-mem-trap-repeat.tsv
+          cmp vis-mem-trap.tsv vis-mem-trap-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-014-v0.1' vis-mem-trap.tsv
+          grep -Fq $'CASE\tstatic_epistemic\tgap_aware_monitor' vis-mem-trap.tsv
+          grep -Fq $'CASE\tcycle_achievement\tgap_aware_monitor' vis-mem-trap.tsv
+          grep -Fq $'CASE\tunsolvable_no_probe\tgap_aware_monitor' vis-mem-trap.tsv
+          awk -F '\t' '$1 == "CASE_HEADER" { if (NF != 17) exit 1; ch++ } $1 == "CASE" { if (NF != 17) exit 1; c++ } $1 == "TRACE_HEADER" { if (NF != 12) exit 1; th++ } $1 == "TRACE" { if (NF != 12) exit 1; t++ } $1 == "SUMMARY_HEADER" { if (NF != 12) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 12) exit 1; s++ } END { if (ch != 1 || c != 28 || th != 1 || t < 28 || sh != 1 || s != 4) exit 1 }' vis-mem-trap.tsv
+          sha256sum vis-mem-trap.tsv > vis-mem-trap.sha256
+          sha256sum -c vis-mem-trap.sha256
+
+      - name: Upload exact-head belief trapping diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-014-belief-trapping
+          path: |
+            vis-mem-trap.tsv
+            vis-mem-trap.sha256
+          if-no-files-found: error
