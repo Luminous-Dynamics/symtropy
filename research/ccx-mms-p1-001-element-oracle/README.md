@@ -30,6 +30,7 @@ probe requires:
 
 - absolute strain-component error <= 1e-12;
 - maximum absolute stiffness-symmetry defect <= 1e-12;
+- maximum relative matrix-versus-constitutive energy defect <= 1e-12;
 - maximum absolute assembled interior-force component <= 1e-12;
 - maximum absolute rigid-mode internal force component <= 1e-12.
 
