@@ -25,6 +25,7 @@ struct SolveResult {
 
 #[derive(Clone, Copy, Debug)]
 struct SweepPoint {
+    mesh_family: &'static str,
     cells_per_side: usize,
     free_dof_count: usize,
     condition_number_unscaled: f64,
@@ -72,9 +73,21 @@ fn mat_vec(matrix: &Matrix, vector: &[f64]) -> Result<Vec<f64>, String> {
 }
 
 /// Assemble K_ff after eliminating both displacement DOFs on the fixed boundary.
-fn assemble_constrained_stiffness(cells_per_side: usize) -> Result<Matrix, String> {
-    let mesh = generate_mesh(cells_per_side)
+fn assemble_constrained_stiffness(
+    cells_per_side: usize,
+    quadratically_graded: bool,
+) -> Result<Matrix, String> {
+    let mut mesh = generate_mesh(cells_per_side)
         .map_err(|error| format!("mesh generation failed: {error:?}"))?;
+    if quadratically_graded {
+        // A monotone coordinate map clusters nodes toward the origin while
+        // preserving the unit-square boundary and structured connectivity.
+        // This provides a deterministic nonuniform-diagonal case for Jacobi scaling.
+        for node in &mut mesh.nodes {
+            node.x *= node.x;
+            node.y *= node.y;
+        }
+    }
     let mut reduced_map = vec![None; 2 * mesh.nodes.len()];
     let mut free_dof_count = 0_usize;
 
@@ -392,9 +405,12 @@ fn conjugate_gradient(
 }
 
 fn run_sweep() -> Result<Vec<SweepPoint>, String> {
-    let mut points = Vec::with_capacity(5);
-    for cells_per_side in [2, 3, 4, 5, 6] {
-        let matrix = assemble_constrained_stiffness(cells_per_side)?;
+    let mut points = Vec::with_capacity(10);
+    for (mesh_family, quadratically_graded) in
+        [("uniform", false), ("quadratic-graded", true)]
+    {
+      for cells_per_side in [2, 3, 4, 5, 6] {
+        let matrix = assemble_constrained_stiffness(cells_per_side, quadratically_graded)?;
         let n = matrix.len();
         let scaled = jacobi_scaled_matrix(&matrix)?;
         let condition_number_unscaled = spectral_condition_number(&matrix)?;
@@ -418,6 +434,7 @@ fn run_sweep() -> Result<Vec<SweepPoint>, String> {
             return Err("linear solver residual/iteration gate failed".to_owned());
         }
         points.push(SweepPoint {
+            mesh_family,
             cells_per_side,
             free_dof_count: n,
             condition_number_unscaled,
@@ -425,6 +442,7 @@ fn run_sweep() -> Result<Vec<SweepPoint>, String> {
             cg,
             pcg,
         });
+      }
     }
     Ok(points)
 }
@@ -444,7 +462,22 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let solver_diagnostics_pass = sweep.len() == 5
+    let uniform_condition_control_pass = sweep
+        .iter()
+        .filter(|point| point.mesh_family == "uniform")
+        .all(|point| {
+            let ratio = point.condition_number_jacobi_scaled / point.condition_number_unscaled;
+            (0.95..=1.05).contains(&ratio)
+        });
+    let graded_condition_improvement_pass = sweep.iter().any(|point| {
+        point.mesh_family == "quadratic-graded"
+            && point.cells_per_side == 6
+            && point.condition_number_jacobi_scaled
+                < 0.75 * point.condition_number_unscaled
+    });
+    let solver_diagnostics_pass = sweep.len() == 10
+        && uniform_condition_control_pass
+        && graded_condition_improvement_pass
         && sweep.iter().all(|point| {
             point.condition_number_unscaled.is_finite()
                 && point.condition_number_unscaled >= 1.0
@@ -459,12 +492,13 @@ fn main() -> ExitCode {
         .map(|point| {
             format!(
                 concat!(
-                    "{{\"cells_per_side\":{},\"free_dof_count\":{},",
+                    "{{\"mesh_family\":\"{}\",\"cells_per_side\":{},\"free_dof_count\":{},",
                     "\"condition_number_unscaled\":{:.17e},",
                     "\"condition_number_jacobi_scaled\":{:.17e},",
                     "\"cg_iterations\":{},\"cg_relative_residual\":{:.17e},",
                     "\"pcg_iterations\":{},\"pcg_relative_residual\":{:.17e}}}"
                 ),
+                point.mesh_family,
                 point.cells_per_side,
                 point.free_dof_count,
                 point.condition_number_unscaled,
