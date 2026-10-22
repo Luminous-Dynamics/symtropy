@@ -731,6 +731,42 @@ mod tests {
         }
     }
 
+    fn spatial_control() -> Scenario {
+        Scenario {
+            yard_bounds: Some(Rect {
+                min_x: 0,
+                min_y: 0,
+                max_x: 10,
+                max_y: 10,
+            }),
+            placements: vec![Placement {
+                reservation_id: "p-a".to_owned(),
+                block_id: "block-a".to_owned(),
+                footprint: Footprint::AxisAlignedRect(Rect {
+                    min_x: 0,
+                    min_y: 0,
+                    max_x: 2,
+                    max_y: 2,
+                }),
+                occupied: TimeRange {
+                    start_tick: 0,
+                    end_tick: 10,
+                },
+            }],
+            ..Scenario::default()
+        }
+    }
+
+    fn no_spatial_disruption(tick: u64) -> Disruption {
+        Disruption {
+            observed_at_tick: tick,
+            new_exclusion_zones: Vec::new(),
+            vehicle_outages: Vec::new(),
+            placement_occupancy_extensions: Vec::new(),
+            explicitly_affected_reservation_ids: Vec::new(),
+        }
+    }
+
     #[test]
     fn unary_resource_rejects_overlapping_reservations_but_allows_endpoint_touch() {
         let valid = ResourceSchedule {
@@ -811,6 +847,139 @@ mod tests {
         assert!(!report.accepted);
         assert!(report.violations.iter().any(|violation| {
             violation.code == ResourceViolationCode::CompletedReservationChanged
+        }));
+    }
+
+    #[test]
+    fn joint_robust_envelope_passes_only_when_same_candidate_survives_every_resource_scenario() {
+        let spatial = spatial_control();
+        let baseline_resources = ResourceSchedule {
+            reservations: vec![
+                reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
+                reservation("weld-b", "weld-b", "station-1", "workstation", 5, 10),
+                reservation("inspect-c", "inspect-c", "inspector-1", "inspector", 5, 10),
+            ],
+        };
+        let candidate_resources = ResourceSchedule {
+            reservations: vec![
+                reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
+                reservation("weld-b", "weld-b", "station-2", "workstation", 5, 10),
+                reservation("inspect-c", "inspect-c", "inspector-2", "inspector", 5, 10),
+            ],
+        };
+        let scenarios = vec![
+            JointDisruptionScenario {
+                scenario_id: "station-outage".to_owned(),
+                spatial_disruption: no_spatial_disruption(4),
+                resource_outages: vec![outage("station-1-out", "station-1", 5, 8)],
+            },
+            JointDisruptionScenario {
+                scenario_id: "inspector-outage".to_owned(),
+                spatial_disruption: no_spatial_disruption(4),
+                resource_outages: vec![outage("inspector-1-out", "inspector-1", 5, 9)],
+            },
+        ];
+
+        let report = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &baseline_resources,
+            &candidate_resources,
+            &scenarios,
+        );
+
+        assert!(report.robustly_accepted);
+        assert_eq!(report.metrics.total_scenarios, 2);
+        assert_eq!(report.metrics.accepted_scenarios, 2);
+        assert_eq!(
+            report.scenarios.iter().map(|item| item.scenario_id.as_str()).collect::<Vec<_>>(),
+            vec!["inspector-outage", "station-outage"]
+        );
+    }
+
+    #[test]
+    fn joint_robust_envelope_rejects_candidate_that_only_handles_one_resource_outage() {
+        let spatial = spatial_control();
+        let baseline_resources = ResourceSchedule {
+            reservations: vec![
+                reservation("weld-station", "weld-a", "station-1", "workstation", 5, 8),
+                reservation("weld-crane", "weld-a", "crane-1", "gantry-crane", 5, 8),
+            ],
+        };
+        let candidate_resources = ResourceSchedule {
+            reservations: vec![
+                reservation("weld-station", "weld-a", "station-2", "workstation", 5, 8),
+                reservation("weld-crane", "weld-a", "crane-1", "gantry-crane", 5, 8),
+            ],
+        };
+        let scenarios = vec![
+            JointDisruptionScenario {
+                scenario_id: "station-down".to_owned(),
+                spatial_disruption: no_spatial_disruption(4),
+                resource_outages: vec![outage("station-down-event", "station-1", 5, 7)],
+            },
+            JointDisruptionScenario {
+                scenario_id: "crane-down".to_owned(),
+                spatial_disruption: no_spatial_disruption(4),
+                resource_outages: vec![outage("crane-down-event", "crane-1", 5, 7)],
+            },
+        ];
+
+        let report = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &baseline_resources,
+            &candidate_resources,
+            &scenarios,
+        );
+
+        assert!(!report.robustly_accepted);
+        assert_eq!(report.metrics.accepted_scenarios, 1);
+        let failed = report
+            .scenarios
+            .iter()
+            .find(|item| item.scenario_id == "crane-down")
+            .unwrap();
+        assert!(!failed.report.accepted);
+        assert!(failed.report.resources.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::ResourceUnavailable
+        }));
+    }
+
+    #[test]
+    fn joint_envelope_rejects_empty_and_duplicate_scenario_sets() {
+        let spatial = spatial_control();
+        let resources = ResourceSchedule {
+            reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 5)],
+        };
+        let empty = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &resources,
+            &resources,
+            &[],
+        );
+        assert!(!empty.robustly_accepted);
+        assert!(empty.violations.iter().any(|violation| {
+            violation.code == JointEnvelopeViolationCode::EmptyScenarioSet
+        }));
+
+        let duplicate = JointDisruptionScenario {
+            scenario_id: "same".to_owned(),
+            spatial_disruption: no_spatial_disruption(2),
+            resource_outages: Vec::new(),
+        };
+        let report = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &resources,
+            &resources,
+            &[duplicate.clone(), duplicate],
+        );
+        assert!(!report.robustly_accepted);
+        assert!(report.scenarios.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointEnvelopeViolationCode::DuplicateScenarioId
         }));
     }
 
