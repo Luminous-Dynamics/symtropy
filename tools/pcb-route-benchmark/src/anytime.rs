@@ -1,7 +1,11 @@
 use crate::kicad_drc::{evaluate_kicad_drc_report_bytes, KicadDrcEvidenceReceipt};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    fs,
+    path::{Component, Path},
+};
 
 pub const ANYTIME_ARCHIVE_SCHEMA: &str = "pcb-route-verified-incumbent-archive-v0.1";
 pub const CHECKPOINT_SCHEMA: &str = "pcb-route-checkpoint-evaluation-v0.1";
@@ -30,6 +34,8 @@ pub struct CheckpointMetadata {
     pub elapsed_ms: u64,
     pub wirelength_mm: f64,
     pub via_count: u32,
+    pub output_board_relative_path: String,
+    pub drc_report_relative_path: String,
     pub board_filename: String,
     pub kicad_version: String,
 }
@@ -85,6 +91,11 @@ pub fn evaluate_checkpoint(
     policy_bytes: &[u8],
 ) -> Result<CheckpointEvaluation, String> {
     validate_metadata(&metadata)?;
+    validate_relative_path(&metadata.output_board_relative_path, "output board")?;
+    validate_relative_path(&metadata.drc_report_relative_path, "DRC report")?;
+    if metadata.output_board_relative_path == metadata.drc_report_relative_path {
+        return Err("output board and DRC report paths must be distinct".into());
+    }
     if sha256_hex(manifest_bytes) != metadata.dataset_manifest_sha256 {
         return Err("checkpoint dataset manifest digest does not match supplied manifest bytes".into());
     }
@@ -151,6 +162,70 @@ pub fn evaluate_checkpoint(
         authority: "native_kicad_drc_verified_route_checkpoint_only".to_string(),
         claim_ceiling: "Eligibility means this exact saved board had all declared required nets connected, no dangling route items, and zero blocking route findings under the supplied policy bytes. It does not prove schematic design intent beyond the report, SI/PI, manufacturability, physical quality, safety or production release.".to_string(),
     })
+}
+
+
+/// Preferred external path: resolve the declared artifact paths under a canonical root,
+/// read the current file bytes, and only then derive checkpoint evidence. Symlink escapes,
+/// path traversal, missing files, and aliases are rejected fail-closed.
+pub fn evaluate_checkpoint_from_root(
+    metadata: CheckpointMetadata,
+    manifest_bytes: &[u8],
+    artifact_root: &Path,
+    policy_bytes: &[u8],
+) -> Result<CheckpointEvaluation, String> {
+    validate_metadata(&metadata)?;
+    let root = artifact_root
+        .canonicalize()
+        .map_err(|error| format!("cannot canonicalize checkpoint artifact root: {error}"))?;
+    if !root.is_dir() {
+        return Err("checkpoint artifact root is not a directory".into());
+    }
+    let board_path = root
+        .join(&metadata.output_board_relative_path)
+        .canonicalize()
+        .map_err(|error| format!("cannot resolve output board: {error}"))?;
+    let drc_path = root
+        .join(&metadata.drc_report_relative_path)
+        .canonicalize()
+        .map_err(|error| format!("cannot resolve DRC report: {error}"))?;
+    if !board_path.starts_with(&root) || !board_path.is_file() {
+        return Err("output board is not a regular file contained by the checkpoint root".into());
+    }
+    if !drc_path.starts_with(&root) || !drc_path.is_file() {
+        return Err("DRC report is not a regular file contained by the checkpoint root".into());
+    }
+    if board_path == drc_path {
+        return Err("output board and DRC report resolve to the same file".into());
+    }
+    let board_bytes = fs::read(&board_path)
+        .map_err(|error| format!("cannot read output board bytes: {error}"))?;
+    let drc_bytes = fs::read(&drc_path)
+        .map_err(|error| format!("cannot read raw DRC report bytes: {error}"))?;
+    evaluate_checkpoint(metadata, manifest_bytes, &board_bytes, &drc_bytes, policy_bytes)
+}
+
+fn validate_relative_path(raw: &str, label: &str) -> Result<(), String> {
+    if raw.trim().is_empty() || raw.contains('\\') || raw.contains(':') {
+        return Err(format!("{label} path is empty or unsafe"));
+    }
+    let path = Path::new(raw);
+    if path.is_absolute() {
+        return Err(format!("{label} path must be relative"));
+    }
+    let mut has_normal_component = false;
+    for component in path.components() {
+        match component {
+            Component::Normal(_) => has_normal_component = true,
+            Component::CurDir | Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                return Err(format!("{label} path contains traversal or prefix components"));
+            }
+        }
+    }
+    if !has_normal_component {
+        return Err(format!("{label} path must name a file below the root"));
+    }
+    Ok(())
 }
 
 impl VerifiedIncumbentArchive {
@@ -268,6 +343,8 @@ fn validate_metadata(metadata: &CheckpointMetadata) -> Result<(), String> {
     }
     validate_sha256(&metadata.input_board_sha256, "input board SHA-256")?;
     validate_sha256(&metadata.dataset_manifest_sha256, "dataset manifest SHA-256")?;
+    validate_relative_path(&metadata.output_board_relative_path, "output board")?;
+    validate_relative_path(&metadata.drc_report_relative_path, "DRC report")?;
     if metadata.required_nets == 0 || metadata.connected_nets > metadata.required_nets {
         return Err("invalid required/connected net counts".into());
     }
@@ -366,6 +443,8 @@ mod tests {
             elapsed_ms,
             wirelength_mm,
             via_count,
+            output_board_relative_path: format!("outputs/{id}.kicad_pcb"),
+            drc_report_relative_path: format!("drc/{id}.json"),
             board_filename: "coupon.kicad_pcb".to_string(),
             kicad_version: "9.0.9".to_string(),
         }
