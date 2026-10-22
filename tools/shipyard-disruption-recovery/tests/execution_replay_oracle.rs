@@ -331,6 +331,24 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             report.metrics.events_held_back_by_occurrence_time,
             held_back_by_occurrence_count
         );
+        for assessment in &report.operations {
+            let planned = plan
+                .iter()
+                .find(|operation| operation.operation_id == assessment.operation_id)
+                .expect("assessment should refer to the frozen plan");
+            let start_due = planned.planned_start_tick <= as_of_occurred_tick;
+            let completion_due = planned.planned_end_tick <= as_of_occurred_tick;
+            assert_eq!(assessment.start_milestone_due, start_due);
+            assert_eq!(assessment.completion_milestone_due, completion_due);
+            assert_eq!(
+                assessment.start_observation_missing,
+                start_due && !starts.contains_key(assessment.operation_id.as_str())
+            );
+            assert_eq!(
+                assessment.completion_observation_missing,
+                completion_due && !completions.contains_key(assessment.operation_id.as_str())
+            );
+        }
 
         cases += 1;
         total_planned_operations += plan.len();
