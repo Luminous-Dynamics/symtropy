@@ -465,6 +465,19 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-pin-modal-receipt.json
 
+      - name: Verify SOFiSTiK BE25 line candidate mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_sofistik_be25_line_mutations.sh
+
+      - name: Re-verify BE25 line candidate source after mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_line.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Generate and verify deterministic SOFiSTiK BE25 input-audit receipt
         shell: bash
         run: |
@@ -516,6 +529,61 @@ jobs:
             and (.claim_ceiling | contains("not-BE25-reproduction"))
           ' sofistik-be25-input-audit-receipt.json
 
+      - name: Generate and verify deterministic BE25 line candidate receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-line-candidate -- \
+            --source-commit "$source_commit" > sofistik-be25-line-candidate-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-line-candidate -- \
+            --source-commit "$source_commit" > sofistik-be25-line-candidate-raw-b.json
+          cmp --silent sofistik-be25-line-candidate-raw-a.json sofistik-be25-line-candidate-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/sofistik_be25_line_candidate_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' sofistik-be25-line-candidate-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=sofistik-be25-line-candidate-v0.1|benchmark=SOFiSTiK-2026-BE25|model=uniform_1d_continuous_euler_bernoulli_beam|elements=10|mass_model=consistent_translational_only|length_m=1|youngs_modulus_pa=200000000|second_moment_m4=1e-9|mass_candidate_printed_mu_kg_per_m=25|mass_candidate_gamma_area_over_g_kg_per_m=0.25492905324448206|boundary_cases=simple-cantilever,cantilever-with-simply-supported-end,simply-supported,both-ends-fixed|claim_ceiling=numerical_candidate_analysis_not_BE25_reproduction"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "dfe70b34030957760b99dcfabac981a270c017f53960bba54f5039dfbca9d6b2"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' sofistik-be25-line-candidate-raw-a.json > sofistik-be25-line-candidate-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "sofistik-be25-line-candidate-receipt-v0.1"
+            and .benchmark_id == "SOFiSTiK-2026-BE25"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "candidate-numerical-analysis"
+            and .result == "candidate-analysis-complete"
+            and .benchmark_disposition == "blocked-until-source-input-resolved"
+            and (.candidate_case_count == 8)
+            and (.cases | length) == 8
+            and (.cases[0].mass_candidate == "gamma_area_over_g")
+            and (.cases[0].mass_per_length_kg_per_m - 0.25492905324448206 | abs < 1e-12)
+            and (.cases[0].frequencies_hz[0] - 0.4955962448521477 | abs < 0.01)
+            and (.cases[1].mass_candidate == "printed_mu")
+            and (.cases[1].mass_per_length_kg_per_m - 25.0 | abs < 1e-12)
+            and (.cases[1].frequencies_hz[0] - 0.05004580383402026 | abs < 0.005)
+            and (.cases | all(.[]; .maximum_normalized_eigen_residual < 1e-8))
+            and (.cases | all(.[]; .relative_error_to_analytical < 1e-2))
+            and (.derived_mass_mesh_convergence | length) == 4
+            and (.derived_mass_mesh_convergence | all(.[]; .mesh_32_relative_error_to_analytical < 2e-3))
+            and (.claim_ceiling | contains("not BE25 reproduction"))
+          ' sofistik-be25-line-candidate-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -535,5 +603,7 @@ jobs:
             beam-pin-modal-receipt.json
             sofistik-be25-audit-mutation-receipt.json
             sofistik-be25-input-audit-receipt.json
+            sofistik-be25-line-candidate-receipt.json
+            sofistik-be25-line-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
