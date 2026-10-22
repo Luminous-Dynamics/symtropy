@@ -1,0 +1,34 @@
+name: Evidence validity and scoped invalidation benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/evidence-invalidation-benchmark/**"
+      - "docs/research/HABITAT_EVIDENCE_VALIDITY_V0_1.md"
+      - ".github/workflows/evidence-invalidation-benchmark.yml"
+  push:
+    paths:
+      - "tools/evidence-invalidation-benchmark/**"
+      - "docs/research/HABITAT_EVIDENCE_VALIDITY_V0_1.md"
+      - ".github/workflows/evidence-invalidation-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-synthetic-contract:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/evidence-invalidation-benchmark/Cargo.toml -- --check
+      - name: Run unit and hostile-input tests
+        run: cargo test --manifest-path tools/evidence-invalidation-benchmark/Cargo.toml
+      - name: Emit exact-source benchmark receipt
+        run: cargo run --manifest-path tools/evidence-invalidation-benchmark/Cargo.toml
