@@ -550,13 +550,21 @@ mod tests {
                     "kind": "state_changed",
                     "revision_key": "world",
                     "new_revision": current_revision + 1 + index as u64,
-                    "gate_effects": { gate_key: false }
+                    "gate_effects": { (gate_key): false }
                 }),
             );
             let result = evaluate_episode(&episode, initial);
             assert_eq!(result.decision, BLOCKED, "{gate_key}");
-            assert!(result.reason_codes.iter().any(|r| r == "PLAN_VALIDATION_STALE"), "{gate_key}: {:?}", result.reason_codes);
-            assert!(result.reason_codes.iter().any(|r| r == "HARD_GATE_UNSATISFIED"), "{gate_key}: {:?}", result.reason_codes);
+            assert!(
+                result.reason_codes.iter().any(|r| r == "PLAN_VALIDATION_STALE"),
+                "{gate_key}: {:?}",
+                result.reason_codes
+            );
+            assert!(
+                result.reason_codes.iter().any(|r| r == "HARD_GATE_UNSATISFIED"),
+                "{gate_key}: {:?}",
+                result.reason_codes
+            );
         }
     }
 
@@ -594,7 +602,12 @@ mod tests {
         let parsed_embedded: Value = serde_json::from_slice(CORPUS_SOURCE).expect("embedded corpus parses");
         let embedded = serde_json::to_vec(&parsed_embedded).expect("embedded corpus serializes");
         assert_eq!(canonical, embedded);
-        assert_eq!(sha256_hex(CORPUS_SOURCE), sha256_hex(include_bytes!("../../../docs/tech/robotics-plan-episode-integrity-corpus-v0.1.json")));
+        assert_eq!(
+            sha256_hex(CORPUS_SOURCE),
+            sha256_hex(include_bytes!(
+                "../../../docs/tech/robotics-plan-episode-integrity-corpus-v0.1.json"
+            ))
+        );
     }
 
     #[test]
