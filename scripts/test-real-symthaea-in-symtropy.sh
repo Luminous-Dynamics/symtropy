@@ -48,7 +48,7 @@ grep -q 'path = "../../../../symthaea/crates/core/symthaea-fep"' "$robot_manifes
 grep -q 'path = "../../../../symthaea/crates/core/symthaea-core"' "$robot_manifest"
 grep -q 'path = "../../../../symthaea/crates/domains/symthaea-consciousness-equation"' "$robot_manifest"
 
-cargo test --manifest-path "$integration_manifest" --tests -- --nocapture
+cargo test --manifest-path "$integration_manifest" --lib --tests -- --nocapture
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
