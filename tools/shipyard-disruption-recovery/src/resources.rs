@@ -20,8 +20,19 @@ pub struct ResourceReservation {
     pub interval: TimeRange,
 }
 
+/// Finish-to-start dependency between two manufacturing operations.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct OperationPrecedence {
+    pub constraint_id: String,
+    pub predecessor_operation_id: String,
+    pub successor_operation_id: String,
+    /// Minimum wait after the predecessor's final reserved resource interval.
+    pub minimum_lag_ticks: u64,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ResourceSchedule {
+    pub precedence_constraints: Vec<OperationPrecedence>,
     pub reservations: Vec<ResourceReservation>,
 }
 
@@ -43,6 +54,17 @@ pub enum ResourceViolationCode {
     InvalidReservationInterval,
     ConflictingResourceKinds,
     ExclusiveResourceOverlap,
+    EmptyPrecedenceConstraintId,
+    DuplicatePrecedenceConstraintId,
+    EmptyPredecessorOperationId,
+    EmptySuccessorOperationId,
+    SelfPrecedence,
+    DuplicatePrecedenceEdge,
+    UnknownPredecessorOperation,
+    UnknownSuccessorOperation,
+    PrecedenceTimeConflict,
+    PrecedenceCycle,
+    PrecedenceConstraintsChanged,
     EmptyOutageId,
     EmptyOutageResourceId,
     DuplicateOutageId,
@@ -68,6 +90,17 @@ impl ResourceViolationCode {
             Self::InvalidReservationInterval => "InvalidReservationInterval",
             Self::ConflictingResourceKinds => "ConflictingResourceKinds",
             Self::ExclusiveResourceOverlap => "ExclusiveResourceOverlap",
+            Self::EmptyPrecedenceConstraintId => "EmptyPrecedenceConstraintId",
+            Self::DuplicatePrecedenceConstraintId => "DuplicatePrecedenceConstraintId",
+            Self::EmptyPredecessorOperationId => "EmptyPredecessorOperationId",
+            Self::EmptySuccessorOperationId => "EmptySuccessorOperationId",
+            Self::SelfPrecedence => "SelfPrecedence",
+            Self::DuplicatePrecedenceEdge => "DuplicatePrecedenceEdge",
+            Self::UnknownPredecessorOperation => "UnknownPredecessorOperation",
+            Self::UnknownSuccessorOperation => "UnknownSuccessorOperation",
+            Self::PrecedenceTimeConflict => "PrecedenceTimeConflict",
+            Self::PrecedenceCycle => "PrecedenceCycle",
+            Self::PrecedenceConstraintsChanged => "PrecedenceConstraintsChanged",
             Self::EmptyOutageId => "EmptyOutageId",
             Self::EmptyOutageResourceId => "EmptyOutageResourceId",
             Self::DuplicateOutageId => "DuplicateOutageId",
@@ -112,6 +145,188 @@ fn sort_dedup(violations: &mut Vec<ResourceViolation>) {
             .then_with(|| left.detail.cmp(&right.detail))
     });
     violations.dedup();
+}
+
+fn operation_windows(schedule: &ResourceSchedule) -> BTreeMap<String, (u64, u64)> {
+    let mut windows: BTreeMap<String, (u64, u64)> = BTreeMap::new();
+    for reservation in &schedule.reservations {
+        if reservation.operation_id.trim().is_empty() || !reservation.interval.is_valid() {
+            continue;
+        }
+        windows
+            .entry(reservation.operation_id.clone())
+            .and_modify(|window| {
+                window.0 = window.0.min(reservation.interval.start_tick);
+                window.1 = window.1.max(reservation.interval.end_tick);
+            })
+            .or_insert((
+                reservation.interval.start_tick,
+                reservation.interval.end_tick,
+            ));
+    }
+    windows
+}
+
+fn normalized_precedence(schedule: &ResourceSchedule) -> Vec<OperationPrecedence> {
+    let mut constraints = schedule.precedence_constraints.clone();
+    constraints.sort();
+    constraints
+}
+
+fn validate_precedence(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
+    let mut violations = Vec::new();
+    let windows = operation_windows(schedule);
+    let mut seen_constraint_ids = BTreeSet::new();
+    let mut seen_edges = BTreeSet::new();
+    let mut edges: BTreeMap<String, BTreeSet<String>> = windows
+        .keys()
+        .map(|operation_id| (operation_id.clone(), BTreeSet::new()))
+        .collect();
+    let mut indegree: BTreeMap<String, usize> = windows
+        .keys()
+        .map(|operation_id| (operation_id.clone(), 0))
+        .collect();
+
+    for constraint in &schedule.precedence_constraints {
+        if constraint.constraint_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::EmptyPrecedenceConstraintId,
+                vec![constraint.constraint_id.clone()],
+                "precedence constraint ID is required",
+            );
+        } else if !seen_constraint_ids.insert(constraint.constraint_id.as_str()) {
+            push(
+                &mut violations,
+                ResourceViolationCode::DuplicatePrecedenceConstraintId,
+                vec![constraint.constraint_id.clone()],
+                "precedence constraint IDs must be unique",
+            );
+        }
+
+        if constraint.predecessor_operation_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::EmptyPredecessorOperationId,
+                vec![constraint.constraint_id.clone()],
+                "predecessor operation ID is required",
+            );
+        }
+        if constraint.successor_operation_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::EmptySuccessorOperationId,
+                vec![constraint.constraint_id.clone()],
+                "successor operation ID is required",
+            );
+        }
+        if !constraint.predecessor_operation_id.trim().is_empty()
+            && constraint.predecessor_operation_id == constraint.successor_operation_id
+        {
+            push(
+                &mut violations,
+                ResourceViolationCode::SelfPrecedence,
+                vec![constraint.constraint_id.clone(), constraint.predecessor_operation_id.clone()],
+                "an operation cannot precede itself",
+            );
+        }
+
+        let predecessor = windows.get(&constraint.predecessor_operation_id);
+        let successor = windows.get(&constraint.successor_operation_id);
+        if predecessor.is_none() && !constraint.predecessor_operation_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::UnknownPredecessorOperation,
+                vec![constraint.constraint_id.clone(), constraint.predecessor_operation_id.clone()],
+                "precedence predecessor is absent from the resource schedule",
+            );
+        }
+        if successor.is_none() && !constraint.successor_operation_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::UnknownSuccessorOperation,
+                vec![constraint.constraint_id.clone(), constraint.successor_operation_id.clone()],
+                "precedence successor is absent from the resource schedule",
+            );
+        }
+
+        if let (Some((_, predecessor_end)), Some((successor_start, _))) =
+            (predecessor, successor)
+        {
+            let earliest_successor_start = predecessor_end.checked_add(constraint.minimum_lag_ticks);
+            if earliest_successor_start.is_none_or(|earliest| *successor_start < earliest) {
+                push(
+                    &mut violations,
+                    ResourceViolationCode::PrecedenceTimeConflict,
+                    vec![
+                        constraint.constraint_id.clone(),
+                        constraint.predecessor_operation_id.clone(),
+                        constraint.successor_operation_id.clone(),
+                    ],
+                    format!(
+                        "successor starts at tick {successor_start}, before required predecessor completion plus lag {:?}",
+                        earliest_successor_start
+                    ),
+                );
+            }
+
+            let edge = (
+                constraint.predecessor_operation_id.clone(),
+                constraint.successor_operation_id.clone(),
+            );
+            if !seen_edges.insert(edge.clone()) {
+                push(
+                    &mut violations,
+                    ResourceViolationCode::DuplicatePrecedenceEdge,
+                    vec![
+                        constraint.predecessor_operation_id.clone(),
+                        constraint.successor_operation_id.clone(),
+                    ],
+                    "operation dependency edge is duplicated",
+                );
+            } else if edge.0 != edge.1 {
+                edges.entry(edge.0.clone()).or_default().insert(edge.1.clone());
+                *indegree.entry(edge.1).or_default() += 1;
+            }
+        }
+    }
+
+    let mut ready: BTreeSet<String> = indegree
+        .iter()
+        .filter(|(_, degree)| **degree == 0)
+        .map(|(operation_id, _)| operation_id.clone())
+        .collect();
+    let mut visited = 0usize;
+    while let Some(operation_id) = ready.pop_first() {
+        visited += 1;
+        if let Some(successors) = edges.get(&operation_id) {
+            for successor in successors {
+                if let Some(degree) = indegree.get_mut(successor) {
+                    *degree = degree.saturating_sub(1);
+                    if *degree == 0 {
+                        ready.insert(successor.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    if visited < indegree.len() {
+        let cycle_nodes: Vec<String> = indegree
+            .iter()
+            .filter(|(_, degree)| **degree > 0)
+            .map(|(operation_id, _)| operation_id.clone())
+            .collect();
+        push(
+            &mut violations,
+            ResourceViolationCode::PrecedenceCycle,
+            cycle_nodes,
+            "finish-to-start operation dependencies contain a directed cycle",
+        );
+    }
+
+    sort_dedup(&mut violations);
+    violations
 }
 
 fn validate_schedule(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
@@ -215,6 +430,7 @@ fn validate_schedule(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
         }
     }
 
+    violations.extend(validate_precedence(schedule));
     sort_dedup(&mut violations);
     violations
 }
@@ -415,6 +631,16 @@ pub fn evaluate_resource_recovery(
     let candidate_violations = validate_schedule(candidate);
     let mut violations = validate_outages(outages, baseline, candidate);
     let outages_valid = violations.is_empty();
+    let precedence_unchanged =
+        normalized_precedence(baseline) == normalized_precedence(candidate);
+    if !precedence_unchanged {
+        push(
+            &mut violations,
+            ResourceViolationCode::PrecedenceConstraintsChanged,
+            Vec::new(),
+            "candidate must preserve authoritative baseline operation dependencies",
+        );
+    }
     violations.extend(candidate_violations.iter().cloned());
 
     let baseline_feasible_before_disruption = baseline_violations.is_empty();
@@ -439,8 +665,10 @@ pub fn evaluate_resource_recovery(
     let candidate_outage_conflicts = resource_outage_conflicts(candidate, outages);
     let baseline_feasible_after_disruption =
         baseline_feasible_before_disruption && outages_valid && baseline_outage_conflicts.is_empty();
-    let mut candidate_feasible_after_disruption =
-        outages_valid && candidate_violations.is_empty() && candidate_outage_conflicts.is_empty();
+    let mut candidate_feasible_after_disruption = precedence_unchanged
+        && outages_valid
+        && candidate_violations.is_empty()
+        && candidate_outage_conflicts.is_empty();
 
     violations.extend(candidate_outage_conflicts.iter().cloned());
     let mutation_violations =
@@ -791,6 +1019,7 @@ mod tests {
     #[test]
     fn unary_resource_rejects_overlapping_reservations_but_allows_endpoint_touch() {
         let valid = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("r1", "weld-a", "station-1", "workstation", 0, 5),
                 reservation("r2", "weld-b", "station-1", "workstation", 5, 9),
@@ -799,6 +1028,7 @@ mod tests {
         assert!(validate_schedule(&valid).is_empty());
 
         let invalid = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("r1", "weld-a", "station-1", "workstation", 0, 6),
                 reservation("r2", "weld-b", "station-1", "workstation", 5, 9),
@@ -812,6 +1042,7 @@ mod tests {
     #[test]
     fn resource_outage_recovers_future_operation_with_no_unaffected_churn() {
         let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
                 reservation("weld-b", "weld-b", "station-1", "workstation", 5, 10),
@@ -819,6 +1050,7 @@ mod tests {
             ],
         };
         let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
                 reservation("weld-b", "weld-b", "station-2", "workstation", 5, 10),
@@ -844,9 +1076,11 @@ mod tests {
     #[test]
     fn active_resource_operation_cannot_be_reassigned_mid_operation() {
         let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("move-a", "move-a", "crane-1", "gantry-crane", 2, 8)],
         };
         let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("move-a", "move-a", "crane-2", "gantry-crane", 2, 8)],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
@@ -859,9 +1093,11 @@ mod tests {
     #[test]
     fn completed_resource_history_cannot_be_rewritten() {
         let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("weld-a", "weld-a", "station-1", "workstation", 0, 4)],
         };
         let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("weld-a", "weld-a", "station-2", "workstation", 0, 4)],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
@@ -875,6 +1111,7 @@ mod tests {
     fn joint_robust_envelope_passes_only_when_same_candidate_survives_every_resource_scenario() {
         let spatial = spatial_control();
         let baseline_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
                 reservation("weld-b", "weld-b", "station-1", "workstation", 5, 10),
@@ -882,6 +1119,7 @@ mod tests {
             ],
         };
         let candidate_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-a", "weld-a", "station-1", "workstation", 0, 5),
                 reservation("weld-b", "weld-b", "station-2", "workstation", 5, 10),
@@ -922,12 +1160,14 @@ mod tests {
     fn joint_robust_envelope_rejects_candidate_that_only_handles_one_resource_outage() {
         let spatial = spatial_control();
         let baseline_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-station", "weld-a", "station-1", "workstation", 5, 8),
                 reservation("weld-crane", "weld-a", "crane-1", "gantry-crane", 5, 8),
             ],
         };
         let candidate_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("weld-station", "weld-a", "station-2", "workstation", 5, 8),
                 reservation("weld-crane", "weld-a", "crane-1", "gantry-crane", 5, 8),
@@ -971,6 +1211,7 @@ mod tests {
     fn joint_envelope_rejects_empty_and_duplicate_scenario_sets() {
         let spatial = spatial_control();
         let resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 5)],
         };
         let empty = evaluate_joint_recovery_envelope(
@@ -1007,12 +1248,14 @@ mod tests {
     #[test]
     fn removed_future_resource_work_is_not_counted_as_candidate_feasible() {
         let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("required", "weld-a", "station-1", "workstation", 5, 10),
                 reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10),
             ],
         };
         let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
@@ -1024,12 +1267,14 @@ mod tests {
     #[test]
     fn future_resource_reservation_cannot_be_silently_dropped() {
         let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("required", "weld-a", "station-1", "workstation", 5, 10),
                 reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10),
             ],
         };
         let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
@@ -1043,6 +1288,7 @@ mod tests {
     #[test]
     fn unknown_resource_outage_target_fails_closed() {
         let schedule = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 2)],
         };
         let report = evaluate_resource_recovery(
@@ -1111,12 +1357,14 @@ mod tests {
             },
         };
         let baseline_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("op-a", "op-a", "crane-1", "gantry-crane", 0, 5),
                 reservation("op-b", "op-b", "crane-1", "gantry-crane", 5, 10),
             ],
         };
         let candidate_resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
             reservations: vec![
                 reservation("op-a", "op-a", "crane-1", "gantry-crane", 0, 5),
                 reservation("op-b", "op-b", "crane-1", "gantry-crane", 4, 10),
