@@ -55,7 +55,7 @@ This intentionally avoids inventing a single weighted score. Yard managers can r
 
 ## Tests authored in V0
 
-Twenty-three unit tests cover:
+Twenty-three core recovery tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -83,6 +83,16 @@ Twenty-three unit tests cover:
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
 These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator models rectangle-zone intersections, exclusive vehicle outages and explicit occupied-until extensions for known placements; it does not infer crane/lift clearance from sensor signals, calculate the physical move, compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
+
+## Finite-resource constraints and joint acceptance
+
+The public \`resources\` module now provides an independent unary-resource schedule checker for resource IDs representing a workstation, crane, tug, lift team, inspection station or another explicitly named resource. Each reservation has a stable reservation ID, operation ID, resource ID/kind and half-open time interval. The verifier rejects overlapping reservations on one unary resource, profile-kind drift, malformed/duplicate IDs, unknown outage targets, resource outages that overlap candidate work, and attempts to rewrite completed or move active work. It measures changed reservations, unaffected resource churn, absolute time shift, makespan and recovery horizon.
+
+\`evaluate_joint_recovery\` composes the spatial recovery report and resource recovery report. Joint acceptance is true only when both reports accept. A plan cannot earn a pass by packing blocks neatly while double-booking a crane or ignoring an unavailable workstation. This is still a narrow unary-resource gate: capacity greater than one, two-crane tandem lifts, shared rigging constraints, crane interference geometry, swept paths, operator qualifications, load charts, work precedence and setup/changeover times are not yet represented. Resource IDs must refer to authoritative equipment/workstation profiles.
+
+There are five additional resource-level tests for half-open endpoint behavior, future-operation recovery after an outage, in-progress immutability, completed-history immutability, unknown-resource rejection, and joint spatial/resource rejection. These are authored tests awaiting exact-head CI verification.
+
+Current literature supports this next direction. An August 2026 multi-fidelity ant-colony study models multi-crane scheduling with safety distance, interference, precedence and tandem scheduling, and reports 7–13% shorter crane travel distance than its compared methods on its own real-world data ([Applied Soft Computing, DOI 10.1016/j.asoc.2026.115384](https://doi.org/10.1016/j.asoc.2026.115384)). Our unary resource module does not reproduce that model and makes no percentage-improvement claim. It adds a small, independently testable feasibility layer before attempting richer crane-coupling models.
 
 ## Benchmark protocol and targets
 
