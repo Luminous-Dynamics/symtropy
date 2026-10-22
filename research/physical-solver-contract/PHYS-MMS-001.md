@@ -34,10 +34,10 @@ The mesh is a deterministic uniform \(n\times n\) subdivision of the square, eac
 ## Levels, errors and expected order
 
 The runner is to execute \(n\in\{4,8,16,32,64\}\), then independently bind each output to the exact input deck, model manifest, build manifest, solver binary, and process log. The audit computes errors at common numerical quadrature points:
-- displacement \(L^2\) error (expected asymptotic order approximately 2 for linear triangles);
-- displacement \(H^1\) seminorm error (expected order approximately 1);
-- stress tensor \(L^2\) error (expected order approximately 1);
-- \(L^1\), quadrature-sampled \(L^\infty\), and maximum nodal displacement error as secondary diagnostics.
+- displacement \(L^2\) norm (units m²; expected asymptotic order approximately 2 for linear triangles);
+- displacement \(H^1\) seminorm (units m; expected order approximately 1);
+- stress tensor \(L^2\) norm (units Pa·m; expected order approximately 1);
+- displacement \(L^1\) integral (units m³), quadrature-sampled \(L^\infty\) error (m), and maximum nodal error (m) as secondary diagnostics.
 
 For each pair of levels \(n,2n\), observed order is
 \[
