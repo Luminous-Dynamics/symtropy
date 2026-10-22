@@ -589,6 +589,206 @@ fn validate_source_rule_values(
     Ok(())
 }
 
+
+fn review_record() -> Value {
+    serde_json::json!({
+        "status": "reviewed",
+        "reviewer_id": "synthetic-test-fixture-not-a-real-review",
+        "reviewed_on": "2026-10-22",
+        "review_method": "synthetic-contract-test-only"
+    })
+}
+
+fn validate_review_record(value: &Value, label: &str) -> Result<(), String> {
+    let review = value.get("review_record")
+        .ok_or_else(|| format!("{label} has no review_record"))?;
+    if review.get("status").and_then(Value::as_str) != Some("reviewed") {
+        return Err(format!("{label} review_record status must be reviewed"));
+    }
+    if review.get("reviewer_id").and_then(Value::as_str).is_none_or(str::is_empty) {
+        return Err(format!("{label} review_record must identify a reviewer"));
+    }
+    let date = review.get("reviewed_on").and_then(Value::as_str)
+        .ok_or_else(|| format!("{label} review_record must include reviewed_on"))?;
+    let bytes = date.as_bytes();
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || !bytes.iter().enumerate().all(|(i, byte)| matches!(i, 4 | 7) || byte.is_ascii_digit())
+    {
+        return Err(format!("{label} reviewed_on must use YYYY-MM-DD"));
+    }
+    if review.get("review_method").and_then(Value::as_str).is_none_or(str::is_empty) {
+        return Err(format!("{label} review_record must declare review_method"));
+    }
+    Ok(())
+}
+
+fn strict_derivation_identity(plan: &RuleFidelityPlan) -> Result<Value, String> {
+    let assessments = serde_json::to_value(&plan.rule_assessments)
+        .map_err(|error| format!("cannot serialize rule assessments: {error}"))?;
+    Ok(serde_json::json!({
+        "schema": "pcb-route-strict-source-policy-derivation-v0.1",
+        "benchmark_id": plan.benchmark_id,
+        "dataset_id": plan.dataset_id,
+        "split_id": plan.split_id,
+        "board_id": plan.board_id,
+        "source_board_sha256": plan.source_board_sha256,
+        "source_rule_profile_sha256": plan.source_rule_profile_sha256,
+        "source_kicad_version": plan.source_kicad_version,
+        "strict_source_policy_sha256": plan.strict_source_policy_sha256,
+        "strict_source_kicad_version": plan.strict_source_kicad_version,
+        "rule_assessments": assessments
+    }))
+}
+
+fn build_strict_derivation_evidence(plan: &RuleFidelityPlan) -> Result<Vec<u8>, String> {
+    let mut value = strict_derivation_identity(plan)?;
+    value["review_record"] = review_record();
+    serde_json::to_vec_pretty(&value)
+        .map_err(|error| format!("cannot serialize strict-source derivation evidence: {error}"))
+}
+
+fn validate_strict_derivation_evidence(plan: &RuleFidelityPlan, bytes: &[u8]) -> Result<(), String> {
+    let actual: Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("strict-source derivation evidence JSON invalid: {error}"))?;
+    let expected = strict_derivation_identity(plan)?;
+    for field in [
+        "schema",
+        "benchmark_id",
+        "dataset_id",
+        "split_id",
+        "board_id",
+        "source_board_sha256",
+        "source_rule_profile_sha256",
+        "source_kicad_version",
+        "strict_source_policy_sha256",
+        "strict_source_kicad_version",
+        "rule_assessments",
+    ] {
+        if actual.get(field) != expected.get(field) {
+            return Err(format!("strict-source derivation evidence does not match plan field {field}"));
+        }
+    }
+    validate_review_record(&actual, "strict-source derivation evidence")
+}
+
+fn build_mapping_evidence(plan: &RuleFidelityPlan, assessment: &RuleAssessment) -> Result<Vec<u8>, String> {
+    let mut value = serde_json::json!({
+        "schema": "pcb-route-rule-migration-evidence-v0.1",
+        "benchmark_id": plan.benchmark_id,
+        "dataset_id": plan.dataset_id,
+        "split_id": plan.split_id,
+        "board_id": plan.board_id,
+        "source_board_sha256": plan.source_board_sha256,
+        "source_rule_profile_sha256": plan.source_rule_profile_sha256,
+        "source_kicad_version": plan.source_kicad_version,
+        "compatibility_policy_sha256": plan.compatibility_policy_sha256,
+        "compatibility_kicad_version": plan.compatibility_kicad_version,
+        "rule_id": assessment.rule_id,
+        "source_rule_json_pointer": assessment.source_rule_json_pointer,
+        "source_value": assessment.source_value,
+        "evaluated_value": assessment.evaluated_value,
+        "rationale": assessment.rationale
+    });
+    value["review_record"] = review_record();
+    serde_json::to_vec_pretty(&value)
+        .map_err(|error| format!("cannot serialize migration evidence: {error}"))
+}
+
+fn validate_mapping_evidence(
+    plan: &RuleFidelityPlan,
+    assessment: &RuleAssessment,
+    bytes: &[u8],
+) -> Result<(), String> {
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("rule migration evidence JSON invalid: {error}"))?;
+    let expected = serde_json::json!({
+        "schema": "pcb-route-rule-migration-evidence-v0.1",
+        "benchmark_id": plan.benchmark_id,
+        "dataset_id": plan.dataset_id,
+        "split_id": plan.split_id,
+        "board_id": plan.board_id,
+        "source_board_sha256": plan.source_board_sha256,
+        "source_rule_profile_sha256": plan.source_rule_profile_sha256,
+        "source_kicad_version": plan.source_kicad_version,
+        "compatibility_policy_sha256": plan.compatibility_policy_sha256,
+        "compatibility_kicad_version": plan.compatibility_kicad_version,
+        "rule_id": assessment.rule_id,
+        "source_rule_json_pointer": assessment.source_rule_json_pointer,
+        "source_value": assessment.source_value,
+        "evaluated_value": assessment.evaluated_value,
+        "rationale": assessment.rationale
+    });
+    if value.as_object().is_none() {
+        return Err("rule migration evidence must be a JSON object".into());
+    }
+    for (key, expected_value) in expected.as_object().ok_or("internal migration evidence shape error")? {
+        if value.get(key) != Some(expected_value) {
+            return Err(format!("rule migration evidence does not match plan field {key}"));
+        }
+    }
+    validate_review_record(&value, "rule migration evidence")
+}
+
+fn build_waiver_evidence(plan: &RuleFidelityPlan, assessment: &RuleAssessment) -> Result<Vec<u8>, String> {
+    let mut value = serde_json::json!({
+        "schema": "pcb-route-rule-waiver-evidence-v0.1",
+        "benchmark_id": plan.benchmark_id,
+        "dataset_id": plan.dataset_id,
+        "split_id": plan.split_id,
+        "board_id": plan.board_id,
+        "source_board_sha256": plan.source_board_sha256,
+        "source_rule_profile_sha256": plan.source_rule_profile_sha256,
+        "source_kicad_version": plan.source_kicad_version,
+        "compatibility_policy_sha256": plan.compatibility_policy_sha256,
+        "compatibility_kicad_version": plan.compatibility_kicad_version,
+        "rule_id": assessment.rule_id,
+        "source_rule_json_pointer": assessment.source_rule_json_pointer,
+        "source_value": assessment.source_value,
+        "evaluated_value": assessment.evaluated_value,
+        "rationale": assessment.rationale
+    });
+    value["review_record"] = review_record();
+    serde_json::to_vec_pretty(&value)
+        .map_err(|error| format!("cannot serialize waiver evidence: {error}"))
+}
+
+fn validate_waiver_evidence(
+    plan: &RuleFidelityPlan,
+    assessment: &RuleAssessment,
+    bytes: &[u8],
+) -> Result<(), String> {
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|error| format!("rule waiver evidence JSON invalid: {error}"))?;
+    let expected = serde_json::json!({
+        "schema": "pcb-route-rule-waiver-evidence-v0.1",
+        "benchmark_id": plan.benchmark_id,
+        "dataset_id": plan.dataset_id,
+        "split_id": plan.split_id,
+        "board_id": plan.board_id,
+        "source_board_sha256": plan.source_board_sha256,
+        "source_rule_profile_sha256": plan.source_rule_profile_sha256,
+        "source_kicad_version": plan.source_kicad_version,
+        "compatibility_policy_sha256": plan.compatibility_policy_sha256,
+        "compatibility_kicad_version": plan.compatibility_kicad_version,
+        "rule_id": assessment.rule_id,
+        "source_rule_json_pointer": assessment.source_rule_json_pointer,
+        "source_value": assessment.source_value,
+        "evaluated_value": assessment.evaluated_value,
+        "rationale": assessment.rationale
+    });
+    if value.as_object().is_none() {
+        return Err("rule waiver evidence must be a JSON object".into());
+    }
+    for (key, expected_value) in expected.as_object().ok_or("internal waiver evidence shape error")? {
+        if value.get(key) != Some(expected_value) {
+            return Err(format!("rule waiver evidence does not match plan field {key}"));
+        }
+    }
+    validate_review_record(&value, "rule waiver evidence")
+}
+
 fn verify_rule_evidence(
     plan: &RuleFidelityPlan,
     evidence_files: &BTreeMap<String, Vec<u8>>,
@@ -628,6 +828,9 @@ fn verify_rule_evidence(
     }
 
     let expected_paths: BTreeSet<&str> = expected.iter().map(|(_, path, _)| path.as_str()).collect();
+    if expected_paths.len() != expected.len() {
+        return Err("a rule-evidence path cannot be reused for multiple evidence roles".into());
+    }
     if evidence_files.keys().any(|path| !expected_paths.contains(path.as_str())) {
         return Err("rule-evidence input contains an unreferenced artifact".into());
     }
@@ -643,6 +846,22 @@ fn verify_rule_evidence(
         let actual = sha256_hex(bytes);
         if actual != expected_sha {
             return Err(format!("rule-evidence bytes SHA-256 mismatch: {relative_path}"));
+        }
+        match purpose.as_str() {
+            "strict_source_policy_derivation" => validate_strict_derivation_evidence(plan, bytes)?,
+            _ if purpose.starts_with("rule_mapping:") => {
+                let rule_id = purpose.strip_prefix("rule_mapping:").unwrap_or_default();
+                let assessment = plan.rule_assessments.iter().find(|item| item.rule_id == rule_id)
+                    .ok_or_else(|| format!("mapping evidence references an unknown rule: {rule_id}"))?;
+                validate_mapping_evidence(plan, assessment, bytes)?;
+            }
+            _ if purpose.starts_with("rule_waiver:") => {
+                let rule_id = purpose.strip_prefix("rule_waiver:").unwrap_or_default();
+                let assessment = plan.rule_assessments.iter().find(|item| item.rule_id == rule_id)
+                    .ok_or_else(|| format!("waiver evidence references an unknown rule: {rule_id}"))?;
+                validate_waiver_evidence(plan, assessment, bytes)?;
+            }
+            _ => return Err(format!("unknown rule-evidence role: {purpose}")),
         }
         verified.push(VerifiedRuleEvidence {
             purpose,
@@ -842,9 +1061,6 @@ mod tests {
     const COMPAT_CLEAN: &str = r#"{"violations":[],"unconnected_items":[]}"#;
     const STRICT_FAIL: &str = r#"{"violations":[{"type":"clearance","severity":"error"}],"unconnected_items":[]}"#;
     const STRICT_CLEAN: &str = r#"{"violations":[],"unconnected_items":[]}"#;
-    const STRICT_DERIVATION_EVIDENCE: &[u8] = b"synthetic strict-source policy derivation";
-    const MAPPING_EVIDENCE: &[u8] = b"synthetic migration-equivalence evidence";
-    const WAIVER_EVIDENCE: &[u8] = b"synthetic waiver review evidence";
 
     fn policy_sha(bytes: &[u8]) -> String {
         sha256_hex(bytes)
@@ -877,9 +1093,14 @@ mod tests {
             strict_source_drc_report_relative_path: strict.then(|| "drc/strict-source.json".into()),
             strict_source_drc_input_board_sha256: strict.then(|| sha256_hex(output)),
             strict_source_policy_derivation_evidence_relative_path: strict.then(|| "evidence/strict-source-policy-derivation.txt".into()),
-            strict_source_policy_derivation_evidence_sha256: strict.then(|| sha256_hex(STRICT_DERIVATION_EVIDENCE)),
+            strict_source_policy_derivation_evidence_sha256: strict.then(|| String::new()),
             rule_assessments: assessments,
+        };
+        if strict {
+            let evidence = build_strict_derivation_evidence(&plan).expect("serialize synthetic derivation evidence");
+            plan.strict_source_policy_derivation_evidence_sha256 = Some(sha256_hex(&evidence));
         }
+        plan
     }
 
     fn preserved_rule() -> RuleAssessment {
@@ -900,14 +1121,23 @@ mod tests {
     fn evidence_files_for(plan: &RuleFidelityPlan) -> BTreeMap<String, Vec<u8>> {
         let mut files = BTreeMap::new();
         if let Some(path) = &plan.strict_source_policy_derivation_evidence_relative_path {
-            files.insert(path.clone(), STRICT_DERIVATION_EVIDENCE.to_vec());
+            files.insert(
+                path.clone(),
+                build_strict_derivation_evidence(plan).expect("serialize synthetic derivation evidence"),
+            );
         }
         for assessment in &plan.rule_assessments {
             if let Some(path) = &assessment.mapping_evidence_relative_path {
-                files.insert(path.clone(), MAPPING_EVIDENCE.to_vec());
+                files.insert(
+                    path.clone(),
+                    build_mapping_evidence(plan, assessment).expect("serialize synthetic mapping evidence"),
+                );
             }
             if let Some(path) = &assessment.waiver_evidence_relative_path {
-                files.insert(path.clone(), WAIVER_EVIDENCE.to_vec());
+                files.insert(
+                    path.clone(),
+                    build_waiver_evidence(plan, assessment).expect("serialize synthetic waiver evidence"),
+                );
             }
         }
         files
