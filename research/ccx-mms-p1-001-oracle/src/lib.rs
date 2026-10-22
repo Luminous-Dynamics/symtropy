@@ -41,6 +41,14 @@ pub enum OracleError {
 }
 
 impl PlaneStrainMaterial {
+    pub fn youngs_modulus(self) -> f64 {
+        self.youngs_modulus
+    }
+
+    pub fn poisson_ratio(self) -> f64 {
+        self.poisson_ratio
+    }
+
     pub fn new(youngs_modulus: f64, poisson_ratio: f64) -> Result<Self, OracleError> {
         if !youngs_modulus.is_finite() || !poisson_ratio.is_finite() {
             return Err(OracleError::NonFiniteMaterial);
