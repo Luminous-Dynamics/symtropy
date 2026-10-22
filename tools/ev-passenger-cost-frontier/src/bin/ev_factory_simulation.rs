@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
     collections::{BTreeSet, BinaryHeap, VecDeque},
@@ -105,6 +106,7 @@ enum GateStatus {
 struct Report {
     schema_version: String,
     benchmark_id: String,
+    catalog_config_sha256: String,
     seed: u64,
     replication_count: usize,
     replication_seeds: Vec<u64>,
@@ -886,6 +888,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             },
         );
     }
+    let canonical_catalog = serde_json::to_vec(catalog)
+        .map_err(|error| format!("cannot_serialize_canonical_catalog: {error}"))?;
+    report.catalog_config_sha256 = format!("{:x}", Sha256::digest(canonical_catalog));
     report.release_ready = false;
     Ok(report)
 }
@@ -1145,6 +1150,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
     Ok(Report {
         schema_version: catalog.schema_version.clone(),
         benchmark_id: catalog.benchmark_id.clone(),
+        catalog_config_sha256: String::new(),
         seed: catalog.seed,
         replication_count: 1,
         replication_seeds: vec![catalog.seed],
@@ -1899,6 +1905,7 @@ mod tests {
     fn absent_shared_control_outage_preserves_baseline_semantics() {
         let catalog = fixture();
         let report = evaluate_catalog(&catalog).expect("baseline simulation");
+        assert_eq!(report.catalog_config_sha256.len(), 64);
         assert!(report.paired_common_cause_control_outage_baseline_comparison.is_none());
         assert!(report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_config.is_none()
@@ -1925,6 +1932,18 @@ mod tests {
         assert_eq!(outage_report, evaluate_catalog(&outage_catalog).expect("deterministic replay"));
         assert_eq!(outage_report.replication_count, 20);
         assert_eq!(outage_report.replication_seeds, nominal_report.replication_seeds);
+        assert_eq!(outage_report.catalog_config_sha256.len(), 64);
+        assert!(outage_report
+            .catalog_config_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
+        assert_ne!(outage_report.catalog_config_sha256, nominal_report.catalog_config_sha256);
+        assert_eq!(
+            outage_report.catalog_config_sha256,
+            evaluate_catalog(&outage_catalog)
+                .expect("repeat config digest")
+                .catalog_config_sha256
+        );
         let paired = outage_report
             .paired_common_cause_control_outage_baseline_comparison
             .as_ref()
