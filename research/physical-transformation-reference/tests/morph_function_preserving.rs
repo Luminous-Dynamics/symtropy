@@ -1,6 +1,7 @@
 use physical_transformation_reference::planar_truss::{
     solve, PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode,
 };
+use std::collections::BTreeSet;
 
 const AREA_M2: f64 = 1.0e-4;
 const YOUNGS_MODULUS_PA: f64 = 200.0e9;
@@ -58,6 +59,10 @@ fn square_truss(diagonal: Option<(&str, &str)>) -> PlanarTrussInput {
     PlanarTrussInput { nodes, bars }
 }
 
+fn member_ids(input: &PlanarTrussInput) -> BTreeSet<&str> {
+    input.bars.iter().map(|bar| bar.id.as_str()).collect()
+}
+
 fn close_to(actual: f64, expected: f64, tolerance: f64, label: &str) {
     assert!(
         (actual - expected).abs() <= tolerance,
@@ -107,7 +112,8 @@ fn assert_functionally_acceptable(result: &PlanarTrussResult) {
 /// The two equal 1 kN vertical loads therefore give -50 um at C_y and D_y.
 /// Both diagonal orientations preserve the same vertical result and remain below
 /// the declared 100 um serviceability threshold. Removing the diagonal leaves a
-/// lateral mechanism, even though every node and every visible coordinate is unchanged.
+/// lateral mechanism, even though the node coordinates are identical and four of
+/// five members (80% edge-set IoU) remain unchanged.
 #[test]
 fn geometry_preserving_diagonal_exchange_is_functionally_valid_but_deletion_is_a_mechanism() {
     let diagonal_ad = square_truss(Some(("A", "D")));
@@ -119,6 +125,21 @@ fn geometry_preserving_diagonal_exchange_is_functionally_valid_but_deletion_is_a
     assert_ne!(diagonal_ad.bars, diagonal_bc.bars);
     assert_eq!(diagonal_ad.bars.len(), diagonal_bc.bars.len());
     assert_eq!(diagonal_ad.bars.len(), no_diagonal.bars.len() + 1);
+
+    for intact in [&diagonal_ad, &diagonal_bc] {
+        let intact_members = member_ids(intact);
+        let damaged_members = member_ids(&no_diagonal);
+        let intersection = intact_members.intersection(&damaged_members).count();
+        let union = intact_members.union(&damaged_members).count();
+        assert_eq!(intersection, 4);
+        assert_eq!(union, 5);
+        close_to(
+            intersection as f64 / union as f64,
+            0.8,
+            f64::EPSILON,
+            "member-set IoU",
+        );
+    }
 
     let ad_result = solve(&diagonal_ad).expect("reference diagonal should stabilize the truss");
     let bc_result = solve(&diagonal_bc).expect("alternate diagonal should stabilize the truss");
