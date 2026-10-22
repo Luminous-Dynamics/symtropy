@@ -83,12 +83,23 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.trials | length) == .evaluation.trials
     and .paired_summary_vs_pid[0].authority == 0
     and .paired_summary_vs_pid[0].mean_delta_rmse_vs_pid_m == 0
+    and .paired_summary_vs_pid[0].mean_delta_within_5cm_fraction_vs_pid == 0
     and .paired_summary_vs_pid[0].bootstrap_95_ci_delta_rmse_vs_pid_m != null
+    and all(.paired_summary_vs_pid[];
+      .mean_delta_rmse_vs_pid_m != null
+      and .mean_delta_within_5cm_fraction_vs_pid != null
+    )
     and all(.trials[];
       .arms[0].authority == 0
       and .arms[0].guard_rejections == 0
       and .arms[0].residual_clipped_steps == 0
-      and all(.arms[]; .guard_rejections == 0)
+      and all(.arms[];
+        .guard_rejections == 0
+        and .rmse_m != null
+        and .within_5cm_fraction != null
+        and .max_position_error_m != null
+        and .controller_compute_p95_us != null
+      )
     )
   ' "$out"
 fi
