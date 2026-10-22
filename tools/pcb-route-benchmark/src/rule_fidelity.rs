@@ -160,7 +160,7 @@ pub fn evaluate_rule_fidelity(
         return Err("compatibility DRC input board digest differs from verified output-board bytes".into());
     }
 
-    match (
+    let source_rule_profile_json = match (
         plan.source_rule_profile_relative_path.as_deref(),
         plan.source_rule_profile_sha256.as_deref(),
         source_rule_profile_bytes,
@@ -174,8 +174,14 @@ pub fn evaluate_rule_fidelity(
             if bytes.is_empty() {
                 return Err("source rule-profile bytes must not be empty".into());
             }
+            let value: Value = serde_json::from_slice(bytes)
+                .map_err(|error| format!("source KiCad rule-profile JSON invalid: {error}"))?;
+            if !value.is_object() {
+                return Err("source KiCad rule-profile root must be a JSON object".into());
+            }
+            Some(value)
         }
-        (None, None, None) => {}
+        (None, None, None) => None,
         _ => {
             return Err(
                 "source rule-profile path, digest and supplied bytes must be present together or all absent"
@@ -227,6 +233,7 @@ pub fn evaluate_rule_fidelity(
         }
     }
 
+    validate_source_rule_values(&plan.rule_assessments, source_rule_profile_json.as_ref())?;
     let verified_rule_evidence = verify_rule_evidence(&plan, rule_evidence_files)?;
     let strict_derivation_verified = plan
         .strict_source_policy_derivation_evidence_relative_path
@@ -520,6 +527,51 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
             }
             (None, None) => {}
             _ => return Err(format!("{}: evidence path and SHA-256 must be present together", assessment.rule_id)),
+        }
+    }
+    Ok(())
+}
+
+fn validate_source_rule_values(
+    assessments: &[RuleAssessment],
+    profile: Option<&Value>,
+) -> Result<(), String> {
+    for assessment in assessments {
+        let requires_source_value = matches!(
+            assessment.classification,
+            RuleClassification::SourcePreserved
+                | RuleClassification::VersionMigratedEquivalent
+                | RuleClassification::ExplicitlyWaived
+                | RuleClassification::Relaxed
+        ) || assessment.source_value.is_some();
+
+        if !requires_source_value {
+            continue;
+        }
+        let profile = profile.ok_or_else(|| {
+            format!("{}: source rule value cannot be verified without pinned source rule-profile bytes", assessment.rule_id)
+        })?;
+        let pointer = assessment.source_rule_json_pointer.as_deref()
+            .ok_or_else(|| format!("{}: source_rule_json_pointer is required to verify source value", assessment.rule_id))?;
+        if !pointer.starts_with('/') {
+            return Err(format!("{}: source_rule_json_pointer must be an absolute JSON pointer", assessment.rule_id));
+        }
+        let value = profile.pointer(pointer).ok_or_else(|| {
+            format!("{}: source JSON pointer does not resolve in the pinned rule profile: {pointer}", assessment.rule_id)
+        })?;
+        let observed = match value {
+            Value::String(value) => value.clone(),
+            Value::Number(value) => value.to_string(),
+            Value::Bool(value) => value.to_string(),
+            Value::Null | Value::Array(_) | Value::Object(_) => {
+                return Err(format!("{}: source rule JSON pointer must resolve to a scalar value", assessment.rule_id));
+            }
+        };
+        if assessment.source_value.as_deref() != Some(observed.as_str()) {
+            return Err(format!(
+                "{}: declared source_value does not match pinned source JSON pointer {pointer}",
+                assessment.rule_id
+            ));
         }
     }
     Ok(())
