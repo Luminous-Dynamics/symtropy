@@ -3075,7 +3075,7 @@ mod tests {
         let mut bad_path = intake.clone();
         bad_path.boards[0].license_evidence_relative_path = "../outside.txt".into();
         assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&bad_path).unwrap(), &root)
-            .unwrap_err().contains("traversal"));
+            .unwrap_err().contains("unsafe dataset-relative source path"));
 
         let mut alias = intake.clone();
         alias.boards[1].license_evidence_relative_path = alias.boards[0].license_evidence_relative_path.clone();
