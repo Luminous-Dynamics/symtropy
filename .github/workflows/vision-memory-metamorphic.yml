@@ -59,72 +59,9 @@ jobs:
           cmp vis-mem-metamorphic.tsv vis-mem-metamorphic-repeat.tsv
           grep -Fq $'META\tformat\tVIS-MEM-018-v0.1' vis-mem-metamorphic.tsv
           grep -Fq $'ROW\tstale_after_payload_eviction\tsource_revision_upsert\t2' vis-mem-metamorphic.tsv
-          grep -Fq 
-          awk -F '\t' '
-            $1 == "ROW_HEADER" { if (NF != 15) bad=1; rh++ }
-            $1 == "ROW" { if (NF != 15) bad=1; r++ }
-            $1 == "SUMMARY_HEADER" { if (NF != 10) bad=1; sh++ }
-            $1 == "SUMMARY" { if (NF != 10) bad=1; s++ }
-            END { if (bad || rh != 1 || r != 96 || sh != 1 || s != 32) exit 1 }
-          ' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "ROW" && $11 > $4 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "SUMMARY" && $9 != 0 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          sha256sum vis-mem-metamorphic.tsv > vis-mem-metamorphic.sha256
-          sha256sum -c vis-mem-metamorphic.sha256
-
-      - name: Upload metamorphic counterexamples and report
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-018-metamorphic-contracts
-          path: |
-            vis-mem-metamorphic.tsv
-            vis-mem-metamorphic.sha256
-          if-no-files-found: error
-ROW\tequal_revision_conflict\tconflict_aware_watermark\t4' vis-mem-metamorphic.tsv
-          grep -Fq 
-          awk -F '\t' '
-            $1 == "ROW_HEADER" { if (NF != 15) bad=1; rh++ }
-            $1 == "ROW" { if (NF != 15) bad=1; r++ }
-            $1 == "SUMMARY_HEADER" { if (NF != 10) bad=1; sh++ }
-            $1 == "SUMMARY" { if (NF != 10) bad=1; s++ }
-            END { if (bad || rh != 1 || r != 96 || sh != 1 || s != 32) exit 1 }
-          ' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "ROW" && $11 > $4 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "SUMMARY" && $9 != 0 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          sha256sum vis-mem-metamorphic.tsv > vis-mem-metamorphic.sha256
-          sha256sum -c vis-mem-metamorphic.sha256
-
-      - name: Upload metamorphic counterexamples and report
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-018-metamorphic-contracts
-          path: |
-            vis-mem-metamorphic.tsv
-            vis-mem-metamorphic.sha256
-          if-no-files-found: error
-ROW\tseeded_revision_permutation_sweep\tlatest_arrival\t8' vis-mem-metamorphic.tsv
-          grep -Fq 
-          awk -F '\t' '
-            $1 == "ROW_HEADER" { if (NF != 15) bad=1; rh++ }
-            $1 == "ROW" { if (NF != 15) bad=1; r++ }
-            $1 == "SUMMARY_HEADER" { if (NF != 10) bad=1; sh++ }
-            $1 == "SUMMARY" { if (NF != 10) bad=1; s++ }
-            END { if (bad || rh != 1 || r != 96 || sh != 1 || s != 32) exit 1 }
-          ' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "ROW" && $11 > $4 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          awk -F '\t' '$1 == "SUMMARY" && $9 != 0 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
-          sha256sum vis-mem-metamorphic.tsv > vis-mem-metamorphic.sha256
-          sha256sum -c vis-mem-metamorphic.sha256
-
-      - name: Upload metamorphic counterexamples and report
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-018-metamorphic-contracts
-          path: |
-            vis-mem-metamorphic.tsv
-            vis-mem-metamorphic.sha256
-          if-no-files-found: error
-META\tpermutation_seeds\t1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16' vis-mem-metamorphic.tsv
+          grep -Fq $'ROW\tequal_revision_conflict\tconflict_aware_watermark\t4' vis-mem-metamorphic.tsv
+          grep -Fq $'ROW\tseeded_revision_permutation_sweep\tlatest_arrival\t8' vis-mem-metamorphic.tsv
+          grep -Fq $'META\tpermutation_seeds\t1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16' vis-mem-metamorphic.tsv
           awk -F '\t' '
             $1 == "ROW_HEADER" { if (NF != 15) bad=1; rh++ }
             $1 == "ROW" { if (NF != 15) bad=1; r++ }
