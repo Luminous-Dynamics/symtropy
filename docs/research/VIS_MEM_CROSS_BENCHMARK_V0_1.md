@@ -384,3 +384,36 @@ The artifact verifier checks expected task roster, raw episode array lengths/see
 For the native comparison, include (under identical model/backbone, training allowance, seeds, wrappers and action executor): no persistent memory; frame/context window; external episodic retrieval; fixed-size learned recurrent/associative memory (MemBodied-like); revision-aware evidence ledger; and a learned-state + evidence-ledger hybrid. Keep the 22 tasks' canonical metrics intact, report resource/training costs, and preserve the ten-task Reactive split as an independent negative control so added memory is not rewarded when the answer is already visible.
 
 Recent benchmarks independently support this lifecycle-aware approach: WorldMemArena spans 400 multi-session multimodal tasks and separates write, maintain, retrieve and use; EmbodiedMemory-Bench has 2,554 interaction episodes across four task families and describes weak dynamic-state tracking and interaction-derived updates; MemBodied reports that fixed-size learned associative memory can outperform its vanilla recurrent baseline on RMBench. These paper/project results are external references and are not pooled with Symtropy synthetic results or treated as a controlled comparison. Sources: https://arxiv.org/abs/2605.29341, https://arxiv.org/abs/2609.28236, https://arxiv.org/abs/2609.28256.
+
+
+## State tracking and repeatability are separate evaluation axes
+
+Two complementary 2026 resources widen the native evaluation plan beyond robot manipulation:
+
+### StateMemBench — current state versus superseded state
+
+[StateMemBench](https://arxiv.org/abs/2608.19652) provides 234 multi-session synthetic scenarios and 322 probes. Its closed-pool grading distinguishes answers reflecting current state, superseded state, and failure. This directly measures a failure that recall@k can miss: the system retrieves the relevant fact but still uses an outdated version.
+
+The authors report current-state accuracy of 0.363 versus 0.205 for the strongest same-backbone baseline in a DeepSeek-V4-Flash setting, and 0.233 versus 0.149 for the strongest memory-system baseline in a Qwen-3.5-9B setting. A lightweight answer-time state wrapper is reported to improve several memory/retrieval backends by 32–67 absolute points on that benchmark; length/cost-matched controls attribute 15–32 points to state structure. These are paper-reported results, not Symtropy results or directly comparable robotics scores. Before integration, freeze the exact official artifacts, protocol, model/backbone, and license; the paper's public code/data availability should not be treated as commercial clearance without checking the actual repository/assets.
+
+### STATE-Bench — production-style procedural reliability
+
+[Microsoft STATE-Bench](https://github.com/microsoft/STATE-Bench) is MIT-licensed software and includes 450 synthetic multi-step tasks across travel, customer support, and shopping. It includes a memory/learning track with 100 prior trajectories per domain and 50 held-out tasks per domain. Its metrics include pass@1, pass^5 (the fraction of tasks succeeding in all five runs), user-experience score, and cost per task. The locked simulator and judge use GPT-5.4 in the official protocol, and the tasks are generated synthetically by LLMs; results therefore measure the published protocol and do not by themselves establish real-world enterprise deployment performance.
+
+This is useful for testing whether a memory mechanism improves repeatability and procedure compliance rather than only factual recall. Its harness requires Python 3.12+ and provider/API setup; use it as an external evaluation adapter while retaining Rust as the production memory implementation. The agent-learning track requires leak-free separation: learn only from the provided training trajectories, expose the memory through the required retrieval hook, and never use held-out test task definitions as memory-writer inputs.
+
+## Revised native benchmark matrix
+
+Keep metrics separate across these settings instead of constructing a blended league table:
+
+| Evaluation layer | Primary question | Required outcome measures |
+|---|---|---|
+| VIS-MEM deterministic Rust contracts | Does state/version/admission/capacity logic obey its declared invariants? | Falsification cases, stale revival, conflict visibility, capacity, deterministic receipts |
+| StateMemBench | Does memory answer with the current rather than superseded state? | Current-state accuracy, superseded-state errors, failed/abstained answers, write/read/context cost |
+| MIKASA-Robo-VLA Long | Does memory improve long-horizon physical task execution? | Official task-macro SR, per-task/per-memory-type SR, paired task/seed intervals, reactive-control regression |
+| STATE-Bench Agent Learning Track | Does stored experience improve procedural execution and repeatability? | pass@1, pass^5, cost/task, UX score, held-out-domain/task regressions |
+| WorldMemArena / EmbodiedMemory-Bench | Does multimodal memory survive write → maintain → retrieve → use through interaction? | Official task-family metrics, state-update correctness, memory/resource costs; apply separate license gates |
+
+For every native evaluation, compare at least: no persistent memory, frame/context window, external episodic retrieval, learned fixed-size recurrent/associative memory (MemBodied-like), revision-aware state/evidence ledger, and the ledger + compact learned-state hybrid. Match model/backbone, observation/action interface, task IDs, seeds, training budget, and tool limits wherever the protocol permits. Show pass@1 and pass^5 or their native equivalents, not just average success; report write/read latency, memory footprint, model tokens, verification/tool calls, and training cost on separate axes.
+
+The strongest research hypothesis is now narrower and more falsifiable: **a compact learned state provides low-latency working memory; a revision-aware evidence ledger preserves provenance, supersession, and conflict resolution; exact state evidence guards against over-trusting approximate similarity.** The combination only wins if it beats the strongest eligible baseline under fixed budgets without regressing direct-observation controls or inflating verification cost. That is a prospective hypothesis, not an established SOTA result.
