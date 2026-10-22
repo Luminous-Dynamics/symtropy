@@ -65,14 +65,12 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             });
 
             let signed_start_shift = i64::from(pick(&mut state, 7)) - 2;
-            let actual_start: u64 =
-                (i64::try_from(planned_start).unwrap() + signed_start_shift)
-                    .try_into()
-                    .unwrap();
+            let actual_start: u64 = (i64::try_from(planned_start).unwrap() + signed_start_shift)
+                .try_into()
+                .unwrap();
             let signed_duration_shift = i64::from(pick(&mut state, 5)) - 1;
-            let actual_duration = (i64::try_from(planned_duration).unwrap()
-                + signed_duration_shift)
-                .max(1) as u64;
+            let actual_duration =
+                (i64::try_from(planned_duration).unwrap() + signed_duration_shift).max(1) as u64;
             let actual_completion = actual_start + actual_duration;
             let start_recorded = actual_start + u64::from(pick(&mut state, 4));
             let completion_recorded = actual_completion + u64::from(pick(&mut state, 4));
@@ -102,7 +100,10 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             events.reverse();
         }
         let report = replay_execution(&plan, &events, cutoff);
-        assert!(report.evidence_valid, "case produced invalid evidence: {report:?}");
+        assert!(
+            report.evidence_valid,
+            "case produced invalid evidence: {report:?}"
+        );
 
         let mut starts: BTreeMap<&str, u64> = BTreeMap::new();
         let mut completions: BTreeMap<&str, u64> = BTreeMap::new();
@@ -169,18 +170,19 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             .iter()
             .filter_map(|operation| {
                 starts.get(operation.operation_id.as_str()).map(|actual| {
-                    (i128::from(*actual) - i128::from(operation.planned_start_tick))
-                        .unsigned_abs()
+                    (i128::from(*actual) - i128::from(operation.planned_start_tick)).unsigned_abs()
                 })
             })
             .sum::<u128>();
         let expected_total_absolute_completion_deviation = plan
             .iter()
             .filter_map(|operation| {
-                completions.get(operation.operation_id.as_str()).map(|actual| {
-                    (i128::from(*actual) - i128::from(operation.planned_end_tick))
-                        .unsigned_abs()
-                })
+                completions
+                    .get(operation.operation_id.as_str())
+                    .map(|actual| {
+                        (i128::from(*actual) - i128::from(operation.planned_end_tick))
+                            .unsigned_abs()
+                    })
             })
             .sum::<u128>();
         let expected_duration_overrun = plan
@@ -205,7 +207,10 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         assert_eq!(report.metrics.planned_operations, plan.len());
         assert_eq!(report.metrics.operations_started, starts.len());
         assert_eq!(report.metrics.operations_completed, completions.len());
-        assert_eq!(report.metrics.operations_fully_observed, expected_fully_observed);
+        assert_eq!(
+            report.metrics.operations_fully_observed,
+            expected_fully_observed
+        );
         assert_eq!(report.metrics.missing_start_events, expected_missing_starts);
         assert_eq!(
             report.metrics.late_start_operations,
@@ -252,8 +257,12 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         cases += 1;
         observed_start_events += starts.len();
         observed_completion_events += completions.len();
-        if held_back_count > 0 { cases_with_held_back_evidence += 1; }
-        if expected_total_completion_lateness > 0 { late_completion_cases += 1; }
+        if held_back_count > 0 {
+            cases_with_held_back_evidence += 1;
+        }
+        if expected_total_completion_lateness > 0 {
+            late_completion_cases += 1;
+        }
     }
 
     assert_eq!(cases, CASES);
