@@ -283,7 +283,7 @@ mod tests {
         assert!(result.shear_slenderness_indicator > 100.0);
         assert!(
             result
-                .static_cantilever_shear_deflection_fraction_proxy
+                .uncorrected_static_cantilever_shear_deflection_ratio_proxy
                 .expect("static proxy")
                 < 0.03
         );
