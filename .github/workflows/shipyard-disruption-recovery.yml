@@ -8,7 +8,7 @@ on:
       - "tools/shipyard-space-time/**"
       - ".github/workflows/shipyard-disruption-recovery.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "research/shipyard-disruption-recovery-v0"]
     paths:
       - "tools/shipyard-disruption-recovery/**"
       - "tools/shipyard-space-time/**"
