@@ -111,9 +111,19 @@ impl PhysicsSimulator for SymtropyFlightSimulator {
             self.external_force_n = [0.0; 3];
             return;
         }
+        // Reject a malformed action before it can be applied to the physics state.
+        if !cmd.to_ctrl().iter().all(|value| value.is_finite()) {
+            self.invalid_inputs = self.invalid_inputs.saturating_add(1);
+            self.external_force_n = [0.0; 3];
+            return;
+        }
         let command = cmd.clamped();
         let external_force = self.external_force_n;
         self.external_force_n = [0.0; 3];
+        if !external_force.iter().all(|value| value.is_finite()) {
+            self.invalid_inputs = self.invalid_inputs.saturating_add(1);
+            return;
+        }
         if let Some(body) = self.world.body_mut(self.body) {
             let body_z = SVector::from([0.0, 0.0, 1.0]);
             let thrust_world = body.transform.rotation.rotate_vector(&body_z) * (command.thrust as f64);
@@ -246,6 +256,21 @@ mod tests {
         sim.step(&QuadrotorCommand::hover(),0.01); assert!(sim.state().position[0]>=first);
         assert_eq!(sim.invalid_input_count(),0);
     }
+    #[test]
+    fn non_finite_command_is_rejected_before_mutating_physics() {
+        let mut sim = SymtropyFlightSimulator::new();
+        sim.reset(0.4);
+        let before = sim.state().clone();
+        let command = QuadrotorCommand {
+            thrust: f32::NAN,
+            ..QuadrotorCommand::hover()
+        };
+        sim.step(&command, 1.0 / 500.0);
+        assert!(sim.state().is_finite());
+        assert_eq!(sim.state().position, before.position);
+        assert_eq!(sim.invalid_input_count(), 1);
+    }
+
     #[test]
     fn rotation_round_trips_through_symtropy_matrix() {
         let input=normalize_quaternion_value([0.91,0.12,-0.24,0.31]);
