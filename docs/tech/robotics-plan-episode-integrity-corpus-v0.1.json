@@ -1,0 +1,673 @@
+{
+  "suite_id": "ROBOT_PLAN_EPISODE_INTEGRITY",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "purpose": "Temporal plan-integrity fixtures for detecting stale validation, revoked authority, changed resources, replay, and fail-open event handling.",
+  "claim_ceiling": "Synthetic software-contract fixtures only. No robot-performance, physical-safety, field-readiness, or standards-conformity claim.",
+  "execution_mode": "plan_eligibility_only_no_actuation",
+  "expected_episode_count": 15,
+  "revision_keys": [
+    "world",
+    "calibration",
+    "tool_profile",
+    "authorization",
+    "localization",
+    "resources",
+    "permissions"
+  ],
+  "gate_keys": [
+    "calibration_valid",
+    "tool_compatible",
+    "human_approval_valid",
+    "localization_valid",
+    "return_reserve_satisfied",
+    "authorization_valid",
+    "site_permission_valid",
+    "environment_within_envelope"
+  ],
+  "initial_state": {
+    "revisions": {
+      "world": 1,
+      "calibration": 7,
+      "tool_profile": 3,
+      "authorization": 11,
+      "localization": 4,
+      "resources": 20,
+      "permissions": 6
+    },
+    "gates": {
+      "calibration_valid": true,
+      "tool_compatible": true,
+      "human_approval_valid": true,
+      "localization_valid": true,
+      "return_reserve_satisfied": true,
+      "authorization_valid": true,
+      "site_permission_valid": true,
+      "environment_within_envelope": true
+    }
+  },
+  "episodes": [
+    {
+      "episode_id": "BASELINE_CURRENT_EVIDENCE",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": [],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "WORLD_CHANGES_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "world",
+          "new_revision": 2,
+          "gate_effects": {}
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "CALIBRATION_EXPIRES_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "calibration",
+          "new_revision": 8,
+          "gate_effects": {
+            "calibration_valid": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "TOOL_PROFILE_CHANGES_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "tool_profile",
+          "new_revision": 4,
+          "gate_effects": {
+            "tool_compatible": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "AUTHORIZATION_REVOKED_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "authorization",
+          "new_revision": 12,
+          "gate_effects": {
+            "authorization_valid": false,
+            "human_approval_valid": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "LOCALIZATION_LOST_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "localization",
+          "new_revision": 5,
+          "gate_effects": {
+            "localization_valid": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "RETURN_RESERVE_BREACHED_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "resources",
+          "new_revision": 21,
+          "gate_effects": {
+            "return_reserve_satisfied": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "SITE_PERMISSION_REVOKED_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "permissions",
+          "new_revision": 7,
+          "gate_effects": {
+            "site_permission_valid": false
+          }
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE",
+        "HARD_GATE_UNSATISFIED"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "STALE_SNAPSHOT_AT_PROPOSAL",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 0,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_VALIDATION_STALE"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "CANCEL_AND_REPLAN_AFTER_WORLD_CHANGE",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "world",
+          "new_revision": 2,
+          "gate_effects": {}
+        },
+        {
+          "sequence": 4,
+          "kind": "plan_cancelled",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 5,
+          "kind": "plan_proposed",
+          "plan_id": "P2",
+          "bound_revisions": {
+            "world": 2,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 6,
+          "kind": "plan_validated",
+          "plan_id": "P2"
+        },
+        {
+          "sequence": 7,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P2"
+        }
+      ],
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": [],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "NON_MONOTONIC_EVENT_SEQUENCE",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 3,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 2,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "EVENT_SEQUENCE_NOT_MONOTONIC"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "PLAN_ACCEPTANCE_REPLAY",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_NOT_ACTIVE"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "PHYSICAL_ACTUATION_ATTEMPT_IS_FORBIDDEN",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 4,
+          "kind": "physical_actuation_attempted"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PHYSICAL_ACTUATION_FORBIDDEN"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "UNKNOWN_EVENT_FAILS_CLOSED",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "sensor_claim_received"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "UNKNOWN_EVENT_KIND",
+        "NO_ACCEPTED_SIMULATED_PLAN"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "REVISION_ROLLBACK_AFTER_VALIDATION",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          }
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1"
+        },
+        {
+          "sequence": 3,
+          "kind": "state_changed",
+          "revision_key": "world",
+          "new_revision": 1,
+          "gate_effects": {}
+        },
+        {
+          "sequence": 4,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "REVISION_NOT_MONOTONIC",
+        "PLAN_VALIDATION_STALE"
+      ],
+      "expected_physical_actuation": false
+    }
+  ]
+}
