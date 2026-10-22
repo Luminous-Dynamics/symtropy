@@ -812,8 +812,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 Vec::with_capacity(report.replication_seeds.len());
             let mut nominal_intervention_effects =
                 Vec::with_capacity(report.replication_seeds.len());
-            let mut intervention_effect_deltas =
-                Vec::with_capacity(report.replication_seeds.len());
+            let mut intervention_effect_deltas = Vec::with_capacity(report.replication_seeds.len());
             for seed in &report.replication_seeds {
                 let outage_outcome = report
                     .replication_outcomes
@@ -838,9 +837,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     let outage_baseline = report
                         .replication_outcomes
                         .iter()
-                        .find(|outcome| {
-                            outcome.seed == *seed && outcome.scenario_id == "baseline"
-                        })
+                        .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
                         .ok_or_else(|| "paired_outage_baseline_seed_outcome_missing".to_string())?;
                     let nominal_baseline = no_outage_report
                         .replication_outcomes
@@ -851,29 +848,30 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                         .ok_or_else(|| {
                             "paired_no_outage_baseline_seed_outcome_missing".to_string()
                         })?;
-                    let outage_intervention_effect = outage_outcome.good_units_per_hour
-                        - outage_baseline.good_units_per_hour;
-                    let nominal_intervention_effect = nominal_outcome.good_units_per_hour
-                        - nominal_baseline.good_units_per_hour;
+                    let outage_intervention_effect =
+                        outage_outcome.good_units_per_hour - outage_baseline.good_units_per_hour;
+                    let nominal_intervention_effect =
+                        nominal_outcome.good_units_per_hour - nominal_baseline.good_units_per_hour;
                     outage_intervention_effects.push(outage_intervention_effect);
                     nominal_intervention_effects.push(nominal_intervention_effect);
-                    intervention_effect_deltas.push(
-                        outage_intervention_effect - nominal_intervention_effect,
-                    );
+                    intervention_effect_deltas
+                        .push(outage_intervention_effect - nominal_intervention_effect);
                 }
             }
             scenario_comparisons.push(PairedOutageScenarioComparison {
                 scenario_id: scenario.scenario_id.clone(),
                 intervention_station_id: scenario.intervention_station_id.clone(),
                 seed_count: scenario_deltas.len(),
-                paired_good_units_per_hour_delta_vs_no_outage:
-                    summarize_distribution(&scenario_deltas)?,
+                paired_good_units_per_hour_delta_vs_no_outage: summarize_distribution(
+                    &scenario_deltas,
+                )?,
                 paired_intervention_effect_vs_baseline_in_outage_model:
                     optional_distribution_summary(&outage_intervention_effects)?,
                 paired_intervention_effect_vs_baseline_in_no_outage_model:
                     optional_distribution_summary(&nominal_intervention_effects)?,
-                paired_intervention_effect_delta_vs_no_outage:
-                    optional_distribution_summary(&intervention_effect_deltas)?,
+                paired_intervention_effect_delta_vs_no_outage: optional_distribution_summary(
+                    &intervention_effect_deltas,
+                )?,
             });
         }
         report.structural_robust_intervention_summary = Some(
@@ -901,7 +899,9 @@ fn summarize_structural_intervention_decisions(
     scenario_comparisons: &[PairedOutageScenarioComparison],
 ) -> Result<StructuralRobustInterventionSummary, String> {
     if scenario_comparisons.len() < 2
-        || !scenario_comparisons.iter().any(|scenario| scenario.scenario_id == "baseline")
+        || !scenario_comparisons
+            .iter()
+            .any(|scenario| scenario.scenario_id == "baseline")
     {
         return Err("structural_summary_requires_baseline_and_intervention".into());
     }
@@ -944,26 +944,28 @@ fn summarize_structural_intervention_decisions(
 
     let intervention_scores: Vec<StructuralInterventionScore> = effects_by_scenario
         .iter()
-        .map(|(scenario_id, station_id, no_outage_effect, outage_effect)| {
-            StructuralInterventionScore {
-                scenario_id: scenario_id.clone(),
-                intervention_station_id: station_id.clone(),
-                family_effects: vec![
-                    StructuralFamilyEffect {
-                        family_id: "no_shared_control_outage".into(),
-                        mean_incremental_good_units_per_hour: *no_outage_effect,
-                    },
-                    StructuralFamilyEffect {
-                        family_id: "shared_control_outage".into(),
-                        mean_incremental_good_units_per_hour: *outage_effect,
-                    },
-                ],
-                worst_family_mean_incremental_good_units_per_hour: no_outage_effect
-                    .min(*outage_effect),
-                maximum_regret_units_per_hour: (best_no_outage - no_outage_effect)
-                    .max(best_shared_outage - outage_effect),
-            }
-        })
+        .map(
+            |(scenario_id, station_id, no_outage_effect, outage_effect)| {
+                StructuralInterventionScore {
+                    scenario_id: scenario_id.clone(),
+                    intervention_station_id: station_id.clone(),
+                    family_effects: vec![
+                        StructuralFamilyEffect {
+                            family_id: "no_shared_control_outage".into(),
+                            mean_incremental_good_units_per_hour: *no_outage_effect,
+                        },
+                        StructuralFamilyEffect {
+                            family_id: "shared_control_outage".into(),
+                            mean_incremental_good_units_per_hour: *outage_effect,
+                        },
+                    ],
+                    worst_family_mean_incremental_good_units_per_hour: no_outage_effect
+                        .min(*outage_effect),
+                    maximum_regret_units_per_hour: (best_no_outage - no_outage_effect)
+                        .max(best_shared_outage - outage_effect),
+                }
+            },
+        )
         .collect();
 
     let maximin = intervention_scores
@@ -1000,7 +1002,11 @@ fn summarize_structural_intervention_decisions(
                     .then_with(|| left.0.cmp(&right.0))
             })
             .ok_or_else(|| "structural_family_winner_missing".to_string())?;
-        let effect = if effect_index == 2 { winner.2 } else { winner.3 };
+        let effect = if effect_index == 2 {
+            winner.2
+        } else {
+            winner.3
+        };
         Ok(StructuralFamilyWinner {
             family_id: family_id.into(),
             scenario_id: winner.0.clone(),
@@ -1023,9 +1029,7 @@ fn summarize_structural_intervention_decisions(
     })
 }
 
-fn optional_distribution_summary(
-    values: &[f64],
-) -> Result<Option<DistributionSummary>, String> {
+fn optional_distribution_summary(values: &[f64]) -> Result<Option<DistributionSummary>, String> {
     if values.is_empty() {
         Ok(None)
     } else {
@@ -1300,7 +1304,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     return Err("overlapping_common_cause_control_outage_events".into());
                 }
                 state.common_cause_control_outage_active = true;
-                state.common_cause_control_outage_trace
+                state
+                    .common_cause_control_outage_trace
                     .push(CommonCauseControlOutageTraceEvent {
                         at_seconds: state.now,
                         transition: CommonCauseOutageTransition::Started,
@@ -1330,7 +1335,8 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     .common_cause_control_outage
                     .as_ref()
                     .ok_or_else(|| "outage_end_event_without_configuration".to_string())?;
-                state.common_cause_control_outage_trace
+                state
+                    .common_cause_control_outage_trace
                     .push(CommonCauseControlOutageTraceEvent {
                         at_seconds: state.now,
                         transition: CommonCauseOutageTransition::Ended,
@@ -1491,7 +1497,9 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
                 .common_cause_control_outage
                 .as_ref()
                 .is_some_and(|outage| {
-                    outage.station_ids.contains(&catalog.stations[index].station_id)
+                    outage
+                        .station_ids
+                        .contains(&catalog.stations[index].station_id)
                 });
         if in_common_cause_domain {
             runtime.metrics.common_cause_control_outage_seconds +=
@@ -1918,21 +1926,26 @@ mod tests {
         let catalog = fixture();
         let report = evaluate_catalog(&catalog).expect("baseline simulation");
         assert_eq!(report.catalog_config_sha256.len(), 64);
-        assert!(report.paired_common_cause_control_outage_baseline_comparison.is_none());
+        assert!(
+            report
+                .paired_common_cause_control_outage_baseline_comparison
+                .is_none()
+        );
         assert!(report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_config.is_none()
                 && scenario.common_cause_control_outage_trace.is_empty()
                 && scenario.common_cause_control_outage_starts_after_warmup == 0
                 && scenario.measured_common_cause_control_outage_seconds == 0.0
-                && scenario.stations.iter().all(|station| {
-                    station.common_cause_control_outage_fraction == 0.0
-                })
+                && scenario
+                    .stations
+                    .iter()
+                    .all(|station| station.common_cause_control_outage_fraction == 0.0)
         }));
     }
 
     #[test]
-    fn common_cause_control_outage_is_paired_deterministic_and_blocks_new_job_dispatch_and_transfers(
-    ) {
+    fn common_cause_control_outage_is_paired_deterministic_and_blocks_new_job_dispatch_and_transfers()
+    {
         let outage_catalog = common_cause_fixture();
         validate_catalog(&outage_catalog).expect("shared control outage fixture validates");
         let outage_report = evaluate_catalog(&outage_catalog).expect("shared control outage run");
@@ -1941,15 +1954,26 @@ mod tests {
         nominal_catalog.common_cause_control_outage = None;
         let nominal_report = evaluate_catalog(&nominal_catalog).expect("matched nominal run");
 
-        assert_eq!(outage_report, evaluate_catalog(&outage_catalog).expect("deterministic replay"));
+        assert_eq!(
+            outage_report,
+            evaluate_catalog(&outage_catalog).expect("deterministic replay")
+        );
         assert_eq!(outage_report.replication_count, 20);
-        assert_eq!(outage_report.replication_seeds, nominal_report.replication_seeds);
+        assert_eq!(
+            outage_report.replication_seeds,
+            nominal_report.replication_seeds
+        );
         assert_eq!(outage_report.catalog_config_sha256.len(), 64);
-        assert!(outage_report
-            .catalog_config_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
-        assert_ne!(outage_report.catalog_config_sha256, nominal_report.catalog_config_sha256);
+        assert!(
+            outage_report
+                .catalog_config_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        );
+        assert_ne!(
+            outage_report.catalog_config_sha256,
+            nominal_report.catalog_config_sha256
+        );
         assert_eq!(
             outage_report.catalog_config_sha256,
             evaluate_catalog(&outage_catalog)
@@ -1961,7 +1985,12 @@ mod tests {
             .as_ref()
             .expect("paired no-outage baseline comparison");
         assert_eq!(paired.seed_count, 20);
-        assert_eq!(paired.paired_good_units_per_hour_delta_vs_no_outage.sample_count, 20);
+        assert_eq!(
+            paired
+                .paired_good_units_per_hour_delta_vs_no_outage
+                .sample_count,
+            20
+        );
         assert!(
             paired
                 .paired_good_units_per_hour_delta_vs_no_outage
@@ -1974,7 +2003,10 @@ mod tests {
                 .mean_confidence_95_upper
                 .is_some()
         );
-        assert_eq!(paired.scenario_comparisons.len(), outage_report.scenario_count);
+        assert_eq!(
+            paired.scenario_comparisons.len(),
+            outage_report.scenario_count
+        );
         let baseline_comparison = paired
             .scenario_comparisons
             .iter()
@@ -2017,7 +2049,10 @@ mod tests {
         assert!(!structural.family_probabilities_used);
         assert!(!structural.model_families_treated_as_iid_replications);
         assert_eq!(structural.family_winners.len(), 2);
-        assert_eq!(structural.intervention_scores.len(), outage_report.scenario_count);
+        assert_eq!(
+            structural.intervention_scores.len(),
+            outage_report.scenario_count
+        );
         let best_no_outage = structural
             .family_winners
             .iter()
@@ -2039,8 +2074,8 @@ mod tests {
                 .abs()
                     < 1e-9
             );
-            let expected_regret = (best_no_outage - no_outage_gain)
-                .max(best_shared_outage - shared_outage_gain);
+            let expected_regret =
+                (best_no_outage - no_outage_gain).max(best_shared_outage - shared_outage_gain);
             assert!((score.maximum_regret_units_per_hour - expected_regret).abs() < 1e-9);
         }
         let independently_selected_maximin = structural
@@ -2053,7 +2088,10 @@ mod tests {
                     .then_with(|| left.scenario_id.cmp(&right.scenario_id))
             })
             .expect("independently recomputed maximin");
-        assert_eq!(structural.maximin_scenario_id, independently_selected_maximin.scenario_id);
+        assert_eq!(
+            structural.maximin_scenario_id,
+            independently_selected_maximin.scenario_id
+        );
         let independently_selected_regret = structural
             .intervention_scores
             .iter()
@@ -2078,18 +2116,21 @@ mod tests {
                     .collect::<Vec<_>>()
                     == vec![600, 900, 2_400, 2_700]
                 && scenario.stations.iter().all(|station| {
-                !["battery-module-install", "final-assembly"]
-                    .contains(&station.station_id.as_str())
-                    || station.new_job_dispatches_during_common_cause_outage_after_warmup == 0
-            })
-            && scenario.common_cause_control_outage_trace.iter().all(|event| {
-                    event.domain_id == "shared-line-control"
-                        && event.station_ids
-                            == vec![
-                                "battery-module-install".to_string(),
-                                "final-assembly".to_string(),
-                            ]
+                    !["battery-module-install", "final-assembly"]
+                        .contains(&station.station_id.as_str())
+                        || station.new_job_dispatches_during_common_cause_outage_after_warmup == 0
                 })
+                && scenario
+                    .common_cause_control_outage_trace
+                    .iter()
+                    .all(|event| {
+                        event.domain_id == "shared-line-control"
+                            && event.station_ids
+                                == vec![
+                                    "battery-module-install".to_string(),
+                                    "final-assembly".to_string(),
+                                ]
+                    })
                 && scenario.all_buffers_respected_capacity
                 && scenario.output_never_exceeds_released_input
                 && !scenario.release_ready
