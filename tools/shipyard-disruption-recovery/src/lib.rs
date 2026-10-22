@@ -1609,6 +1609,169 @@ mod tests {
     }
 
     #[test]
+    fn pareto_frontier_preserves_recovery_vs_displacement_tradeoffs() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 5, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let scenarios = [6, 8].map(|clear_tick| RecoveryEnvelopeScenario {
+            scenario_id: format!("clear-at-{clear_tick}"),
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: clear_tick,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+
+        let fast_far = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(8, 0, 10, 2), 5, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let slow_near = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(2, 0, 4, 2), 8, 12),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let unnecessary_churn = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(8, 0, 10, 2), 5, 10),
+                placement("unaffected", "block-c", rect(4, 2, 6, 4), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+
+        let alternatives = [
+            RecoveryEnvelopeAlternative {
+                candidate_id: "fast-far".to_owned(),
+                report: evaluate_recovery_envelope(&baseline, &fast_far, &scenarios),
+            },
+            RecoveryEnvelopeAlternative {
+                candidate_id: "slow-near".to_owned(),
+                report: evaluate_recovery_envelope(&baseline, &slow_near, &scenarios),
+            },
+            RecoveryEnvelopeAlternative {
+                candidate_id: "unnecessary-churn".to_owned(),
+                report: evaluate_recovery_envelope(&baseline, &unnecessary_churn, &scenarios),
+            },
+        ];
+
+        assert!(alternatives.iter().all(|alternative| alternative.report.robustly_accepted));
+        let report = pareto_recovery_candidates(&alternatives);
+
+        assert_eq!(
+            report.frontier.iter().map(|candidate| candidate.candidate_id.as_str()).collect::<Vec<_>>(),
+            vec!["fast-far", "slow-near"]
+        );
+        assert_eq!(report.dominated_candidate_ids, vec!["unnecessary-churn"]);
+        assert!(report.rejected_candidate_ids.is_empty());
+
+        let fast = report.frontier.iter().find(|candidate| candidate.candidate_id == "fast-far").unwrap();
+        let slow = report.frontier.iter().find(|candidate| candidate.candidate_id == "slow-near").unwrap();
+        assert!(fast.score.worst_case_recovery_horizon_ticks < slow.score.worst_case_recovery_horizon_ticks);
+        assert!(fast.score.worst_case_rectangle_edge_shift_units > slow.score.worst_case_rectangle_edge_shift_units);
+    }
+
+    #[test]
+    fn pareto_frontier_excludes_candidates_that_fail_any_robust_scenario() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 5, 10),
+            ],
+            ..Scenario::default()
+        };
+        let robust_candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 2, 2, 4), 5, 10),
+            ],
+            ..Scenario::default()
+        };
+        let fragile_candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 6, 10),
+            ],
+            ..Scenario::default()
+        };
+        let scenarios = [6, 7].map(|clear_tick| RecoveryEnvelopeScenario {
+            scenario_id: format!("clear-at-{clear_tick}"),
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: clear_tick,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+        let alternatives = [
+            RecoveryEnvelopeAlternative {
+                candidate_id: "robust".to_owned(),
+                report: evaluate_recovery_envelope(&baseline, &robust_candidate, &scenarios),
+            },
+            RecoveryEnvelopeAlternative {
+                candidate_id: "fragile".to_owned(),
+                report: evaluate_recovery_envelope(&baseline, &fragile_candidate, &scenarios),
+            },
+        ];
+
+        let report = pareto_recovery_candidates(&alternatives);
+
+        assert_eq!(
+            report.frontier.iter().map(|candidate| candidate.candidate_id.as_str()).collect::<Vec<_>>(),
+            vec!["robust"]
+        );
+        assert_eq!(report.rejected_candidate_ids, vec!["fragile"]);
+        assert!(report.dominated_candidate_ids.is_empty());
+    }
+
+    #[test]
+    fn pareto_frontier_rejects_duplicate_candidate_ids() {
+        let empty_envelope = RecoveryEnvelopeReport {
+            robustly_accepted: true,
+            metrics: RecoveryEnvelopeMetrics::default(),
+            violations: Vec::new(),
+            scenarios: Vec::new(),
+        };
+        let alternatives = [
+            RecoveryEnvelopeAlternative {
+                candidate_id: "candidate-a".to_owned(),
+                report: empty_envelope.clone(),
+            },
+            RecoveryEnvelopeAlternative {
+                candidate_id: "candidate-a".to_owned(),
+                report: empty_envelope,
+            },
+        ];
+        let report = pareto_recovery_candidates(&alternatives);
+        assert!(report.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryParetoViolationCode::DuplicateCandidateId
+        }));
+    }
+
+    #[test]
     fn candidate_churn_on_unaffected_reservation_is_measured_separately() {
         let baseline = Scenario {
             yard_bounds: Some(yard()),
