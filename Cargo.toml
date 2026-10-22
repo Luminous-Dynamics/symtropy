@@ -124,6 +124,7 @@ exclude = [
 ]
 members = [
     ".",
+    "tools/ocean-observation-allocation-bench",
     "crates/apps/symtropy-cli",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
