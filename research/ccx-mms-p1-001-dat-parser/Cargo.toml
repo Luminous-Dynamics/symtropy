@@ -5,8 +5,16 @@ edition = "2024"
 rust-version = "1.85"
 publish = false
 
+[dependencies]
+ccx-mms-p1-mesh = { path = "../ccx-mms-p1-001-mesh" }
+ccx-mms-p1-oracle = { path = "../ccx-mms-p1-001-oracle" }
+
 [lib]
 path = "src/lib.rs"
+
+[[bin]]
+name = "mms-p1-real-verify"
+path = "src/bin/mms-p1-real-verify.rs"
 
 [lints.rust]
 unsafe_code = "forbid"
