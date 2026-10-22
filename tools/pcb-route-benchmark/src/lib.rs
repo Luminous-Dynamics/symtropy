@@ -15,6 +15,7 @@ pub const COMPARISON_SCHEMA: &str = "pcb-route-paired-comparison-v0.1";
 pub const BOOTSTRAP_RESAMPLES: usize = 10_000;
 
 pub mod anytime;
+pub mod design_skeleton;
 pub mod kicad_drc;
 pub mod pcbworld_metrics;
 
@@ -103,6 +104,8 @@ pub struct BoardPin {
     pub license_evidence_source_commit_sha: Option<String>,
     #[serde(default)]
     pub license_evidence_git_blob_sha1: Option<String>,
+    #[serde(default)]
+    pub design_skeleton_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -356,6 +359,33 @@ pub struct RunArtifactVerificationReceipt {
     pub dataset_manifest_sha256: String,
     pub verified_artifact_count: usize,
     pub entries: Vec<RunArtifactVerificationEntry>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct BoardDesignSkeletonVerification {
+    pub board_id: String,
+    pub input_board_sha256: String,
+    pub output_board_sha256: String,
+    pub input_skeleton_sha256: String,
+    pub output_skeleton_sha256: String,
+    pub skeleton_matches: bool,
+    pub excluded_output_segments: usize,
+    pub excluded_output_vias: usize,
+    pub excluded_output_routed_arcs: usize,
+    pub excluded_output_zone_fill_polygons: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct DesignSkeletonRunVerificationReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub run_id: String,
+    pub input_report_sha256: String,
+    pub dataset_manifest_sha256: String,
+    pub verified_board_count: usize,
+    pub boards: Vec<BoardDesignSkeletonVerification>,
     pub authority: String,
     pub claim_ceiling: String,
 }
