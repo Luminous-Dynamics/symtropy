@@ -143,6 +143,9 @@ fn evaluate(
             sim.apply_external_force(force);
         }
         sim.step(&command, dt);
+        if authority > 0.0 && step > 0 && step % 100 == 0 {
+            controller.normalize_states();
+        }
     }
 
     Metrics {
@@ -179,6 +182,7 @@ fn main() {
         early_termination: true,
         genesis_phrase: "symthaea-symtropy-bounded-residual-v0.1".to_owned(),
         curriculum: training_setpoints(),
+        use_pid: false,
         ..FlightConfig::default()
     };
     let mut trainer = FlightTrainer::new(config.clone());
@@ -272,6 +276,7 @@ fn main() {
             "episodes_reported_by_trainer": training_metrics.len(),
             "steps_per_episode_configured": train_steps,
             "training_scenario_ids": training_ids,
+            "training_target_policy": "FlightTrainer PD command imitation (FlightConfig.use_pid=false)",
             "policy_genesis": config.genesis_phrase
         },
         "evaluation": {
