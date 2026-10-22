@@ -2705,6 +2705,43 @@ mod tests {
     const EVALUATOR_HEAD: &str = "abababababababababababababababababababab";
 
     #[test]
+    fn pinned_chickadee_license_evidence_does_not_authorize_benchmark_execution() {
+        let raw = include_str!("../fixtures/pcbworld-d3-pilot-source-metadata-audit-v0_1.json");
+        let audit: LicenseAuditManifest =
+            serde_json::from_str(raw).expect("pinned source-license audit fixture parses");
+        assert_eq!(audit.status, "metadata_inventory_only_not_benchmark_manifest");
+        let board = audit
+            .boards
+            .iter()
+            .find(|board| board.board_id == "0400_laptimer58_Chickadee")
+            .expect("candidate is pinned in the audit");
+        assert!(board.pcbench_reported_licenses.is_empty());
+        assert_eq!(
+            board.license_match_status.as_deref(),
+            Some("source_license_resolved_no_pcbench_license_metadata")
+        );
+        let evidence = board
+            .primary_source_license_evidence
+            .as_ref()
+            .expect("immutable source license evidence is recorded");
+        assert_eq!(evidence.resolved_spdx_id, "CC-BY-SA-4.0");
+        assert_eq!(
+            evidence.git_blob_sha1,
+            "bd5c070f6aba4a89aa8b734c01301f4fe1387411"
+        );
+        assert_eq!(
+            evidence.source_commit_sha,
+            "9156b36226a3adf92bc7e62562795ec622693bfb"
+        );
+        assert_eq!(
+            board.benchmark_eligibility,
+            "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+        );
+        let summary = serde_json::from_str::<serde_json::Value>(raw).unwrap();
+        assert_eq!(summary["license_summary"]["benchmark_eligible"], 0);
+    }
+
+    #[test]
     fn absent_pcbench_license_metadata_cannot_be_labelled_as_an_spdx_match() {
         let no_metadata: Vec<LicenseAuditReportedLicense> = Vec::new();
         assert!(
