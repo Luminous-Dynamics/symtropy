@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use shipyard_space_time::{Placement, Scenario};
 
 use crate::{
-    Disruption, PlacementOccupancyExtension,
+    Disruption, PlacementOccupancyExtension, RecoveryInput, RecoveryReport, evaluate_recovery,
     execution::{
         ExecutionEvent, ExecutionEventKind, ExecutionReplayCutoff, ExecutionReplayReport,
         PlannedOperation, replay_execution,
@@ -504,6 +504,66 @@ pub fn augment_disruption_from_execution(
         disruption: Some(disruption),
         receipts,
         violations,
+    }
+}
+
+/// All inputs required to run the execution-to-recovery loop without dropping provenance.
+pub struct ExecutionDrivenRecoveryInput<'a> {
+    pub baseline: &'a Scenario,
+    pub candidate: &'a Scenario,
+    pub planned_operations: &'a [PlannedOperation],
+    pub events: &'a [ExecutionEvent],
+    pub occupancy_witnesses: &'a [PlacementOccupancyWitness],
+    pub cutoff: ExecutionReplayCutoff,
+    pub decision_tick: u64,
+    pub prior_disruption: &'a Disruption,
+    pub bindings: &'a [PlacementClearanceBinding],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExecutionDrivenRecoveryReport {
+    /// True only when the evidence bridge and independent recovery evaluator both accept.
+    pub accepted: bool,
+    pub bridge: ExecutionRecoveryBridgeReport,
+    /// Absent if the evidence bridge failed; invalid evidence cannot reach the recovery evaluator.
+    pub recovery: Option<RecoveryReport>,
+}
+
+/// Run the closed loop: replay evidence, derive current occupancy constraints, then independently
+/// verify the proposed recovery candidate. No candidate evaluation is produced from invalid bridge
+/// evidence.
+pub fn evaluate_execution_driven_recovery(
+    input: &ExecutionDrivenRecoveryInput<'_>,
+) -> ExecutionDrivenRecoveryReport {
+    let bridge = augment_disruption_from_execution(
+        input.baseline,
+        input.planned_operations,
+        input.events,
+        input.occupancy_witnesses,
+        input.cutoff,
+        input.decision_tick,
+        input.prior_disruption,
+        input.bindings,
+    );
+
+    let Some(disruption) = bridge.disruption.as_ref() else {
+        return ExecutionDrivenRecoveryReport {
+            accepted: false,
+            bridge,
+            recovery: None,
+        };
+    };
+
+    let recovery = evaluate_recovery(&RecoveryInput {
+        baseline: input.baseline.clone(),
+        candidate: input.candidate.clone(),
+        disruption: disruption.clone(),
+    });
+    let accepted = bridge.accepted && recovery.accepted;
+    ExecutionDrivenRecoveryReport {
+        accepted,
+        bridge,
+        recovery: Some(recovery),
     }
 }
 
