@@ -1756,10 +1756,34 @@ mod tests {
             .common_cause_control_outage
             .as_mut()
             .expect("outage configuration")
+            .station_ids[0] = "unregistered-station".into();
+        assert!(
+            validate_catalog(&catalog)
+                .expect_err("unknown domain station")
+                .contains("common_cause_control_outage_station_unknown_or_duplicate")
+        );
+
+        let mut catalog = common_cause_fixture();
+        catalog
+            .common_cause_control_outage
+            .as_mut()
+            .expect("outage configuration")
             .duration_seconds = 1_800;
         assert!(
             validate_catalog(&catalog)
                 .expect_err("overlapping outages")
+                .contains("common_cause_control_outage_configuration_invalid")
+        );
+
+        let mut catalog = common_cause_fixture();
+        catalog
+            .common_cause_control_outage
+            .as_mut()
+            .expect("outage configuration")
+            .first_start_seconds = catalog.horizon_seconds;
+        assert!(
+            validate_catalog(&catalog)
+                .expect_err("boundary-only outage")
                 .contains("common_cause_control_outage_configuration_invalid")
         );
     }
