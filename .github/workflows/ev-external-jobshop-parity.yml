@@ -197,6 +197,53 @@ jobs:
             and .rust_oracle_makespan_matched
             and (.reference_schedule | length) == 6
           ' ev-external-reference-cp-sat-case03.json
+      - name: Evaluate deterministic greedy schedule baselines against exact makespan
+        run: |
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
+            > ev-external-dispatch-baselines-case01.json
+          jq -e '
+            .schema_version == "external-jobshop-dispatch-baselines/0.1"
+            and .status == "greedy_serial_schedule_baselines_compared_with_exact_oracle"
+            and .benchmark_id == "FJSP-SDST-FATTAHI-001"
+            and .exact_oracle_makespan == 70
+            and .exact_oracle_exhaustive
+            and .observed_operations == 4
+            and (.policies | length) == 4
+            and ([.policies[].policy] | sort) == ["earliest_completion_time","job_index_order","minimum_setup_plus_processing","shortest_processing_time"]
+            and all(.policies[]; .schedule_valid and .makespan >= 70 and .absolute_gap_vs_exact == (.makespan - 70) and .relative_gap_fraction_vs_exact >= 0 and (.schedule | length) == 4)
+            and (.claim_ceiling | contains("No due-date or tardiness results"))
+          ' ev-external-dispatch-baselines-case01.json
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_02_v0_2.json \
+            > ev-external-dispatch-baselines-case02.json
+          jq -e '
+            .schema_version == "external-jobshop-dispatch-baselines/0.1"
+            and .benchmark_id == "FJSP-SDST-FATTAHI-002"
+            and .exact_oracle_makespan == 112
+            and .exact_oracle_exhaustive
+            and .observed_operations == 4
+            and (.policies | length) == 4
+            and all(.policies[]; .schedule_valid and .makespan >= 112 and .absolute_gap_vs_exact == (.makespan - 112) and .relative_gap_fraction_vs_exact >= 0 and (.schedule | length) == 4)
+          ' ev-external-dispatch-baselines-case02.json
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_03_v0_2.json \
+            > ev-external-dispatch-baselines-case03.json
+          jq -e '
+            .schema_version == "external-jobshop-dispatch-baselines/0.1"
+            and .benchmark_id == "FJSP-SDST-FATTAHI-003"
+            and .exact_oracle_makespan == 233
+            and .exact_oracle_exhaustive
+            and .observed_operations == 6
+            and (.policies | length) == 4
+            and all(.policies[]; .schedule_valid and .makespan >= 233 and .absolute_gap_vs_exact == (.makespan - 233) and .relative_gap_fraction_vs_exact >= 0 and (.schedule | length) == 6)
+          ' ev-external-dispatch-baselines-case03.json
       - name: Negative control - mismatched setup matrix fails closed
         run: |
           sed 's/^6 3 4 4 /6 3 4 /' \
@@ -248,6 +295,24 @@ jobs:
             tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_03_v0_2.json \
             > ev-external-jobshop-parity-case03-repeat.json
           cmp ev-external-jobshop-parity-case03-report.json ev-external-jobshop-parity-case03-repeat.json
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
+            > ev-external-dispatch-baselines-case01-repeat.json
+          cmp ev-external-dispatch-baselines-case01.json ev-external-dispatch-baselines-case01-repeat.json
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_02_v0_2.json \
+            > ev-external-dispatch-baselines-case02-repeat.json
+          cmp ev-external-dispatch-baselines-case02.json ev-external-dispatch-baselines-case02-repeat.json
+          cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
+            --dispatch-baselines \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_03_v0_2.json \
+            > ev-external-dispatch-baselines-case03-repeat.json
+          cmp ev-external-dispatch-baselines-case03.json ev-external-dispatch-baselines-case03-repeat.json
           sha256sum \
             tools/ev-external-jobshop-parity/src/main.rs \
             tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs \
@@ -267,6 +332,9 @@ jobs:
             ev-external-reference-cp-sat-case03.json \
             ev-external-reference-cp-sat-case02.json \
             ev-external-reference-cp-sat.json \
+            ev-external-dispatch-baselines-case01.json \
+            ev-external-dispatch-baselines-case02.json \
+            ev-external-dispatch-baselines-case03.json \
             .github/workflows/ev-external-jobshop-parity.yml \
             > ev-external-jobshop-parity-report.sha256
       - uses: actions/upload-artifact@v4
@@ -279,5 +347,8 @@ jobs:
             ev-external-reference-cp-sat.json
             ev-external-reference-cp-sat-case02.json
             ev-external-reference-cp-sat-case03.json
+            ev-external-dispatch-baselines-case01.json
+            ev-external-dispatch-baselines-case02.json
+            ev-external-dispatch-baselines-case03.json
             ev-external-jobshop-parity-report.sha256
           if-no-files-found: error
