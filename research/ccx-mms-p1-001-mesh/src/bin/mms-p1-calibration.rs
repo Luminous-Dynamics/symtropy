@@ -1,4 +1,4 @@
-use ccx_mms_p1_mesh::{generate_mesh, ErrorNorms};
+use ccx_mms_p1_mesh::{generate_mesh, ErrorNorms, Mesh};
 use ccx_mms_p1_oracle::{ManufacturedProblem, Vec2};
 
 const RESOLUTIONS: [usize; 4] = [8, 16, 32, 64];
