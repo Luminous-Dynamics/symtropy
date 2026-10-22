@@ -465,4 +465,32 @@ mod tests {
         let report = audit_mass_balance(&value);
         assert_eq!(report.status, "PASS", "{:?}", report.findings);
     }
+
+    #[test]
+    fn unrecognized_evidence_status_is_unresolved() {
+        let mut value = ledger();
+        value["evidence_status"] = json!("unknown");
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|v| v.starts_with("EVIDENCE_STATUS:")));
+    }
+
+    #[test]
+    fn missing_tolerance_is_unresolved() {
+        let mut value = ledger();
+        value.as_object_mut().unwrap().remove("tolerance");
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|v| v.starts_with("MISSING_MASS_MAP:")));
+    }
+
+    #[test]
+    fn corpus_missing_robustness_control_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"].as_array_mut().unwrap().retain(|case| case["case_id"].as_str() != Some("single-scenario-cost-winner"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("ROBUST_SCENARIO_CONTROL:")));
+    }
 }
