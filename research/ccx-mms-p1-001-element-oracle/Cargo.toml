@@ -1,0 +1,23 @@
+[package]
+name = "ccx-mms-p1-element-oracle"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[dependencies]
+ccx-mms-p1-oracle = { path = "../ccx-mms-p1-001-oracle" }
+ccx-mms-p1-mesh = { path = "../ccx-mms-p1-001-mesh" }
+
+[[bin]]
+name = "triangle-patch-probe"
+path = "src/bin/triangle-patch-probe.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[workspace]
+resolver = "2"
