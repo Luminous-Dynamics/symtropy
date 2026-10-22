@@ -1767,13 +1767,13 @@ mod tests {
         let known_zone = zone("known-zone", rect(0, 0, 2, 2), 5, 10);
         let baseline = Scenario {
             yard_bounds: Some(yard()),
-            placements: vec![placement("block-a", "block-a", rect(0, 0, 2, 2), 5, 10)],
+            placements: vec![placement("block-a", "block-a", rect(2, 0, 4, 2), 5, 10)],
             exclusion_zones: vec![known_zone.clone()],
             ..Scenario::default()
         };
         let candidate_missing = Scenario {
             yard_bounds: Some(yard()),
-            placements: vec![placement("block-a", "block-a", rect(2, 0, 4, 2), 5, 10)],
+            placements: vec![placement("block-a", "block-a", rect(0, 0, 2, 2), 5, 10)],
             ..Scenario::default()
         };
         let carried = evaluate_recovery(&RecoveryInput {
@@ -1781,7 +1781,11 @@ mod tests {
             candidate: candidate_missing,
             disruption: empty_disruption(4),
         });
-        assert!(carried.accepted, "{:?}", carried.violations);
+        assert!(!carried.accepted);
+        assert!(carried.baseline_spatial_violations.is_empty());
+        assert!(carried.candidate_spatial_violations.iter().any(|violation| {
+            violation.code == ViolationCode::BlockFootprintOverlap
+        }));
 
         let candidate_redefined = Scenario {
             yard_bounds: Some(yard()),
