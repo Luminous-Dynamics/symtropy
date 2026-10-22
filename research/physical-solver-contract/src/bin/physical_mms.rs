@@ -46,7 +46,7 @@ fn usage() -> String {
     concat!(
         "usage: physical-mms generate --cells N --deck PATH --model-manifest PATH\n",
         "  required: --source-sha SHA40 --checkout-sha SHA40 --tool-sha SHA64\n",
-        "       physical-mms audit --cells N --deck PATH --dat PATH --model-manifest PATH\n",
+        "       physical-mms audit --cells N --deck PATH --dat PATH --frd PATH --model-manifest PATH\n",
         "  required: --build-manifest PATH --solver PATH --auditor PATH --process-log PATH\n",
         "            --run-manifest PATH --report PATH"
     )
@@ -66,6 +66,7 @@ fn parse_options(args: &[String]) -> Result<BTreeMap<String, String>, String> {
         "--checkout-sha",
         "--tool-sha",
         "--dat",
+        "--frd",
         "--build-manifest",
         "--solver",
         "--auditor",
@@ -262,6 +263,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let n = cells(options)?;
     let deck_path = required(options, "--deck")?;
     let dat_path = required(options, "--dat")?;
+    let frd_path = required(options, "--frd")?;
     let model_manifest_path = required(options, "--model-manifest")?;
     let build_manifest_path = required(options, "--build-manifest")?;
     let solver_path = required(options, "--solver")?;
@@ -272,6 +274,10 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
 
     let deck_bytes = read(&deck_path, "input deck")?;
     let dat_bytes = read(&dat_path, "solver .dat output")?;
+    let frd_bytes = read(&frd_path, "solver .frd output")?;
+    if frd_bytes.is_empty() {
+        return Err("solver .frd output must not be empty".to_owned());
+    }
     let model_manifest_bytes = read(&model_manifest_path, "model manifest")?;
     let build_manifest_bytes = read(&build_manifest_path, "build manifest")?;
     let solver_bytes = read(&solver_path, "solver executable")?;
@@ -309,6 +315,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
 
     let deck_sha = sha256_hex(&deck_bytes);
     let dat_sha = sha256_hex(&dat_bytes);
+    let frd_sha = sha256_hex(&frd_bytes);
     let model_manifest_sha = sha256_hex(&model_manifest_bytes);
     let build_manifest_sha = sha256_hex(&build_manifest_bytes);
     let solver_sha = sha256_hex(&solver_bytes);
@@ -328,6 +335,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         ("deck_sha256", deck_sha.as_str(), "run manifest"),
         ("auditor_executable_sha256", auditor_sha.as_str(), "run manifest"),
         ("dat_sha256", dat_sha.as_str(), "run manifest"),
+        ("frd_sha256", frd_sha.as_str(), "run manifest"),
         ("build_manifest_sha256", build_manifest_sha.as_str(), "run manifest"),
         ("solver_executable_sha256", solver_sha.as_str(), "run manifest"),
         ("process_log_sha256", process_log_sha.as_str(), "run manifest"),
@@ -417,6 +425,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         "model_manifest_sha256": model_manifest_sha,
         "deck_sha256": deck_sha,
         "dat_sha256": dat_sha,
+        "frd_sha256": frd_sha,
         "build_manifest_sha256": build_manifest_sha,
         "solver_executable_sha256": solver_sha,
         "auditor_executable_sha256": auditor_sha,
