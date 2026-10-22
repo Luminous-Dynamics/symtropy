@@ -1,0 +1,321 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "furnishing-layout-known-truth-001",
+  "status": "synthetic_specification_not_run",
+  "units": {
+    "length": "m",
+    "area": "m2",
+    "currency": "not_priced_in_v0_1"
+  },
+  "coordinate_frame": {
+    "kind": "room_local_floor_plan",
+    "origin": "south_west_floor_corner",
+    "x_axis": "east",
+    "y_axis": "north",
+    "geometry_model": "axis_aligned_2d_rectangles",
+    "rotation_degrees_allowed": [0, 90, 180, 270]
+  },
+  "scenarios": [
+    {
+      "scenario_id": "FURN-001",
+      "title": "Compact studio: preserve the declared circulation route",
+      "scope": "synthetic_only",
+      "notes": "The 0.9 m route is a frozen synthetic oracle dimension for this fixture only. It is not a universal clearance or code requirement.",
+      "room": {
+        "width_m": 4.0,
+        "depth_m": 5.0,
+        "geometry_evidence_state": "synthetic_known_truth"
+      },
+      "zones": [
+        {
+          "zone_id": "primary_route",
+          "kind": "keep_clear",
+          "rect": { "x_m": 0.0, "y_m": 0.0, "width_m": 0.9, "depth_m": 5.0 },
+          "evidence_state": "synthetic_known_truth"
+        }
+      ],
+      "catalog": [
+        { "item_id": "bed", "kind": "bed", "width_m": 2.0, "depth_m": 1.4, "front_access_depth_m": 0.6 },
+        { "item_id": "sofa", "kind": "sofa", "width_m": 1.8, "depth_m": 0.85, "front_access_depth_m": 0.5 },
+        { "item_id": "console", "kind": "console_table", "width_m": 0.8, "depth_m": 0.35 }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "route_remains_clear",
+          "kind": "zone_must_remain_clear",
+          "classification": "hard_constraint",
+          "target_zone_id": "primary_route",
+          "evidence_state": "synthetic_known_truth",
+          "must_be_satisfied_to_advance": true,
+          "source_note": "Synthetic benchmark oracle; not a building regulation."
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "console_blocks_route",
+          "placements": [
+            { "item_id": "bed", "x_m": 1.2, "y_m": 2.8, "rotation_degrees": 0 },
+            { "item_id": "sofa", "x_m": 2.1, "y_m": 0.3, "rotation_degrees": 0 },
+            { "item_id": "console", "x_m": 0.1, "y_m": 1.4, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "route_remains_clear",
+              "outcome": "fail",
+              "rationale": "The console rectangle intersects the frozen primary-route zone."
+            }
+          ],
+          "promotion_disposition": "blocked"
+        },
+        {
+          "alternative_id": "console_relocated",
+          "placements": [
+            { "item_id": "bed", "x_m": 1.2, "y_m": 2.8, "rotation_degrees": 0 },
+            { "item_id": "sofa", "x_m": 2.1, "y_m": 0.3, "rotation_degrees": 0 },
+            { "item_id": "console", "x_m": 3.2, "y_m": 3.2, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "route_remains_clear",
+              "outcome": "pass",
+              "rationale": "No listed furnishing rectangle intersects the frozen primary-route zone."
+            }
+          ],
+          "promotion_disposition": "candidate_only"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FURN-002",
+      "title": "Serviceable home: preserve access to a fixed service panel",
+      "scope": "synthetic_only",
+      "notes": "The service zone is a declared maintenance envelope. This fixture tests geometry conflict detection, not electrical safety or required working-space rules.",
+      "room": {
+        "width_m": 5.0,
+        "depth_m": 4.0,
+        "geometry_evidence_state": "synthetic_known_truth"
+      },
+      "zones": [
+        {
+          "zone_id": "panel_service_envelope",
+          "kind": "service_access",
+          "rect": { "x_m": 3.8, "y_m": 0.8, "width_m": 1.0, "depth_m": 1.5 },
+          "evidence_state": "synthetic_known_truth"
+        }
+      ],
+      "catalog": [
+        { "item_id": "bookcase", "kind": "bookcase", "width_m": 0.9, "depth_m": 0.35 },
+        { "item_id": "desk", "kind": "desk", "width_m": 1.2, "depth_m": 0.6, "front_access_depth_m": 0.7 },
+        { "item_id": "chair", "kind": "chair", "width_m": 0.6, "depth_m": 0.6 }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "panel_service_access_clear",
+          "kind": "zone_must_remain_clear",
+          "classification": "hard_constraint",
+          "target_zone_id": "panel_service_envelope",
+          "evidence_state": "synthetic_known_truth",
+          "must_be_satisfied_to_advance": true,
+          "source_note": "Synthetic service-access envelope; real installations require qualified review."
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "bookcase_obstructs_panel",
+          "placements": [
+            { "item_id": "bookcase", "x_m": 3.9, "y_m": 1.0, "rotation_degrees": 0 },
+            { "item_id": "desk", "x_m": 0.4, "y_m": 0.5, "rotation_degrees": 0 },
+            { "item_id": "chair", "x_m": 1.8, "y_m": 0.5, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "panel_service_access_clear",
+              "outcome": "fail",
+              "rationale": "The bookcase intersects the declared panel service-access envelope."
+            }
+          ],
+          "promotion_disposition": "blocked"
+        },
+        {
+          "alternative_id": "bookcase_outside_service_envelope",
+          "placements": [
+            { "item_id": "bookcase", "x_m": 2.7, "y_m": 2.9, "rotation_degrees": 0 },
+            { "item_id": "desk", "x_m": 0.4, "y_m": 0.5, "rotation_degrees": 0 },
+            { "item_id": "chair", "x_m": 1.8, "y_m": 0.5, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "panel_service_access_clear",
+              "outcome": "pass",
+              "rationale": "No listed furnishing rectangle intersects the declared panel service-access envelope."
+            }
+          ],
+          "promotion_disposition": "candidate_only"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FURN-003",
+      "title": "Shared living room: preserve competing household preferences",
+      "scope": "synthetic_only",
+      "notes": "Ratings are synthetic owner inputs used only to test Pareto logic. They are not measured comfort or inferred preferences. No weighted overall winner is declared.",
+      "room": {
+        "width_m": 5.0,
+        "depth_m": 4.0,
+        "geometry_evidence_state": "synthetic_known_truth"
+      },
+      "zones": [
+        {
+          "zone_id": "shared_activity_area",
+          "kind": "task_zone",
+          "rect": { "x_m": 0.8, "y_m": 0.8, "width_m": 3.8, "depth_m": 2.5 },
+          "evidence_state": "synthetic_known_truth"
+        }
+      ],
+      "catalog": [
+        { "item_id": "loveseat", "kind": "loveseat", "width_m": 1.8, "depth_m": 0.8 },
+        { "item_id": "dining_table", "kind": "dining_table", "width_m": 1.5, "depth_m": 0.8 },
+        { "item_id": "work_desk", "kind": "work_desk", "width_m": 1.2, "depth_m": 0.6 }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "hosting_preference",
+          "kind": "preference_tradeoff",
+          "classification": "owner_preference",
+          "evidence_state": "synthetic_known_truth",
+          "must_be_satisfied_to_advance": false,
+          "source_note": "Illustrative synthetic household preference; never infer from demographic attributes."
+        },
+        {
+          "requirement_id": "quiet_work_preference",
+          "kind": "preference_tradeoff",
+          "classification": "owner_preference",
+          "evidence_state": "synthetic_known_truth",
+          "must_be_satisfied_to_advance": false,
+          "source_note": "Illustrative synthetic household preference; household members may disagree."
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "hosting_forward",
+          "placements": [
+            { "item_id": "loveseat", "x_m": 0.8, "y_m": 2.4, "rotation_degrees": 0 },
+            { "item_id": "dining_table", "x_m": 2.8, "y_m": 0.9, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "hosting_preference",
+              "outcome": "pass",
+              "rationale": "This synthetic option favors the household's declared hosting dimension."
+            },
+            {
+              "requirement_id": "quiet_work_preference",
+              "outcome": "fail",
+              "rationale": "This synthetic option offers less of the declared quiet-work preference than the competing option."
+            }
+          ],
+          "preference_observations": [
+            { "dimension": "hosting", "value_0_to_100": 92, "evidence_state": "synthetic_owner_rating" },
+            { "dimension": "quiet_work", "value_0_to_100": 48, "evidence_state": "synthetic_owner_rating" },
+            { "dimension": "circulation_feel", "value_0_to_100": 75, "evidence_state": "synthetic_owner_rating" }
+          ],
+          "expected_pareto_relation": "incomparable",
+          "promotion_disposition": "candidate_only"
+        },
+        {
+          "alternative_id": "quiet_work_forward",
+          "placements": [
+            { "item_id": "loveseat", "x_m": 0.8, "y_m": 2.4, "rotation_degrees": 0 },
+            { "item_id": "work_desk", "x_m": 3.2, "y_m": 2.6, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "hosting_preference",
+              "outcome": "fail",
+              "rationale": "This synthetic option offers less of the declared hosting preference than the competing option."
+            },
+            {
+              "requirement_id": "quiet_work_preference",
+              "outcome": "pass",
+              "rationale": "This synthetic option favors the household's declared quiet-work dimension."
+            }
+          ],
+          "preference_observations": [
+            { "dimension": "hosting", "value_0_to_100": 52, "evidence_state": "synthetic_owner_rating" },
+            { "dimension": "quiet_work", "value_0_to_100": 91, "evidence_state": "synthetic_owner_rating" },
+            { "dimension": "circulation_feel", "value_0_to_100": 84, "evidence_state": "synthetic_owner_rating" }
+          ],
+          "expected_pareto_relation": "incomparable",
+          "promotion_disposition": "candidate_only"
+        }
+      ]
+    },
+    {
+      "scenario_id": "FURN-004",
+      "title": "Retrofit with unresolved site measurements: abstain from verification",
+      "scope": "synthetic_only",
+      "notes": "Nominal room dimensions support fixture-shape testing only. The production site's dimensions and geometry revision remain unknown, so neither candidate can be promoted from the nominal layout.",
+      "room": {
+        "width_m": 3.4,
+        "depth_m": 4.2,
+        "geometry_evidence_state": "unknown_for_real_site"
+      },
+      "zones": [
+        {
+          "zone_id": "nominal_entry_route",
+          "kind": "keep_clear",
+          "rect": { "x_m": 0.0, "y_m": 0.0, "width_m": 0.9, "depth_m": 4.2 },
+          "evidence_state": "synthetic_known_truth"
+        }
+      ],
+      "catalog": [
+        { "item_id": "bed", "kind": "bed", "width_m": 1.8, "depth_m": 2.0 },
+        { "item_id": "wardrobe", "kind": "wardrobe", "width_m": 0.8, "depth_m": 0.6 },
+        { "item_id": "desk", "kind": "desk", "width_m": 1.2, "depth_m": 0.6 }
+      ],
+      "requirements": [
+        {
+          "requirement_id": "site_geometry_known",
+          "kind": "required_geometry_evidence",
+          "classification": "unknown_requires_review",
+          "evidence_state": "unknown",
+          "must_be_satisfied_to_advance": true,
+          "source_note": "A nominal rectangle is not current measured-site evidence."
+        }
+      ],
+      "alternatives": [
+        {
+          "alternative_id": "compact_storage_nominal_only",
+          "placements": [
+            { "item_id": "bed", "x_m": 1.0, "y_m": 1.8, "rotation_degrees": 0 },
+            { "item_id": "wardrobe", "x_m": 2.8, "y_m": 3.0, "rotation_degrees": 90 },
+            { "item_id": "desk", "x_m": 2.0, "y_m": 0.4, "rotation_degrees": 0 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "site_geometry_known",
+              "outcome": "indeterminate",
+              "rationale": "The current site geometry, measurement coverage and revision are not available."
+            }
+          ],
+          "promotion_disposition": "blocked"
+        },
+        {
+          "alternative_id": "open_circulation_nominal_only",
+          "placements": [
+            { "item_id": "bed", "x_m": 1.0, "y_m": 1.8, "rotation_degrees": 0 },
+            { "item_id": "wardrobe", "x_m": 2.8, "y_m": 3.0, "rotation_degrees": 90 }
+          ],
+          "expected_checks": [
+            {
+              "requirement_id": "site_geometry_known",
+              "outcome": "indeterminate",
+              "rationale": "Removing a desk does not supply the missing measured-site evidence."
+            }
+          ],
+          "promotion_disposition": "blocked"
+        }
+      ]
+    }
+  ]
+}
