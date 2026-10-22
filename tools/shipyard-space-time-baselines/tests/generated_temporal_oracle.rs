@@ -127,6 +127,7 @@ fn legacy_time_blind_first_fit(
     yard: Rect,
     requests: &[PlacementRequest],
     zones: &[ExclusionZone],
+    try_remaining_x: bool,
 ) -> bool {
     let mut placed: Vec<(Rect, TimeRange)> = Vec::new();
 
@@ -181,13 +182,21 @@ fn legacy_time_blind_first_fit(
                             Footprint::Unsupported { .. } => true,
                         }
                 }) {
-                    continue;
+                    if try_remaining_x {
+                        continue;
+                    } else {
+                        continue 'candidate;
+                    }
                 }
                 if placed.iter().any(|(prior_rect, interval)| {
                     overlaps_in_time(request.occupied, *interval)
                         && mask & cell_mask(*prior_rect) != 0
                 }) {
-                    continue;
+                    if try_remaining_x {
+                        continue;
+                    } else {
+                        continue 'candidate;
+                    }
                 }
 
                 selected = Some(rect);
@@ -267,10 +276,11 @@ fn legacy_time_blind_portfolio_solves(
     yard: Rect,
     requests: &[PlacementRequest],
     zones: &[ExclusionZone],
+    try_remaining_x: bool,
 ) -> bool {
     legacy_policy_orders(requests)
         .iter()
-        .any(|ordered| legacy_time_blind_first_fit(yard, ordered, zones))
+        .any(|ordered| legacy_time_blind_first_fit(yard, ordered, zones, try_remaining_x))
 }
 
 fn generated_case(state: &mut u32) -> (Vec<PlacementRequest>, ExclusionZone) {
@@ -344,8 +354,10 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
     let mut portfolio_missed = 0usize;
     let mut portfolio_rejected_infeasible = 0usize;
     let mut portfolio_false_feasible = 0usize;
-    let mut legacy_time_blind_portfolio_solved = 0usize;
-    let mut legacy_time_blind_false_feasible = 0usize;
+    let mut legacy_pre_fix_portfolio_solved = 0usize;
+    let mut legacy_pre_fix_false_feasible = 0usize;
+    let mut boundary_only_portfolio_solved = 0usize;
+    let mut boundary_only_false_feasible = 0usize;
     let mut exact_combined_solved = 0usize;
     let mut exact_fallback_recovered = 0usize;
     let mut exact_proven_infeasible = 0usize;
@@ -363,10 +375,26 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
             exact_feasible += 1;
         }
 
-        if legacy_time_blind_portfolio_solves(yard, &requests, std::slice::from_ref(&zone)) {
-            legacy_time_blind_portfolio_solved += 1;
+        if legacy_time_blind_portfolio_solves(
+            yard,
+            &requests,
+            std::slice::from_ref(&zone),
+            false,
+        ) {
+            legacy_pre_fix_portfolio_solved += 1;
             if !exact {
-                legacy_time_blind_false_feasible += 1;
+                legacy_pre_fix_false_feasible += 1;
+            }
+        }
+        if legacy_time_blind_portfolio_solves(
+            yard,
+            &requests,
+            std::slice::from_ref(&zone),
+            true,
+        ) {
+            boundary_only_portfolio_solved += 1;
+            if !exact {
+                boundary_only_false_feasible += 1;
             }
         }
 
@@ -444,12 +472,20 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
     assert_eq!(CASES, 512, "temporal/exclusion family size changed");
     assert_eq!(exact_feasible, 228, "exact temporal feasibility changed");
     assert_eq!(
-        legacy_time_blind_portfolio_solved, 137,
-        "legacy time-blind portfolio coverage changed"
+        legacy_pre_fix_portfolio_solved, 17,
+        "pre-fix time-blind portfolio coverage changed"
     );
     assert_eq!(
-        legacy_time_blind_false_feasible, 0,
-        "legacy time-blind portfolio produced false-feasible plans"
+        legacy_pre_fix_false_feasible, 0,
+        "pre-fix time-blind portfolio produced false-feasible plans"
+    );
+    assert_eq!(
+        boundary_only_portfolio_solved, 137,
+        "time-blind boundary portfolio with corrected row search changed"
+    );
+    assert_eq!(
+        boundary_only_false_feasible, 0,
+        "boundary-only portfolio produced false-feasible plans"
     );
     assert_eq!(caller_solved, 168, "caller-order temporal coverage changed");
     assert_eq!(caller_missed, 60, "caller-order temporal misses changed");
