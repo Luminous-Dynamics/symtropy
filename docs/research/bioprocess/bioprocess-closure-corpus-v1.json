@@ -1,0 +1,1674 @@
+{
+  "corpus_id": "BIOPROC-CLOSURE-CORPUS-V1",
+  "schema_version": "1.0.0",
+  "status": "synthetic_design_fixture_only",
+  "created_at": "2026-10-18",
+  "disclaimer": "All process identities, quantities, stage states, resources, digests and evidence classifications are synthetic. This corpus tests accounting and evidence-gate semantics only; it is not a culture protocol, measured yield, food-safety determination, regulatory assessment, real cost, or lifecycle result.",
+  "case_schema_file": "bioprocess-closure-case-schema-v1.json",
+  "unit_contract": {
+    "mass": "g",
+    "water": "mL",
+    "energy": "Wh",
+    "time": "s"
+  },
+  "case_count": 12,
+  "cases": [
+    {
+      "case_id": "BPC-001",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-001",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "eligible_for_declared_comparison",
+        "reason_codes": [
+          "ALL_DECLARED_SYNTHETIC_GATES_PASS"
+        ]
+      },
+      "rationale": "Synthetic positive control: exact resource balances, complete declared stage boundary, and explicit claim ceiling."
+    },
+    {
+      "case_id": "BPC-002",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-002",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "missing",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "PROCESS_STAGE_MISSING"
+        ]
+      },
+      "rationale": "Required cleaning and turnaround burden is omitted, so per-cycle throughput and cost cannot be treated as complete."
+    },
+    {
+      "case_id": "BPC-003",
+      "request": {
+        "claim": "usable_yield",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-003",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": null,
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "USABLE_PRODUCT_BREAKDOWN_MISSING"
+        ]
+      },
+      "rationale": "Gross biomass alone does not establish recovered, specification-compliant usable product."
+    },
+    {
+      "case_id": "BPC-004",
+      "request": {
+        "claim": "usable_yield",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-004",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": null,
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "unknown",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "REJECTED_BATCH_BURDEN_MISSING"
+        ]
+      },
+      "rationale": "Rejected/off-spec product mass is not accounted for; usable output cannot inherit the gross-output denominator."
+    },
+    {
+      "case_id": "BPC-005",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-005",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "kJ",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "not_comparable",
+        "reason_codes": [
+          "RESOURCE_UNIT_MISMATCH"
+        ]
+      },
+      "rationale": "The resource kind defines watt-hours as its base unit; the supplied kilojoule stream cannot enter exact accounting without a declared conversion."
+    },
+    {
+      "case_id": "BPC-006",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-006",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "REQUIRED_RESOURCE_BALANCE_MISSING"
+        ]
+      },
+      "rationale": "Energy is a required process resource but its accounting stream is absent."
+    },
+    {
+      "case_id": "BPC-007",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-007",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "unknown",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "RESIDUAL_STREAM_UNKNOWN"
+        ]
+      },
+      "rationale": "A residual/waste stream remains unknown; it cannot be silently treated as zero or environmentally benign."
+    },
+    {
+      "case_id": "BPC-008",
+      "request": {
+        "claim": "scale_projection",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-008",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "unqualified",
+        "scale_transfer_assessment": "explicit_unvalidated",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "indeterminate",
+        "reason_codes": [
+          "SCALE_TRANSFER_UNQUALIFIED"
+        ]
+      },
+      "rationale": "A synthetic accounting closure plus an unqualified biological scale transfer does not establish scalable productivity."
+    },
+    {
+      "case_id": "BPC-009",
+      "request": {
+        "claim": "scale_projection",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-009",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": true,
+        "cfd_treated_as_biological_validation": true,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "invalid_evidence",
+        "reason_codes": [
+          "CFD_NOT_BIOLOGICAL_VALIDATION"
+        ]
+      },
+      "rationale": "CFD may inform flow fields but is not, by itself, biological validation of growth, viability, differentiation, or final product quality."
+    },
+    {
+      "case_id": "BPC-010",
+      "request": {
+        "claim": "scenario_comparison",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-b"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-010",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "not_comparable",
+        "reason_codes": [
+          "SCENARIO_DIGEST_MISMATCH"
+        ]
+      },
+      "rationale": "Results evaluated under different scenario digests cannot be ranked as one aligned comparison."
+    },
+    {
+      "case_id": "BPC-011",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-011",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "700",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "synthetic",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "blocked",
+        "reason_codes": [
+          "RESOURCE_BALANCE_MISMATCH"
+        ]
+      },
+      "rationale": "The declared mass stream leaves a non-zero conservation residual outside the stated tolerance."
+    },
+    {
+      "case_id": "BPC-012",
+      "request": {
+        "claim": "process_closure",
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "comparison_scenario_digest": "sha256:synthetic-scenario-a"
+      },
+      "process": {
+        "process_profile_id": "synthetic-process-012",
+        "required_stages": [
+          "feedstock_or_media_preparation",
+          "sterilization_or_contamination_control",
+          "cultivation_or_fermentation",
+          "utilities_and_thermal_management",
+          "harvest_and_separation",
+          "downstream_recovery_and_quality",
+          "cleaning_and_turnaround",
+          "rejected_batch_and_off_spec_accounting"
+        ],
+        "stage_coverage": [
+          {
+            "stage": "feedstock_or_media_preparation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "sterilization_or_contamination_control",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cultivation_or_fermentation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "utilities_and_thermal_management",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "harvest_and_separation",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "downstream_recovery_and_quality",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "cleaning_and_turnaround",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          },
+          {
+            "stage": "rejected_batch_and_off_spec_accounting",
+            "state": "accounted",
+            "evidence_kind": "synthetic"
+          }
+        ],
+        "required_resources": [
+          "mass",
+          "water",
+          "energy",
+          "time"
+        ],
+        "resource_balances": [
+          {
+            "stream_id": "mass-material",
+            "resource": "mass",
+            "unit": "g",
+            "inflow": "1000",
+            "additions": "0",
+            "outflow": "800",
+            "loss": "200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "water-loop",
+            "resource": "water",
+            "unit": "mL",
+            "inflow": "10000",
+            "additions": "0",
+            "outflow": "9000",
+            "loss": "1000",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "energy-cycle",
+            "resource": "energy",
+            "unit": "Wh",
+            "inflow": "5000",
+            "additions": "0",
+            "outflow": "3800",
+            "loss": "1200",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          },
+          {
+            "stream_id": "cycle-time",
+            "resource": "time",
+            "unit": "s",
+            "inflow": "86400",
+            "additions": "0",
+            "outflow": "72000",
+            "loss": "14400",
+            "observed_storage_delta": "0",
+            "tolerance": "0"
+          }
+        ],
+        "gross_product_g": "1000",
+        "usable_product_g": "800",
+        "rejected_product_g": "100",
+        "downstream_recovery_loss_g": "100",
+        "quality_gate": "pass",
+        "source_traceability": "complete",
+        "residual_stream_status": "accounted",
+        "evidence_kind": "synthetic",
+        "reported_as": "measured",
+        "biological_validation": "not_required_for_accounting",
+        "scale_transfer_assessment": "not_applicable",
+        "cfd_used": false,
+        "cfd_treated_as_biological_validation": false,
+        "cost_basis": "SYNTHETIC_CURRENCY_PER_KG_USABLE",
+        "cost_inputs_complete": true,
+        "scenario_digest": "sha256:synthetic-scenario-a",
+        "source_assumption_digest": "sha256:synthetic-assumptions-a"
+      },
+      "expected": {
+        "disposition": "invalid_evidence",
+        "reason_codes": [
+          "EVIDENCE_KIND_MISMATCH"
+        ]
+      },
+      "rationale": "A synthetic fixture cannot be reported as measured evidence."
+    }
+  ]
+}

@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/bioprocess/bioprocess-closure-case-schema-v1.json",
+  "title": "Synthetic engineered-protein process closure case",
+  "description": "Synthetic contract fixture only; does not establish a real process, biological result, safety, cost, or lifecycle claim.",
+  "type": "object",
+  "required": [
+    "case_id",
+    "request",
+    "process",
+    "expected",
+    "rationale"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^BPC-[0-9]{3}$"
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "claim",
+        "scenario_digest",
+        "comparison_scenario_digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "enum": [
+            "process_closure",
+            "usable_yield",
+            "scenario_comparison",
+            "scale_projection"
+          ]
+        },
+        "scenario_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_scenario_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "process": {
+      "type": "object",
+      "required": [
+        "process_profile_id",
+        "required_stages",
+        "stage_coverage",
+        "required_resources",
+        "resource_balances",
+        "gross_product_g",
+        "usable_product_g",
+        "rejected_product_g",
+        "downstream_recovery_loss_g",
+        "quality_gate",
+        "source_traceability",
+        "residual_stream_status",
+        "evidence_kind",
+        "reported_as",
+        "biological_validation",
+        "scale_transfer_assessment",
+        "cfd_used",
+        "cfd_treated_as_biological_validation",
+        "cost_basis",
+        "cost_inputs_complete",
+        "scenario_digest",
+        "source_assumption_digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "process_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_stages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "feedstock_or_media_preparation",
+              "sterilization_or_contamination_control",
+              "cultivation_or_fermentation",
+              "utilities_and_thermal_management",
+              "harvest_and_separation",
+              "downstream_recovery_and_quality",
+              "cleaning_and_turnaround",
+              "rejected_batch_and_off_spec_accounting"
+            ]
+          }
+        },
+        "stage_coverage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "stage",
+              "state",
+              "evidence_kind"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "stage": {
+                "enum": [
+                  "feedstock_or_media_preparation",
+                  "sterilization_or_contamination_control",
+                  "cultivation_or_fermentation",
+                  "utilities_and_thermal_management",
+                  "harvest_and_separation",
+                  "downstream_recovery_and_quality",
+                  "cleaning_and_turnaround",
+                  "rejected_batch_and_off_spec_accounting"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "accounted",
+                  "missing",
+                  "unknown",
+                  "not_applicable"
+                ]
+              },
+              "evidence_kind": {
+                "enum": [
+                  "measured",
+                  "literature",
+                  "estimated",
+                  "synthetic",
+                  "simulated"
+                ]
+              }
+            }
+          }
+        },
+        "required_resources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mass",
+              "water",
+              "energy",
+              "time"
+            ]
+          }
+        },
+        "resource_balances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "stream_id",
+              "resource",
+              "unit",
+              "inflow",
+              "additions",
+              "outflow",
+              "loss",
+              "observed_storage_delta",
+              "tolerance"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "stream_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "resource": {
+                "enum": [
+                  "mass",
+                  "water",
+                  "energy",
+                  "time"
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inflow": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "additions": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "outflow": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "loss": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              },
+              "observed_storage_delta": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]*)$"
+              },
+              "tolerance": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            }
+          }
+        },
+        "gross_product_g": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "usable_product_g": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "rejected_product_g": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "downstream_recovery_loss_g": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "quality_gate": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown",
+            "not_assessed"
+          ]
+        },
+        "source_traceability": {
+          "enum": [
+            "complete",
+            "partial",
+            "missing"
+          ]
+        },
+        "residual_stream_status": {
+          "enum": [
+            "accounted",
+            "unknown",
+            "missing",
+            "not_assessed"
+          ]
+        },
+        "evidence_kind": {
+          "enum": [
+            "measured",
+            "literature",
+            "estimated",
+            "synthetic",
+            "simulated"
+          ]
+        },
+        "reported_as": {
+          "enum": [
+            "measured",
+            "literature",
+            "estimated",
+            "synthetic",
+            "simulated"
+          ]
+        },
+        "biological_validation": {
+          "enum": [
+            "not_required_for_accounting",
+            "qualified_for_declared_scale",
+            "unqualified",
+            "unknown"
+          ]
+        },
+        "scale_transfer_assessment": {
+          "enum": [
+            "not_applicable",
+            "qualified",
+            "explicit_unvalidated",
+            "unknown"
+          ]
+        },
+        "cfd_used": {
+          "type": "boolean"
+        },
+        "cfd_treated_as_biological_validation": {
+          "type": "boolean"
+        },
+        "cost_basis": {
+          "type": "string"
+        },
+        "cost_inputs_complete": {
+          "type": "boolean"
+        },
+        "scenario_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_assumption_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "disposition",
+        "reason_codes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "enum": [
+            "eligible_for_declared_comparison",
+            "blocked",
+            "indeterminate",
+            "not_comparable",
+            "invalid_evidence"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
