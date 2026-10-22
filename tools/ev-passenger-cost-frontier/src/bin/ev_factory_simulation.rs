@@ -131,6 +131,21 @@ struct Report {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct CommonCauseControlOutageTraceEvent {
+    at_seconds: u64,
+    transition: CommonCauseOutageTransition,
+    domain_id: String,
+    station_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CommonCauseOutageTransition {
+    Started,
+    Ended,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct ScenarioResult {
     scenario_id: String,
     intervention_station_id: Option<String>,
@@ -149,6 +164,7 @@ struct ScenarioResult {
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
     common_cause_control_outage_config: Option<CommonCauseControlOutage>,
+    common_cause_control_outage_trace: Vec<CommonCauseControlOutageTraceEvent>,
     common_cause_control_outage_starts_after_warmup: u64,
     measured_common_cause_control_outage_seconds: f64,
     output_never_exceeds_released_input: bool,
@@ -308,6 +324,7 @@ struct SimState {
     common_cause_control_outage_active: bool,
     common_cause_control_outage_starts_after_warmup: u64,
     measured_common_cause_control_outage_seconds: f64,
+    common_cause_control_outage_trace: Vec<CommonCauseControlOutageTraceEvent>,
 }
 
 #[derive(Debug, Clone)]
@@ -915,6 +932,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         common_cause_control_outage_active: false,
         common_cause_control_outage_starts_after_warmup: 0,
         measured_common_cause_control_outage_seconds: 0.0,
+        common_cause_control_outage_trace: Vec::new(),
     };
     schedule_event(&mut state, 0, EventKind::SupplyArrival);
     if let Some(outage) = &catalog.common_cause_control_outage {
@@ -979,6 +997,13 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     return Err("overlapping_common_cause_control_outage_events".into());
                 }
                 state.common_cause_control_outage_active = true;
+                state.common_cause_control_outage_trace
+                    .push(CommonCauseControlOutageTraceEvent {
+                        at_seconds: state.now,
+                        transition: CommonCauseOutageTransition::Started,
+                        domain_id: outage.domain_id.clone(),
+                        station_ids: outage.station_ids.clone(),
+                    });
                 if state.now >= catalog.warmup_seconds {
                     state.common_cause_control_outage_starts_after_warmup += 1;
                 }
@@ -998,6 +1023,17 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     return Err("common_cause_control_outage_end_without_active_outage".into());
                 }
                 state.common_cause_control_outage_active = false;
+                let outage = catalog
+                    .common_cause_control_outage
+                    .as_ref()
+                    .ok_or_else(|| "outage_end_event_without_configuration".to_string())?;
+                state.common_cause_control_outage_trace
+                    .push(CommonCauseControlOutageTraceEvent {
+                        at_seconds: state.now,
+                        transition: CommonCauseOutageTransition::Ended,
+                        domain_id: outage.domain_id.clone(),
+                        station_ids: outage.station_ids.clone(),
+                    });
             }
         }
         reconcile(&mut state, catalog)?;
@@ -1103,6 +1139,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         interstation_buffers,
         stations: station_results,
         common_cause_control_outage_config: catalog.common_cause_control_outage.clone(),
+        common_cause_control_outage_trace: state.common_cause_control_outage_trace.clone(),
         common_cause_control_outage_starts_after_warmup: state
             .common_cause_control_outage_starts_after_warmup,
         measured_common_cause_control_outage_seconds: state
@@ -1569,6 +1606,7 @@ mod tests {
         let report = evaluate_catalog(&catalog).expect("baseline simulation");
         assert!(report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_config.is_none()
+                && scenario.common_cause_control_outage_trace.is_empty()
                 && scenario.common_cause_control_outage_starts_after_warmup == 0
                 && scenario.measured_common_cause_control_outage_seconds == 0.0
                 && scenario.stations.iter().all(|station| {
@@ -1593,6 +1631,17 @@ mod tests {
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
+                && scenario.common_cause_control_outage_trace.len() == 4
+                && scenario.common_cause_control_outage_trace.iter().map(|event| event.at_seconds).collect::<Vec<_>>()
+                    == vec![600, 900, 2_400, 2_700]
+                && scenario.common_cause_control_outage_trace.iter().all(|event| {
+                    event.domain_id == "shared-line-control"
+                        && event.station_ids
+                            == vec![
+                                "battery-module-install".to_string(),
+                                "final-assembly".to_string(),
+                            ]
+                })
                 && scenario.all_buffers_respected_capacity
                 && scenario.output_never_exceeds_released_input
                 && !scenario.release_ready
