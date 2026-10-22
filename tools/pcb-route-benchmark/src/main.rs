@@ -6,6 +6,7 @@ use pcb_route_benchmark::{
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
     kicad_drc::verify_run_artifacts_with_kicad_drc_policy,
     pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files, verify_run_artifacts,
+    rule_fidelity::evaluate_rule_fidelity,
     ValidatedRun,
 };
 use std::{
@@ -197,6 +198,44 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&receipt)
                 .map_err(|error| format!("cannot serialize PCBWorld CSV receipt: {error}"))
         }
+        [
+            command,
+            plan_path,
+            source_board_path,
+            output_board_path,
+            source_rules_path,
+            compatibility_policy_path,
+            compatibility_drc_path,
+            strict_policy_path,
+            strict_drc_path,
+        ] if command == "rule-fidelity" => {
+            let plan = fs::read(plan_path)
+                .map_err(|error| format!("cannot read {plan_path}: {error}"))?;
+            let source_board = fs::read(source_board_path)
+                .map_err(|error| format!("cannot read {source_board_path}: {error}"))?;
+            let output_board = fs::read(output_board_path)
+                .map_err(|error| format!("cannot read {output_board_path}: {error}"))?;
+            let source_rules = read_optional_bytes(source_rules_path)?;
+            let compatibility_policy = fs::read(compatibility_policy_path)
+                .map_err(|error| format!("cannot read {compatibility_policy_path}: {error}"))?;
+            let compatibility_drc = fs::read(compatibility_drc_path)
+                .map_err(|error| format!("cannot read {compatibility_drc_path}: {error}"))?;
+            let strict_policy = read_optional_bytes(strict_policy_path)?;
+            let strict_drc = read_optional_bytes(strict_drc_path)?;
+            let receipt = evaluate_rule_fidelity(
+                &plan,
+                &source_board,
+                &output_board,
+                source_rules.as_deref(),
+                &compatibility_policy,
+                &compatibility_drc,
+                strict_policy.as_deref(),
+                strict_drc.as_deref(),
+                &evaluator_head,
+            )?;
+            serde_json::to_vec_pretty(&receipt)
+                .map_err(|error| format!("cannot serialize rule-fidelity receipt: {error}"))
+        }
         [command, report_path, manifest_path] if command == "validate" => {
             let report = fs::read(report_path)
                 .map_err(|error| format!("cannot read {report_path}: {error}"))?;
@@ -300,6 +339,16 @@ fn run() -> Result<Vec<u8>, String> {
     }
 }
 
+
+
+fn read_optional_bytes(path: &str) -> Result<Option<Vec<u8>>, String> {
+    if path == "-" {
+        return Ok(None);
+    }
+    fs::read(path)
+        .map(Some)
+        .map_err(|error| format!("cannot read {path}: {error}"))
+}
 
 fn require_synthetic_only_for_normalized_comparison(
     manifest_bytes: &[u8],
