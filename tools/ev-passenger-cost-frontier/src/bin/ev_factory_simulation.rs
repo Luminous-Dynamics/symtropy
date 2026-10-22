@@ -302,6 +302,7 @@ struct StationResult {
     starved_fraction: f64,
     down_fraction: f64,
     common_cause_control_outage_fraction: f64,
+    new_job_dispatches_during_common_cause_outage_after_warmup: u64,
     accounted_fraction: f64,
     added_server_good_output_delta_fraction: Option<f64>,
 }
@@ -341,6 +342,7 @@ struct StationMetrics {
     starved_seconds: f64,
     down_seconds: f64,
     common_cause_control_outage_seconds: f64,
+    new_job_dispatches_during_common_cause_outage_after_warmup: u64,
     attempts_started_after_warmup: u64,
     successful_attempts_after_warmup: u64,
     rework_attempts_after_warmup: u64,
@@ -1384,6 +1386,9 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             starved_fraction: starved,
             down_fraction: down,
             common_cause_control_outage_fraction: common_cause_control_outage,
+            new_job_dispatches_during_common_cause_outage_after_warmup: runtime
+                .metrics
+                .new_job_dispatches_during_common_cause_outage_after_warmup,
             accounted_fraction: accounted,
             added_server_good_output_delta_fraction: extra_server_at
                 .filter(|added| *added == index)
@@ -1812,6 +1817,13 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                 let Some(job) = job else {
                     continue;
                 };
+                if state.now >= catalog.warmup_seconds
+                    && is_in_common_cause_control_domain(state, catalog, station_index)
+                {
+                    state.stations[station_index]
+                        .metrics
+                        .new_job_dispatches_during_common_cause_outage_after_warmup += 1;
+                }
                 let station = &catalog.stations[station_index];
                 let mut service_seconds = sample_service_seconds(catalog, station, job.id, 1);
                 let server = &mut state.stations[station_index].servers[server_index];
@@ -1919,7 +1931,7 @@ mod tests {
     }
 
     #[test]
-    fn common_cause_control_outage_is_paired_deterministic_and_blocks_domain_starts_and_transfers(
+    fn common_cause_control_outage_is_paired_deterministic_and_blocks_new_job_dispatch_and_transfers(
     ) {
         let outage_catalog = common_cause_fixture();
         validate_catalog(&outage_catalog).expect("shared control outage fixture validates");
@@ -2065,7 +2077,12 @@ mod tests {
                     .map(|event| event.at_seconds)
                     .collect::<Vec<_>>()
                     == vec![600, 900, 2_400, 2_700]
-                && scenario.common_cause_control_outage_trace.iter().all(|event| {
+                && scenario.stations.iter().all(|station| {
+                !["battery-module-install", "final-assembly"]
+                    .contains(&station.station_id.as_str())
+                    || station.new_job_dispatches_during_common_cause_outage_after_warmup == 0
+            })
+            && scenario.common_cause_control_outage_trace.iter().all(|event| {
                     event.domain_id == "shared-line-control"
                         && event.station_ids
                             == vec![
