@@ -66,8 +66,7 @@ pub fn transform_element_to_global(
     let transform = coordinate_transform(cosine, sine);
     let stiffness = congruence_transform(&local.stiffness_local, &transform);
     let mass = congruence_transform(&local.mass_local, &transform);
-    let translational_mass =
-        congruence_transform(&local.translational_mass_local, &transform);
+    let translational_mass = congruence_transform(&local.translational_mass_local, &transform);
     let rotary_mass = congruence_transform(&local.rotary_inertia_mass_local, &transform);
 
     ensure_finite_matrix("stiffness_global", &stiffness)?;
@@ -141,7 +140,10 @@ fn matrix_infinity_norm(matrix: &Matrix6) -> f64 {
 }
 
 fn vector_infinity_norm(vector: &[f64; 6]) -> f64 {
-    vector.iter().map(|value| value.abs()).fold(0.0_f64, f64::max)
+    vector
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max)
 }
 
 /// Build local matrices for a straight, uniform Euler-Bernoulli frame element.
@@ -560,7 +562,10 @@ mod tests {
             .expect("horizontal transform");
         assert_eq!(global.stiffness_global, local.stiffness_local);
         assert_eq!(global.mass_global, local.mass_local);
-        assert_eq!(global.translational_mass_global, local.translational_mass_local);
+        assert_eq!(
+            global.translational_mass_global,
+            local.translational_mass_local
+        );
         assert_eq!(global.rotary_inertia_mass_global, local.rotary_inertia_mass_local);
         assert_eq!(global.direction_cosine, 1.0);
         assert_eq!(global.direction_sine, 0.0);
@@ -574,8 +579,8 @@ mod tests {
         let sine = angle_rad.sin();
         let dx = LENGTH_M * cosine;
         let dy = LENGTH_M * sine;
-        let global = super::transform_element_to_global(&local, dx, dy)
-            .expect("inclined transform");
+        let global =
+            super::transform_element_to_global(&local, dx, dy).expect("inclined transform");
         let transform = super::coordinate_transform(cosine, sine);
         let q_global = [0.003, -0.008, 0.02, 0.011, 0.004, -0.013];
         let q_local = super::matrix_vector_product(&transform, &q_global);
@@ -591,7 +596,12 @@ mod tests {
             .zip(global_force)
             .map(|(q, force)| q * force)
             .sum::<f64>();
-        close(local_energy, global_energy, 1.0e-12, "coordinate-invariant strain energy");
+        close(
+            local_energy,
+            global_energy,
+            1.0e-12,
+            "coordinate-invariant strain energy",
+        );
 
         for row in 0..6 {
             for col in 0..6 {
@@ -621,14 +631,7 @@ mod tests {
             .expect("inclined transform");
         let translations = [[0.4, -0.7, 0.0, 0.4, -0.7, 0.0]];
         let rotation = 0.015;
-        let rotations = [[
-            0.0,
-            0.0,
-            rotation,
-            -rotation * dy,
-            rotation * dx,
-            rotation,
-        ]];
+        let rotations = [[0.0, 0.0, rotation, -rotation * dy, rotation * dx, rotation]];
 
         for q in translations.iter().chain(rotations.iter()) {
             let force = super::matrix_vector_product(&global.stiffness_global, q);
