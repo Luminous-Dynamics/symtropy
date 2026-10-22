@@ -6855,6 +6855,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ocean-industrial-symbiosis-bench"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "octets"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
