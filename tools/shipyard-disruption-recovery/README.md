@@ -136,6 +136,8 @@ This bridges an important gap between static plan feasibility and industrial eva
 
 The separate integration test execution_replay_oracle.rs runs 512 deterministic generated traces with three planned operations per case, selectively missing start/completion events, variable start shifts, duration variation, recording latency, and recorded-time cutoffs. Its simple reference recomputes event visibility, missing observations, signed absolute deviation, late starts/finishes and duration overrun from maps and arithmetic independent of the evaluator. The test asserts all 512 cases are valid evidence traces and that summary metrics exactly match the reference. It intentionally does not simulate resource interactions or infer causality between operations; that remains the scope of the resource/precedence and future discrete-event models.
 
+The integration test resource_transfer_binding_oracle.rs exercises 512 generated joint schedules with one spatial transfer and a unary tug reservation. Its reference accepts only when the resource interval fully contains the transfer interval and the resource ID matches the transfer's declared vehicle ID. Frozen targets: 197/512 intervals cover the transfer, 96/512 cases also have the correct tug identity, and the joint evaluator should accept exactly those 96 with zero false-feasible and zero false-infeasible cases. This is a synthetic cross-layer semantic oracle; it does not represent lift physics or yard-scale performance.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
