@@ -29,7 +29,7 @@ cargo clippy --locked --offline --manifest-path tools/shipyard-irregular-geometr
 
 Seven unit tests cover concave outlines, arm/notch distinctions, crossing and containment, boundary-only contact, orientation/start-vertex invariance, self-intersection and coordinate-bound rejection, straight-line vertex normalization, and rectangle containment.
 
-The integration test tests/rectangle_differential_oracle.rs generates 512 deterministic rectangle pairs, converts them to polygon rings, and compares the polygon kernel with the existing verifier's independent strict-area rectangle-overlap predicate. This provides a differential regression oracle for the common rectangular subset. It does not validate the full concave-polygon state space; those cases have explicit hand-enumerated controls until a separate exhaustive simple-polygon corpus is added.
+The integration test tests/rectangle_differential_oracle.rs generates 512 deterministic rectangle pairs, converts them to polygon rings, and compares the polygon kernel with the existing verifier's independent strict-area rectangle-overlap predicate. The same test file also generates 512 rectangles against a concave L outline and compares with a unit-cell-set reference derived directly from the L's orthogonal regions (157 overlap, 355 disjoint/touching targets). This adds a non-rectangular oracle without sharing production triangulation or point-in-polygon code. These remain exact-head test targets, not passed results or an exhaustive corpus of arbitrary simple polygons.
 
 ## Next validation gates
 
