@@ -179,6 +179,45 @@ struct Scenario {
     distractor_first: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MatrixCondition {
+    All,
+    ShiftedStart,
+    RouteBlocked,
+    DistractorOn,
+    DistractorOff,
+}
+
+impl MatrixCondition {
+    const ALL: [Self; 5] = [
+        Self::All,
+        Self::ShiftedStart,
+        Self::RouteBlocked,
+        Self::DistractorOn,
+        Self::DistractorOff,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::ShiftedStart => "shifted_start",
+            Self::RouteBlocked => "route_blocked",
+            Self::DistractorOn => "distractor_on",
+            Self::DistractorOff => "distractor_off",
+        }
+    }
+
+    fn matches(self, scenario: &Scenario) -> bool {
+        match self {
+            Self::All => true,
+            Self::ShiftedStart => scenario.start != 0,
+            Self::RouteBlocked => !scenario.world.blocked.is_empty(),
+            Self::DistractorOn => scenario.distractor_first,
+            Self::DistractorOff => !scenario.distractor_first,
+        }
+    }
+}
+
 fn scenarios() -> Vec<Scenario> {
     let open = World::base();
     let edge_12 = [Edge::new(1, 2)];
@@ -412,6 +451,7 @@ fn execute_and_score(
     }
 }
 
+
 fn format_report() -> String {
     let required_waypoints = vec![3, 5, 7];
     let request = TaskRequest { task_id: TASK_ID, goal: 7 };
@@ -420,15 +460,18 @@ fn format_report() -> String {
     output.push_str("META\tscope\tsynthetic transfer/replanning mechanism test, not native robotics success\n");
     output.push_str("META\tpolicy_request\ttask_id and final goal only\n");
     output.push_str("META\tevaluator_only\tordered waypoint truth\n");
+    output.push_str("META\tmatrix_summary\texact finite-case averages, not population confidence intervals\n");
     output.push_str("HEADER\tscenario\tpolicy\tstart\tblocked_edges\tsuccess\tconstraint_fidelity\tillegal_edges\treplanned\tpath_steps\tlogical_memory_bytes\tretrieved_records\tpath\treason\n");
 
-    for scenario in scenarios() {
-        let memories = make_memories(&scenario, &required_waypoints);
+    let all_scenarios = scenarios();
+    let mut results: Vec<(Scenario, PolicyRun)> = Vec::new();
+    for scenario in &all_scenarios {
+        let memories = make_memories(scenario, &required_waypoints);
         for policy in Policy::ALL {
             let result = execute_and_score(
                 policy,
                 &request,
-                &scenario,
+                scenario,
                 &memories,
                 &required_waypoints,
             );
@@ -451,6 +494,43 @@ fn format_report() -> String {
                 result.retrieved_records,
                 if path.is_empty() { "none".to_owned() } else { path },
                 result.reason
+            ));
+            results.push((scenario.clone(), result));
+        }
+    }
+
+    output.push_str("MATRIX_SUMMARY_HEADER\tpolicy\tcondition\tcases\tsuccess_rate\tconstraint_fidelity_rate\tmean_illegal_edges\treplan_rate\tmean_path_steps\tmean_logical_memory_bytes\tmean_retrieved_records\n");
+    for policy in Policy::ALL {
+        for condition in MatrixCondition::ALL {
+            let sample: Vec<&PolicyRun> = results.iter()
+                .filter(|(scenario, result)| {
+                    scenario.name.starts_with("matrix_s")
+                        && result.policy == policy
+                        && condition.matches(scenario)
+                })
+                .map(|(_, result)| result)
+                .collect();
+            if sample.is_empty() { continue; }
+            let n = sample.len() as f64;
+            let success_rate = sample.iter().filter(|r| r.success).count() as f64 / n;
+            let constraint_rate = sample.iter().filter(|r| r.constraint_fidelity).count() as f64 / n;
+            let replan_rate = sample.iter().filter(|r| r.replanned).count() as f64 / n;
+            let mean_illegal = sample.iter().map(|r| r.illegal_edges as f64).sum::<f64>() / n;
+            let mean_steps = sample.iter().map(|r| r.path_steps as f64).sum::<f64>() / n;
+            let mean_memory = sample.iter().map(|r| r.logical_memory_bytes as f64).sum::<f64>() / n;
+            let mean_retrieved = sample.iter().map(|r| r.retrieved_records as f64).sum::<f64>() / n;
+            output.push_str(&format!(
+                "MATRIX_SUMMARY\t{}\t{}\t{}\t{:.6}\t{:.6}\t{:.6}\t{:.6}\t{:.3}\t{:.3}\t{:.3}\n",
+                policy.name(),
+                condition.name(),
+                sample.len(),
+                success_rate,
+                constraint_rate,
+                mean_illegal,
+                replan_rate,
+                mean_steps,
+                mean_memory,
+                mean_retrieved
             ));
         }
     }
