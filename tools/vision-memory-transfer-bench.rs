@@ -344,11 +344,12 @@ fn execute_and_score(
 fn format_report() -> String {
     let required_waypoints = vec![3, 5, 7];
     let request = TaskRequest { task_id: TASK_ID, goal: 7 };
-    println!("META\tformat\tVIS-MEM-011-v0.1");
-    println!("META\tscope\tsynthetic transfer/replanning mechanism test, not native robotics success");
-    println!("META\tpolicy_request\ttask_id and final goal only");
-    println!("META\tevaluator_only\tordered waypoint truth");
-    println!("HEADER\tscenario\tpolicy\tstart\tblocked_edges\tsuccess\tconstraint_fidelity\tillegal_edges\treplanned\tpath\treason");
+    let mut output = String::new();
+    output.push_str("META\tformat\tVIS-MEM-011-v0.1\n");
+    output.push_str("META\tscope\tsynthetic transfer/replanning mechanism test, not native robotics success\n");
+    output.push_str("META\tpolicy_request\ttask_id and final goal only\n");
+    output.push_str("META\tevaluator_only\tordered waypoint truth\n");
+    output.push_str("HEADER\tscenario\tpolicy\tstart\tblocked_edges\tsuccess\tconstraint_fidelity\tillegal_edges\treplanned\tpath\treason\n");
 
     for scenario in scenarios() {
         let memories = make_memories(&scenario, &required_waypoints);
@@ -364,8 +365,8 @@ fn format_report() -> String {
             let blocked = scenario.world.blocked.iter()
                 .map(|e| format!("{}-{}", e.0, e.1))
                 .collect::<Vec<_>>().join(",");
-            println!(
-                "METRIC\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            output.push_str(&format!(
+                "METRIC\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
                 scenario.name,
                 result.policy.name(),
                 scenario.start,
@@ -376,13 +377,14 @@ fn format_report() -> String {
                 u8::from(result.replanned),
                 if path.is_empty() { "none".to_owned() } else { path },
                 result.reason
-            );
+            ));
         }
     }
+    output
 }
 
 fn main() {
-    run_report();
+    print!("{}", format_report());
 }
 
 #[cfg(test)]
