@@ -131,12 +131,8 @@ pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamMo
             None
         };
 
-        let eigen_residual = normalized_eigen_residual(
-            &stiffness_reduced,
-            &mass_reduced,
-            eigenvalue,
-            &shape_free,
-        )?;
+        let eigen_residual =
+            normalized_eigen_residual(&stiffness_reduced, &mass_reduced, eigenvalue, &shape_free)?;
         let mass_norm = quadratic_form(&mass_reduced, &shape_free)?;
         let mut shape_global = vec![0.0; assembly.stiffness_global.len()];
         for (free_index, global_index) in assembly.free_dof_indices.iter().enumerate() {
