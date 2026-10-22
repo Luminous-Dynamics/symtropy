@@ -1088,6 +1088,8 @@ pub struct JointEnvelopeViolation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct JointScenarioReport {
     pub scenario_id: String,
+    /// Full structured input is retained so decision receipts bind to scenario content, not only IDs.
+    pub scenario_input: JointDisruptionScenario,
     pub report: JointRecoveryReport,
 }
 
@@ -1186,6 +1188,7 @@ pub fn evaluate_joint_recovery_envelope(
         });
         reports.push(JointScenarioReport {
             scenario_id: scenario.scenario_id.clone(),
+            scenario_input: scenario.clone(),
             report: joint,
         });
     }
@@ -1647,6 +1650,7 @@ pub fn audit_joint_scenario_coverage(
 pub enum JointAuditedSelectionViolationCode {
     RequiredCoverageIncomplete,
     CandidateScenarioSetMismatch,
+    CandidateScenarioContentMismatch,
     InvalidCandidateIdentity,
     NoRobustCandidate,
 }
@@ -1687,10 +1691,11 @@ pub fn select_joint_recovery_frontier_with_coverage(
         });
     }
 
-    let expected_ids: BTreeSet<&str> = benchmark_scenarios
+    let expected_by_id: BTreeMap<&str, &JointDisruptionScenario> = benchmark_scenarios
         .iter()
-        .map(|scenario| scenario.scenario_id.as_str())
+        .map(|scenario| (scenario.scenario_id.as_str(), scenario))
         .collect();
+    let expected_ids: BTreeSet<&str> = expected_by_id.keys().copied().collect();
     for alternative in alternatives {
         let actual_ids: Vec<&str> = alternative
             .report
@@ -1707,6 +1712,22 @@ pub fn select_joint_recovery_frontier_with_coverage(
                 .violations
                 .push(JointAuditedSelectionViolation {
                     code: JointAuditedSelectionViolationCode::CandidateScenarioSetMismatch,
+                    candidate_id: Some(alternative.candidate_id.clone()),
+                });
+            continue;
+        }
+
+        let content_mismatch = alternative.report.scenarios.iter().any(|receipt| {
+            expected_by_id.get(receipt.scenario_id.as_str()).is_none_or(|expected| {
+                receipt.scenario_input.scenario_id != receipt.scenario_id
+                    || &receipt.scenario_input != *expected
+            })
+        });
+        if content_mismatch {
+            result
+                .violations
+                .push(JointAuditedSelectionViolation {
+                    code: JointAuditedSelectionViolationCode::CandidateScenarioContentMismatch,
                     candidate_id: Some(alternative.candidate_id.clone()),
                 });
         }
@@ -2984,6 +3005,29 @@ mod tests {
         assert!(report.pareto.frontier.is_empty());
         assert!(report.violations.iter().any(|violation| {
             violation.code == JointAuditedSelectionViolationCode::RequiredCoverageIncomplete
+        }));
+    }
+
+    #[test]
+    fn audited_selector_rejects_same_scenario_id_with_different_disturbance_content() {
+        let benchmark_scenario = resource_coverage_fixture("reused-scenario-id");
+        let mut redefined_scenario = resource_coverage_fixture("reused-scenario-id");
+        redefined_scenario.resource_outages[0].unavailable.end_tick = 9;
+        let candidate =
+            resource_coverage_alternative("candidate-a", redefined_scenario);
+        assert!(candidate.report.robustly_accepted);
+
+        let report = select_joint_recovery_frontier_with_coverage(
+            &[candidate],
+            &[benchmark_scenario],
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+
+        assert!(!report.decision_eligible);
+        assert!(report.pareto.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointAuditedSelectionViolationCode::CandidateScenarioContentMismatch
+                && violation.candidate_id.as_deref() == Some("candidate-a")
         }));
     }
 
