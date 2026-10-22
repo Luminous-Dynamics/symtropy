@@ -27,6 +27,8 @@ Each scenario has a per-replication `flow_time` record containing cohort counts,
 
 The root `flow_time_statistics` aggregates **per-replication statistics across the declared seed panel**. It does not pool every job and act as if jobs from one line and time series are IID. It reports seed-level completed-good P50/P90/P95/P99, mean, completed-scrap mean and P50/P90/P95/P99 where available, release/completion/censor counts, censor fraction, and number of replications with usable observations.
 
+For right-censored jobs it also reports observed age at the horizon—mean and P50/P90/P95/P99, aggregated across replications. Each observed age is a lower bound on the eventual flow time, not the missing completion time. We do not yet emit per-job survival rows; these aggregates are evidence for workload diagnostics, not sufficient input for a full Kaplan–Meier or competing-risk estimator.
+
 When a replication has no completed good output, its good-flow summary is `null`, not zero. With few observations, P99 is still shown descriptively but is not evidence of a well-resolved tail. The current implementation is **not** a Kaplan–Meier/survival estimator; right-censoring is explicit, not silently imputed.
 
 ## Frozen controls
