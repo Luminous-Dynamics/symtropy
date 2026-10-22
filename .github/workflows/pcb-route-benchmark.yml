@@ -48,8 +48,7 @@ jobs:
         with:
           name: pcb-route-benchmark-formatted-source
           path: |
-            tools/pcb-route-benchmark/src/lib.rs
-            tools/pcb-route-benchmark/src/main.rs
+            tools/pcb-route-benchmark/src/
           if-no-files-found: error
 
       - name: Check formatting
