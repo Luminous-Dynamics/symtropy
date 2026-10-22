@@ -1,6 +1,4 @@
-use physical_transformation_reference::planar_truss::{
-    solve, PlanarTrussInput, TrussBar, TrussNode,
-};
+use physical_transformation_reference::planar_truss::{solve, PlanarTrussInput, TrussBar, TrussNode};
 
 const BASE_AREA_M2: f64 = 1.0e-4;
 const BASE_YOUNGS_MODULUS_PA: f64 = 200.0e9;
@@ -86,25 +84,6 @@ fn check_displacement(actual: f64, expected: f64, label: &str) {
     );
 }
 
-fn check_equilibrium(input: &PlanarTrussInput, topology: &str) {
-    let result = solve(input).expect("a braced truss in the declared envelope must solve");
-    assert!(
-        result.equilibrium.normalized_force_residual < 1.0e-12,
-        "{topology} force residual {}",
-        result.equilibrium.normalized_force_residual
-    );
-    assert!(
-        result.equilibrium.normalized_moment_residual < 1.0e-12,
-        "{topology} moment residual {}",
-        result.equilibrium.normalized_moment_residual
-    );
-    assert!(
-        result.equilibrium.normalized_free_dof_residual < 1.0e-12,
-        "{topology} free-DOF residual {}",
-        result.equilibrium.normalized_free_dof_residual
-    );
-}
-
 /// Exhaust a fixed 3×3×3 grid of ±5% global section area, modulus and load
 /// variations (27 cases per topology). With a 1 m vertical bar, the independent
 /// axial oracle is delta = P*L/(E*A). Equal downward loads on the top chord leave
@@ -129,12 +108,8 @@ fn analytical_response_and_mechanism_detection_survive_parameter_variation_grid(
                     ("A-D", Some(("A", "D")), 1.0_f64),
                     ("B-C", Some(("B", "C")), -1.0_f64),
                 ] {
-                    let input = square_truss(
-                        diagonal,
-                        area_scale,
-                        modulus_scale,
-                        load_scale,
-                    );
+                    let input =
+                        square_truss(diagonal, area_scale, modulus_scale, load_scale);
                     let result = solve(&input)
                         .unwrap_or_else(|error| panic!("{topology} {case}: {error}"));
                     let c = result
@@ -148,10 +123,26 @@ fn analytical_response_and_mechanism_detection_survive_parameter_variation_grid(
                         .find(|node| node.node_id == "D")
                         .expect("D result exists");
 
-                    check_displacement(c.displacement_x_m, sign * displacement_m, &format!("{topology} {case} Cx"));
-                    check_displacement(c.displacement_y_m, -displacement_m, &format!("{topology} {case} Cy"));
-                    check_displacement(d.displacement_x_m, sign * displacement_m, &format!("{topology} {case} Dx"));
-                    check_displacement(d.displacement_y_m, -displacement_m, &format!("{topology} {case} Dy"));
+                    check_displacement(
+                        c.displacement_x_m,
+                        sign * displacement_m,
+                        &format!("{topology} {case} Cx"),
+                    );
+                    check_displacement(
+                        c.displacement_y_m,
+                        -displacement_m,
+                        &format!("{topology} {case} Cy"),
+                    );
+                    check_displacement(
+                        d.displacement_x_m,
+                        sign * displacement_m,
+                        &format!("{topology} {case} Dx"),
+                    );
+                    check_displacement(
+                        d.displacement_y_m,
+                        -displacement_m,
+                        &format!("{topology} {case} Dy"),
+                    );
                     assert!(
                         result.equilibrium.normalized_force_residual < 1.0e-12,
                         "{topology} {case} force residual {}",
@@ -170,8 +161,9 @@ fn analytical_response_and_mechanism_detection_survive_parameter_variation_grid(
                 }
 
                 let unbraced = square_truss(None, area_scale, modulus_scale, load_scale);
-                let error = solve(&unbraced)
-                    .expect_err("unbraced square must remain a mechanism at every parameter point");
+                let error = solve(&unbraced).expect_err(
+                    "unbraced square must remain a mechanism at every parameter point",
+                );
                 assert!(
                     error.contains("singular or numerically unresolved truss stiffness"),
                     "{case}: expected mechanism rejection, got {error}"
