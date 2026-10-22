@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ccx-mms-p1-real-run-${ github.ref }}
+  group: ccx-mms-p1-real-run-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Luminous-Dynamics/symtropy
-          ref: ${ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: symtropy
 
       - name: Checkout pinned CalculiX build recipe
@@ -426,6 +426,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ccx-mms-p1-real-run-evidence
-          path: ${ runner.temp }}/ccx-evidence/
+          path: ${{ runner.temp }}/ccx-evidence/
           if-no-files-found: warn
           retention-days: 90
