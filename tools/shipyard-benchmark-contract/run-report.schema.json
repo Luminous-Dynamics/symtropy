@@ -183,7 +183,9 @@
         "unknown_count",
         "timeout_count",
         "false_feasible_count",
-        "false_infeasible_count"
+        "false_infeasible_count",
+        "invalid_output_count",
+        "not_run_count"
       ],
       "properties": {
         "case_count": {
@@ -223,6 +225,14 @@
               "null"
             ]
           }
+        },
+        "invalid_output_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_run_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
