@@ -452,6 +452,72 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-pin-modal-receipt.json
 
+      - name: Verify SDOF free-vibration mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_sdof_free_vibration_mutations.sh
+
+      - name: Re-verify SDOF free-vibration production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/sdof_dynamics.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify deterministic SDOF free-vibration receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sdof-free-vibration-reference -- \
+            --source-commit "$source_commit" > sdof-free-vibration-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sdof-free-vibration-reference -- \
+            --source-commit "$source_commit" > sdof-free-vibration-raw-b.json
+          cmp --silent sdof-free-vibration-raw-a.json sdof-free-vibration-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/sdof_free_vibration_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' sdof-free-vibration-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=sdof-free-vibration-request-v0.1|benchmark=PHYS-SDOF-FREE-VIBRATION-001|mass_kg=2|stiffness_n_per_m=800|damping_ratio=0,0.05|initial_displacement_m=0.1|initial_velocity_m_per_s=0|time_step_s=0.001|duration_s=10|integrator=newmark-average-acceleration|beta=0.25|gamma=0.5|checks=analytical_state,phase_error,energy_balance,step_refinement|claim_ceiling=synthetic-SDOF-verification-not-BE23-BE24-reproduction"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' sdof-free-vibration-raw-a.json > sdof-free-vibration-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "sdof-free-vibration-receipt-v0.1"
+            and .benchmark_id == "PHYS-SDOF-FREE-VIBRATION-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "analytical-numerical-verification"
+            and .result == "verification-candidate-complete"
+            and .case_count == 2
+            and .cases[0].case_name == "undamped"
+            and .cases[0].damping_ratio == 0
+            and .cases[0].maximum_relative_energy_balance_residual < 1e-10
+            and .cases[0].maximum_phase_error_radians < 1e-2
+            and .cases[0].maximum_normalized_displacement_error < 1e-2
+            and .cases[1].case_name == "underdamped"
+            and (.cases[1].damping_ratio - 0.05 | abs < 1e-12)
+            and .cases[1].maximum_relative_energy_balance_residual < 1e-3
+            and .cases[1].maximum_phase_error_radians < 1e-2
+            and .cases[1].maximum_normalized_displacement_error < 1e-2
+            and .cases[1].final_to_initial_energy_ratio < 0.2
+            and (.claim_ceiling | contains("not full SOFiSTiK BE23/BE24 reproduction"))
+          ' sdof-free-vibration-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -469,5 +535,7 @@ jobs:
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
+            sdof-free-vibration-receipt.json
+            sdof-free-vibration-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
