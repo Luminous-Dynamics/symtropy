@@ -1,0 +1,82 @@
+name: VIS-MEM-018 Metamorphic Memory Contracts
+
+on:
+  push:
+    branches: ["research/vis-mem-metamorphic-v0-1"]
+    paths:
+      - "tools/vision-memory-metamorphic.rs"
+      - ".github/workflows/vision-memory-metamorphic.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-metamorphic.rs"
+      - ".github/workflows/vision-memory-metamorphic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-018-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-metamorphic-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run metamorphic contract tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-metamorphic.rs -o /tmp/vis-mem-meta-tests
+          /tmp/vis-mem-meta-tests
+
+      - name: Replay metamorphic report and validate schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-metamorphic.rs -o /tmp/vis-mem-meta
+          /tmp/vis-mem-meta > vis-mem-metamorphic.tsv
+          /tmp/vis-mem-meta > vis-mem-metamorphic-repeat.tsv
+          cmp vis-mem-metamorphic.tsv vis-mem-metamorphic-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-018-v0.1' vis-mem-metamorphic.tsv
+          grep -Fq $'ROW\tstale_after_payload_eviction\tsource_revision_upsert\t2' vis-mem-metamorphic.tsv
+          grep -Fq $'ROW\tequal_revision_conflict\tconflict_aware_watermark\t4' vis-mem-metamorphic.tsv
+          awk -F '\t' '
+            $1 == "ROW_HEADER" { if (NF != 15) bad=1; rh++ }
+            $1 == "ROW" { if (NF != 15) bad=1; r++ }
+            $1 == "SUMMARY_HEADER" { if (NF != 10) bad=1; sh++ }
+            $1 == "SUMMARY" { if (NF != 10) bad=1; s++ }
+            END { if (bad || rh != 1 || r != 84 || sh != 1 || s != 28) exit 1 }
+          ' vis-mem-metamorphic.tsv
+          awk -F '\t' '$1 == "ROW" && $11 > $4 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
+          awk -F '\t' '$1 == "SUMMARY" && $9 != 0 { bad=1 } END { if (bad) exit 1 }' vis-mem-metamorphic.tsv
+          sha256sum vis-mem-metamorphic.tsv > vis-mem-metamorphic.sha256
+          sha256sum -c vis-mem-metamorphic.sha256
+
+      - name: Upload metamorphic counterexamples and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-018-metamorphic-contracts
+          path: |
+            vis-mem-metamorphic.tsv
+            vis-mem-metamorphic.sha256
+          if-no-files-found: error
