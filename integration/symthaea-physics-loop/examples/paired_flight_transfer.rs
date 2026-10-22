@@ -9,7 +9,7 @@ use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
     pd_baseline, pid_baseline, ActiveInferenceFlightAgent, FlightConfig, FlightController,
     FlightFepConfig, FlightSetpoint, FlightTrainer, PdGains, PidState, PhysicsSimulator,
-    QuadrotorHdcEncoder,
+    QuadrotorHdcEncoder, SimplePhysicsSimulator,
 };
 use symtropy_real_symthaea_physics_loop::symtropy_flight::SymtropyFlightSimulator;
 
@@ -21,8 +21,8 @@ struct Metrics {
     max_position_error_m: f64,
     within_5cm_fraction: f64,
     thrust_impulse_n_s: f64,
-    ground_contact_steps: u64,
-    invalid_inputs: u64,
+    ground_contact_steps: Option<u64>,
+    invalid_inputs: Option<u64>,
     controller_compute_p50_us: f64,
     controller_compute_p95_us: f64,
     fep_update_p95_us: f64,
@@ -38,7 +38,22 @@ fn percentile(values: &[f64], q: f64) -> f64 {
     sorted[index.min(sorted.len() - 1)]
 }
 
-/// One deterministic disturbance schedule per seed, shared by every policy in a pair.
+/// Some simulator backends expose ground-clamp/invalid-input counters and others do not.
+trait SimulatorDiagnostics {
+    fn diagnostic_ground_contacts(&self) -> Option<u64>;
+    fn diagnostic_invalid_inputs(&self) -> Option<u64>;
+}
+
+impl SimulatorDiagnostics for SymtropyFlightSimulator {
+    fn diagnostic_ground_contacts(&self) -> Option<u64> { Some(self.ground_contact_count()) }
+    fn diagnostic_invalid_inputs(&self) -> Option<u64> { Some(self.invalid_input_count()) }
+}
+
+impl SimulatorDiagnostics for SimplePhysicsSimulator {
+    fn diagnostic_ground_contacts(&self) -> Option<u64> { None }
+    fn diagnostic_invalid_inputs(&self) -> Option<u64> { None }
+}
+
 fn mean(values: &[f64]) -> f64 {
     if values.is_empty() { 0.0 } else { values.iter().sum::<f64>() / values.len() as f64 }
 }
@@ -81,7 +96,8 @@ fn disturbance_for_seed(seed: u64, step: usize) -> Option<[f64; 3]> {
     }
 }
 
-fn evaluate_classical(
+fn evaluate_classical<S: PhysicsSimulator + SimulatorDiagnostics>(
+    sim: &mut S,
     seed: u64,
     steps: usize,
     setpoint: &FlightSetpoint,
@@ -89,7 +105,6 @@ fn evaluate_classical(
     force_enabled: bool,
     use_pid: bool,
 ) -> Metrics {
-    let mut sim = SymtropyFlightSimulator::new();
     sim.reset_with_perturbation(setpoint.position[2], 0.08, seed);
     let (mut squared, mut absolute, mut impulse) = (0.0, 0.0, 0.0);
     let mut controller_latencies_us = Vec::with_capacity(steps);
@@ -128,15 +143,16 @@ fn evaluate_classical(
         max_position_error_m: max_error,
         within_5cm_fraction: within as f64 / steps.max(1) as f64,
         thrust_impulse_n_s: impulse,
-        ground_contact_steps: sim.ground_contact_count(),
-        invalid_inputs: sim.invalid_input_count(),
+        ground_contact_steps: sim.diagnostic_ground_contacts(),
+        invalid_inputs: sim.diagnostic_invalid_inputs(),
         controller_compute_p50_us: percentile(&controller_latencies_us, 0.50),
         controller_compute_p95_us: percentile(&controller_latencies_us, 0.95),
         fep_update_p95_us: 0.0,
     }
 }
 
-fn evaluate_symthaea(
+fn evaluate_symthaea<S: PhysicsSimulator + SimulatorDiagnostics>(
+    sim: &mut S,
     seed: u64,
     steps: usize,
     setpoint: &FlightSetpoint,
@@ -152,7 +168,6 @@ fn evaluate_symthaea(
     let mut fep = ActiveInferenceFlightAgent::new(FlightFepConfig::default());
     fep.reset();
 
-    let mut sim = SymtropyFlightSimulator::new();
     sim.reset_with_perturbation(setpoint.position[2], 0.08, seed);
     let mut fep_result = fep.initial_step(sim.state(), setpoint);
 
@@ -211,8 +226,8 @@ fn evaluate_symthaea(
         max_position_error_m: max_error,
         within_5cm_fraction: within as f64 / steps.max(1) as f64,
         thrust_impulse_n_s: impulse,
-        ground_contact_steps: sim.ground_contact_count(),
-        invalid_inputs: sim.invalid_input_count(),
+        ground_contact_steps: sim.diagnostic_ground_contacts(),
+        invalid_inputs: sim.diagnostic_invalid_inputs(),
         controller_compute_p50_us: percentile(&controller_latencies_us, 0.50),
         controller_compute_p95_us: percentile(&controller_latencies_us, 0.95),
         fep_update_p95_us: percentile(&fep_latencies_us, 0.95),
@@ -258,28 +273,45 @@ fn main() {
 
     let mut paired_rows = Vec::new();
     let mut trained_fep_rmse_vs_pd = Vec::with_capacity(trials.max(1));
+    let mut trained_fep_rmse_vs_pid = Vec::with_capacity(trials.max(1));
     let mut trained_no_fep_rmse_vs_pd = Vec::with_capacity(trials.max(1));
     let mut fep_rmse_effect = Vec::with_capacity(trials.max(1));
     let mut trained_fep_within_vs_pd = Vec::with_capacity(trials.max(1));
     let mut fep_within_effect = Vec::with_capacity(trials.max(1));
+    let mut transfer_gap_rmse = Vec::with_capacity(trials.max(1));
+    let mut transfer_gap_within = Vec::with_capacity(trials.max(1));
     for index in 0..trials.max(1) {
         let seed = 0x53594d5400000000_u64.wrapping_add(index as u64 + 1);
-        let pd = evaluate_classical(seed, eval_steps, &setpoint, &gains, force_enabled, false);
-        let pid = evaluate_classical(seed, eval_steps, &setpoint, &gains, force_enabled, true);
+        // Each arm gets a fresh backend; state and integrals cannot leak between policies.
+        let mut pd_sim = SymtropyFlightSimulator::new();
+        let pd = evaluate_classical(&mut pd_sim, seed, eval_steps, &setpoint, &gains, force_enabled, false);
+        let mut pid_sim = SymtropyFlightSimulator::new();
+        let pid = evaluate_classical(&mut pid_sim, seed, eval_steps, &setpoint, &gains, force_enabled, true);
+        let mut untrained_sim = SymtropyFlightSimulator::new();
         let untrained = evaluate_symthaea(
-            seed, eval_steps, &setpoint, &config, &untrained_controller, force_enabled, false,
+            &mut untrained_sim, seed, eval_steps, &setpoint, &config, &untrained_controller, force_enabled, false,
         );
+        let mut trained_no_fep_sim = SymtropyFlightSimulator::new();
         let trained_no_online_fep = evaluate_symthaea(
-            seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, false,
+            &mut trained_no_fep_sim, seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, false,
         );
+        let mut trained_with_fep_sim = SymtropyFlightSimulator::new();
         let trained_with_fep = evaluate_symthaea(
-            seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, true,
+            &mut trained_with_fep_sim, seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, true,
+        );
+        // Hold weights/seed/initial state/disturbance fixed while testing the native training backend.
+        let mut native_sim = SimplePhysicsSimulator::new();
+        let native_trained_no_online_fep = evaluate_symthaea(
+            &mut native_sim, seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, false,
         );
         trained_fep_rmse_vs_pd.push(trained_with_fep.rmse_m - pd.rmse_m);
+        trained_fep_rmse_vs_pid.push(trained_with_fep.rmse_m - pid.rmse_m);
         trained_no_fep_rmse_vs_pd.push(trained_no_online_fep.rmse_m - pd.rmse_m);
         fep_rmse_effect.push(trained_with_fep.rmse_m - trained_no_online_fep.rmse_m);
         trained_fep_within_vs_pd.push(trained_with_fep.within_5cm_fraction - pd.within_5cm_fraction);
         fep_within_effect.push(trained_with_fep.within_5cm_fraction - trained_no_online_fep.within_5cm_fraction);
+        transfer_gap_rmse.push(trained_no_online_fep.rmse_m - native_trained_no_online_fep.rmse_m);
+        transfer_gap_within.push(trained_no_online_fep.within_5cm_fraction - native_trained_no_online_fep.within_5cm_fraction);
         paired_rows.push(json!({
             "trial_seed": seed,
             "evidence_class": "simulator_experiment",
@@ -290,7 +322,8 @@ fn main() {
                 "pid_baseline": pid,
                 "symthaea_untrained_no_fep_ablation": untrained,
                 "symthaea_trained_no_online_fep": trained_no_online_fep,
-                "symthaea_trained_with_fep": trained_with_fep
+                "symthaea_trained_with_fep": trained_with_fep,
+                "symthaea_trained_no_online_fep_native_backend": native_trained_no_online_fep
             },
             "deltas_vs_pd": {
                 "trained_with_fep_rmse_m": trained_with_fep.rmse_m - pd.rmse_m,
@@ -306,6 +339,10 @@ fn main() {
                 "within_5cm_fraction": trained_with_fep.within_5cm_fraction - trained_no_online_fep.within_5cm_fraction,
                 "controller_compute_p95_us": trained_with_fep.controller_compute_p95_us - trained_no_online_fep.controller_compute_p95_us,
                 "fep_update_p95_us": trained_with_fep.fep_update_p95_us
+            },
+            "sim_to_sim_transfer_gap_no_online_fep": {
+                "symtropy_rmse_minus_native_rmse_m": trained_no_online_fep.rmse_m - native_trained_no_online_fep.rmse_m,
+                "symtropy_within_5cm_minus_native_within_5cm_fraction": trained_no_online_fep.within_5cm_fraction - native_trained_no_online_fep.within_5cm_fraction
             }
         }));
     }
@@ -321,6 +358,8 @@ fn main() {
         },
         "evaluation": {
             "backend": "Symtropy PhysicsWorld",
+            "native_transfer_reference_backend": "Symthaea SimplePhysicsSimulator",
+            "native_transfer_reference_policy": "same trained weights, online FEP disabled, matched seed and disturbance schedule",
             "trials": trials.max(1),
             "steps_per_trial": eval_steps,
             "matched_seeds": true,
@@ -328,7 +367,7 @@ fn main() {
             "fep_adaptation": true,
             "force_disturbances_enabled": force_enabled
         },
-        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_n_s is thrust impulse, not electrical energy. ground_contact_steps counts explicit ground clamps. Controller p50/p95 and FEP p95 latencies are wall-clock microseconds measured in-process, are machine/load dependent, and are not cross-machine latency comparisons. Positive RMSE deltas mean worse tracking; positive within-5-cm deltas mean better tracking. Bootstrap intervals resample paired seed-level deltas and are descriptive only for the two-trial CI smoke. No win is assumed.",
+        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_n_s is thrust impulse, not electrical energy. Ground-clamp and invalid-input counters are null when a backend does not expose them. Controller p50/p95 and FEP p95 latencies are wall-clock microseconds measured in-process, are machine/load dependent, and are not cross-machine latency comparisons. Positive RMSE deltas mean worse tracking; positive within-5-cm deltas mean better tracking. Bootstrap intervals resample paired seed-level deltas and are descriptive only for the two-trial CI smoke. Native-vs-Symtropy differences are the explicit transfer gap for the same trained weights with online FEP disabled. No win is assumed.",
         "paired_summary": {
             "bootstrap_resamples": 2000,
             "paired_trial_count": paired_rows.len(),
@@ -342,11 +381,21 @@ fn main() {
                 "mean_delta_rmse_m": mean(&trained_no_fep_rmse_vs_pd),
                 "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&trained_no_fep_rmse_vs_pd, 2000, 0x5354_4603_u64)
             },
+            "trained_with_fep_vs_pid": {
+                "mean_delta_rmse_m": mean(&trained_fep_rmse_vs_pid),
+                "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&trained_fep_rmse_vs_pid, 2000, 0x5354_4606_u64)
+            },
             "online_fep_effect_vs_same_trained_weights": {
                 "mean_delta_rmse_m": mean(&fep_rmse_effect),
                 "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&fep_rmse_effect, 2000, 0x5354_4604_u64),
                 "mean_delta_within_5cm_fraction": mean(&fep_within_effect),
                 "bootstrap_95_ci_delta_within_5cm_fraction": bootstrap_mean_ci(&fep_within_effect, 2000, 0x5354_4605_u64)
+            },
+            "sim_to_sim_transfer_gap_no_online_fep": {
+                "mean_symtropy_minus_native_rmse_m": mean(&transfer_gap_rmse),
+                "bootstrap_95_ci_rmse_gap_m": bootstrap_mean_ci(&transfer_gap_rmse, 2000, 0x5354_4607_u64),
+                "mean_symtropy_minus_native_within_5cm_fraction": mean(&transfer_gap_within),
+                "bootstrap_95_ci_within_5cm_gap": bootstrap_mean_ci(&transfer_gap_within, 2000, 0x5354_4608_u64)
             }
         },
         "trials": paired_rows
