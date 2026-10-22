@@ -330,7 +330,7 @@ pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
 
         let internal_force = element.internal_force(displacements)?;
         for (local_node, node_id) in triangle.nodes.iter().enumerate() {
-            let global = &mut global_internal_forces[node_id - 1];
+            let global = &mut global_internal_forces[*node_id - 1];
             global.x += internal_force[2 * local_node];
             global.y += internal_force[2 * local_node + 1];
         }
