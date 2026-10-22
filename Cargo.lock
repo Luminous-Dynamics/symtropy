@@ -9037,6 +9037,10 @@ name = "symtropy-demo-capture"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "image 0.25.10",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
