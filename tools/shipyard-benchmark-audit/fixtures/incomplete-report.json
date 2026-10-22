@@ -24,13 +24,16 @@
   ],
   "summary": {
     "case_count": 1,
-    "verified_feasible_count": 0,
-    "verified_infeasible_count": 0,
     "unknown_count": 1,
     "timeout_count": 0,
     "invalid_output_count": 0,
     "not_run_count": 0,
     "false_feasible_count": 0,
-    "false_infeasible_count": 0
+    "false_infeasible_count": 0,
+    "feasible_claim_count": 0,
+    "infeasibility_proof_count": 0,
+    "no_solution_count": 0,
+    "feasible_reference_cases_found_count": 0,
+    "feasible_reference_cases_missed_count": 0
   }
 }
