@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0",
+  "title": "Household Appliance Benchmark Scenario Corpus v0.1",
+  "description": "Synthetic contract fixtures only. This schema does not validate appliance safety, physical function, product conformity, or field repair claims.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "status",
+    "intended_use",
+    "provenance",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "HAP-BENCH-001"
+    },
+    "status": {
+      "const": "synthetic-contract-only"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 20
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_policy",
+        "dataset_note",
+        "source_urls"
+      ],
+      "properties": {
+        "fixture_policy": {
+          "const": "synthetic-only-no-real-repair-records"
+        },
+        "dataset_note": {
+          "type": "string",
+          "minLength": 30
+        },
+        "source_urls": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "kind",
+          "domain",
+          "scenario",
+          "input",
+          "expected_disposition",
+          "assertions",
+          "rationale"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^HAP-[0-9]{3}$"
+          },
+          "kind": {
+            "enum": [
+              "positive_control",
+              "negative_control",
+              "indeterminate_control"
+            ]
+          },
+          "domain": {
+            "enum": [
+              "openness",
+              "repairability",
+              "performance",
+              "sourcing",
+              "diagnostics",
+              "provenance",
+              "durability",
+              "security",
+              "research_data",
+              "lifecycle"
+            ]
+          },
+          "scenario": {
+            "type": "string",
+            "minLength": 15
+          },
+          "input": {
+            "type": "object"
+          },
+          "expected_disposition": {
+            "enum": [
+              "accept_synthetic_contract",
+              "reject_claim",
+              "remain_indeterminate"
+            ]
+          },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    }
+  }
+}
