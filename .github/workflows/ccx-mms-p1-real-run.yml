@@ -1,0 +1,431 @@
+name: CCX MMS P1 real solver qualification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ccx-mms-p1-real-run.yml"
+      - "research/ccx-mms-p1-001-dat-parser/**"
+      - "research/ccx-mms-p1-001-mesh/**"
+      - "research/ccx-mms-p1-001-oracle/**"
+      - "research/physical-solver-contract/fixtures/ccx-mms-p1-001/**"
+      - "docs/research/PHYS_CCX_MMS_P1_CONVERGENCE_001.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccx-mms-p1-real-run-${ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-mms:
+    name: Build pinned CCX 2.22 and execute MMS convergence family
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
+    timeout-minutes: 60
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      HOME: /root
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - name: Pin apt to the frozen Ubuntu snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$VERSION_CODENAME" = "noble"
+          rm -f /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list
+          cat > /etc/apt/sources.list.d/phys-ccx-snapshot.sources <<'EOF'
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Snapshot: 20261020T000000Z
+
+          Types: deb
+          URIs: http://security.ubuntu.com/ubuntu/
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          Snapshot: 20261020T000000Z
+          EOF
+          printf 'Acquire::https::Verify-Peer "false";\n' > /etc/apt/apt.conf.d/99phys-ccx-ca-bootstrap
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates
+          rm -f /etc/apt/apt.conf.d/99phys-ccx-ca-bootstrap
+          rm -rf /var/lib/apt/lists/*
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential gfortran make curl tar bzip2 ca-certificates \
+            diffutils file binutils jq perl python3 coreutils git patch unzip
+
+      - name: Checkout exact Symtropy source head
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${ github.event.pull_request.head.sha || github.sha }}
+          path: symtropy
+
+      - name: Checkout pinned CalculiX build recipe
+        uses: actions/checkout@v4
+        with:
+          repository: OmnibusCloud/CalculiX
+          ref: b7977a4e90b40fd28fa149fc69f1647661d10f56
+          path: CalculiX-builder
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Format, test, and lint frozen generators and parser
+        working-directory: symtropy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/ccx-mms-p1-001-oracle/Cargo.toml -- --check
+          cargo test --locked --manifest-path research/ccx-mms-p1-001-oracle/Cargo.toml
+          cargo clippy --locked --manifest-path research/ccx-mms-p1-001-oracle/Cargo.toml --all-targets -- -D warnings
+          cargo fmt --manifest-path research/ccx-mms-p1-001-mesh/Cargo.toml -- --check
+          cargo test --locked --manifest-path research/ccx-mms-p1-001-mesh/Cargo.toml
+          cargo clippy --locked --manifest-path research/ccx-mms-p1-001-mesh/Cargo.toml --all-targets -- -D warnings
+          cargo fmt --manifest-path research/ccx-mms-p1-001-dat-parser/Cargo.toml -- --check
+          cargo test --locked --manifest-path research/ccx-mms-p1-001-dat-parser/Cargo.toml --all-targets
+          cargo clippy --locked --manifest-path research/ccx-mms-p1-001-dat-parser/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify official CCX 2.22 source against pinned builder tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ccx-source-archive" "$RUNNER_TEMP/ccx-build" "$RUNNER_TEMP/ccx-evidence/cases"
+          curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
+            --connect-timeout 20 --max-time 900 \
+            -o "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" \
+            http://www.dhondt.de/ccx_2.22.src.tar.bz2
+          actual="$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+          expected="3a94dcc775a31f570229734b341d6b06301ebdc759863df901c8b9bf1854c0bc"
+          test "$actual" = "$expected"
+          tar -xjf "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" -C "$RUNNER_TEMP/ccx-source-archive"
+          archive_src="$(find "$RUNNER_TEMP/ccx-source-archive" -type f -name Makefile.inc -printf '%h\n' -quit)"
+          test -n "$archive_src"
+          diff -qr "$archive_src" "$GITHUB_WORKSPACE/CalculiX-builder/upstream/ccx_2.22/src"
+          printf 'source_url=%s\nsource_archive_sha256=%s\nbuilder_repository=%s\nbuilder_commit=%s\n' \
+            "http://www.dhondt.de/ccx_2.22.src.tar.bz2" "$actual" "OmnibusCloud/CalculiX" \
+            "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" \
+            > "$RUNNER_TEMP/ccx-evidence/source-provenance.txt"
+          test "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" = \
+            "b7977a4e90b40fd28fa149fc69f1647661d10f56"
+
+      - name: Build stock CCX 2.22 with pinned linkable profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          export WORK="$RUNNER_TEMP/ccx-build"
+          export WITH_PARDISO=1 WITH_PASTIX=0 WITH_ARPACK=1 WITH_MT=1
+          mkdir -p "$WORK"
+          {
+            echo "builder_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
+            echo "container_image=ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
+            echo "source_archive_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+            echo "with_pardiso=$WITH_PARDISO"
+            echo "with_pastix=$WITH_PASTIX"
+            echo "with_arpack=$WITH_ARPACK"
+            echo "with_mt=$WITH_MT"
+            cc --version | head -n 1
+            gfortran --version | head -n 1
+            make --version | head -n 1
+            ld --version | head -n 1
+            dpkg-query -W -f='${binary:Package}=${Version}\n' | sort \
+              > "$RUNNER_TEMP/ccx-evidence/package-inventory.txt"
+            echo "=== pinned build log ==="
+          } > "$RUNNER_TEMP/ccx-evidence/build-identity.log"
+          (
+            WORK="$WORK" WITH_PARDISO="$WITH_PARDISO" WITH_PASTIX="$WITH_PASTIX" \
+              WITH_ARPACK="$WITH_ARPACK" WITH_MT="$WITH_MT" \
+              sh "$GITHUB_WORKSPACE/CalculiX-builder/build/build.sh"
+          ) 2>&1 | tee "$RUNNER_TEMP/ccx-evidence/ccx-build.log"
+          CCX="$WORK/out/ccx"
+          test -x "$CCX"
+          spooles_sha="$(sha256sum "$WORK/deps/spooles.2.2.tgz" | cut -d ' ' -f 1)"
+          test "$spooles_sha" = "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"
+          ldd "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-ldd.txt"
+          sha256sum "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256"
+          {
+            echo "platform=$(uname -srm)"
+            echo "builder_repository=OmnibusCloud/CalculiX"
+            echo "builder_repository_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
+            echo "ccx_source_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
+            echo "spooles_sha256=$spooles_sha"
+            echo "with_pardiso=$WITH_PARDISO"
+            echo "with_pastix=$WITH_PASTIX"
+            echo "with_arpack=$WITH_ARPACK"
+            echo "with_mt=$WITH_MT"
+            echo "c_compiler=$(cc --version | head -n 1)"
+            echo "fortran_compiler=$(gfortran --version | head -n 1)"
+            echo "package_inventory_sha256=$(sha256sum "$RUNNER_TEMP/ccx-evidence/package-inventory.txt" | cut -d ' ' -f 1)"
+            echo "ccx_executable_sha256=$(sha256sum "$CCX" | cut -d ' ' -f 1)"
+          } > "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt"
+          jq -n \
+            --arg builder_commit "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" \
+            --arg image "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30" \
+            --arg source_url "http://www.dhondt.de/ccx_2.22.src.tar.bz2" \
+            --arg source_sha "$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)" \
+            --arg spooles_sha "$spooles_sha" \
+            --arg exe_sha "$(sha256sum "$CCX" | cut -d ' ' -f 1)" \
+            --arg toolchain_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/toolchain-manifest.txt" | cut -d ' ' -f 1)" \
+            --arg build_log_sha "$(sha256sum "$RUNNER_TEMP/ccx-evidence/ccx-build.log" | cut -d ' ' -f 1)" \
+            '{
+              schema_version:"calculix-build-manifest-v0.1",
+              solver:"CalculiX",solver_version:"2.22",
+              builder_repository:"OmnibusCloud/CalculiX",
+              builder_repository_commit:$builder_commit,
+              container_image:$image,ccx_source_url:$source_url,
+              ccx_source_sha256:$source_sha,spooles_sha256:$spooles_sha,
+              arpack_enabled:true,ccx_executable_sha256:$exe_sha,
+              toolchain_manifest_sha256:$toolchain_sha,
+              build_log_sha256:$build_log_sha,
+              build_config:{with_pardiso:true,with_pastix:false,with_arpack:true,with_mt:true}
+            }' > "$RUNNER_TEMP/ccx-evidence/build-manifest.json"
+          cp "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" "$RUNNER_TEMP/ccx-evidence/CalculiX-PROVENANCE.md"
+          sha256sum "$RUNNER_TEMP/ccx-evidence/package-inventory.txt" \
+            > "$RUNNER_TEMP/ccx-evidence/package-inventory.sha256"
+
+      - name: Generate meshes, run CCX, parse real DAT, and preserve per-case receipts
+        working-directory: symtropy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/ccx-evidence"
+          CCX="$RUNNER_TEMP/ccx-build/out/ccx"
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          EXE_SHA="$(sha256sum "$CCX" | cut -d ' ' -f 1)"
+          BUILD_SHA="$(sha256sum "$ROOT/build-manifest.json" | cut -d ' ' -f 1)"
+          PARSER_MANIFEST="research/ccx-mms-p1-001-dat-parser/Cargo.toml"
+          MESH_MANIFEST="research/ccx-mms-p1-001-mesh/Cargo.toml"
+          FAILURE_COUNT=0
+
+          run_case() {
+            local label="$1"
+            local n="$2"
+            local reference_dat="${3:-}"
+            local dir="$ROOT/cases/$label"
+            mkdir -p "$dir"
+            local deck="$dir/model.inp"
+            local dat="$dir/model.dat"
+            local frd="$dir/model.frd"
+            local started ended exit_status
+            local verifier_status=0
+            local verifier_args=()
+
+            if ! cargo run --quiet --locked --manifest-path "$MESH_MANIFEST" --bin mms-p1-deck -- "$n" 48 \
+              > "$deck" 2> "$dir/deck-generation.log"; then
+              jq -n --arg case "$label" --arg source "$SOURCE_SHA" \
+                --arg reason "deck generation failed" \
+                '{schema:"ccx-mms-process-receipt-v1",case:$case,source_sha:$source,process_status:"FAIL",failure_reason:$reason}' \
+                > "$dir/process-receipt.json"
+              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+              return 1
+            fi
+
+            started="$(date +%s)"
+            set +e
+            (cd "$dir" && timeout 180s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 "$CCX" model) \
+              > "$dir/process.log" 2>&1
+            exit_status=$?
+            set -e
+            ended="$(date +%s)"
+
+            if [ "$exit_status" -eq 0 ] && [ -s "$dat" ] && [ -s "$frd" ]; then
+              verifier_args=("$n" "$deck" "$dat")
+              if [ -n "$reference_dat" ]; then
+                verifier_args+=("$reference_dat")
+              fi
+              if ! MMS_BENCH_SOURCE_SHA="$SOURCE_SHA" MMS_BENCH_CHECKOUT_SHA="$SOURCE_SHA" \
+                cargo run --quiet --locked --manifest-path "$PARSER_MANIFEST" --bin mms-p1-real-verify -- "${verifier_args[@]}" \
+                > "$dir/numerical-verification.json" 2> "$dir/verifier.log"; then
+                verifier_status=1
+              fi
+            else
+              verifier_status=1
+            fi
+
+            jq -n \
+              --arg case "$label" --arg source "$SOURCE_SHA" \
+              --arg build_sha "$BUILD_SHA" --arg exe_sha "$EXE_SHA" \
+              --arg deck_sha "$(sha256sum "$deck" | cut -d ' ' -f 1)" \
+              --arg dat_sha "$(test -s "$dat" && sha256sum "$dat" | cut -d ' ' -f 1 || true)" \
+              --arg frd_sha "$(test -s "$frd" && sha256sum "$frd" | cut -d ' ' -f 1 || true)" \
+              --arg process_log_sha "$(test -f "$dir/process.log" && sha256sum "$dir/process.log" | cut -d ' ' -f 1 || true)" \
+              --arg report_sha "$(test -s "$dir/numerical-verification.json" && sha256sum "$dir/numerical-verification.json" | cut -d ' ' -f 1 || true)" \
+              --argjson started "$started" --argjson ended "$ended" \
+              --argjson exit_status "$exit_status" --argjson verifier_status "$verifier_status" \
+              '{
+                schema:"ccx-mms-process-receipt-v1",case:$case,source_sha:$source,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                input_deck_sha256:$deck_sha,dat_sha256:(if $dat_sha=="" then null else $dat_sha end),
+                frd_sha256:(if $frd_sha=="" then null else $frd_sha end),
+                process_log_sha256:(if $process_log_sha=="" then null else $process_log_sha end),
+                numerical_report_sha256:(if $report_sha=="" then null else $report_sha end),
+                process_started_epoch_s:$started,process_ended_epoch_s:$ended,
+                process_exit_status:$exit_status,verifier_exit_status:$verifier_status,
+                process_status:(if $exit_status==0 and $verifier_status==0 then "OUTPUT_PARSED" else "FAIL" end),
+                solver_execution_attested_by_workflow:true,
+                qualification_pass:false
+              }' > "$dir/process-receipt.json"
+
+            if [ "$exit_status" -ne 0 ] || [ "$verifier_status" -ne 0 ]; then
+              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+              return 1
+            fi
+            return 0
+          }
+
+          for n in 8 16 32 64; do
+            if ! run_case "n$n" "$n"; then
+              echo "case n$n failed; raw artifacts preserved" >&2
+            fi
+          done
+
+          REFERENCE_DAT="$ROOT/cases/n16/model.dat"
+          if [ -s "$REFERENCE_DAT" ]; then
+            if ! run_case "n16-repeat" 16 "$REFERENCE_DAT"; then
+              echo "repeat n16 failed; raw artifacts preserved" >&2
+            fi
+          else
+            mkdir -p "$ROOT/cases/n16-repeat"
+            echo "baseline n=16 DAT missing; repeat case not executed" > "$ROOT/cases/n16-repeat/failure.txt"
+            FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          fi
+
+          sha256sum \
+            research/ccx-mms-p1-001-dat-parser/src/lib.rs \
+            research/ccx-mms-p1-001-dat-parser/src/bin/mms-p1-real-verify.rs \
+            research/ccx-mms-p1-001-dat-parser/Cargo.toml \
+            research/ccx-mms-p1-001-dat-parser/Cargo.lock \
+            research/ccx-mms-p1-001-mesh/src/lib.rs \
+            research/ccx-mms-p1-001-mesh/Cargo.toml \
+            research/ccx-mms-p1-001-mesh/Cargo.lock \
+            research/ccx-mms-p1-001-oracle/src/lib.rs \
+            research/physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json \
+            docs/research/PHYS_CCX_MMS_P1_CONVERGENCE_001.md \
+            .github/workflows/ccx-mms-p1-real-run.yml \
+            > "$ROOT/source-digests.sha256"
+
+          jq -n --arg source "$SOURCE_SHA" --arg build_sha "$BUILD_SHA" \
+            --arg exe_sha "$EXE_SHA" --argjson failures "$FAILURE_COUNT" \
+            '{schema:"ccx-mms-run-manifest-v1",source_sha:$source,build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,case_failure_count:$failures,qualification_pass:false}' \
+            > "$ROOT/run-manifest.json"
+
+          # Preserve all cases before the strict gate evaluates the run family.
+
+      - name: Gate real output, load/reaction balance, observed order, repeatability
+        if: always()
+        working-directory: symtropy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/ccx-evidence"
+          for n in 8 16 32 64; do
+            report="$ROOT/cases/n$n/numerical-verification.json"
+            receipt="$ROOT/cases/n$n/process-receipt.json"
+            test -s "$report"
+            test -s "$receipt"
+            jq -e '
+              .schema == "ccx-mms-p1-real-run-verification-v1"
+              and .solver_output_parsed == true
+              and .qualification_pass == false
+              and .load_resultant_pass == true
+              and .force_balance_pass == true
+              and .boundary_displacement_pass == true
+              and .numerical_diagnostics_pass == true
+              and .displacement_l2_relative > 0
+              and .energy_error_relative > 0
+              and .stress_l2_relative > 0
+              and (.source_sha | test("^[0-9a-f]{40}$"))
+              and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            ' "$report" > /dev/null
+            jq -e '.process_status == "OUTPUT_PARSED" and .process_exit_status == 0 and .verifier_exit_status == 0 and .qualification_pass == false' "$receipt" > /dev/null
+          done
+
+          for key in displacement_l2_relative energy_error_relative stress_l2_relative; do
+            jq -s -e --arg key "$key" '
+              length == 4
+              and .[0].resolution == 8
+              and .[1].resolution == 16
+              and .[2].resolution == 32
+              and .[3].resolution == 64
+              and (.[0][$key] > .[1][$key])
+              and (.[1][$key] > .[2][$key])
+              and (.[2][$key] > .[3][$key])
+            ' "$ROOT/cases/n8/numerical-verification.json" \
+              "$ROOT/cases/n16/numerical-verification.json" \
+              "$ROOT/cases/n32/numerical-verification.json" \
+              "$ROOT/cases/n64/numerical-verification.json" > /dev/null
+          done
+
+          jq -s -e '
+            length == 4
+            and ([.[1].displacement_l2_relative, .[2].displacement_l2_relative, .[3].displacement_l2_relative] as $e
+              | ((($e[0] / $e[1]) | log) / (2 | log)) >= 1.5
+              and ((($e[0] / $e[1]) | log) / (2 | log)) <= 2.5
+              and ((($e[1] / $e[2]) | log) / (2 | log)) >= 1.5
+              and ((($e[1] / $e[2]) | log) / (2 | log)) <= 2.5)
+            and ([.[1].energy_error_relative, .[2].energy_error_relative, .[3].energy_error_relative] as $e
+              | ((($e[0] / $e[1]) | log) / (2 | log)) >= 0.75
+              and ((($e[0] / $e[1]) | log) / (2 | log)) <= 1.25
+              and ((($e[1] / $e[2]) | log) / (2 | log)) >= 0.75
+              and ((($e[1] / $e[2]) | log) / (2 | log)) <= 1.25)
+          ' "$ROOT/cases/n8/numerical-verification.json" \
+            "$ROOT/cases/n16/numerical-verification.json" \
+            "$ROOT/cases/n32/numerical-verification.json" \
+            "$ROOT/cases/n64/numerical-verification.json" > /dev/null
+
+          REPEAT="$ROOT/cases/n16-repeat/numerical-verification.json"
+          test -s "$REPEAT"
+          jq -e '
+            .resolution == 16
+            and .repeat_field_pass == true
+            and .repeat_field_relative_difference <= 1e-12
+            and .numerical_diagnostics_pass == true
+          ' "$REPEAT" > /dev/null
+
+          jq -s --slurpfile repeat "$REPEAT" '
+            {
+              schema:"ccx-mms-p1-qualified-run-summary-v1",
+              source_sha:.[0].source_sha,
+              solver_version:"CalculiX 2.22",
+              case_resolutions:map(.resolution),
+              displacement_l2_relative:map(.displacement_l2_relative),
+              energy_error_relative:map(.energy_error_relative),
+              stress_l2_relative:map(.stress_l2_relative),
+              displacement_observed_order_16_32:((.[1].displacement_l2_relative/.[2].displacement_l2_relative)|log)/(2|log),
+              displacement_observed_order_32_64:((.[2].displacement_l2_relative/.[3].displacement_l2_relative)|log)/(2|log),
+              energy_observed_order_16_32:((.[1].energy_error_relative/.[2].energy_error_relative)|log)/(2|log),
+              energy_observed_order_32_64:((.[2].energy_error_relative/.[3].energy_error_relative)|log)/(2|log),
+              global_force_balance_residual_linf:map(.force_balance_residual_linf),
+              n16_repeat_relative_difference:$repeat[0].repeat_field_relative_difference,
+              qualification_pass:true,
+              physical_result_qualified:false,
+              real_world_validation_status:"UNRESOLVED",
+              engineering_use_authorized:false
+            }
+          ' "$ROOT/cases/n8/numerical-verification.json" \
+            "$ROOT/cases/n16/numerical-verification.json" \
+            "$ROOT/cases/n32/numerical-verification.json" \
+            "$ROOT/cases/n64/numerical-verification.json" > "$ROOT/summary.json"
+          jq -e '.qualification_pass == true and .physical_result_qualified == false and .real_world_validation_status == "UNRESOLVED" and .engineering_use_authorized == false' \
+            "$ROOT/summary.json" > /dev/null
+
+      - name: Upload raw solver outputs, build provenance, and numerical receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccx-mms-p1-real-run-evidence
+          path: ${ runner.temp }}/ccx-evidence/
+          if-no-files-found: warn
+          retention-days: 90
