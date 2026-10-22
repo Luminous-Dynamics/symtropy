@@ -1,0 +1,11 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('panel.ifc','2026-10-18T00:00:00',('Luminous Dynamics'),('Luminous Dynamics'),'OpenBIM.rs','BUILT-INTEROP-007','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+DATA;
+#1=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);
+#2=IFCWALL('0000000000000000000001',$,'Panel 002',$,$,$,$,$,.NOTDEFINED.);
+ENDSEC;
+END-ISO-10303-21;
