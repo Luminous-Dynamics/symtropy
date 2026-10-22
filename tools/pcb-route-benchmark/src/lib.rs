@@ -802,6 +802,8 @@ pub fn build_dataset_manifest(
     }
 
     let mut seen = BTreeSet::new();
+    let mut used_paths = BTreeSet::new();
+    used_paths.insert(actual_split_path.clone());
     let mut boards = Vec::with_capacity(intake.boards.len());
     for selection in &intake.boards {
         if !seen.insert(selection.board_id.as_str()) {
@@ -928,6 +930,12 @@ pub fn build_dataset_manifest(
                 selection.board_id
             ));
         }
+        if !used_paths.insert(actual_path.clone()) {
+            return Err(format!(
+                "{}: source path aliases another pinned dataset artifact",
+                selection.board_id
+            ));
+        }
         let bytes = fs::read(&actual_path).map_err(|error| {
             format!(
                 "{}: cannot read source board bytes: {error}",
@@ -946,6 +954,12 @@ pub fn build_dataset_manifest(
         if !license_actual_path.starts_with(&root) || !license_actual_path.is_file() {
             return Err(format!(
                 "{}: license-evidence path is not a regular file contained by the dataset root",
+                selection.board_id
+            ));
+        }
+        if !used_paths.insert(license_actual_path.clone()) {
+            return Err(format!(
+                "{}: license-evidence path aliases another pinned dataset artifact",
                 selection.board_id
             ));
         }
@@ -1036,6 +1050,7 @@ pub fn verify_dataset_files(
     }
 
     let mut entries = Vec::with_capacity(manifest.boards.len() * 2 + 1);
+    let mut used_paths = BTreeSet::new();
     let mut verified_license_evidence_count = 0usize;
 
     if manifest.evidence_class == "external_benchmark" {
@@ -1049,6 +1064,9 @@ pub fn verify_dataset_files(
         })?;
         if !split_path.starts_with(&root) || !split_path.is_file() {
             return Err("source split config is not a regular file contained by the dataset root".into());
+        }
+        if !used_paths.insert(split_path.clone()) {
+            return Err("source split config aliases another pinned dataset artifact".into());
         }
         let split_bytes = fs::read(&split_path)
             .map_err(|error| format!("cannot read source split config {split_relative_path}: {error}"))?;
@@ -1099,6 +1117,12 @@ pub fn verify_dataset_files(
             return Err(format!(
                 "{}: source path is not a regular file: {}",
                 board.board_id, relative_path
+            ));
+        }
+        if !used_paths.insert(actual_path.clone()) {
+            return Err(format!(
+                "{}: source path aliases another pinned dataset artifact",
+                board.board_id
             ));
         }
         let bytes = fs::read(&actual_path).map_err(|error| {
@@ -1159,6 +1183,12 @@ pub fn verify_dataset_files(
                 return Err(format!(
                     "{}: license-evidence path is not a regular file: {}",
                     board.board_id, evidence_relative_path
+                ));
+            }
+            if !used_paths.insert(evidence_path.clone()) {
+                return Err(format!(
+                    "{}: license-evidence path aliases another pinned dataset artifact",
+                    board.board_id
                 ));
             }
             let evidence_bytes = fs::read(&evidence_path).map_err(|error| {
