@@ -48,7 +48,7 @@ jobs:
         run: |
           checkout_sha="$(git rev-parse HEAD)"
           export MMS_BENCH_CHECKOUT_SHA="$checkout_sha"
-          sha256sum src/lib.rs src/bin/triangle-patch-probe.rs Cargo.toml Cargo.lock ../ccx-mms-p1-001-mesh/src/lib.rs ../ccx-mms-p1-001-oracle/src/lib.rs .github/workflows/ccx-mms-p1-element-oracle.yml 2>/dev/null > /tmp/element-oracle-source-digests.sha256 || true
+          sha256sum src/lib.rs src/bin/triangle-patch-probe.rs Cargo.toml Cargo.lock README.md ../ccx-mms-p1-001-mesh/src/lib.rs ../ccx-mms-p1-001-oracle/src/lib.rs ../../.github/workflows/ccx-mms-p1-element-oracle.yml > /tmp/element-oracle-source-digests.sha256
           cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-a.json
           cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-b.json
           cmp /tmp/triangle-patch-a.json /tmp/triangle-patch-b.json
