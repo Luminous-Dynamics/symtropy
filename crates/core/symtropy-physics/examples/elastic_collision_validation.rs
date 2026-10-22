@@ -92,6 +92,9 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     // stabilization has its own energy-injection/penetration contract and is
     // intentionally outside this analytical velocity benchmark.
     world.baumgarte = 0.0;
+    // Disable sleep so low-speed bodies cannot be removed from the collision
+    // experiment before contact; sleeping is a separate policy under test.
+    world.sleep_threshold = 0.0;
     let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, case.mass_a);
     let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, case.mass_b);
 
@@ -147,7 +150,7 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     let energy_regime_ok = if is_elastic {
         (final_state.kinetic_energy - initial.kinetic_energy).abs() <= ENERGY_TOLERANCE
     } else {
-        final_state.kinetic_energy < initial.kinetic_energy - 0.5
+        final_state.kinetic_energy < initial.kinetic_energy - ENERGY_TOLERANCE
     };
     let finite = [
         observed_a,
@@ -259,5 +262,108 @@ mod tests {
         assert!(result.velocity_b_observed.abs() <= VELOCITY_TOLERANCE);
         assert!(result.kinetic_energy_final < result.kinetic_energy_initial - 0.5);
         assert!((result.momentum_final - result.momentum_initial).abs() <= MOMENTUM_TOLERANCE);
+    }
+
+    #[test]
+    fn deterministic_mass_velocity_restitution_sweep_matches_closed_form() {
+        // All relative approach speeds exceed the engine's 1 m/s restitution
+        // threshold, so the requested coefficient is active for every fixture.
+        // The sweep checks the analytical velocity and energy relation across
+        // 30 frozen combinations instead of one hand-picked collision.
+        let masses = [(0.75, 1.0), (1.0, 2.0), (3.0, 5.0)];
+        let velocities = [(2.0, -1.0), (1.25, -0.25)];
+        let restitutions = [0.0, 0.25, 0.5, 0.75, 1.0];
+
+        let mut case_count = 0usize;
+        for (mass_a, mass_b) in masses {
+            for (velocity_a_initial, velocity_b_initial) in velocities {
+                for restitution in restitutions {
+                    let case = CollisionCase {
+                        name: "deterministic_sweep",
+                        mass_a,
+                        mass_b,
+                        velocity_a_initial,
+                        velocity_b_initial,
+                        restitution,
+                    };
+                    let result = run_case(case).expect("sweep collision should occur");
+                    assert!(
+                        result.passed,
+                        "closed-form mismatch for {case:?}: {result:?}"
+                    );
+
+                    // Independent energy-loss identity for an isolated 1D
+                    // binary collision: ΔK = 1/2 μ (1-e²) (u1-u2)².
+                    let reduced_mass = mass_a * mass_b / (mass_a + mass_b);
+                    let relative_speed = velocity_a_initial - velocity_b_initial;
+                    let expected_energy_loss = 0.5
+                        * reduced_mass
+                        * (1.0 - restitution * restitution)
+                        * relative_speed
+                        * relative_speed;
+                    let observed_energy_loss =
+                        result.kinetic_energy_initial - result.kinetic_energy_final;
+                    assert!(
+                        (observed_energy_loss - expected_energy_loss).abs() <= ENERGY_TOLERANCE,
+                        "energy-loss identity mismatch for {case:?}: expected={expected_energy_loss:.12e}, observed={observed_energy_loss:.12e}"
+                    );
+                    assert!(
+                        (result.momentum_final - result.momentum_initial).abs()
+                            <= MOMENTUM_TOLERANCE
+                    );
+                    case_count += 1;
+                }
+            }
+        }
+        assert_eq!(case_count, 30);
+    }
+
+    #[test]
+    fn below_threshold_restitution_is_recorded_as_engine_policy() {
+        // The engine intentionally suppresses restitution for approach speeds
+        // below 1 m/s to avoid resting-contact micro-bounces. This is a solver
+        // policy fixture, not an idealized elastic-collision reference case.
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.sleep_threshold = 0.0;
+        let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, 1.0);
+
+        for (handle, velocity) in [(body_a, 0.4), (body_b, -0.4)] {
+            let body = world.body_mut(handle).expect("body was inserted");
+            body.linear_velocity = SVector::from([velocity, 0.0, 0.0]);
+            body.restitution = 1.0;
+            body.friction = 0.0;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+        }
+
+        let initial = world.invariant_snapshot();
+        let mut contact_observed = false;
+        for _ in 0..MAX_STEPS {
+            world.step(DT);
+            if !world.contacts.is_empty() {
+                contact_observed = true;
+                break;
+            }
+        }
+        assert!(
+            contact_observed,
+            "below-threshold collision was not detected"
+        );
+
+        let velocity_a = world.body(body_a).expect("body A remains").linear_velocity[0];
+        let velocity_b = world.body(body_b).expect("body B remains").linear_velocity[0];
+        let final_state = world.invariant_snapshot();
+        assert!(
+            velocity_a.abs() <= VELOCITY_TOLERANCE && velocity_b.abs() <= VELOCITY_TOLERANCE,
+            "low-speed restitution suppression should not reverse the pair: va={velocity_a}, vb={velocity_b}"
+        );
+        assert!(
+            final_state.kinetic_energy < initial.kinetic_energy - 0.1,
+            "policy fixture should suppress the elastic rebound: initial={}, final={}",
+            initial.kinetic_energy,
+            final_state.kinetic_energy
+        );
     }
 }

@@ -73,3 +73,23 @@ Next gates:
 5. connect only measured, qualified mechanical-energy changes to the separate physical EnergyTransferLedger authority.
 
 References: [Symtropy Physics research validation protocol](RESEARCH_VALIDATION.md); [NASA-STD-7009B](https://standards.nasa.gov/standard/nasa/nasa-std-7009) for context-of-use credibility and the separation of numerical verification from model validation.
+
+
+## Deterministic restitution sweep
+
+The follow-on adds a 30-case frozen grid over three mass pairs, two initial-velocity pairs, and five coefficients of restitution (`e = 0, 0.25, 0.5, 0.75, 1`). All cases have relative approach speed strictly above the engine's 1 m/s restitution threshold; low-speed suppression is a different engine-policy regime and is not mixed into this physical-law sweep.
+
+For an isolated 1D collision, the analytical kinetic-energy change also obeys:
+
+`K_initial - K_final = 1/2 * mu * (1 - e^2) * (u1 - u2)^2`
+
+where `mu = m1*m2/(m1+m2)` is reduced mass. The code independently computes final energy from the analytical final velocities and compares the observed result. The sweep requires momentum agreement and a positive kinetic-energy loss for each inelastic case, but does not treat an arbitrary fixed Joule threshold as universal across masses/speeds.
+
+This tests mathematical consistency across a frozen parameter envelope. It is not a stochastic property-based campaign, does not explore collision shapes or oblique contact, and does not promote the loss to physical heat. The normal-impact energy-to-reservoir theorem remains #810.
+
+
+## Separate low-speed solver-policy control
+
+A separate test uses equal-mass spheres approaching at 0.4 m/s each (0.8 m/s relative speed), below the engine's 1 m/s restitution threshold. It verifies that the solver suppresses the elastic rebound under its anti-jitter policy. This fixture is explicitly *not* scored against the ideal restitution law, because the engine intentionally modifies the ideal law in this speed regime.
+
+Keeping this case separate makes the contract visible: the 30-case physical-law sweep tests active restitution above the threshold; the low-speed fixture tests an implementation policy below it. Reports must not silently mix the two regimes or advertise the thresholded engine as an ideal collision model at all speeds.
