@@ -371,6 +371,30 @@ mod tests {
         frames
     }
 
+    fn make_episode(
+        encoder: &PhysicsFrameEncoder,
+        id: &str,
+        direction: f64,
+    ) -> PhysicsEpisode {
+        let mut world = PhysicsWorld::<2>::default();
+        let body = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(body).unwrap().linear_velocity[0] = direction;
+        let mut builder = encoder.episode_builder(
+            id,
+            EpisodeMetadata {
+                label: id.to_owned(),
+                ..EpisodeMetadata::default()
+            },
+            53,
+        );
+        for tick in 0..8 {
+            let frame = encoder.encode_world(tick, &world).unwrap();
+            builder.push(&frame).unwrap();
+            world.step(1.0 / 30.0);
+        }
+        builder.finish().unwrap()
+    }
+
     #[test]
     fn temporal_order_changes_episode_vector() {
         let encoder = encoder();
