@@ -37,7 +37,7 @@ run_mutation() {
   case "$mutation" in
     invert_plus_minus_frequency_ratio)
       grep -Fq '(plus_match.frequency_hz / minus_match.frequency_hz).ln() / denominator;' "$source"
-      perl -0pi -e 's/\(plus_match\.frequency_hz \/ minus_match\.frequency_hz\)\.ln\(\) \/ denominator;/\(minus_match.frequency_hz \/ plus_match.frequency_hz\).ln() \/ denominator;/' "$source"
+      perl -0pi -e 's{\(plus_match\.frequency_hz / minus_match\.frequency_hz\)\.ln\(\) / denominator;}{(minus_match.frequency_hz / plus_match.frequency_hz).ln() / denominator;}' "$source"
       grep -Fq '(minus_match.frequency_hz / plus_match.frequency_hz).ln() / denominator;' "$source"
       ;;
     propagate_signed_frequency_sensitivity)
