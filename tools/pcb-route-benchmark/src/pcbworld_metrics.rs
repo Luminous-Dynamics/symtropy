@@ -831,35 +831,26 @@ mod tests {
 
     const MANIFEST: &str = r#"{
       "schema":"pcb-route-dataset-manifest-v0.1",
-      "benchmark_id":"pcbworld",
+      "benchmark_id":"pcbworld-metric-import-contract",
       "benchmark_version":"v1.1.1",
-      "dataset_id":"d3-pilot",
-      "split_id":"easy.test",
-      "evidence_class":"external_benchmark",
-      "source_url":"https://github.com/LGAI-Research/PCBWorld",
-      "source_split_config_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "source_split_config_relative_path":"experiments/kdd/configs/quickstart/splits.json",
-      "source_split_config_url":"https://github.com/LGAI-Research/PCBWorld/blob/1989a9325796b73cca793a0c8f222dd1509256e8/experiments/kdd/configs/quickstart/splits.json",
-      "source_split_config_git_blob_sha1":"c1ef6761206c24ec6cf70e3232eba4355765793e",
-      "source_split_commit_sha":"1989a9325796b73cca793a0c8f222dd1509256e8",
-      "source_split_name":"d3a.test",
-      "intake_metadata_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "dataset_id":"synthetic-pcbworld-csv-metric-contract",
+      "split_id":"unit-test-split",
+      "evidence_class":"synthetic",
+      "source_url":"synthetic://pcbworld-metric-import-tests",
       "boards":[
         {
           "board_id":"board-a",
           "input_board_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "required_nets":2,
-          "license":"MIT",
-          "source_url":"https://github.com/example/board-a",
-          "relative_path":"boards/board-a.kicad_pcb"
+          "license":"synthetic-fixture",
+          "source_url":"synthetic://pcbworld-metric-import-tests/board-a"
         },
         {
           "board_id":"board-b",
           "input_board_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "required_nets":3,
-          "license":"MIT",
-          "source_url":"https://github.com/example/board-b",
-          "relative_path":"boards/board-b.kicad_pcb"
+          "license":"synthetic-fixture",
+          "source_url":"synthetic://pcbworld-metric-import-tests/board-b"
         }
       ]
     }"#;
