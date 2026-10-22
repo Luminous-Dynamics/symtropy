@@ -440,3 +440,10 @@ A route policy is not credited with a positive result if it improves clean-pass 
 5. any stretch target (e.g. +5 absolute clean-pass points, or faster time-to-first-clean) only on a frozen held-out split and only if rule fidelity is equal or improved.
 
 The new cross-project item is [PCB-DRC-FIDELITY-001 #2626](https://github.com/Luminous-Dynamics/symtropy/issues/2626). This is distinct from the license-intake gate (#2613) and design-skeleton gate (#2609): it freezes the constraints against which copper is judged.
+
+
+## Anytime archive provenance contract (added 2026-10-22)
+
+A geometrically verified incumbent is not yet attributable to a router unless its archive also fixes the claimed method/build/configuration and execution environment. Anytime archive schema v0.2 therefore binds a complete router pin (method ID, family, version, source commit and/or binary digest, configuration digest) and machine pin (OS, architecture, CPU model, logical cores, memory). Every checkpoint repeats the method ID, configuration digest and environment declaration; recording rejects a mismatch with the archive's immutable identity. The old convenience initialization that derived an archive from only a board, manifest and DRC policy is intentionally no longer sufficient.
+
+This is a **provenance consistency gate**, not cryptographic execution attestation: the identity fields alone do not prove which process produced bytes. The actual board and DRC report are independently reopened and rehashed, and deployment of a real router must preserve invocation/exit-status/stdout-stderr evidence. Claims about measured runtime must use matched machine pins. Reports from different methods, builds, configs or environments may be described separately but must not be silently merged into one anytime curve.
