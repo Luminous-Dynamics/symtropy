@@ -50,6 +50,11 @@ run_mutation() {
       perl -0pi -e 's/result\[col\] \+= value \* vector\[row\];/result[col] += 0.0 * vector[row];/' "$source"
       grep -Fq 'result[col] += 0.0 * vector[row];' "$source"
       ;;
+    rotational_mode_shape_sign)
+      grep -Fq 'let physical_scale = if global_index % 2 == 0 { 1.0 } else { 1.0 / element_length_m };' "$source"
+      perl -0pi -e 's/let physical_scale = if global_index % 2 == 0 \\{ 1\\.0 \\} else \\{ 1\\.0 \\/ element_length_m \\};/let physical_scale = if global_index % 2 == 0 { 1.0 } else { -1.0 \/ element_length_m };/' "$source"
+      grep -Fq 'let physical_scale = if global_index % 2 == 0 { 1.0 } else { -1.0 / element_length_m };' "$source"
+      ;;
     *)
       printf 'Unknown sparse beam modal mutation: %s\n' "$mutation" >&2
       return 2
@@ -80,6 +85,10 @@ run_mutation \
 run_mutation \
   "symmetric-matvec-missing-half" \
   omit_symmetric_matvec_contribution \
+  banded_lanczos_matches_dense_solver_for_all_boundary_cases
+run_mutation \
+  "rotational-mode-shape-sign" \
+  rotational_mode_shape_sign \
   banded_lanczos_matches_dense_solver_for_all_boundary_cases
 
 test "$solver_sha256" = "$(sha256sum "$crate_dir/src/beam_line_sparse.rs" | awk '{print $1}')"
@@ -112,10 +121,15 @@ jq -n \
         id: "BE25-SPARSE-MUT-MATVEC-SYMMETRY-001",
         expected_test: "banded_lanczos_matches_dense_solver_for_all_boundary_cases",
         disposition: "detected"
+      },
+      {
+        id: "BE25-SPARSE-MUT-ROTATION-SHAPE-SIGN-001",
+        expected_test: "banded_lanczos_matches_dense_solver_for_all_boundary_cases",
+        disposition: "detected"
       }
     ],
-    mutation_count: 3,
-    detected_count: 3,
+    mutation_count: 4,
+    detected_count: 4,
     production_source_unchanged: true,
     claim_ceiling: "sparse candidate solver software sensitivity only; no BE25 reproduction"
   }' > "$receipt_path"
