@@ -94,7 +94,7 @@ Measure separately:
 - parts/tool wait, diagnosis, hands-on repair, verification, rework, and total out-of-service duration;
 - whole-life ownership costs with financing, energy, maintenance, parts, insurance/licensing where applicable, depreciation, fallback transport, and downtime. Unknown cost remains unknown, never zero.
 
-A 20% return-energy margin is a reasonable **initial design-study scenario value** to test sensitivity, not a universal specification. Real reserve requirements must be derived from platform, mission, uncertainty, return route, environmental conditions, and the consequence of being stranded.
+A 20% return-energy margin is a reasonable **initial design-study scenario value** to test sensitivity, not a universal specification. Real reserve requirements must be derived from platform, mission, uncertainty, return route, environmental conditions, and the consequence of being stranded. Each return-required scenario must separately declare `energy_budget_wh` and `estimated_return_energy_wh`; the contract gate computes the required amount as the estimate multiplied by `1 + return_margin_requirement_pct / 100`. If any of those inputs is missing, the disposition is unresolved rather than treating the missing value as zero. The corpus estimates are synthetic test vectors, not validated return-energy models or safe limits.
 
 ### 4.3 Owner experience and personalization
 
