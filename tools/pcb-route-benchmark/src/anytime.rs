@@ -700,7 +700,7 @@ mod tests {
             MANIFEST.as_bytes(),
             &root,
             POLICY,
-        ).unwrap_err().contains("unsafe"));
+        ).unwrap_err().contains("traversal"));
 
         let _ = fs::remove_dir_all(&root);
     }
