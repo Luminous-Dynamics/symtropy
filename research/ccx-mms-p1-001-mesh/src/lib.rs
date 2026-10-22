@@ -699,6 +699,89 @@ pub fn relative_load_difference(left: &[Vec2], right: &[Vec2]) -> Result<f64, Me
 mod tests {
     use super::*;
 
+    fn deck_rows<'a>(deck: &'a str, section: &str) -> Vec<&'a str> {
+        let mut in_section = false;
+        let mut rows = Vec::new();
+        for line in deck.lines() {
+            let trimmed = line.trim();
+            if trimmed.eq_ignore_ascii_case(section) {
+                in_section = true;
+                continue;
+            }
+            if in_section && trimmed.starts_with('*') {
+                break;
+            }
+            if in_section && !trimmed.is_empty() {
+                rows.push(trimmed);
+            }
+        }
+        rows
+    }
+
+    #[test]
+    fn calculix_deck_is_deterministic_and_request_shaped() {
+        let mesh = generate_mesh(4).unwrap();
+        let problem = ManufacturedProblem::reference();
+        let first = mesh.to_calculix_input_deck(problem, 16).unwrap();
+        let second = mesh.to_calculix_input_deck(problem, 16).unwrap();
+        assert_eq!(first, second);
+
+        assert!(first.contains("*ELEMENT, TYPE=CPE3, ELSET=EALL"));
+        assert!(first.contains("*SOLID SECTION, ELSET=EALL, MATERIAL=MMSMAT"));
+        assert!(first.contains("*BOUNDARY\nBOUNDARY, 1, 2, 0.00000000000000000e+00"));
+        assert!(first.contains("*NODE PRINT, NSET=NALL\nU, RF"));
+        assert!(first.contains("*NODE FILE\nU"));
+        assert!(first.contains("*EL FILE\nS"));
+
+        let node_rows = deck_rows(&first, "*NODE, NSET=NALL");
+        let element_rows = deck_rows(&first, "*ELEMENT, TYPE=CPE3, ELSET=EALL");
+        let boundary_rows = deck_rows(&first, "*NSET, NSET=BOUNDARY");
+        let cload_rows = deck_rows(&first, "*CLOAD");
+        assert_eq!(node_rows.len(), 25);
+        assert_eq!(element_rows.len(), 32);
+        assert_eq!(boundary_rows.iter().map(|row| row.split(',').count()).sum::<usize>(), 16);
+        assert!(!cload_rows.is_empty());
+
+        let boundary_ids: std::collections::HashSet<usize> = mesh
+            .nodes
+            .iter()
+            .filter(|node| node.boundary)
+            .map(|node| node.id)
+            .collect();
+        for row in &cload_rows {
+            let mut fields = row.split(',');
+            let node_id = fields.next().unwrap().trim().parse::<usize>().unwrap();
+            let degree = fields.next().unwrap().trim().parse::<u8>().unwrap();
+            let value = fields.next().unwrap().trim().parse::<f64>().unwrap();
+            assert!(!boundary_ids.contains(&node_id), "constrained node in CLOAD: {row}");
+            assert!(degree == 1 || degree == 2, "unexpected CLOAD degree: {row}");
+            assert!(value.is_finite(), "non-finite load: {row}");
+            assert!(fields.next().is_none(), "unexpected extra CLOAD field: {row}");
+        }
+
+        let boundary_load_comments = first
+            .lines()
+            .filter(|line| line.starts_with("** BOUNDARY_LOAD,"))
+            .count();
+        assert_eq!(boundary_load_comments, 16);
+    }
+
+    #[test]
+    fn calculix_deck_writer_rejects_mutated_mesh_and_invalid_quadrature() {
+        let problem = ManufacturedProblem::reference();
+        let mut changed = generate_mesh(4).unwrap();
+        changed.nodes[5].y += 1.0e-4;
+        assert_eq!(
+            changed.to_calculix_input_deck(problem, 8).unwrap_err(),
+            MeshError::InvalidMeshTopology
+        );
+        let mesh = generate_mesh(4).unwrap();
+        assert_eq!(
+            mesh.to_calculix_input_deck(problem, 0).unwrap_err(),
+            MeshError::InvalidQuadratureOrder
+        );
+    }
+
     #[test]
     fn mesh_family_has_expected_inventory_and_canonical_output() {
         for n in [8, 16, 32, 64] {
