@@ -705,20 +705,26 @@ jobs:
           checkout_sha="$(git rev-parse HEAD)"
           exe_sha="$(sha256sum "$CCX" | cut -d ' ' -f 1)"
           build_sha="$(sha256sum "$MANIFEST" | cut -d ' ' -f 1)"
+          cargo build --quiet --locked --release \
+            --manifest-path research/physical-solver-contract/Cargo.toml --bin physical_mms
+          target_dir="$(cargo metadata --quiet --locked --no-deps \
+            --manifest-path research/physical-solver-contract/Cargo.toml --format-version 1 | jq -r '.target_directory')"
+          MMS_CLI="$target_dir/release/physical_mms"
+          test -x "$MMS_CLI"
+          mms_sha="$(sha256sum "$MMS_CLI" | cut -d ' ' -f 1)"
           : > "$OUT/levels.jsonl"
 
           levels=(4 8 16 32 64)
           for n in "${levels[@]}"; do
             R="$OUT/n${n}"
             mkdir -p "$R"
-            cargo run --quiet --locked --release \
-              --manifest-path research/physical-solver-contract/Cargo.toml \
-              --bin physical_mms -- generate \
+            "$MMS_CLI" generate \
               --cells "$n" \
               --deck "$R/model.inp" \
               --model-manifest "$R/model-manifest.json" \
               --source-sha "$source_sha" \
               --checkout-sha "$checkout_sha" \
+              --tool-sha "$mms_sha" \
               > "$R/generate-receipt.json"
 
             start_epoch="$(date +%s)"
@@ -752,7 +758,8 @@ jobs:
                 case_id:$case_id,source_sha:$source_sha,checkout_sha:$checkout_sha,
                 cells_per_axis:$cells,model_manifest_sha256:$model_sha,
                 deck_sha256:$deck_sha,build_manifest_sha256:$build_sha,
-                solver_executable_sha256:$exe_sha,process_log_sha256:$log_sha,
+                solver_executable_sha256:$exe_sha,auditor_executable_sha256:"$mms_sha",
+                process_log_sha256:$log_sha,
                 solver_exit_code:$exit_status,solver_completed:($exit_status == 0),
                 dat_output_present:$dat_present,frd_output_present:$frd_present,
                 started_epoch_s:$started,ended_epoch_s:$ended,
@@ -773,26 +780,26 @@ jobs:
               --arg source_sha "$source_sha" --arg checkout_sha "$checkout_sha" \
               --arg model_sha "$model_sha" --arg deck_sha "$deck_sha" \
               --arg dat_sha "$dat_sha" --arg build_sha "$build_sha" \
-              --arg exe_sha "$exe_sha" --arg log_sha "$log_sha" \
+              --arg exe_sha "$exe_sha" --arg auditor_sha "$mms_sha" --arg log_sha "$log_sha" \
               --argjson cells "$n" \
               '{
                 schema_version:$schema,benchmark_id:$benchmark,
                 source_sha:$source_sha,checkout_sha:$checkout_sha,cells_per_axis:$cells,
                 model_manifest_sha256:$model_sha,deck_sha256:$deck_sha,dat_sha256:$dat_sha,
                 build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                auditor_executable_sha256:$auditor_sha,
                 process_log_sha256:$log_sha,solver_exit_code:0,solver_completed:true,
                 physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
               }' > "$R/run-manifest.json"
 
-            cargo run --quiet --locked --release \
-              --manifest-path research/physical-solver-contract/Cargo.toml \
-              --bin physical_mms -- audit \
+            "$MMS_CLI" audit \
               --cells "$n" \
               --deck "$R/model.inp" \
               --dat "$R/model.dat" \
               --model-manifest "$R/model-manifest.json" \
               --build-manifest "$MANIFEST" \
               --solver "$CCX" \
+              --auditor "$MMS_CLI" \
               --process-log "$R/process.log" \
               --run-manifest "$R/run-manifest.json" \
               --report "$R/audit-report.json" \
@@ -861,6 +868,7 @@ jobs:
               benchmark_id:"PHYS-MMS-001-PLANE-STRESS-CPS3",
               source_sha:$source_sha,checkout_sha:$checkout_sha,
               build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+              auditor_executable_sha256:$mms_sha,
               mesh_levels:$levels,observed_orders:$orders,
               monotone_error_reduction:$monotonic,
               final_two_refinement_orders_pass:$orders_pass,
