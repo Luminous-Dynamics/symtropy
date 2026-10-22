@@ -43,6 +43,7 @@ pub struct RuleFidelityPlan {
 pub struct RuleAssessment {
     pub rule_id: String,
     pub classification: RuleClassification,
+    pub source_rule_json_pointer: Option<String>,
     pub source_value: Option<String>,
     pub evaluated_value: Option<String>,
     pub mapping_evidence_relative_path: Option<String>,
@@ -755,7 +756,7 @@ mod tests {
     const SOURCE_BOARD: &[u8] = b"synthetic source board fixture; not a KiCad board";
     const OUTPUT_A: &[u8] = b"synthetic output board A; not a KiCad board";
     const OUTPUT_B: &[u8] = b"synthetic output board B; not a KiCad board";
-    const SOURCE_RULES: &[u8] = b"synthetic source rule profile fixture";
+    const SOURCE_RULES: &[u8] = br#"{"board":{"design_settings":{"rules":{"min_clearance":"0.20mm","edge_clearance":"0.25mm"}}}}"#;
     const COMPAT_POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.8",
@@ -819,6 +820,7 @@ mod tests {
         RuleAssessment {
             rule_id: "clearance.default".into(),
             classification: RuleClassification::SourcePreserved,
+            source_rule_json_pointer: Some("/board/design_settings/rules/min_clearance".into()),
             source_value: Some("0.20mm".into()),
             evaluated_value: Some("0.20mm".into()),
             mapping_evidence_relative_path: None,
@@ -880,6 +882,7 @@ mod tests {
         let inferred = RuleAssessment {
             rule_id: "clearance.missing_source_value".into(),
             classification: RuleClassification::Inferred,
+            source_rule_json_pointer: None,
             source_value: None,
             evaluated_value: Some("0.20mm".into()),
             mapping_evidence_relative_path: None,
@@ -942,6 +945,7 @@ mod tests {
         let migrated = RuleAssessment {
             rule_id: "clearance.edge".into(),
             classification: RuleClassification::VersionMigratedEquivalent,
+            source_rule_json_pointer: Some("/board/design_settings/rules/edge_clearance".into()),
             source_value: Some("0.25mm".into()),
             evaluated_value: Some("0.25mm effective".into()),
             mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
@@ -976,6 +980,7 @@ mod tests {
         let migrated = RuleAssessment {
             rule_id: "clearance.edge".into(),
             classification: RuleClassification::VersionMigratedEquivalent,
+            source_rule_json_pointer: Some("/board/design_settings/rules/edge_clearance".into()),
             source_value: Some("0.25mm".into()),
             evaluated_value: Some("0.25mm effective".into()),
             mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
