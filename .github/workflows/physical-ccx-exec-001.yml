@@ -832,6 +832,7 @@ jobs:
             --arg checkout_sha "$checkout_sha" \
             --arg build_sha "$build_sha" \
             --arg exe_sha "$exe_sha" \
+            --arg auditor_sha "$mms_sha" \
             '
             . as $reports |
             [
@@ -868,7 +869,7 @@ jobs:
               benchmark_id:"PHYS-MMS-001-PLANE-STRESS-CPS3",
               source_sha:$source_sha,checkout_sha:$checkout_sha,
               build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
-              auditor_executable_sha256:$mms_sha,
+              auditor_executable_sha256:$auditor_sha,
               mesh_levels:$levels,observed_orders:$orders,
               monotone_error_reduction:$monotonic,
               final_two_refinement_orders_pass:$orders_pass,
