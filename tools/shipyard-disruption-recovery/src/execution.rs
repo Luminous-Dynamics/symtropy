@@ -12,6 +12,15 @@ pub struct PlannedOperation {
     pub planned_end_tick: u64,
 }
 
+/// Independent cutoffs for the physical timeline and the evidence-ingestion timeline.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExecutionReplayCutoff {
+    /// Latest event-occurrence time included in the physical snapshot.
+    pub as_of_occurred_tick: u64,
+    /// Latest recorded/ingestion time whose evidence was available to this evaluation.
+    pub as_of_recorded_tick: u64,
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ExecutionEventKind {
     Started,
@@ -125,8 +134,12 @@ pub struct ExecutionReplayMetrics {
     pub operations_started: usize,
     pub operations_completed: usize,
     pub operations_fully_observed: usize,
+    /// Due operations for which no accepted start/completion event is visible as of event time.
     pub missing_start_events: usize,
     pub missing_completion_events: usize,
+    /// Planned work whose start/completion was not yet due at the event-time cutoff.
+    pub operations_not_yet_due_to_start: usize,
+    pub operations_not_yet_due_to_complete: usize,
     pub late_start_operations: usize,
     pub late_completion_operations: usize,
     pub total_start_lateness_ticks: u128,
@@ -137,6 +150,8 @@ pub struct ExecutionReplayMetrics {
     pub total_event_recording_latency_ticks: u128,
     pub events_considered: usize,
     pub events_held_back_by_recorded_time: usize,
+    /// Events already ingested by the recorded-time cutoff but not yet occurred at the physical cutoff.
+    pub events_held_back_by_occurrence_time: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -144,6 +159,7 @@ pub struct ExecutionReplayReport {
     /// False only when plan/evidence consistency violations were found. Lateness is a metric, not
     /// a malformed-evidence violation, and should not be hidden by turning it into a boolean gate.
     pub evidence_valid: bool,
+    pub as_of_occurred_tick: u64,
     pub as_of_recorded_tick: u64,
     pub metrics: ExecutionReplayMetrics,
     pub operations: Vec<OperationExecutionAssessment>,
@@ -159,7 +175,7 @@ pub struct ExecutionReplayReport {
 pub fn replay_execution(
     plan: &[PlannedOperation],
     events: &[ExecutionEvent],
-    as_of_recorded_tick: u64,
+    cutoff: ExecutionReplayCutoff,
 ) -> ExecutionReplayReport {
     let mut violations = Vec::new();
     if plan.is_empty() {
@@ -201,11 +217,19 @@ pub fn replay_execution(
         }
     }
 
-    let visible_events: Vec<&ExecutionEvent> = events
+    let visible_by_recorded_time: Vec<&ExecutionEvent> = events
         .iter()
-        .filter(|event| event.recorded_tick <= as_of_recorded_tick)
+        .filter(|event| event.recorded_tick <= cutoff.as_of_recorded_tick)
         .collect();
-    let held_back_events = events.len().saturating_sub(visible_events.len());
+    let held_back_by_recorded_time =
+        events.len().saturating_sub(visible_by_recorded_time.len());
+    let visible_events: Vec<&ExecutionEvent> = visible_by_recorded_time
+        .iter()
+        .copied()
+        .filter(|event| event.occurred_tick <= cutoff.as_of_occurred_tick)
+        .collect();
+    let held_back_by_occurrence_time =
+        visible_by_recorded_time.len().saturating_sub(visible_events.len());
     let mut event_id_counts: BTreeMap<&str, usize> = BTreeMap::new();
     for event in &visible_events {
         if !event.event_id.trim().is_empty() {
@@ -335,7 +359,8 @@ pub fn replay_execution(
     let mut metrics = ExecutionReplayMetrics {
         planned_operations: plan.len(),
         events_considered: visible_events.len(),
-        events_held_back_by_recorded_time: held_back_events,
+        events_held_back_by_recorded_time: held_back_by_recorded_time,
+        events_held_back_by_occurrence_time: held_back_by_occurrence_time,
         total_event_recording_latency_ticks,
         ..ExecutionReplayMetrics::default()
     };
@@ -347,13 +372,17 @@ pub fn replay_execution(
             .copied();
         if observed_start.is_some() {
             metrics.operations_started += 1;
-        } else {
+        } else if operation.planned_start_tick <= cutoff.as_of_occurred_tick {
             metrics.missing_start_events += 1;
+        } else {
+            metrics.operations_not_yet_due_to_start += 1;
         }
         if observed_completion.is_some() {
             metrics.operations_completed += 1;
-        } else {
+        } else if operation.planned_end_tick <= cutoff.as_of_occurred_tick {
             metrics.missing_completion_events += 1;
+        } else {
+            metrics.operations_not_yet_due_to_complete += 1;
         }
         if observed_start.is_some() && observed_completion.is_some() {
             metrics.operations_fully_observed += 1;
@@ -434,7 +463,8 @@ pub fn replay_execution(
     sort_dedup_violations(&mut violations);
     ExecutionReplayReport {
         evidence_valid: violations.is_empty(),
-        as_of_recorded_tick,
+        as_of_occurred_tick: cutoff.as_of_occurred_tick,
+        as_of_recorded_tick: cutoff.as_of_recorded_tick,
         metrics,
         operations: assessments,
         violations,
