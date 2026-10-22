@@ -1045,6 +1045,31 @@ mod tests {
     }
 
     #[test]
+    fn divergence_free_interpolation_reports_volumetric_strain_defect() {
+        let material = ccx_mms_p1_oracle::PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        let mut measures = Vec::new();
+        for resolution in [8, 16, 32] {
+            let mesh = generate_mesh(resolution).unwrap();
+            let exact_nodal: Vec<Vec2> = mesh
+                .nodes
+                .iter()
+                .map(|node| problem.displacement(node.x, node.y))
+                .collect();
+            let norms = mesh.compute_error_norms(problem, &exact_nodal, 16).unwrap();
+            assert_eq!(norms.exact_volumetric_strain_l2_norm, 0.0);
+            assert_eq!(
+                norms.volumetric_strain_error_l2_absolute,
+                norms.fem_volumetric_strain_l2_absolute
+            );
+            assert!(norms.fem_volumetric_strain_l2_absolute.is_finite());
+            measures.push(norms.fem_volumetric_strain_l2_absolute);
+        }
+        assert!(measures.iter().all(|value| *value > 0.0));
+        assert!(measures.windows(2).all(|pair| pair[1] < pair[0]));
+    }
+
+    #[test]
     fn interpolation_error_norms_are_quadrature_independent() {
         let mesh = generate_mesh(8).unwrap();
         let problem = ManufacturedProblem::reference();
