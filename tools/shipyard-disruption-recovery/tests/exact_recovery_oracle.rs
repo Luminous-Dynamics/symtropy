@@ -5,9 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use shipyard_disruption_recovery::{
-    Disruption, RecoveryInput, evaluate_recovery,
-};
+use shipyard_disruption_recovery::{Disruption, RecoveryInput, evaluate_recovery};
 use shipyard_space_time::{ExclusionZone, Footprint, Placement, Rect, Scenario, TimeRange};
 
 fn rect(min_x: i64, min_y: i64, max_x: i64, max_y: i64) -> Footprint {
@@ -128,14 +126,22 @@ fn exact_recovery_oracle_finds_minimum_churn_feasible_relocation() {
                 candidate,
                 disruption: disruption.clone(),
             });
-            assert!(report.accepted, "oracle candidate rejected: {:?}", report.violations);
+            assert!(
+                report.accepted,
+                "oracle candidate rejected: {:?}",
+                report.violations
+            );
             assert_eq!(report.metrics.unaffected_placement_churn, 0);
             assert_eq!(report.metrics.changed_placement_reservations, 1);
             exact_feasible.push((candidate_rect, report));
         }
     }
 
-    assert_eq!(exact_feasible.len(), 5, "tiny recovery feasible set changed");
+    assert_eq!(
+        exact_feasible.len(),
+        5,
+        "tiny recovery feasible set changed"
+    );
 
     let (best_rect, best_report) = exact_feasible
         .into_iter()
