@@ -142,7 +142,8 @@
                   "train_test_leakage",
                   "stale_or_unlicensed_source",
                   "hidden_quality_regression",
-                  "scenario_fragility_hidden"
+                  "scenario_fragility_hidden",
+                  "uncalibrated_model_bias_hidden"
                 ]
               },
               {
