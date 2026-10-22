@@ -1473,6 +1473,8 @@ pub struct JointDimensionReceipt {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum JointCoverageViolationCode {
+    EmptyScenarioId,
+    DuplicateScenarioId,
     EmptyRequiredDimensionSet,
     DuplicateRequiredDimension,
     MissingRequiredDimension,
@@ -1500,9 +1502,9 @@ fn scenario_dimensions(scenario: &JointDisruptionScenario) -> BTreeSet<JointDisr
     let has_vehicle_outage = !disruption.vehicle_outages.is_empty();
     let has_zone_closure = !disruption.new_exclusion_zones.is_empty();
     let has_resource_outage = !scenario.resource_outages.is_empty();
-    let spatial_dimensions = usize::from(has_clearance)
-        + usize::from(has_vehicle_outage)
-        + usize::from(has_zone_closure);
+    let spatial_dimensions = (if has_clearance { 1 } else { 0 })
+        + (if has_vehicle_outage { 1 } else { 0 })
+        + (if has_zone_closure { 1 } else { 0 });
 
     if has_clearance {
         dimensions.insert(JointDisruptionDimension::ClearanceOverrun);
@@ -1555,9 +1557,39 @@ pub fn audit_joint_scenario_coverage(
         }
     }
 
+    let mut scenario_id_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for scenario in scenarios {
+        if scenario.scenario_id.trim().is_empty() {
+            report.violations.push(JointCoverageViolation {
+                code: JointCoverageViolationCode::EmptyScenarioId,
+                dimension: None,
+            });
+        } else {
+            *scenario_id_counts
+                .entry(scenario.scenario_id.as_str())
+                .or_default() += 1;
+        }
+    }
+    let duplicate_scenario_ids: BTreeSet<&str> = scenario_id_counts
+        .iter()
+        .filter(|(_, count)| **count > 1)
+        .map(|(scenario_id, _)| *scenario_id)
+        .collect();
+    for _ in &duplicate_scenario_ids {
+        report.violations.push(JointCoverageViolation {
+            code: JointCoverageViolationCode::DuplicateScenarioId,
+            dimension: None,
+        });
+    }
+
     let mut scenario_ids_by_dimension: BTreeMap<JointDisruptionDimension, Vec<String>> =
         BTreeMap::new();
     for scenario in scenarios {
+        if scenario.scenario_id.trim().is_empty()
+            || duplicate_scenario_ids.contains(scenario.scenario_id.as_str())
+        {
+            continue;
+        }
         for dimension in scenario_dimensions(scenario) {
             scenario_ids_by_dimension
                 .entry(dimension)
@@ -2681,6 +2713,42 @@ mod tests {
                 .count(),
             2
         );
+    }
+
+    #[test]
+    fn coverage_audit_rejects_empty_and_duplicate_scenario_ids() {
+        let empty_id = JointDisruptionScenario {
+            scenario_id: String::new(),
+            spatial_disruption: no_spatial_disruption(4),
+            resource_outages: vec![outage("out-a", "crane-1", 5, 8)],
+        };
+        let duplicate_a = JointDisruptionScenario {
+            scenario_id: "duplicate".to_owned(),
+            spatial_disruption: no_spatial_disruption(4),
+            resource_outages: vec![outage("out-b", "crane-1", 5, 8)],
+        };
+        let duplicate_b = JointDisruptionScenario {
+            scenario_id: "duplicate".to_owned(),
+            spatial_disruption: no_spatial_disruption(6),
+            resource_outages: vec![outage("out-c", "tug-1", 6, 9)],
+        };
+        let scenarios = [empty_id, duplicate_a, duplicate_b];
+        let report = audit_joint_scenario_coverage(
+            &scenarios,
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+
+        assert!(!report.complete);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointCoverageViolationCode::EmptyScenarioId
+        }));
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointCoverageViolationCode::DuplicateScenarioId
+        }));
+        assert!(report.receipts.iter().all(|receipt| {
+            !receipt.scenario_ids.iter().any(|scenario_id| scenario_id.trim().is_empty())
+                && !receipt.scenario_ids.iter().any(|scenario_id| scenario_id == "duplicate")
+        }));
     }
 
     #[test]
