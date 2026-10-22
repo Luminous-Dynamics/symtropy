@@ -61,8 +61,9 @@ pub struct BeamTheoryApplicabilityReport {
     pub cross_section_ratio_limit: f64,
     pub high_shear_slenderness_reference: f64,
     pub recommended_shear_slenderness_reference: f64,
-    /// 3/S for the classical cantilever tip-deflection comparison only.
-    pub static_cantilever_shear_deflection_fraction_proxy: Option<f64>,
+    /// Uncorrected 3/S proxy for the classical cantilever comparison. It omits
+    /// section shear-correction factors and is not a predicted error bound.
+    pub uncorrected_static_cantilever_shear_deflection_ratio_proxy: Option<f64>,
     pub wavelength_required_but_missing: bool,
     pub evidence_basis: &'static str,
     pub claim_ceiling: &'static str,
@@ -129,6 +130,8 @@ pub fn assess_beam_theory_applicability(
         BeamTheoryScreenStatus::TimoshenkoComparisonRecommended
     };
 
+    // This is deliberately uncorrected: the shear coefficient depends on the
+    // section/beam formulation and must not be silently guessed here.
     let static_proxy = if input.purpose == BeamAnalysisPurpose::StaticOrQuasiStatic {
         Some(3.0 / shear_slenderness)
     } else {
@@ -143,7 +146,7 @@ pub fn assess_beam_theory_applicability(
         cross_section_ratio_limit: CROSS_SECTION_RATIO_LIMIT,
         high_shear_slenderness_reference: SHEAR_SLENDERNESS_CANDIDATE_LIMIT,
         recommended_shear_slenderness_reference: SHEAR_SLENDERNESS_COMPARISON_LIMIT,
-        static_cantilever_shear_deflection_fraction_proxy: static_proxy,
+        uncorrected_static_cantilever_shear_deflection_ratio_proxy: static_proxy,
         wavelength_required_but_missing,
         evidence_basis: "Abaqus slenderness heuristic and ANSYS BEAM188 G*A*L^2/(E*I) heuristic; these are screening references, not universal error guarantees",
         claim_ceiling: "model-applicability screen only; no solver verification, experimental validation, structural safety or code-compliance conclusion",
@@ -206,7 +209,7 @@ mod tests {
         );
         assert!((result.effective_axial_scale_m - 0.04).abs() < 1.0e-14);
         assert!(result.cross_section_to_axial_scale_ratio > 1.0 / 8.0);
-        assert!(result.static_cantilever_shear_deflection_fraction_proxy.is_none());
+        assert!(result.uncorrected_static_cantilever_shear_deflection_ratio_proxy.is_none());
     }
 
     #[test]
@@ -231,6 +234,31 @@ mod tests {
             result.status,
             BeamTheoryScreenStatus::TimoshenkoComparisonRecommended
         );
+    }
+
+    fn input_with_shear_slenderness(target: f64) -> BeamTheoryApplicabilityInput {
+        let mut input = slender_input();
+        input.second_moment_m4 = input.shear_modulus_pa * input.area_m2
+            * input.member_length_m.powi(2)
+            / (target * input.youngs_modulus_pa);
+        input
+    }
+
+    #[test]
+    fn shear_slenderness_thresholds_are_separate_and_tested() {
+        let outside = assess_beam_theory_applicability(input_with_shear_slenderness(25.0))
+            .expect("low shear slenderness");
+        let comparison = assess_beam_theory_applicability(input_with_shear_slenderness(50.0))
+            .expect("intermediate shear slenderness");
+        let candidate = assess_beam_theory_applicability(input_with_shear_slenderness(150.0))
+            .expect("high shear slenderness");
+
+        assert_eq!(outside.status, BeamTheoryScreenStatus::EulerBernoulliOutsideReferenceScreen);
+        assert_eq!(comparison.status, BeamTheoryScreenStatus::TimoshenkoComparisonRecommended);
+        assert_eq!(candidate.status, BeamTheoryScreenStatus::EulerBernoulliCandidate);
+        assert!((outside.shear_slenderness_indicator - 25.0).abs() < 1.0e-12);
+        assert!((comparison.shear_slenderness_indicator - 50.0).abs() < 1.0e-12);
+        assert!((candidate.shear_slenderness_indicator - 150.0).abs() < 1.0e-12);
     }
 
     #[test]
