@@ -1,0 +1,104 @@
+use shipyard_benchmark_audit::{
+    audit_report_json, validate_json_syntax, validate_manifest_json,
+};
+
+const MANIFEST: &str = include_str!("../fixtures/valid-manifest.json");
+const REPORT: &str = include_str!("../fixtures/valid-report.json");
+const INCOMPLETE: &str = include_str!("../fixtures/incomplete-report.json");
+
+fn has_error(errors: &[String], needle: &str) -> bool {
+    errors.iter().any(|message| message.contains(needle))
+}
+
+#[test]
+fn contract_schemas_are_well_formed_json() {
+    assert!(validate_json_syntax(include_str!("../../shipyard-benchmark-contract/benchmark-manifest.schema.json")).is_ok());
+    assert!(validate_json_syntax(include_str!("../../shipyard-benchmark-contract/run-report.schema.json")).is_ok());
+}
+
+#[test]
+fn hand_authored_manifest_fixture_is_valid() {
+    let errors = validate_manifest_json(MANIFEST);
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn exact_oracle_report_fixture_is_valid_and_reproducible() {
+    let errors = audit_report_json(MANIFEST, REPORT);
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn report_digest_binds_the_exact_manifest_bytes() {
+    let changed = MANIFEST.replace("Hand-authored tiny yard conformance fixture", "Changed title");
+    assert!(!changed.is_empty());
+    let errors = audit_report_json(&changed, REPORT);
+    assert!(has_error(&errors, "does not match exact manifest bytes"), "{errors:#?}");
+}
+
+#[test]
+fn generated_corpus_without_generator_recipe_is_rejected() {
+    let invalid = include_str!("../fixtures/invalid-missing-generator.json");
+    let errors = validate_manifest_json(invalid);
+    assert!(has_error(&errors, "required when source.kind is generated"), "{errors:#?}");
+}
+
+#[test]
+fn malformed_configuration_digest_is_rejected() {
+    let invalid = include_str!("../fixtures/invalid-digest.json");
+    let errors = validate_manifest_json(invalid);
+    assert!(has_error(&errors, "$.candidate.config_sha256"), "{errors:#?}");
+}
+
+#[test]
+fn summaries_are_recomputed_from_case_records() {
+    let invalid = include_str!("../fixtures/invalid-summary-counts.json");
+    let errors = audit_report_json(MANIFEST, invalid);
+    assert!(has_error(&errors, "$report.summary.false_feasible_count"), "{errors:#?}");
+}
+
+#[test]
+fn an_oracle_match_cannot_contradict_a_known_reference() {
+    let invalid = include_str!("../fixtures/invalid-oracle-claim.json");
+    let errors = audit_report_json(MANIFEST, invalid);
+    assert!(has_error(&errors, "contradicts candidate and reference outcomes"), "{errors:#?}");
+}
+
+#[test]
+fn exhaustion_cannot_be_promoted_to_a_proven_infeasibility() {
+    let invalid = include_str!("../fixtures/invalid-infeasibility-claim.json");
+    let errors = audit_report_json(MANIFEST, invalid);
+    assert!(has_error(&errors, "infeasibility cannot be inferred"), "{errors:#?}");
+}
+
+#[test]
+fn complete_report_must_include_every_expected_case() {
+    let invalid = include_str!("../fixtures/invalid-missing-case.json");
+    let errors = audit_report_json(MANIFEST, invalid);
+    assert!(has_error(&errors, "manifest requires 2"), "{errors:#?}");
+}
+
+#[test]
+fn duplicate_case_identifiers_are_rejected() {
+    let invalid = include_str!("../fixtures/invalid-duplicate-case.json");
+    let errors = audit_report_json(MANIFEST, invalid);
+    assert!(has_error(&errors, "duplicate case identifier"), "{errors:#?}");
+}
+
+#[test]
+fn incomplete_report_preserves_unknowns_without_claiming_completion() {
+    let errors = audit_report_json(MANIFEST, INCOMPLETE);
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn parser_rejects_duplicate_json_object_keys() {
+    let errors = validate_manifest_json(r#"{"schema_version":"shipyard-benchmark-manifest/v0","schema_version":"shipyard-benchmark-manifest/v0"}"#);
+    assert!(has_error(&errors, "duplicate object key"), "{errors:#?}");
+}
+
+#[test]
+fn malformed_unicode_and_trailing_content_are_rejected() {
+    assert!(validate_json_syntax(r#"{"key":"\uD800"}"#).is_err());
+    assert!(validate_json_syntax(r#"{"key":true} trailing"#).is_err());
+}
