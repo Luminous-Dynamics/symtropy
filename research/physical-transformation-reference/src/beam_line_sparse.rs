@@ -381,22 +381,33 @@ pub fn solve_sparse_beam_line_modes(
             diagonal.len()
         ));
     }
-    while off_diagonal.len() + 1 < diagonal.len() {
-        // Breakdown at the final step means the projected tridiagonal has
-        // one fewer off-diagonal coefficient than diagonal coefficients.
-        break;
-    }
     let krylov_dimension = diagonal.len();
-    if off_diagonal.len() != krylov_dimension.saturating_sub(1) {
-        return Err("Lanczos projected tridiagonal has inconsistent dimensions".to_owned());
+    if basis.len() != krylov_dimension
+        || off_diagonal.len() != krylov_dimension.saturating_sub(1)
+    {
+        return Err("Lanczos basis and recurrence dimensions disagree".to_owned());
     }
 
-    let mut tridiagonal = vec![vec![0.0; krylov_dimension]; krylov_dimension];
-    for index in 0..krylov_dimension {
-        tridiagonal[index][index] = diagonal[index];
-        if index < off_diagonal.len() {
-            tridiagonal[index][index + 1] = off_diagonal[index];
-            tridiagonal[index + 1][index] = off_diagonal[index];
+    // Recompute A*q for each basis vector and form the full Rayleigh-Ritz
+    // projection H = Q^T M K^-1 M Q. This captures small non-tridiagonal
+    // projections introduced by full reorthogonalization in finite precision.
+    let mut projected_columns = Vec::with_capacity(krylov_dimension);
+    for vector in &basis {
+        let mass_vector = mass.mul(vector)?;
+        let inverse_operator_vector = factor.solve(&mass_vector)?;
+        projected_columns.push(mass.mul(&inverse_operator_vector)?);
+    }
+    let mut projected = vec![vec![0.0; krylov_dimension]; krylov_dimension];
+    for row in 0..krylov_dimension {
+        for col in 0..krylov_dimension {
+            projected[row][col] = dot(&basis[row], &projected_columns[col]);
+        }
+    }
+    for row in 0..krylov_dimension {
+        for col in (row + 1)..krylov_dimension {
+            let average = 0.5 * (projected[row][col] + projected[col][row]);
+            projected[row][col] = average;
+            projected[col][row] = average;
         }
     }
     let identity = (0..krylov_dimension)
@@ -406,7 +417,7 @@ pub fn solve_sparse_beam_line_modes(
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
-    let ritz_pairs = generalized_symmetric_eigenpairs(&tridiagonal, &identity)?;
+    let ritz_pairs = generalized_symmetric_eigenpairs(&projected, &identity)?;
 
     let mut modes = Vec::with_capacity(requested_modes);
     for (theta, ritz_vector) in ritz_pairs.into_iter().rev().take(requested_modes) {
