@@ -7,8 +7,8 @@ use std::{
     path::{Component, Path},
 };
 
-pub const ANYTIME_ARCHIVE_SCHEMA: &str = "pcb-route-verified-incumbent-archive-v0.1";
-pub const CHECKPOINT_SCHEMA: &str = "pcb-route-checkpoint-evaluation-v0.1";
+pub const ANYTIME_ARCHIVE_SCHEMA: &str = "pcb-route-verified-incumbent-archive-v0.2";
+pub const CHECKPOINT_SCHEMA: &str = "pcb-route-checkpoint-evaluation-v0.2";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -18,15 +18,21 @@ pub struct ArchiveIdentity {
     pub dataset_manifest_sha256: String,
     pub drc_policy_sha256: String,
     pub kicad_version: String,
+    /// Full method pin: an archive must not silently mix router builds or configs.
+    pub router: crate::RouterPin,
+    /// Machine identity used for timing comparisons; not an execution attestation.
+    pub environment: crate::EnvironmentPin,
 }
 
 impl ArchiveIdentity {
-    /// Derive archive identity from the actual pinned manifest and policy bytes,
-    /// avoiding caller-invented digest fields.
+    /// Derive board/manifest/policy identity from bytes and require explicit
+    /// method and environment pins; never invent those from a board fixture.
     pub fn from_pinned_sources(
         manifest_bytes: &[u8],
         policy_bytes: &[u8],
         board_id: &str,
+        router: crate::RouterPin,
+        environment: crate::EnvironmentPin,
     ) -> Result<Self, String> {
         let manifest: crate::DatasetManifest = serde_json::from_slice(manifest_bytes)
             .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
@@ -42,12 +48,16 @@ impl ArchiveIdentity {
         if policy.kicad_version.trim().is_empty() {
             return Err("KiCad DRC policy has empty version".into());
         }
+        validate_router_pin(&router)?;
+        validate_environment_pin(&environment)?;
         Ok(Self {
             board_id: board.board_id.clone(),
             input_board_sha256: board.input_board_sha256.clone(),
             dataset_manifest_sha256: sha256_hex(manifest_bytes),
             drc_policy_sha256: sha256_hex(policy_bytes),
             kicad_version: policy.kicad_version,
+            router,
+            environment,
         })
     }
 }
@@ -59,6 +69,10 @@ pub struct CheckpointMetadata {
     pub board_id: String,
     pub input_board_sha256: String,
     pub dataset_manifest_sha256: String,
+    /// Must agree with the method pin on the containing incumbent archive.
+    pub method_id: String,
+    pub router_config_sha256: String,
+    pub environment: crate::EnvironmentPin,
     pub required_nets: u32,
     pub connected_nets: u32,
     pub dangling_track_count: u32,
@@ -279,6 +293,8 @@ impl VerifiedIncumbentArchive {
         if identity.board_id.trim().is_empty() || identity.kicad_version.trim().is_empty() {
             return Err("archive board ID and KiCad version must not be empty".into());
         }
+        validate_router_pin(&identity.router)?;
+        validate_environment_pin(&identity.environment)?;
         Ok(Self {
             schema: ANYTIME_ARCHIVE_SCHEMA.to_string(),
             evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
@@ -375,7 +391,15 @@ impl VerifiedIncumbentArchive {
             || evaluation.drc_policy_sha256 != self.identity.drc_policy_sha256
             || evaluation.checkpoint.kicad_version != self.identity.kicad_version
         {
-            return Err("checkpoint identity differs from incumbent archive identity".into());
+            return Err("checkpoint board/dataset/policy identity differs from incumbent archive identity".into());
+        }
+        if evaluation.checkpoint.method_id != self.identity.router.method_id
+            || evaluation.checkpoint.router_config_sha256 != self.identity.router.config_sha256
+        {
+            return Err("checkpoint router method/configuration differs from incumbent archive method pin".into());
+        }
+        if evaluation.checkpoint.environment != self.identity.environment {
+            return Err("checkpoint execution environment differs from incumbent archive environment pin".into());
         }
         if self.candidates.iter().any(|candidate| {
             candidate.checkpoint.checkpoint_id == evaluation.checkpoint.checkpoint_id
@@ -443,14 +467,51 @@ impl VerifiedIncumbentArchive {
     }
 }
 
+fn validate_router_pin(router: &crate::RouterPin) -> Result<(), String> {
+    if router.method_id.trim().is_empty()
+        || router.family.trim().is_empty()
+        || router.version.trim().is_empty()
+    {
+        return Err("archive router method ID, family and version are required".into());
+    }
+    validate_sha256(&router.config_sha256, "archive router config SHA-256")?;
+    if let Some(commit) = router.source_commit_sha.as_deref() {
+        if !is_commit_sha(commit) {
+            return Err("archive router source commit must be a 40- or 64-hex Git ID".into());
+        }
+    }
+    if let Some(binary) = router.binary_sha256.as_deref() {
+        validate_sha256(binary, "archive router binary SHA-256")?;
+    }
+    if router.source_commit_sha.is_none() && router.binary_sha256.is_none() {
+        return Err("archive router must pin a source commit or binary SHA-256".into());
+    }
+    Ok(())
+}
+
+fn validate_environment_pin(environment: &crate::EnvironmentPin) -> Result<(), String> {
+    if environment.os.trim().is_empty()
+        || environment.architecture.trim().is_empty()
+        || environment.cpu_model.trim().is_empty()
+        || environment.logical_cores == 0
+        || environment.memory_bytes == 0
+    {
+        return Err("archive environment requires OS, architecture, CPU, logical cores and memory".into());
+    }
+    Ok(())
+}
+
 fn validate_metadata(metadata: &CheckpointMetadata) -> Result<(), String> {
     if metadata.checkpoint_id.trim().is_empty()
         || metadata.board_id.trim().is_empty()
         || metadata.board_filename.trim().is_empty()
         || metadata.kicad_version.trim().is_empty()
+        || metadata.method_id.trim().is_empty()
     {
-        return Err("checkpoint ID, board ID, board filename and KiCad version are required".into());
+        return Err("checkpoint ID, board ID, board filename, method ID and KiCad version are required".into());
     }
+    validate_sha256(&metadata.router_config_sha256, "router config SHA-256")?;
+    validate_environment_pin(&metadata.environment)?;
     validate_sha256(&metadata.input_board_sha256, "input board SHA-256")?;
     validate_sha256(&metadata.dataset_manifest_sha256, "dataset manifest SHA-256")?;
     validate_relative_path(&metadata.output_board_relative_path, "output board")?;
@@ -540,12 +601,36 @@ mod tests {
       }]
     }"#;
 
+    fn test_environment_pin() -> crate::EnvironmentPin {
+        crate::EnvironmentPin {
+            os: "linux".into(),
+            architecture: "x86_64".into(),
+            cpu_model: "synthetic-test-cpu".into(),
+            logical_cores: 2,
+            memory_bytes: 4_000_000_000,
+        }
+    }
+
+    fn test_router_pin() -> crate::RouterPin {
+        crate::RouterPin {
+            method_id: "synthetic-router".into(),
+            family: "rule_based".into(),
+            version: "test-v0.1".into(),
+            source_commit_sha: Some("a".repeat(40)),
+            binary_sha256: None,
+            config_sha256: "2".repeat(64),
+        }
+    }
+
     fn metadata(id: &str, elapsed_ms: u64, wirelength_mm: f64, via_count: u32) -> CheckpointMetadata {
         CheckpointMetadata {
             checkpoint_id: id.to_string(),
             board_id: "coupon".to_string(),
             input_board_sha256: INPUT_SHA.to_string(),
             dataset_manifest_sha256: sha256_hex(MANIFEST.as_bytes()),
+            method_id: "synthetic-router".to_string(),
+            router_config_sha256: "2".repeat(64),
+            environment: test_environment_pin(),
             required_nets: 2,
             connected_nets: 2,
             dangling_track_count: 0,
@@ -620,7 +705,9 @@ mod tests {
             input_board_sha256:INPUT_SHA.into(),
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
-            kicad_version:"9.0.9".into()
+            kicad_version:"9.0.9".into(),
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(first).unwrap();
@@ -642,7 +729,9 @@ mod tests {
             input_board_sha256:INPUT_SHA.into(),
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
-            kicad_version:"9.0.9".into()
+            kicad_version:"9.0.9".into(),
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(clean_candidate("low-wire-more-vias", 100_000, 30.0, 4)).unwrap();
@@ -782,7 +871,9 @@ mod tests {
             input_board_sha256:INPUT_SHA.into(),
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
-            kicad_version:"9.0.9".into()
+            kicad_version:"9.0.9".into(),
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(clean_candidate("one", 100_000, 20.0, 1)).unwrap();
@@ -790,5 +881,17 @@ mod tests {
         let mut altered = clean_candidate("other-board", 130_000, 18.0, 0);
         altered.checkpoint.board_id = "different".into();
         assert!(archive.record(altered).unwrap_err().contains("identity differs"));
+
+        let mut wrong_method = clean_candidate("wrong-method", 140_000, 18.0, 0);
+        wrong_method.checkpoint.method_id = "unrelated-router".into();
+        assert!(archive.record(wrong_method).unwrap_err().contains("method/configuration differs"));
+
+        let mut wrong_config = clean_candidate("wrong-config", 150_000, 18.0, 0);
+        wrong_config.checkpoint.router_config_sha256 = "3".repeat(64);
+        assert!(archive.record(wrong_config).unwrap_err().contains("method/configuration differs"));
+
+        let mut wrong_environment = clean_candidate("wrong-environment", 160_000, 18.0, 0);
+        wrong_environment.checkpoint.environment.cpu_model = "unrelated-cpu".into();
+        assert!(archive.record(wrong_environment).unwrap_err().contains("environment differs"));
     }
 }
