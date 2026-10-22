@@ -129,7 +129,7 @@ jq -n \
         id: "PHYS-BEAM-PIN-MUT-INPUT-ORDER-001",
         expected_test: "assembly_is_invariant_to_input_storage_order",
         disposition: "detected"
-      }
+      },
       {
         id: "PHYS-BEAM-PIN-MUT-ROTATION-COLLAPSE-001",
         expected_test: "every_member_end_rotation_has_stiffness_and_mass_support",
