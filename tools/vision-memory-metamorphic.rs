@@ -302,7 +302,7 @@ enum Transform {
 }
 
 impl Transform {
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 8] = [
         Self::DuplicateDelivery,
         Self::SourceRevisionPermutation,
         Self::StaleAfterPayloadEviction,
