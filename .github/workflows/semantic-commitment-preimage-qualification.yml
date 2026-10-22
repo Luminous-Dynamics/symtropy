@@ -1,0 +1,329 @@
+name: PHYS-EVID-01D0 Semantic Commitment Preimage Qualification
+
+on:
+  push:
+    branches:
+      - ci/semantic-commitment-preimage-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-semantic-commitment-preimage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUBJECT_SHA: bdb5781ae49dbf2e3967876d31677fc2cb4f1dff
+      BASE_SHA: a20a19ea266c80bd778d7f40f66feb26e538b35d
+      CLAIM_CONVERGENCE_SHA: 7259f0e0c49e52c84d6a3a8348d34f8c872a8e65
+      RELATION_PARENT_SHA: 45833e9f30bd52e1e751822ed499b0863f191866
+      ENDPOINT_CLAIM_PARENT_SHA: b4d36558d7acf7196fd4c0f97140cd288d2c21ce
+
+      CONTRACT_BLOB: cc54570d8f8df06ea9ad679a38a84bbf9354bde8
+      SOURCE_BLOB: 16042c312ec0165f5af4ef8c7aca428fbd6f73ac
+      LIB_BLOB: fd7b0a91ac299ef007a1e0c4b582c4fb974cee43
+      VECTOR_BLOB: 2514cb1bc931a69ea70ebb2cf0e8a96b9fca60a0
+      ORACLE_BLOB: 898664e9e757a195a621f734410e7f88f29a348e
+
+      CONSECUTIVE_CLAIM_SOURCE_BLOB: 17e2eb3760d6499a69bef73096870a0d745c2cfd
+      ENDPOINT_CLAIM_SOURCE_BLOB: 42a3f9ed3b529240c466c65730d014341dff65ae
+      ENDPOINT_CLAIM_VECTOR_BLOB: d12f2e5c785a344e392331f6bc29e456ead2985c
+      CONSECUTIVE_CLAIM_VECTOR_BLOB: 409dea0c9a9b6903e2422b7b49b8ef54c0600338
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact one-commit five-file scope gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          test "$(git rev-list --count "$BASE_SHA..$SUBJECT_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/CANONICAL_SEMANTIC_COMMITMENT_PREIMAGE_V01.md
+            src/lib.rs
+            src/semantic_commitment_preimage.rs
+            tests/fixtures/semantic_commitment_preimage_v1_vector.json
+            tests/verify_semantic_commitment_preimage_v1.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Freeze immediate semantic lineage and oracle inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA^")" = "$CLAIM_CONVERGENCE_SHA"
+          test "$(git rev-parse "$CLAIM_CONVERGENCE_SHA^1")" = "$RELATION_PARENT_SHA"
+          test "$(git rev-parse "$CLAIM_CONVERGENCE_SHA^2")" = "$ENDPOINT_CLAIM_PARENT_SHA"
+          test "$(git rev-list --parents -n 1 "$CLAIM_CONVERGENCE_SHA" | awk '{print NF}')" = "3"
+
+          test "$(git rev-parse "$BASE_SHA:src/consecutive_claim_identity.rs")" = "$CONSECUTIVE_CLAIM_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/consecutive_claim_identity.rs")" = "$CONSECUTIVE_CLAIM_SOURCE_BLOB"
+          test "$(git rev-parse "$BASE_SHA:src/endpoint_claim_identity.rs")" = "$ENDPOINT_CLAIM_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/endpoint_claim_identity.rs")" = "$ENDPOINT_CLAIM_SOURCE_BLOB"
+
+          test "$(git rev-parse "$BASE_SHA:tests/fixtures/endpoint_claim_identity_v1_vector.json")" = "$ENDPOINT_CLAIM_VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/endpoint_claim_identity_v1_vector.json")" = "$ENDPOINT_CLAIM_VECTOR_BLOB"
+          test "$(git rev-parse "$BASE_SHA:tests/fixtures/consecutive_claim_identity_v1_vector.json")" = "$CONSECUTIVE_CLAIM_VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/consecutive_claim_identity_v1_vector.json")" = "$CONSECUTIVE_CLAIM_VECTOR_BLOB"
+
+      - name: Freeze D0 product blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/CANONICAL_SEMANTIC_COMMITMENT_PREIMAGE_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/semantic_commitment_preimage.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/semantic_commitment_preimage_v1_vector.json")" = "$VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_semantic_commitment_preimage_v1.py")" = "$ORACLE_BLOB"
+
+      - name: Prove no dependency or lockfile change
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA:Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.toml")"
+          test "$(git rev-parse "$BASE_SHA:Cargo.lock")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.lock")"
+          test -z "$(git diff --name-only "$BASE_SHA" "$SUBJECT_SHA" -- Cargo.toml Cargo.lock)"
+
+      - name: Prove exact public module exposure delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t added < <(git diff --unified=0 "$BASE_SHA" "$SUBJECT_SHA" -- src/lib.rs | grep '^+' | grep -v '^+++' || true)
+          mapfile -t removed < <(git diff --unified=0 "$BASE_SHA" "$SUBJECT_SHA" -- src/lib.rs | grep '^-' | grep -v '^---' || true)
+          test "${#added[@]}" = "1"
+          test "${added[0]}" = "+pub mod semantic_commitment_preimage;"
+          test "${#removed[@]}" = "0"
+
+      - name: Audit D0 oracle independence contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('tests/verify_semantic_commitment_preimage_v1.py')
+          text = path.read_text()
+          tree = ast.parse(text)
+
+          allowed_imports = {'__future__', 'json', 'pathlib'}
+          imported = set()
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  imported.update(alias.name.split('.')[0] for alias in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  imported.add((node.module or '').split('.')[0])
+          assert imported <= allowed_imports, (imported, allowed_imports)
+
+          required = [
+              'endpoint_claim_identity_v1_vector.json',
+              'consecutive_claim_identity_v1_vector.json',
+              'semantic_commitment_preimage_v1_vector.json',
+              'symtropy-physics-semantic-commitment\\0',
+              'position-v1\\0',
+              'full-claim-v1\\0',
+              'to_bytes(4, "big")',
+              'to_bytes(8, "big")',
+          ]
+          for needle in required:
+              assert needle in text, needle
+
+          forbidden = [
+              'hashlib', 'sha256', 'sha2', 'blake', 'md5',
+              'subprocess', 'socket', 'urllib', 'requests', 'http://', 'https://',
+              'Cargo.toml', 'Cargo.lock', 'target/', '.rs', 'src/',
+              'rustc', 'cargo ',
+          ]
+          for needle in forbidden:
+              assert needle not in text, needle
+
+          print('PHYS-EVID-01D0 oracle independence audit: PASS')
+          PY
+
+      - name: Independent semantic and preimage oracles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/verify_endpoint_sample_v1.py
+          python3 tests/verify_consecutive_presence_v1.py
+          python3 tests/verify_endpoint_claim_identity_v1.py
+          python3 tests/verify_consecutive_claim_identity_v1.py
+          python3 tests/verify_semantic_commitment_preimage_v1.py
+
+      - name: Static typed-boundary and no-hash audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('src/semantic_commitment_preimage.rs').read_text()
+          production = text.split('#[cfg(test)]', 1)[0]
+
+          required = [
+              'pub fn endpoint_sample_commitment_preimages_v1(',
+              'claim: &CanonicalEndpointSampleClaimV1',
+              'pub fn consecutive_presence_commitment_preimages_v1(',
+              'claim: &CanonicalConsecutivePresenceClaimV1',
+              'fn build_preimages_v1(',
+              'SemanticClaimProfileV1::EndpointSample',
+              'SemanticClaimProfileV1::ConsecutivePresence',
+              'b"endpoint-sample-v1"',
+              'b"consecutive-presence-v1"',
+              'b"symtropy-physics-semantic-commitment\\0"',
+              'b"position-v1\\0"',
+              'b"full-claim-v1\\0"',
+              'position_preimage.extend_from_slice(position);',
+              'full_claim_preimage.extend_from_slice(position);',
+              'full_claim_preimage.extend_from_slice(value);',
+          ]
+          for needle in required:
+              assert needle in production, needle
+
+          assert 'pub fn build_preimages_v1' not in production
+          assert 'pub fn from_bytes' not in production
+          assert 'pub fn from_transcripts' not in production
+          assert 'pub fn new(' not in production
+
+          position_block = production.split('let mut position_preimage', 1)[1].split('let mut full_claim_preimage', 1)[0]
+          assert position_block.index('SEMANTIC_COMMITMENT_PREIMAGE_V1_MAGIC') < position_block.index('SEMANTIC_COMMITMENT_POSITION_V1_DOMAIN')
+          assert position_block.index('SEMANTIC_COMMITMENT_POSITION_V1_DOMAIN') < position_block.index('profile_domain')
+          assert position_block.index('profile_domain') < position_block.index('position_preimage.push(0)')
+          assert position_block.index('position_len.to_be_bytes()') < position_block.index('extend_from_slice(position)')
+          assert 'value' not in position_block
+
+          full_block = production.split('let mut full_claim_preimage', 1)[1].split('Ok(SemanticClaimCommitmentPreimagesV1', 1)[0]
+          assert full_block.index('SEMANTIC_COMMITMENT_PREIMAGE_V1_MAGIC') < full_block.index('SEMANTIC_COMMITMENT_FULL_CLAIM_V1_DOMAIN')
+          assert full_block.index('SEMANTIC_COMMITMENT_FULL_CLAIM_V1_DOMAIN') < full_block.index('profile_domain')
+          assert full_block.index('position_len.to_be_bytes()') < full_block.index('extend_from_slice(position)')
+          assert full_block.index('extend_from_slice(position)') < full_block.index('value_len.to_be_bytes()')
+          assert full_block.index('value_len.to_be_bytes()') < full_block.index('extend_from_slice(value)')
+
+          for forbidden in [
+              'Hash', 'DefaultHasher', '.hash(', 'Sha256', 'sha2', 'blake3',
+              'ring::', 'openssl', 'digest(', 'encode_physics_evidence_frame_v1',
+              'decode_physics_evidence_frame_v1', 'PhysicsEvidenceFrameKindV1',
+              'sign_', 'verify_signature', 'ActionKey', 'compare_and_set',
+              'settlement', 'escrow',
+          ]:
+              assert forbidden not in production, forbidden
+
+          assert re.search(
+              r'pub struct SemanticClaimCommitmentPreimagesV1\s*\{\s*profile: SemanticClaimProfileV1,\s*position_preimage: Vec<u8>,\s*full_claim_preimage: Vec<u8>,\s*\}',
+              production,
+              re.S,
+          )
+          print('PHYS-EVID-01D0 typed-boundary/no-hash audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format and integration check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check -p symtropy-launcher --lib --locked
+
+      - name: D0 semantic corpus and predecessor regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --lib semantic_commitment_preimage::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib consecutive_claim_identity::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib endpoint_claim_identity::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib consecutive_presence_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib endpoint_sample_codec::tests --locked -- --nocapture
+
+      - name: Warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-launcher --lib --locked -- -D warnings
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/semantic_commitment_preimage.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:src/lib.rs)" = "$LIB_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/semantic_commitment_preimage_v1_vector.json)" = "$VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_semantic_commitment_preimage_v1.py)" = "$ORACLE_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/endpoint_claim_identity_v1_vector.json)" = "$ENDPOINT_CLAIM_VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/consecutive_claim_identity_v1_vector.json)" = "$CONSECUTIVE_CLAIM_VECTOR_BLOB"
+
+      - name: Emit qualification receipt outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          receipt = {
+              'theorem': 'PHYS-EVID-01D0 canonical semantic commitment preimage grammar v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'base_semantic_claim_sha': os.environ['BASE_SHA'],
+              'preimage_version': 1,
+              'endpoint_position_preimage_len': 285,
+              'endpoint_full_claim_preimage_len': 446,
+              'consecutive_position_preimage_len': 563,
+              'consecutive_full_claim_preimage_len': 940,
+              'typed_claim_inputs_only': True,
+              'raw_byte_public_constructor': False,
+              'oracle_stdlib_only_audited': True,
+              'oracle_hashing_absent': True,
+              'oracle_rust_source_read_absent': True,
+              'oracle_input_fixture_blobs_frozen': True,
+              'lib_exposure_delta_exact': True,
+              'receipt_emitted_outside_checkout': True,
+              'cargo_manifest_changed': False,
+              'cargo_lock_changed': False,
+              'hash_algorithm_selected': False,
+              'digest_claimed': False,
+              'collision_resistance_claimed': False,
+              'authentication_claimed': False,
+              'issuer_authority_claimed': False,
+              'predecessor_pass_laundering': False,
+              'authenticated_fork_claimed': False,
+              'trusted_replay_state_claimed': False,
+              'side_effect_authority_claimed': False,
+              'settlement_claimed': False,
+          }
+          out = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-01d0-receipt.json'
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(out)
+          PY
+
+      - name: Final immutable checkout gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/semantic_commitment_preimage.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_semantic_commitment_preimage_v1.py)" = "$ORACLE_BLOB"
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-01d0-semantic-commitment-preimage-receipt
+          path: ${{ runner.temp }}/phys-evid-01d0-receipt.json
+          if-no-files-found: error
