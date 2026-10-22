@@ -22,6 +22,8 @@ Exit codes: 0 valid; 1 structurally or semantically invalid evidence; 2 input/us
 - Contract version, enums, required fields, model scope, constraints, seed and generator recipe, source case count, digests, candidate and baseline revision syntax, oracle identity, and budgets.
 - SHA-256 of the exact manifest bytes, checked against the report's manifest_sha256.
 - The run's source revision must match the candidate revision in the manifest.
+- A case's `outcome` records the candidate's statement (`feasible-claim`, `infeasibility-proof`, `no-solution`, `timeout`, `invalid-output`, or `not-run`); it does not predeclare that statement verified. The reference outcome and verifier status are independent evidence fields.
+- The report separates the count of feasible reference cases actually found from feasible reference cases missed. A heuristic that returns no solution on an oracle-feasible case is a missed case, not a false infeasibility proof.
 - Duplicate case IDs, case-count completeness, per-case outcome/verifier consistency, oracle/reference agreement, and summary arithmetic.
 - False-feasible and false-infeasible counts recomputed from per-case reference outcomes, rather than trusted as caller-supplied aggregates.
 - Unknown, timeout, invalid-output, and not-run remain distinct outcomes. A claim of proven infeasibility requires a matching infeasibility reference; heuristic exhaustion or a timeout is not proof.
