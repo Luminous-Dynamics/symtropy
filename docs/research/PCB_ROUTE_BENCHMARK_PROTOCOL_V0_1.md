@@ -440,3 +440,10 @@ A route policy is not credited with a positive result if it improves clean-pass 
 5. any stretch target (e.g. +5 absolute clean-pass points, or faster time-to-first-clean) only on a frozen held-out split and only if rule fidelity is equal or improved.
 
 The new cross-project item is [PCB-DRC-FIDELITY-001 #2626](https://github.com/Luminous-Dynamics/symtropy/issues/2626). This is distinct from the license-intake gate (#2613) and design-skeleton gate (#2609): it freezes the constraints against which copper is judged.
+
+
+## License reconciliation must not invent missing metadata (2026-10-22)
+
+A missing PCBench license declaration is now a separate state from “primary source matches the PCBench SPDX field.” Candidate `0400_laptimer58_Chickadee` has a license file at immutable source commit `9156b36226a3adf92bc7e62562795ec622693bfb`: `pcb/LICENSE`, Git blob SHA-1 `bd5c070f6aba4a89aa8b734c01301f4fe1387411`, whose text identifies CC BY-SA 4.0. The audit stores this as `source_license_resolved_no_pcbench_license_metadata`, **not** `source_text_matches_pcbench_spdx_metadata`.
+
+This adds one source-license blob checked at a pinned commit, but does not change the authorization status: the formal legal-applicability review and the exact prepared-board-byte / net-count intake remain incomplete. The external pilot stays at **0/30 boards approved for benchmark execution**. A license text being identifiable is evidence for review, not automatic permission to execute or redistribute a transformed benchmark artifact.
