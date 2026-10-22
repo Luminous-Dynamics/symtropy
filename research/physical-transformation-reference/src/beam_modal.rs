@@ -15,6 +15,38 @@ use crate::modal_bar::{
 const ZERO_MODE_RELATIVE_TOLERANCE: f64 = 1.0e-10;
 const MAX_DENSE_MODAL_DOFS: usize = 128;
 
+/// Sign-invariant modal assurance criterion (MAC) for two shape vectors.
+/// Returns a value in [0, 1] when both vectors are finite, non-zero and have
+/// equal dimension. It is a comparison metric, not a mode-pairing policy by
+/// itself; closely spaced/repeated modes need subspace-aware treatment.
+pub fn modal_assurance_criterion(reference: &[f64], candidate: &[f64]) -> Check<f64> {
+    if reference.is_empty() || reference.len() != candidate.len() {
+        return Err("MAC vectors must be non-empty and have identical dimensions".to_owned());
+    }
+    if reference.iter().chain(candidate).any(|value| !value.is_finite()) {
+        return Err("MAC vectors must contain only finite values".to_owned());
+    }
+    let reference_norm = reference.iter().map(|value| value * value).sum::<f64>();
+    let candidate_norm = candidate.iter().map(|value| value * value).sum::<f64>();
+    if !reference_norm.is_finite()
+        || !candidate_norm.is_finite()
+        || reference_norm <= 0.0
+        || candidate_norm <= 0.0
+    {
+        return Err("MAC vectors must have finite, positive norm".to_owned());
+    }
+    let inner = reference
+        .iter()
+        .zip(candidate)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    let value = inner * inner / (reference_norm * candidate_norm);
+    if !value.is_finite() {
+        return Err("MAC result is non-finite".to_owned());
+    }
+    Ok(value.clamp(0.0, 1.0))
+}
+
 /// Explicit modal classification. Near-zero values remain visible as
 /// mechanisms/rigid modes; negative values are flagged as unstable or invalid.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -352,6 +384,23 @@ mod tests {
     }
 
     #[test]
+    fn modal_assurance_criterion_is_sign_invariant_and_fail_closed() {
+        let reference = [0.0, 0.25, -0.5, 1.0, -0.25];
+        let exact_opposite = reference.map(|value| -value);
+        assert!(
+            (super::modal_assurance_criterion(&reference, &exact_opposite).unwrap() - 1.0).abs()
+                < 1.0e-14
+        );
+        assert!(
+            (super::modal_assurance_criterion(&reference, &reference).unwrap() - 1.0).abs()
+                < 1.0e-14
+        );
+        assert!(super::modal_assurance_criterion(&reference, &[1.0, 2.0]).is_err());
+        assert!(super::modal_assurance_criterion(&[0.0, 0.0], &[1.0, 0.0]).is_err());
+        assert!(super::modal_assurance_criterion(&[f64::NAN], &[1.0]).is_err());
+    }
+
+    #[test]
     fn modes_preserve_all_free_dofs_and_have_small_residuals() {
         let assembly = fixture();
         let result = solve_beam_pin_assembly_modes(&assembly).expect("modal result");
@@ -393,6 +442,15 @@ mod tests {
             let dense_frequency = dense.modes[index].frequency_hz.expect("elastic dense");
             assert!(((stiff_frequency / base_frequency) - 2.0).abs() < 1.0e-8);
             assert!(((dense_frequency / base_frequency) - 0.5).abs() < 1.0e-8);
+            let base_shape = &baseline.modes[index].shape_global_dofs;
+            let stiff_shape = &stiff.modes[index].shape_global_dofs;
+            let dense_shape = &dense.modes[index].shape_global_dofs;
+            assert!(
+                super::modal_assurance_criterion(base_shape, stiff_shape).unwrap() > 1.0 - 1.0e-10
+            );
+            assert!(
+                super::modal_assurance_criterion(base_shape, dense_shape).unwrap() > 1.0 - 1.0e-10
+            );
         }
     }
 
