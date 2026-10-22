@@ -8,6 +8,8 @@ const UPSTREAM_REPOSITORY: &str =
     "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
 const UPSTREAM_INSTANCE_PATH: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs";
 const UPSTREAM_INSTANCE_PATH_CASE_02: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs";
+const UPSTREAM_BLOB_SHA1_CASE_03: &str = "01c1ff749cbad87206cbc4f2ba308c005dd8b1c9";
+const UPSTREAM_INSTANCE_PATH_CASE_03: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs";
 const CLAIM_CEILING: &str = "Pinned public benchmark input structures and exhaustive tiny-instance makespan oracles for named cases are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established.";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -208,26 +210,49 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     let (
         expected_path,
         expected_blob,
+        expected_jobs,
+        expected_operations,
         expected_alternatives,
-        expected_setup_max,
         expected_flexibility,
+        expected_setup_dimensions,
+        expected_setup_min,
+        expected_setup_max,
     ) = match manifest.benchmark_id.as_str() {
-            "FJSP-SDST-FATTAHI-001" => (
-                UPSTREAM_INSTANCE_PATH,
-                UPSTREAM_BLOB_SHA1,
-                vec![2, 2, 2, 2],
-                8,
-                2.0,
-            ),
-            "FJSP-SDST-FATTAHI-002" => (
-                UPSTREAM_INSTANCE_PATH_CASE_02,
-                UPSTREAM_BLOB_SHA1_CASE_02,
-                vec![1, 2, 2, 1],
-                1_000_000,
-                1.5,
-            ),
-            _ => return Err("unsupported_benchmark_case".into()),
-        };
+        "FJSP-SDST-FATTAHI-001" => (
+            UPSTREAM_INSTANCE_PATH,
+            UPSTREAM_BLOB_SHA1,
+            2,
+            4,
+            vec![2, 2, 2, 2],
+            2.0,
+            [2, 4, 4],
+            3,
+            8,
+        ),
+        "FJSP-SDST-FATTAHI-002" => (
+            UPSTREAM_INSTANCE_PATH_CASE_02,
+            UPSTREAM_BLOB_SHA1_CASE_02,
+            2,
+            4,
+            vec![1, 2, 2, 1],
+            1.5,
+            [2, 4, 4],
+            3,
+            1_000_000,
+        ),
+        "FJSP-SDST-FATTAHI-003" => (
+            UPSTREAM_INSTANCE_PATH_CASE_03,
+            UPSTREAM_BLOB_SHA1_CASE_03,
+            3,
+            6,
+            vec![1, 2, 2, 1, 2, 2],
+            1.7,
+            [2, 6, 6],
+            6,
+            1_000_000,
+        ),
+        _ => return Err("unsupported_benchmark_case".into()),
+    };
 
     let source = &manifest.source;
     if source.repository_url != UPSTREAM_REPOSITORY
@@ -244,14 +269,14 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     }
 
     let expected = &manifest.expected_structure;
-    if expected.jobs != 2
+    if expected.jobs != expected_jobs
         || expected.machines != 2
         || expected.max_operations_per_job != 2
-        || expected.operations != 4
+        || expected.operations != expected_operations
         || expected.operation_alternative_counts != expected_alternatives
         || expected.declared_average_machine_flexibility != expected_flexibility
-        || expected.setup_matrix_dimensions != [2, 4, 4]
-        || expected.setup_values_min != 3
+        || expected.setup_matrix_dimensions != expected_setup_dimensions
+        || expected.setup_values_min != expected_setup_min
         || expected.setup_values_max != expected_setup_max
         || expected.primary_objective != "makespan"
         || expected.supports_due_dates
@@ -473,8 +498,14 @@ fn validate_expected_structure(
 }
 
 fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, String> {
-    if parsed.jobs != 2 || parsed.machines != 2 || parsed.operations.len() != 4 {
-        return Err("exact_oracle_supports_only_declared_two_job_two_machine_four_operation_case".into());
+    if !(2..=3).contains(&parsed.jobs)
+        || parsed.machines != 2
+        || !(4..=6).contains(&parsed.operations.len())
+        || parsed.operations.len() % parsed.jobs != 0
+    {
+        return Err(
+            "exact_oracle_supports_two_or_three_jobs_two_machines_and_up_to_six_operations".into(),
+        );
     }
     if parsed.setup_times.len() != parsed.machines
         || parsed.setup_times.iter().any(|machine| {
@@ -790,6 +821,17 @@ mod tests {
         include_str!("../fixtures/fattahi_setup_02.fjs")
     }
 
+    fn manifest_case_03() -> Manifest {
+        serde_json::from_str(include_str!(
+            "../fixtures/external_manifest_fattahi_setup_03_v0_2.json"
+        ))
+        .expect("case 03 manifest fixture parses")
+    }
+
+    fn fixture_case_03() -> &'static str {
+        include_str!("../fixtures/fattahi_setup_03.fjs")
+    }
+
     #[test]
     fn pinned_fattahi_fixture_matches_declared_structure() {
         let manifest = manifest();
@@ -844,6 +886,49 @@ mod tests {
             vec![(0, 0, 43), (1, 48, 112), (2, 0, 35), (3, 44, 87)]
         );
         assert!(result.exhaustive_for_declared_instance);
+    }
+
+    #[test]
+    fn case_03_flexibility_metadata_and_six_operation_oracle_are_exact() {
+        let manifest = manifest_case_03();
+        validate_manifest(&manifest).expect("case 03 manifest pin is valid");
+        let parsed = parse_instance(fixture_case_03()).expect("case 03 fixture parses");
+        validate_expected_structure(&manifest.expected_structure, &parsed)
+            .expect("case 03 contract matches the fixture");
+        assert_eq!(parsed.jobs, 3);
+        assert_eq!(parsed.machines, 2);
+        assert_eq!(parsed.max_operations_per_job, 2);
+        assert_eq!(parsed.operations.len(), 6);
+        assert_eq!(parsed.operation_alternative_counts, vec![1, 2, 2, 1, 2, 2]);
+        assert_eq!(parsed.declared_average_machine_flexibility, 1.7);
+        assert_eq!(parsed.setup_matrix_dimensions, [2, 6, 6]);
+        assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (6, 1_000_000));
+
+        let result = solve_tiny_instance(&parsed).expect("case 03 exact oracle completes");
+        assert_eq!(result.candidate_assignment_sequence_combinations, 840);
+        assert_eq!(result.feasible_acyclic_schedules, 298);
+        assert_eq!(result.optimal_makespan, 233);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![1, 2, 2, 2, 1, 1]
+        );
+        assert_eq!(
+            result.optimal_machine_sequences_operation_ids,
+            vec![vec![0, 4, 5], vec![2, 1, 3]]
+        );
+        assert_eq!(
+            result.optimal_schedule.iter()
+                .map(|op| (op.operation_id, op.processing_start, op.completion_time))
+                .collect::<Vec<_>>(),
+            vec![
+                (0, 0, 43),
+                (1, 59, 154),
+                (2, 0, 53),
+                (3, 160, 233),
+                (4, 51, 176),
+                (5, 185, 228),
+            ]
+        );
     }
 
     #[test]
