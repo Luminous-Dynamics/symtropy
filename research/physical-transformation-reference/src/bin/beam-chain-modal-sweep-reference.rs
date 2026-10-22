@@ -301,7 +301,9 @@ fn participation_json(properties: &BeamModalParticipationProperties) -> String {
                 ),
                 mode.mode_index,
                 mode.class,
-                mode.frequency_hz.map(float_json).unwrap_or_else(|| "null".to_owned()),
+                mode.frequency_hz
+                    .map(float_json)
+                    .unwrap_or_else(|| "null".to_owned()),
                 float_json(mode.generalized_mass_kg),
                 float_json(mode.participation_factor_x),
                 float_json(mode.participation_factor_y),
