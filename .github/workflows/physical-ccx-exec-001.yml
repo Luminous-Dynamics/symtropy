@@ -908,6 +908,7 @@ jobs:
           SOURCE_OUTCOME: ${{ steps.source_verify.outcome }}
           BUILD_OUTCOME: ${{ steps.build_ccx.outcome }}
           EXECUTION_OUTCOME: ${{ steps.execute_cases.outcome }}
+          MMS_OUTCOME: ${{ steps.mms_convergence.outcome }}
         shell: bash
         run: |
           set -euo pipefail
@@ -915,7 +916,9 @@ jobs:
           test "$SOURCE_OUTCOME" = "success"
           test "$BUILD_OUTCOME" = "success"
           test "$EXECUTION_OUTCOME" = "success"
+          test "$MMS_OUTCOME" = "success"
           test -s "$RUNNER_TEMP/ccx-evidence/ccx-exec-001-summary.json"
+          test -s "$RUNNER_TEMP/ccx-evidence/physical-mms-001-convergence-summary.json"
           jq -e '
             .schema_version == "ccx-exec-001-summary-v0.1"
             and .numerical_result_status == "PASS"
@@ -930,3 +933,16 @@ jobs:
             and .real_world_validation_status == "UNRESOLVED"
             and .engineering_use_authorized == false
           ' "$RUNNER_TEMP/ccx-evidence/ccx-exec-001-summary.json"
+          jq -e '
+            .schema_version == "physical-mms-convergence-summary-v0.1"
+            and .benchmark_id == "PHYS-MMS-001-PLANE-STRESS-CPS3"
+            and (.mesh_levels | length == 5)
+            and (.observed_orders | length == 4)
+            and .monotone_error_reduction == true
+            and .final_two_refinement_orders_pass == true
+            and .mesh_convergence_status == "PASS"
+            and .physical_result_qualified == false
+            and .real_world_validation_status == "UNRESOLVED"
+            and .engineering_use_authorized == false
+            and (.mesh_levels | all(.[]; (.report_sha256 | test("^[0-9a-f]{64}$")) and (.process_receipt_sha256 | test("^[0-9a-f]{64}$"))))
+          ' "$RUNNER_TEMP/ccx-evidence/physical-mms-001-convergence-summary.json"
