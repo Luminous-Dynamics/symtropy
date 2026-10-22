@@ -3457,7 +3457,6 @@ mod tests {
                     vehicle_outages: Vec::new(),
                     placement_occupancy_extensions: Vec::new(),
                     explicitly_affected_reservation_ids: Vec::new(),
-                    occupancy_evidence: Vec::new(),
                 },
                 resource_outages: Vec::new(),
             },
