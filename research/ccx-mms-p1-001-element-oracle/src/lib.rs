@@ -52,7 +52,9 @@ impl fmt::Display for ElementError {
                 f.write_str("element energy identity is non-finite or invalid")
             }
             Self::InvalidStiffnessSpectrum => {
-                f.write_str("element stiffness spectrum is not three rigid plus three positive modes")
+                f.write_str(
+                    "element stiffness spectrum is not three rigid plus three positive modes",
+                )
             }
             Self::EigenvalueIterationLimit => {
                 f.write_str("symmetric Jacobi eigensolver did not converge")
@@ -402,6 +404,8 @@ pub struct ElementSpectrum {
 /// Symmetric Jacobi eigensolver for a small dense 6-by-6 element matrix.
 /// The input is symmetrized at the level of roundoff before rotations; callers
 /// separately test the unsymmetrized stiffness symmetry defect.
+// Indexed access is necessary for coupled row/column rotations of this fixed-size matrix.
+#[allow(clippy::needless_range_loop)]
 fn symmetric_eigenvalues(
     mut matrix: [[f64; 6]; 6],
 ) -> Result<[f64; 6], ElementError> {
@@ -1073,6 +1077,8 @@ mod tests {
             point.mean_ratio_quality > 0.0
                 && point.mean_ratio_quality <= 1.0
                 && point.dimensionless_gradient_amplification.is_finite()
+                && point.element_nonrigid_condition_number.is_finite()
+                && point.element_nonrigid_condition_number >= 1.0
         }));
     }
 
@@ -1086,6 +1092,41 @@ mod tests {
         assert!(spectrum.largest_positive_eigenvalue >= spectrum.smallest_positive_eigenvalue);
         assert!(spectrum.nonrigid_condition_number >= 1.0);
         assert!(spectrum.eigenvalues.windows(2).all(|pair| pair[0] <= pair[1]));
+    }
+
+    #[test]
+    fn element_spectral_condition_number_is_rotation_and_winding_invariant() {
+        let vertices = points();
+        let original =
+            TriangleElement::new(vertices, material(), 1.0).unwrap().spectrum().unwrap();
+
+        let angle: f64 = 0.43;
+        let cosine = angle.cos();
+        let sine = angle.sin();
+        let rotated_vertices = vertices.map(|point| Point2 {
+            x: cosine * point.x - sine * point.y,
+            y: sine * point.x + cosine * point.y,
+        });
+        let rotated = TriangleElement::new(rotated_vertices, material(), 1.0)
+            .unwrap()
+            .spectrum()
+            .unwrap();
+        close(
+            rotated.nonrigid_condition_number,
+            original.nonrigid_condition_number,
+            1.0e-12,
+        );
+
+        let reversed =
+            TriangleElement::new([vertices[0], vertices[2], vertices[1]], material(), 1.0)
+                .unwrap()
+                .spectrum()
+                .unwrap();
+        close(
+            reversed.nonrigid_condition_number,
+            original.nonrigid_condition_number,
+            1.0e-12,
+        );
     }
 
     #[test]
