@@ -387,7 +387,7 @@ pub fn augment_disruption_from_execution(
         let Some(witness) =
             visible_witnesses_by_reservation.get(binding.placement_reservation_id.as_str()).copied()
         else {
-            if decision_tick >= operation.planned_end_tick {
+            if decision_tick >= placement.occupied.end_tick {
                 push(
                     &mut violations,
                     ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationMissing,
@@ -600,6 +600,84 @@ mod tests {
         assert_eq!(report.receipts.len(), 1);
         assert_eq!(report.receipts[0].source_evidence_id, "scan-block-a-at-8");
         assert_eq!(report.receipts[0].previous_occupied_until_tick, 5);
+    }
+
+    #[test]
+    fn witnessed_occupancy_extension_blocks_conflicting_space_time_candidate() {
+        use crate::{RecoveryInput, evaluate_recovery};
+
+        let baseline = Scenario {
+            yard_bounds: Some(Rect {
+                min_x: 0,
+                min_y: 0,
+                max_x: 10,
+                max_y: 10,
+            }),
+            placements: vec![
+                Placement {
+                    reservation_id: "block-a-placement".to_owned(),
+                    block_id: "block-a".to_owned(),
+                    footprint: shipyard_space_time::Footprint::AxisAlignedRect(Rect {
+                        min_x: 0,
+                        min_y: 0,
+                        max_x: 2,
+                        max_y: 2,
+                    }),
+                    occupied: TimeRange {
+                        start_tick: 0,
+                        end_tick: 5,
+                    },
+                },
+                Placement {
+                    reservation_id: "block-b-placement".to_owned(),
+                    block_id: "block-b".to_owned(),
+                    footprint: shipyard_space_time::Footprint::AxisAlignedRect(Rect {
+                        min_x: 0,
+                        min_y: 0,
+                        max_x: 2,
+                        max_y: 2,
+                    }),
+                    occupied: TimeRange {
+                        start_tick: 8,
+                        end_tick: 12,
+                    },
+                },
+            ],
+            ..Scenario::default()
+        };
+        let evidence = augment_disruption_from_execution(
+            &baseline,
+            &plan(5),
+            &[event("start-clear", ExecutionEventKind::Started, 2, 2)],
+            &[PlacementOccupancyWitness {
+                witness_id: "scan-block-a-at-8".to_owned(),
+                placement_reservation_id: "block-a-placement".to_owned(),
+                source_id: "yard-scanner-1".to_owned(),
+                evidence_ref: "scan://block-a/8".to_owned(),
+                occupied_at_tick: 8,
+                recorded_tick: 8,
+            }],
+            ExecutionReplayCutoff {
+                as_of_occurred_tick: 8,
+                as_of_recorded_tick: 8,
+            },
+            8,
+            &prior(4),
+            &binding(),
+        );
+
+        assert!(evidence.accepted, "{:?}", evidence.violations);
+        let recovery = evaluate_recovery(&RecoveryInput {
+            baseline: baseline.clone(),
+            candidate: baseline,
+            disruption: evidence.disruption.unwrap(),
+        });
+
+        assert!(!recovery.accepted);
+        assert!(!recovery.metrics.candidate_feasible_after_disruption);
+        assert!(recovery.candidate_spatial_violations.iter().any(|violation| {
+            violation.code == shipyard_space_time::ViolationCode::BlockFootprintOverlap
+        }));
     }
 
     #[test]
