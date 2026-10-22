@@ -1,0 +1,103 @@
+name: LENV Ground r2 format-only builder q2
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lenv-ground-r2-format-builder-q2
+  cancel-in-progress: false
+
+jobs:
+  build-fresh-product:
+    if: github.event.pull_request.head.ref == 'ci/lenv-ground-r2-format-builder-q2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PARENT_SHA: e20aadfabfbc774f3c8adff3dbcd56af63c78473
+      FAILED_SHA: 889bbc94918bcc7f82b5807a0badb265e9388474
+      FAILED_BLOB: 74cd905a46685327d406a1a8da1a09cbf1b50f61
+      PRODUCT_FILE: crates/domains/symtropy-lifesim-core/tests/ground_that_remembers_reference.rs
+      PRODUCT_BRANCH: living-world/lenv-ground-reference-v0.1-r2
+
+    steps:
+      - name: Checkout exact original parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PARENT_SHA }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Prove failed subject lineage and exact source blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PARENT_SHA"
+          test "$(git rev-parse "$FAILED_SHA^")" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA".."$FAILED_SHA")" = 1
+          test "$(git diff --name-status "$PARENT_SHA" "$FAILED_SHA")" = $'A\t'"$PRODUCT_FILE"
+          test "$(git rev-parse "$FAILED_SHA:$PRODUCT_FILE")" = "$FAILED_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply only Rust 1.96 formatting and stage exact candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$PRODUCT_FILE")"
+          git show "$FAILED_SHA:$PRODUCT_FILE" > "$PRODUCT_FILE"
+          cp "$PRODUCT_FILE" /tmp/failed-ground.rs
+
+          rustfmt +1.96.0 --edition 2024 "$PRODUCT_FILE"
+          ! cmp -s /tmp/failed-ground.rs "$PRODUCT_FILE"
+          rustfmt +1.96.0 --edition 2024 --check "$PRODUCT_FILE"
+
+          formatted_blob="$(git hash-object "$PRODUCT_FILE")"
+          test "$formatted_blob" != "$FAILED_BLOB"
+
+          # The owned path is new at PARENT_SHA. Stage it before asking Git to
+          # prove the exact delta: plain `git diff` intentionally ignores
+          # untracked files and was the deterministic defect in q1/#1442.
+          git add -- "$PRODUCT_FILE"
+          test "$(git diff --cached --name-status)" = $'A\t'"$PRODUCT_FILE"
+          test "$(git diff --cached --name-only)" = "$PRODUCT_FILE"
+          test -z "$(git diff --name-only)"
+          test "$(git hash-object "$PRODUCT_FILE")" = "$formatted_blob"
+
+          echo "failed_blob=$FAILED_BLOB"
+          echo "formatted_blob=$formatted_blob"
+          git diff --no-index -- /tmp/failed-ground.rs "$PRODUCT_FILE" || test $? -eq 1
+
+      - name: Construct fresh direct-child product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$PRODUCT_BRANCH"
+
+          test "$(git diff --cached --name-status)" = $'A\t'"$PRODUCT_FILE"
+          git commit -m "test(living-world): format Ground reference for Rust 1.96 r2"
+
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1
+          test "$(git diff --name-status "$PARENT_SHA" HEAD)" = $'A\t'"$PRODUCT_FILE"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+          echo "product_head=$(git rev-parse HEAD)"
+          echo "product_tree=$(git rev-parse HEAD^{tree})"
+          echo "product_blob=$(git rev-parse HEAD:$PRODUCT_FILE)"
+
+      - name: Publish fresh product branch once
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
