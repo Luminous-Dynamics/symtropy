@@ -7,6 +7,8 @@
 //! Reservations completed at or before the disruption time are immutable. Feasibility, changes to
 //! affected work, churn imposed on unaffected work, and recovery horizon are separate metrics.
 
+pub mod resources;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use shipyard_space_time::{
