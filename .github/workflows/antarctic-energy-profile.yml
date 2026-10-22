@@ -7,6 +7,9 @@ on:
       - "scripts/check-antarctic-energy-profile.sh"
       - "scripts/check-antarctic-energy-data.sh"
       - "scripts/acquire-antarctic-sources.sh"
+      - "scripts/check-antarctic-benchmark-receipt.sh"
+      - "research/antarctic-energy-resilience/benchmark-run-v0.schema.json"
+      - "research/antarctic-energy-resilience/benchmark-run-v0.synthetic.json"
       - ".github/workflows/antarctic-energy-profile.yml"
   push:
     branches: [main]
@@ -55,3 +58,6 @@ jobs:
           set -e
           test "$status" -eq 5
           grep -q "contact the data originator" <<<"$output"
+
+      - name: Check benchmark receipt schema/example claim ceiling
+        run: bash scripts/check-antarctic-benchmark-receipt.sh
