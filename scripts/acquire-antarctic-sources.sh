@@ -34,7 +34,7 @@ mkdir -p "$cache_root/raw" "$cache_root/metadata" "$cache_root/manifests"
 manifest="$cache_root/manifests/acquisition.jsonl"
 
 record() {
-  local source_id="$1" url="$2" final_url="$3" status="$4" ctype="$5" file="$6" result="$7"
+  local source_id="$1" url="$2" final_url="$3" status="$4" ctype="$5" file="$6" result="$7" terms="$8"
   local size=0 digest=""
   if [[ -f "$file" ]]; then
     size="$(wc -c < "$file" | tr -d ' ')"
@@ -42,11 +42,11 @@ record() {
   fi
   jq -cn --arg id "$source_id" --arg url "$url" --arg final "$final_url" \
     --arg status "$status" --arg ctype "$ctype" --arg file "$file" \
-    --arg result "$result" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg result "$result" --arg terms "$terms" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg sha "$digest" --argjson size "$size" \
     '{source_id:$id,requested_url:$url,effective_url:$final,http_status:$status,
       content_type:$ctype,path:$file,bytes:$size,sha256:($sha|select(length>0)),
-      retrieved_at_utc:$at,result:$result}' >> "$manifest"
+      declared_terms:$terms,retrieved_at_utc:$at,result:$result}' >> "$manifest"
 }
 
 fetch_one() {
@@ -58,29 +58,30 @@ fetch_one() {
   if ! curl --fail --location --silent --show-error --retry 2 \
       --output "$tmp" --write-out $'\n%{http_code}\t%{content_type}\t%{url_effective}\n' \
       "$url" > "$info"; then
-    record "$id" "$url" "$url" "transport-failed" "" "$tmp" "failed"
+    record "$id" "$url" "$url" "transport-failed" "" "$tmp" "failed" "$license"
     rm -f "$tmp" "$info"
     echo "ERROR: retrieval failed; inspect $manifest" >&2
     return 4
   fi
-  status="$(tail -n 1 "$info" | cut -f1)"
-  ctype="$(tail -n 1 "$info" | cut -f2)"
-  effective="$(tail -n 1 "$info" | cut -f3-)"
+  info_line="$(awk 'NF { line=$0 } END { print line }' "$info")"
+  status="$(printf '%s\\n' "$info_line" | cut -f1)"
+  ctype="$(printf '%s\\n' "$info_line" | cut -f2)"
+  effective="$(printf '%s\\n' "$info_line" | cut -f3-)"
   if [[ "$ctype" =~ [Tt][Ee][Xx][Tt]/[Hh][Tt][Mm][Ll] ]] || \
      head -c 256 "$tmp" | grep -Eiq '<!doctype[[:space:]]+html|<html([[:space:]>])'; then
-    record "$id" "$url" "$effective" "$status" "$ctype" "$tmp" "rejected-html-not-data"
+    record "$id" "$url" "$effective" "$status" "$ctype" "$tmp" "rejected-html-not-data" "$license"
     rm -f "$tmp" "$info"
     echo "ERROR: received HTML instead of a source artifact for $id" >&2
     return 3
   fi
   [[ -s "$tmp" ]] || {
-    record "$id" "$url" "$effective" "$status" "$ctype" "$tmp" "rejected-empty"
+    record "$id" "$url" "$effective" "$status" "$ctype" "$tmp" "rejected-empty" "$license"
     rm -f "$tmp" "$info"
     echo "ERROR: zero-byte response for $id" >&2
     return 3
   }
   mv "$tmp" "$path"
-  record "$id" "$url" "$effective" "$status" "$ctype" "$path" "retrieved-unvalidated"
+  record "$id" "$url" "$effective" "$status" "$ctype" "$path" "retrieved-unvalidated" "$license"
   rm -f "$info"
   printf 'Retrieved candidate (not validated): %s\n' "$path"
   printf 'HTTP %s | Content-Type %s | declared terms %s\n' "$status" "$ctype" "$license"
@@ -104,15 +105,13 @@ case "${1:-}" in
     jq -r '.files[]? | [(.name // ""), ((.size // 0)|tostring), (.url // "")] | @tsv' "$path"
     ;;
   metadata)
-    fetch_one "aadc-fuel-metadata" \
-      "https://data.aad.gov.au/metadata/records/fulldisplay/SOE_generator_boiler_fuel_usage" \
-      "$cache_root/metadata/aadc-fuel-metadata.html" "public metadata"
-    fetch_one "aadc-electricity-metadata" \
-      "https://data.aad.gov.au/metadata/records/SOE_SFU" \
-      "$cache_root/metadata/aadc-electricity-metadata.html" "public metadata"
-    fetch_one "usgs-larsen-release-landing" \
-      "https://www.usgs.gov/data/usgs-national-and-global-oil-and-gas-assessment-project-larsen-basin-antarctica-assessment" \
-      "$cache_root/metadata/usgs-larsen-release-landing.html" "CC0-1.0-as-declared-by-USGS"
+    cat <<'SOURCES'
+AADC fuel metadata: https://data.aad.gov.au/metadata/records/fulldisplay/SOE_generator_boiler_fuel_usage
+AADC fuel citation instructions: https://data.aad.gov.au/metadata/records/SOE_generator_boiler_fuel_usage/citation
+AADC electricity metadata: https://data.aad.gov.au/metadata/records/SOE_SFU
+USGS Larsen release: https://www.usgs.gov/data/usgs-national-and-global-oil-and-gas-assessment-project-larsen-basin-antarctica-assessment
+No HTML landing pages are saved as raw data by this command.
+SOURCES
     ;;
   fetch-aadc-fuel)
     contact_gate
