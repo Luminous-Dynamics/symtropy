@@ -1,0 +1,85 @@
+{
+  "schema_version": "shipyard-benchmark-manifest/v0",
+  "benchmark_id": "tiny-oracle-v0",
+  "title": "Frozen tiny exact oracle conformance",
+  "claim_class": "semantic-correctness",
+  "scope": {
+    "models": [
+      "rectangular-space-time",
+      "unary-resources"
+    ],
+    "supported_constraints": [
+      "half-open integer ticks",
+      "unary resource occupancy"
+    ],
+    "unsupported_constraints": [
+      "irregular polygons",
+      "crane physics"
+    ]
+  },
+  "source": {
+    "kind": "hand-authored",
+    "uri": "fixture://tiny-oracle-v0",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "license_or_access_basis": "authored test fixture"
+  },
+  "protocol": {
+    "hardware_class": "ci-runner-x86_64",
+    "wall_clock_budget_ms": 10000,
+    "candidate_evaluation_budget": 100000,
+    "expected_case_count": 2,
+    "repetitions": 1,
+    "warmup_runs": 0,
+    "random_seed": 20261022,
+    "timeout_policy": "invalidate-run"
+  },
+  "candidate": {
+    "name": "candidate",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "config_sha256": "not-a-digest"
+  },
+  "baselines": [
+    {
+      "name": "caller-order",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "config_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  ],
+  "oracle": {
+    "kind": "exact-enumeration",
+    "implementation_id": "hand-authored-cell-set-v0",
+    "revision": "fixture-v0",
+    "source_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "limitations": [
+      "tiny finite domain only"
+    ]
+  },
+  "metrics": [
+    "false_feasible_count",
+    "false_infeasible_count",
+    "runtime_ms"
+  ],
+  "metric_definitions": [
+    {
+      "name": "false_feasible_count",
+      "unit": "cases",
+      "definition": "Candidates declared feasible when exact reference says infeasible",
+      "aggregation": "count",
+      "direction": "minimize"
+    },
+    {
+      "name": "false_infeasible_count",
+      "unit": "cases",
+      "definition": "Candidates declared infeasible when exact reference says feasible",
+      "aggregation": "count",
+      "direction": "minimize"
+    },
+    {
+      "name": "runtime_ms",
+      "unit": "ms",
+      "definition": "Wall-clock optimizer time excluding verifier and report serialization",
+      "aggregation": "median",
+      "direction": "minimize"
+    }
+  ]
+}
