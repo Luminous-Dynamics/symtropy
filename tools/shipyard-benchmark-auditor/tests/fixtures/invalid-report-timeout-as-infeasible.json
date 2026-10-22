@@ -12,15 +12,16 @@
   "case_results": [
     {
       "case_id": "layout-001",
-      "outcome": "timeout",
+      "outcome": "verified-infeasible",
       "reference_outcome": "feasible",
       "runtime_ms": 2.5,
       "verifier": {
-        "status": "not-run",
+        "status": "not-applicable",
         "oracle_outcome": "match",
         "violation_count": 0,
         "oracle_id": "tiny-cell-set-v0"
-      }
+      },
+      "notes": "Test corruption: producer timed out but serialized verified-infeasible."
     },
     {
       "case_id": "layout-002",
@@ -38,7 +39,7 @@
   "summary": {
     "case_count": 2,
     "verified_feasible_count": 0,
-    "verified_infeasible_count": 1,
+    "verified_infeasible_count": 2,
     "unknown_count": 0,
     "timeout_count": 0,
     "not_run_count": 0,
