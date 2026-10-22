@@ -2759,6 +2759,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "p-a".to_owned(),
                     occupied_until_tick: 12,
+                    evidence: None,
                 }],
                 ..no_spatial_disruption(4)
             },
