@@ -540,7 +540,7 @@ pub fn evaluate_joint_recovery(input: &JointRecoveryInput) -> JointRecoveryRepor
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shipyard_space_time::{Rect, Scenario, TimeRange};
+    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange};
     use crate::Disruption;
 
     fn reservation(
@@ -670,13 +670,47 @@ mod tests {
 
     #[test]
     fn joint_acceptance_requires_both_spatial_and_resource_feasibility() {
+        let spatial_yard = Rect {
+            min_x: 0,
+            min_y: 0,
+            max_x: 10,
+            max_y: 10,
+        };
         let spatial = RecoveryInput {
             baseline: Scenario {
-                yard_bounds: Some(Rect { min_x: 0, min_y: 0, max_x: 10, max_y: 10 }),
+                yard_bounds: Some(spatial_yard),
+                placements: vec![Placement {
+                    reservation_id: "p-a".to_owned(),
+                    block_id: "block-a".to_owned(),
+                    footprint: Footprint::AxisAlignedRect(Rect {
+                        min_x: 0,
+                        min_y: 0,
+                        max_x: 2,
+                        max_y: 2,
+                    }),
+                    occupied: TimeRange {
+                        start_tick: 0,
+                        end_tick: 10,
+                    },
+                }],
                 ..Scenario::default()
             },
             candidate: Scenario {
-                yard_bounds: Some(Rect { min_x: 0, min_y: 0, max_x: 10, max_y: 10 }),
+                yard_bounds: Some(spatial_yard),
+                placements: vec![Placement {
+                    reservation_id: "p-a".to_owned(),
+                    block_id: "block-a".to_owned(),
+                    footprint: Footprint::AxisAlignedRect(Rect {
+                        min_x: 0,
+                        min_y: 0,
+                        max_x: 2,
+                        max_y: 2,
+                    }),
+                    occupied: TimeRange {
+                        start_tick: 0,
+                        end_tick: 10,
+                    },
+                }],
                 ..Scenario::default()
             },
             disruption: Disruption {
