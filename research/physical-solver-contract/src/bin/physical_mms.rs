@@ -43,7 +43,14 @@ fn run() -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: physical-mms generate --cells N --deck PATH --model-manifest PATH --source-sha SHA40 --checkout-sha SHA40 --tool-sha SHA64\n       physical-mms audit --cells N --deck PATH --dat PATH --model-manifest PATH --build-manifest PATH --solver PATH --auditor PATH --process-log PATH --run-manifest PATH --report PATH".to_owned()
+    concat!(
+        "usage: physical-mms generate --cells N --deck PATH --model-manifest PATH\n",
+        "  required: --source-sha SHA40 --checkout-sha SHA40 --tool-sha SHA64\n",
+        "       physical-mms audit --cells N --deck PATH --dat PATH --model-manifest PATH\n",
+        "  required: --build-manifest PATH --solver PATH --auditor PATH --process-log PATH\n",
+        "            --run-manifest PATH --report PATH"
+    )
+    .to_owned()
 }
 
 fn parse_options(args: &[String]) -> Result<BTreeMap<String, String>, String> {
@@ -340,7 +347,10 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         ("builder_repository_commit", "b7977a4e90b40fd28fa149fc69f1647661d10f56"),
         ("ccx_source_sha256", "3a94dcc775a31f570229734b341d6b06301ebdc759863df901c8b9bf1854c0bc"),
         ("spooles_sha256", "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"),
-        ("container_image", "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"),
+        (
+            "container_image",
+            "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30",
+        ),
     ] {
         require_equal_string(&build_manifest, key, expected, "build manifest")?;
     }
