@@ -74,28 +74,74 @@ fn main() -> Result<(), String> {
         }
     }
 
-    let mesh8 = &levels[0].1;
-    let nodal8: Vec<Vec2> = mesh8
-        .nodes
-        .iter()
-        .map(|node| problem.displacement(node.x, node.y))
-        .collect();
-    let error32 = mesh8
-        .compute_error_norms(problem, &nodal8, 32)
-        .map_err(|error| format!("32-point error integration: {error:?}"))?;
-    let error48 = mesh8
-        .compute_error_norms(problem, &nodal8, 48)
-        .map_err(|error| format!("48-point error integration: {error:?}"))?;
-    let l2_quadrature_difference = relative_difference(
-        error32.displacement_l2_relative,
-        error48.displacement_l2_relative,
-    );
-    let energy_quadrature_difference = relative_difference(
-        error32.energy_error_relative,
-        error48.energy_error_relative,
-    );
-    let quadrature_pass =
-        l2_quadrature_difference <= 1.0e-10 && energy_quadrature_difference <= 1.0e-10;
+    let mut quadrature_checks: Vec<(usize, f64, f64, f64, f64, f64, f64, bool, bool)> =
+        Vec::with_capacity(levels.len());
+    for (n, mesh, _) in &levels {
+        let loads_32 = mesh
+            .assemble_body_force(problem, 32)
+            .map_err(|error| format!("32-point load assembly at n={n}: {error:?}"))?;
+        let loads_48 = mesh
+            .assemble_body_force(problem, 48)
+            .map_err(|error| format!("48-point load assembly at n={n}: {error:?}"))?;
+        let load_difference = ccx_mms_p1_mesh::relative_load_difference(&loads_32, &loads_48)
+            .map_err(|error| format!("load quadrature comparison at n={n}: {error:?}"))?;
+        let load_resultant = Mesh::resultant(&loads_48)
+            .map_err(|error| format!("load resultant at n={n}: {error:?}"))?;
+        let exact_resultant = problem.integrated_body_force();
+        let x_resultant_residual = (load_resultant.x - exact_resultant.x).abs()
+            / exact_resultant.x.abs().max(1.0);
+        let y_load_scale = loads_48
+            .iter()
+            .map(|load| load.y.abs())
+            .sum::<f64>()
+            .max(1.0);
+        let y_resultant_residual = load_resultant.y.abs() / y_load_scale;
+        let load_quadrature_pass = load_difference <= 1.0e-12
+            && x_resultant_residual <= 1.0e-10
+            && y_resultant_residual <= 1.0e-10;
+
+        let exact_nodal: Vec<Vec2> = mesh
+            .nodes
+            .iter()
+            .map(|node| problem.displacement(node.x, node.y))
+            .collect();
+        let errors_32 = mesh
+            .compute_error_norms(problem, &exact_nodal, 32)
+            .map_err(|error| format!("32-point error integration at n={n}: {error:?}"))?;
+        let errors_48 = mesh
+            .compute_error_norms(problem, &exact_nodal, 48)
+            .map_err(|error| format!("48-point error integration at n={n}: {error:?}"))?;
+        let l2_difference = relative_difference(
+            errors_32.displacement_l2_relative,
+            errors_48.displacement_l2_relative,
+        );
+        let energy_difference = relative_difference(
+            errors_32.energy_error_relative,
+            errors_48.energy_error_relative,
+        );
+        let stress_difference = relative_difference(
+            errors_32.stress_l2_relative,
+            errors_48.stress_l2_relative,
+        );
+        let error_quadrature_pass = l2_difference <= 1.0e-10
+            && energy_difference <= 1.0e-10
+            && stress_difference <= 1.0e-10;
+
+        quadrature_checks.push((
+            *n,
+            load_difference,
+            x_resultant_residual,
+            y_resultant_residual,
+            l2_difference,
+            energy_difference,
+            stress_difference,
+            load_quadrature_pass,
+            error_quadrature_pass,
+        ));
+    }
+    let load_quadrature_pass = quadrature_checks.iter().all(|checks| checks.7);
+    let error_quadrature_pass = quadrature_checks.iter().all(|checks| checks.8);
+    let quadrature_pass = load_quadrature_pass && error_quadrature_pass;
     let calibration_pass = positive_finite_errors && strict_decrease && final_orders_pass && quadrature_pass;
 
     println!("{{");
@@ -137,23 +183,39 @@ fn main() -> Result<(), String> {
         );
     }
     println!("  ],");
-    println!("  \"quadrature_cross_check_n8\": {{");
-    println!("    \"orders\": [32, 48],");
-    println!(
-        "    \"relative_displacement_l2_difference\": {:.17e},",
-        l2_quadrature_difference
-    );
-    println!(
-        "    \"relative_energy_error_difference\": {:.17e},",
-        energy_quadrature_difference
-    );
-    println!("    \"pass\": {}", quadrature_pass);
-    println!("  }},");
+    println!("  \"quadrature_cross_checks\": [");
+    for (index, checks) in quadrature_checks.iter().enumerate() {
+        println!(
+            concat!(
+                "    {{\"cells_per_side\": {}, ",
+                "\"relative_load_vector_difference_32_vs_48\": {:.17e}, ",
+                "\"normalized_x_resultant_residual\": {:.17e}, ",
+                "\"normalized_y_resultant_residual\": {:.17e}, ",
+                "\"relative_displacement_l2_difference_32_vs_48\": {:.17e}, ",
+                "\"relative_energy_error_difference_32_vs_48\": {:.17e}, ",
+                "\"relative_stress_l2_difference_32_vs_48\": {:.17e}, ",
+                "\"load_quadrature_pass\": {}, ",
+                "\"error_quadrature_pass\": {}}}{}"
+            ),
+            checks.0,
+            checks.1,
+            checks.2,
+            checks.3,
+            checks.4,
+            checks.5,
+            checks.6,
+            checks.7,
+            checks.8,
+            if index + 1 < quadrature_checks.len() { "," } else { "" }
+        );
+    }
+    println!("  ],");
     println!("  \"gates\": {{");
     println!("    \"positive_finite_error_norms\": {},", positive_finite_errors);
     println!("    \"strict_l2_and_energy_decrease\": {},", strict_decrease);
     println!("    \"last_two_order_intervals_pass\": {},", final_orders_pass);
-    println!("    \"quadrature_independence_pass\": {}", quadrature_pass);
+    println!("    \"load_quadrature_independence_pass\": {},", load_quadrature_pass);
+    println!("    \"error_norm_quadrature_independence_pass\": {}", error_quadrature_pass);
     println!("  }},");
     println!("  \"postprocessor_calibration_pass\": {calibration_pass}");
     println!("}}");
