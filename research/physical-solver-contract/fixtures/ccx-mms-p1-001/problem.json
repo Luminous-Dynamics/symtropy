@@ -47,7 +47,8 @@
     "independent_check_points_per_axis": 48,
     "mapping": "duffy_transform",
     "max_relative_global_load_vector_difference": 1e-12,
-    "max_relative_primary_error_norm_difference": 1e-10
+    "max_relative_primary_error_norm_difference": 1e-10,
+    "check_every_mesh_resolution": true
   },
   "primary_metrics": {
     "displacement_l2_relative_order_range": [
@@ -139,6 +140,7 @@
       "boundary_load_comment_prefix": "** BOUNDARY_LOAD, node_id, fx, fy",
       "corrected_support_reaction": "solver_reported_RF - omitted_boundary_equivalent_load",
       "qualification_requires_real_solver_RF_sign_semantics_check": true
-    }
+    },
+    "protocol_version": "0.3.0"
   }
 }
