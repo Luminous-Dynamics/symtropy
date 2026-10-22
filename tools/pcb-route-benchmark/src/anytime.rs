@@ -70,6 +70,7 @@ pub struct CheckpointMetadata {
     /// Must agree with the method pin on the containing incumbent archive.
     pub method_id: String,
     pub router_config_sha256: String,
+    pub environment: crate::EnvironmentPin,
     pub required_nets: u32,
     pub connected_nets: u32,
     pub dangling_track_count: u32,
@@ -395,6 +396,9 @@ impl VerifiedIncumbentArchive {
         {
             return Err("checkpoint router method/configuration differs from incumbent archive method pin".into());
         }
+        if evaluation.checkpoint.environment != self.identity.environment {
+            return Err("checkpoint execution environment differs from incumbent archive environment pin".into());
+        }
         if self.candidates.iter().any(|candidate| {
             candidate.checkpoint.checkpoint_id == evaluation.checkpoint.checkpoint_id
         }) {
@@ -594,6 +598,27 @@ mod tests {
       }]
     }"#;
 
+    fn test_environment_pin() -> crate::EnvironmentPin {
+        crate::EnvironmentPin {
+            os: "linux".into(),
+            architecture: "x86_64".into(),
+            cpu_model: "synthetic-test-cpu".into(),
+            logical_cores: 2,
+            memory_bytes: 4_000_000_000,
+        }
+    }
+
+    fn test_router_pin() -> crate::RouterPin {
+        crate::RouterPin {
+            method_id: "synthetic-router".into(),
+            family: "rule_based".into(),
+            version: "test-v0.1".into(),
+            source_commit_sha: Some("a".repeat(40)),
+            binary_sha256: None,
+            config_sha256: "2".repeat(64),
+        }
+    }
+
     fn metadata(id: &str, elapsed_ms: u64, wirelength_mm: f64, via_count: u32) -> CheckpointMetadata {
         CheckpointMetadata {
             checkpoint_id: id.to_string(),
@@ -602,6 +627,7 @@ mod tests {
             dataset_manifest_sha256: sha256_hex(MANIFEST.as_bytes()),
             method_id: "synthetic-router".to_string(),
             router_config_sha256: "2".repeat(64),
+            environment: test_environment_pin(),
             required_nets: 2,
             connected_nets: 2,
             dangling_track_count: 0,
@@ -677,21 +703,8 @@ mod tests {
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into(),
-            router: crate::RouterPin {
-                method_id: "synthetic-router".into(),
-                family: "rule_based".into(),
-                version: "test-v0.1".into(),
-                source_commit_sha: Some("a".repeat(40)),
-                binary_sha256: None,
-                config_sha256: "2".repeat(64),
-            },
-            environment: crate::EnvironmentPin {
-                os: "linux".into(),
-                architecture: "x86_64".into(),
-                cpu_model: "synthetic-test-cpu".into(),
-                logical_cores: 2,
-                memory_bytes: 4_000_000_000,
-            },
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(first).unwrap();
@@ -714,21 +727,8 @@ mod tests {
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into(),
-            router: crate::RouterPin {
-                method_id: "synthetic-router".into(),
-                family: "rule_based".into(),
-                version: "test-v0.1".into(),
-                source_commit_sha: Some("a".repeat(40)),
-                binary_sha256: None,
-                config_sha256: "2".repeat(64),
-            },
-            environment: crate::EnvironmentPin {
-                os: "linux".into(),
-                architecture: "x86_64".into(),
-                cpu_model: "synthetic-test-cpu".into(),
-                logical_cores: 2,
-                memory_bytes: 4_000_000_000,
-            },
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(clean_candidate("low-wire-more-vias", 100_000, 30.0, 4)).unwrap();
@@ -869,21 +869,8 @@ mod tests {
             dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into(),
-            router: crate::RouterPin {
-                method_id: "synthetic-router".into(),
-                family: "rule_based".into(),
-                version: "test-v0.1".into(),
-                source_commit_sha: Some("a".repeat(40)),
-                binary_sha256: None,
-                config_sha256: "2".repeat(64),
-            },
-            environment: crate::EnvironmentPin {
-                os: "linux".into(),
-                architecture: "x86_64".into(),
-                cpu_model: "synthetic-test-cpu".into(),
-                logical_cores: 2,
-                memory_bytes: 4_000_000_000,
-            },
+            router: test_router_pin(),
+            environment: test_environment_pin(),
         };
         let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
         archive.record(clean_candidate("one", 100_000, 20.0, 1)).unwrap();
