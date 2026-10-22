@@ -102,15 +102,15 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     }
 
     let refs = corpus.get("research_references").and_then(Value::as_array);
+    let mut seen_reference_ids = BTreeSet::new();
     if refs.map_or(true, |items| items.len() < 3) {
         report.fail("RESEARCH_REFERENCES", "at least three research references are required");
     } else {
-        let mut seen = BTreeSet::new();
         for (index, item) in refs.iter().flat_map(|items| items.iter()).enumerate() {
             let rid = nonempty_string(item, "reference_id");
             if rid.is_none() {
                 report.fail("REFERENCE_ID", format!("reference index {index} has no ID"));
-            } else if !seen.insert(rid.clone().unwrap_or_default()) {
+            } else if !seen_reference_ids.insert(rid.clone().unwrap_or_default()) {
                 report.fail("DUPLICATE_REFERENCE", format!("duplicate reference ID at index {index}"));
             }
             for field in ["title", "url", "published_or_reviewed", "use", "limitation"] {
@@ -121,6 +121,17 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
             if object_string(item, "url").map_or(true, |u| !u.starts_with("https://")) {
                 report.fail("REFERENCE_URL", format!("reference index {index} must use HTTPS"));
             }
+        }
+    }
+
+    for required_ref in [
+        "scale-glass-active-learning-2026",
+        "scale-glass-zenodo-data-2026",
+        "glass-futures-ai-glass-2026",
+        "silicon-purification-route-review-2026",
+    ] {
+        if !seen_reference_ids.contains(required_ref) {
+            report.fail("RESEARCH_BASELINE_MISSING", format!("missing required source record {required_ref}"));
         }
     }
 
@@ -136,6 +147,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     let mut valid_silicon = false;
     let mut scenario_fragility = false;
     let mut artifact_manifest_control = false;
+    let mut calibration_bias_control = false;
     let mut valid_count = 0usize;
     let mut negative_count = 0usize;
     let mut hold_count = 0usize;
@@ -213,6 +225,14 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         {
             artifact_manifest_control = true;
         }
+
+        if case_id.as_deref() == Some("high-r2-unseen-bias-no-calibration")
+            && case_type == "hold_control"
+            && fault_str == Some("uncalibrated_model_bias_hidden")
+            && expected == "abstain"
+        {
+            calibration_bias_control = true;
+        }
     }
 
     if valid_count == 0 || !valid_glass || !valid_silicon {
@@ -229,6 +249,9 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     }
     if !artifact_manifest_control {
         report.fail("ARTIFACT_MANIFEST_CONTROL", "missing unversioned-reference-artifacts negative control");
+    }
+    if !calibration_bias_control {
+        report.fail("CALIBRATION_BIAS_CONTROL", "missing high-R2/unseen-bias abstention control");
     }
 
     report.finish();
@@ -515,5 +538,26 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_MANIFEST_CONTROL:")));
+    }
+
+
+    #[test]
+    fn corpus_missing_calibration_bias_control_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"].as_array_mut().unwrap().retain(|case| case["case_id"].as_str() != Some("high-r2-unseen-bias-no-calibration"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CALIBRATION_BIAS_CONTROL:")));
+    }
+
+    #[test]
+    fn corpus_missing_sota_reference_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["research_references"].as_array_mut().unwrap().retain(|reference| reference["reference_id"].as_str() != Some("scale-glass-active-learning-2026"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("RESEARCH_BASELINE_MISSING:")));
     }
 }
