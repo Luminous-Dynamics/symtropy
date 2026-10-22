@@ -1,0 +1,80 @@
+name: Landscape SETS Dependency Graph
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/landscape-dependency-graph/**"
+      - "fixtures/landscape/dependency-graph-v0/**"
+      - "schemas/landscape-dependency-graph-*.schema.json"
+      - "docs/LANDSCAPE_DEPENDENCY_SEMANTICS_V0.json"
+      - "docs/LANDSCAPE_SETS_DEPENDENCY_GRAPH_V0_1.md"
+      - ".github/workflows/landscape-dependency-graph.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/landscape-dependency-graph/**"
+      - "fixtures/landscape/dependency-graph-v0/**"
+      - "schemas/landscape-dependency-graph-*.schema.json"
+      - "docs/LANDSCAPE_DEPENDENCY_SEMANTICS_V0.json"
+      - "docs/LANDSCAPE_SETS_DEPENDENCY_GRAPH_V0_1.md"
+      - ".github/workflows/landscape-dependency-graph.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-graph:
+    name: Exact-head synthetic SETS dependency and cascade oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+      - name: Validate JSON syntax
+        run: |
+          jq empty docs/LANDSCAPE_DEPENDENCY_SEMANTICS_V0.json
+          jq empty schemas/landscape-dependency-graph-fixture-v0.1.schema.json
+          jq empty schemas/landscape-dependency-graph-report-v0.1.schema.json
+          jq empty fixtures/landscape/dependency-graph-v0/fixture.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/landscape-dependency-graph/Cargo.toml -- --check
+      - name: Run tests with locked dependencies
+        run: cargo test --locked --manifest-path tools/landscape-dependency-graph/Cargo.toml
+      - name: Check exact-head graph report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="fixtures/landscape/dependency-graph-v0/fixture.json"
+          semantics="docs/LANDSCAPE_DEPENDENCY_SEMANTICS_V0.json"
+          report="$RUNNER_TEMP/landscape-dependency-graph.json"
+          input_digest="$(sha256sum "$fixture" | cut -d ' ' -f 1)"
+          semantics_digest="$(sha256sum "$semantics" | cut -d ' ' -f 1)"
+          cargo run --locked --manifest-path tools/landscape-dependency-graph/Cargo.toml -- "$PWD/$fixture" "$PWD/$semantics" > "$report"
+          jq -e --arg input "$input_digest" --arg semantics "$semantics_digest" '
+            .schema_version == "symtropy.landscape_dependency_graph_report.v0.1" and
+            .suite_id == "LANDSCAPE-SETS-DEPENDENCY-GRAPH-V0.1" and
+            .conformance_status == "PASS_SYNTHETIC_DEPENDENCY_CONFORMANCE_ONLY" and
+            .data_origin == "synthetic_fixture" and
+            .claim_ceiling == "STRUCTURAL_DEPENDENCY_ANALYSIS_ONLY" and
+            .input_sha256 == $input and
+            .dependency_semantics_sha256 == $semantics and
+            .node_count == 11 and
+            .dependency_count == 11 and
+            .scenario_count == 6 and
+            .service_count == 3 and
+            .cross_layer_dependency_count == 8 and
+            (.scenarios[] | select(.scenario_id == "baseline") | .supported_service_count == 3 and .service_availability_fraction == 1) and
+            (.scenarios[] | select(.scenario_id == "drought") | .supported_service_count == 2 and .unsupported_service_ids == ["tree_ecology_service"] and .cascade_amplification == 1) and
+            (.scenarios[] | select(.scenario_id == "maintenance_shock") | .supported_service_count == 1 and .unsupported_service_ids == ["stormwater_service", "tree_ecology_service"] and .cascade_amplification == 2) and
+            (.scenarios[] | select(.scenario_id == "access_disruption") | .supported_service_count == 2 and .unsupported_service_ids == ["heat_refuge_service"]) and
+            (.scenarios[] | select(.scenario_id == "irrigation_link_outage") | .supported_service_count == 2 and .unsupported_service_ids == ["tree_ecology_service"]) and
+            (.scenarios[] | select(.scenario_id == "compound_failure") | .supported_service_count == 0 and .unsupported_service_count == 3)
+          ' "$report"
