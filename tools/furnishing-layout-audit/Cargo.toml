@@ -23,3 +23,8 @@ harness = false
 name = "alternative_frontier_scaling"
 path = "benches/alternative_frontier_scaling.rs"
 harness = false
+
+[[bench]]
+name = "resident_preference_probe_scaling"
+path = "benches/resident_preference_probe_scaling.rs"
+harness = false

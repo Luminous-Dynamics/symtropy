@@ -4,6 +4,7 @@
 //! building-code compliance, physical safety, measured-site truth, or usability.
 
 pub mod alternative_frontier;
+pub mod resident_preference_probe;
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
