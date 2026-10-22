@@ -88,6 +88,28 @@ A separate integration test exhaustively enumerates every integer placement for 
 
 These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator models rectangle-zone intersections, exclusive vehicle outages and explicit occupied-until extensions for known placements; it does not infer crane/lift clearance from sensor signals, calculate the physical move, compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
 
+## Paired rescheduling-stability smoke benchmark
+
+The new `tests/rescheduling_stability_benchmark.rs` adds 256 deterministic, matched decision cases to check whether the metrics distinguish four intentionally simple policies under the same disruption: (1) no-op, which must fail; (2) localized spatial repair of the affected block; (3) global spatial translation of every block; and (4) global temporal right-shift of every reservation until the finite closure interval has ended.
+
+The benchmark declares the closure before future work starts, so no policy is allowed to rewrite work already in progress. All accepted candidates go through `evaluate_recovery`; the candidate generators are simple fixture policies, not an optimizer. The test pins these arithmetic known answers:
+
+| Metric across 256 cases | Local repair | Global spatial translation | Global temporal right-shift |
+|---|---:|---:|---:|
+| Placement records in baseline corpus | 1,404 | 1,404 | 1,404 |
+| Changed reservations | 256 | 1,404 | 1,404 |
+| Unaffected-work churn | 0 | 1,148 | 1,148 |
+| Rectangle-edge shift units | 512 | 2,808 | 0 |
+| Start/end time-shift ticks | 0 | 0 | 9,964 |
+
+These are authored expected outputs, **not observed results from a completed Rust run**. The point is to show that a feasible reschedule can still have very different stability costs, without inventing a weight that trades geometric movement against time shifts. The temporal strategy is only feasible here because the declared closure ends at the original schedule-window boundary; this does not claim that real closures always end on time or that localized repair is globally optimal.
+
+### How to turn this into an industry comparison
+
+The current executable is a metric smoke test, not a solver competition. The next benchmark should use published scheduling instances where appropriate, then add provenance-backed shipyard disruption cases. Keep general job-shop instances labelled as adjacent baselines rather than falsely describing them as real shipyard data. Compare no-op, localized repair, right-shift, full reschedule and a reproducible CP-SAT or other licensed solver baseline. Record hard feasibility first, then a Pareto vector of recovery horizon, tardiness, changed reservations, unaffected churn, time/geometry shift, resource utilization, objective gap where an exact bound exists, wall-clock time and replan latency. Publish per-instance outcomes and failure counts—not just averages.
+
+This is also the correct evidence ladder: synthetic evaluator tests; historical production replay and calibration; partial APS/MES integration; then sustained live KPIs. The 2026 shipyard digitalization review explicitly separates these levels and notes the gap between simulation results and operational validation ([review, Journal of Marine Science and Engineering](https://www.mdpi.com/2077-1312/14/4/396)). For adjacent scheduling baselines, JSPLib provides standard job-shop instances and solver comparison data ([JSPLib benchmark archive](https://scheduleopt.github.io/benchmarks/jsplib/)); it is not, by itself, an industrial shipyard benchmark.
+
 ## Finite-resource constraints and joint acceptance
 
 The public `resources` module now provides an independent unary-resource schedule checker for resource IDs representing a workstation, crane, tug, lift team, inspection station or another explicitly named resource. Each reservation has a stable reservation ID, operation ID, resource ID/kind and half-open time interval. The verifier rejects empty resource schedules, overlapping reservations on one unary resource, profile-kind drift, malformed/duplicate IDs, unknown outage targets, resource outages that overlap candidate work, and attempts to rewrite completed or move active work. It measures changed reservations, unaffected resource churn, absolute time shift, makespan and recovery horizon.
