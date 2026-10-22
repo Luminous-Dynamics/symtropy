@@ -19,6 +19,20 @@ A manifest must declare:
 
 Unknown fields, duplicate IDs/paths, absolute paths, parent traversal, backslash-containing paths, symlink components, missing files, directories instead of files, digest mismatches, and byte-length mismatches fail closed. The evaluator never follows a symlink to obtain a “matching” file outside the artifact root.
 
+## Consuming HMR-0 preview outputs
+
+The Symthaea [HMR-0 design PR #8448](https://github.com/Luminous-Dynamics/symthaea/pull/8448) now defines its preview workflow to emit separate manifests for `SEALED_TOTE_GRIPPER` and `PASSIVE_TRAY_DOCK`. Each manifest is generated from the actual STL output's SHA-256 and byte length, and is published alongside its preview file as a short-lived workflow artifact. Those are still concept-preview outputs, not validated manufacturing CAD.
+
+After downloading/extracting one preview artifact bundle into `target/hmr0-tool-envelope-previews`, the artifact-binding verifier can be run against the geometry manifest:
+
+```sh
+cargo run --manifest-path tools/medical-robot-artifact-binding/Cargo.toml -- \
+  target/hmr0-tool-envelope-previews \
+  target/hmr0-tool-envelope-previews/sealed_tote_gripper.manifest.json
+```
+
+This checks that the manifest's relative path resolves to a regular file underneath the root and that the file length and SHA-256 match. A successful result still does not validate the geometry's correctness or suitability.
+
 ## Evidence boundary
 
 A successful receipt establishes only byte identity against a submitted manifest and the exact tested revision of this verifier. It does not establish:
