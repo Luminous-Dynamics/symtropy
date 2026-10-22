@@ -55,7 +55,7 @@ This intentionally avoids inventing a single weighted score. Yard managers can r
 
 ## Tests authored in V0
 
-Twenty-seven core recovery tests cover:
+Twenty-eight core recovery tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -137,6 +137,16 @@ This bridges an important gap between static plan feasibility and industrial eva
 The separate integration test execution_replay_oracle.rs runs 512 deterministic generated traces with three planned operations per case, selectively missing start/completion events, variable start shifts, duration variation, recording latency, and recorded-time cutoffs. Its simple reference recomputes event visibility, missing observations, signed absolute deviation, late starts/finishes and duration overrun from maps and arithmetic independent of the evaluator. The test asserts all 512 cases are valid evidence traces and that summary metrics exactly match the reference. It intentionally does not simulate resource interactions or infer causality between operations; that remains the scope of the resource/precedence and future discrete-event models.
 
 The integration test resource_transfer_binding_oracle.rs exercises 512 generated joint schedules with one spatial transfer and a unary tug reservation. Its reference accepts only when the resource interval fully contains the transfer interval and the resource ID matches the transfer's declared vehicle ID. Frozen targets: 197/512 intervals cover the transfer, 96/512 cases also have the correct tug identity, and the joint evaluator should accept exactly those 96 with zero false-feasible and zero false-infeasible cases. This is a synthetic cross-layer semantic oracle; it does not represent lift physics or yard-scale performance.
+
+## Execution-to-recovery bridge: evidence is not absence
+
+The new execution bridge translates a frozen operation plan, bitemporal execution events, explicit operation-to-placement clearance bindings, and positive occupancy witnesses into a disruption usable by the recovery evaluator. A completion event by itself does not rewrite a lapsed placement's history, and a missing completion event is not treated as proof that the block remains physically present.
+
+When a placement's scheduled interval has elapsed, recovery can extend it only if the planner has a positive, source-referenced observation that the block still occupies that placement at the current decision tick. The bridge emits a receipt containing the witness identity, source, evidence reference, observation/recording ticks, previous interval end and new conservative end. V0 extends to the next discrete tick, after which the loop must observe again or fail closed. A witness arriving after the recorded-time cutoff is not usable for the earlier decision. Contradictory current evidence—a completion and a still-present witness for the same bound placement—also fails closed.
+
+The core recovery type now carries optional occupancy evidence. An extension correcting a placement whose scheduled end is already past is rejected unless that evidence is present, current at the disruption tick and recorded no later than that decision. Ordinary forward extensions before the scheduled end remain available to the existing synthetic scenarios. This avoids a subtle failure mode where a planner could retroactively lengthen completed history with an unsupported assertion, while also allowing a witnessed still-occupied block to continue constraining the next plan.
+
+Seven bridge unit tests cover witnessed next-tick extension and provenance receipt, late-recorded witness holdback, absent-clearance rejection, completion before the known placement end, invalid/duplicate binding controls, contradictory completion-versus-occupancy evidence, and integration with spatial verification where a witnessed occupancy extension blocks a conflicting candidate. These are authored tests pending exact-head CI; the source reference is not treated as cryptographic attestation.
 
 ### Frozen bitemporal replay oracle totals
 
