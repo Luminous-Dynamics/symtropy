@@ -146,8 +146,8 @@ jq -n \
         disposition: "detected"
       }
     ],
-    mutation_count: 2,
-    detected_count: 2,
+    mutation_count: 5,
+    detected_count: 5,
     production_source_unchanged: true,
     claim_ceiling: "pin-joint DOF-map and deterministic assembly sensitivity only; no global modal result or physical validation"
   }' > "$receipt_path"
