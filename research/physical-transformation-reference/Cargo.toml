@@ -37,4 +37,8 @@ path = "src/bin/beam-modal-reference.rs"
 name = "beam-mesh-convergence-reference"
 path = "src/bin/beam-mesh-convergence-reference.rs"
 
+[[bin]]
+name = "beam-mode-tracking-reference"
+path = "src/bin/beam-mode-tracking-reference.rs"
+
 [workspace]
