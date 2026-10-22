@@ -116,6 +116,7 @@ struct Report {
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
     paired_common_cause_control_outage_baseline_comparison: Option<PairedOutageComparison>,
+    structural_robust_intervention_summary: Option<StructuralRobustInterventionSummary>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -206,6 +207,8 @@ struct PairedOutageScenarioComparison {
     intervention_station_id: Option<String>,
     seed_count: usize,
     paired_good_units_per_hour_delta_vs_no_outage: DistributionSummary,
+    paired_intervention_effect_vs_baseline_in_outage_model: Option<DistributionSummary>,
+    paired_intervention_effect_vs_baseline_in_no_outage_model: Option<DistributionSummary>,
     paired_intervention_effect_delta_vs_no_outage: Option<DistributionSummary>,
 }
 
@@ -216,6 +219,41 @@ struct PairedOutageComparison {
     paired_good_units_per_hour_delta_vs_no_outage: DistributionSummary,
     scenario_comparisons: Vec<PairedOutageScenarioComparison>,
     comparison_contract: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StructuralFamilyEffect {
+    family_id: String,
+    mean_incremental_good_units_per_hour: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StructuralInterventionScore {
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    family_effects: Vec<StructuralFamilyEffect>,
+    worst_family_mean_incremental_good_units_per_hour: f64,
+    maximum_regret_units_per_hour: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StructuralFamilyWinner {
+    family_id: String,
+    scenario_id: String,
+    mean_incremental_good_units_per_hour: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct StructuralRobustInterventionSummary {
+    model_family_count: usize,
+    family_probabilities_used: bool,
+    model_families_treated_as_iid_replications: bool,
+    maximin_scenario_id: String,
+    maximin_worst_family_mean_incremental_good_units_per_hour: f64,
+    minimax_regret_scenario_id: String,
+    minimax_regret_upper_bound_units_per_hour: f64,
+    family_winners: Vec<StructuralFamilyWinner>,
+    intervention_scores: Vec<StructuralInterventionScore>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -766,6 +804,10 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         let mut scenario_comparisons = Vec::with_capacity(report.scenario_count);
         for scenario in &report.scenarios {
             let mut scenario_deltas = Vec::with_capacity(report.replication_seeds.len());
+            let mut outage_intervention_effects =
+                Vec::with_capacity(report.replication_seeds.len());
+            let mut nominal_intervention_effects =
+                Vec::with_capacity(report.replication_seeds.len());
             let mut intervention_effect_deltas =
                 Vec::with_capacity(report.replication_seeds.len());
             for seed in &report.replication_seeds {
@@ -807,6 +849,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                         - outage_baseline.good_units_per_hour;
                     let nominal_intervention_effect = nominal_outcome.good_units_per_hour
                         - nominal_baseline.good_units_per_hour;
+                    outage_intervention_effects.push(outage_intervention_effect);
+                    nominal_intervention_effects.push(nominal_intervention_effect);
                     intervention_effect_deltas.push(
                         outage_intervention_effect - nominal_intervention_effect,
                     );
@@ -818,6 +862,16 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 seed_count: scenario_deltas.len(),
                 paired_good_units_per_hour_delta_vs_no_outage:
                     summarize_distribution(&scenario_deltas)?,
+                paired_intervention_effect_vs_baseline_in_outage_model: if outage_intervention_effects.is_empty() {
+                    None
+                } else {
+                    Some(summarize_distribution(&outage_intervention_effects)?)
+                },
+                paired_intervention_effect_vs_baseline_in_no_outage_model: if nominal_intervention_effects.is_empty() {
+                    None
+                } else {
+                    Some(summarize_distribution(&nominal_intervention_effects)?)
+                },
                 paired_intervention_effect_delta_vs_no_outage: if intervention_effect_deltas.is_empty() {
                     None
                 } else {
@@ -825,6 +879,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 },
             });
         }
+        report.structural_robust_intervention_summary = Some(
+            summarize_structural_intervention_decisions(&scenario_comparisons)?,
+        );
         report.paired_common_cause_control_outage_baseline_comparison = Some(
             PairedOutageComparison {
                 baseline_scenario_id: "baseline".into(),
@@ -971,6 +1028,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
         paired_common_cause_control_outage_baseline_comparison: None,
+        structural_robust_intervention_summary: None,
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
