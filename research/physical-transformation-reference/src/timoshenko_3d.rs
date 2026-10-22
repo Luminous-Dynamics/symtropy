@@ -94,8 +94,7 @@ pub fn timoshenko_3d_element(
         ],
     );
 
-    let torsional_stiffness =
-        shear_modulus * parameters.torsional_constant_m4 / length;
+    let torsional_stiffness = shear_modulus * parameters.torsional_constant_m4 / length;
     add_two_dof_block(
         &mut stiffness,
         [3, 9],
