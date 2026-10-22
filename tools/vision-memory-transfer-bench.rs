@@ -43,6 +43,7 @@ impl World {
             Edge::new(2, 3),
             Edge::new(3, 7),
             Edge::new(0, 4),
+            Edge::new(2, 4),
             Edge::new(4, 5),
             Edge::new(5, 3),
             Edge::new(5, 6),
