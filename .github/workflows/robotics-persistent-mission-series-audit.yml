@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: robotics-persistent-mission-series-audit-\${{ github.event.pull_request.number || github.ref }}
+  group: robotics-persistent-mission-series-audit-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pinned Rust toolchain
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/robotics-mission-series-audit/Cargo.toml -- --check
@@ -58,8 +58,8 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          cargo run --quiet --manifest-path tools/robotics-mission-series-audit/Cargo.toml -- \\
-            fixtures/robotics/mission_series_v0_1.json \\
+          cargo run --quiet --manifest-path tools/robotics-mission-series-audit/Cargo.toml -- \
+            fixtures/robotics/mission_series_v0_1.json \
             --source-commit "$source_commit" > mission-series-audit-receipt.json
           jq -e '
             .result == "pass"
