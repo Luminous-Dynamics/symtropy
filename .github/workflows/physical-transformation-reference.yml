@@ -519,6 +519,21 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-chain-modal-sweep-receipt.json
 
+      - name: Verify frozen NAFEMS R0015 FV5 mode-family manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="research/physical-transformation-reference/fixtures/nafems_r0015_fv5_mode_manifest_v0_1.txt"
+          canonical="$(tr -d '\n' < "$fixture")"
+          test "$canonical" = "schema=nafems-r0015-fv5-mode-manifest-v0.1|fixture=PHYS-NAFEMS-R0015-FV5-MODES-001|source=NAFEMS_R0015_FV5_as_reproduced_by_DIANA_and_Altair|frequency_unit=Hz|analysis=undamped_free_vibration|element_count=5|element_nodes=2|E_Pa=200000000000|poisson_ratio=0.3|density_kg_m3=8000|support_A=ux,uy,uz,theta_x_fixed|support_B=uy,uz_fixed|support_B_axial=free|target_family=flexural1,2,42.649|target_family=torsional1,1,77.542|target_family=extensional1,1,125.000|target_family=flexural2,2,148.310|target_family=torsional2,1,233.100|target_family=flexural3,2,284.550|diana_family_results_hz=42.626,70.768,125.000,148.580,212.520,288.750|raw_fv5_fem_status=public_link_404_not_ingested|section_geometry_status=unresolved_primary_source|element_theory_status=unresolved_primary_source|mass_rotary_inertia_status=unresolved_primary_source|claim_ceiling=manifest_only_not_FV5_pass_or_physical_validation"
+          request_sha256="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "14e9a39f6748ff921c91f7fbc8df3785563f12a7a90d44c7ef93b4eb2700b1ab"
+          grep -Fq 'raw_fv5_fem_status=public_link_404_not_ingested' "$fixture"
+          grep -Fq 'section_geometry_status=unresolved_primary_source' "$fixture"
+          grep -Fq 'element_theory_status=unresolved_primary_source' "$fixture"
+          grep -Fq 'mass_rotary_inertia_status=unresolved_primary_source' "$fixture"
+          printf 'PASS frozen FV5 reference manifest; full numerical FV5 run remains unqualified\n'
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -533,6 +548,7 @@ jobs:
             nafems-nbc05-modal-reference-receipt.json
             nafems-nbc05-mutation-receipt.json
             beam-element-mutation-receipt.json
+            research/physical-transformation-reference/fixtures/nafems_r0015_fv5_mode_manifest_v0_1.txt
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
