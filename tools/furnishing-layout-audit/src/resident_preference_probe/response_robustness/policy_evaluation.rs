@@ -205,7 +205,7 @@ fn choose_next_question(
             available_questions
                 .iter()
                 .min_by_key(|question| question.question_id.as_str())
-                .map(|question| (*question).clone())
+                .map(|question| (**question).clone())
                 .ok_or_else(|| PolicyEvaluationError::NoReachableAnswer {
                     question_id: "<none>".to_owned(),
                 })
