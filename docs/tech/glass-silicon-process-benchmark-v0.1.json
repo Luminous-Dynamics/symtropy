@@ -10,7 +10,8 @@
     "Synthetic values and labels must never be promoted to measured production evidence.",
     "A valid software contract outcome is not a physical-process pass.",
     "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient.",
-    "High cross-validation fit does not qualify a model with unbounded external signed bias or absent calibration evidence."
+    "High cross-validation fit does not qualify a model with unbounded external signed bias or absent calibration evidence.",
+    "The validator must accept the required glass and MG-Si valid controls; reject-all is not a passing policy."
   ],
   "research_references": [
     {
@@ -348,20 +349,21 @@
       "claim_ceiling": "Tests hard-constraint precedence only."
     },
     {
-      "case_id": "valid-control-required",
-      "route": "evidence_contract",
+      "case_id": "uncertainty-coverage-not-declared",
+      "route": "cross_route",
       "case_type": "hold_control",
       "expected_disposition": "abstain",
-      "fault_class": "incomplete_or_failed_balance",
+      "fault_class": "uncalibrated_model_bias_hidden",
       "synthetic_only": true,
       "evidence_status": "synthetic_test",
       "required_evidence": [
-        "at_least_one_valid_glass_control",
-        "at_least_one_valid_silicon_control",
-        "all_negative_controls_rejected"
+        "predictive_uncertainty",
+        "held_out_residuals",
+        "declared_coverage_target",
+        "measurement_repeatability"
       ],
-      "purpose": "Suite-level meta-check: the benchmark must not pass if the verifier rejects every candidate.",
-      "claim_ceiling": "Tests benchmark-policy completeness only; it is not a physical case."
+      "purpose": "Abstain when a process candidate lacks uncertainty or residual coverage evidence needed for its proposed decision use.",
+      "claim_ceiling": "Tests uncertainty-evidence abstention only; it does not evaluate any numerical process model."
     },
     {
       "case_id": "single-scenario-cost-winner",
