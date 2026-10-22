@@ -599,12 +599,15 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
     } else if field(&report,"run_metadata").is_none() { errors.push("$report.run_metadata: missing required field".to_owned()); }
 
     let mut ids=BTreeSet::new();
-    let mut feasible=0usize;
-    let mut infeasible=0usize;
+    let mut feasible_claims=0usize;
+    let mut infeasibility_proofs=0usize;
+    let mut no_solution=0usize;
     let mut unknown=0usize;
     let mut timeouts=0usize;
     let mut invalid_outputs=0usize;
     let mut not_run=0usize;
+    let mut feasible_reference_cases_found=0usize;
+    let mut feasible_reference_cases_missed=0usize;
     let mut false_feasible=0usize;
     let mut false_infeasible=0usize;
     let cases=expect_array(field(&report,"case_results"),"$report.case_results",&mut errors);
@@ -635,13 +638,14 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                     } else { errors.push(format!("{}.metrics: expected object",path)); }
                 }
                 let outcome=if let Some(v)=field(case,"outcome") {
-                    check_enum(v,&["verified-feasible","verified-infeasible","unknown","timeout","invalid-output","not-run"],&format!("{}.outcome",path),&mut errors)
+                    check_enum(v,&["feasible-claim","infeasibility-proof","no-solution","unknown","timeout","invalid-output","not-run"],&format!("{}.outcome",path),&mut errors)
                 } else {
                     errors.push(format!("{}.outcome: missing required field",path)); None
                 };
                 match outcome.as_deref() {
-                    Some("verified-feasible")=>feasible+=1,
-                    Some("verified-infeasible")=>infeasible+=1,
+                    Some("feasible-claim")=>feasible_claims+=1,
+                    Some("infeasibility-proof")=>infeasibility_proofs+=1,
+                    Some("no-solution")=>no_solution+=1,
                     Some("unknown")=>unknown+=1,
                     Some("timeout")=>timeouts+=1,
                     Some("invalid-output")=>invalid_outputs+=1,
@@ -662,22 +666,22 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                         let reference_label=reference.as_deref();
                         let oracle_label=oracle_outcome.as_deref();
                         let expected_status=match (s,reference_label,oracle_label) {
-                            ("verified-feasible",Some("feasible"),Some("match")) => Some("passed"),
-                            ("verified-infeasible",Some("infeasible"),Some("match")) => Some("passed"),
-                            ("verified-feasible",Some("infeasible"),Some("mismatch")) => Some("failed"),
-                            ("verified-infeasible",Some("feasible"),Some("mismatch")) => Some("failed"),
-                            ("verified-feasible",Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable")) => Some("passed"),
-                            ("unknown"|"timeout"|"invalid-output"|"not-run",_,_) => None,
+                            ("feasible-claim",Some("feasible"),Some("match")) => Some("passed"),
+                            ("infeasibility-proof",Some("infeasible"),Some("match")) => Some("passed"),
+                            ("feasible-claim",Some("infeasible"),Some("mismatch")) => Some("failed"),
+                            ("infeasibility-proof",Some("feasible"),Some("mismatch")) => Some("failed"),
+                            ("feasible-claim",Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable")) => Some("passed"),
+                            ("no-solution"|"unknown"|"timeout"|"invalid-output"|"not-run",_,_) => None,
                             _ => None,
                         };
                         if let Some(expected)=expected_status {
                             if status.as_deref()!=Some(expected) {
                                 errors.push(format!("{}.verifier.status: expected '{}' for the recorded candidate/reference outcome",path,expected));
                             }
-                        } else if matches!(s,"unknown"|"timeout"|"invalid-output"|"not-run") && status.as_deref()==Some("passed") {
+                        } else if matches!(s,"no-solution"|"unknown"|"timeout"|"invalid-output"|"not-run") && status.as_deref()==Some("passed") {
                             errors.push(format!("{}.verifier.status: outcome '{}' is inconsistent with passed classification",path,s));
                         }
-                        if s=="verified-infeasible" {
+                        if s=="infeasibility-proof" {
                             let oracle_proves_infeasible = reference_label==Some("infeasible") && oracle_label==Some("match");
                             let explicitly_measured_false_infeasible = reference_label==Some("feasible") && oracle_label==Some("mismatch");
                             if !oracle_proves_infeasible && !explicitly_measured_false_infeasible {
@@ -685,25 +689,32 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                             }
                         }
                     }
-                    match (outcome.as_deref(),reference.as_deref()) {
-                        (Some("verified-feasible"),Some("infeasible"))=>false_feasible+=1,
-                        (Some("verified-infeasible"),Some("feasible"))=>false_infeasible+=1,
+                    match (outcome.as_deref(),reference.as_deref(),oracle_outcome.as_deref()) {
+                        (Some("feasible-claim"),Some("infeasible"),Some("mismatch"))=>false_feasible+=1,
+                        (Some("infeasibility-proof"),Some("feasible"),Some("mismatch"))=>false_infeasible+=1,
                         _=>{}
                     }
+                    if reference.as_deref()==Some("feasible") {
+                        if outcome.as_deref()==Some("feasible-claim") && oracle_outcome.as_deref()==Some("match") {
+                            feasible_reference_cases_found+=1;
+                        } else {
+                            feasible_reference_cases_missed+=1;
+                        }
+                    }
                     match (outcome.as_deref(),reference.as_deref(),oracle_outcome.as_deref()) {
-                        (Some("verified-feasible"),Some("feasible"),Some("match"))=>{},
-                        (Some("verified-infeasible"),Some("infeasible"),Some("match"))=>{},
-                        (Some("verified-feasible"),Some("infeasible"),Some("mismatch"))=>{},
-                        (Some("verified-infeasible"),Some("feasible"),Some("mismatch"))=>{},
-                        (Some("unknown"|"timeout"|"invalid-output"|"not-run"),_,Some("unknown"|"not-applicable"))=>{},
-                        (Some("verified-feasible"|"verified-infeasible"),Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable"))=>{},
+                        (Some("feasible-claim"),Some("feasible"),Some("match"))=>{},
+                        (Some("infeasibility-proof"),Some("infeasible"),Some("match"))=>{},
+                        (Some("feasible-claim"),Some("infeasible"),Some("mismatch"))=>{},
+                        (Some("infeasibility-proof"),Some("feasible"),Some("mismatch"))=>{},
+                        (Some("no-solution"|"unknown"|"timeout"|"invalid-output"|"not-run"),_,Some("unknown"|"not-applicable"))=>{},
+                        (Some("feasible-claim"|"infeasibility-proof"),Some("unknown"|"not-applicable"),Some("unknown"|"not-applicable"))=>{},
                         (_,Some("feasible"|"infeasible"),Some("unknown"|"not-applicable"))=>{
                             errors.push(format!("{}.verifier.oracle_outcome: known reference outcome requires match or mismatch for a classified result",path));
                         },
-                        (Some("verified-feasible"),Some("feasible"),Some("mismatch"))|
-                        (Some("verified-infeasible"),Some("infeasible"),Some("mismatch"))|
-                        (Some("verified-feasible"),Some("infeasible"),Some("match"))|
-                        (Some("verified-infeasible"),Some("feasible"),Some("match"))=>{
+                        (Some("feasible-claim"),Some("feasible"),Some("mismatch"))|
+                        (Some("infeasibility-proof"),Some("infeasible"),Some("mismatch"))|
+                        (Some("feasible-claim"),Some("infeasible"),Some("match"))|
+                        (Some("infeasibility-proof"),Some("feasible"),Some("match"))=>{
                             errors.push(format!("{}.verifier.oracle_outcome: contradicts candidate and reference outcomes",path));
                         },
                         _=>errors.push(format!("{}.verifier: missing or inconsistent oracle classification",path)),
@@ -728,7 +739,7 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
     }
 
     if let Some(summary)=expect_object(field(&report,"summary"),"$report.summary",&mut errors) {
-        check_allowed(summary,&["case_count","verified_feasible_count","verified_infeasible_count","unknown_count","timeout_count","invalid_output_count","not_run_count","false_feasible_count","false_infeasible_count","aggregate_metrics"],"$report.summary",&mut errors);
+        check_allowed(summary,&["case_count","feasible_claim_count","infeasibility_proof_count","no_solution_count","unknown_count","timeout_count","invalid_output_count","not_run_count","feasible_reference_cases_found_count","feasible_reference_cases_missed_count","false_feasible_count","false_infeasible_count","aggregate_metrics"],"$report.summary",&mut errors);
         if let Some(metrics)=field(summary,"aggregate_metrics") {
             if let Some(metrics)=object(metrics) {
                 for (name,value) in metrics {
@@ -742,12 +753,15 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
         }
         let expected=[
             ("case_count",cases.map(|v|v.len()).unwrap_or(0)),
-            ("verified_feasible_count",feasible),
-            ("verified_infeasible_count",infeasible),
+            ("feasible_claim_count",feasible_claims),
+            ("infeasibility_proof_count",infeasibility_proofs),
+            ("no_solution_count",no_solution),
             ("unknown_count",unknown),
             ("timeout_count",timeouts),
             ("invalid_output_count",invalid_outputs),
             ("not_run_count",not_run),
+            ("feasible_reference_cases_found_count",feasible_reference_cases_found),
+            ("feasible_reference_cases_missed_count",feasible_reference_cases_missed),
             ("false_feasible_count",false_feasible),
             ("false_infeasible_count",false_infeasible),
         ];
