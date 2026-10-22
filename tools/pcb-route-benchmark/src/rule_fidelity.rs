@@ -741,16 +741,23 @@ mod tests {
     const COMPAT_POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.8",
-      "routing_violation_types":["clearance","tracks_crossing","unconnected_items"]
+      "routing_violation_types":["clearance","tracks_crossing","unconnected_items"],
+      "blocking_severities":["error","warning"],
+      "block_unconnected_items":true
     }"#;
     const STRICT_POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.8",
-      "routing_violation_types":["clearance","tracks_crossing","unconnected_items"]
+      "routing_violation_types":["clearance","tracks_crossing","unconnected_items"],
+      "blocking_severities":["error","warning"],
+      "block_unconnected_items":true
     }"#;
     const COMPAT_CLEAN: &str = r#"{"violations":[],"unconnected_items":[]}"#;
     const STRICT_FAIL: &str = r#"{"violations":[{"type":"clearance","severity":"error"}],"unconnected_items":[]}"#;
     const STRICT_CLEAN: &str = r#"{"violations":[],"unconnected_items":[]}"#;
+    const STRICT_DERIVATION_EVIDENCE: &[u8] = b"synthetic strict-source policy derivation";
+    const MAPPING_EVIDENCE: &[u8] = b"synthetic migration-equivalence evidence";
+    const WAIVER_EVIDENCE: &[u8] = b"synthetic waiver review evidence";
 
     fn policy_sha(bytes: &[u8]) -> String {
         sha256_hex(bytes)
@@ -780,6 +787,8 @@ mod tests {
             strict_source_policy_sha256: strict.then(|| policy_sha(strict_bytes)),
             strict_source_kicad_version: strict.then(|| "9.0.8".into()),
             strict_source_drc_report_relative_path: strict.then(|| "drc/strict-source.json".into()),
+            strict_source_policy_derivation_evidence_relative_path: strict.then(|| "evidence/strict-source-policy-derivation.txt".into()),
+            strict_source_policy_derivation_evidence_sha256: strict.then(|| sha256_hex(STRICT_DERIVATION_EVIDENCE)),
             rule_assessments: assessments,
         }
     }
@@ -790,10 +799,28 @@ mod tests {
             classification: RuleClassification::SourcePreserved,
             source_value: Some("0.20mm".into()),
             evaluated_value: Some("0.20mm".into()),
+            mapping_evidence_relative_path: None,
             mapping_evidence_sha256: None,
+            waiver_evidence_relative_path: None,
             waiver_evidence_sha256: None,
             rationale: "source and evaluation settings are byte-audited equal".into(),
         }
+    }
+
+    fn evidence_files_for(plan: &RuleFidelityPlan) -> BTreeMap<String, Vec<u8>> {
+        let mut files = BTreeMap::new();
+        if let Some(path) = &plan.strict_source_policy_derivation_evidence_relative_path {
+            files.insert(path.clone(), STRICT_DERIVATION_EVIDENCE.to_vec());
+        }
+        for assessment in &plan.rule_assessments {
+            if let Some(path) = &assessment.mapping_evidence_relative_path {
+                files.insert(path.clone(), MAPPING_EVIDENCE.to_vec());
+            }
+            if let Some(path) = &assessment.waiver_evidence_relative_path {
+                files.insert(path.clone(), WAIVER_EVIDENCE.to_vec());
+            }
+        }
+        files
     }
 
     fn evaluate(
@@ -810,6 +837,7 @@ mod tests {
             compat_drc,
             plan.strict_source_policy_sha256.as_ref().map(|_| STRICT_POLICY.as_bytes()),
             strict_drc,
+            &evidence_files_for(plan),
             HEAD,
         ).unwrap()
     }
@@ -832,7 +860,9 @@ mod tests {
             classification: RuleClassification::Inferred,
             source_value: None,
             evaluated_value: Some("0.20mm".into()),
+            mapping_evidence_relative_path: None,
             mapping_evidence_sha256: None,
+            waiver_evidence_relative_path: None,
             waiver_evidence_sha256: None,
             rationale: "source setting was reconstructed from existing copper".into(),
         };
@@ -892,7 +922,9 @@ mod tests {
             classification: RuleClassification::VersionMigratedEquivalent,
             source_value: Some("0.25mm".into()),
             evaluated_value: Some("0.25mm effective".into()),
-            mapping_evidence_sha256: Some("e".repeat(64)),
+            mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
+            mapping_evidence_sha256: Some(sha256_hex(MAPPING_EVIDENCE)),
+            waiver_evidence_relative_path: None,
             waiver_evidence_sha256: None,
             rationale: "pinned migration mapping says equivalent".into(),
         };
@@ -904,6 +936,7 @@ mod tests {
 
         let invalid = RuleAssessment {
             rule_id: "clearance.edge".into(),
+            mapping_evidence_relative_path: None,
             mapping_evidence_sha256: None,
             ..good.rule_assessments[0].clone()
         };
