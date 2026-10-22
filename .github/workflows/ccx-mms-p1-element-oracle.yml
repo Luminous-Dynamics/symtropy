@@ -168,22 +168,44 @@ jobs:
             and .relative_residual_tolerance == 1e-10
             and (.source_sha | test("^[0-9a-f]{40}$"))
             and (.checkout_sha | test("^[0-9a-f]{40}$"))
-            and (.sweep | length == 5)
+            and (.sweep | length == 10)
+            and .sweep[0].mesh_family == "uniform"
+            and .sweep[1].mesh_family == "uniform"
+            and .sweep[2].mesh_family == "uniform"
+            and .sweep[3].mesh_family == "uniform"
+            and .sweep[4].mesh_family == "uniform"
+            and .sweep[5].mesh_family == "quadratic-graded"
+            and .sweep[6].mesh_family == "quadratic-graded"
+            and .sweep[7].mesh_family == "quadratic-graded"
+            and .sweep[8].mesh_family == "quadratic-graded"
+            and .sweep[9].mesh_family == "quadratic-graded"
             and .sweep[0].cells_per_side == 2
             and .sweep[1].cells_per_side == 3
             and .sweep[2].cells_per_side == 4
             and .sweep[3].cells_per_side == 5
             and .sweep[4].cells_per_side == 6
+            and .sweep[5].cells_per_side == 2
+            and .sweep[6].cells_per_side == 3
+            and .sweep[7].cells_per_side == 4
+            and .sweep[8].cells_per_side == 5
+            and .sweep[9].cells_per_side == 6
             and .sweep[0].free_dof_count == 2
             and .sweep[1].free_dof_count == 8
             and .sweep[2].free_dof_count == 18
             and .sweep[3].free_dof_count == 32
             and .sweep[4].free_dof_count == 50
+            and .sweep[5].free_dof_count == 2
+            and .sweep[6].free_dof_count == 8
+            and .sweep[7].free_dof_count == 18
+            and .sweep[8].free_dof_count == 32
+            and .sweep[9].free_dof_count == 50
             and all(.sweep[]; .condition_number_unscaled >= 1 and .condition_number_unscaled < 1e12)
             and all(.sweep[]; .condition_number_jacobi_scaled >= 1 and .condition_number_jacobi_scaled < 1e12)
             and all(.sweep[]; .cg_relative_residual <= 1e-10 and .pcg_relative_residual <= 1e-10)
-            and all(.sweep[]; .cg_iterations <= (.free_dof_count * 4 | if . < 32 then 32 else . end))
-            and all(.sweep[]; .pcg_iterations <= (.free_dof_count * 4 | if . < 32 then 32 else . end))
+            and all(.sweep[]; .cg_iterations <= (if .free_dof_count * 4 < 32 then 32 else .free_dof_count * 4 end))
+            and all(.sweep[]; .pcg_iterations <= (if .free_dof_count * 4 < 32 then 32 else .free_dof_count * 4 end))
+            and all(.sweep[0:5][]; (.condition_number_jacobi_scaled / .condition_number_unscaled) >= 0.95 and (.condition_number_jacobi_scaled / .condition_number_unscaled) <= 1.05)
+            and .sweep[9].condition_number_jacobi_scaled < (.sweep[9].condition_number_unscaled * 0.75)
           ' /tmp/triangle-global-pcg-a.json > /dev/null
           sha256sum /tmp/triangle-global-pcg-a.json > /tmp/triangle-global-pcg-a.sha256
 
