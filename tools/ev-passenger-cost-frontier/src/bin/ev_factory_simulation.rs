@@ -115,6 +115,7 @@ struct Report {
     scenario_statistics: Vec<ScenarioStatistics>,
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    paired_common_cause_control_outage_baseline_comparison: Option<PairedOutageComparison>,
     measured_horizon_seconds: u64,
     productive_seconds_per_year: u64,
     input_evidence_class: EvidenceClass,
@@ -197,6 +198,14 @@ struct ScenarioStatistics {
     paired_relative_output_delta_fraction_vs_baseline: Option<DistributionSummary>,
     scrapped_jobs_total: DistributionSummary,
     measured_rework_attempts: DistributionSummary,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct PairedOutageComparison {
+    baseline_scenario_id: String,
+    seed_count: usize,
+    paired_good_units_per_hour_delta_vs_no_outage: DistributionSummary,
+    comparison_contract: String,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -729,6 +738,38 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.station_time_accounting_within_horizon = runs
         .iter()
         .all(|run| run.station_time_accounting_within_horizon);
+    if catalog.common_cause_control_outage.is_some() {
+        let mut no_outage_catalog = catalog.clone();
+        no_outage_catalog.common_cause_control_outage = None;
+        let no_outage_report = evaluate_catalog(&no_outage_catalog)?;
+        if report.replication_seeds != no_outage_report.replication_seeds {
+            return Err("paired_outage_comparison_seed_catalog_mismatch".into());
+        }
+        let mut paired_deltas = Vec::with_capacity(report.replication_seeds.len());
+        for seed in &report.replication_seeds {
+            let outage_baseline = report
+                .replication_outcomes
+                .iter()
+                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                .ok_or_else(|| "paired_outage_baseline_seed_outcome_missing".to_string())?;
+            let nominal_baseline = no_outage_report
+                .replication_outcomes
+                .iter()
+                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                .ok_or_else(|| "paired_no_outage_baseline_seed_outcome_missing".to_string())?;
+            paired_deltas.push(
+                outage_baseline.good_units_per_hour - nominal_baseline.good_units_per_hour,
+            );
+        }
+        report.paired_common_cause_control_outage_baseline_comparison = Some(
+            PairedOutageComparison {
+                baseline_scenario_id: "baseline".into(),
+                seed_count: paired_deltas.len(),
+                paired_good_units_per_hour_delta_vs_no_outage: summarize_distribution(&paired_deltas)?,
+                comparison_contract: "Same catalog, seed IDs and entity-keyed processing/quality streams; only the optional shared control outage is removed from the counterfactual catalog. The paired interval describes this synthetic fixture, not a calibrated plant effect.".into(),
+            },
+        );
+    }
     report.release_ready = false;
     Ok(report)
 }
@@ -863,6 +904,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_statistics: Vec::new(),
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        paired_common_cause_control_outage_baseline_comparison: None,
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
         productive_seconds_per_year: catalog.productive_seconds_per_year,
         input_evidence_class: catalog.input_evidence_class,
@@ -1604,6 +1646,7 @@ mod tests {
     fn absent_shared_control_outage_preserves_baseline_semantics() {
         let catalog = fixture();
         let report = evaluate_catalog(&catalog).expect("baseline simulation");
+        assert!(report.paired_common_cause_control_outage_baseline_comparison.is_none());
         assert!(report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_config.is_none()
                 && scenario.common_cause_control_outage_trace.is_empty()
@@ -1628,6 +1671,14 @@ mod tests {
         assert_eq!(outage_report, evaluate_catalog(&outage_catalog).expect("deterministic replay"));
         assert_eq!(outage_report.replication_count, 20);
         assert_eq!(outage_report.replication_seeds, nominal_report.replication_seeds);
+        let paired = outage_report
+            .paired_common_cause_control_outage_baseline_comparison
+            .as_ref()
+            .expect("paired no-outage baseline comparison");
+        assert_eq!(paired.seed_count, 20);
+        assert_eq!(paired.paired_good_units_per_hour_delta_vs_no_outage.sample_count, 20);
+        assert!(paired.paired_good_units_per_hour_delta_vs_no_outage.mean_confidence_95_lower.is_some());
+        assert!(paired.paired_good_units_per_hour_delta_vs_no_outage.mean_confidence_95_upper.is_some());
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
