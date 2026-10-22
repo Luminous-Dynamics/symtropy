@@ -26,10 +26,23 @@ pub struct VehicleOutage {
 
 /// Observed evidence that a planned placement footprint remains occupied longer than scheduled.
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OccupancyExtensionEvidence {
+    pub evidence_id: String,
+    pub source_id: String,
+    pub evidence_ref: String,
+    /// Tick at which the placement was positively observed to remain occupied.
+    pub observed_present_at_tick: u64,
+    /// Tick at which that observation became available to the planner.
+    pub recorded_tick: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlacementOccupancyExtension {
     pub reservation_id: String,
     /// Authoritative earliest tick at which the block's footprint is confirmed to be clear.
     pub occupied_until_tick: u64,
+    /// Required when correcting an interval whose scheduled end is already past at observation time.
+    pub evidence: Option<OccupancyExtensionEvidence>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -59,7 +72,7 @@ pub enum RecoveryViolationCode {
     DuplicateOccupancyExtension,
     UnknownOccupancyExtensionReservation,
     InvalidOccupancyExtension,
-    OccupancyExtensionAfterCompletion,
+    RetroactiveOccupancyExtensionMissingEvidence,
     OccupancyExtensionTargetMismatch,
     KnownExclusionZoneChanged,
     HistoricalPlacementChanged,
@@ -85,7 +98,7 @@ impl RecoveryViolationCode {
             Self::DuplicateOccupancyExtension => "DuplicateOccupancyExtension",
             Self::UnknownOccupancyExtensionReservation => "UnknownOccupancyExtensionReservation",
             Self::InvalidOccupancyExtension => "InvalidOccupancyExtension",
-            Self::OccupancyExtensionAfterCompletion => "OccupancyExtensionAfterCompletion",
+            Self::RetroactiveOccupancyExtensionMissingEvidence => "RetroactiveOccupancyExtensionMissingEvidence",
             Self::OccupancyExtensionTargetMismatch => "OccupancyExtensionTargetMismatch",
             Self::KnownExclusionZoneChanged => "KnownExclusionZoneChanged",
             Self::HistoricalPlacementChanged => "HistoricalPlacementChanged",
@@ -909,14 +922,24 @@ fn valid_occupancy_extensions(
         };
 
         if placement.occupied.end_tick <= disruption.observed_at_tick {
-            valid = false;
-            push_violation(
-                violations,
-                RecoveryViolationCode::OccupancyExtensionAfterCompletion,
-                vec![extension.reservation_id.clone()],
-                None,
-            );
-            continue;
+            let evidence_valid = extension.evidence.as_ref().is_some_and(|evidence| {
+                !evidence.evidence_id.trim().is_empty()
+                    && !evidence.source_id.trim().is_empty()
+                    && !evidence.evidence_ref.trim().is_empty()
+                    && evidence.observed_present_at_tick == disruption.observed_at_tick
+                    && evidence.recorded_tick >= evidence.observed_present_at_tick
+                    && evidence.recorded_tick <= disruption.observed_at_tick
+            });
+            if !evidence_valid {
+                valid = false;
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::RetroactiveOccupancyExtensionMissingEvidence,
+                    vec![extension.reservation_id.clone()],
+                    None,
+                );
+                continue;
+            }
         }
 
         if extension.occupied_until_tick <= placement.occupied.end_tick
@@ -1964,6 +1987,7 @@ mod tests {
             placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                 reservation_id: "outgoing".to_owned(),
                 occupied_until_tick: 7,
+                            evidence: None,
             }],
             ..empty_disruption(4)
         };
@@ -2057,6 +2081,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2069,7 +2094,7 @@ mod tests {
     }
 
     #[test]
-    fn late_retroactive_occupancy_extension_is_rejected_as_completed_history() {
+    fn late_retroactive_occupancy_extension_requires_current_presence_evidence() {
         let baseline = Scenario {
             yard_bounds: Some(yard()),
             placements: vec![placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5)],
@@ -2082,6 +2107,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
+                                    evidence: None,
                 }],
                 ..empty_disruption(5)
             },
@@ -2089,7 +2115,7 @@ mod tests {
 
         assert!(!report.accepted);
         assert!(report.violations.iter().any(|violation| {
-            violation.code == RecoveryViolationCode::OccupancyExtensionAfterCompletion
+            violation.code == RecoveryViolationCode::RetroactiveOccupancyExtensionMissingEvidence
         }));
     }
 
@@ -2112,6 +2138,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2137,6 +2164,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "missing-block".to_owned(),
                     occupied_until_tick: 9,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2174,6 +2202,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2220,6 +2249,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2273,6 +2303,7 @@ mod tests {
                     placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                         reservation_id: "outgoing".to_owned(),
                         occupied_until_tick: 7,
+                                            evidence: None,
                     }],
                     ..empty_disruption(4)
                 },
@@ -2441,6 +2472,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2559,6 +2591,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
+                                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
