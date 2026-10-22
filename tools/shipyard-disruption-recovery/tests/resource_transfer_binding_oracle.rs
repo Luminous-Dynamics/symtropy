@@ -157,8 +157,7 @@ fn generated_joint_acceptance_matches_transfer_binding_reference() {
             false_infeasible += 1;
         }
         assert_eq!(
-            report.accepted,
-            expected,
+            report.accepted, expected,
             "binding oracle mismatch for start={start}, end={end}, resource={resource_id}: {:?}",
             report.resources.violations
         );
