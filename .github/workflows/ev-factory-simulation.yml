@@ -339,6 +339,8 @@ jobs:
             ev-factory-simulation-report.json
             ev-factory-shared-control-outage-report.json
             ev-factory-shared-control-outage-repeat.json
+            ev-factory-flowtime-short-horizon-fixture.json
+            ev-factory-flowtime-short-horizon-report.json
             ev-factory-sequence-aware-report.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
