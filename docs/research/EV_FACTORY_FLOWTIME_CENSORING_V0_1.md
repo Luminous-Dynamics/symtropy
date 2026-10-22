@@ -31,10 +31,16 @@ For right-censored jobs it also reports observed age at the horizon—mean and P
 
 When a replication has no completed good output, its good-flow summary is `null`, not zero. With few observations, P99 is still shown descriptively but is not evidence of a well-resolved tail. The current implementation is **not** a Kaplan–Meier/survival estimator; right-censoring is explicit, not silently imputed.
 
+## System-wide work in process
+
+The same event clock now integrates the total live-job count to report time-weighted average system WIP over the measured horizon. It includes supplier backlog, source buffer, every interstation buffer, jobs undergoing service/rework, and completed jobs waiting for output transfer. These state locations are disjoint in the simulator; a job in a station is not counted again in a buffer. Existing buffer-specific WIP metrics remain available separately.
+
+System-average WIP is reported per scenario and summarized across independent seed replications. It is not interchangeable with interstation-buffer occupancy, and it is not yet used for a Little's Law acceptance test: the present warm-up, finite-horizon and censoring boundaries need to be aligned with a compatible throughput/flow-time estimator first.
+
 ## Frozen controls
 
 - Exact interpolation test for P50, P90, P95 and P99 on the known sample `[1,2,3,4]`.
-- End-to-end DES known answer: a two-station line with fixed 10 s and 20 s cycles, one released product, zero changeovers, effectively zero failure probability and full yield must complete in exactly 30 s.
+- End-to-end DES known answer: a two-station line with fixed 10 s and 20 s cycles, one released product, zero changeovers, effectively zero failure probability and full yield must complete in exactly 30 s; its time-weighted system WIP must be 0.3 jobs over a 100 s observation horizon.
 - Negative controls reject negative or non-finite flow times.
 - A 500-second synthetic horizon forces unfinished jobs and checks cohort conservation, positive censor counts, observed age count matching the censored-job count, and unavailable completed-good quantiles.
 - The existing 20-seed baseline checks per-replication cohort invariants, seed-level aggregation shape, right-censored age summaries and deterministic replay.
