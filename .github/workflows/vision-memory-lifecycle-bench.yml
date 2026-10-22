@@ -1,0 +1,97 @@
+name: VIS-MEM-008 Memory Lifecycle Diagnostic
+
+on:
+  push:
+    branches: ["research/vis-mem-lifecycle-v0-1"]
+    paths:
+      - "tools/vision-memory-lifecycle-bench.rs"
+      - ".github/workflows/vision-memory-lifecycle-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-lifecycle-bench.rs"
+      - ".github/workflows/vision-memory-lifecycle-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-008-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run lifecycle tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-lifecycle-bench.rs -o /tmp/vis-mem-lifecycle-tests
+          /tmp/vis-mem-lifecycle-tests
+
+      - name: Build, replay, and validate metric report
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-lifecycle-bench.rs -o /tmp/vis-mem-lifecycle-bench
+          /tmp/vis-mem-lifecycle-bench > lifecycle-metrics.tsv
+          /tmp/vis-mem-lifecycle-bench > lifecycle-metrics-repeat.tsv
+          cmp lifecycle-metrics.tsv lifecycle-metrics-repeat.tsv
+          grep -Fq $'METRIC_HEADER\tpolicy' lifecycle-metrics.tsv
+          grep -Fq $'PAIR_HEADER\tpolicy' lifecycle-metrics.tsv
+          grep -Fq $'META\ttruth_access\tevaluator only' lifecycle-metrics.tsv
+          grep -Fq $'METRIC\tarrival_overwrite\t2' lifecycle-metrics.tsv
+          grep -Fq $'METRIC\tquery_preserving\t6' lifecycle-metrics.tsv
+          test "$(awk -F '\t' '$1 == "METRIC" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
+          test "$(awk -F '\t' '$1 == "PAIR" { n++ } END { print n+0 }' lifecycle-metrics.tsv)" -eq 20
+          awk -F '\t' '$1 == "METRIC_HEADER" { if (NF != 15) exit 1; h++ } $1 == "METRIC" { if (NF != 15) exit 1; n++ } $1 == "PAIR_HEADER" { if (NF != 7) exit 1; p++ } $1 == "PAIR" { if (NF != 7) exit 1; q++ } END { if (h != 1 || n != 20 || p != 1 || q != 20) exit 1 }' lifecycle-metrics.tsv
+          sha256sum lifecycle-metrics.tsv > lifecycle-metrics.sha256
+          sha256sum -c lifecycle-metrics.sha256
+
+      - name: Build, replay, and validate operation receipts
+        run: |
+          set -euo pipefail
+          /tmp/vis-mem-lifecycle-bench --receipts > lifecycle-receipts.tsv
+          /tmp/vis-mem-lifecycle-bench --receipts > lifecycle-receipts-repeat.tsv
+          cmp lifecycle-receipts.tsv lifecycle-receipts-repeat.tsv
+          grep -Fq $'RECEIPT_HEADER\tepisode' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\tarrival_overwrite' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\tsource_time_latest' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\tevent_ledger' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\trecency_projection' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\tquery_preserving' lifecycle-receipts.tsv
+          grep -Fq $'RECEIPT\t0\tquery_preserving\t3' lifecycle-receipts.tsv
+          grep -Fq 'capacity_eviction' lifecycle-receipts.tsv
+          sha256sum lifecycle-receipts.tsv > lifecycle-receipts.sha256
+          sha256sum -c lifecycle-receipts.sha256
+
+      - name: Upload exact-head diagnostic artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-008-lifecycle-reports
+          path: |
+            lifecycle-metrics.tsv
+            lifecycle-metrics.sha256
+            lifecycle-receipts.tsv
+            lifecycle-receipts.sha256
+          if-no-files-found: error
