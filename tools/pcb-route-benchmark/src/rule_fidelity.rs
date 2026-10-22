@@ -1028,10 +1028,10 @@ mod tests {
 
     #[test]
     fn compatibility_drc_must_bind_to_exact_output_board_bytes() {
-        let mut plan = plan(OUTPUT_A, vec![preserved_rule()], true);
-        plan.compatibility_drc_input_board_sha256 = sha256_hex(OUTPUT_B);
+        let mut compatibility_plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        compatibility_plan.compatibility_drc_input_board_sha256 = sha256_hex(OUTPUT_B);
         let error = evaluate_rule_fidelity(
-            &serde_json::to_vec(&plan).unwrap(),
+            &serde_json::to_vec(&compatibility_plan).unwrap(),
             SOURCE_BOARD,
             OUTPUT_A,
             Some(SOURCE_RULES),
@@ -1039,15 +1039,15 @@ mod tests {
             COMPAT_CLEAN.as_bytes(),
             Some(STRICT_POLICY.as_bytes()),
             Some(STRICT_CLEAN.as_bytes()),
-            &evidence_files_for(&plan),
+            &evidence_files_for(&compatibility_plan),
             HEAD,
         ).unwrap_err();
         assert!(error.contains("compatibility DRC input board digest"));
 
-        let mut plan = plan(OUTPUT_A, vec![preserved_rule()], true);
-        plan.strict_source_drc_input_board_sha256 = Some(sha256_hex(OUTPUT_B));
+        let mut strict_plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        strict_plan.strict_source_drc_input_board_sha256 = Some(sha256_hex(OUTPUT_B));
         let error = evaluate_rule_fidelity(
-            &serde_json::to_vec(&plan).unwrap(),
+            &serde_json::to_vec(&strict_plan).unwrap(),
             SOURCE_BOARD,
             OUTPUT_A,
             Some(SOURCE_RULES),
@@ -1055,7 +1055,7 @@ mod tests {
             COMPAT_CLEAN.as_bytes(),
             Some(STRICT_POLICY.as_bytes()),
             Some(STRICT_CLEAN.as_bytes()),
-            &evidence_files_for(&plan),
+            &evidence_files_for(&strict_plan),
             HEAD,
         ).unwrap_err();
         assert!(error.contains("strict-source DRC input board digest"));
