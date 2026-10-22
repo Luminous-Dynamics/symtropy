@@ -1,6 +1,6 @@
 # RENDER-APPARENT-SCALE-002 — Select planetary-to-system representations by projected size
 
-**Status:** Draft policy kernel. Nine unit tests are authored; no exact-head pass or rendered solar-system result is claimed yet.
+**Status:** Draft policy kernel. Twelve unit tests are authored; the latest exact-head check is queued, and no rendered solar-system result is claimed yet.
 
 ## Purpose
 
@@ -53,9 +53,11 @@ Nine unit tests cover:
 - invalid domains and camera-inside-body rejection;
 - threshold-order validation and classification;
 - boundary hysteresis and multi-band transitions;
+- invariance when radius, distance and orthographic span are expressed in common units scaled from 10^-12 to 10^12;
+- finite, monotonic perspective projection across distance decades;
 - invalid hysteresis fractions and projected diameters.
 
-These tests are authored, not yet compiled or executed at the time of this note.
+These tests are authored. The exact-head Large World Coordinate workflow must pass before the twelve-test set is claimed as verified; the current amended head has a queued check.
 
 ## Next implementation steps
 
@@ -65,6 +67,15 @@ These tests are authored, not yet compiled or executed at the time of this note.
 4. Bind bands to body proxies, planetary surface tiles and scale-aware labels, with deterministic refinement and identity retention.
 5. Add fixed-camera captures at 1 km/local, planetary surface, low orbit, Earth-Moon, 1 AU and Neptune distance; record projected diameter, representation band, label/selection continuity, screen error, frame interval and GPU time separately.
 6. Exercise one continuous camera journey from local inspection to system overview and back. Test origin changes and repeated threshold crossings in both directions.
+7. Run the same frozen capture sequence on the reference renderer and Symtropy, using the same camera path, resolution, geometry/detail budget and output frames. Compare pixel-space error, selected-entity continuity, transitions, CPU/GPU frame-time distributions and peak resident memory; keep ephemeris-backed positions distinct from illustrative positions.
+
+## Proposed acceptance ladder (targets, not results)
+
+- **Mathematical kernel:** all analytic known-answer tests pass; common-unit rescaling changes apparent diameter by no more than 10^-12 relative on the tested finite domain; no non-finite projection result is accepted.
+- **Semantic continuity:** zero lost selected/task-critical entities and zero canonical-position changes under camera-origin rebasing across the frozen local-to-Neptune-and-back path.
+- **Representation quality:** zero unlabelled replacement gaps. For any transition with a validated geometric-error bound, remain within the declared screen-space error ceiling; do not declare a bound for illustrative proxies without a conservative mesh/camera error model.
+- **Runtime (provisional):** target p95 frame time <=16.67 ms at 1080p on a pinned reference machine; report p50/p95/p99 CPU and GPU timings separately. Treat 4K and mobile-class hardware as separate profiles rather than extrapolating from one GPU.
+- **Reproducibility:** every reported run binds source SHA, fixture/config digest, camera path, output resolution, graphics backend/driver and reference-frame/epoch metadata. Compare only matched workloads; a faster frame that drops selected content or violates error/identity invariants is a failure, not a win.
 
 ## Research/industry context
 
