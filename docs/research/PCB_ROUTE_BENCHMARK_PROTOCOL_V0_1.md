@@ -293,3 +293,23 @@ The manifest builder now verifies two independent source references for the upst
 ### The split file is part of the offline evidence bundle
 
 The dataset evidence root must retain `provenance/d3.json` (or another declared safe relative path). A manifest with plausible split hashes but no corresponding local split file fails `verify-dataset`; a modified split file fails both the SHA-256 and Git-blob checks. The split file becomes a first-class entry in the dataset verification receipt, not merely an annotation pasted into manifest metadata.
+
+
+
+### Verified comparisons are now a single fail-closed operation
+
+The CLI's plain `validate`, `compare`, and `compare-series` commands are now restricted to manifests explicitly marked `evidence_class: synthetic`. They are useful for testing evaluator semantics, but cannot produce a normalized-only score for an external dataset.
+
+For an actual external pair, use `compare-verified`:
+
+    PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)" \\
+      cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \\
+      compare-verified BASELINE_REPORT.json TREATMENT_REPORT.json \\
+      PINNED_MANIFEST.json DATASET_ROOT BASELINE_RUN_ARTIFACT_ROOT \\
+      TREATMENT_RUN_ARTIFACT_ROOT \\
+      tools/pcb-route-benchmark/fixtures/kicad-drc-routing-policy-v0_1.json \\
+      > verified-comparison-receipt.json
+
+This one operation (1) reopens and hashes every dataset board, license-evidence file and pinned source split config, (2) reopens each method's output-board and DRC files, (3) checks the raw DRC JSON against the version-pinned policy and normalized report, and (4) emits the paired comparison together with all three verification receipts. If one output, DRC report, source-license file, or source split is absent or tampered, no external paired score is emitted. The raw DRC report policy digest must match both the manifest-scored run report and the policy bytes used by the verifier.
+
+This avoids a dangerous two-command workflow in which a user could run a normalized-only comparison and forget the separate raw-artifact verifier. It still does not make any physical or manufacturing claim; it only ensures the benchmark score is bound to the actual source and result bytes and pinned KiCad evidence.
