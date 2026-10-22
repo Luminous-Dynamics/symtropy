@@ -808,6 +808,12 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             {
                 return Err(format!("{}: external license evidence is incomplete", board.board_id));
             }
+            let skeleton_sha = board.design_skeleton_sha256.as_deref()
+                .ok_or_else(|| format!("{}: external manifest lacks design-skeleton SHA-256", board.board_id))?;
+            require_sha256(skeleton_sha, "design_skeleton_sha256")?;
+        }
+        if let Some(skeleton_sha) = board.design_skeleton_sha256.as_deref() {
+            require_sha256(skeleton_sha, "design_skeleton_sha256")?;
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
@@ -1063,6 +1069,8 @@ pub fn build_dataset_manifest(
         let bytes = fs::read(&actual_path)
             .map_err(|error| format!("{}: cannot read source board bytes: {error}", selection.board_id))?;
         let actual_board_sha = sha256_hex(&bytes);
+        let design_skeleton_sha256 = crate::design_skeleton::fingerprint_board_bytes(&bytes)?
+            .design_skeleton_sha256;
         let expected_board_sha = audited.prepared_board_sha256.as_deref()
             .ok_or_else(|| format!("{}: audit lacks prepared-board SHA-256", selection.board_id))?;
         require_sha256(expected_board_sha, "audit prepared_board_sha256")?;
@@ -1104,6 +1112,7 @@ pub fn build_dataset_manifest(
             license_evidence_url: Some(evidence.blob_url.clone()),
             license_evidence_source_commit_sha: Some(evidence.source_commit_sha.to_ascii_lowercase()),
             license_evidence_git_blob_sha1: Some(evidence.git_blob_sha1.clone()),
+            design_skeleton_sha256: Some(design_skeleton_sha256),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
@@ -1401,6 +1410,14 @@ pub fn verify_dataset_files(
         let board_sha = sha256_hex(&board_bytes);
         if board_sha != board.input_board_sha256 {
             return Err(format!("{}: source bytes SHA-256 does not match the pinned manifest", board.board_id));
+        }
+        let computed_skeleton = crate::design_skeleton::fingerprint_board_bytes(&board_bytes)?;
+        if let Some(expected_skeleton) = board.design_skeleton_sha256.as_deref() {
+            if computed_skeleton.design_skeleton_sha256 != expected_skeleton {
+                return Err(format!("{}: source design-skeleton SHA-256 does not match the pinned manifest", board.board_id));
+            }
+        } else if manifest.evidence_class == "external_benchmark" {
+            return Err(format!("{}: external source board lacks a design-skeleton fingerprint", board.board_id));
         }
         entries.push(DatasetFileVerificationEntry {
             board_id: board.board_id.clone(),
