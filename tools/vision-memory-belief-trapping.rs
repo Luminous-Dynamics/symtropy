@@ -734,6 +734,16 @@ mod tests {
     }
 
     #[test]
+    fn cycle_monitor_misses_drift_that_gap_aware_monitor_recovers() {
+        let cycle_only = run(Policy::CycleMonitor, "drift_achievement");
+        assert!(!cycle_only.solved);
+        assert!(!cycle_only.detected);
+        let gap_aware = run(Policy::GapAwareMonitor, "drift_achievement");
+        assert!(gap_aware.solved);
+        assert_eq!(gap_aware.detected_class, Some(TrapSignal::Drift));
+    }
+
+    #[test]
     fn raw_loop_fails_static_and_drift_controls() {
         assert!(!run(Policy::RawLoop, "static_achievement").solved);
         assert!(!run(Policy::RawLoop, "drift_achievement").solved);
