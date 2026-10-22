@@ -1,0 +1,538 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/global_mobility_profile_v0_1.schema.json",
+  "title": "Global Mobility Regional Deployment Profile Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "provenance",
+    "claim_ceiling",
+    "profiles"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "corpus_id": {
+      "const": "global-mobility-access-v0.1"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_on",
+        "kind",
+        "external_market_observations_included",
+        "notes"
+      ],
+      "properties": {
+        "created_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "kind": {
+          "const": "synthetic_regional_archetype_panel"
+        },
+        "external_market_observations_included": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "synthetic_archetypes_are_not_country_market_approval_or_global_availability_evidence"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/profile"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": [
+        "not_assessed",
+        "unknown",
+        "limited",
+        "evidence_backed",
+        "not_applicable"
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_kind",
+        "archetype",
+        "context_constraints",
+        "intended_user_segments",
+        "platform_families",
+        "energy_options",
+        "market_stage",
+        "infrastructure",
+        "affordability",
+        "regulatory",
+        "serviceability",
+        "digital_access",
+        "language_access",
+        "lifecycle",
+        "required_evidence",
+        "metrics",
+        "negative_control",
+        "expected_disposition",
+        "rationale"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]{4,80}$"
+        },
+        "profile_kind": {
+          "const": "synthetic_archetype"
+        },
+        "archetype": {
+          "enum": [
+            "dense_urban_no_private_charging",
+            "hot_dusty_remote_service",
+            "cold_high_altitude",
+            "humid_flood_prone",
+            "mountain_rough_roads",
+            "long_distance_rural_sparse_service",
+            "island_import_dependent",
+            "weak_or_intermittent_grid",
+            "low_bandwidth_multilingual",
+            "disaster_infrastructure_disruption",
+            "cash_flow_constrained_purchase",
+            "mixed_traffic_vulnerable_road_users",
+            "accessibility_oriented_passenger_service"
+          ]
+        },
+        "context_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "no_private_charging",
+              "high_heat",
+              "dust_ingress",
+              "cold_start_or_range_loss",
+              "high_altitude",
+              "heavy_rain",
+              "flooding",
+              "corrosion",
+              "steep_grade",
+              "rough_or_unpaved_roads",
+              "long_distance_between_services",
+              "sparse_repair_network",
+              "import_or_shipping_dependency",
+              "weak_grid",
+              "intermittent_grid",
+              "low_bandwidth",
+              "offline_required",
+              "multiple_local_languages",
+              "supply_disruption",
+              "cash_flow_constraints",
+              "financing_access_uncertain",
+              "mixed_traffic",
+              "vulnerable_road_user_exposure",
+              "accessibility_diversity",
+              "parts_lead_time_uncertain",
+              "energy_access_unknown",
+              "local_regulations_not_assessed"
+            ]
+          }
+        },
+        "intended_user_segments": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "urban_household_no_private_parking",
+              "rural_household",
+              "cash_flow_constrained_household",
+              "family_household",
+              "accessibility_needs",
+              "small_business",
+              "delivery_operator",
+              "public_service_operator",
+              "field_research_or_conservation",
+              "emergency_response",
+              "independent_repair_provider",
+              "community_shared_mobility",
+              "public_transit_user"
+            ]
+          }
+        },
+        "platform_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "family_road_vehicle",
+              "compact_urban_vehicle",
+              "accessible_mobility_vehicle",
+              "low_speed_cargo_vehicle",
+              "community_shared_mobility",
+              "field_utility_robot",
+              "all_terrain_ground_robot",
+              "service_or_recovery_vehicle",
+              "multimodal_mobility_service"
+            ]
+          }
+        },
+        "energy_options": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "battery_electric",
+              "hybrid",
+              "liquid_fuel",
+              "human_assist",
+              "grid_tethered_or_stationary",
+              "other_declared",
+              "not_selected"
+            ]
+          }
+        },
+        "market_stage": {
+          "enum": [
+            "not_assessed",
+            "concept_only",
+            "deployment_route_identified",
+            "compliance_evidence_assembled",
+            "market_release_evidenced",
+            "sales_parts_service_evidenced",
+            "lifecycle_supported"
+          ]
+        },
+        "infrastructure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "charging_access",
+            "fuel_access",
+            "grid_reliability",
+            "service_network",
+            "parts_logistics",
+            "digital_connectivity",
+            "observed_values_included"
+          ],
+          "properties": {
+            "charging_access": {
+              "$ref": "#/$defs/status"
+            },
+            "fuel_access": {
+              "$ref": "#/$defs/status"
+            },
+            "grid_reliability": {
+              "$ref": "#/$defs/status"
+            },
+            "service_network": {
+              "$ref": "#/$defs/status"
+            },
+            "parts_logistics": {
+              "$ref": "#/$defs/status"
+            },
+            "digital_connectivity": {
+              "$ref": "#/$defs/status"
+            },
+            "observed_values_included": {
+              "const": false
+            }
+          }
+        },
+        "affordability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "local_currency_code",
+            "price_status",
+            "income_distribution_status",
+            "ownership_cost_status",
+            "target_segment_cost_threshold_frozen",
+            "unknowns_remain_unknown",
+            "required_cost_components"
+          ],
+          "properties": {
+            "local_currency_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Z]{3}$"
+            },
+            "price_status": {
+              "$ref": "#/$defs/status"
+            },
+            "income_distribution_status": {
+              "$ref": "#/$defs/status"
+            },
+            "ownership_cost_status": {
+              "$ref": "#/$defs/status"
+            },
+            "target_segment_cost_threshold_frozen": {
+              "type": "boolean"
+            },
+            "unknowns_remain_unknown": {
+              "const": true
+            },
+            "required_cost_components": {
+              "type": "array",
+              "minItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "acquisition",
+                  "financing_cash_flow",
+                  "energy",
+                  "routine_maintenance",
+                  "repair_parts",
+                  "insurance_registration_tax",
+                  "depreciation",
+                  "downtime",
+                  "fallback_transport",
+                  "end_of_life"
+                ]
+              }
+            }
+          }
+        },
+        "regulatory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "jurisdiction_id",
+            "status",
+            "requirements_to_check",
+            "standards_are_not_approval"
+          ],
+          "properties": {
+            "jurisdiction_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/$defs/status"
+            },
+            "requirements_to_check": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "vehicle_or_robot_class",
+                  "roadworthiness_or_operating_permit",
+                  "battery_and_charging",
+                  "radio_and_connectivity",
+                  "environmental_obligations",
+                  "operator_and_insurance",
+                  "data_privacy_and_cybersecurity",
+                  "product_liability",
+                  "import_customs_and_tax"
+                ]
+              }
+            },
+            "standards_are_not_approval": {
+              "const": true
+            }
+          }
+        },
+        "serviceability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "critical_parts_basket_status",
+            "qualified_repair_coverage_status",
+            "repair_manual_status",
+            "offline_repair_docs_required",
+            "critical_procedure_coverage_percent",
+            "observed_data_included"
+          ],
+          "properties": {
+            "critical_parts_basket_status": {
+              "$ref": "#/$defs/status"
+            },
+            "qualified_repair_coverage_status": {
+              "$ref": "#/$defs/status"
+            },
+            "repair_manual_status": {
+              "$ref": "#/$defs/status"
+            },
+            "offline_repair_docs_required": {
+              "const": true
+            },
+            "critical_procedure_coverage_percent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "observed_data_included": {
+              "const": false
+            }
+          }
+        },
+        "digital_access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "basic_operation_without_cloud_required",
+            "offline_safe_degraded_behavior_required",
+            "owner_data_control_required",
+            "cloud_required_for_basic_function",
+            "privacy_by_default_required"
+          ],
+          "properties": {
+            "cloud_required_for_basic_function": {
+              "type": "boolean"
+            },
+            "basic_operation_without_cloud_required": {
+              "type": "boolean"
+            },
+            "offline_safe_degraded_behavior_required": {
+              "type": "boolean"
+            },
+            "owner_data_control_required": {
+              "type": "boolean"
+            },
+            "privacy_by_default_required": {
+              "type": "boolean"
+            }
+          }
+        },
+        "language_access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manual_language_status",
+            "local_units_support_required",
+            "offline_manuals_required",
+            "language_list"
+          ],
+          "properties": {
+            "manual_language_status": {
+              "$ref": "#/$defs/status"
+            },
+            "offline_manuals_required": {
+              "const": true
+            },
+            "language_list": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "local_units_support_required": {
+              "type": "boolean"
+            }
+          }
+        },
+        "lifecycle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "end_of_life_status",
+            "material_traceability_status",
+            "repair_reuse_route_required",
+            "observed_impact_data_included"
+          ],
+          "properties": {
+            "end_of_life_status": {
+              "$ref": "#/$defs/status"
+            },
+            "material_traceability_status": {
+              "$ref": "#/$defs/status"
+            },
+            "repair_reuse_route_required": {
+              "type": "boolean"
+            },
+            "observed_impact_data_included": {
+              "const": false
+            }
+          }
+        },
+        "required_evidence": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "dated_local_price_and_tax",
+              "income_distribution_for_target_segment",
+              "whole_life_cost_basket",
+              "applicable_jurisdiction_compliance",
+              "compatible_energy_access",
+              "parts_price_and_lead_time",
+              "qualified_local_repair_capacity",
+              "local_language_repair_manuals",
+              "offline_operation_test",
+              "climate_and_terrain_profile",
+              "accessibility_and_user_consultation",
+              "end_of_life_route",
+              "supply_chain_and_labor_review",
+              "privacy_and_cybersecurity_review"
+            ]
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "acquisition_and_monthly_cost_burden",
+              "cost_by_income_quantile",
+              "energy_access_time",
+              "energy_cost_per_service",
+              "parts_lead_time_p50_p90",
+              "repair_downtime_p50_p90",
+              "climate_terrain_degradation",
+              "legal_evidence_coverage",
+              "offline_usability",
+              "local_language_manual_coverage",
+              "accessibility_task_completion",
+              "essential_trip_or_useful_work_continuity",
+              "supply_concentration",
+              "end_of_life_route_coverage",
+              "life_cycle_impact_when_evidence_exists",
+              "distributional_access_gap"
+            ]
+          }
+        },
+        "negative_control": {
+          "type": "boolean"
+        },
+        "expected_disposition": {
+          "enum": [
+            "requires_market_specific_evidence",
+            "block_global_availability_claim"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    }
+  }
+}

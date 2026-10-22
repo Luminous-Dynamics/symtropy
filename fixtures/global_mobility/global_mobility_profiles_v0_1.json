@@ -1,0 +1,1750 @@
+{
+  "schema_version": "0.1",
+  "corpus_id": "global-mobility-access-v0.1",
+  "provenance": {
+    "created_on": "2026-10-17",
+    "kind": "synthetic_regional_archetype_panel",
+    "external_market_observations_included": false,
+    "notes": "Every profile is a synthetic question set. There are no country-specific price, income, grid, charging, legal, parts, service, performance, or lifecycle observations in this corpus."
+  },
+  "claim_ceiling": "synthetic_archetypes_are_not_country_market_approval_or_global_availability_evidence",
+  "profiles": [
+    {
+      "profile_id": "GMA-URBAN-NO-HOME-CHARGE",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "dense_urban_no_private_charging",
+      "context_constraints": [
+        "no_private_charging",
+        "energy_access_unknown",
+        "local_regulations_not_assessed"
+      ],
+      "intended_user_segments": [
+        "urban_household_no_private_parking",
+        "family_household",
+        "public_transit_user"
+      ],
+      "platform_families": [
+        "compact_urban_vehicle",
+        "accessible_mobility_vehicle",
+        "community_shared_mobility",
+        "multimodal_mobility_service"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "not_selected"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests mobility choices where private home charging cannot be assumed; public/shared charging and non-car links need evidence."
+    },
+    {
+      "profile_id": "GMA-HOT-DUST-REMOTE",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "hot_dusty_remote_service",
+      "context_constraints": [
+        "high_heat",
+        "dust_ingress",
+        "long_distance_between_services",
+        "sparse_repair_network",
+        "parts_lead_time_uncertain"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "field_research_or_conservation",
+        "public_service_operator"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "service_or_recovery_vehicle",
+        "all_terrain_ground_robot"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests heat/dust qualification and repair/service reach without claiming a specific region has these properties."
+    },
+    {
+      "profile_id": "GMA-COLD-HIGH-ALTITUDE",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "cold_high_altitude",
+      "context_constraints": [
+        "cold_start_or_range_loss",
+        "high_altitude",
+        "long_distance_between_services"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "family_household",
+        "public_service_operator"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "service_or_recovery_vehicle",
+        "all_terrain_ground_robot"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Requires declared cold/high-altitude energy and performance envelopes before the configuration can be recommended."
+    },
+    {
+      "profile_id": "GMA-HUMID-FLOOD",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "humid_flood_prone",
+      "context_constraints": [
+        "heavy_rain",
+        "flooding",
+        "corrosion",
+        "rough_or_unpaved_roads"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "small_business",
+        "emergency_response"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "low_speed_cargo_vehicle",
+        "service_or_recovery_vehicle"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Separates wet-weather, corrosion and flood capability claims; ordinary water resistance is not a flood-traversal qualification."
+    },
+    {
+      "profile_id": "GMA-MOUNTAIN-ROUGH-ROADS",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "mountain_rough_roads",
+      "context_constraints": [
+        "steep_grade",
+        "rough_or_unpaved_roads",
+        "long_distance_between_services",
+        "energy_access_unknown"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "public_service_operator",
+        "field_research_or_conservation"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "service_or_recovery_vehicle",
+        "all_terrain_ground_robot"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Requires platform-specific grade/braking/traction evidence and recovery access; terrain capability does not imply roadworthiness."
+    },
+    {
+      "profile_id": "GMA-RURAL-SPARSE-SERVICE",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "long_distance_rural_sparse_service",
+      "context_constraints": [
+        "long_distance_between_services",
+        "sparse_repair_network",
+        "parts_lead_time_uncertain",
+        "energy_access_unknown"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "small_business",
+        "public_service_operator"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "low_speed_cargo_vehicle",
+        "service_or_recovery_vehicle"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests total household mobility continuity and return-to-service, not just vehicle purchase cost."
+    },
+    {
+      "profile_id": "GMA-ISLAND-IMPORT-DEPENDENT",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "island_import_dependent",
+      "context_constraints": [
+        "import_or_shipping_dependency",
+        "parts_lead_time_uncertain",
+        "supply_disruption",
+        "local_regulations_not_assessed"
+      ],
+      "intended_user_segments": [
+        "family_household",
+        "small_business",
+        "community_shared_mobility"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "compact_urban_vehicle",
+        "low_speed_cargo_vehicle"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": true,
+      "expected_disposition": "block_global_availability_claim",
+      "rationale": "Negative control for import-dependent critical parts with no confirmed local service/lead-time evidence."
+    },
+    {
+      "profile_id": "GMA-WEAK-INTERMITTENT-GRID",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "weak_or_intermittent_grid",
+      "context_constraints": [
+        "weak_grid",
+        "intermittent_grid",
+        "energy_access_unknown",
+        "offline_required"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "public_service_operator",
+        "emergency_response"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "low_speed_cargo_vehicle",
+        "field_utility_robot"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "not_selected"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": true,
+      "expected_disposition": "block_global_availability_claim",
+      "rationale": "Negative control: never infer charging or reliable electricity from an EV label or nominal grid connection."
+    },
+    {
+      "profile_id": "GMA-LOW-BANDWIDTH-MULTILINGUAL",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "low_bandwidth_multilingual",
+      "context_constraints": [
+        "low_bandwidth",
+        "offline_required",
+        "multiple_local_languages"
+      ],
+      "intended_user_segments": [
+        "rural_household",
+        "independent_repair_provider",
+        "public_service_operator"
+      ],
+      "platform_families": [
+        "family_road_vehicle",
+        "all_terrain_ground_robot",
+        "service_or_recovery_vehicle"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests offline manual/diagnostic access, language coverage and safe degraded function without mandatory cloud access."
+    },
+    {
+      "profile_id": "GMA-DISASTER-INFRA-LOSS",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "disaster_infrastructure_disruption",
+      "context_constraints": [
+        "supply_disruption",
+        "intermittent_grid",
+        "parts_lead_time_uncertain",
+        "offline_required",
+        "energy_access_unknown"
+      ],
+      "intended_user_segments": [
+        "emergency_response",
+        "public_service_operator",
+        "rural_household"
+      ],
+      "platform_families": [
+        "service_or_recovery_vehicle",
+        "low_speed_cargo_vehicle",
+        "all_terrain_ground_robot",
+        "multimodal_mobility_service"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "not_selected"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": true,
+      "expected_disposition": "block_global_availability_claim",
+      "rationale": "Negative control: disrupted energy, communications and parts supply must remain explicit; do not assume emergency resources are available."
+    },
+    {
+      "profile_id": "GMA-CASH-FLOW-CONSTRAINED",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "cash_flow_constrained_purchase",
+      "context_constraints": [
+        "cash_flow_constraints",
+        "financing_access_uncertain",
+        "parts_lead_time_uncertain"
+      ],
+      "intended_user_segments": [
+        "cash_flow_constrained_household",
+        "rural_household",
+        "small_business"
+      ],
+      "platform_families": [
+        "compact_urban_vehicle",
+        "family_road_vehicle",
+        "community_shared_mobility",
+        "multimodal_mobility_service"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "human_assist"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests affordability against intended user segments and full cash-flow timing, not against one global sticker-price ceiling."
+    },
+    {
+      "profile_id": "GMA-MIXED-TRAFFIC-VRU",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "mixed_traffic_vulnerable_road_users",
+      "context_constraints": [
+        "mixed_traffic",
+        "vulnerable_road_user_exposure",
+        "local_regulations_not_assessed"
+      ],
+      "intended_user_segments": [
+        "urban_household_no_private_parking",
+        "delivery_operator",
+        "public_transit_user"
+      ],
+      "platform_families": [
+        "compact_urban_vehicle",
+        "low_speed_cargo_vehicle",
+        "community_shared_mobility",
+        "multimodal_mobility_service"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "human_assist"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Requires local traffic/context and vulnerable-road-user considerations; a vehicle-only score cannot establish socially safe deployment."
+    },
+    {
+      "profile_id": "GMA-ACCESSIBILITY-FIRST",
+      "profile_kind": "synthetic_archetype",
+      "archetype": "accessibility_oriented_passenger_service",
+      "context_constraints": [
+        "accessibility_diversity",
+        "multiple_local_languages",
+        "local_regulations_not_assessed"
+      ],
+      "intended_user_segments": [
+        "accessibility_needs",
+        "family_household",
+        "community_shared_mobility",
+        "public_transit_user"
+      ],
+      "platform_families": [
+        "accessible_mobility_vehicle",
+        "family_road_vehicle",
+        "community_shared_mobility",
+        "multimodal_mobility_service"
+      ],
+      "energy_options": [
+        "battery_electric",
+        "hybrid",
+        "liquid_fuel",
+        "not_selected"
+      ],
+      "market_stage": "not_assessed",
+      "infrastructure": {
+        "charging_access": "not_assessed",
+        "fuel_access": "not_assessed",
+        "grid_reliability": "not_assessed",
+        "service_network": "not_assessed",
+        "parts_logistics": "not_assessed",
+        "digital_connectivity": "not_assessed",
+        "observed_values_included": false
+      },
+      "affordability": {
+        "local_currency_code": null,
+        "price_status": "not_assessed",
+        "income_distribution_status": "not_assessed",
+        "ownership_cost_status": "not_assessed",
+        "target_segment_cost_threshold_frozen": false,
+        "unknowns_remain_unknown": true,
+        "required_cost_components": [
+          "acquisition",
+          "financing_cash_flow",
+          "energy",
+          "routine_maintenance",
+          "repair_parts",
+          "insurance_registration_tax",
+          "depreciation",
+          "downtime",
+          "fallback_transport",
+          "end_of_life"
+        ]
+      },
+      "regulatory": {
+        "jurisdiction_id": null,
+        "status": "not_assessed",
+        "requirements_to_check": [
+          "vehicle_or_robot_class",
+          "roadworthiness_or_operating_permit",
+          "battery_and_charging",
+          "radio_and_connectivity",
+          "environmental_obligations",
+          "operator_and_insurance",
+          "data_privacy_and_cybersecurity",
+          "product_liability",
+          "import_customs_and_tax"
+        ],
+        "standards_are_not_approval": true
+      },
+      "serviceability": {
+        "critical_parts_basket_status": "not_assessed",
+        "qualified_repair_coverage_status": "not_assessed",
+        "repair_manual_status": "not_assessed",
+        "offline_repair_docs_required": true,
+        "critical_procedure_coverage_percent": null,
+        "observed_data_included": false
+      },
+      "digital_access": {
+        "cloud_required_for_basic_function": false,
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
+      },
+      "language_access": {
+        "manual_language_status": "not_assessed",
+        "offline_manuals_required": true,
+        "language_list": [],
+        "local_units_support_required": true
+      },
+      "lifecycle": {
+        "end_of_life_status": "not_assessed",
+        "material_traceability_status": "not_assessed",
+        "repair_reuse_route_required": true,
+        "observed_impact_data_included": false
+      },
+      "required_evidence": [
+        "dated_local_price_and_tax",
+        "income_distribution_for_target_segment",
+        "whole_life_cost_basket",
+        "applicable_jurisdiction_compliance",
+        "compatible_energy_access",
+        "parts_price_and_lead_time",
+        "qualified_local_repair_capacity",
+        "local_language_repair_manuals",
+        "offline_operation_test",
+        "climate_and_terrain_profile",
+        "accessibility_and_user_consultation",
+        "end_of_life_route"
+      ],
+      "metrics": [
+        "acquisition_and_monthly_cost_burden",
+        "cost_by_income_quantile",
+        "energy_access_time",
+        "energy_cost_per_service",
+        "parts_lead_time_p50_p90",
+        "repair_downtime_p50_p90",
+        "climate_terrain_degradation",
+        "legal_evidence_coverage",
+        "offline_usability",
+        "local_language_manual_coverage",
+        "accessibility_task_completion",
+        "essential_trip_or_useful_work_continuity",
+        "supply_concentration",
+        "end_of_life_route_coverage",
+        "distributional_access_gap"
+      ],
+      "negative_control": false,
+      "expected_disposition": "requires_market_specific_evidence",
+      "rationale": "Tests consent-based accessibility tasks, ingress/egress, controls, caregiver/cargo interface and service access rather than assuming a universal body or cabin."
+    }
+  ]
+}
