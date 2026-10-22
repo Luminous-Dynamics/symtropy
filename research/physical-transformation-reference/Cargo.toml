@@ -41,4 +41,8 @@ path = "src/bin/beam-chain-modal-sweep-reference.rs"
 name = "beam-modal-uncertainty-reference"
 path = "src/bin/beam-modal-uncertainty-reference.rs"
 
+[[bin]]
+name = "beam-modal-uncertainty-reference"
+path = "src/bin/beam-modal-uncertainty-reference.rs"
+
 [workspace]
