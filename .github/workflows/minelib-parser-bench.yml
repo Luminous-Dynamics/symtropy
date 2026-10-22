@@ -1,0 +1,85 @@
+name: MineLib Parser Conformance Benchmark
+
+on:
+  push:
+    branches: ["feat/minelib-parser-bench-v0-1"]
+    paths:
+      - "docs/tech/MINELIB_PARSER_BENCHMARK_V0_1.md"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.json"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.block"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.prec"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.model"
+      - "tools/minelib-parser-bench/**"
+      - ".github/workflows/minelib-parser-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/MINELIB_PARSER_BENCHMARK_V0_1.md"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.json"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.block"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.prec"
+      - "docs/tech/minelib-parser-fixtures-v0.1.synthetic.model"
+      - "tools/minelib-parser-bench/**"
+      - ".github/workflows/minelib-parser-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minelib-parser-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/minelib-parser-bench/Cargo.toml -- --check
+      - name: Run parser and adversarial tests
+        run: cargo test --manifest-path tools/minelib-parser-bench/Cargo.toml
+      - name: Validate receipt at exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/minelib-parser-bench/Cargo.toml -- \
+            docs/tech/minelib-parser-fixtures-v0.1.synthetic.json \
+            --source-commit "$source_commit" > minelib-parser-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-REFERENCE-PARSER-001"
+            and .block_count == 5
+            and .precedence_rows == 5
+            and .precedence_edges == 3
+            and .expected_block_ids == [0,1,2,3,4]
+            and .audit_sum_attribute == "block_value_usd"
+            and .audit_sum_scale == 2
+            and .audit_sum_scaled == 25000050
+            and .model_type == "UPIT"
+            and .model_block_count == 5
+            and .discount_rate_scaled == 0
+            and .model_objective_scale == 2
+            and .model_objective_sum_scaled == 25000050
+            and .enumerated_subsets == 32
+            and .feasible_subsets == 12
+            and .optimum_selected_block_ids == [0,1,3,4]
+            and .optimum_objective_scaled == 25500050
+            and .independent_verifier_matches == true
+            and (.manifest_sha256 | test("^[0-9a-f]{64}$"))
+            and (.block_file_sha256 | test("^[0-9a-f]{64}$"))
+            and (.precedence_file_sha256 | test("^[0-9a-f]{64}$"))
+            and (.model_file_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+          ' minelib-parser-receipt.json

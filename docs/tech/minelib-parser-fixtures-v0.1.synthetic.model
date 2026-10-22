@@ -1,0 +1,11 @@
+% Authored synthetic optimization-model fixture; not a MineLib instance.
+NAME: synthetic_upit_fixture
+TYPE: UPIT
+NBLOCKS: 5
+DISCOUNT RATE: 0.00
+OBJECTIVE FUNCTION:
+0 150000.00
+1 25000.50
+2 -5000.00
+3 60000.00
+4 20000.00
