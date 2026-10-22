@@ -586,6 +586,11 @@ mod tests {
             assert!(pairs.iter().all(|pair| pair.mac.common_translation_dof_count == expected_translation_dofs));
             assert!(pairs.iter().all(|pair| pair.mac.common_rotation_dof_count == expected_rotation_dofs));
             assert!(pairs.iter().all(|pair| pair.mac.scaled_combined_mac.is_none_or(|score| (0.0..=1.0).contains(&score))));
+            let subspace = level.subspace_mac_from_previous.as_ref().expect("subspace correlation");
+            assert_eq!(subspace.subspace_dimension, REQUESTED_MODES);
+            assert!(subspace.mean_squared_principal_cosine.is_finite());
+            assert!((0.0..=1.0).contains(&subspace.mean_squared_principal_cosine));
+            assert!(level.subspace_mac_unresolved_reason.is_none());
         }
     }
 
