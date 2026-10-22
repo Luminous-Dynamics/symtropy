@@ -106,7 +106,7 @@
     {
       "id": "aad-fy2024-25-renewable-electricity-share-of-listed-generation",
       "metric": "renewable_share_of_diesel_plus_listed_renewable_generation",
-      "value": 0.151755,
+      "value": 0.15174611868667862,
       "unit": "fraction",
       "calculation": "1004020 / (5612426 + 1004020)",
       "rounding": "approximately 15.2%",
