@@ -6,7 +6,7 @@ use pcb_route_benchmark::{
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
     kicad_drc::verify_run_artifacts_with_kicad_drc_policy,
     pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files, verify_run_artifacts,
-    ValidatedRun,
+    verify_run_design_skeletons, ValidatedRun,
 };
 use std::{
     env, fs,
@@ -150,6 +150,23 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&receipt)
                 .map_err(|error| format!("cannot serialize dataset verification receipt: {error}"))
         }
+        [command, report_path, manifest_path, dataset_root, run_root]
+            if command == "verify-run-skeletons" =>
+        {
+            let report = fs::read(report_path)
+                .map_err(|error| format!("cannot read {report_path}: {error}"))?;
+            let manifest = fs::read(manifest_path)
+                .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
+            let receipt = verify_run_design_skeletons(
+                &report,
+                &manifest,
+                Path::new(dataset_root),
+                Path::new(run_root),
+                &evaluator_head,
+            )?;
+            serde_json::to_vec_pretty(&receipt)
+                .map_err(|error| format!("cannot serialize design-skeleton receipt: {error}"))
+        }
         [command, report_path, manifest_path, run_root] if command == "verify-run-artifacts" => {
             let report = fs::read(report_path)
                 .map_err(|error| format!("cannot read {report_path}: {error}"))?;
@@ -258,6 +275,20 @@ fn run() -> Result<Vec<u8>, String> {
                 &policy_bytes,
                 &evaluator_head,
             )?;
+            let baseline_skeleton = verify_run_design_skeletons(
+                &baseline_bytes,
+                &manifest_bytes,
+                Path::new(dataset_root),
+                Path::new(baseline_run_root),
+                &evaluator_head,
+            )?;
+            let treatment_skeleton = verify_run_design_skeletons(
+                &treatment_bytes,
+                &manifest_bytes,
+                Path::new(dataset_root),
+                Path::new(treatment_run_root),
+                &evaluator_head,
+            )?;
             let baseline = evaluate_report_bytes(
                 &baseline_bytes,
                 &manifest_bytes,
@@ -275,8 +306,10 @@ fn run() -> Result<Vec<u8>, String> {
                 "dataset_verification": dataset_receipt,
                 "baseline_native_evidence_verification": baseline_evidence,
                 "treatment_native_evidence_verification": treatment_evidence,
+                "baseline_design_skeleton_verification": baseline_skeleton,
+                "treatment_design_skeleton_verification": treatment_skeleton,
                 "comparison": comparison,
-                "authority": "dataset_bytes_native_kicad_drc_and_paired_routing_metrics_verified_under_declared_pins_only",
+                "authority": "dataset_bytes_native_kicad_drc_design_skeleton_and_paired_routing_metrics_verified_under_declared_pins_only",
                 "claim_ceiling": "This receipt joins verified dataset bytes, raw native KiCad DRC, and output-board digests to a paired geometric-routing comparison. It does not establish schematic intent beyond the configured checks, SI/PI, manufacturability, physical quality, safety, or production-release readiness."
             });
             serde_json::to_vec_pretty(&receipt)
@@ -296,7 +329,7 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
+        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-skeletons REPORT.json MANIFEST.json DATASET_ROOT RUN_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
     }
 }
 

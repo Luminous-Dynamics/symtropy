@@ -15,6 +15,7 @@ pub const COMPARISON_SCHEMA: &str = "pcb-route-paired-comparison-v0.1";
 pub const BOOTSTRAP_RESAMPLES: usize = 10_000;
 
 pub mod anytime;
+pub mod design_skeleton;
 pub mod kicad_drc;
 pub mod pcbworld_metrics;
 
@@ -103,6 +104,8 @@ pub struct BoardPin {
     pub license_evidence_source_commit_sha: Option<String>,
     #[serde(default)]
     pub license_evidence_git_blob_sha1: Option<String>,
+    #[serde(default)]
+    pub design_skeleton_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -356,6 +359,33 @@ pub struct RunArtifactVerificationReceipt {
     pub dataset_manifest_sha256: String,
     pub verified_artifact_count: usize,
     pub entries: Vec<RunArtifactVerificationEntry>,
+    pub authority: String,
+    pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct BoardDesignSkeletonVerification {
+    pub board_id: String,
+    pub input_board_sha256: String,
+    pub output_board_sha256: String,
+    pub input_skeleton_sha256: String,
+    pub output_skeleton_sha256: String,
+    pub skeleton_matches: bool,
+    pub excluded_output_segments: usize,
+    pub excluded_output_vias: usize,
+    pub excluded_output_routed_arcs: usize,
+    pub excluded_output_zone_fill_polygons: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct DesignSkeletonRunVerificationReceipt {
+    pub schema: String,
+    pub evaluator_git_head: String,
+    pub run_id: String,
+    pub input_report_sha256: String,
+    pub dataset_manifest_sha256: String,
+    pub verified_board_count: usize,
+    pub boards: Vec<BoardDesignSkeletonVerification>,
     pub authority: String,
     pub claim_ceiling: String,
 }
@@ -778,6 +808,12 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             {
                 return Err(format!("{}: external license evidence is incomplete", board.board_id));
             }
+            let skeleton_sha = board.design_skeleton_sha256.as_deref()
+                .ok_or_else(|| format!("{}: external manifest lacks design-skeleton SHA-256", board.board_id))?;
+            require_sha256(skeleton_sha, "design_skeleton_sha256")?;
+        }
+        if let Some(skeleton_sha) = board.design_skeleton_sha256.as_deref() {
+            require_sha256(skeleton_sha, "design_skeleton_sha256")?;
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
         if board.required_nets == 0 {
@@ -1033,6 +1069,8 @@ pub fn build_dataset_manifest(
         let bytes = fs::read(&actual_path)
             .map_err(|error| format!("{}: cannot read source board bytes: {error}", selection.board_id))?;
         let actual_board_sha = sha256_hex(&bytes);
+        let design_skeleton_sha256 = crate::design_skeleton::fingerprint_board_bytes(&bytes)?
+            .design_skeleton_sha256;
         let expected_board_sha = audited.prepared_board_sha256.as_deref()
             .ok_or_else(|| format!("{}: audit lacks prepared-board SHA-256", selection.board_id))?;
         require_sha256(expected_board_sha, "audit prepared_board_sha256")?;
@@ -1074,6 +1112,7 @@ pub fn build_dataset_manifest(
             license_evidence_url: Some(evidence.blob_url.clone()),
             license_evidence_source_commit_sha: Some(evidence.source_commit_sha.to_ascii_lowercase()),
             license_evidence_git_blob_sha1: Some(evidence.git_blob_sha1.clone()),
+            design_skeleton_sha256: Some(design_skeleton_sha256),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
@@ -1372,6 +1411,14 @@ pub fn verify_dataset_files(
         if board_sha != board.input_board_sha256 {
             return Err(format!("{}: source bytes SHA-256 does not match the pinned manifest", board.board_id));
         }
+        let computed_skeleton = crate::design_skeleton::fingerprint_board_bytes(&board_bytes)?;
+        if let Some(expected_skeleton) = board.design_skeleton_sha256.as_deref() {
+            if computed_skeleton.design_skeleton_sha256 != expected_skeleton {
+                return Err(format!("{}: source design-skeleton SHA-256 does not match the pinned manifest", board.board_id));
+            }
+        } else if manifest.evidence_class == "external_benchmark" {
+            return Err(format!("{}: external source board lacks a design-skeleton fingerprint", board.board_id));
+        }
         entries.push(DatasetFileVerificationEntry {
             board_id: board.board_id.clone(),
             role: "source_board".into(),
@@ -1583,6 +1630,112 @@ pub fn verify_run_artifacts(
         entries,
         authority: "run_report_paths_and_declared_output_digests_match_actual_file_bytes".into(),
         claim_ceiling: "This receipt proves that the declared output-board and DRC-report paths exist beneath the run root and match the report's SHA-256 values. It does not by itself prove the normalized DRC metrics were faithfully extracted, nor any physical quality, signal/power integrity, safety or production readiness.".into(),
+    })
+}
+
+pub fn verify_run_design_skeletons(
+    report_bytes: &[u8],
+    manifest_bytes: &[u8],
+    dataset_root: &Path,
+    run_root: &Path,
+    evaluator_git_head: &str,
+) -> Result<DesignSkeletonRunVerificationReceipt, String> {
+    let validated = evaluate_report_bytes(report_bytes, manifest_bytes, evaluator_git_head)?;
+    let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+
+    // Verify source files and all output hashes before comparing structural fingerprints.
+    let _dataset_verification =
+        verify_dataset_files(manifest_bytes, dataset_root, evaluator_git_head)?;
+    let _run_artifact_verification =
+        verify_run_artifacts(report_bytes, manifest_bytes, run_root, evaluator_git_head)?;
+
+    let source_root = dataset_root.canonicalize()
+        .map_err(|error| format!("cannot canonicalize dataset root: {error}"))?;
+    let output_root = run_root.canonicalize()
+        .map_err(|error| format!("cannot canonicalize run-artifact root: {error}"))?;
+    let mut boards = Vec::new();
+
+    for case in &validated.report.cases {
+        if case.execution_status != ExecutionStatus::Completed {
+            continue;
+        }
+        let pin = manifest.boards.iter()
+            .find(|board| board.board_id == case.board_id)
+            .ok_or_else(|| format!("{}: board is missing from the pinned manifest", case.board_id))?;
+        let source_relative = pin.relative_path.as_deref()
+            .ok_or_else(|| format!("{}: source board path is missing from the manifest", case.board_id))?;
+        let output_relative = case.output_board_relative_path.as_deref()
+            .ok_or_else(|| format!("{}: routed output path is missing", case.board_id))?;
+        validate_relative_path(source_relative, &case.board_id)?;
+        validate_artifact_relative_path(output_relative, &case.board_id)?;
+
+        let source_path = source_root.join(source_relative).canonicalize()
+            .map_err(|error| format!("{}: cannot resolve source board: {error}", case.board_id))?;
+        if !source_path.starts_with(&source_root) || !source_path.is_file() {
+            return Err(format!("{}: source board escapes dataset root or is not a file", case.board_id));
+        }
+        let output_path = output_root.join(output_relative).canonicalize()
+            .map_err(|error| format!("{}: cannot resolve routed board: {error}", case.board_id))?;
+        if !output_path.starts_with(&output_root) || !output_path.is_file() {
+            return Err(format!("{}: routed board escapes run root or is not a file", case.board_id));
+        }
+
+        let source_bytes = fs::read(&source_path)
+            .map_err(|error| format!("{}: cannot read source board bytes: {error}", case.board_id))?;
+        let output_bytes = fs::read(&output_path)
+            .map_err(|error| format!("{}: cannot read routed board bytes: {error}", case.board_id))?;
+        let comparison = crate::design_skeleton::compare_board_design_skeletons(
+            &source_bytes,
+            &output_bytes,
+        ).map_err(|error| format!("{}: design-skeleton parser rejected source/output: {error}", case.board_id))?;
+
+        if let Some(expected) = pin.design_skeleton_sha256.as_deref() {
+            if comparison.input.design_skeleton_sha256 != expected {
+                return Err(format!(
+                    "{}: input design-skeleton digest does not match the pinned manifest",
+                    case.board_id
+                ));
+            }
+        } else if manifest.evidence_class == "external_benchmark" {
+            return Err(format!(
+                "{}: external benchmark manifest is missing the source design-skeleton digest",
+                case.board_id
+            ));
+        }
+        if !comparison.skeleton_matches {
+            return Err(format!(
+                "{}: routed output changed the design skeleton (input={}, output={})",
+                case.board_id,
+                comparison.input.design_skeleton_sha256,
+                comparison.output.design_skeleton_sha256
+            ));
+        }
+        boards.push(BoardDesignSkeletonVerification {
+            board_id: case.board_id.clone(),
+            input_board_sha256: comparison.input.board_sha256,
+            output_board_sha256: comparison.output.board_sha256,
+            input_skeleton_sha256: comparison.input.design_skeleton_sha256,
+            output_skeleton_sha256: comparison.output.design_skeleton_sha256,
+            skeleton_matches: comparison.skeleton_matches,
+            excluded_output_segments: comparison.output.excluded_segments,
+            excluded_output_vias: comparison.output.excluded_vias,
+            excluded_output_routed_arcs: comparison.output.excluded_routed_arcs,
+            excluded_output_zone_fill_polygons: comparison.output.excluded_zone_fill_polygons,
+        });
+    }
+    boards.sort_by(|left, right| left.board_id.cmp(&right.board_id));
+
+    Ok(DesignSkeletonRunVerificationReceipt {
+        schema: "pcb-route-design-skeleton-run-verification-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        run_id: validated.report.run_id,
+        input_report_sha256: sha256_hex(report_bytes),
+        dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        verified_board_count: boards.len(),
+        boards,
+        authority: "source_and_output_native_board_design_skeletons_match_under_pinned_manifest".into(),
+        claim_ceiling: "This receipt guards structural design invariants while copper is routed. It is not a complete semantic equivalence proof, DRC pass, SI/PI signoff, manufacturing qualification, physical quality, safety, or production-release authority.".into(),
     })
 }
 
@@ -2754,7 +2907,7 @@ mod tests {
         for (id, spdx, evidence_path, commit_char) in evidence_blobs {
             std::fs::create_dir_all(root.join(id)).unwrap();
             let board_relative = format!("{id}/processed_v9_guide_v3.kicad_pcb");
-            let board_bytes = format!("synthetic board fixture bytes: {id}\n");
+            let board_bytes = format!(r#"(kicad_pcb (version 20241229) (generator "pcbnew") (layers (0 "F.Cu" signal) (25 "Edge.Cuts" user)) (net 0 "") (net 1 "VCC") (footprint "AtomFab:Connector" (layer "F.Cu") (at 10 10) (property "Reference" "{id}") (pad "1" thru_hole rect (at 0 0) (size 1.7 1.7) (drill 1) (layers "*.Cu" "*.Mask") (net 1 "VCC"))) (gr_rect (start 0 0) (end 20 10) (layer "Edge.Cuts")))"#);
             std::fs::write(root.join(&board_relative), board_bytes.as_bytes()).unwrap();
             let license_bytes = format!("SYNTHETIC license-evidence fixture text for {spdx}\n");
             std::fs::write(root.join(evidence_path), license_bytes.as_bytes()).unwrap();
@@ -2922,7 +3075,7 @@ mod tests {
         let mut bad_path = intake.clone();
         bad_path.boards[0].license_evidence_relative_path = "../outside.txt".into();
         assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&bad_path).unwrap(), &root)
-            .unwrap_err().contains("traversal"));
+            .unwrap_err().contains("unsafe dataset-relative source path"));
 
         let mut alias = intake.clone();
         alias.boards[1].license_evidence_relative_path = alias.boards[0].license_evidence_relative_path.clone();
@@ -3356,6 +3509,130 @@ mod tests {
         assert!(is_commit_sha(&"b".repeat(64)));
         assert!(!is_commit_sha(&"g".repeat(40)));
         assert!(!is_commit_sha(&"a".repeat(39)));
+    }
+
+
+    #[test]
+    fn verified_run_requires_output_design_skeleton_to_match_pinned_source() {
+        fn synthetic_board(reference: &str) -> String {
+            format!(
+                r#"(kicad_pcb
+                  (version 20241229)
+                  (generator "pcbnew")
+                  (layers (0 "F.Cu" signal) (25 "Edge.Cuts" user))
+                  (setup (net_class "Default" "" (clearance 0.2) (trace_width 0.5)))
+                  (net 0 "") (net 1 "VCC")
+                  (footprint "AtomFab:Connector" (layer "F.Cu") (at 10 10)
+                    (property "Reference" "{reference}")
+                    (pad "1" thru_hole rect (at 0 0) (size 1.7 1.7) (drill 1)
+                      (layers "*.Cu" "*.Mask") (net 1 "VCC")))
+                  (gr_rect (start 0 0) (end 20 10) (layer "Edge.Cuts"))
+                )"#
+            )
+        }
+
+        fn with_route(source: &str) -> String {
+            let end = source.rfind(')').expect("board root close");
+            format!(
+                "{} (segment (start 10 10) (end 12 10) (width 0.5) (layer \"F.Cu\") (net 1)){}",
+                &source[..end],
+                &source[end..]
+            )
+        }
+
+        let temp = std::env::temp_dir().join(format!(
+            "pcb-route-skeleton-integration-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&temp);
+        let dataset_root = temp.join("dataset");
+        let run_root = temp.join("run");
+        std::fs::create_dir_all(dataset_root.join("inputs")).unwrap();
+        std::fs::create_dir_all(run_root.join("outputs")).unwrap();
+        std::fs::create_dir_all(run_root.join("drc")).unwrap();
+
+        let mut manifest: serde_json::Value = serde_json::from_str(MANIFEST).unwrap();
+        let mut report: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
+        let mut source_by_id = BTreeMap::new();
+        for pin in manifest["boards"].as_array_mut().unwrap() {
+            let id = pin["board_id"].as_str().unwrap().to_string();
+            let source = synthetic_board(&id);
+            let relative = format!("inputs/{id}.kicad_pcb");
+            std::fs::write(dataset_root.join(&relative), source.as_bytes()).unwrap();
+            let fp = crate::design_skeleton::fingerprint_board_bytes(source.as_bytes()).unwrap();
+            pin["relative_path"] = serde_json::Value::String(relative);
+            pin["input_board_sha256"] = serde_json::Value::String(fp.board_sha256);
+            pin["design_skeleton_sha256"] =
+                serde_json::Value::String(fp.design_skeleton_sha256);
+            source_by_id.insert(id, source);
+        }
+
+        for case in report["cases"].as_array_mut().unwrap() {
+            let id = case["board_id"].as_str().unwrap().to_string();
+            case["input_board_sha256"] =
+                manifest["boards"].as_array().unwrap().iter()
+                    .find(|pin| pin["board_id"] == id).unwrap()["input_board_sha256"].clone();
+            if case["execution_status"] != "completed" {
+                case["output_board_relative_path"] = serde_json::Value::Null;
+                case["output_board_sha256"] = serde_json::Value::Null;
+                case["drc_report_relative_path"] = serde_json::Value::Null;
+                case["drc_report_sha256"] = serde_json::Value::Null;
+                continue;
+            }
+            let source = source_by_id.get(&id).unwrap();
+            let output = with_route(source);
+            let output_relative = format!("outputs/{id}.kicad_pcb");
+            let drc_relative = format!("drc/{id}.json");
+            let drc = format!(r#"{{"synthetic_fixture":true,"board_id":"{id}"}}"#);
+            std::fs::write(run_root.join(&output_relative), output.as_bytes()).unwrap();
+            std::fs::write(run_root.join(&drc_relative), drc.as_bytes()).unwrap();
+            case["output_board_relative_path"] = serde_json::Value::String(output_relative);
+            case["output_board_sha256"] = serde_json::Value::String(sha256_hex(output.as_bytes()));
+            case["drc_report_relative_path"] = serde_json::Value::String(drc_relative);
+            case["drc_report_sha256"] = serde_json::Value::String(sha256_hex(drc.as_bytes()));
+        }
+
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).unwrap();
+        report["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(&manifest_bytes));
+        let report_bytes = serde_json::to_vec_pretty(&report).unwrap();
+        let receipt = verify_run_design_skeletons(
+            &report_bytes,
+            &manifest_bytes,
+            &dataset_root,
+            &run_root,
+            EVALUATOR_HEAD,
+        ).expect("route-only edits preserve the source skeleton");
+        assert_eq!(receipt.verified_board_count, 4);
+        assert!(receipt.boards.iter().all(|board| board.skeleton_matches));
+        assert!(receipt.boards.iter().all(|board| board.excluded_output_segments == 1));
+
+        // A changed placement is rejected even when the report is updated to
+        // truthfully hash the modified output file.
+        let first = report["cases"].as_array().unwrap().iter()
+            .find(|case| case["execution_status"] == "completed").unwrap();
+        let relative = first["output_board_relative_path"].as_str().unwrap();
+        let output_path = run_root.join(relative);
+        let output = std::fs::read_to_string(&output_path).unwrap();
+        let changed = output.replacen("(at 10 10)", "(at 10.5 10)", 1);
+        assert_ne!(output, changed);
+        std::fs::write(&output_path, changed.as_bytes()).unwrap();
+        let target_id = first["board_id"].as_str().unwrap().to_string();
+        for case in report["cases"].as_array_mut().unwrap() {
+            if case["board_id"] == target_id {
+                case["output_board_sha256"] = serde_json::Value::String(sha256_hex(changed.as_bytes()));
+            }
+        }
+        let tampered_report = serde_json::to_vec_pretty(&report).unwrap();
+        assert!(verify_run_design_skeletons(
+            &tampered_report,
+            &manifest_bytes,
+            &dataset_root,
+            &run_root,
+            EVALUATOR_HEAD,
+        ).unwrap_err().contains("changed the design skeleton"));
+
+        let _ = std::fs::remove_dir_all(&temp);
     }
 
     #[test]

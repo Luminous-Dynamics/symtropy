@@ -440,3 +440,12 @@ A route policy is not credited with a positive result if it improves clean-pass 
 5. any stretch target (e.g. +5 absolute clean-pass points, or faster time-to-first-clean) only on a frozen held-out split and only if rule fidelity is equal or improved.
 
 The new cross-project item is [PCB-DRC-FIDELITY-001 #2626](https://github.com/Luminous-Dynamics/symtropy/issues/2626). This is distinct from the license-intake gate (#2613) and design-skeleton gate (#2609): it freezes the constraints against which copper is judged.
+
+
+## Design-skeleton invariance across routing
+
+A routing score is invalid if the method changed the board it was asked to route. For external schema-v0.2 manifests, every source board therefore carries a design-skeleton SHA-256 derived from the exact source file. The parser preserves footprints/placement, pads and net assignments, net classes/rules, layers, outline, zone settings and unknown structures. It excludes only recognized root-level segments, vias, net-assigned routed arcs, and generated zone-fill polygons. A recognized but incomplete route primitive or malformed S-expression fails closed.
+
+The verified run path re-hashes source and output bytes, computes their skeletons, and rejects a completed route if the fingerprints differ—even when the output digest is truthful and the native DRC policy passes. Baseline and treatment only enter the verified comparison after each separately passes this invariant. See [PCB design-skeleton invariant v0.1](PCB_DESIGN_SKELETON_INVARIANT_V0_1.md) and [PCB-SKELETON-001 #2609](https://github.com/Luminous-Dynamics/symtropy/issues/2609).
+
+This is a structural guard, not complete KiCad semantic equivalence; it preserves non-routing node ordering and may conservatively reject some semantically equivalent reserialized boards. Do not broaden exclusions just to clear a test. Matching skeleton is also not SI/PI or physical qualification; native DRC and source-rule fidelity remain separate gates.
