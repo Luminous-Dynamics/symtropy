@@ -358,6 +358,7 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
                     // Access experience persists when the currently retained
                     // state is revised; successful outcome value is retained
                     // as a heuristic signal and is not treated as ground truth.
+                    updated.write_step = old.write_step; // keyed update does not refresh FIFO admission order
                     updated.last_access_step = old.last_access_step;
                     updated.access_count = old.access_count;
                     updated.writes_while_resident =
@@ -684,6 +685,20 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn fifo_update_does_not_refresh_admission_order() {
+        let events = [
+            Event::Write { key: 0, revision: 1 },
+            Event::Write { key: 1, revision: 1 },
+            Event::Write { key: 0, revision: 2 },
+            Event::Write { key: 2, revision: 1 },
+        ];
+        let replayed = replay(&events, Policy::Fifo, 2);
+        assert!(!replayed.entries.iter().any(|entry| entry.key == 0));
+        assert!(replayed.entries.iter().any(|entry| entry.key == 1));
+        assert!(replayed.entries.iter().any(|entry| entry.key == 2));
     }
 
     #[test]
