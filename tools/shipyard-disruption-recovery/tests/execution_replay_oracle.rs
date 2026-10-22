@@ -6,7 +6,8 @@
 use std::collections::BTreeMap;
 
 use shipyard_disruption_recovery::execution::{
-    ExecutionEvent, ExecutionEventKind, PlannedOperation, replay_execution,
+    ExecutionEvent, ExecutionEventKind, ExecutionReplayCutoff, PlannedOperation,
+    replay_execution,
 };
 
 const CASES: usize = 512;
@@ -95,11 +96,19 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             }
         }
 
-        let cutoff = u64::from(pick(&mut state, 34));
+        let as_of_recorded_tick = u64::from(pick(&mut state, 34));
+        let as_of_occurred_tick = u64::from(pick(&mut state, 34));
         if !events.is_empty() && pick(&mut state, 2) == 0 {
             events.reverse();
         }
-        let report = replay_execution(&plan, &events, cutoff);
+        let report = replay_execution(
+            &plan,
+            &events,
+            ExecutionReplayCutoff {
+                as_of_occurred_tick,
+                as_of_recorded_tick,
+            },
+        );
         assert!(
             report.evidence_valid,
             "case produced invalid evidence: {report:?}"
@@ -109,7 +118,9 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         let mut completions: BTreeMap<&str, u64> = BTreeMap::new();
         let mut recording_latency = 0u128;
         for item in &events {
-            if item.recorded_tick > cutoff {
+            if item.recorded_tick > as_of_recorded_tick
+                || item.occurred_tick > as_of_occurred_tick
+            {
                 continue;
             }
             recording_latency += u128::from(item.recorded_tick - item.occurred_tick);
@@ -123,8 +134,34 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             }
         }
 
-        let expected_missing_starts = plan.len() - starts.len();
-        let expected_missing_completions = plan.len() - completions.len();
+        let expected_missing_starts = plan
+            .iter()
+            .filter(|operation| {
+                operation.planned_start_tick <= as_of_occurred_tick
+                    && !starts.contains_key(operation.operation_id.as_str())
+            })
+            .count();
+        let expected_missing_completions = plan
+            .iter()
+            .filter(|operation| {
+                operation.planned_end_tick <= as_of_occurred_tick
+                    && !completions.contains_key(operation.operation_id.as_str())
+            })
+            .count();
+        let expected_not_yet_due_to_start = plan
+            .iter()
+            .filter(|operation| {
+                operation.planned_start_tick > as_of_occurred_tick
+                    && !starts.contains_key(operation.operation_id.as_str())
+            })
+            .count();
+        let expected_not_yet_due_to_complete = plan
+            .iter()
+            .filter(|operation| {
+                operation.planned_end_tick > as_of_occurred_tick
+                    && !completions.contains_key(operation.operation_id.as_str())
+            })
+            .count();
         let expected_fully_observed = plan
             .iter()
             .filter(|operation| {
@@ -200,9 +237,22 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             .sum::<u128>();
         let visible_count = events
             .iter()
-            .filter(|item| item.recorded_tick <= cutoff)
+            .filter(|item| {
+                item.recorded_tick <= as_of_recorded_tick
+                    && item.occurred_tick <= as_of_occurred_tick
+            })
             .count();
-        let held_back_count = events.len() - visible_count;
+        let held_back_by_recorded_count = events
+            .iter()
+            .filter(|item| item.recorded_tick > as_of_recorded_tick)
+            .count();
+        let held_back_by_occurrence_count = events
+            .iter()
+            .filter(|item| {
+                item.recorded_tick <= as_of_recorded_tick
+                    && item.occurred_tick > as_of_occurred_tick
+            })
+            .count();
 
         assert_eq!(report.metrics.planned_operations, plan.len());
         assert_eq!(report.metrics.operations_started, starts.len());
@@ -223,6 +273,14 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         assert_eq!(
             report.metrics.missing_completion_events,
             expected_missing_completions
+        );
+        assert_eq!(
+            report.metrics.operations_not_yet_due_to_start,
+            expected_not_yet_due_to_start
+        );
+        assert_eq!(
+            report.metrics.operations_not_yet_due_to_complete,
+            expected_not_yet_due_to_complete
         );
         assert_eq!(
             report.metrics.total_start_lateness_ticks,
@@ -251,7 +309,11 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         assert_eq!(report.metrics.events_considered, visible_count);
         assert_eq!(
             report.metrics.events_held_back_by_recorded_time,
-            held_back_count
+            held_back_by_recorded_count
+        );
+        assert_eq!(
+            report.metrics.events_held_back_by_occurrence_time,
+            held_back_by_occurrence_count
         );
 
         cases += 1;
