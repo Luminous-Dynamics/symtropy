@@ -592,10 +592,11 @@ mod tests {
         assert_eq!(result.reason_codes, vec!["UNKNOWN_FIELD"]);
 
         let mut candidate = baseline_candidate();
-        candidate
+        let removed = candidate
             .as_object_mut()
             .expect("candidate object")
             .remove("independent_stop_required");
+        assert!(removed.is_some());
         let result = evaluate_candidate(&candidate, "HMR0-TOOL-MOUNT-V0");
         assert_eq!(result.disposition, REJECTED);
         assert_eq!(result.reason_codes, vec!["REQUIRED_FIELD_MISSING"]);
