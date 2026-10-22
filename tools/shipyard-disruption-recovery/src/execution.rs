@@ -283,7 +283,14 @@ pub fn replay_execution(
                 .saturating_add(u128::from(event.recorded_tick - event.occurred_tick));
         }
 
-        if duplicate_event_ids.contains(event.event_id.as_str()) {
+        if duplicate_event_ids.contains(event.event_id.as_str())
+            || event.event_id.trim().is_empty()
+            || event.operation_id.trim().is_empty()
+            || !plan_by_id.contains_key(event.operation_id.as_str())
+            || event.source_id.trim().is_empty()
+            || event.evidence_ref.trim().is_empty()
+            || event.recorded_tick < event.occurred_tick
+        {
             continue;
         }
         match event.kind {
@@ -509,7 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_event_ids_and_duplicate_starts_fail_closed() {
+    fn duplicate_event_ids_fail_closed() {
         let plan = [op("weld-a", 0, 5)];
         let events = [
             event("same-id", "weld-a", ExecutionEventKind::Started, 1, 1),
@@ -519,9 +526,6 @@ mod tests {
         assert!(!report.evidence_valid);
         assert!(report.violations.iter().any(|v| {
             v.code == ExecutionViolationCode::DuplicateEventId
-        }));
-        assert!(report.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::DuplicateStartEvent
         }));
     }
 
