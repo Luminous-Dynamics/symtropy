@@ -39,6 +39,14 @@ fn expected_node_ids(mesh: &ccx_mms_p1_mesh::Mesh) -> Vec<usize> {
     mesh.nodes.iter().map(|node| node.id).collect()
 }
 
+fn validate_deck_identity(actual: &str, expected: &str) -> Result<(), String> {
+    if actual.as_bytes() == expected.as_bytes() {
+        Ok(())
+    } else {
+        Err("input deck differs byte-for-byte from the deterministic frozen MMS generator".to_owned())
+    }
+}
+
 fn parse_field(
     dat_text: &str,
     node_ids: &[usize],
@@ -162,12 +170,7 @@ fn run() -> Result<(), String> {
     let expected_deck = mesh
         .to_calculix_input_deck(problem, DECK_QUADRATURE_ORDER)
         .map_err(|error| format!("deterministic reference deck generation failed: {error:?}"))?;
-    if deck_text.as_bytes() != expected_deck.as_bytes() {
-        return Err(
-            "input deck differs byte-for-byte from the deterministic frozen MMS generator"
-                .to_owned(),
-        );
-    }
+    validate_deck_identity(&deck_text, &expected_deck)?;
 
     let dat_text = fs::read_to_string(&dat_path)
         .map_err(|error| format!("cannot read DAT file {dat_path}: {error}"))?;
@@ -342,6 +345,19 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exact_generated_deck_is_accepted_and_tampered_deck_fails_closed() {
+        let mesh = generate_mesh(4).unwrap();
+        let expected = mesh
+            .to_calculix_input_deck(ManufacturedProblem::reference(), DECK_QUADRATURE_ORDER)
+            .unwrap();
+        assert!(validate_deck_identity(&expected, &expected).is_ok());
+
+        let tampered = expected.replacen("*CLOAD", "*DLOAD", 1);
+        assert_ne!(tampered.as_bytes(), expected.as_bytes());
+        assert!(validate_deck_identity(&tampered, &expected).is_err());
+    }
 
     #[test]
     fn node_id_helpers_remain_deterministic() {
