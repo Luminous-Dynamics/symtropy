@@ -32,7 +32,8 @@ Expected controls:
 - Configured stations expose a nonzero outage fraction; nonmembers expose zero.
 - No-outage catalog behavior reports null config and zero outage metrics.
 - Same catalog/seed/build is deterministic.
-- Adding the outage cannot increase completed output over the matched no-outage scenario, under this fixture's identical keyed processing and quality streams.
+- The test pairs no-outage and outage baseline outputs by the same 20 seed IDs and reports finite per-seed deltas. It does not require a monotonic throughput result: queueing, dispatch and finite-horizon interactions can change observed outputs, so the sign must be measured rather than assumed.
+- The causal event trace carries all four expected transition times: 600 s start, 900 s end, 2,400 s start, 2,700 s end, with the exact same configured station group on each event.
 - Invalid group membership and overlapping outage windows fail closed.
 
 These are software/model-contract claims. The fixture is short and synthetic; they are not estimates of factory downtime or throughput loss.
