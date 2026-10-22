@@ -1,0 +1,76 @@
+name: Terrain Mobility Contract Audit
+
+on:
+  push:
+    branches: ["feat/terrain-mobility-energy-gate-audit-v0-1"]
+    paths:
+      - "docs/tech/TERRAIN_MOBILITY_PORTFOLIO_BENCHMARK_V0_1.md"
+      - "fixtures/terrain_mobility/terrain_mobility_scenarios_v0_1.json"
+      - "schemas/transport/terrain_mobility_scenario_v0_1.schema.json"
+      - "tools/terrain-mobility-audit/**"
+      - ".github/workflows/terrain-mobility-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/TERRAIN_MOBILITY_PORTFOLIO_BENCHMARK_V0_1.md"
+      - "fixtures/terrain_mobility/terrain_mobility_scenarios_v0_1.json"
+      - "schemas/transport/terrain_mobility_scenario_v0_1.schema.json"
+      - "tools/terrain-mobility-audit/**"
+      - ".github/workflows/terrain-mobility-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrain-mobility-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # pinned action revision
+        with:
+          toolchain: 1.96.0
+
+      - name: Test independent contract auditor
+        run: cargo test --manifest-path tools/terrain-mobility-audit/Cargo.toml
+
+      - name: Audit frozen corpus at exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/terrain-mobility-audit/Cargo.toml -- \
+            fixtures/terrain_mobility/terrain_mobility_scenarios_v0_1.json \
+            --source-commit "$source_commit" > terrain-mobility-audit-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 37
+            and .negative_control_count == 15
+            and (.canonical_corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+            and ([.scenarios[] | select(.result != "pass")] | length == 0)
+            and (.decision_counts | has("run_within_declared_envelope"))
+            and (.decision_counts | has("abort_or_retreat_safely"))
+            and (.decision_counts | has("reject_as_out_of_domain"))
+            and (.decision_counts | has("require_explicit_human_choice"))
+            and (.decision_counts | has("keep_unknown_unresolved"))
+          ' terrain-mobility-audit-receipt.json
+
+      - name: Upload exact-head contract receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # upload-artifact v4.6.2
+        with:
+          name: terrain-mobility-audit-receipt
+          path: terrain-mobility-audit-receipt.json
+          if-no-files-found: error
