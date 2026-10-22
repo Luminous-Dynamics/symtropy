@@ -384,6 +384,66 @@ mod tests {
     }
 
     #[test]
+    fn one_element_cantilever_fundamental_matches_analytic_beam_frequency() {
+        use crate::beam_element::euler_bernoulli_frame_element;
+        use crate::modal_bar::generalized_symmetric_eigenpairs;
+
+        let length_m = 1.0_f64;
+        let radius_m = 0.01_f64;
+        let area_m2 = std::f64::consts::PI * radius_m.powi(2);
+        let second_moment_m4 = std::f64::consts::PI * radius_m.powi(4) / 4.0;
+        let youngs_modulus_pa = 210.0e9_f64;
+        let density_kg_m3 = 7800.0_f64;
+        let element = euler_bernoulli_frame_element(
+            length_m,
+            area_m2,
+            youngs_modulus_pa,
+            density_kg_m3,
+            second_moment_m4,
+        )
+        .expect("one-element cantilever beam matrices");
+
+        // Cantilever boundary conditions: all root coordinates fixed. Only
+        // tip transverse displacement and rotation remain in the bending
+        // generalized eigenproblem; the axial tip DOF is a separate block.
+        let free = [4_usize, 5_usize];
+        let stiffness = free
+            .iter()
+            .map(|row| {
+                free.iter()
+                    .map(|col| element.stiffness_local[*row][*col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mass = free
+            .iter()
+            .map(|row| {
+                free.iter()
+                    .map(|col| element.mass_local[*row][*col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let eigenpairs = generalized_symmetric_eigenpairs(&stiffness, &mass)
+            .expect("cantilever bending eigenpairs");
+        assert_eq!(eigenpairs.len(), 2);
+        let frequency_hz = eigenpairs[0].0.sqrt() / (2.0 * std::f64::consts::PI);
+
+        // Continuum Euler-Bernoulli cantilever: beta_1 = 1.875104068711961
+        // is the first positive root of cosh(beta)*cos(beta) = -1.
+        let beta_1 = 1.875104068711961_f64;
+        let reference_hz = beta_1.powi(2)
+            / (2.0 * std::f64::consts::PI * length_m.powi(2))
+            * (youngs_modulus_pa * second_moment_m4
+                / (density_kg_m3 * area_m2))
+                .sqrt();
+        let relative_error = (frequency_hz - reference_hz).abs() / reference_hz;
+        assert!(
+            relative_error < 5.0e-3,
+            "single-element cantilever relative frequency error {relative_error:.17e}"
+        );
+    }
+
+    #[test]
     fn modal_assurance_criterion_is_sign_invariant_and_fail_closed() {
         let reference = [0.0, 0.25, -0.5, 1.0, -0.25];
         let exact_opposite = reference.map(|value| -value);
