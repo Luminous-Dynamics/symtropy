@@ -56,6 +56,7 @@ enum Policy {
     Rarity,
     RiskOnly,
     RiskAwareAccess,
+    CostAware,
 }
 
 impl Policy {
@@ -66,6 +67,7 @@ impl Policy {
         Self::Rarity,
         Self::RiskOnly,
         Self::RiskAwareAccess,
+        Self::CostAware,
     ];
 
     fn label(self) -> &'static str {
@@ -76,6 +78,7 @@ impl Policy {
             Self::Rarity => "rarity_by_write_frequency",
             Self::RiskOnly => "source_risk_only",
             Self::RiskAwareAccess => "source_risk_plus_access",
+            Self::CostAware => "risk_reacquisition_cost_plus_access",
         }
     }
 }
@@ -89,6 +92,7 @@ struct Entry {
     access_count: u32,
     writes_while_resident: u32,
     risk_band: u8,
+    reacquisition_cost: u8,
 }
 
 impl Entry {
@@ -101,6 +105,7 @@ impl Entry {
             access_count: 0,
             writes_while_resident: 1,
             risk_band: source_risk_band(key),
+            reacquisition_cost: source_reacquisition_cost(key),
         }
     }
 }
@@ -117,6 +122,17 @@ fn source_risk_band(key: u8) -> u8 {
 
 // Evaluator-side action utility intentionally has a different interface from
 // the selector. A hit on a higher-consequence fact matters more to the score.
+fn source_reacquisition_cost(key: u8) -> u8 {
+    match key {
+        3 => 4,
+        7 => 8,
+        10 => 5,
+        11 => 4,
+        _ => 1 + (key % 3),
+    }
+}
+
+// Evaluator-side utility is not available to the online selector.
 fn evaluator_impact(key: u8) -> i64 {
     match key {
         2 => 3,
@@ -311,6 +327,10 @@ fn entry_score(entry: &Entry, policy: Policy, now: u32) -> i64 {
         Policy::RiskOnly => i64::from(entry.risk_band) * 10_000,
         Policy::RiskAwareAccess => i64::from(entry.risk_band) * 10_000
             + i64::from(entry.access_count.min(1_000)) * 1_000
+            + i64::from(entry.last_access_step.min(999)),
+        Policy::CostAware => i64::from(entry.risk_band) * 10_000
+            + i64::from(entry.reacquisition_cost) * 2_000
+            + i64::from(entry.access_count.min(1_000)) * 200
             + i64::from(entry.last_access_step.min(999)),
     }
 }
