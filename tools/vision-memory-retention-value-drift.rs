@@ -126,7 +126,7 @@ fn evaluator_impact(key: u8) -> i64 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Event {
+enum OnlineEvent {
     Write { key: u8, revision: u16 },
     Query { key: u8 },
 }
@@ -236,7 +236,7 @@ fn sample_key(rng: &mut Rng, weights: &[u32; KEY_COUNT]) -> u8 {
     unreachable!("weighted sample must select a key")
 }
 
-fn build_online_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT], Rng) {
+fn build_online_stream(workload: Workload, seed: u64) -> (Vec<OnlineEvent>, [u16; KEY_COUNT], Rng) {
     let mut rng = Rng::new(seed);
     let historical_weights = query_weights(workload, false);
     let mut current_revision = [0_u16; KEY_COUNT];
@@ -244,7 +244,7 @@ fn build_online_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_
 
     for key in 0..KEY_COUNT {
         current_revision[key] = 1;
-        events.push(Event::Write {
+        events.push(OnlineEvent::Write {
             key: key as u8,
             revision: 1,
         });
@@ -262,13 +262,13 @@ fn build_online_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_
                 rng.below(KEY_COUNT) as u8
             };
             current_revision[key as usize] = current_revision[key as usize].saturating_add(1);
-            events.push(Event::Write {
+            events.push(OnlineEvent::Write {
                 key,
                 revision: current_revision[key as usize],
             });
         } else {
             let key = sample_key(&mut rng, &historical_weights);
-            events.push(Event::Query {
+            events.push(OnlineEvent::Query {
                 key,
             });
         }
@@ -342,7 +342,7 @@ struct Replay {
     evictions: u64,
 }
 
-fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
+fn replay(events: &[OnlineEvent], policy: Policy, budget: usize) -> Replay {
     assert!(budget > 0);
     let mut entries: Vec<Entry> = Vec::with_capacity(budget);
     let mut comparisons = 0_u64;
@@ -352,7 +352,7 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
     for (step, event) in events.iter().enumerate() {
         let now = step as u32 + 1;
         match *event {
-            Event::Write { key, revision } => {
+            OnlineEvent::Write { key, revision } => {
                 writes += 1;
                 if let Some(idx) = entries.iter().position(|entry| entry.key == key) {
                     let old = entries[idx];
@@ -375,7 +375,7 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
                     entries.push(Entry::new(key, revision, now));
                 }
             }
-            Event::Query { key } => {
+            OnlineEvent::Query { key } => {
                 if let Some(entry) = entries.iter_mut().find(|entry| entry.key == key) {
                     entry.last_access_step = now;
                     entry.access_count = entry.access_count.saturating_add(1);
@@ -508,7 +508,8 @@ fn report() -> String {
     let mut out = String::new();
     out.push_str("META\tformat\tVIS-MEM-021-v0.1\n");
     out.push_str("META\tscope\tfinite synthetic online-retention value diagnostic; not native robot performance\n");
-    out.push_str("META\tfuture_query_visibility\tfuture trace is evaluator-only and starts after the frozen memory snapshot\n");
+    out.push_str("META\tonline_query_input\tonline events carry query key only; no evaluator revision or utility label\n");
+    out.push_str("META\tfuture_query_visibility\tfuture trace is evaluator-only and starts after all policy snapshots freeze\n");
     out.push_str("META\toracle\tclairvoyant fixed-budget upper bound; diagnostic only; never passed to selectors\n");
     out.push_str(&format!("META\tseeds\t{SEEDS}\n"));
     out.push_str(&format!("META\tonline_steps\t{ONLINE_STEPS}\n"));
@@ -618,10 +619,10 @@ mod tests {
     #[test]
     fn online_replay_snapshot_is_independent_of_future_trace() {
         let events = [
-            Event::Write { key: 0, revision: 1 },
-            Event::Write { key: 11, revision: 1 },
-            Event::Query { key: 11 },
-            Event::Write { key: 2, revision: 1 },
+            OnlineEvent::Write { key: 0, revision: 1 },
+            OnlineEvent::Write { key: 11, revision: 1 },
+            OnlineEvent::Query { key: 11 },
+            OnlineEvent::Write { key: 2, revision: 1 },
         ];
         let future_a = [FutureQuery { key: 0, truth_revision: 1 }];
         let future_b = [FutureQuery { key: 11, truth_revision: 1 }];
@@ -686,10 +687,10 @@ mod tests {
     #[test]
     fn fifo_update_does_not_refresh_admission_order() {
         let events = [
-            Event::Write { key: 0, revision: 1 },
-            Event::Write { key: 1, revision: 1 },
-            Event::Write { key: 0, revision: 2 },
-            Event::Write { key: 2, revision: 1 },
+            OnlineEvent::Write { key: 0, revision: 1 },
+            OnlineEvent::Write { key: 1, revision: 1 },
+            OnlineEvent::Write { key: 0, revision: 2 },
+            OnlineEvent::Write { key: 2, revision: 1 },
         ];
         let replayed = replay(&events, Policy::Fifo, 2);
         assert!(!replayed.entries.iter().any(|entry| entry.key == 0));
