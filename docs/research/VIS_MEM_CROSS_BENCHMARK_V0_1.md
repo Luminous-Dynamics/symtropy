@@ -179,3 +179,35 @@ A stored trajectory is evidence of what worked from one start state and one rout
 The new [VIS-MEM-011 task #2593](https://github.com/Luminous-Dynamics/symtropy/issues/2593) and [PR #2594](https://github.com/Luminous-Dynamics/symtropy/pull/2594) introduce an independently authored Rust graph diagnostic. It compares trajectory replay, nearest-demo replay, constraint-aware replanning, and a guarded hybrid under matched/shifted starts, route changes, distractor demonstrations, and disconnected goals.
 
 A successful synthetic run will only validate the graph/memory semantics. Native MemTransfer claims require the official model, assets, environment and grader to be pinned and executed; otherwise use an eligible public navigation benchmark and label it separately.
+
+
+## Recurrent fixed-state comparator with executable source: MemBodied
+
+The 2026-10-22 research sweep verified an official public implementation for [MemBodied](https://github.com/declare-lab/MemBodied). Main resolved to `e268134a9e5c4b99a4607b92f466f25d784b3f26`; repository license is Apache-2.0, with separately licensed vendored/dependency components recorded in `THIRD_PARTY_NOTICES.md`.
+
+MemBodied combines a learned fixed-size associative state updated after action outcomes with a fixed episode-initial scene anchor. The policy reads this state during action generation; its memory footprint does not grow with episode length at a fixed rank/configuration. This is an important competing design to Symtropy's external provenance-bearing event ledger and task-conditioned retrieval.
+
+The official README/project reports:
+- RMBench five-task mean: MemBodied 50.0%, compared with 6.4% for stateless π₀ and 16.8% for vanilla recurrent memory.
+- π₀.5 RMBench comparison: 48.0% for the MemBodied configuration versus 12.4% for the π₀.5 baseline in that report.
+- LIBERO-Long: 90.6% versus 85.2% for stateless π₀.
+- Three physical-robot tasks: 16/60 successful trials versus 2/60 for the stateless baseline.
+- Same-A100 project-reported inference measurements: 129.2 ms mean policy cycle for MemBodied versus 1,593.7 ms for NativeMEM, with peak GPU allocation 18.61 GiB versus 20.57 GiB. The project says the latency comparison pools four tasks after excluding warm-up queries.
+
+These are the official project's paper/README results, not Symtropy measurements or a general leaderboard ranking. They do not imply every memory task is solved, and RMBench, LIBERO-Long, physical trials, MIKASA, RoboMME, EMem-Bench and MemTransfer remain different protocols.
+
+The code is available, but the README explicitly says trained checkpoints and benchmark datasets are not bundled. Reproduction therefore requires selecting the precise backend/config, obtaining the approved dataset/assets, training or obtaining an eligible checkpoint, recording compute and code/data provenance, and executing the native grader. Do not call a source-code audit a result reproduction.
+
+### What Symtropy should compare
+
+Once the synthetic lifecycle/intervention tests qualify, a focused apples-to-apples experiment should compare:
+1. no memory;
+2. fixed-state recurrent memory plus first-scene anchor (MemBodied if checkpoint and environment are available);
+3. bounded external episodic retrieval (matching-session baseline);
+4. provenance-aware relational/event store;
+5. fixed hybrid combining the strongest simple options;
+6. task-conditioned router.
+
+Hold the eligible backbone and action executor fixed wherever the implementation allows. If learned memory requires retraining weights, report training compute and do not label the result a memory-only inference ablation unless all other training/evaluation factors match.
+
+The architectural research question becomes: **can a small recurrent summary serve as a fast working state while an external, provenance-rich store handles rare retrieval, contradiction resolution and transfer?** Test recurrent-only, external-only, and combination at matched inference/resource budgets. A hybrid is worthwhile only if it improves the success/cost frontier or repairs clearly identified failure slices without obscuring regressions.
