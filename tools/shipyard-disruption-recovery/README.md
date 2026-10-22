@@ -38,9 +38,16 @@ This is a finite robustness envelope, not a probabilistic guarantee over disturb
 
 
 
+## Pareto selection without hidden weights
+
+`pareto_recovery_candidates` compares only robustly accepted candidates. It publishes separate objectives for worst-case recovery horizon, makespan, changed placement/transfer count, unaffected placement/transfer churn, time shift and rectangle-edge displacement. One candidate dominates another only when it is no worse on every published objective and strictly better on at least one. A candidate failing any scenario is excluded from the frontier; empty or duplicate candidate IDs invalidate the comparison. Equal-scoring alternatives may both remain on the frontier.
+
+This intentionally avoids inventing a single weighted score. Yard managers can review the frontier and state explicit business preferences rather than letting an undocumented coefficient trade away resilience, stability or schedule time. This is not a proof that the current objective set is complete: cost, emissions, lift energy, risk and downstream vessel-delivery penalties need properly sourced models before they can be added.
+
+
 ## Tests authored in V0
 
-Fourteen unit tests cover:
+Seventeen unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
