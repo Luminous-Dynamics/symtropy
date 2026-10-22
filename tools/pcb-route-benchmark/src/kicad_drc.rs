@@ -785,4 +785,40 @@ mod tests {
         .unwrap_err()
         .contains("invalid or incomplete"));
     }
+
+    #[test]
+    fn pinned_kicad_policy_fixtures_have_canonical_git_blob_ids() {
+        let policies = [
+            (
+                include_bytes!("../fixtures/kicad-drc-routing-policy-9_0_8-v0_1.json").as_slice(),
+                "9.0.8",
+            ),
+            (
+                include_bytes!("../fixtures/kicad-drc-routing-policy-v0_1.json").as_slice(),
+                "9.0.9",
+            ),
+        ];
+        for (bytes, version) in policies {
+            let policy: KicadDrcRoutingPolicy =
+                serde_json::from_slice(bytes).expect("version-pinned policy JSON");
+            assert_eq!(policy.kicad_version, version);
+            assert_eq!(
+                policy.schema_source_blob_sha1,
+                "3db8d82fc807c0690fd231eea9aefdb562576ce4"
+            );
+            assert_eq!(
+                policy.taxonomy_source_blob_sha1,
+                "f6822d5faf1ad17f859d6c8eb13eb85c917f1f61"
+            );
+            assert_eq!(policy.schema_source_blob_sha1.len(), 40);
+            assert_eq!(policy.taxonomy_source_blob_sha1.len(), 40);
+            assert!(
+                policy.schema_source_url.contains(&format!("/{version}/resources/schemas/drc.v1.json"))
+            );
+            assert!(
+                policy.taxonomy_source_url.contains(&format!("/{version}/pcbnew/drc/drc_item.cpp"))
+            );
+        }
+    }
+
 }
