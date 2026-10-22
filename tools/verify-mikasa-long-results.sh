@@ -167,7 +167,7 @@ mkdir -p "$RECEIPT_DIR"
   printf '%s\t%s\n' "$summary_digest" "summary.json"
 } > "$RECEIPT_DIR/source-json-sha256.tsv"
 
-sha256sum "$RECEIPT_DIR/scorecard.tsv" "$RECEIPT_DIR/source-json-sha256.tsv" > "$RECEIPT_DIR/receipt.sha256"
+(cd "$RECEIPT_DIR" && sha256sum scorecard.tsv source-json-sha256.tsv > receipt.sha256)
 echo "MIKASA_VERIFY_PASS: contract_validated_not_performance_evaluated"
 echo "Scorecard: $RECEIPT_DIR/scorecard.tsv"
 echo "Receipt: $RECEIPT_DIR/receipt.sha256"
