@@ -57,78 +57,15 @@ jobs:
           /tmp/vis-mem-transfer-bench > vis-mem-transfer.tsv
           /tmp/vis-mem-transfer-bench > vis-mem-transfer-repeat.tsv
           cmp vis-mem-transfer.tsv vis-mem-transfer-repeat.tsv
-          grep -Fq 
+          grep -Fq $'META\tformat\tVIS-MEM-011-v0.1' vis-mem-transfer.tsv
+          grep -Fq $'META\tevaluator_only\tordered waypoint truth' vis-mem-transfer.tsv
+          grep -Fq $'MATRIX_SUMMARY_HEADER\tpolicy' vis-mem-transfer.tsv
+          grep -Fq $'MATRIX_SUMMARY\tguarded_hybrid\tall' vis-mem-transfer.tsv
+          grep -Fq $'METRIC\tmatched_open\treplay_first' vis-mem-transfer.tsv
           grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
           grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
           grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
           awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 14) exit 1; n++ } $1 == "MATRIX_SUMMARY_HEADER" { if (NF != 11) exit 1; s++ } $1 == "MATRIX_SUMMARY" { if (NF != 11) exit 1; m++ } END { if (h != 1 || n != 1000 || s != 1 || m != 25) exit 1 }' vis-mem-transfer.tsv
-          sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
-          sha256sum -c vis-mem-transfer.sha256
-
-      - name: Upload exact-head transfer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-011-transfer-report
-          path: |
-            vis-mem-transfer.tsv
-            vis-mem-transfer.sha256
-          if-no-files-found: error
-META\tevaluator_only\tordered waypoint truth' vis-mem-transfer.tsv
-          grep -Fq 
-          grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
-          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
-          sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
-          sha256sum -c vis-mem-transfer.sha256
-
-      - name: Upload exact-head transfer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-011-transfer-report
-          path: |
-            vis-mem-transfer.tsv
-            vis-mem-transfer.sha256
-          if-no-files-found: error
-MATRIX_SUMMARY_HEADER\tpolicy' vis-mem-transfer.tsv
-          grep -Fq 
-          grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
-          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
-          sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
-          sha256sum -c vis-mem-transfer.sha256
-
-      - name: Upload exact-head transfer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-011-transfer-report
-          path: |
-            vis-mem-transfer.tsv
-            vis-mem-transfer.sha256
-          if-no-files-found: error
-MATRIX_SUMMARY\tguarded_hybrid\tall' vis-mem-transfer.tsv
-          grep -Fq 
-          grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
-          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
-          sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
-          sha256sum -c vis-mem-transfer.sha256
-
-      - name: Upload exact-head transfer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-011-transfer-report
-          path: |
-            vis-mem-transfer.tsv
-            vis-mem-transfer.sha256
-          if-no-files-found: error
-METRIC\tmatched_open\treplay_first' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
-          grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
-          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
           sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
           sha256sum -c vis-mem-transfer.sha256
 
