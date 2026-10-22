@@ -126,7 +126,8 @@
             "required": [
               "status",
               "oracle_outcome",
-              "violation_count"
+              "violation_count",
+              "reference_outcome"
             ],
             "properties": {
               "status": {
@@ -155,6 +156,14 @@
               "evidence_sha256": {
                 "type": "string",
                 "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "reference_outcome": {
+                "enum": [
+                  "feasible",
+                  "infeasible",
+                  "unknown",
+                  "not-applicable"
+                ]
               }
             }
           },
