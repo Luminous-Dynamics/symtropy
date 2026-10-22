@@ -440,7 +440,7 @@ fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, St
         .ok_or_else(|| "exact_oracle_found_no_feasible_acyclic_schedule".to_string())?;
     Ok(ExactOracleSummary {
         algorithm: "exhaustive_machine_assignment_and_machine_sequence_enumeration".into(),
-        setup_semantics: "non-anticipatory transition setup; first operation on a machine has zero setup".into(),
+        setup_semantics: "anticipatory setup; start=max(job_ready, machine_predecessor_completion+transition_setup); first operation on a machine has zero setup".into(),
         candidate_assignment_sequence_combinations: accumulator
             .candidate_assignment_sequence_combinations,
         feasible_acyclic_schedules: accumulator.feasible_acyclic_schedules,
@@ -582,6 +582,20 @@ fn candidate_is_better(candidate: &OracleCandidate, incumbent: &OracleCandidate)
                     && candidate.machine_sequences < incumbent.machine_sequences)))
 }
 
+fn earliest_processing_start(
+    job_predecessor_completion: Option<u64>,
+    machine_predecessor_completion: Option<u64>,
+    transition_setup: u64,
+) -> Option<u64> {
+    let job_ready = job_predecessor_completion.unwrap_or(0);
+    let machine_ready = match machine_predecessor_completion {
+        Some(completion) => completion.checked_add(transition_setup)?,
+        None if transition_setup == 0 => 0,
+        None => return None,
+    };
+    Some(job_ready.max(machine_ready))
+}
+
 fn evaluate_machine_sequences(
     parsed: &ParsedInstance,
     machine_ids: &[usize],
@@ -644,14 +658,15 @@ fn evaluate_machine_sequences(
     let mut visited = 0usize;
 
     while let Some(operation_id) = ready.pop_front() {
-        let mut predecessor_completion = 0u64;
-        if let Some(predecessor) = machine_predecessor[operation_id] {
-            predecessor_completion = predecessor_completion.max(completion_times[predecessor]);
-        }
-        if let Some(predecessor) = job_predecessor[operation_id] {
-            predecessor_completion = predecessor_completion.max(completion_times[predecessor]);
-        }
-        let processing_start = predecessor_completion.checked_add(setup_before[operation_id])?;
+        let job_completion =
+            job_predecessor[operation_id].map(|predecessor| completion_times[predecessor]);
+        let machine_completion =
+            machine_predecessor[operation_id].map(|predecessor| completion_times[predecessor]);
+        let processing_start = earliest_processing_start(
+            job_completion,
+            machine_completion,
+            setup_before[operation_id],
+        )?;
         let completion_time = processing_start.checked_add(processing_times[operation_id])?;
         completion_times[operation_id] = completion_time;
         schedule_by_operation[operation_id] = Some(OperationSchedule {
@@ -717,6 +732,14 @@ mod tests {
         assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (3, 8));
         assert_eq!(parsed.operations[0].machine_options[0].machine_id_upstream, 1);
         assert_eq!(parsed.operations[0].machine_options[0].processing_time, 25);
+    }
+
+    #[test]
+    fn setup_can_overlap_job_wait_under_anticipatory_reference_semantics() {
+        assert_eq!(earliest_processing_start(Some(10), Some(3), 5), Some(10));
+        assert_eq!(earliest_processing_start(Some(4), Some(10), 5), Some(15));
+        assert_eq!(earliest_processing_start(Some(7), None, 0), Some(7));
+        assert_eq!(earliest_processing_start(Some(7), None, 1), None);
     }
 
     #[test]
