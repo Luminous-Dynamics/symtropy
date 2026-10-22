@@ -8,8 +8,8 @@
 //! decide a structure is safe, include geometric nonlinearity, or perform a
 //! complete NAFEMS NBC05 beam-model reproduction.
 
-use crate::Check;
 use crate::beam_element::{Matrix6, euler_bernoulli_frame_element, transform_element_to_global};
+use crate::Check;
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_NODES: usize = 128;
