@@ -32,7 +32,7 @@
       "runtime_ms": 0.67,
       "peak_memory_bytes": 4096,
       "verifier": {
-        "status": "passed",
+        "status": "failed",
         "oracle_outcome": "mismatch",
         "reference_outcome": "feasible",
         "violation_count": 0,
