@@ -204,7 +204,7 @@ fn choose_next_question(
         QuestionPolicy::FixedIdentifierOrder | QuestionPolicy::ExhaustivePairwiseOrder => {
             available_questions
                 .iter()
-                .min_by_key(|question| question.question_id.as_str())
+                .min_by_key(|question| question.question_id.clone())
                 .map(|question| (**question).clone())
                 .ok_or_else(|| PolicyEvaluationError::NoReachableAnswer {
                     question_id: "<none>".to_owned(),
@@ -215,7 +215,7 @@ fn choose_next_question(
             .min_by_key(|question| {
                 (
                     stable_order_hash(context.seed, &question.question_id),
-                    question.question_id.as_str(),
+                    question.question_id.clone(),
                 )
             })
             .map(|question| (**question).clone())
@@ -249,7 +249,7 @@ fn choose_next_question(
                         Reverse(question.worst_case_regret_reduction_units),
                         question.query_cost_units,
                         question.query_duration_units,
-                        question.question_id.as_str(),
+                        question.question_id.clone(),
                     )
                 })
                 .and_then(|result| {
