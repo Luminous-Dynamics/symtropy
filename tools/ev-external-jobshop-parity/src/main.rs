@@ -938,15 +938,13 @@ fn build_greedy_schedule(
                     .ok_or_else(|| {
                         format!("greedy_policy_{}_missing_job_predecessor", rule.name())
                     })?;
-                scheduled[predecessor.operation_id]
-                    .as_ref()
-                    .map(|entry| entry.completion_time)
-                    .ok_or_else(|| {
-                        format!(
-                            "greedy_policy_{}_selected_operation_before_predecessor",
-                            rule.name()
-                        )
-                    })?
+                let Some(predecessor_schedule) = scheduled[predecessor.operation_id].as_ref() else {
+                    // Operations whose job precedence is not yet satisfied are not
+                    // candidates this iteration; another ready operation must be
+                    // selected before this operation can enter the candidate set.
+                    continue;
+                };
+                predecessor_schedule.completion_time
             };
 
             for option in &operation.machine_options {
