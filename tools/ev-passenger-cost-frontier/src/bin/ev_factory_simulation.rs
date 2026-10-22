@@ -117,6 +117,8 @@ struct Report {
     scenario_statistics: Vec<ScenarioStatistics>,
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    flow_time_statistics: Vec<FlowTimeStatistics>,
+    flow_time_cohort_accounting_valid: bool,
     paired_common_cause_control_outage_baseline_comparison: Option<PairedOutageComparison>,
     structural_robust_intervention_summary: Option<StructuralRobustInterventionSummary>,
     measured_horizon_seconds: u64,
@@ -167,6 +169,7 @@ struct ScenarioResult {
     source_buffer_average_units: f64,
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
+    flow_time: FlowTimeRunSummary,
     common_cause_control_outage_config: Option<CommonCauseControlOutage>,
     common_cause_control_outage_trace: Vec<CommonCauseControlOutageTraceEvent>,
     common_cause_control_outage_starts_after_warmup: u64,
@@ -190,6 +193,46 @@ struct DistributionSummary {
     maximum: f64,
     mean_confidence_95_lower: Option<f64>,
     mean_confidence_95_upper: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeObservationSummary {
+    sample_count: usize,
+    mean_seconds: f64,
+    p50_seconds: f64,
+    p90_seconds: f64,
+    p95_seconds: f64,
+    p99_seconds: f64,
+    maximum_seconds: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeRunSummary {
+    release_cohort_jobs: u64,
+    completed_good_jobs: u64,
+    completed_scrap_jobs: u64,
+    right_censored_jobs_at_horizon: u64,
+    cohort_accounting_valid: bool,
+    completed_good_flow_time_seconds: Option<FlowTimeObservationSummary>,
+    completed_scrap_flow_time_seconds: Option<FlowTimeObservationSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeStatistics {
+    scenario_id: String,
+    replications_with_good_flow_time_observations: usize,
+    good_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p99_seconds_across_replications: Option<DistributionSummary>,
+    replications_with_scrap_flow_time_observations: usize,
+    scrap_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
+    release_cohort_jobs: DistributionSummary,
+    completed_good_jobs: DistributionSummary,
+    completed_scrap_jobs: DistributionSummary,
+    right_censored_jobs_at_horizon: DistributionSummary,
+    right_censored_fraction_of_release_cohort: Option<DistributionSummary>,
+    cohort_accounting_valid: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -310,6 +353,7 @@ struct StationResult {
 #[derive(Debug, Clone)]
 struct Job {
     id: u64,
+    released_at_seconds: u64,
     variant: usize,
     queued_since_seconds: u64,
 }
@@ -377,6 +421,9 @@ struct SimState {
     supplier_backlog_wip_area: f64,
     next_job_id: u64,
     released_jobs_total: u64,
+    release_cohort_jobs: u64,
+    completed_good_flow_times_seconds: Vec<f64>,
+    completed_scrap_flow_times_seconds: Vec<f64>,
     good_units_total: u64,
     measured_good_units: u64,
     scrapped_jobs_total: u64,
@@ -739,6 +786,55 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    let mut flow_time_statistics = Vec::with_capacity(report.scenario_count);
+    for scenario_index in 0..report.scenario_count {
+        let first_scenario = &runs[0].scenarios[scenario_index];
+        let flow_summaries: Vec<&FlowTimeRunSummary> = runs
+            .iter()
+            .map(|run| &run.scenarios[scenario_index].flow_time)
+            .collect();
+        let good_mean: Vec<f64> = flow_summaries.iter()
+            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.mean_seconds))
+            .collect();
+        let good_p95: Vec<f64> = flow_summaries.iter()
+            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.p95_seconds))
+            .collect();
+        let good_p99: Vec<f64> = flow_summaries.iter()
+            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.p99_seconds))
+            .collect();
+        let scrap_mean: Vec<f64> = flow_summaries.iter()
+            .filter_map(|summary| summary.completed_scrap_flow_time_seconds.as_ref().map(|value| value.mean_seconds))
+            .collect();
+        let scrap_p95: Vec<f64> = flow_summaries.iter()
+            .filter_map(|summary| summary.completed_scrap_flow_time_seconds.as_ref().map(|value| value.p95_seconds))
+            .collect();
+        let release_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.release_cohort_jobs as f64).collect();
+        let good_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.completed_good_jobs as f64).collect();
+        let scrap_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.completed_scrap_jobs as f64).collect();
+        let censored_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.right_censored_jobs_at_horizon as f64).collect();
+        let censor_fractions: Vec<f64> = flow_summaries.iter()
+            .filter(|summary| summary.release_cohort_jobs > 0)
+            .map(|summary| summary.right_censored_jobs_at_horizon as f64 / summary.release_cohort_jobs as f64)
+            .collect();
+        flow_time_statistics.push(FlowTimeStatistics {
+            scenario_id: first_scenario.scenario_id.clone(),
+            replications_with_good_flow_time_observations: good_mean.len(),
+            good_flow_time_mean_seconds_across_replications: optional_distribution_summary(&good_mean)?,
+            good_flow_time_p95_seconds_across_replications: optional_distribution_summary(&good_p95)?,
+            good_flow_time_p99_seconds_across_replications: optional_distribution_summary(&good_p99)?,
+            replications_with_scrap_flow_time_observations: scrap_mean.len(),
+            scrap_flow_time_mean_seconds_across_replications: optional_distribution_summary(&scrap_mean)?,
+            scrap_flow_time_p95_seconds_across_replications: optional_distribution_summary(&scrap_p95)?,
+            release_cohort_jobs: summarize_distribution(&release_counts)?,
+            completed_good_jobs: summarize_distribution(&good_counts)?,
+            completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
+            right_censored_jobs_at_horizon: summarize_distribution(&censored_counts)?,
+            right_censored_fraction_of_release_cohort: optional_distribution_summary(&censor_fractions)?,
+            cohort_accounting_valid: flow_summaries.iter().all(|summary| summary.cohort_accounting_valid),
+        });
+    }
+    report.flow_time_statistics = flow_time_statistics;
+    report.flow_time_cohort_accounting_valid = runs.iter().all(|run| run.scenarios.iter().all(|scenario| scenario.flow_time.cohort_accounting_valid));
     let mut replication_outcomes = Vec::with_capacity(runs.len() * report.scenario_count);
     for run in &runs {
         let baseline = run
@@ -1164,6 +1260,8 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_statistics: Vec::new(),
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        flow_time_statistics: Vec::new(),
+        flow_time_cohort_accounting_valid: scenarios.iter().all(|scenario| scenario.flow_time.cohort_accounting_valid),
         paired_common_cause_control_outage_baseline_comparison: None,
         structural_robust_intervention_summary: None,
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
@@ -1227,6 +1325,9 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         supplier_backlog_wip_area: 0.0,
         next_job_id: 0,
         released_jobs_total: 0,
+        release_cohort_jobs: 0,
+        completed_good_flow_times_seconds: Vec::new(),
+        completed_scrap_flow_times_seconds: Vec::new(),
         good_units_total: 0,
         measured_good_units: 0,
         scrapped_jobs_total: 0,
@@ -1259,8 +1360,12 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let id = state.next_job_id;
                 state.next_job_id += 1;
                 state.released_jobs_total += 1;
+                if state.now >= catalog.warmup_seconds {
+                    state.release_cohort_jobs += 1;
+                }
                 state.supplier_backlog.push_back(Job {
                     id,
+                    released_at_seconds: state.now,
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
                     queued_since_seconds: state.now,
@@ -1343,6 +1448,16 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
+    let right_censored_jobs_at_horizon =
+        count_right_censored_jobs(&state, catalog.warmup_seconds)?;
+    let completed_good_flow_time_seconds =
+        summarize_flow_time_seconds(&state.completed_good_flow_times_seconds)?;
+    let completed_scrap_flow_time_seconds =
+        summarize_flow_time_seconds(&state.completed_scrap_flow_times_seconds)?;
+    let flow_time_cohort_accounting_valid = state.release_cohort_jobs
+        == state.completed_good_flow_times_seconds.len() as u64
+            + state.completed_scrap_flow_times_seconds.len() as u64
+            + right_censored_jobs_at_horizon;
 
     let measured_seconds = catalog.horizon_seconds - catalog.warmup_seconds;
     let good_per_hour = state.measured_good_units as f64 / measured_seconds as f64 * 3600.0;
@@ -1444,6 +1559,15 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         ),
         interstation_buffers,
         stations: station_results,
+        flow_time: FlowTimeRunSummary {
+            release_cohort_jobs: state.release_cohort_jobs,
+            completed_good_jobs: state.completed_good_flow_times_seconds.len() as u64,
+            completed_scrap_jobs: state.completed_scrap_flow_times_seconds.len() as u64,
+            right_censored_jobs_at_horizon,
+            cohort_accounting_valid: flow_time_cohort_accounting_valid,
+            completed_good_flow_time_seconds,
+            completed_scrap_flow_time_seconds,
+        },
         common_cause_control_outage_config: catalog.common_cause_control_outage.clone(),
         common_cause_control_outage_trace: state.common_cause_control_outage_trace.clone(),
         common_cause_control_outage_starts_after_warmup: state
@@ -1641,6 +1765,11 @@ fn complete_operation(
         };
     } else {
         state.scrapped_jobs_total += 1;
+        if job.released_at_seconds >= catalog.warmup_seconds {
+            state.completed_scrap_flow_times_seconds.push(
+                state.now.saturating_sub(job.released_at_seconds) as f64,
+            );
+        }
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
                 .metrics
@@ -1756,6 +1885,11 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     state.good_units_total += 1;
                     if state.now >= catalog.warmup_seconds {
                         state.measured_good_units += 1;
+                    }
+                    if job.released_at_seconds >= catalog.warmup_seconds {
+                        state.completed_good_flow_times_seconds.push(
+                            state.now.saturating_sub(job.released_at_seconds) as f64,
+                        );
                     }
                 } else {
                     let mut queued_job = job;
@@ -2257,6 +2391,7 @@ mod tests {
     fn job(id: u64, variant: usize, queued_since_seconds: u64) -> Job {
         Job {
             id,
+            released_at_seconds: queued_since_seconds,
             variant,
             queued_since_seconds,
         }
