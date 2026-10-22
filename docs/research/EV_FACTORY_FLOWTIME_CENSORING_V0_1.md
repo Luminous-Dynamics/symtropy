@@ -34,9 +34,10 @@ When a replication has no completed good output, its good-flow summary is `null`
 ## Frozen controls
 
 - Exact interpolation test for P50, P90, P95 and P99 on the known sample `[1,2,3,4]`.
+- End-to-end DES known answer: a two-station line with fixed 10 s and 20 s cycles, one released product, zero changeovers, effectively zero failure probability and full yield must complete in exactly 30 s.
 - Negative controls reject negative or non-finite flow times.
-- A 500-second synthetic horizon forces unfinished jobs and checks cohort conservation, positive censor counts and unavailable completed-good quantiles.
-- The existing 20-seed baseline checks per-replication cohort invariants, seed-level aggregation shape and deterministic replay.
+- A 500-second synthetic horizon forces unfinished jobs and checks cohort conservation, positive censor counts, observed age count matching the censored-job count, and unavailable completed-good quantiles.
+- The existing 20-seed baseline checks per-replication cohort invariants, seed-level aggregation shape, right-censored age summaries and deterministic replay.
 - Flow-time output remains synthetic and does not change any release or safety gate.
 
 ## Comparison and research context
