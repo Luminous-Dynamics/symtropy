@@ -472,8 +472,8 @@ fn validate_build_manifest(build: &Value) -> Check<()> {
     {
         return Err("build manifest does not match the pinned CCX source/build profile".to_owned());
     }
-    if build.get("arpack_enabled").and_then(Value::as_bool) != Some(false) {
-        return Err("v0.1 static-bar profile must explicitly disable ARPACK".to_owned());
+    if build.get("arpack_enabled").and_then(Value::as_bool) != Some(true) {
+        return Err("v0.1 static-bar profile must explicitly enable ARPACK support".to_owned());
     }
     field_sha(build, "ccx_executable_sha256", "build manifest")?;
     field_sha(build, "toolchain_manifest_sha256", "build manifest")?;
@@ -482,13 +482,13 @@ fn validate_build_manifest(build: &Value) -> Check<()> {
         .get("build_config")
         .and_then(Value::as_object)
         .ok_or_else(|| "build_manifest.build_config must be an object".to_owned())?;
-    if config.get("with_pardiso").and_then(Value::as_bool) != Some(false)
+    if config.get("with_pardiso").and_then(Value::as_bool) != Some(true)
         || config.get("with_pastix").and_then(Value::as_bool) != Some(false)
-        || config.get("with_arpack").and_then(Value::as_bool) != Some(false)
+        || config.get("with_arpack").and_then(Value::as_bool) != Some(true)
         || config.get("with_mt").and_then(Value::as_bool) != Some(true)
     {
         return Err(
-            "build config does not match the declared SPOOLES-only static-bar profile".to_owned(),
+            "build config does not match the pinned SPOOLES plus PARDISO/ARPACK static-bar profile".to_owned(),
         );
     }
     Ok(())
@@ -1360,11 +1360,11 @@ U
           "ccx_source_url":"http://www.dhondt.de/ccx_2.22.src.tar.bz2",
           "ccx_source_sha256":"3a94dcc775a31f570229734b341d6b06301ebdc759863df901c8b9bf1854c0bc",
           "spooles_sha256":"a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd",
-          "arpack_enabled":false,
+          "arpack_enabled":true,
           "ccx_executable_sha256":"1111111111111111111111111111111111111111111111111111111111111111",
           "toolchain_manifest_sha256":"2222222222222222222222222222222222222222222222222222222222222222",
           "build_log_sha256":"3333333333333333333333333333333333333333333333333333333333333333",
-          "build_config":{"with_pardiso":false,"with_pastix":false,"with_arpack":false,"with_mt":true}
+          "build_config":{"with_pardiso":true,"with_pastix":false,"with_arpack":true,"with_mt":true}
         }"#
         .to_vec()
     }
