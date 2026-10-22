@@ -302,9 +302,6 @@ pub fn replay_execution(
                 vec![event.event_id.clone()],
                 "recorded and occurrence ticks must share a normalized timebase",
             );
-        } else {
-            total_event_recording_latency_ticks = total_event_recording_latency_ticks
-                .saturating_add(u128::from(event.recorded_tick - event.occurred_tick));
         }
 
         if duplicate_event_ids.contains(event.event_id.as_str())
@@ -317,6 +314,8 @@ pub fn replay_execution(
         {
             continue;
         }
+        total_event_recording_latency_ticks = total_event_recording_latency_ticks
+            .saturating_add(u128::from(event.recorded_tick - event.occurred_tick));
         match event.kind {
             ExecutionEventKind::Started => {
                 if ambiguous_starts.contains(&event.operation_id) {
