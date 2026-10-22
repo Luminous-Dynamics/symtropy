@@ -207,8 +207,14 @@ fn parse_sections(text: &str) -> Result<Vec<Section>, ParseError> {
             }
             match parse_row(row, row_index + 1)? {
                 Some((node_id, value)) => {
-                    if values.insert(node_id, value).is_some() {
-                        return Err(ParseError::DuplicateNode { kind, node_id });
+                    use std::collections::btree_map::Entry;
+                    match values.entry(node_id) {
+                        Entry::Vacant(entry) => {
+                            entry.insert(value);
+                        }
+                        Entry::Occupied(_) => {
+                            return Err(ParseError::DuplicateNode { kind, node_id });
+                        }
                     }
                 }
                 None => break,
@@ -255,11 +261,10 @@ fn parse_row(row: &str, line: usize) -> Result<Option<(usize, Vec3)>, ParseError
     if node_id == 0 || fields.len() != 4 {
         return Err(ParseError::MalformedRow { line, text: row.to_owned() });
     }
-    let parse_component = |field: &str| parse_number(field);
     let (Some(x), Some(y), Some(z)) = (
-        parse_component(fields[1]),
-        parse_component(fields[2]),
-        parse_component(fields[3]),
+        parse_number(fields[1]),
+        parse_number(fields[2]),
+        parse_number(fields[3]),
     ) else {
         return Err(ParseError::MalformedRow { line, text: row.to_owned() });
     };
