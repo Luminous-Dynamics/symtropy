@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/mobility_option_comparison_v0_1.schema.json",
+  "title": "Synthetic Mobility Option Comparison v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "provenance",
+    "claim_ceiling",
+    "scenario",
+    "gate_definitions",
+    "metric_definitions",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "mobility-options-pareto-v0.1"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_pareto_results_are_not_real_market_affordability_or_safety_evidence"
+    },
+    "scenario": {
+      "$ref": "#/$defs/scenario"
+    },
+    "gate_definitions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/gate_definition"
+      }
+    },
+    "metric_definitions": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/metric_definition"
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "external_market_data_included",
+        "notes"
+      ],
+      "properties": {
+        "kind": {
+          "const": "synthetic_only"
+        },
+        "external_market_data_included": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "context_id",
+        "service_unit",
+        "intended_user_segment"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "context_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "service_unit": {
+          "type": "string",
+          "minLength": 3
+        },
+        "intended_user_segment": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "gate_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "meaning",
+        "hard_gate"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 10
+        },
+        "hard_gate": {
+          "const": true
+        }
+      }
+    },
+    "metric_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "unit",
+        "direction",
+        "meaning"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "minimize",
+            "maximize"
+          ]
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "disposition",
+        "evidence_class"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "disposition": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic_fixture_only"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "unit",
+        "status",
+        "value",
+        "evidence_class"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "synthetic_value",
+            "unknown"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic_fixture_only"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "bundle_description",
+        "gates",
+        "metrics"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "bundle_description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "gates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        }
+      }
+    }
+  }
+}

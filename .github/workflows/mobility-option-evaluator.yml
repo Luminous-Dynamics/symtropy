@@ -1,0 +1,56 @@
+name: Mobility Option Pareto Evaluator
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_option_comparison_v0_1.schema.json"
+      - "fixtures/mobility_options/mobility_option_scenarios_v0_1.json"
+      - "docs/tech/MOBILITY_OPTION_PARETO_EVALUATION_V0_1.md"
+      - "tools/mobility-option-evaluator/**"
+      - ".github/workflows/mobility-option-evaluator.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_option_comparison_v0_1.schema.json"
+      - "fixtures/mobility_options/mobility_option_scenarios_v0_1.json"
+      - "docs/tech/MOBILITY_OPTION_PARETO_EVALUATION_V0_1.md"
+      - "tools/mobility-option-evaluator/**"
+      - ".github/workflows/mobility-option-evaluator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-option-evaluator-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatter
+        run: cargo fmt --manifest-path tools/mobility-option-evaluator/Cargo.toml -- --check
+      - name: Run evaluator contract and independent Pareto-oracle tests
+        run: cargo test --manifest-path tools/mobility-option-evaluator/Cargo.toml --all-targets
+      - name: Produce deterministic synthetic report
+        run: |
+          cargo run --manifest-path tools/mobility-option-evaluator/Cargo.toml -- fixtures/mobility_options/mobility_option_scenarios_v0_1.json > "$RUNNER_TEMP/mobility-option-report.json"
+          jq -e '
+            .report_version == "0.1"
+            and .no_single_global_winner == true
+            and .weighted_utility_score_produced == false
+            and (.candidate_reports | length == 8)
+            and (.pareto_frontier_candidate_ids | length == 5)
+            and ([.candidate_reports[] | select(.candidate_id == "06-uncertified-low-price-import") | .gate_disposition] == ["blocked"])
+            and ([.candidate_reports[] | select(.candidate_id == "07-no-confirmed-energy-or-service") | .gate_disposition] == ["needs_evidence"])
+            and ([.candidate_reports[] | select(.candidate_id == "08-low-upfront-cost-with-unknown-lifecycle-burden") | .ranking_status] == ["not_rankable_incomplete_metrics"])
+          ' "$RUNNER_TEMP/mobility-option-report.json"
+          sha256sum "$RUNNER_TEMP/mobility-option-report.json"
