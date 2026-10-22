@@ -1064,6 +1064,8 @@ pub fn evaluate_joint_recovery_envelope(
     candidate_spatial: &super::Scenario,
     baseline_resources: &ResourceSchedule,
     candidate_resources: &ResourceSchedule,
+    baseline_bindings: &[ResourceSpatialBinding],
+    candidate_bindings: &[ResourceSpatialBinding],
     scenarios: &[JointDisruptionScenario],
 ) -> JointRecoveryEnvelopeReport {
     let mut violations = Vec::new();
@@ -1118,6 +1120,8 @@ pub fn evaluate_joint_recovery_envelope(
             baseline_resources: baseline_resources.clone(),
             candidate_resources: candidate_resources.clone(),
             resource_outages: scenario.resource_outages.clone(),
+            baseline_bindings: baseline_bindings.to_vec(),
+            candidate_bindings: candidate_bindings.to_vec(),
         });
         reports.push(JointScenarioReport {
             scenario_id: scenario.scenario_id.clone(),
@@ -1174,7 +1178,7 @@ pub fn evaluate_joint_recovery_envelope(
 mod tests {
     use super::*;
     use crate::Disruption;
-    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange};
+    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange, Transfer};
 
     fn reservation(
         id: &str,
@@ -1240,6 +1244,33 @@ mod tests {
             vehicle_outages: Vec::new(),
             placement_occupancy_extensions: Vec::new(),
             explicitly_affected_reservation_ids: Vec::new(),
+        }
+    }
+
+    fn spatial_transfer(id: &str, start: u64, end: u64, vehicle_id: &str) -> Transfer {
+        Transfer {
+            id: id.to_owned(),
+            block_id: "block-a".to_owned(),
+            corridor: Footprint::AxisAlignedRect(Rect {
+                min_x: 8,
+                min_y: 8,
+                max_x: 9,
+                max_y: 9,
+            }),
+            interval: TimeRange {
+                start_tick: start,
+                end_tick: end,
+            },
+            vehicle_id: vehicle_id.to_owned(),
+            predecessor_move_ids: Vec::new(),
+        }
+    }
+
+    fn transfer_binding() -> ResourceSpatialBinding {
+        ResourceSpatialBinding {
+            binding_id: "bind-move-a".to_owned(),
+            resource_reservation_id: "tug-move-a".to_owned(),
+            transfer_id: "move-a".to_owned(),
         }
     }
 
@@ -1411,6 +1442,8 @@ mod tests {
             &spatial,
             &baseline_resources,
             &candidate_resources,
+            &[],
+            &[],
             &scenarios,
         );
 
@@ -1462,6 +1495,8 @@ mod tests {
             &spatial,
             &baseline_resources,
             &candidate_resources,
+            &[],
+            &[],
             &scenarios,
         );
 
@@ -1491,7 +1526,15 @@ mod tests {
             reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 5)],
         };
         let empty =
-            evaluate_joint_recovery_envelope(&spatial, &spatial, &resources, &resources, &[]);
+            evaluate_joint_recovery_envelope(
+                &spatial,
+                &spatial,
+                &resources,
+                &resources,
+                &[],
+                &[],
+                &[],
+            );
         assert!(!empty.robustly_accepted);
         assert!(
             empty.violations.iter().any(|violation| {
@@ -1801,6 +1844,8 @@ mod tests {
             baseline_resources,
             candidate_resources,
             resource_outages: Vec::new(),
+            baseline_bindings: Vec::new(),
+            candidate_bindings: Vec::new(),
         });
         assert!(report.spatial.accepted);
         assert!(!report.resources.accepted);
