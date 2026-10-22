@@ -586,6 +586,7 @@ fn format_report() -> String {
     out.push_str("META\tscope\tindependent synthetic belief-trapping mechanism diagnostic\n");
     out.push_str("META\ttruth_api\tevaluator-only trap labels and feasibility never passed to choose_action\n");
     out.push_str("CASE_HEADER\tcase\tpolicy\tgap\ttruth_trap\tsolved\tdetected\tdetected_class\tcorrect_classification\tfalse_positive\thandoff_correct\tactions\tsteps_to_detect\tsteps_to_recover\trepeated_state_transitions\tno_progress_transitions\tfinal_progress\n");
+    out.push_str("TRACE_HEADER\tcase\tpolicy\tstep\taction\tstate_id\tprogress\tdistance_to_goal\trevision\tepistemic_gap_open\tachievement_gap_open\ttrap_signal\n");
 
     let mut results = Vec::new();
     for scenario in &cases {
@@ -610,6 +611,23 @@ fn format_report() -> String {
                 r.total_no_progress,
                 r.final_progress
             ));
+            for (step_idx, step) in r.trace.iter().enumerate() {
+                let obs = step.observation;
+                out.push_str(&format!(
+                    "TRACE\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+                    r.scenario,
+                    r.policy.label(),
+                    step_idx + 1,
+                    step.action.label(),
+                    obs.state_id,
+                    obs.progress,
+                    obs.distance_to_goal,
+                    obs.revision,
+                    u8::from(obs.epistemic_gap_open),
+                    u8::from(obs.achievement_gap_open),
+                    step.trap_signal.map(TrapSignal::label).unwrap_or("none")
+                ));
+            }
             results.push(r);
         }
     }
@@ -755,6 +773,7 @@ mod tests {
         let b = format_report();
         assert_eq!(a, b);
         assert_eq!(a.lines().filter(|l| l.starts_with("CASE\t")).count(), 28);
+        assert!(a.lines().filter(|l| l.starts_with("TRACE\t")).count() > 28);
         assert_eq!(a.lines().filter(|l| l.starts_with("SUMMARY\t")).count(), 4);
     }
 
