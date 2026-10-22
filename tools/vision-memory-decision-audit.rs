@@ -493,18 +493,18 @@ fn format_report() -> String {
         let decisions_count = resolved.len() * 2;
         let sensitive_pairs = resolved.iter().filter(|r| r.left_action != r.right_action).count();
         let warranted_count = resolved.iter().map(|r| {
-            usize::from(is_warranted(r.left_action, r.left_target))
-                + usize::from(is_warranted(r.right_action, r.right_target))
+            is_warranted(r.left_action, r.left_target) as usize
+                + is_warranted(r.right_action, r.right_target) as usize
         }).sum::<usize>();
         let clarify_resolved = resolved.iter().map(|r| {
-            usize::from(r.left_action == Action::Clarify)
-                + usize::from(r.right_action == Action::Clarify)
+            (r.left_action == Action::Clarify) as usize
+                + (r.right_action == Action::Clarify) as usize
         }).sum::<usize>();
         let wrong_count = rows.iter().map(|r| {
-            usize::from(matches!(r.left_target, Some(t) if r.left_action.origin() != Some(t)))
-                + usize::from(matches!(r.right_target, Some(t) if r.right_action.origin() != Some(t)))
-                + usize::from(r.left_target.is_none() && r.left_action != Action::Clarify)
-                + usize::from(r.right_target.is_none() && r.right_action != Action::Clarify)
+            matches!(r.left_target, Some(t) if r.left_action.origin() != Some(t)) as usize
+                + matches!(r.right_target, Some(t) if r.right_action.origin() != Some(t)) as usize
+                + (r.left_target.is_none() && r.left_action != Action::Clarify) as usize
+                + (r.right_target.is_none() && r.right_action != Action::Clarify) as usize
         }).sum::<usize>();
         let pair_reliable = rows.iter().filter(|r| r.pair_reliable).count();
         let matched_total: f64 = rows.iter().map(|r| r.matched_left_utility + r.matched_right_utility).sum();
@@ -522,7 +522,7 @@ fn format_report() -> String {
                     action_on(&results, policy, "clean_relevant", left_direction),
                     action_on(&results, policy, "irrelevant_injection", left_direction),
                 ) {
-                    same += usize::from(a == b);
+                    same += (a == b) as usize;
                     total += 1;
                 }
             }
@@ -531,8 +531,8 @@ fn format_report() -> String {
         let stale_resistance = results.iter()
             .find(|r| r.policy == policy && r.fixture == "stale_late_arrival")
             .map(|r| {
-                let correct = usize::from(r.left_target.and_then(|t| r.left_action.origin().map(|a| a == t)).unwrap_or(false))
-                    + usize::from(r.right_target.and_then(|t| r.right_action.origin().map(|a| a == t)).unwrap_or(false));
+                let correct = r.left_target.and_then(|t| r.left_action.origin().map(|a| a == t)).unwrap_or(false) as usize
+                    + r.right_target.and_then(|t| r.right_action.origin().map(|a| a == t)).unwrap_or(false) as usize;
                 fraction(correct, 2)
             })
             .unwrap_or(0.0);
@@ -544,7 +544,7 @@ fn format_report() -> String {
                     action_on(&results, policy, "clean_relevant", left_direction),
                     action_on(&results, policy, "false_prompt_premise", left_direction),
                 ) {
-                    same += usize::from(a == b);
+                    same += (a == b) as usize;
                     total += 1;
                 }
             }
