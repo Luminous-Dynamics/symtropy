@@ -1,0 +1,69 @@
+{
+  "schema_version": "shipyard-benchmark-manifest/v0",
+  "benchmark_id": "tiny-yard-v0",
+  "title": "Hand-authored tiny yard conformance fixture",
+  "claim_class": "semantic-correctness",
+  "scope": {
+    "models": [
+      "rectangular-space-time"
+    ],
+    "supported_constraints": [
+      "finite bounds",
+      "half-open time windows",
+      "rectangular occupancy"
+    ],
+    "unsupported_constraints": [
+      "irregular polygons",
+      "crane physics"
+    ]
+  },
+  "source": {
+    "kind": "generated",
+    "uri": "fixtures://tiny-yard-v0/corpus.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "case_count": 2,
+    "license_or_access_basis": "hand-authored synthetic conformance data"
+  },
+  "generator": {
+    "name": "hand-authored-fixture",
+    "version": "1",
+    "seed": 7,
+    "parameters_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "protocol": {
+    "hardware_class": "ci-x86_64",
+    "wall_clock_budget_ms": 1000,
+    "candidate_evaluation_budget": 10000,
+    "repetitions": 1,
+    "warmup_runs": 0,
+    "random_seed": 7,
+    "timeout_policy": "censored-runtime"
+  },
+  "candidate": {
+    "name": "candidate-portfolio",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "baselines": [
+    {
+      "name": "caller-order-first-fit",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "config_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "oracle": {
+    "kind": "exact-enumeration",
+    "implementation_id": "independent-cell-set-oracle-v1",
+    "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "source_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "limitations": [
+      "tiny rectangular integer lattice only"
+    ]
+  },
+  "metrics": [
+    "false_feasible_count",
+    "false_infeasible_count",
+    "feasible_case_recall",
+    "runtime_ms"
+  ]
+}
