@@ -4,7 +4,7 @@
   "manifest_sha256": "7945986581c4c7b07b8cdb8e970434c11a8023b19e2b05a3e059607a3bb410cd",
   "status": "incomplete",
   "run_metadata": {
-    "git_commit_sha": "ffffffffffffffffffffffffffffffffffffffff",
+    "git_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "executable_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "hardware_class": "ci-x86_64",
     "rustc_version": "1.96.0"
