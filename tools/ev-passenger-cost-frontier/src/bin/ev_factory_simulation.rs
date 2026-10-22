@@ -772,7 +772,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             PairedOutageComparison {
                 baseline_scenario_id: "baseline".into(),
                 seed_count: paired_deltas.len(),
-                paired_good_units_per_hour_delta_vs_no_outage: summarize_distribution(&paired_deltas)?,
+                paired_good_units_per_hour_delta_vs_no_outage:
+                    summarize_distribution(&paired_deltas)?,
                 comparison_contract: "Same catalog, seed IDs and entity-keyed processing/quality streams; only the optional shared control outage is removed from the counterfactual catalog. The paired interval describes this synthetic fixture, not a calibrated plant effect.".into(),
             },
         );
@@ -1666,7 +1667,8 @@ mod tests {
     }
 
     #[test]
-    fn common_cause_control_outage_is_paired_deterministic_and_blocks_domain_starts_and_transfers() {
+    fn common_cause_control_outage_is_paired_deterministic_and_blocks_domain_starts_and_transfers(
+    ) {
         let outage_catalog = common_cause_fixture();
         validate_catalog(&outage_catalog).expect("shared control outage fixture validates");
         let outage_report = evaluate_catalog(&outage_catalog).expect("shared control outage run");
@@ -1684,13 +1686,27 @@ mod tests {
             .expect("paired no-outage baseline comparison");
         assert_eq!(paired.seed_count, 20);
         assert_eq!(paired.paired_good_units_per_hour_delta_vs_no_outage.sample_count, 20);
-        assert!(paired.paired_good_units_per_hour_delta_vs_no_outage.mean_confidence_95_lower.is_some());
-        assert!(paired.paired_good_units_per_hour_delta_vs_no_outage.mean_confidence_95_upper.is_some());
+        assert!(
+            paired
+                .paired_good_units_per_hour_delta_vs_no_outage
+                .mean_confidence_95_lower
+                .is_some()
+        );
+        assert!(
+            paired
+                .paired_good_units_per_hour_delta_vs_no_outage
+                .mean_confidence_95_upper
+                .is_some()
+        );
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
                 && scenario.common_cause_control_outage_trace.len() == 4
-                && scenario.common_cause_control_outage_trace.iter().map(|event| event.at_seconds).collect::<Vec<_>>()
+                && scenario
+                    .common_cause_control_outage_trace
+                    .iter()
+                    .map(|event| event.at_seconds)
+                    .collect::<Vec<_>>()
                     == vec![600, 900, 2_400, 2_700]
                 && scenario.common_cause_control_outage_trace.iter().all(|event| {
                     event.domain_id == "shared-line-control"
@@ -1783,11 +1799,12 @@ mod tests {
         );
 
         let mut catalog = common_cause_fixture();
+        let horizon = catalog.horizon_seconds;
         catalog
             .common_cause_control_outage
             .as_mut()
             .expect("outage configuration")
-            .first_start_seconds = catalog.horizon_seconds;
+            .first_start_seconds = horizon;
         assert!(
             validate_catalog(&catalog)
                 .expect_err("boundary-only outage")
