@@ -7,6 +7,8 @@
 //! comparisons are deterministic. A caller remains responsible for consent,
 //! source qualification, and deciding whether the model set reflects real needs.
 
+pub mod response_robustness;
+
 use crate::alternative_frontier::VerificationStatus;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
