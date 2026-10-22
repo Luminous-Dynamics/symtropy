@@ -418,6 +418,13 @@ pub fn augment_disruption_from_execution(
             generated_extensions.push(PlacementOccupancyExtension {
                 reservation_id: binding.placement_reservation_id.clone(),
                 occupied_until_tick: new_occupied_until_tick,
+                evidence: Some(crate::OccupancyExtensionEvidence {
+                    evidence_id: witness.witness_id.clone(),
+                    source_id: witness.source_id.clone(),
+                    evidence_ref: witness.evidence_ref.clone(),
+                    observed_present_at_tick: witness.occupied_at_tick,
+                    recorded_tick: witness.recorded_tick,
+                }),
             });
             receipts.push(ClearanceExtensionReceipt {
                 operation_id: binding.operation_id.clone(),
@@ -455,6 +462,9 @@ pub fn augment_disruption_from_execution(
             .find(|extension| extension.reservation_id == generated.reservation_id)
         {
             prior.occupied_until_tick = prior.occupied_until_tick.max(generated.occupied_until_tick);
+            if generated.evidence.is_some() {
+                prior.evidence = generated.evidence;
+            }
         } else {
             disruption.placement_occupancy_extensions.push(generated);
         }
@@ -561,13 +571,18 @@ mod tests {
         let report = augment_disruption_from_execution(
             &baseline(5),
             &plan(5),
-            &[
-                event("start-clear", ExecutionEventKind::Started, 2, 2),
-                event("finish-clear", ExecutionEventKind::Completed, 8, 9),
-            ],
+            &[event("start-clear", ExecutionEventKind::Started, 2, 2)],
+            &[PlacementOccupancyWitness {
+                witness_id: "scan-block-a-at-8".to_owned(),
+                placement_reservation_id: "block-a-placement".to_owned(),
+                source_id: "yard-scanner-1".to_owned(),
+                evidence_ref: "scan://block-a/8".to_owned(),
+                occupied_at_tick: 8,
+                recorded_tick: 8,
+            }],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 8,
-                as_of_recorded_tick: 9,
+                as_of_recorded_tick: 8,
             },
             8,
             &prior(4),
@@ -580,10 +595,10 @@ mod tests {
         assert_eq!(disruption.placement_occupancy_extensions.len(), 1);
         assert_eq!(
             disruption.placement_occupancy_extensions[0].occupied_until_tick,
-            8
+            9
         );
         assert_eq!(report.receipts.len(), 1);
-        assert_eq!(report.receipts[0].source_event_id, "finish-clear");
+        assert_eq!(report.receipts[0].source_evidence_id, "scan-block-a-at-8");
         assert_eq!(report.receipts[0].previous_occupied_until_tick, 5);
     }
 
@@ -592,7 +607,15 @@ mod tests {
         let report = augment_disruption_from_execution(
             &baseline(5),
             &plan(5),
-            &[event("finish-clear", ExecutionEventKind::Completed, 8, 12)],
+            &[],
+            &[PlacementOccupancyWitness {
+                witness_id: "late-scan".to_owned(),
+                placement_reservation_id: "block-a-placement".to_owned(),
+                source_id: "yard-scanner-1".to_owned(),
+                evidence_ref: "scan://block-a/8".to_owned(),
+                occupied_at_tick: 8,
+                recorded_tick: 12,
+            }],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 8,
                 as_of_recorded_tick: 10,
@@ -615,6 +638,7 @@ mod tests {
             &baseline(5),
             &plan(5),
             &[],
+            &[],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 8,
                 as_of_recorded_tick: 8,
@@ -635,6 +659,7 @@ mod tests {
             &baseline(10),
             &plan(5),
             &[event("finish-clear", ExecutionEventKind::Completed, 8, 9)],
+            &[],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 8,
                 as_of_recorded_tick: 9,
@@ -658,6 +683,7 @@ mod tests {
             &baseline(5),
             &plan(5),
             &[event("finish-clear", ExecutionEventKind::Completed, 5, 5)],
+            &[],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 5,
                 as_of_recorded_tick: 5,
@@ -677,6 +703,7 @@ mod tests {
             &baseline(5),
             &plan(5),
             &[event("finish-clear", ExecutionEventKind::Completed, 5, 5)],
+            &[],
             ExecutionReplayCutoff {
                 as_of_occurred_tick: 5,
                 as_of_recorded_tick: 5,
