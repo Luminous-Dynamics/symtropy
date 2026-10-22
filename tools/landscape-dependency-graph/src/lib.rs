@@ -854,6 +854,16 @@ mod tests {
             vec!["stormwater_service".to_owned(), "tree_ecology_service".to_owned()]
         );
         assert_eq!(maintenance.relative_service_loss_fraction, Some(0.666667));
+        let soil = report
+            .single_failure_audit
+            .iter()
+            .find(|impact| impact.failure_kind == "node" && impact.target_id == "soil_infiltration")
+            .expect("soil node included in single-failure audit");
+        assert_eq!(soil.lost_service_count, 2);
+        assert_eq!(
+            soil.lost_service_ids,
+            vec!["stormwater_service".to_owned(), "tree_ecology_service".to_owned()]
+        );
         assert!(
             report
                 .single_failure_audit
