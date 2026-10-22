@@ -410,3 +410,33 @@ For a defensible reproduction, maintain two stages:
 2. **Extension stage:** v1.1.1 current defaults, the predeclared 30-board three-stratum pilot, then D3-C/large-board stress testing. Report it as a new experiment and use new per-board paired runs/uncertainty.
 
 The paper's results imply a useful research target: match or exceed rule-based CP on the identical D3-A/B rows while reducing runtime without increasing violations; then improve the D3-C large-board stratum where the paper does not report a direct result. That last result would be new evidence, not a “beat SOTA” comparison against an absent baseline.
+
+
+## Rule fidelity and current external claims (verified 2026-10-22)
+
+A clean DRC result is meaningful only relative to the rules that were actually checked. The protocol must therefore score **constraint fidelity separately from routing completion**. The paper's published PCBWorld results should be reproduced under the published compatibility policy, but any claim about the original engineering intent also needs a second DRC pass under the strongest reconstructable source-authoritative rules. Report both; never silently substitute one for the other.
+
+An independent critical review of PCBWorld raises a concrete threat to validity: the D3 transfer pipeline may relax some checks and infer absent clearances from existing routed traces. This is a useful research lead, not a proved defect in every board; the actual per-board rule diff and raw reports must decide. The protocol therefore requires, for each board and each rule, one of: source-preserved, version-migrated with documented equivalence, explicitly waived by the published protocol, inferred, relaxed, or unavailable. Inferred/relaxed/unavailable rules are visible and cannot be silently reported as source-faithful.
+
+### Vendor-reported baseline: distinguish the clocks and denominators
+
+DeepPCB published a vendor-authored result page dated 28 September 2026. It reports 92/99 clean routes on D3-A with one attempt per board, and 24/30 clean attempts on D3-B across three attempts per board; each attempt has a 3-minute budget. It reports median time to first clean board of 38 seconds on D3-A and 46 seconds on D3-B. These are useful external claims to reproduce independently, **not audited Symtropy measurements**.
+
+Do not directly compare this D3-B 24/30 attempt count to the paper's @5 best-of-five selected-board score as if the denominators were equal. The paper's Table 3 chooses the best-potential rollout across five rollouts while its time column averages all five; the one-attempt rows in its appendices are a distinct comparison. Report each protocol as a separate track:
+- **KDD reproduction track:** pinned original split, exact paper policy/config and stated @5 and one-attempt views, with raw per-rollout records.
+- **Fixed-budget track:** one declared budget per board (e.g. 30 s, 60 s, 180 s), count every board in the denominator.
+- **Anytime track:** time to first independently verified clean result and clean-pass-at-budget curve at 10 s / 30 s / 60 s / 180 s / 600 s; retain every failed attempt and preserve verified incumbents.
+- **Strict-source-rule track:** same outputs scored against the source-authoritative rule reconstruction; no budget or success denominator changes.
+
+Sources: [DeepPCB's published comparison (28 Sep 2026)](https://deeppcb.ai/benchmark/pcbworld-bench-deeppcb-results/), [PCBWorld paper](https://arxiv.org/abs/2607.05915), [PCBWorld current repository README and license boundary](https://github.com/LGAI-Research/PCBWorld/blob/main/README.md), and [independent critical review of D3 rule reconstruction and score selection](https://pith.science/paper/2607.05915). The repo/version pins in the source-intake section govern the experiment; this summary alone does not establish reproducibility.
+
+### Falsifiable advantage target
+
+A route policy is not credited with a positive result if it improves clean-pass only by relaxing/inferencing rules, modifying placement/net assignments, or dropping failed attempts. Require:
+1. 0 false-valid routes under the declared policy;
+2. 100% of boards have complete rule-provenance records;
+3. a per-board published-policy vs strict-source-policy delta matrix;
+4. paired completion/runtime confidence intervals on identical input-board hashes and budgets;
+5. any stretch target (e.g. +5 absolute clean-pass points, or faster time-to-first-clean) only on a frozen held-out split and only if rule fidelity is equal or improved.
+
+The new cross-project item is [PCB-DRC-FIDELITY-001 #2626](https://github.com/Luminous-Dynamics/symtropy/issues/2626). This is distinct from the license-intake gate (#2613) and design-skeleton gate (#2609): it freezes the constraints against which copper is judged.
