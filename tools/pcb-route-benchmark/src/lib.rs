@@ -328,6 +328,8 @@ pub struct DatasetFileVerificationReceipt {
     pub schema: String,
     pub evaluator_git_head: String,
     pub dataset_manifest_sha256: String,
+    #[serde(default)]
+    pub license_audit_manifest_sha256: Option<String>,
     pub verified_board_count: usize,
     pub verified_license_evidence_count: usize,
     pub entries: Vec<DatasetFileVerificationEntry>,
