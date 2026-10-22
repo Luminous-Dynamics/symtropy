@@ -529,16 +529,38 @@ mod tests {
     }
 
     #[test]
-    fn semantic_identity_survives_representation_switches() {
-        let parent = node(1, None, vec![2, 3], 10.0);
-        let child_a = node(2, Some(1), vec![], 0.5);
-        let child_b = node(3, Some(1), vec![], 0.5);
-        let result = select_hierarchy(&[parent, child_a, child_b], POLICY).expect("selection");
+    fn semantic_identity_survives_coarse_to_refined_representation_switches() {
+        // Use a non-default identity so a regression that accidentally writes the
+        // fixture's default semantic ID (42) cannot satisfy this assertion.
+        let mut parent = node(1, None, vec![2, 3], 1.0);
+        parent.semantic_entity_id = 9_001;
+        let mut child_a = node(2, Some(1), vec![], 0.5);
+        child_a.semantic_entity_id = 9_001;
+        let mut child_b = node(3, Some(1), vec![], 0.5);
+        child_b.semantic_entity_id = 9_001;
+
+        let coarse = select_hierarchy(
+            &[parent.clone(), child_a.clone(), child_b.clone()],
+            POLICY,
+        )
+        .expect("coarse representation");
+        assert_eq!(rendered(&coarse), vec![1]);
+        assert_eq!(
+            coarse.render_nodes[0].semantic_entity_id,
+            9_001,
+            "coarse representation must retain its semantic entity identity"
+        );
+
+        parent.screen_error_px = 10.0;
+        let refined = select_hierarchy(&[parent, child_a, child_b], POLICY)
+            .expect("refined representation");
+        assert_eq!(rendered(&refined), vec![2, 3]);
         assert!(
-            result
+            refined
                 .render_nodes
                 .iter()
-                .all(|node| node.semantic_entity_id == 42)
+                .all(|node| node.semantic_entity_id == 9_001),
+            "representation changes must not change semantic entity identity"
         );
     }
 
