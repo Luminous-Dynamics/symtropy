@@ -136,7 +136,7 @@ jq -n \
         id: "PHYS-BEAM-MOD-GENERALIZED-MASS-001",
         expected_test: "modes_preserve_all_free_dofs_and_have_small_residuals",
         disposition: "detected"
-      }
+      },
       {
         id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
         expected_test: "negative_eigenvalues_are_reported_as_unstable_not_dropped",
