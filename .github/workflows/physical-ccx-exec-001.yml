@@ -952,5 +952,6 @@ jobs:
             and .physical_result_qualified == false
             and .real_world_validation_status == "UNRESOLVED"
             and .engineering_use_authorized == false
+            and (.auditor_executable_sha256 | test("^[0-9a-f]{64}$"))
             and (.mesh_levels | all(.[]; (.report_sha256 | test("^[0-9a-f]{64}$")) and (.process_receipt_sha256 | test("^[0-9a-f]{64}$"))))
           ' "$RUNNER_TEMP/ccx-evidence/physical-mms-001-convergence-summary.json"
