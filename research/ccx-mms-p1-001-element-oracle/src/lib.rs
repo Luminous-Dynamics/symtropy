@@ -27,6 +27,7 @@ pub enum ElementError {
     NonFiniteInternalForce,
     NonFiniteStrain,
     NonFiniteStress,
+    NonFiniteEnergyAudit,
     MeshConstruction,
 }
 
@@ -45,6 +46,9 @@ impl fmt::Display for ElementError {
             Self::NonFiniteInternalForce => f.write_str("element internal force is non-finite"),
             Self::NonFiniteStrain => f.write_str("element strain is non-finite"),
             Self::NonFiniteStress => f.write_str("element stress is non-finite"),
+            Self::NonFiniteEnergyAudit => {
+                f.write_str("element energy identity is non-finite or invalid")
+            }
             Self::MeshConstruction => f.write_str("patch probe could not construct a valid mesh"),
         }
     }
@@ -231,6 +235,53 @@ impl TriangleElement {
         Ok(stress)
     }
 
+    /// Compare matrix-based strain energy with an independently evaluated
+    /// constitutive energy density. The returned defect is relative to the
+    /// constitutive energy; this metric is intended for non-rigid test fields.
+    pub fn normalized_energy_identity_defect(
+        self,
+        displacements: [Vec2; 3],
+    ) -> Result<f64, ElementError> {
+        let internal_force = self.internal_force(displacements)?;
+        let dofs = [
+            displacements[0].x,
+            displacements[0].y,
+            displacements[1].x,
+            displacements[1].y,
+            displacements[2].x,
+            displacements[2].y,
+        ];
+        let matrix_energy = 0.5
+            * internal_force
+                .iter()
+                .zip(dofs)
+                .map(|(force, displacement)| force * displacement)
+                .sum::<f64>();
+        let strain = self.strain(displacements)?;
+        let (lambda, mu) = self.material.lame_parameters();
+        let trace = strain.xx + strain.yy;
+        let constitutive_energy = 0.5
+            * self.area
+            * self.thickness
+            * (lambda * trace * trace
+                + 2.0
+                    * mu
+                    * (strain.xx * strain.xx
+                        + strain.yy * strain.yy
+                        + 2.0 * strain.xy * strain.xy));
+        if !(matrix_energy.is_finite()
+            && constitutive_energy.is_finite()
+            && constitutive_energy > 0.0)
+        {
+            return Err(ElementError::NonFiniteEnergyAudit);
+        }
+        let defect = (matrix_energy - constitutive_energy).abs() / constitutive_energy;
+        if !defect.is_finite() {
+            return Err(ElementError::NonFiniteEnergyAudit);
+        }
+        Ok(defect)
+    }
+
     pub fn internal_force(self, displacements: [Vec2; 3]) -> Result<[f64; 6], ElementError> {
         if displacements
             .iter()
@@ -267,6 +318,7 @@ pub struct PatchProbe {
     pub interior_nodes: usize,
     pub max_strain_error: f64,
     pub max_stiffness_symmetry_defect: f64,
+    pub max_energy_identity_defect: f64,
     pub max_interior_force_linf: f64,
     pub max_rigid_mode_force_linf: f64,
 }
@@ -275,6 +327,7 @@ impl PatchProbe {
     pub fn passed(self) -> bool {
         self.max_strain_error <= 1.0e-12
             && self.max_stiffness_symmetry_defect <= 1.0e-12
+            && self.max_energy_identity_defect <= 1.0e-12
             && self.max_interior_force_linf <= 1.0e-12
             && self.max_rigid_mode_force_linf <= 1.0e-12
     }
@@ -307,6 +360,7 @@ pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
     let mut global_internal_forces = vec![Vec2 { x: 0.0, y: 0.0 }; mesh.nodes.len()];
     let mut max_strain_error = 0.0_f64;
     let mut max_stiffness_symmetry_defect = 0.0_f64;
+    let mut max_energy_identity_defect = 0.0_f64;
 
     for triangle in &mesh.triangles {
         let vertices = triangle.nodes.map(|id| {
@@ -327,6 +381,9 @@ pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
                     .max((*value - element.stiffness[j][i]).abs());
             }
         }
+
+        let energy_defect = element.normalized_energy_identity_defect(displacements)?;
+        max_energy_identity_defect = max_energy_identity_defect.max(energy_defect);
 
         let internal_force = element.internal_force(displacements)?;
         for (local_node, node_id) in triangle.nodes.iter().enumerate() {
@@ -371,6 +428,7 @@ pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
         interior_nodes,
         max_strain_error,
         max_stiffness_symmetry_defect,
+        max_energy_identity_defect,
         max_interior_force_linf,
         max_rigid_mode_force_linf,
     })
@@ -532,4 +590,21 @@ mod tests {
         assert_eq!(probe.interior_nodes, 9);
         assert!(probe.passed(), "{probe:?}");
     }
+
+    #[test]
+    fn stiffness_matrix_corruption_is_detected_by_energy_identity_control() {
+        let vertices = points();
+        let displacements = vertices.map(affine_displacement);
+        let mut corrupted = TriangleElement::new(vertices, material(), 1.0).unwrap();
+        corrupted.stiffness[0][0] += 0.5;
+
+        let defect = corrupted
+            .normalized_energy_identity_defect(displacements)
+            .unwrap();
+        assert!(
+            defect > 1.0e-6,
+            "mutated stiffness passed the energy identity control: {defect:e}"
+        );
+    }
+
 }
