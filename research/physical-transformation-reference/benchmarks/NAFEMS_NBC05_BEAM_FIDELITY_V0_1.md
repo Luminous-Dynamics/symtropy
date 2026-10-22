@@ -50,6 +50,8 @@ The new cross-mesh identity experiment in [PR #2641](https://github.com/Luminous
 
 The parallel [mesh-convergence ladder PR #2639](https://github.com/Luminous-Dynamics/symtropy/pull/2639) records the frequency trend and solver residuals over those same levels. The two reports are complementary: convergence tracks frequency changes; mode tracking assesses whether a mode at one mesh corresponds to a mode at another. Neither alone establishes reproduction of the source's full 200-elements-per-member result.
 
+The subspace MAC extension in [PR #2644](https://github.com/Luminous-Dynamics/symtropy/pull/2644) additionally compares the span of the tracked mode set using principal-angle cosines and normalized chordal distance. This is the appropriate companion for repeated or closely spaced eigenvalues, where solver-generated eigenvectors can rotate within the same invariant subspace. Its analytical oracles cover identical subspaces under basis rotation/scaling, orthogonal subspaces and a known partial-overlap angle.
+
 
 The stacked modal prototype in draft PR #2562 reuses the shared Cholesky-reduced generalized symmetric eigensolver, verifies all six free modes of the one-element-per-member fixture, reports mass normalization/orthogonality and eigenpair residuals, and rejects zero/near-zero modes instead of silently filtering them. A separate two-rotation simply-supported beam case compares the generalized eigenvalues and hertz conversion against an explicit 2×2 analytic determinant. It is a coarse algebraic check; it does not assert the published ~366/496/1021/1183 Hz graph markers as target values, and it is not a mesh-converged NBC05 result. Its exact-head test, mutation, deterministic-receipt and source-digest gates remain pending.
 
