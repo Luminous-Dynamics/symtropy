@@ -1,0 +1,190 @@
+{
+  "schema_version": "beverage-abnormal-adaptation-scenarios-v1",
+  "status": "synthetic_policy_contract_not_physical_fermentation_evidence",
+  "description": "Synthetic scenarios for phase-aware model adaptation after a fermentation abnormality is detected. The cited 2026 industrial study uses confidential data; all cases here are software-contract examples only.",
+  "scenarios": [
+    {
+      "id": "ABN-001",
+      "name": "early_truncated_prefix_bayesian_beats_fixed_ga",
+      "available_post_detection_hours": 4,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "USE_EARLY_DATA_SPARSE_ESTIMATOR",
+      "guards": [
+        "no_post_prefix_measurements_used",
+        "uncertainty_reported",
+        "comparison_uses_same_prefix"
+      ],
+      "claim_ceiling": "Synthetic policy case; no reproduced industrial error reduction."
+    },
+    {
+      "id": "ABN-002",
+      "name": "later_prefix_supports_population_optimizer",
+      "available_post_detection_hours": 20,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "ALLOW_LATER_PHASE_ESTIMATOR_IF_QUALIFIED",
+      "guards": [
+        "identifiability_check_passed",
+        "fitness_on_prefix_only",
+        "latency_within_operating_deadline"
+      ],
+      "claim_ceiling": "Time available alone does not prove parameters identifiable."
+    },
+    {
+      "id": "ABN-003",
+      "name": "low_identifiability_despite_many_rows",
+      "available_post_detection_hours": 16,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "ABSTAIN_AND_REQUEST_MORE_EVIDENCE",
+      "guards": [
+        "posterior_or_parameter_diagnostics",
+        "no_forced_model_switch",
+        "uncertainty_not_suppressed"
+      ],
+      "claim_ceiling": "More correlated samples do not necessarily add independent information."
+    },
+    {
+      "id": "ABN-004",
+      "name": "sensor_bias_misclassified_as_contamination",
+      "available_post_detection_hours": 8,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "INDETERMINATE_AND_DIAGNOSE_SENSOR",
+      "guards": [
+        "sensor_fault_hypothesis_retained",
+        "calibration_state_checked",
+        "do_not_assert_contamination_without_evidence"
+      ],
+      "claim_ceiling": "A process residual is not a contamination diagnosis."
+    },
+    {
+      "id": "ABN-005",
+      "name": "future_measurement_leaks_into_truncated_fit",
+      "available_post_detection_hours": 4,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "REJECT",
+      "guards": [
+        "strict_time_cutoff",
+        "source_timestamp_validation",
+        "fit_data_digest_pinned"
+      ],
+      "claim_ceiling": "Any future-data leakage invalidates early adaptation results."
+    },
+    {
+      "id": "ABN-006",
+      "name": "posterior_interval_miscalibrated",
+      "available_post_detection_hours": 8,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "FAIL_CALIBRATION_GATE",
+      "guards": [
+        "coverage_by_prefix",
+        "proper_scoring_rule",
+        "report_interval_width"
+      ],
+      "claim_ceiling": "Narrow intervals are not useful if empirical coverage is poor."
+    },
+    {
+      "id": "ABN-007",
+      "name": "adaptive_policy_beats_each_fixed_estimator_on_mean_only",
+      "available_post_detection_hours": 12,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "paired_unit_level_comparison",
+        "uncertainty_interval",
+        "worst_batch_reported",
+        "no_mean_only_claim"
+      ],
+      "claim_ceiling": "Mean error without uncertainty and tail performance is insufficient."
+    },
+    {
+      "id": "ABN-008",
+      "name": "out_of_domain_product_or_strain",
+      "available_post_detection_hours": 8,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "OUT_OF_DOMAIN_NO_AUTOMATIC_RECOMMENDATION",
+      "guards": [
+        "applicability_domain_declared",
+        "shift_flag_emitted",
+        "evidence_boundary_preserved"
+      ],
+      "claim_ceiling": "Industrial non-beverage or other-strain transfer is not guaranteed."
+    },
+    {
+      "id": "ABN-009",
+      "name": "adaptive_switch_follows_preregistered_information_gate",
+      "available_post_detection_hours": 12,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "ALLOW_SWITCH_WITH_AUDIT_TRAIL",
+      "guards": [
+        "switch_rule_version_pinned",
+        "only_available_data_used",
+        "all_estimators_scored_on_same_cutoffs"
+      ],
+      "claim_ceiling": "Synthetic contract only; no field reliability implied."
+    },
+    {
+      "id": "ABN-010",
+      "name": "recommended_feed_would_violate_hard_process_limit",
+      "available_post_detection_hours": 12,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "REJECT_ACTION_AND_ESCALATE",
+      "guards": [
+        "hard_limits_non_compensatory",
+        "no_actuator_authority",
+        "reason_and_uncertainty_emitted"
+      ],
+      "claim_ceiling": "Prediction or optimizer score never overrides a hard process limit."
+    },
+    {
+      "id": "ABN-011",
+      "name": "abnormality_detector_trades_delay_for_false_alarms",
+      "available_post_detection_hours": 8,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "SCORE_BOTH_DELAY_AND_FALSE_ALARMS",
+      "guards": [
+        "detection_delay_reported",
+        "false_alarms_per_batch_reported",
+        "missed_events_reported"
+      ],
+      "claim_ceiling": "Accuracy alone hides operational detection cost."
+    },
+    {
+      "id": "ABN-012",
+      "name": "confidential_paper_data_treated_as_reproduced",
+      "available_post_detection_hours": 4,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "REJECT_EMPIRICAL_CLAIM",
+      "guards": [
+        "data_availability_is_confidential",
+        "published_metrics_labeled_literature_only",
+        "synthetic_fixture_tag_preserved"
+      ],
+      "claim_ceiling": "Published results cannot be independently reproduced without authorized underlying data."
+    },
+    {
+      "id": "ABN-013",
+      "name": "switch_to_slow_estimator_misses_decision_deadline",
+      "available_post_detection_hours": 20,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "RETAIN_SAFE_FALLBACK",
+      "guards": [
+        "p95_inference_latency_measured",
+        "deadline_explicit",
+        "known_safe_fallback_exists"
+      ],
+      "claim_ceiling": "A more accurate estimate delivered too late may have negative decision value."
+    },
+    {
+      "id": "ABN-014",
+      "name": "nominal_trajectory_and_abnormal_trajectory_overlap",
+      "available_post_detection_hours": 8,
+      "evidence_class": "SYNTHETIC",
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "detection_confidence_reported",
+        "abstention_allowed",
+        "no_forced_classification"
+      ],
+      "claim_ceiling": "Overlapping evidence warrants uncertainty, not forced certainty."
+    }
+  ]
+}
