@@ -278,8 +278,14 @@ fn spectral_condition_number(matrix: &Matrix) -> Result<f64, String> {
     let largest = *eigenvalues
         .last()
         .ok_or_else(|| "empty eigenvalue spectrum".to_owned())?;
-    if !smallest.is_finite() || !largest.is_finite() || smallest <= 0.0 || largest < smallest {
-        return Err(format!("matrix is not numerically SPD: min={smallest:e}, max={largest:e}"));
+    if !smallest.is_finite()
+        || !largest.is_finite()
+        || smallest <= 0.0
+        || largest < smallest
+    {
+        return Err(format!(
+            "matrix is not numerically SPD: min={smallest:e}, max={largest:e}"
+        ));
     }
     let condition = largest / smallest;
     if !condition.is_finite() || condition < 1.0 {
@@ -409,40 +415,40 @@ fn run_sweep() -> Result<Vec<SweepPoint>, String> {
     for (mesh_family, quadratically_graded) in
         [("uniform", false), ("quadratic-graded", true)]
     {
-      for cells_per_side in [2, 3, 4, 5, 6] {
-        let matrix = assemble_constrained_stiffness(cells_per_side, quadratically_graded)?;
-        let n = matrix.len();
-        let scaled = jacobi_scaled_matrix(&matrix)?;
-        let condition_number_unscaled = spectral_condition_number(&matrix)?;
-        let condition_number_jacobi_scaled = spectral_condition_number(&scaled)?;
+        for cells_per_side in [2, 3, 4, 5, 6] {
+            let matrix = assemble_constrained_stiffness(cells_per_side, quadratically_graded)?;
+            let n = matrix.len();
+            let scaled = jacobi_scaled_matrix(&matrix)?;
+            let condition_number_unscaled = spectral_condition_number(&matrix)?;
+            let condition_number_jacobi_scaled = spectral_condition_number(&scaled)?;
 
-        // A deterministic, nontrivial RHS provides a linear-solver diagnostic
-        // independent of a selected physical load vector.
-        let rhs: Vec<f64> = (0..n)
-            .map(|i| {
-                let coordinate = (i + 1) as f64;
-                coordinate.sin() + 0.25 * (0.37 * coordinate).cos()
-            })
-            .collect();
-        let cg = conjugate_gradient(&matrix, &rhs, false)?;
-        let pcg = conjugate_gradient(&matrix, &rhs, true)?;
-        if cg.relative_residual > RELATIVE_RESIDUAL_TOLERANCE
-            || pcg.relative_residual > RELATIVE_RESIDUAL_TOLERANCE
-            || cg.iterations > n.saturating_mul(4).max(32)
-            || pcg.iterations > n.saturating_mul(4).max(32)
-        {
-            return Err("linear solver residual/iteration gate failed".to_owned());
+            // A deterministic, nontrivial RHS provides a linear-solver diagnostic
+            // independent of a selected physical load vector.
+            let rhs: Vec<f64> = (0..n)
+                .map(|i| {
+                    let coordinate = (i + 1) as f64;
+                    coordinate.sin() + 0.25 * (0.37 * coordinate).cos()
+                })
+                .collect();
+            let cg = conjugate_gradient(&matrix, &rhs, false)?;
+            let pcg = conjugate_gradient(&matrix, &rhs, true)?;
+            if cg.relative_residual > RELATIVE_RESIDUAL_TOLERANCE
+                || pcg.relative_residual > RELATIVE_RESIDUAL_TOLERANCE
+                || cg.iterations > n.saturating_mul(4).max(32)
+                || pcg.iterations > n.saturating_mul(4).max(32)
+            {
+                return Err("linear solver residual/iteration gate failed".to_owned());
+            }
+            points.push(SweepPoint {
+                mesh_family,
+                cells_per_side,
+                free_dof_count: n,
+                condition_number_unscaled,
+                condition_number_jacobi_scaled,
+                cg,
+                pcg,
+            });
         }
-        points.push(SweepPoint {
-            mesh_family,
-            cells_per_side,
-            free_dof_count: n,
-            condition_number_unscaled,
-            condition_number_jacobi_scaled,
-            cg,
-            pcg,
-        });
-      }
     }
     Ok(points)
 }
@@ -451,7 +457,9 @@ fn main() -> ExitCode {
     let source_sha = env::var("MMS_BENCH_SOURCE_SHA").unwrap_or_default();
     let checkout_sha = env::var("MMS_BENCH_CHECKOUT_SHA").unwrap_or_default();
     if !is_lowercase_sha40(&source_sha) || !is_lowercase_sha40(&checkout_sha) {
-        eprintln!("MMS_BENCH_SOURCE_SHA and MMS_BENCH_CHECKOUT_SHA must be lowercase 40-character Git SHAs");
+        eprintln!(
+            "MMS_BENCH_SOURCE_SHA and MMS_BENCH_CHECKOUT_SHA must be lowercase 40-character Git SHAs"
+        );
         return ExitCode::FAILURE;
     }
 
