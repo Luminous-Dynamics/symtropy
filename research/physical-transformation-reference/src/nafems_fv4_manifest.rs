@@ -52,7 +52,7 @@ pub const LSDYNA_PUBLISHED_ERRORS_PERCENT: [f64; 6] =
 /// rendering does not justify reconstructing absolute solver results from
 /// the ratios, so keep these factors in their own field.
 pub const ALTAIR_TARGETS_HZ: [f64; 6] = [1.723, 1.727, 7.413, 9.972, 18.155, 26.957];
-pub const ALTAIR_NORMALIZED_FACTORS: [f64; 6] = [1.0054, 1.0048, 1.0080, 1.0055, 1.0067, 1.0068];
+pub const ALTAIR_NORMALIZED_FACTORS: [f64; 6] = [1.0054, 1.0048, 1.008, 1.0055, 1.0067, 1.0068];
 
 /// Secondary APDL solver results quoted on VMP09-T4, BEAM188 and BEAM189.
 pub const APDL_BEAM188_HZ: [f64; 6] = [1.7198, 1.7236, 7.4021, 9.9733, 18.0842, 27.0797];
@@ -238,7 +238,7 @@ mod tests {
         assert!(fixture.contains("lsdyna_hz=1.722,1.725,7.410,9.960,18.079,26.843"));
         assert!(fixture.contains("closest_pair_gap_hz=0.004"));
         assert!(fixture.contains("altair_target_hz=1.723,1.727,7.413,9.972,18.155,26.957"));
-        assert!(fixture.contains("altair_normalized_factors=1.0054,1.0048,1.0080,1.0055,1.0067,1.0068"));
+        assert!(fixture.contains("altair_normalized_factors=1.0054,1.0048,1.008,1.0055,1.0067,1.0068"));
         assert!(fixture.contains("mass_attachment_coordinates_status=unresolved_primary_input"));
         assert!(fixture.contains("claim_ceiling=manifest_only_no_FV4_solve_or_physical_validation"));
         assert!(published_variants().iter().any(|variant| {
