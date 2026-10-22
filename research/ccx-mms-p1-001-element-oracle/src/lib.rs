@@ -255,7 +255,7 @@ impl TriangleElement {
             * internal_force
                 .iter()
                 .zip(dofs)
-                .map(|(force, displacement)| force * displacement)
+                .map(|(force, displacement)| *force * *displacement)
                 .sum::<f64>();
         let strain = self.strain(displacements)?;
         let (lambda, mu) = self.material.lame_parameters();
@@ -302,7 +302,7 @@ impl TriangleElement {
             *total = stiffness_row
                 .iter()
                 .zip(dofs.iter())
-                .map(|(stiffness, displacement)| stiffness * displacement)
+                .map(|(stiffness, displacement)| *stiffness * *displacement)
                 .sum();
         }
         if force.iter().any(|value| !value.is_finite()) {
@@ -531,7 +531,12 @@ mod tests {
             displacements[2].x,
             displacements[2].y,
         ];
-        let energy = 0.5 * force.iter().zip(values).map(|(f, u)| f * u).sum::<f64>();
+        let energy = 0.5
+            * force
+                .iter()
+                .zip(values)
+                .map(|(internal, displacement)| *internal * displacement)
+                .sum::<f64>();
         assert!(energy.is_finite() && energy >= 0.0, "energy={energy:e}");
     }
 
