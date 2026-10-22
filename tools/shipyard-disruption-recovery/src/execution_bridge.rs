@@ -642,6 +642,68 @@ mod tests {
     }
 
     #[test]
+    fn closed_loop_runs_spatial_recovery_only_after_evidence_bridge_accepts() {
+        let baseline_plan = baseline(5);
+        let planned = plan(5);
+        let events = [event("start-clear", ExecutionEventKind::Started, 2, 2)];
+        let witnesses = [PlacementOccupancyWitness {
+            witness_id: "scan-block-a-at-8".to_owned(),
+            placement_reservation_id: "block-a-placement".to_owned(),
+            source_id: "yard-scanner-1".to_owned(),
+            evidence_ref: "scan://block-a/8".to_owned(),
+            occupied_at_tick: 8,
+            recorded_tick: 8,
+        }];
+        let bindings = binding();
+        let prior_disruption = prior(4);
+        let report = evaluate_execution_driven_recovery(&ExecutionDrivenRecoveryInput {
+            baseline: &baseline_plan,
+            candidate: &baseline_plan,
+            planned_operations: &planned,
+            events: &events,
+            occupancy_witnesses: &witnesses,
+            cutoff: ExecutionReplayCutoff {
+                as_of_occurred_tick: 8,
+                as_of_recorded_tick: 8,
+            },
+            decision_tick: 8,
+            prior_disruption: &prior_disruption,
+            bindings: &bindings,
+        });
+
+        assert!(report.bridge.accepted, "{:?}", report.bridge.violations);
+        assert!(report.recovery.as_ref().is_some_and(|recovery| recovery.accepted));
+        assert!(report.accepted);
+    }
+
+    #[test]
+    fn closed_loop_does_not_issue_recovery_report_without_current_occupancy_evidence() {
+        let baseline_plan = baseline(5);
+        let planned = plan(5);
+        let events = [event("start-clear", ExecutionEventKind::Started, 2, 2)];
+        let bindings = binding();
+        let prior_disruption = prior(4);
+        let report = evaluate_execution_driven_recovery(&ExecutionDrivenRecoveryInput {
+            baseline: &baseline_plan,
+            candidate: &baseline_plan,
+            planned_operations: &planned,
+            events: &events,
+            occupancy_witnesses: &[],
+            cutoff: ExecutionReplayCutoff {
+                as_of_occurred_tick: 8,
+                as_of_recorded_tick: 8,
+            },
+            decision_tick: 8,
+            prior_disruption: &prior_disruption,
+            bindings: &bindings,
+        });
+
+        assert!(!report.accepted);
+        assert!(!report.bridge.accepted);
+        assert!(report.recovery.is_none());
+    }
+
+    #[test]
     fn positive_current_occupancy_witness_generates_receipted_extension() {
         let report = augment_disruption_from_execution(
             &baseline(5),
