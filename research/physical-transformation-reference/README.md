@@ -93,6 +93,8 @@ The static planar-truss solver does **not** implement free-vibration or modal an
 
 ## External modal benchmark status
 
+A new continuous 1D Euler-Bernoulli line element in the draft [BE25 candidate PR](https://github.com/Luminous-Dynamics/symtropy/pull/2664) uses shared nodal transverse-displacement/rotation DOFs, ten-element consistent-translational-mass models for the four boundary-condition families, and a 32-element convergence comparison. It calculates both candidate line masses (25 kg/m and 0.254929 kg/m) rather than selecting one by matching the table. Its exact-head candidate receipt must pass; the result remains a `candidate-analysis-complete` audit and not a BE25 reproduction.
+
 The [SOFiSTiK 2026 BE25 input audit](benchmarks/SOFISTIK_BE25_INPUT_AUDIT_V0_1.md) is executable but deliberately reports `blocked-until-source-input-resolved`: the PDF's printed `mu=0.025 t/m` is 25 kg/m, while `gamma*A/g` from its stated density and area is 0.254929 kg/m (a 98.0665x discrepancy). The four published references imply approximately 0.300 kg/m under the PDF's literal E/I values. The audit emits a source-bound receipt for this contradiction; it does not claim to reproduce BE25. The attached `eigenvalue analysis.dat` still needs independent inspection before any input interpretation is accepted.
 
 ## Safety and claim ceiling
