@@ -26,6 +26,13 @@ jq -e '
   and $root["$defs"].gate.enum == ["pass","fail","unknown","not_applicable"]
   and $root.properties.validation.properties.ci_status.enum
       == ["not_run","queued","skipped","pass_exact_head","fail","stale_or_unknown"]
+  and ($root.allOf | length) == 5
+  and any($root.allOf[];
+    .if.properties.evidence_tier.const == "S0_synthetic"
+    and .then.properties.claim_ceiling.const == "software_accounting_only")
+  and any($root.allOf[];
+    .if.properties.claim_ceiling.const == "operationally_validated_within_scope"
+    and .then.properties.evidence_tier.const == "S4_operational_validation")
 ' "$schema" >/dev/null
 
 audit_example() {
