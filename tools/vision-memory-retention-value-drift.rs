@@ -139,12 +139,6 @@ struct Query {
     truth_revision: u16,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Stream {
-    seed: u64,
-    events_len: usize,
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Rng(u64);
 
@@ -387,12 +381,12 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
                 if let Some(entry) = entries.iter_mut().find(|entry| entry.key == key) {
                     entry.last_access_step = now;
                     entry.access_count = entry.access_count.saturating_add(1);
-                    let impact = evaluator_impact(key);
                     if entry.revision == truth_revision {
-                        // This outcome feedback is observable after the query.
-                        entry.outcome_value = entry.outcome_value.saturating_add(impact);
+                        // Only generic observed success feedback is visible to
+                        // the retention policy; evaluator utility weights are not.
+                        entry.outcome_value = entry.outcome_value.saturating_add(1);
                     } else {
-                        entry.outcome_value = entry.outcome_value.saturating_sub(2 * impact);
+                        entry.outcome_value = entry.outcome_value.saturating_sub(2);
                     }
                 }
             }
@@ -515,10 +509,6 @@ fn run_row(workload: Workload, seed: usize, budget: usize, policy: Policy) -> Ro
         logical_bytes: replayed.entries.len() * SLOT_BYTES,
         oracle_utility,
     }
-}
-
-fn bool_bit(value: bool) -> &'static str {
-    if value { "1" } else { "0" }
 }
 
 fn report() -> String {
@@ -704,6 +694,7 @@ mod tests {
         let (events, _, _) = build_stream(Workload::Stationary, 9);
         let replayed = replay(&events, Policy::Lru, 3);
         assert!(replayed.entries.len() <= 3);
-        assert_eq!(replayed.entries.len() * SLOT_BYTES, replayed.entries.len() * SLOT_BYTES);
+        let logical_bytes = replayed.entries.len() * SLOT_BYTES;
+        assert_eq!(logical_bytes, 3 * SLOT_BYTES);
     }
 }
