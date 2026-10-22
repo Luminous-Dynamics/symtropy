@@ -3,10 +3,13 @@ use std::{collections::VecDeque, env, fs, process};
 
 const UPSTREAM_COMMIT: &str = "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb";
 const UPSTREAM_BLOB_SHA1: &str = "6bac8cfaf9f326f6405d5396b9cedd12941aba94";
-const UPSTREAM_REPOSITORY: &str =
-    "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
+const UPSTREAM_BLOB_SHA1_CASE_02: &str = "aa051d7c71a0fc2949ce69d67bce0ec54f4a11d1";
+const UPSTREAM_REPOSITORY: &str = "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
 const UPSTREAM_INSTANCE_PATH: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs";
-const CLAIM_CEILING: &str = "Pinned public benchmark input structure and an exhaustive tiny-instance makespan oracle are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established.";
+const UPSTREAM_INSTANCE_PATH_CASE_02: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs";
+const UPSTREAM_BLOB_SHA1_CASE_03: &str = "01c1ff749cbad87206cbc4f2ba308c005dd8b1c9";
+const UPSTREAM_INSTANCE_PATH_CASE_03: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs";
+const CLAIM_CEILING: &str = "Pinned public benchmark input structures and exhaustive tiny-instance makespan oracles for named cases are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established.";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -37,6 +40,7 @@ struct ExpectedStructure {
     max_operations_per_job: usize,
     operations: usize,
     operation_alternative_counts: Vec<usize>,
+    declared_average_machine_flexibility: f64,
     setup_matrix_dimensions: [usize; 3],
     setup_values_min: i64,
     setup_values_max: i64,
@@ -61,6 +65,7 @@ struct Report {
     observed_operations: usize,
     operation_alternative_counts: Vec<usize>,
     operations: Vec<OperationSummary>,
+    declared_average_machine_flexibility: f64,
     setup_matrix_dimensions: [usize; 3],
     setup_values_min: i64,
     setup_values_max: i64,
@@ -91,6 +96,7 @@ struct ParsedInstance {
     max_operations_per_job: usize,
     operation_alternative_counts: Vec<usize>,
     operations: Vec<OperationSummary>,
+    declared_average_machine_flexibility: f64,
     setup_matrix_dimensions: [usize; 3],
     setup_values_min: i64,
     setup_values_max: i64,
@@ -149,10 +155,10 @@ fn run() -> Result<(), String> {
     if args.len() != 3 {
         return Err("usage: ev-external-jobshop-parity <instance.fjs> <manifest.json>".into());
     }
-    let instance_text = fs::read_to_string(&args[1])
-        .map_err(|error| format!("cannot_read_instance: {error}"))?;
-    let manifest_text = fs::read_to_string(&args[2])
-        .map_err(|error| format!("cannot_read_manifest: {error}"))?;
+    let instance_text =
+        fs::read_to_string(&args[1]).map_err(|error| format!("cannot_read_instance: {error}"))?;
+    let manifest_text =
+        fs::read_to_string(&args[2]).map_err(|error| format!("cannot_read_manifest: {error}"))?;
     let manifest: Manifest = serde_json::from_str(&manifest_text)
         .map_err(|error| format!("invalid_manifest_json: {error}"))?;
     validate_manifest(&manifest)?;
@@ -161,7 +167,7 @@ fn run() -> Result<(), String> {
     let exact_oracle = solve_tiny_instance(&parsed)?;
 
     let report = Report {
-        schema_version: "external-jobshop-input-parity/0.1".into(),
+        schema_version: "external-jobshop-input-parity/0.2".into(),
         status: "input_and_tiny_exact_makespan_oracle_validated_not_policy_benchmarked".into(),
         benchmark_id: manifest.benchmark_id,
         source_repository_url: manifest.source.repository_url,
@@ -176,6 +182,7 @@ fn run() -> Result<(), String> {
         observed_operations: parsed.operations.len(),
         operation_alternative_counts: parsed.operation_alternative_counts,
         operations: parsed.operations,
+        declared_average_machine_flexibility: parsed.declared_average_machine_flexibility,
         setup_matrix_dimensions: parsed.setup_matrix_dimensions,
         setup_values_min: parsed.setup_values_min,
         setup_values_max: parsed.setup_values_max,
@@ -193,34 +200,83 @@ fn run() -> Result<(), String> {
 }
 
 fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
-    if manifest.schema_version != "external-jobshop-parity-manifest/0.1"
-        || manifest.benchmark_id != "FJSP-SDST-FATTAHI-001"
+    if manifest.schema_version != "external-jobshop-parity-manifest/0.2"
         || manifest.claim_ceiling != CLAIM_CEILING
     {
         return Err("unsupported_manifest_version_id_or_claim_ceiling".into());
     }
+
+    let (
+        expected_path,
+        expected_blob,
+        expected_jobs,
+        expected_operations,
+        expected_alternatives,
+        expected_flexibility,
+        expected_setup_dimensions,
+        expected_setup_min,
+        expected_setup_max,
+    ) = match manifest.benchmark_id.as_str() {
+        "FJSP-SDST-FATTAHI-001" => (
+            UPSTREAM_INSTANCE_PATH,
+            UPSTREAM_BLOB_SHA1,
+            2,
+            4,
+            vec![2, 2, 2, 2],
+            2.0,
+            [2, 4, 4],
+            3,
+            8,
+        ),
+        "FJSP-SDST-FATTAHI-002" => (
+            UPSTREAM_INSTANCE_PATH_CASE_02,
+            UPSTREAM_BLOB_SHA1_CASE_02,
+            2,
+            4,
+            vec![1, 2, 2, 1],
+            1.5,
+            [2, 4, 4],
+            3,
+            1_000_000,
+        ),
+        "FJSP-SDST-FATTAHI-003" => (
+            UPSTREAM_INSTANCE_PATH_CASE_03,
+            UPSTREAM_BLOB_SHA1_CASE_03,
+            3,
+            6,
+            vec![1, 2, 2, 1, 2, 2],
+            1.7,
+            [2, 6, 6],
+            6,
+            1_000_000,
+        ),
+        _ => return Err("unsupported_benchmark_case".into()),
+    };
+
     let source = &manifest.source;
     if source.repository_url != UPSTREAM_REPOSITORY
         || source.commit != UPSTREAM_COMMIT
         || source.license != "MIT"
         || source.paper_doi != "10.1007/s10472-026-10007-3"
-        || source.instance_path != UPSTREAM_INSTANCE_PATH
-        || source.instance_git_blob_sha1 != UPSTREAM_BLOB_SHA1
+        || source.instance_path != expected_path
+        || source.instance_git_blob_sha1 != expected_blob
     {
         return Err("upstream_source_pin_mismatch".into());
     }
     if !is_lower_hex_40(&source.commit) || !is_lower_hex_40(&source.instance_git_blob_sha1) {
         return Err("upstream_revision_or_blob_digest_malformed".into());
     }
+
     let expected = &manifest.expected_structure;
-    if expected.jobs != 2
+    if expected.jobs != expected_jobs
         || expected.machines != 2
         || expected.max_operations_per_job != 2
-        || expected.operations != 4
-        || expected.operation_alternative_counts != vec![2, 2, 2, 2]
-        || expected.setup_matrix_dimensions != [2, 4, 4]
-        || expected.setup_values_min != 3
-        || expected.setup_values_max != 8
+        || expected.operations != expected_operations
+        || expected.operation_alternative_counts != expected_alternatives
+        || expected.declared_average_machine_flexibility != expected_flexibility
+        || expected.setup_matrix_dimensions != expected_setup_dimensions
+        || expected.setup_values_min != expected_setup_min
+        || expected.setup_values_max != expected_setup_max
         || expected.primary_objective != "makespan"
         || expected.supports_due_dates
     {
@@ -245,14 +301,28 @@ fn parse_instance(input: &str) -> Result<ParsedInstance, String> {
     if lines.is_empty() {
         return Err("instance_has_no_nonempty_lines".into());
     }
-    let header = parse_usize_tokens(lines[0], "header")?;
-    if header.len() != 3 || header.iter().any(|value| *value == 0) {
-        return Err("header_must_contain_positive_job_machine_and_operation_counts".into());
+    let header: Vec<&str> = lines[0].split_whitespace().collect();
+    if header.len() != 3 {
+        return Err("header_must_contain_job_machine_and_average_flexibility_fields".into());
     }
-    let jobs = header[0];
-    let machines = header[1];
-    let declared_max_operations = header[2];
-    if jobs > 100_000 || machines > 10_000 || declared_max_operations > 100_000 {
+    let jobs = header[0]
+        .parse::<usize>()
+        .map_err(|_| "invalid_job_count_header".to_string())?;
+    let machines = header[1]
+        .parse::<usize>()
+        .map_err(|_| "invalid_machine_count_header".to_string())?;
+    let declared_average_machine_flexibility = header[2]
+        .parse::<f64>()
+        .map_err(|_| "invalid_average_machine_flexibility_header".to_string())?;
+    if jobs == 0
+        || machines == 0
+        || !declared_average_machine_flexibility.is_finite()
+        || declared_average_machine_flexibility <= 0.0
+        || declared_average_machine_flexibility > machines as f64
+    {
+        return Err("invalid_job_machine_count_or_average_flexibility_header".into());
+    }
+    if jobs > 100_000 || machines > 10_000 {
         return Err("instance_dimensions_exceed_contract_limits".into());
     }
 
@@ -269,7 +339,7 @@ fn parse_instance(input: &str) -> Result<ParsedInstance, String> {
         let operation_count = *values
             .first()
             .ok_or_else(|| format!("empty_job_row_{job_id}"))?;
-        if operation_count == 0 || operation_count > declared_max_operations {
+        if operation_count == 0 || operation_count > 100_000 {
             return Err(format!("invalid_operation_count_for_job_{job_id}"));
         }
         max_observed_operations = max_observed_operations.max(operation_count);
@@ -361,12 +431,22 @@ fn parse_instance(input: &str) -> Result<ParsedInstance, String> {
         }
     }
 
+    let observed_average_machine_flexibility = operation_alternative_counts.iter().sum::<usize>()
+        as f64
+        / operation_alternative_counts.len() as f64;
+    let declared_flexibility_tenths = (declared_average_machine_flexibility * 10.0).round() as i64;
+    let observed_flexibility_tenths = (observed_average_machine_flexibility * 10.0).round() as i64;
+    if declared_flexibility_tenths != observed_flexibility_tenths {
+        return Err("declared_average_machine_flexibility_mismatch".into());
+    }
+
     Ok(ParsedInstance {
         jobs,
         machines,
         max_operations_per_job: max_observed_operations,
         operation_alternative_counts,
         operations,
+        declared_average_machine_flexibility,
         setup_matrix_dimensions: [machines, operation_count, operation_count],
         setup_values_min: setup_min.ok_or_else(|| "setup_matrix_has_no_values".to_string())?,
         setup_values_max: setup_max.ok_or_else(|| "setup_matrix_has_no_values".to_string())?,
@@ -403,6 +483,8 @@ fn validate_expected_structure(
         || parsed.max_operations_per_job != expected.max_operations_per_job
         || parsed.operations.len() != expected.operations
         || parsed.operation_alternative_counts != expected.operation_alternative_counts
+        || parsed.declared_average_machine_flexibility
+            != expected.declared_average_machine_flexibility
         || parsed.setup_matrix_dimensions != expected.setup_matrix_dimensions
         || parsed.setup_values_min != expected.setup_values_min
         || parsed.setup_values_max != expected.setup_values_max
@@ -413,13 +495,21 @@ fn validate_expected_structure(
 }
 
 fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, String> {
-    if parsed.jobs != 2 || parsed.machines != 2 || parsed.operations.len() != 4 {
-        return Err("exact_oracle_supports_only_declared_two_job_two_machine_four_operation_case".into());
+    if !(2..=3).contains(&parsed.jobs)
+        || parsed.machines != 2
+        || !(4..=6).contains(&parsed.operations.len())
+        || parsed.operations.len() % parsed.jobs != 0
+    {
+        return Err(
+            "exact_oracle_supports_two_or_three_jobs_two_machines_and_up_to_six_operations".into(),
+        );
     }
     if parsed.setup_times.len() != parsed.machines
         || parsed.setup_times.iter().any(|machine| {
             machine.len() != parsed.operations.len()
-                || machine.iter().any(|row| row.len() != parsed.operations.len())
+                || machine
+                    .iter()
+                    .any(|row| row.len() != parsed.operations.len())
         })
     {
         return Err("setup_tensor_dimensions_do_not_match_operations".into());
@@ -489,7 +579,9 @@ fn enumerate_assignments(
 
     let operation = &parsed.operations[operation_index];
     if operation.machine_options.is_empty() {
-        return Err(format!("operation_{operation_index}_has_no_machine_options"));
+        return Err(format!(
+            "operation_{operation_index}_has_no_machine_options"
+        ));
     }
     for option in &operation.machine_options {
         let machine_id = option
@@ -497,7 +589,9 @@ fn enumerate_assignments(
             .checked_sub(1)
             .ok_or_else(|| "machine_id_zero_is_invalid".to_string())?;
         if machine_id >= parsed.machines || option.processing_time == 0 {
-            return Err(format!("invalid_machine_option_for_operation_{operation_index}"));
+            return Err(format!(
+                "invalid_machine_option_for_operation_{operation_index}"
+            ));
         }
         machine_ids[operation_index] = machine_id;
         processing_times[operation_index] = option.processing_time;
@@ -542,12 +636,9 @@ fn enumerate_machine_sequences(
 ) -> Result<(), String> {
     if machine_index == permutations_by_machine.len() {
         accumulator.candidate_assignment_sequence_combinations += 1;
-        if let Some(candidate) = evaluate_machine_sequences(
-            parsed,
-            machine_ids,
-            processing_times,
-            sequences,
-        ) {
+        if let Some(candidate) =
+            evaluate_machine_sequences(parsed, machine_ids, processing_times, sequences)
+        {
             accumulator.feasible_acyclic_schedules += 1;
             if accumulator
                 .best
@@ -653,8 +744,7 @@ fn evaluate_machine_sequences(
         }
     }
     let mut completion_times = vec![0u64; operation_count];
-    let mut schedule_by_operation: Vec<Option<OperationSchedule>> =
-        vec![None; operation_count];
+    let mut schedule_by_operation: Vec<Option<OperationSchedule>> = vec![None; operation_count];
     let mut visited = 0usize;
 
     while let Some(operation_id) = ready.pop_front() {
@@ -691,7 +781,9 @@ fn evaluate_machine_sequences(
     if visited != operation_count {
         return None;
     }
-    let schedule = schedule_by_operation.into_iter().collect::<Option<Vec<_>>>()?;
+    let schedule = schedule_by_operation
+        .into_iter()
+        .collect::<Option<Vec<_>>>()?;
     let makespan = schedule
         .iter()
         .map(|operation| operation.completion_time)
@@ -709,12 +801,36 @@ mod tests {
     use super::*;
 
     fn manifest() -> Manifest {
-        serde_json::from_str(include_str!("../fixtures/external_manifest_v0_1.json"))
-            .expect("manifest fixture parses")
+        serde_json::from_str(include_str!(
+            "../fixtures/external_manifest_fattahi_setup_01_v0_2.json"
+        ))
+        .expect("case 01 manifest fixture parses")
+    }
+
+    fn manifest_case_02() -> Manifest {
+        serde_json::from_str(include_str!(
+            "../fixtures/external_manifest_fattahi_setup_02_v0_2.json"
+        ))
+        .expect("case 02 manifest fixture parses")
     }
 
     fn fixture() -> &'static str {
         include_str!("../fixtures/fattahi_setup_01.fjs")
+    }
+
+    fn fixture_case_02() -> &'static str {
+        include_str!("../fixtures/fattahi_setup_02.fjs")
+    }
+
+    fn manifest_case_03() -> Manifest {
+        serde_json::from_str(include_str!(
+            "../fixtures/external_manifest_fattahi_setup_03_v0_2.json"
+        ))
+        .expect("case 03 manifest fixture parses")
+    }
+
+    fn fixture_case_03() -> &'static str {
+        include_str!("../fixtures/fattahi_setup_03.fjs")
     }
 
     #[test]
@@ -728,10 +844,127 @@ mod tests {
         assert_eq!(parsed.machines, 2);
         assert_eq!(parsed.operations.len(), 4);
         assert_eq!(parsed.operation_alternative_counts, vec![2, 2, 2, 2]);
+        assert_eq!(parsed.declared_average_machine_flexibility, 2.0);
         assert_eq!(parsed.setup_matrix_dimensions, [2, 4, 4]);
         assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (3, 8));
-        assert_eq!(parsed.operations[0].machine_options[0].machine_id_upstream, 1);
+        assert_eq!(
+            parsed.operations[0].machine_options[0].machine_id_upstream,
+            1
+        );
         assert_eq!(parsed.operations[0].machine_options[0].processing_time, 25);
+    }
+
+    #[test]
+    fn case_02_decimal_header_is_average_machine_flexibility() {
+        let manifest = manifest_case_02();
+        validate_manifest(&manifest).expect("case 02 manifest pin is valid");
+        let parsed = parse_instance(fixture_case_02()).expect("case 02 fixture parses");
+        validate_expected_structure(&manifest.expected_structure, &parsed)
+            .expect("case 02 contract matches the fixture");
+        assert_eq!(parsed.jobs, 2);
+        assert_eq!(parsed.machines, 2);
+        assert_eq!(parsed.max_operations_per_job, 2);
+        assert_eq!(parsed.operations.len(), 4);
+        assert_eq!(parsed.operation_alternative_counts, vec![1, 2, 2, 1]);
+        assert_eq!(parsed.declared_average_machine_flexibility, 1.5);
+        assert_eq!(parsed.setup_matrix_dimensions, [2, 4, 4]);
+        assert_eq!(
+            (parsed.setup_values_min, parsed.setup_values_max),
+            (3, 1_000_000)
+        );
+    }
+
+    #[test]
+    fn exact_oracle_finds_case_02_makespan() {
+        let parsed = parse_instance(fixture_case_02()).expect("case 02 fixture parses");
+        let result = solve_tiny_instance(&parsed).expect("case 02 exact oracle completes");
+        assert_eq!(result.candidate_assignment_sequence_combinations, 20);
+        assert_eq!(result.feasible_acyclic_schedules, 11);
+        assert_eq!(result.optimal_makespan, 112);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![1, 1, 2, 2]
+        );
+        assert_eq!(
+            result.optimal_machine_sequences_operation_ids,
+            vec![vec![0, 1], vec![2, 3]]
+        );
+        assert_eq!(
+            result
+                .optimal_schedule
+                .iter()
+                .map(|op| (op.operation_id, op.processing_start, op.completion_time))
+                .collect::<Vec<_>>(),
+            vec![(0, 0, 43), (1, 48, 112), (2, 0, 35), (3, 44, 87)]
+        );
+        assert!(result.exhaustive_for_declared_instance);
+    }
+
+    #[test]
+    fn case_03_flexibility_metadata_and_six_operation_oracle_are_exact() {
+        let manifest = manifest_case_03();
+        validate_manifest(&manifest).expect("case 03 manifest pin is valid");
+        let parsed = parse_instance(fixture_case_03()).expect("case 03 fixture parses");
+        validate_expected_structure(&manifest.expected_structure, &parsed)
+            .expect("case 03 contract matches the fixture");
+        assert_eq!(parsed.jobs, 3);
+        assert_eq!(parsed.machines, 2);
+        assert_eq!(parsed.max_operations_per_job, 2);
+        assert_eq!(parsed.operations.len(), 6);
+        assert_eq!(parsed.operation_alternative_counts, vec![1, 2, 2, 1, 2, 2]);
+        assert_eq!(parsed.declared_average_machine_flexibility, 1.7);
+        assert_eq!(parsed.setup_matrix_dimensions, [2, 6, 6]);
+        assert_eq!(
+            (parsed.setup_values_min, parsed.setup_values_max),
+            (6, 1_000_000)
+        );
+
+        let result = solve_tiny_instance(&parsed).expect("case 03 exact oracle completes");
+        assert_eq!(result.candidate_assignment_sequence_combinations, 840);
+        assert_eq!(result.feasible_acyclic_schedules, 298);
+        assert_eq!(result.optimal_makespan, 233);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![1, 2, 2, 2, 1, 1]
+        );
+        assert_eq!(
+            result.optimal_machine_sequences_operation_ids,
+            vec![vec![0, 4, 5], vec![2, 1, 3]]
+        );
+        assert_eq!(
+            result
+                .optimal_schedule
+                .iter()
+                .map(|op| (op.operation_id, op.processing_start, op.completion_time))
+                .collect::<Vec<_>>(),
+            vec![
+                (0, 0, 43),
+                (1, 59, 154),
+                (2, 0, 53),
+                (3, 160, 233),
+                (4, 51, 176),
+                (5, 185, 228),
+            ]
+        );
+    }
+
+    #[test]
+    fn header_average_flexibility_must_match_observed_alternatives() {
+        let input = fixture_case_02().replacen("2 2 1.5", "2 2 1.7", 1);
+        assert_eq!(
+            parse_instance(&input).unwrap_err(),
+            "declared_average_machine_flexibility_mismatch"
+        );
+    }
+
+    #[test]
+    fn legacy_manifest_schema_is_rejected() {
+        assert!(
+            serde_json::from_str::<Manifest>(include_str!(
+                "../fixtures/external_manifest_v0_1.json"
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -749,7 +982,10 @@ mod tests {
         assert_eq!(result.candidate_assignment_sequence_combinations, 120);
         assert_eq!(result.feasible_acyclic_schedules, 52);
         assert_eq!(result.optimal_makespan, 70);
-        assert_eq!(result.optimal_machine_assignment_upstream_ids, vec![2, 2, 1, 1]);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![2, 2, 1, 1]
+        );
         assert_eq!(
             result.optimal_machine_sequences_operation_ids,
             vec![vec![2, 3], vec![0, 1]]
@@ -844,7 +1080,10 @@ mod tests {
 
     #[test]
     fn missing_setup_rows_fail_closed() {
-        let input = fixture().split("\n\n").next().expect("fixture header and jobs");
+        let input = fixture()
+            .split("\n\n")
+            .next()
+            .expect("fixture header and jobs");
         assert!(parse_instance(input).is_err());
     }
 

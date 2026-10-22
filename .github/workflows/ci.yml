@@ -102,6 +102,8 @@ jobs:
           sparse-checkout: |
             LICENSE
             data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs
+            data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs
+            data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs
             solution_methods/cp_sat/models/FJSPSDSTmodel.py
           sparse-checkout-cone-mode: false
           persist-credentials: false
@@ -109,7 +111,11 @@ jobs:
         run: |
           test "$(git -C upstream-benchmark rev-parse HEAD)" = "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
           test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs)" = "6bac8cfaf9f326f6405d5396b9cedd12941aba94"
+          test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs)" = "aa051d7c71a0fc2949ce69d67bce0ec54f4a11d1"
+          test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs)" = "01c1ff749cbad87206cbc4f2ba308c005dd8b1c9"
           cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs
+          cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs
+          cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs
           cmp upstream-benchmark/LICENSE tools/ev-external-jobshop-parity/UPSTREAM_LICENSE_MIT.txt
       - name: Format, lint and test standalone Rust crate
         run: |
@@ -120,10 +126,10 @@ jobs:
         run: |
           cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
             tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
-            tools/ev-external-jobshop-parity/fixtures/external_manifest_v0_1.json \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
             > ev-external-jobshop-parity-report.json
           jq -e '
-            .schema_version == "external-jobshop-input-parity/0.1"
+            .schema_version == "external-jobshop-input-parity/0.2"
             and .status == "input_and_tiny_exact_makespan_oracle_validated_not_policy_benchmarked"
             and .benchmark_id == "FJSP-SDST-FATTAHI-001"
             and .source_commit == "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
@@ -132,6 +138,7 @@ jobs:
             and .observed_machines == 2
             and .observed_operations == 4
             and .operation_alternative_counts == [2,2,2,2]
+            and .declared_average_machine_flexibility == 2
             and .setup_matrix_dimensions == [2,4,4]
             and .setup_values_min == 3
             and .setup_values_max == 8
@@ -159,7 +166,7 @@ jobs:
             --upstream-commit d088a26582f5cb79c6b4f2ad94f68ac7c50878cb \
             > ev-external-reference-cp-sat.json
           jq -e '
-            .schema_version == "external-fjsp-sdst-cp-sat-crosscheck/0.1"
+            .schema_version == "external-fjsp-sdst-cp-sat-crosscheck/0.2"
             and .upstream_commit == "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
             and .ortools_version == "9.11.4210"
             and .solver_status == "OPTIMAL"
@@ -174,7 +181,7 @@ jobs:
             tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs > invalid-external-instance.fjs
           if cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
             invalid-external-instance.fjs \
-            tools/ev-external-jobshop-parity/fixtures/external_manifest_v0_1.json \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
             > /dev/null 2> invalid-external-instance.stderr; then
             echo "Malformed setup matrix unexpectedly passed" >&2
             exit 1
@@ -184,19 +191,25 @@ jobs:
         run: |
           cargo run --quiet --manifest-path tools/ev-external-jobshop-parity/Cargo.toml -- \
             tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
-            tools/ev-external-jobshop-parity/fixtures/external_manifest_v0_1.json \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
             > ev-external-jobshop-parity-report-repeat.json
           cmp ev-external-jobshop-parity-report.json ev-external-jobshop-parity-report-repeat.json
           sha256sum \
             tools/ev-external-jobshop-parity/src/main.rs \
-            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_03_v0_2.json \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs \
             tools/ev-external-jobshop-parity/fixtures/external_manifest_v0_1.json \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_02_v0_2.json \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_01_v0_2.json \
             tools/ev-external-jobshop-parity/UPSTREAM_NOTICE.md \
             tools/ev-external-jobshop-parity/UPSTREAM_LICENSE_MIT.txt \
             tools/ev-external-jobshop-parity/reference_cp_sat_check.py \
             docs/research/EV_FACTORY_EXTERNAL_BENCHMARK_PARITY_V0_1.md \
             ev-external-jobshop-parity-report.json \
             ev-external-reference-cp-sat.json \
+            .github/workflows/ci.yml \
             > ev-external-jobshop-parity-report.sha256
       - uses: actions/upload-artifact@v4
         with:

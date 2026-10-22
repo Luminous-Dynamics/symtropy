@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -13,7 +14,7 @@ from ortools.sat.python import cp_model
 
 UPSTREAM_COMMIT = "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
 CLAIM_CEILING = (
-    "Upstream CP-SAT exact-makespan cross-check on one tiny static FJSP-SDST instance; "
+    "Upstream CP-SAT exact-makespan cross-check on a named pinned tiny static FJSP-SDST case; "
     "not a dispatch-policy, tardiness, factory-performance, or production-release result."
 )
 
@@ -43,21 +44,39 @@ def parse_tiny_instance(path):
     ]
     if not lines:
         raise ValueError("empty_instance")
-    header = [int(value) for value in lines[0].split()]
-    if len(header) != 3 or tuple(header) != (2, 2, 2):
-        raise ValueError("reference_adapter_only_supports_frozen_two_by_two_case")
+    header = lines[0].split()
+    if len(header) != 3:
+        raise ValueError("reference_adapter_requires_three_header_fields")
+    try:
+        job_count = int(header[0])
+        machine_count = int(header[1])
+        declared_average_machine_flexibility = float(header[2])
+    except ValueError as error:
+        raise ValueError("invalid_job_shop_header") from error
+    if (
+        job_count not in (2, 3)
+        or machine_count != 2
+        or not math.isfinite(declared_average_machine_flexibility)
+        or declared_average_machine_flexibility <= 0.0
+        or declared_average_machine_flexibility > machine_count
+    ):
+        raise ValueError("reference_adapter_only_supports_two_or_three_job_two_machine_cases")
 
-    job_count, machine_count, max_operations = header
     jobs = []
     choices_by_operation = []
     operation_id = 0
+    operations_per_job = None
     for job_id in range(job_count):
         values = [int(value) for value in lines[1 + job_id].split()]
-        if not values or values[0] != max_operations:
-            raise ValueError("ragged_job_routes_not_supported_by_frozen_reference_adapter")
+        if not values or values[0] != 2:
+            raise ValueError("reference_adapter_requires_two_operations_per_job")
+        if operations_per_job is None:
+            operations_per_job = values[0]
+        elif values[0] != operations_per_job:
+            raise ValueError("ragged_job_routes_not_supported_by_reference_adapter")
         cursor = 1
         operations = []
-        for _position in range(max_operations):
+        for _position in range(values[0]):
             if cursor >= len(values):
                 raise ValueError("missing_operation_alternative_count")
             alternative_count = values[cursor]
@@ -86,6 +105,11 @@ def parse_tiny_instance(path):
         jobs.append(Job(operations))
 
     operation_count = operation_id
+    observed_average_machine_flexibility = (
+        sum(len(options) for options in choices_by_operation) / len(choices_by_operation)
+    )
+    if abs(observed_average_machine_flexibility - declared_average_machine_flexibility) > 0.0500001:
+        raise ValueError("declared_average_machine_flexibility_mismatch")
     setup_rows = [[int(value) for value in line.split()] for line in lines[1 + job_count:]]
     if len(setup_rows) != machine_count * operation_count:
         raise ValueError("setup_row_count_mismatch")
@@ -203,7 +227,7 @@ def run_crosscheck(instance_path, model_path, rust_report_path, upstream_commit)
             raise RuntimeError("rust_oracle_schedule_duration_mismatch")
 
     return {
-        "schema_version": "external-fjsp-sdst-cp-sat-crosscheck/0.1",
+        "schema_version": "external-fjsp-sdst-cp-sat-crosscheck/0.2",
         "upstream_commit": UPSTREAM_COMMIT,
         "upstream_model_path": "solution_methods/cp_sat/models/FJSPSDSTmodel.py",
         "upstream_model_sha256": hashlib.sha256(model_path.read_bytes()).hexdigest(),
