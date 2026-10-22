@@ -26,11 +26,13 @@
     },
     "scenario_manifest_sha256": {
       "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the canonical JSON serialization of the scenarios array after sorting by scenario_id; each scenario uses schema field order."
     },
     "evaluator_source_commit": {
       "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Exact 40-character lowercase hexadecimal commit of the evaluator source."
     },
     "policies": {
       "type": "array",
@@ -123,7 +125,8 @@
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Immutable source identifiers available to policy development; must not include any source_id from held-out test scenarios."
         },
         "development_tuning_splits": {
           "type": "array",
@@ -136,7 +139,8 @@
               "test_ood",
               "test_adversarial"
             ]
-          }
+          },
+          "description": "Only train and validation are permitted for tuning. Listing any test split causes the audit to fail."
         }
       }
     },
@@ -163,7 +167,8 @@
         },
         "source_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Immutable data/source identity; held-out test source IDs must be disjoint from every policy training_source_ids list."
         },
         "split": {
           "$ref": "#/$defs/split"
@@ -244,12 +249,14 @@
           "type": "boolean"
         },
         "safety_violation": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Must remain false for a passing qualification run; any true value fails closed."
         },
         "predicted_success_probability": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Policy-estimated probability of task_success for this exact episode; scored with Brier loss."
         },
         "energy_used_wh": {
           "type": [
