@@ -647,7 +647,9 @@ pub fn parse_mms_output(dat: &str, expected_node_count: usize) -> Check<MmsDispl
             return Err(format!("U section has out-of-range node ID {node_id}"));
         }
         if fields.len() != 3 && fields.len() != 4 {
-            return Err(format!("U row for node {node_id} must contain 2 or 3 displacement components"));
+            return Err(format!(
+                "U row for node {node_id} must contain 2 or 3 displacement components"
+            ));
         }
         let ux = parse_finite_number(fields[1])?;
         let uy = parse_finite_number(fields[2])?;
@@ -655,7 +657,9 @@ pub fn parse_mms_output(dat: &str, expected_node_count: usize) -> Check<MmsDispl
             let uz = parse_finite_number(fields[3])?;
             let z_tolerance = 1.0e-16;
             if uz.abs() > z_tolerance {
-                return Err(format!("plane-stress output has nonzero out-of-plane displacement at node {node_id}"));
+                return Err(format!(
+                    "plane-stress output has nonzero out-of-plane displacement at node {node_id}"
+                ));
             }
         }
         if values[node_id - 1].replace([ux, uy]).is_some() {
@@ -741,7 +745,12 @@ mod tests {
         let parameters = MmsParameters::default();
         for index in 0..=16 {
             let coordinate = index as f64 / 16.0;
-            for (x, y) in [(0.0, coordinate), (1.0, coordinate), (coordinate, 0.0), (coordinate, 1.0)] {
+            for (x, y) in [
+                (0.0, coordinate),
+                (1.0, coordinate),
+                (coordinate, 0.0),
+                (coordinate, 1.0),
+            ] {
                 let field = manufactured_field(parameters, x, y).unwrap();
                 assert!(field.u_m.abs() < 1.0e-20);
                 assert!(field.v_m.abs() < 1.0e-20);
@@ -815,15 +824,23 @@ mod tests {
         }
         assert!(metrics[1].displacement_l2_norm_m2 < metrics[0].displacement_l2_norm_m2);
         assert!(metrics[2].displacement_l2_norm_m2 < metrics[1].displacement_l2_norm_m2);
-        let order = observed_order(metrics[1].displacement_l2_norm_m2, metrics[2].displacement_l2_norm_m2).unwrap();
+        let order = observed_order(
+            metrics[1].displacement_l2_norm_m2,
+            metrics[2].displacement_l2_norm_m2,
+        )
+        .unwrap();
         assert!((1.7..=2.4).contains(&order), "observed interpolation order={order}");
-        assert!(metrics[2].displacement_h1_seminorm_error_m < metrics[1].displacement_h1_seminorm_error_m);
+        assert!(
+            metrics[2].displacement_h1_seminorm_error_m
+                < metrics[1].displacement_h1_seminorm_error_m
+        );
     }
 
     #[test]
     fn malformed_duplicate_missing_or_wrong_time_outputs_fail_closed() {
         assert!(parse_mms_displacements("", 1).is_err());
-        let duplicate = "displacements (vx,vy,vz) for set ALLNODES and time 1.0\n1 0 0 0\n1 0 0 0\n\n";
+        let duplicate =
+            "displacements (vx,vy,vz) for set ALLNODES and time 1.0\n1 0 0 0\n1 0 0 0\n\n";
         assert!(parse_mms_displacements(duplicate, 1).is_err());
         let missing = "displacements (vx,vy,vz) for set ALLNODES and time 1.0\n1 0 0 0\n\n";
         assert!(parse_mms_displacements(missing, 2).is_err());
