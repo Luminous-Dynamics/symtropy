@@ -638,7 +638,10 @@ mod tests {
             original.maximin_minimum_gain_units_per_hour,
             reordered.maximin_minimum_gain_units_per_hour
         );
-        assert_eq!(original.minimax_regret_action_id, reordered.minimax_regret_action_id);
+        assert_eq!(
+            original.minimax_regret_action_id,
+            reordered.minimax_regret_action_id
+        );
         assert_eq!(
             original.minimax_regret_upper_bound_units_per_hour,
             reordered.minimax_regret_upper_bound_units_per_hour

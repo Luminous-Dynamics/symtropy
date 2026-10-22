@@ -1,0 +1,72 @@
+# EV Factory Shared Control-Plane Outage v0.1
+
+## What was implemented
+
+The Rust discrete-event engine now accepts an optional, strict `common_cause_control_outage` catalog entry. The configuration names a shared domain, its exact member stations, first start time, recurrence interval and duration. Unknown station IDs, duplicate members, missing identifiers, nonpositive time values, overlapping recurrence windows and any final outage interval truncated by the simulation horizon fail closed. Each root report includes `catalog_config_sha256`, the SHA-256 of the validated typed catalog's canonical serialization (including the seed list and outage configuration); this is a semantic configuration digest, not a hash of raw fixture bytes.
+
+During a declared event, the affected stations:
+- do not dispatch new jobs from their input queue;
+- do not transfer completed output to a downstream buffer or finished-goods sink;
+- allow jobs already accepted before the outage to finish their bounded processing/rework chain, with completed output held at the transfer boundary until the domain recovers.
+
+The queue-dispatch rule is instrumented and asserted: a member station must report zero new job dispatches during the outage. This does not assert zero processing attempts for jobs already accepted before the outage; any physical control contract that forbids even their quality retries needs a separate explicit rework-pausing state machine.
+
+The event is scheduled on deterministic simulation time. The report carries the exact outage configuration, a start/end causal trace, number of outage starts after warm-up, measured outage seconds and per-station outage fractions. Per-station outage fraction is an overlay on machine-state time accounting, not an additional mutually exclusive time category. With an outage configured, the runner executes a matched counterfactual catalog with the outage removed. It reports per-seed paired good-units/hour deltas for the baseline and every station-addition intervention, each intervention's marginal effect under both structures, plus the paired difference-in-differences:
+`(intervention − baseline)_outage − (intervention − baseline)_no_outage`.
+This isolates the degree to which the shared-control structure changes the measured marginal server benefit within this synthetic fixture. A 95% mean interval is reported per comparison. Existing catalogs omit this optional field and keep the prior independent-failure behavior; their paired-outage comparison remains `null`.
+
+The report also calculates **DES-derived** reference-family, maximin and minimax-regret choices across the no-outage and shared-control-outage structures, using each intervention's paired mean incremental good-unit rate. The current candidate set includes `baseline` as a zero-gain option as well as one-server additions, so a robust selector may recommend holding capital. No family probability is inferred from having two structures; neither structure is treated as an IID replication. These are point-estimate screening decisions from a synthetic 20-seed experiment. Read the per-family uncertainty intervals alongside them; this is not a real factory capital recommendation.
+
+## Why this is a deliberately narrow first mechanism
+
+This is a *shared line-control / production-permission outage*, not an instantaneous electrical failure and not a general physical common-cause machine breakdown. Existing cycles are assumed able to finish; this represents graceful completion on local control/energy or a stop-new-work barrier. A physical power loss that interrupts active operations, loses work-in-process or requires restart/requalification needs a richer state machine and separate verified semantics. Do not relabel this v0.1 as a model of those behaviors.
+
+The purpose is to make one structural assumption executable and independently testable before expanding the family set. The scenario is synthetic and not calibrated to a real EV line.
+
+## Frozen fixture and oracle checks
+
+Fixture:
+`tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json`
+
+- Horizon: 4,000 s; warm-up: 0 s; 20 fixed replication seeds (20261020–20261039).
+- Shared domain: `shared-line-control`, containing `battery-module-install` and `final-assembly`.
+- Outages start at 600 s and 2,400 s; each lasts 300 s. Two complete events yield 600 measured wall-clock outage seconds.
+- Common random streams and the same product/supply config are used for the paired baseline comparison.
+- Existing finite-buffer, input/output conservation, station time-accounting and no-release-authority invariants remain required.
+
+Expected controls:
+- Configured stations expose a nonzero outage fraction; nonmembers expose zero.
+- Configured stations record zero new job dispatches during the outage.
+- No-outage catalog behavior reports null config and zero outage metrics.
+- Same catalog/seed/build is deterministic; the canonical catalog digest is stable for the same typed configuration and differs when the outage mechanism is removed.
+- The test pairs no-outage and outage baseline outputs by the same 20 seed IDs and reports finite per-seed deltas. It does not require a monotonic throughput result: queueing, dispatch and finite-horizon interactions can change observed outputs, so the sign must be measured rather than assumed.
+- The causal event trace carries all four expected transition times: 600 s start, 900 s end, 2,400 s start, 2,700 s end, with the exact same configured station group on each event.
+- Invalid group membership, overlapping windows, and a final event interval that would be cut off by the horizon fail closed.
+- Every intervention reports the marginal good-output effect under both model structures and the paired difference-in-differences. The DES-derived maximin/minimax-regret summary is recomputable from the exposed family-effect table; baseline is a legal zero-gain choice.
+
+These are software/model-contract claims. The fixture is short and synthetic; they are not estimates of factory downtime or throughput loss.
+
+## Next tests before treating this as credible model behavior
+
+1. Add explicit in-window trace assertions around equal-time completions/start/end events; the current frozen trace validates the domain group and event timeline but does not record each individual station operation transition.
+2. Add replay for interruptions of already-started cycles (remaining-time pause/resume, scrap/restart and qualification behavior as explicit alternatives); do not hide these policy choices under a generic outage flag.
+3. Add common-cause machine faults distinct from shared-control outages, with explicit cause IDs, affected servers, recovery ordering and overlapping-independent-fault semantics.
+4. Add more structural variants and hidden held-out mechanism families, then compare ranking reversals, maximin choice and minimax regret at equal simulation budgets. Never treat model families as IID seeds or infer probabilities from family counts.
+5. Validate on rights-cleared real event traces before calibration, ROI or investment claims.
+
+## Research context and relevant comparison points
+
+A small benchmark should be compared with matching analytic or simulation tasks, not presented as a universal industrial simulator leaderboard.
+
+- NIST AMS 100-85 (October 2026) recommends risk-proportionate computational-model credibility and uncertainty quantification tied to model influence and consequence: https://doi.org/10.6028/NIST.AMS.100-85
+- Shi & Gershwin (September 2026) derive lead-time distributions for a three-machine/two-buffer unreliable production line and validate against DES. This is an appropriate future analytical cross-check for simplified finite-buffer submodels, not direct validation of this shared-control mechanism: https://doi.org/10.1016/j.ijpe.2026.110047
+- NIST's Simantha is a DES comparator for asynchronous manufacturing lines with finite buffers and machine degradation/maintenance: https://www.nist.gov/services-resources/software/simantha-simulation-manufacturing
+- Keshvarinia, MacKenzie & Zhao (2025) discuss simulation-based digital-twin decision optimization under supply-chain disruptions: https://doi.org/10.1016/j.dajour.2025.100646
+
+A defensible comparative protocol is:
+- first validate event semantics with hand-calculated traces and invariants;
+- then run matching submodels against an analytical result where available;
+- then compare intervention decisions on identical inputs/seeds and report tail/regret metrics;
+- only then compare against industrial tools on a shared model, boundary, input data, constraint set and evaluation budget.
+
+No SOTA, plant-performance, safety, purchasing or production-release claim follows from this change.

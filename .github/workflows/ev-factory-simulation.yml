@@ -4,10 +4,12 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - "docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
@@ -18,10 +20,12 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - "docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
@@ -55,6 +59,20 @@ jobs:
             and .line_safety_gate == "unknown"
             and .product_quality_release_gate == "unknown"
           ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .schema_version == "0.1.0"
+            and .horizon_seconds == 4000
+            and .warmup_seconds == 0
+            and (.replication_seeds | length) == 20
+            and .common_cause_control_outage.domain_id == "shared-line-control"
+            and .common_cause_control_outage.station_ids == ["battery-module-install", "final-assembly"]
+            and .common_cause_control_outage.first_start_seconds == 600
+            and .common_cause_control_outage.recurrence_interval_seconds == 1800
+            and .common_cause_control_outage.duration_seconds == 300
+            and .input_evidence_class == "synthetic"
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json
       - name: Parse PCB cell fixtures
         run: |
           for fixture in \
@@ -117,6 +135,61 @@ jobs:
             and all(.scenarios[]; all(.stations[]; .accounted_fraction >= 0 and .accounted_fraction <= 1.000001))
             and all(.scenarios[1:][]; .added_servers == 1 and .intervention_station_id != null)
           ' ev-factory-simulation-report.json
+      - name: Run shared-control outage experiment and assert robust decision evidence
+        run: |
+          set -euo pipefail
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json
+          REPORT=ev-factory-shared-control-outage-report.json
+          REPEAT=ev-factory-shared-control-outage-repeat.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$FIXTURE" > "$REPORT"
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .replication_count == 20
+            and (.replication_seeds | length) == 20
+            and (.catalog_config_sha256 | test("^[0-9a-f]{64}$"))
+            and .release_ready == false
+            and .output_never_exceeds_released_input
+            and .all_buffers_respected_capacity
+            and .station_time_accounting_within_horizon
+            and (.scenarios | length) == 6
+            and all(.scenarios[];
+              .common_cause_control_outage_starts_after_warmup == 2
+              and .measured_common_cause_control_outage_seconds == 600
+              and (.common_cause_control_outage_trace | length) == 4
+              and (.common_cause_control_outage_trace | map(.at_seconds) == [600, 900, 2400, 2700])
+              and all(.common_cause_control_outage_trace[];
+                .domain_id == "shared-line-control"
+                and .station_ids == ["battery-module-install", "final-assembly"]
+              )
+              and all(.stations[] | select(.station_id == "battery-module-install" or .station_id == "final-assembly");
+                .new_job_dispatches_during_common_cause_outage_after_warmup == 0
+              )
+              and .all_buffers_respected_capacity
+              and .output_never_exceeds_released_input
+              and .release_ready == false
+            )
+            and (.paired_common_cause_control_outage_baseline_comparison.seed_count == 20)
+            and (.paired_common_cause_control_outage_baseline_comparison.paired_good_units_per_hour_delta_vs_no_outage.sample_count == 20)
+            and ((.paired_common_cause_control_outage_baseline_comparison.scenario_comparisons | length) == 6)
+            and all(.paired_common_cause_control_outage_baseline_comparison.scenario_comparisons[] | select(.scenario_id != "baseline");
+              .paired_good_units_per_hour_delta_vs_no_outage.sample_count == 20
+              and .paired_intervention_effect_vs_baseline_in_outage_model.sample_count == 20
+              and .paired_intervention_effect_vs_baseline_in_no_outage_model.sample_count == 20
+              and .paired_intervention_effect_delta_vs_no_outage.sample_count == 20
+              and .paired_intervention_effect_delta_vs_no_outage.mean_confidence_95_lower != null
+              and .paired_intervention_effect_delta_vs_no_outage.mean_confidence_95_upper != null
+            )
+            and (.structural_robust_intervention_summary.model_family_count == 2)
+            and (.structural_robust_intervention_summary.family_probabilities_used == false)
+            and (.structural_robust_intervention_summary.model_families_treated_as_iid_replications == false)
+            and (.structural_robust_intervention_summary.family_winners | length) == 2
+            and (.structural_robust_intervention_summary.intervention_scores | length) == 6
+            and (.structural_robust_intervention_summary.maximin_scenario_id | type) == "string"
+            and (.structural_robust_intervention_summary.minimax_regret_scenario_id | type) == "string"
+          ' "$REPORT"
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$FIXTURE" > "$REPEAT"
+          cmp "$REPORT" "$REPEAT"
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -188,15 +261,18 @@ jobs:
           sha256sum \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md \
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_DISPATCH_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
+            ev-factory-shared-control-outage-report.json \
             ev-factory-sequence-aware-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
@@ -205,6 +281,8 @@ jobs:
           name: ev-factory-discrete-event-simulation-report
           path: |
             ev-factory-simulation-report.json
+            ev-factory-shared-control-outage-report.json
+            ev-factory-shared-control-outage-repeat.json
             ev-factory-sequence-aware-report.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
