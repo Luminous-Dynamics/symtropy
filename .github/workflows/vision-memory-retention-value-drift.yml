@@ -67,7 +67,7 @@ jobs:
             }
             $1 == "SUMMARY_HEADER" { if (NF != 13) bad=1; sh++ }
             $1 == "SUMMARY" { if (NF != 13) bad=1; summaries++ }
-            END { if (bad || rh != 1 || rows != 1728 || sh != 1 || summaries != 72) exit 1 }
+            END { if (bad || rh != 1 || rows != 2016 || sh != 1 || summaries != 84) exit 1 }
           ' vis-mem-021.tsv
           sha256sum tools/vision-memory-retention-value-drift.rs .github/workflows/vision-memory-retention-value-drift.yml vis-mem-021.tsv > vis-mem-021.sha256
           sha256sum -c vis-mem-021.sha256
