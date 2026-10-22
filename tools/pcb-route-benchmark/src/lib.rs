@@ -1215,6 +1215,7 @@ fn validate_audit_manifest_for_manifest(
             return Err(format!("{}: license-audit row is not eligible: {}", pin.board_id, record.benchmark_eligibility));
         }
         if pin.license != evidence.resolved_spdx_id
+            || evidence.repository.trim_end_matches('/') != record.original_source_repository.trim_end_matches('/')
             || pin.source_url != record.original_source_repository
             || pin.original_source_repository.as_deref() != Some(record.original_source_repository.as_str())
             || pin.source_metadata_path.as_deref() != Some(record.metadata_path.as_str())
