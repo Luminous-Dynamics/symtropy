@@ -34,6 +34,17 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_localization_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_design_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/ev_automation_breakeven_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .common_cause_control_outage.domain_id == "shared-line-control"
+            and (.common_cause_control_outage.station_ids | length) == 2
+            and .common_cause_control_outage.first_start_seconds == 600
+            and .common_cause_control_outage.recurrence_interval_seconds == 1800
+            and .common_cause_control_outage.duration_seconds == 300
+            and .horizon_seconds == 4000
+            and .warmup_seconds == 0
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json
           jq -e '
             .benchmark_id == "EV-PUBLIC-COMPONENT-BENCHMARKS-001"
             and .observed_as_of == "2026-10-20"
