@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/glass-silicon-process-benchmark-v0.1.schema.json",
+  "title": "Glass and Silicon Process Benchmark v0.1",
+  "description": "Synthetic contract/fault corpus only. This schema does not validate physical process models or product claims.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "status",
+    "claim_ceiling",
+    "suite_invariants",
+    "research_references",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-silicon-process-benchmark-v0.1"
+    },
+    "status": {
+      "const": "synthetic_contract_corpus"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "suite_invariants": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 8
+      }
+    },
+    "research_references": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference_id", "title", "url", "published_or_reviewed", "use", "limitation"],
+        "properties": {
+          "reference_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "published_or_reviewed": {
+            "type": "string",
+            "pattern": "^[0-9]{4}$"
+          },
+          "use": {
+            "type": "string",
+            "minLength": 5
+          },
+          "limitation": {
+            "type": "string",
+            "minLength": 8
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "route",
+          "case_type",
+          "expected_disposition",
+          "fault_class",
+          "synthetic_only",
+          "evidence_status",
+          "required_evidence",
+          "purpose",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "route": {
+            "enum": [
+              "glass_container_reference",
+              "silicon_mg_reference",
+              "cross_route",
+              "evidence_contract"
+            ]
+          },
+          "case_type": {
+            "enum": [
+              "valid_control",
+              "negative_control",
+              "hold_control"
+            ]
+          },
+          "expected_disposition": {
+            "enum": [
+              "accept_contract_only",
+              "reject",
+              "abstain"
+            ]
+          },
+          "fault_class": {
+            "oneOf": [
+              {
+                "enum": [
+                  "missing_provenance",
+                  "unknown_as_zero",
+                  "invalid_quantity_or_unit",
+                  "incomplete_or_failed_balance",
+                  "unsupported_product_grade",
+                  "incompatible_functional_unit",
+                  "unverified_coproduct_credit",
+                  "mismatched_process_boundary",
+                  "evidence_class_laundering",
+                  "out_of_domain_acceptance",
+                  "train_test_leakage",
+                  "stale_or_unlicensed_source",
+                  "hidden_quality_regression"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "synthetic_only": {
+            "const": true
+          },
+          "evidence_status": {
+            "const": "synthetic_test"
+          },
+          "required_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 3
+            }
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 10
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "case_type": {
+                  "const": "valid_control"
+                }
+              },
+              "required": ["case_type"]
+            },
+            "then": {
+              "properties": {
+                "expected_disposition": {
+                  "const": "accept_contract_only"
+                },
+                "fault_class": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_type": {
+                  "const": "negative_control"
+                }
+              },
+              "required": ["case_type"]
+            },
+            "then": {
+              "properties": {
+                "expected_disposition": {
+                  "const": "reject"
+                },
+                "fault_class": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_type": {
+                  "const": "hold_control"
+                }
+              },
+              "required": ["case_type"]
+            },
+            "then": {
+              "properties": {
+                "expected_disposition": {
+                  "const": "abstain"
+                },
+                "fault_class": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
