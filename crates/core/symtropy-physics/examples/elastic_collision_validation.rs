@@ -92,6 +92,9 @@ fn run_case(case: CollisionCase) -> Result<CollisionResult, String> {
     // stabilization has its own energy-injection/penetration contract and is
     // intentionally outside this analytical velocity benchmark.
     world.baumgarte = 0.0;
+    // Disable sleep so low-speed bodies cannot be removed from the collision
+    // experiment before contact; sleeping is a separate policy under test.
+    world.sleep_threshold = 0.0;
     let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, case.mass_a);
     let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, case.mass_b);
 
@@ -322,6 +325,7 @@ mod tests {
         // policy fixture, not an idealized elastic-collision reference case.
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         world.baumgarte = 0.0;
+        world.sleep_threshold = 0.0;
         let body_a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 0.5, 1.0);
         let body_b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.5, 1.0);
 
