@@ -1498,8 +1498,8 @@ mod tests {
     fn strict_derivation_evidence_cannot_be_rebound_to_another_board_by_rehashing() {
         let plan = plan(OUTPUT_A, vec![preserved_rule()], true);
         let mut files = evidence_files_for(&plan);
-        let path = plan.strict_source_policy_derivation_evidence_relative_path.as_ref().unwrap();
-        let mut payload: Value = serde_json::from_slice(files.get(path).unwrap()).unwrap();
+        let path = plan.strict_source_policy_derivation_evidence_relative_path.clone().unwrap();
+        let mut payload: Value = serde_json::from_slice(files.get(&path).unwrap()).unwrap();
         payload["board_id"] = Value::String("different-board".into());
         let tampered = serde_json::to_vec_pretty(&payload).unwrap();
         let mut plan = plan;
