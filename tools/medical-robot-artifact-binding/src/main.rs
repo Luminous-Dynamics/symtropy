@@ -129,8 +129,8 @@ fn parse_manifest(root: &Value) -> Result<ManifestSpec, Vec<String>> {
         errors.push("EVIDENCE_CLASS_UNSUPPORTED".to_owned());
     }
 
-    let artifacts = match root.get("artifacts").and_then(Value::as_array) {
-        Some(artifacts) if !artifacts.is_empty() => artifacts,
+    let artifacts: &[Value] = match root.get("artifacts").and_then(Value::as_array) {
+        Some(artifacts) if !artifacts.is_empty() => artifacts.as_slice(),
         _ => {
             errors.push("ARTIFACT_LIST_MISSING_OR_EMPTY".to_owned());
             &[]
