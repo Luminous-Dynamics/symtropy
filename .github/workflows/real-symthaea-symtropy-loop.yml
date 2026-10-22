@@ -2,7 +2,7 @@ name: Real Symthaea x Symtropy Closed-Loop Smoke
 
 on:
   pull_request:
-    branches: ["main", "research/real-symthaea-physics-loop-v0-1"]
+    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Cargo.toml"
@@ -70,12 +70,19 @@ jobs:
           STFB_TRAIN_STEPS: 32
           STFB_EVAL_STEPS: 320
           STFB_TRIALS: 2
+          STFR_RUN_BENCHMARK: "1"
+          STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual.json
+          STFR_TRAIN_EPISODES: 1
+          STFR_TRAIN_STEPS: 32
+          STFR_EVAL_STEPS: 320
+          STFR_TRIALS: 2
         run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
 
       - name: Upload paired flight-transfer evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: symthaea-symtropy-flight-transfer-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
+          path: |
+            ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
+            ${{ runner.temp }}/symthaea-symtropy-bounded-residual.json
           if-no-files-found: error
-
