@@ -6,12 +6,14 @@ use pcb_route_benchmark::{
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
     kicad_drc::verify_run_artifacts_with_kicad_drc_policy,
     pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files, verify_run_artifacts,
-    ValidatedRun,
+    rule_fidelity::evaluate_rule_fidelity,
+    RuleFidelityPlan, ValidatedRun,
 };
 use std::{
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     io::{self, Write},
-    path::Path,
+    path::{Component, Path},
     process::ExitCode,
 };
 
@@ -197,6 +199,47 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&receipt)
                 .map_err(|error| format!("cannot serialize PCBWorld CSV receipt: {error}"))
         }
+        [
+            command,
+            plan_path,
+            source_board_path,
+            output_board_path,
+            source_rules_path,
+            compatibility_policy_path,
+            compatibility_drc_path,
+            strict_policy_path,
+            strict_drc_path,
+            evidence_root,
+        ] if command == "rule-fidelity" => {
+            let plan = fs::read(plan_path)
+                .map_err(|error| format!("cannot read {plan_path}: {error}"))?;
+            let source_board = fs::read(source_board_path)
+                .map_err(|error| format!("cannot read {source_board_path}: {error}"))?;
+            let output_board = fs::read(output_board_path)
+                .map_err(|error| format!("cannot read {output_board_path}: {error}"))?;
+            let source_rules = read_optional_bytes(source_rules_path)?;
+            let compatibility_policy = fs::read(compatibility_policy_path)
+                .map_err(|error| format!("cannot read {compatibility_policy_path}: {error}"))?;
+            let compatibility_drc = fs::read(compatibility_drc_path)
+                .map_err(|error| format!("cannot read {compatibility_drc_path}: {error}"))?;
+            let strict_policy = read_optional_bytes(strict_policy_path)?;
+            let strict_drc = read_optional_bytes(strict_drc_path)?;
+            let rule_evidence_files = read_rule_evidence_files(&plan, Path::new(evidence_root))?;
+            let receipt = evaluate_rule_fidelity(
+                &plan,
+                &source_board,
+                &output_board,
+                source_rules.as_deref(),
+                &compatibility_policy,
+                &compatibility_drc,
+                strict_policy.as_deref(),
+                strict_drc.as_deref(),
+                &rule_evidence_files,
+                &evaluator_head,
+            )?;
+            serde_json::to_vec_pretty(&receipt)
+                .map_err(|error| format!("cannot serialize rule-fidelity receipt: {error}"))
+        }
         [command, report_path, manifest_path] if command == "validate" => {
             let report = fs::read(report_path)
                 .map_err(|error| format!("cannot read {report_path}: {error}"))?;
@@ -296,10 +339,79 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
+        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | rule-fidelity PLAN.json SOURCE_BOARD OUTPUT_BOARD SOURCE_RULES|- COMPAT_POLICY.json COMPAT_DRC.json STRICT_POLICY|- STRICT_DRC|- EVIDENCE_ROOT | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
     }
 }
 
+
+
+fn read_optional_bytes(path: &str) -> Result<Option<Vec<u8>>, String> {
+    if path == "-" {
+        return Ok(None);
+    }
+    fs::read(path)
+        .map(Some)
+        .map_err(|error| format!("cannot read {path}: {error}"))
+}
+
+fn read_rule_evidence_files(
+    plan_bytes: &[u8],
+    evidence_root: &Path,
+) -> Result<BTreeMap<String, Vec<u8>>, String> {
+    let plan: RuleFidelityPlan = serde_json::from_slice(plan_bytes)
+        .map_err(|error| format!("rule-fidelity plan JSON invalid: {error}"))?;
+    let root = evidence_root.canonicalize().map_err(|error| {
+        format!("cannot canonicalize rule-evidence root {}: {error}", evidence_root.display())
+    })?;
+    if !root.is_dir() {
+        return Err("rule-evidence root is not a directory".into());
+    }
+
+    let mut relative_paths = BTreeSet::new();
+    if let Some(path) = plan.strict_source_policy_derivation_evidence_relative_path.as_deref() {
+        relative_paths.insert(path.to_string());
+    }
+    for assessment in &plan.rule_assessments {
+        if let Some(path) = assessment.mapping_evidence_relative_path.as_deref() {
+            relative_paths.insert(path.to_string());
+        }
+        if let Some(path) = assessment.waiver_evidence_relative_path.as_deref() {
+            relative_paths.insert(path.to_string());
+        }
+    }
+
+    let mut resolved_files = BTreeSet::new();
+    let mut files = BTreeMap::new();
+    for relative in relative_paths {
+        let rel = Path::new(&relative);
+        if relative.trim().is_empty()
+            || relative.contains('\\')
+            || relative.contains(':')
+            || rel.is_absolute()
+            || rel.components().any(|part| !matches!(part, Component::Normal(_)))
+            || relative.split('/').any(|part| part.is_empty() || part == "." || part == "..")
+        {
+            return Err(format!("unsafe rule-evidence relative path: {relative}"));
+        }
+        let candidate = root.join(rel);
+        let actual = candidate.canonicalize().map_err(|error| {
+            format!("cannot resolve rule-evidence file {relative}: {error}")
+        })?;
+        if !actual.starts_with(&root) || !actual.is_file() {
+            return Err(format!("rule-evidence file escapes root or is not a regular file: {relative}"));
+        }
+        if !resolved_files.insert(actual.clone()) {
+            return Err(format!("multiple rule-evidence paths alias the same file: {relative}"));
+        }
+        let bytes = fs::read(&actual)
+            .map_err(|error| format!("cannot read rule-evidence file {relative}: {error}"))?;
+        if bytes.is_empty() {
+            return Err(format!("rule-evidence file is empty: {relative}"));
+        }
+        files.insert(relative, bytes);
+    }
+    Ok(files)
+}
 
 fn require_synthetic_only_for_normalized_comparison(
     manifest_bytes: &[u8],

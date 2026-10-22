@@ -17,6 +17,7 @@ pub const BOOTSTRAP_RESAMPLES: usize = 10_000;
 pub mod anytime;
 pub mod kicad_drc;
 pub mod pcbworld_metrics;
+pub mod rule_fidelity;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
