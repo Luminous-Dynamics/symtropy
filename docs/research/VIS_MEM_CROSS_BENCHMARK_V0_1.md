@@ -140,7 +140,7 @@ Current public references must be compared on their own protocols:
 - MIKASA's canonical metric is per-split task-macro SR over its task table and fixed seeds.
 - MeMoREval emphasizes the success/cost trade-off among memory modalities with no observation reacquisition.
 
-Internal Symtropy target: at least +5 absolute percentage points over the strongest eligible, locally reproduced baseline with paired 95% interval above zero, an equal or better resource Pareto point, and no concealed task-family or reactive-control regression. This is an engineering target, not a general community standard.
+Internal Symtropy target: at least +5 absolute percentage points over the strongest eligible, locally reproduced baseline with paired 95% interval above zero, an equal or better resource Pareto point, and no concealed task-family or reactive-control regression. For a native VIS-MEM-015 port, also target at least a 50% relative reduction in harmful-memory-use rate versus always-recall, no more than a 1-point absolute regression on direct-observation/reactive controls, and false-abstention below 2% on cases where the benchmark establishes an available correct path. Publish verification/tool/model-token cost alongside success. These are prospective engineering gates, not community standards or results inferred from the synthetic fixture.
 
 ## Falsification
 
