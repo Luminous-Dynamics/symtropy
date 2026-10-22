@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # Independent arithmetic checks for the synthetic Antarctic station profile.
-# These checks validate fixture bookkeeping only, not Antarctic physics or operations.
+# Passing proves fixture bookkeeping only, not Antarctic physics or operations.
 
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fixture="$repo_root/research/antarctic-energy-resilience/cases/antarctic_station_v0.synthetic.json"
+fixture="${1:-$repo_root/research/antarctic-energy-resilience/cases/antarctic_station_v0.synthetic.json}"
 
 command -v jq >/dev/null 2>&1 || {
   echo "ERROR: jq is required to audit the Antarctic synthetic profile" >&2
@@ -19,68 +19,101 @@ test -f "$fixture" || {
   exit 2
 }
 
-jq -e '
-  .schema_version == "antarctic-station-profile-v0.1"
-  and .evidence_class == "synthetic_software_fixture_only"
-  and .physical_data == false
-  and (.periods | length) == 4
-  and (([.periods[].id] | unique | length) == (.periods | length))
-' "$fixture" >/dev/null
+audit_fixture() {
+  local candidate="$1"
 
-# Every interval has balanced electric and useful-heat ledgers.
-jq -e --argjson tol 0.001 '
-  all(.periods[];
-    ((([.electric.sources_kwh[]] | add) - ([.electric.sinks_kwh[]] | add)) | fabs) <= $tol
-  )
-' "$fixture" >/dev/null
+  jq -e '
+    .schema_version == "antarctic-station-profile-v0.1"
+    and .evidence_class == "synthetic_software_fixture_only"
+    and .physical_data == false
+    and (.periods | length) == 4
+    and ([.periods[].id] | unique | length) == (.periods | length)
+  ' "$candidate" >/dev/null || return 1
 
-jq -e --argjson tol 0.001 '
-  all(.periods[];
-    ((([.heat.sources_kwh_th[]] | add) - ([.heat.sinks_kwh_th[]] | add)) | fabs) <= $tol
-  )
-' "$fixture" >/dev/null
+  # Independent electric and useful-heat boundary ledgers.
+  jq -e --argjson tol 0.001 '
+    all(.periods[];
+      ((([.electric.sources_kwh[]] | add)
+        - ([.electric.sinks_kwh[]] | add)) | abs) <= $tol
+      and ((([.heat.sources_kwh_th[]] | add)
+        - ([.heat.sinks_kwh_th[]] | add)) | abs) <= $tol
+    )
+  ' "$candidate" >/dev/null || return 1
 
-# Independently recompute internal storage transitions.
-jq -e --argjson tol 0.001 '
-  all(.periods[];
-    (((.battery_storage.opening_kwh_internal
-       + .battery_storage.charge_input_kwh_e * .battery_storage.charge_efficiency
-       - .battery_storage.discharge_to_bus_kwh_e / .battery_storage.discharge_efficiency
-       - .battery_storage.standing_loss_kwh_internal)
-       - .battery_storage.closing_kwh_internal) | fabs) <= $tol
-  )
-' "$fixture" >/dev/null
+  # Storage state transitions, capacity bounds, nonnegative flows, efficiencies
+  # and station-specific synthetic polar-night condition.
+  jq -e --argjson tol 0.001 '
+    all(.periods[];
+      (((.battery_storage.opening_kwh_internal
+         + .battery_storage.charge_input_kwh_e * .battery_storage.charge_efficiency
+         - .battery_storage.discharge_to_bus_kwh_e / .battery_storage.discharge_efficiency
+         - .battery_storage.standing_loss_kwh_internal)
+         - .battery_storage.closing_kwh_internal) | abs) <= $tol)
+      and (((.thermal_storage.opening_kwh_th_internal
+         + .thermal_storage.charge_input_kwh_th * .thermal_storage.charge_efficiency
+         - .thermal_storage.discharge_to_service_kwh_th / .thermal_storage.discharge_efficiency
+         - .thermal_storage.standing_loss_kwh_th_internal)
+         - .thermal_storage.closing_kwh_th_internal) | abs) <= $tol
+      and (.battery_storage.capacity_kwh_internal > 0)
+      and (.battery_storage.opening_kwh_internal >= 0)
+      and (.battery_storage.closing_kwh_internal >= 0)
+      and (.battery_storage.opening_kwh_internal <= .battery_storage.capacity_kwh_internal)
+      and (.battery_storage.closing_kwh_internal <= .battery_storage.capacity_kwh_internal)
+      and (.thermal_storage.capacity_kwh_th_internal > 0)
+      and (.thermal_storage.opening_kwh_th_internal >= 0)
+      and (.thermal_storage.closing_kwh_th_internal >= 0)
+      and (.thermal_storage.opening_kwh_th_internal <= .thermal_storage.capacity_kwh_th_internal)
+      and (.thermal_storage.closing_kwh_th_internal <= .thermal_storage.capacity_kwh_th_internal)
+      and (([.electric.sources_kwh[]]
+        + [.electric.sinks_kwh[]]
+        + [.heat.sources_kwh_th[]]
+        + [.heat.sinks_kwh_th[]]) | all(. >= 0))
+      and (.battery_storage.charge_efficiency > 0 and .battery_storage.charge_efficiency <= 1)
+      and (.battery_storage.discharge_efficiency > 0 and .battery_storage.discharge_efficiency <= 1)
+      and (.thermal_storage.charge_efficiency > 0 and .thermal_storage.charge_efficiency <= 1)
+      and (.thermal_storage.discharge_efficiency > 0 and .thermal_storage.discharge_efficiency <= 1)
+    )
+    and ([.periods[] | select(.id == "P2-polar-night") | .electric.sources_kwh.solar] == [0])
+  ' "$candidate" >/dev/null || return 1
+}
 
-jq -e --argjson tol 0.001 '
-  all(.periods[];
-    (((.thermal_storage.opening_kwh_th_internal
-       + .thermal_storage.charge_input_kwh_th * .thermal_storage.charge_efficiency
-       - .thermal_storage.discharge_to_service_kwh_th / .thermal_storage.discharge_efficiency
-       - .thermal_storage.standing_loss_kwh_th_internal)
-       - .thermal_storage.closing_kwh_th_internal) | fabs) <= $tol
-  )
-' "$fixture" >/dev/null
+expect_rejected() {
+  local label="$1"
+  local filter="$2"
+  local mutated
+  mutated="$(mktemp)"
+  if ! jq "$filter" "$fixture" >"$mutated"; then
+    rm -f "$mutated"
+    echo "ERROR: could not construct negative control: $label" >&2
+    return 1
+  fi
+  if audit_fixture "$mutated" >/dev/null 2>&1; then
+    rm -f "$mutated"
+    echo "ERROR: invalid case was accepted: $label" >&2
+    return 1
+  fi
+  rm -f "$mutated"
+  echo "PASS: rejected negative control — $label"
+}
 
-# Reject negative flows/states, invalid efficiencies, negative closing energy,
-# and a polar-night row that includes solar generation.
-jq -e '
-  all(.periods[];
-    (([.electric.sources_kwh[]]
-      + [.electric.sinks_kwh[]]
-      + [.heat.sources_kwh_th[]]
-      + [.heat.sinks_kwh_th[]]) | all(. >= 0))
-    and .battery_storage.opening_kwh_internal >= 0
-    and .battery_storage.closing_kwh_internal >= 0
-    and .thermal_storage.opening_kwh_th_internal >= 0
-    and .thermal_storage.closing_kwh_th_internal >= 0
-    and (.battery_storage.charge_efficiency > 0 and .battery_storage.charge_efficiency <= 1)
-    and (.battery_storage.discharge_efficiency > 0 and .battery_storage.discharge_efficiency <= 1)
-    and (.thermal_storage.charge_efficiency > 0 and .thermal_storage.charge_efficiency <= 1)
-    and (.thermal_storage.discharge_efficiency > 0 and .thermal_storage.discharge_efficiency <= 1)
-  )
-  and ([.periods[] | select(.id == "P2-polar-night") | .electric.sources_kwh.solar] == [0])
-' "$fixture" >/dev/null
+audit_fixture "$fixture"
+echo "PASS: baseline synthetic fixture passes schema, electric/thermal balances, storage transitions, capacity and polar-night checks."
 
-echo "PASS: Antarctic synthetic fixture schema labels, electric/thermal balances, storage transitions, and listed negative controls."
-echo "BOUNDARY: software arithmetic only; values are not measurements or an operational station model."
+# Mutate one invariant at a time where practical; all must be rejected by the
+# same independent audit that accepts the frozen fixture.
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+expect_rejected "electric energy imbalance" '.periods[0].electric.sinks_kwh.critical_load += 1'
+expect_rejected "useful-heat imbalance" '.periods[0].heat.sinks_kwh_th.critical_useful_heat += 1'
+expect_rejected "tampered battery closing state" '.periods[0].battery_storage.closing_kwh_internal += 1'
+expect_rejected "battery state above declared capacity" '.periods[0].battery_storage.capacity_kwh_internal = 10'
+expect_rejected "thermal storage above declared capacity" '.periods[0].thermal_storage.capacity_kwh_th_internal = 10'
+expect_rejected "invalid storage efficiency" '.periods[0].thermal_storage.charge_efficiency = 1.2'
+expect_rejected "negative electric source" '.periods[0].electric.sources_kwh.wind = -1'
+expect_rejected "solar generation during synthetic polar night" '.periods[1].electric.sources_kwh.solar = 10 | .periods[1].electric.sinks_kwh.electrical_loss += 10'
+expect_rejected "missing critical electricity load" 'del(.periods[0].electric.sinks_kwh.critical_load)'
+expect_rejected "duplicate period identifier" '.periods[1].id = .periods[0].id'
+expect_rejected "incorrect evidence label" '.physical_data = true'
+
+echo "BOUNDARY: synthetic arithmetic and software negative controls only; no measured Antarctic performance or operational station model is established."
 sha256sum "$fixture"
