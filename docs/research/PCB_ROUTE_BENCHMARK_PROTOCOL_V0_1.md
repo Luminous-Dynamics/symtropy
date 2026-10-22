@@ -368,3 +368,21 @@ The tests include a later crossing attempt that cannot displace an earlier verif
 
 
 The CLI emits the resulting JSON receipt on stdout. For a persisted archive, initialize it once, then write each recorded revision to a different temporary path and replace the prior archive only after the command succeeds. Do not shell-redirect a command back onto its input archive path: the shell would truncate that input before verification starts. Keep the checkpoint output and raw DRC files immutable for every archive entry; archive selection reopens them.
+
+
+## Complementary design-reasoning evaluation: keep it separate from route validity
+
+PCBWorld-Bench tests engine-grounded routing. It should not be used as a proxy for all of electronic-design intelligence. A complementary reference is [PCB-Bench (ICLR 2026)](https://github.com/digailab/PCB-Bench), whose paper reports approximately 3,700 expert-annotated text instances, around 500 multimodal image-text problems, and more than 170 complete PCB projects with schematics, placements and design documentation.
+
+Add a *separate* design-reasoning scorecard for four skills:
+
+1. **Artifact understanding:** retrieve an answer from an exact schematic/board/BOM/revision bundle and cite the source object/coordinate/net instead of guessing.
+2. **Constraint reasoning:** infer what nets, clearance, package, voltage/current or layer constraints actually apply; mark absent specifications as unknown.
+3. **Diagnosis and repair planning:** explain why a native DRC finding occurs, predict which edits may resolve it, and state which new DRC/functional tests are required after the edit.
+4. **Calibrated abstention:** reject contradictory revisions, missing evidence and unsupported safety claims; measure false assertions, not just answer accuracy.
+
+Use PCB-Bench's official splits and task labels as published. Any adapted prompts or agent-selected tasks must be separately versioned, reviewed and hashed. Report exact-match/appropriate task accuracy, evidence-grounded answer rate, unsupported-claim rate, abstention precision/recall, and human-adjudicated reasoning quality where the published task requires expert judgment. For open-ended repair plans, do not use a language model as the only judge: require actionability, source grounding, and whether the claimed fix survives the pinned EDA engine.
+
+**Never add PCB-Bench QA accuracy to PCBWorld route completion into a single blended score.** The first measures parts of understanding and reasoning; the second measures whether a saved board actually satisfies the pinned geometric/DRC contract. Keep separate denominators, confidence intervals and failure taxonomies, then report whether better reasoning transfers to improved held-out route completion in an actual paired experiment.
+
+This enables a useful agent architecture: a calibrated reasoning layer proposes a verifiable constraint explanation or route priority; a closed-loop planner chooses engine actions; KiCad decides geometric legality; the independent evaluator checks outputs and receipts; physical electrical/manufacturing claims require separate measurements. Every layer can fail independently and needs its own benchmark.
