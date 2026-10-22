@@ -1633,6 +1633,112 @@ pub fn verify_run_artifacts(
     })
 }
 
+pub fn verify_run_design_skeletons(
+    report_bytes: &[u8],
+    manifest_bytes: &[u8],
+    dataset_root: &Path,
+    run_root: &Path,
+    evaluator_git_head: &str,
+) -> Result<DesignSkeletonRunVerificationReceipt, String> {
+    let validated = evaluate_report_bytes(report_bytes, manifest_bytes, evaluator_git_head)?;
+    let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+
+    // Verify source files and all output hashes before comparing structural fingerprints.
+    let _dataset_verification =
+        verify_dataset_files(manifest_bytes, dataset_root, evaluator_git_head)?;
+    let _run_artifact_verification =
+        verify_run_artifacts(report_bytes, manifest_bytes, run_root, evaluator_git_head)?;
+
+    let source_root = dataset_root.canonicalize()
+        .map_err(|error| format!("cannot canonicalize dataset root: {error}"))?;
+    let output_root = run_root.canonicalize()
+        .map_err(|error| format!("cannot canonicalize run-artifact root: {error}"))?;
+    let mut boards = Vec::new();
+
+    for case in &validated.report.cases {
+        if case.execution_status != ExecutionStatus::Completed {
+            continue;
+        }
+        let pin = manifest.boards.iter()
+            .find(|board| board.board_id == case.board_id)
+            .ok_or_else(|| format!("{}: board is missing from the pinned manifest", case.board_id))?;
+        let source_relative = pin.relative_path.as_deref()
+            .ok_or_else(|| format!("{}: source board path is missing from the manifest", case.board_id))?;
+        let output_relative = case.output_board_relative_path.as_deref()
+            .ok_or_else(|| format!("{}: routed output path is missing", case.board_id))?;
+        validate_relative_path(source_relative, &case.board_id)?;
+        validate_artifact_relative_path(output_relative, &case.board_id)?;
+
+        let source_path = source_root.join(source_relative).canonicalize()
+            .map_err(|error| format!("{}: cannot resolve source board: {error}", case.board_id))?;
+        if !source_path.starts_with(&source_root) || !source_path.is_file() {
+            return Err(format!("{}: source board escapes dataset root or is not a file", case.board_id));
+        }
+        let output_path = output_root.join(output_relative).canonicalize()
+            .map_err(|error| format!("{}: cannot resolve routed board: {error}", case.board_id))?;
+        if !output_path.starts_with(&output_root) || !output_path.is_file() {
+            return Err(format!("{}: routed board escapes run root or is not a file", case.board_id));
+        }
+
+        let source_bytes = fs::read(&source_path)
+            .map_err(|error| format!("{}: cannot read source board bytes: {error}", case.board_id))?;
+        let output_bytes = fs::read(&output_path)
+            .map_err(|error| format!("{}: cannot read routed board bytes: {error}", case.board_id))?;
+        let comparison = crate::design_skeleton::compare_board_design_skeletons(
+            &source_bytes,
+            &output_bytes,
+        ).map_err(|error| format!("{}: design-skeleton parser rejected source/output: {error}", case.board_id))?;
+
+        if let Some(expected) = pin.design_skeleton_sha256.as_deref() {
+            if comparison.input.design_skeleton_sha256 != expected {
+                return Err(format!(
+                    "{}: input design-skeleton digest does not match the pinned manifest",
+                    case.board_id
+                ));
+            }
+        } else if manifest.evidence_class == "external_benchmark" {
+            return Err(format!(
+                "{}: external benchmark manifest is missing the source design-skeleton digest",
+                case.board_id
+            ));
+        }
+        if !comparison.skeleton_matches {
+            return Err(format!(
+                "{}: routed output changed the design skeleton (input={}, output={})",
+                case.board_id,
+                comparison.input.design_skeleton_sha256,
+                comparison.output.design_skeleton_sha256
+            ));
+        }
+        boards.push(BoardDesignSkeletonVerification {
+            board_id: case.board_id.clone(),
+            input_board_sha256: comparison.input.board_sha256,
+            output_board_sha256: comparison.output.board_sha256,
+            input_skeleton_sha256: comparison.input.design_skeleton_sha256,
+            output_skeleton_sha256: comparison.output.design_skeleton_sha256,
+            skeleton_matches: comparison.skeleton_matches,
+            excluded_output_segments: comparison.output.excluded_segments,
+            excluded_output_vias: comparison.output.excluded_vias,
+            excluded_output_routed_arcs: comparison.output.excluded_routed_arcs,
+            excluded_output_zone_fill_polygons: comparison.output.excluded_zone_fill_polygons,
+        });
+    }
+    boards.sort_by(|left, right| left.board_id.cmp(&right.board_id));
+
+    Ok(DesignSkeletonRunVerificationReceipt {
+        schema: "pcb-route-design-skeleton-run-verification-v0.1".into(),
+        evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
+        run_id: validated.report.run_id,
+        input_report_sha256: sha256_hex(report_bytes),
+        dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        verified_board_count: boards.len(),
+        boards,
+        authority: "source_and_output_native_board_design_skeletons_match_under_pinned_manifest".into(),
+        claim_ceiling: "This receipt guards structural design invariants while copper is routed. It is not a complete semantic equivalence proof, DRC pass, SI/PI signoff, manufacturing qualification, physical quality, safety, or production-release authority.".into(),
+    })
+}
+
 fn validate_artifact_relative_path(relative_path: &str, board_id: &str) -> Result<(), String> {
     if relative_path.trim().is_empty()
         || relative_path.contains(char::from(92))
