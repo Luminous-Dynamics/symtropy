@@ -313,7 +313,7 @@ struct PolicyResult {
     collateral_suppression: bool,
     nominal_retained: bool,
     logical_memory_bytes: usize,
-    rule_count: usize,
+    active_rule_count: usize,
 }
 
 fn default_action(context: Context) -> Action {
@@ -430,7 +430,7 @@ fn evaluate(policy: Policy, scenario: &Scenario, replay_gate_passes: bool) -> Po
         collateral_suppression,
         nominal_retained,
         logical_memory_bytes: scenario.memory.logical_bytes(),
-        rule_count: usize::from(active_failure(&scenario.memory, scenario)),
+        active_rule_count: active_failure(&scenario.memory, scenario) as usize,
     }
 }
 
@@ -462,7 +462,7 @@ fn format_report() -> String {
         u8::from(scoped_promoted),
         scoped_regressions
     ));
-    out.push_str("CASE_HEADER\tcase\tpolicy\tcontext\tchosen_action\tevaluator_safe_action\tsuccess\trepeated_failure\tfalse_suppression\tcollateral_suppression\tnominal_retained\tlogical_memory_bytes\trule_count\n");
+    out.push_str("CASE_HEADER\tcase\tpolicy\tcontext\tchosen_action\tevaluator_safe_action\tsuccess\trepeated_failure\tfalse_suppression\tcollateral_suppression\tnominal_retained\tlogical_memory_bytes\tactive_rule_count\n");
 
     let gate_passes = scoped_promoted;
     let mut results = Vec::new();
@@ -482,7 +482,7 @@ fn format_report() -> String {
                 u8::from(result.collateral_suppression),
                 u8::from(result.nominal_retained),
                 result.logical_memory_bytes,
-                result.rule_count
+                result.active_rule_count
             ));
             results.push(result);
         }
