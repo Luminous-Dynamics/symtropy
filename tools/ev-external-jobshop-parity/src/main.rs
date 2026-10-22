@@ -4,8 +4,7 @@ use std::{collections::VecDeque, env, fs, process};
 const UPSTREAM_COMMIT: &str = "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb";
 const UPSTREAM_BLOB_SHA1: &str = "6bac8cfaf9f326f6405d5396b9cedd12941aba94";
 const UPSTREAM_BLOB_SHA1_CASE_02: &str = "aa051d7c71a0fc2949ce69d67bce0ec54f4a11d1";
-const UPSTREAM_REPOSITORY: &str =
-    "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
+const UPSTREAM_REPOSITORY: &str = "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
 const UPSTREAM_INSTANCE_PATH: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs";
 const UPSTREAM_INSTANCE_PATH_CASE_02: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs";
 const UPSTREAM_BLOB_SHA1_CASE_03: &str = "01c1ff749cbad87206cbc4f2ba308c005dd8b1c9";
@@ -156,10 +155,10 @@ fn run() -> Result<(), String> {
     if args.len() != 3 {
         return Err("usage: ev-external-jobshop-parity <instance.fjs> <manifest.json>".into());
     }
-    let instance_text = fs::read_to_string(&args[1])
-        .map_err(|error| format!("cannot_read_instance: {error}"))?;
-    let manifest_text = fs::read_to_string(&args[2])
-        .map_err(|error| format!("cannot_read_manifest: {error}"))?;
+    let instance_text =
+        fs::read_to_string(&args[1]).map_err(|error| format!("cannot_read_instance: {error}"))?;
+    let manifest_text =
+        fs::read_to_string(&args[2]).map_err(|error| format!("cannot_read_manifest: {error}"))?;
     let manifest: Manifest = serde_json::from_str(&manifest_text)
         .map_err(|error| format!("invalid_manifest_json: {error}"))?;
     validate_manifest(&manifest)?;
@@ -432,13 +431,11 @@ fn parse_instance(input: &str) -> Result<ParsedInstance, String> {
         }
     }
 
-    let observed_average_machine_flexibility =
-        operation_alternative_counts.iter().sum::<usize>() as f64
-            / operation_alternative_counts.len() as f64;
-    let declared_flexibility_tenths =
-        (declared_average_machine_flexibility * 10.0).round() as i64;
-    let observed_flexibility_tenths =
-        (observed_average_machine_flexibility * 10.0).round() as i64;
+    let observed_average_machine_flexibility = operation_alternative_counts.iter().sum::<usize>()
+        as f64
+        / operation_alternative_counts.len() as f64;
+    let declared_flexibility_tenths = (declared_average_machine_flexibility * 10.0).round() as i64;
+    let observed_flexibility_tenths = (observed_average_machine_flexibility * 10.0).round() as i64;
     if declared_flexibility_tenths != observed_flexibility_tenths {
         return Err("declared_average_machine_flexibility_mismatch".into());
     }
@@ -510,7 +507,9 @@ fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, St
     if parsed.setup_times.len() != parsed.machines
         || parsed.setup_times.iter().any(|machine| {
             machine.len() != parsed.operations.len()
-                || machine.iter().any(|row| row.len() != parsed.operations.len())
+                || machine
+                    .iter()
+                    .any(|row| row.len() != parsed.operations.len())
         })
     {
         return Err("setup_tensor_dimensions_do_not_match_operations".into());
@@ -580,7 +579,9 @@ fn enumerate_assignments(
 
     let operation = &parsed.operations[operation_index];
     if operation.machine_options.is_empty() {
-        return Err(format!("operation_{operation_index}_has_no_machine_options"));
+        return Err(format!(
+            "operation_{operation_index}_has_no_machine_options"
+        ));
     }
     for option in &operation.machine_options {
         let machine_id = option
@@ -588,7 +589,9 @@ fn enumerate_assignments(
             .checked_sub(1)
             .ok_or_else(|| "machine_id_zero_is_invalid".to_string())?;
         if machine_id >= parsed.machines || option.processing_time == 0 {
-            return Err(format!("invalid_machine_option_for_operation_{operation_index}"));
+            return Err(format!(
+                "invalid_machine_option_for_operation_{operation_index}"
+            ));
         }
         machine_ids[operation_index] = machine_id;
         processing_times[operation_index] = option.processing_time;
@@ -633,12 +636,9 @@ fn enumerate_machine_sequences(
 ) -> Result<(), String> {
     if machine_index == permutations_by_machine.len() {
         accumulator.candidate_assignment_sequence_combinations += 1;
-        if let Some(candidate) = evaluate_machine_sequences(
-            parsed,
-            machine_ids,
-            processing_times,
-            sequences,
-        ) {
+        if let Some(candidate) =
+            evaluate_machine_sequences(parsed, machine_ids, processing_times, sequences)
+        {
             accumulator.feasible_acyclic_schedules += 1;
             if accumulator
                 .best
@@ -744,8 +744,7 @@ fn evaluate_machine_sequences(
         }
     }
     let mut completion_times = vec![0u64; operation_count];
-    let mut schedule_by_operation: Vec<Option<OperationSchedule>> =
-        vec![None; operation_count];
+    let mut schedule_by_operation: Vec<Option<OperationSchedule>> = vec![None; operation_count];
     let mut visited = 0usize;
 
     while let Some(operation_id) = ready.pop_front() {
@@ -782,7 +781,9 @@ fn evaluate_machine_sequences(
     if visited != operation_count {
         return None;
     }
-    let schedule = schedule_by_operation.into_iter().collect::<Option<Vec<_>>>()?;
+    let schedule = schedule_by_operation
+        .into_iter()
+        .collect::<Option<Vec<_>>>()?;
     let makespan = schedule
         .iter()
         .map(|operation| operation.completion_time)
@@ -846,7 +847,10 @@ mod tests {
         assert_eq!(parsed.declared_average_machine_flexibility, 2.0);
         assert_eq!(parsed.setup_matrix_dimensions, [2, 4, 4]);
         assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (3, 8));
-        assert_eq!(parsed.operations[0].machine_options[0].machine_id_upstream, 1);
+        assert_eq!(
+            parsed.operations[0].machine_options[0].machine_id_upstream,
+            1
+        );
         assert_eq!(parsed.operations[0].machine_options[0].processing_time, 25);
     }
 
@@ -864,7 +868,10 @@ mod tests {
         assert_eq!(parsed.operation_alternative_counts, vec![1, 2, 2, 1]);
         assert_eq!(parsed.declared_average_machine_flexibility, 1.5);
         assert_eq!(parsed.setup_matrix_dimensions, [2, 4, 4]);
-        assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (3, 1_000_000));
+        assert_eq!(
+            (parsed.setup_values_min, parsed.setup_values_max),
+            (3, 1_000_000)
+        );
     }
 
     #[test]
@@ -874,13 +881,18 @@ mod tests {
         assert_eq!(result.candidate_assignment_sequence_combinations, 20);
         assert_eq!(result.feasible_acyclic_schedules, 11);
         assert_eq!(result.optimal_makespan, 112);
-        assert_eq!(result.optimal_machine_assignment_upstream_ids, vec![1, 1, 2, 2]);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![1, 1, 2, 2]
+        );
         assert_eq!(
             result.optimal_machine_sequences_operation_ids,
             vec![vec![0, 1], vec![2, 3]]
         );
         assert_eq!(
-            result.optimal_schedule.iter()
+            result
+                .optimal_schedule
+                .iter()
                 .map(|op| (op.operation_id, op.processing_start, op.completion_time))
                 .collect::<Vec<_>>(),
             vec![(0, 0, 43), (1, 48, 112), (2, 0, 35), (3, 44, 87)]
@@ -902,7 +914,10 @@ mod tests {
         assert_eq!(parsed.operation_alternative_counts, vec![1, 2, 2, 1, 2, 2]);
         assert_eq!(parsed.declared_average_machine_flexibility, 1.7);
         assert_eq!(parsed.setup_matrix_dimensions, [2, 6, 6]);
-        assert_eq!((parsed.setup_values_min, parsed.setup_values_max), (6, 1_000_000));
+        assert_eq!(
+            (parsed.setup_values_min, parsed.setup_values_max),
+            (6, 1_000_000)
+        );
 
         let result = solve_tiny_instance(&parsed).expect("case 03 exact oracle completes");
         assert_eq!(result.candidate_assignment_sequence_combinations, 840);
@@ -917,7 +932,9 @@ mod tests {
             vec![vec![0, 4, 5], vec![2, 1, 3]]
         );
         assert_eq!(
-            result.optimal_schedule.iter()
+            result
+                .optimal_schedule
+                .iter()
                 .map(|op| (op.operation_id, op.processing_start, op.completion_time))
                 .collect::<Vec<_>>(),
             vec![
@@ -942,10 +959,12 @@ mod tests {
 
     #[test]
     fn legacy_manifest_schema_is_rejected() {
-        assert!(serde_json::from_str::<Manifest>(include_str!(
-            "../fixtures/external_manifest_v0_1.json"
-        ))
-        .is_err());
+        assert!(
+            serde_json::from_str::<Manifest>(include_str!(
+                "../fixtures/external_manifest_v0_1.json"
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -963,7 +982,10 @@ mod tests {
         assert_eq!(result.candidate_assignment_sequence_combinations, 120);
         assert_eq!(result.feasible_acyclic_schedules, 52);
         assert_eq!(result.optimal_makespan, 70);
-        assert_eq!(result.optimal_machine_assignment_upstream_ids, vec![2, 2, 1, 1]);
+        assert_eq!(
+            result.optimal_machine_assignment_upstream_ids,
+            vec![2, 2, 1, 1]
+        );
         assert_eq!(
             result.optimal_machine_sequences_operation_ids,
             vec![vec![2, 3], vec![0, 1]]
@@ -1058,7 +1080,10 @@ mod tests {
 
     #[test]
     fn missing_setup_rows_fail_closed() {
-        let input = fixture().split("\n\n").next().expect("fixture header and jobs");
+        let input = fixture()
+            .split("\n\n")
+            .next()
+            .expect("fixture header and jobs");
         assert!(parse_instance(input).is_err());
     }
 
