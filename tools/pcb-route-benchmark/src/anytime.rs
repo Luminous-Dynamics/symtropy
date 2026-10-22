@@ -93,6 +93,13 @@ pub fn evaluate_checkpoint(
     validate_metadata(&metadata)?;
     validate_relative_path(&metadata.output_board_relative_path, "output board")?;
     validate_relative_path(&metadata.drc_report_relative_path, "DRC report")?;
+    let observed_filename = Path::new(&metadata.output_board_relative_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| "output board path has no valid filename".to_string())?;
+    if observed_filename != metadata.board_filename {
+        return Err("declared DRC source filename must match the saved output-board filename".into());
+    }
     if metadata.output_board_relative_path == metadata.drc_report_relative_path {
         return Err("output board and DRC report paths must be distinct".into());
     }
@@ -445,7 +452,7 @@ mod tests {
             via_count,
             output_board_relative_path: format!("outputs/{id}.kicad_pcb"),
             drc_report_relative_path: format!("drc/{id}.json"),
-            board_filename: "coupon.kicad_pcb".to_string(),
+            board_filename: format!("{id}.kicad_pcb"),
             kicad_version: "9.0.9".to_string(),
         }
     }
@@ -466,9 +473,10 @@ mod tests {
     }
 
     fn clean_candidate(id: &str, elapsed_ms: u64, wirelength_mm: f64, vias: u32) -> CheckpointEvaluation {
-        let report = drc_report("coupon.kicad_pcb", serde_json::json!([]), serde_json::json!([]));
+        let meta = metadata(id, elapsed_ms, wirelength_mm, vias);
+        let report = drc_report(&meta.board_filename, serde_json::json!([]), serde_json::json!([]));
         evaluate_checkpoint(
-            metadata(id, elapsed_ms, wirelength_mm, vias),
+            meta,
             MANIFEST.as_bytes(),
             format!("native pcb bytes {id}").as_bytes(),
             &report,
@@ -480,8 +488,9 @@ mod tests {
     fn invalid_later_checkpoint_never_erases_earlier_verified_clean_snapshot() {
         let first = clean_candidate("early-clean", 120_000, 40.0, 2);
         assert!(first.eligible_incumbent);
+        let invalid_meta = metadata("late-invalid", 210_000, 35.0, 1);
         let crossed = drc_report(
-            "coupon.kicad_pcb",
+            &invalid_meta.board_filename,
             serde_json::json!([{
                 "type":"tracks_crossing",
                 "description":"synthetic crossing control",
@@ -494,7 +503,7 @@ mod tests {
             serde_json::json!([])
         );
         let invalid = evaluate_checkpoint(
-            metadata("late-invalid", 210_000, 35.0, 1),
+            invalid_meta,
             MANIFEST.as_bytes(),
             b"invalid native board bytes",
             &crossed,
@@ -547,11 +556,50 @@ mod tests {
     fn missing_net_connectivity_or_drc_bytes_cannot_create_an_incumbent() {
         let mut meta = metadata("missing-net", 100_000, 20.0, 0);
         meta.connected_nets = 1;
-        let report = drc_report("coupon.kicad_pcb", serde_json::json!([]), serde_json::json!([]));
+        let report = drc_report(&meta.board_filename, serde_json::json!([]), serde_json::json!([]));
         let evaluation = evaluate_checkpoint(meta, MANIFEST.as_bytes(), b"board", &report, POLICY).unwrap();
         assert!(!evaluation.eligible_incumbent);
         assert!(evaluation.rejection_reasons.contains(&"REQUIRED_NETS_NOT_ALL_CONNECTED".to_string()));
         assert!(evaluate_checkpoint(metadata("empty-drc", 100_000, 20.0, 0), MANIFEST.as_bytes(), b"board", b"", POLICY).is_err());
+    }
+
+    #[test]
+    fn checkpoint_from_root_hashes_actual_files_and_rejects_traversal() {
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-anytime-root-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outputs")).unwrap();
+        fs::create_dir_all(root.join("drc")).unwrap();
+
+        let meta = metadata("from-root", 100_000, 18.0, 0);
+        let board_bytes = b"native board bytes from root";
+        let report = drc_report(&meta.board_filename, serde_json::json!([]), serde_json::json!([]));
+        fs::write(root.join(&meta.output_board_relative_path), board_bytes).unwrap();
+        fs::write(root.join(&meta.drc_report_relative_path), &report).unwrap();
+
+        let receipt = evaluate_checkpoint_from_root(
+            meta.clone(),
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+        ).expect("checkpoint files under artifact root");
+        assert!(receipt.eligible_incumbent);
+        assert_eq!(receipt.output_board_sha256, sha256_hex(board_bytes));
+        assert_eq!(receipt.raw_drc_report_sha256, sha256_hex(&report));
+
+        let mut traversal = meta;
+        traversal.checkpoint_id = "traversal".into();
+        traversal.output_board_relative_path = "../outside.kicad_pcb".into();
+        assert!(evaluate_checkpoint_from_root(
+            traversal,
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+        ).unwrap_err().contains("unsafe"));
+
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]
