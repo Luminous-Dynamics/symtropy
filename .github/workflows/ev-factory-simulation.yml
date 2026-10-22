@@ -10,6 +10,7 @@ on:
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md"
+      - "docs/research/EV_FACTORY_FLOWTIME_CENSORING_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
@@ -26,6 +27,7 @@ on:
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md"
+      - "docs/research/EV_FACTORY_FLOWTIME_CENSORING_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
@@ -115,6 +117,39 @@ jobs:
             and .replication_count == 20
             and (.replication_seeds | length) == 20
             and (.scenario_statistics | length) == 6
+            and .flow_time_cohort_accounting_valid
+            and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 20
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
+            and all(.scenarios[];
+              .time_weighted_average_system_wip_units >= 0
+            )
+            and all(.flow_time_statistics[];
+              .cohort_accounting_valid
+              and .release_cohort_jobs.sample_count == 20
+              and .completed_good_jobs.sample_count == 20
+              and .completed_scrap_jobs.sample_count == 20
+              and .right_censored_jobs_at_horizon.sample_count == 20
+              and ((.replications_with_good_flow_time_observations == 0)
+                or (.good_flow_time_mean_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p50_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p90_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p95_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p99_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations))
+              and ((.replications_with_right_censored_observations == 0)
+                or (.right_censored_observed_age_mean_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p50_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p90_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p95_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p99_seconds_across_replications.sample_count == .replications_with_right_censored_observations))
+            )
+            and all(.scenarios[];
+              .flow_time.cohort_accounting_valid
+              and .flow_time.release_cohort_jobs == (.flow_time.completed_good_jobs + .flow_time.completed_scrap_jobs + .flow_time.right_censored_jobs_at_horizon)
+            )
             and (.station_sequence_statistics | length) == 30
             and all(.station_sequence_statistics[]; .changeovers_started.sample_count == 20 and .output_transfers.sample_count == 20 and .out_of_order_output_transfers.sample_count == 20 and .out_of_order_output_transfers.mean <= .output_transfers.mean)
             and all(.scenario_statistics[]; .good_units_per_hour.sample_count == 20)
@@ -153,8 +188,25 @@ jobs:
             and .all_buffers_respected_capacity
             and .station_time_accounting_within_horizon
             and (.scenarios | length) == 6
+            and .flow_time_cohort_accounting_valid
+            and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 20
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
             and all(.scenarios[];
-              .common_cause_control_outage_starts_after_warmup == 2
+              .time_weighted_average_system_wip_units >= 0
+            )
+            and all(.flow_time_statistics[];
+              .cohort_accounting_valid
+              and .release_cohort_jobs.sample_count == 20
+              and .right_censored_jobs_at_horizon.sample_count == 20
+            )
+            and all(.scenarios[];
+              .flow_time.cohort_accounting_valid
+              and .flow_time.release_cohort_jobs == (.flow_time.completed_good_jobs + .flow_time.completed_scrap_jobs + .flow_time.right_censored_jobs_at_horizon)
+              and .common_cause_control_outage_starts_after_warmup == 2
               and .measured_common_cause_control_outage_seconds == 600
               and (.common_cause_control_outage_trace | length) == 4
               and (.common_cause_control_outage_trace | map(.at_seconds) == [600, 900, 2400, 2700])
@@ -190,6 +242,45 @@ jobs:
           ' "$REPORT"
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$FIXTURE" > "$REPEAT"
           cmp "$REPORT" "$REPEAT"
+      - name: Run short-horizon flow-time censoring negative control
+        run: |
+          set -euo pipefail
+          BASE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          FIXTURE=ev-factory-flowtime-short-horizon-fixture.json
+          REPORT=ev-factory-flowtime-short-horizon-report.json
+          jq '.replication_seeds = [] | .horizon_seconds = 500 | .warmup_seconds = 0' "$BASE" > "$FIXTURE"
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- "$FIXTURE" > "$REPORT"
+          jq -e '
+            .replication_count == 1
+            and .flow_time_cohort_accounting_valid
+            and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 1
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
+            and all(.scenarios[];
+              .time_weighted_average_system_wip_units >= 0
+              and .flow_time.cohort_accounting_valid
+              and .flow_time.release_cohort_jobs > 0
+              and .flow_time.right_censored_jobs_at_horizon > 0
+              and .flow_time.right_censored_observed_age_seconds != null
+              and .flow_time.right_censored_observed_age_seconds.sample_count == .flow_time.right_censored_jobs_at_horizon
+              and .flow_time.completed_good_jobs + .flow_time.completed_scrap_jobs + .flow_time.right_censored_jobs_at_horizon == .flow_time.release_cohort_jobs
+              and .flow_time.completed_good_flow_time_seconds == null
+            )
+            and all(.flow_time_statistics[];
+              .cohort_accounting_valid
+              and .release_cohort_jobs.sample_count == 1
+              and .right_censored_jobs_at_horizon.sample_count == 1
+              and .replications_with_right_censored_observations == 1
+              and .right_censored_observed_age_mean_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p50_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p90_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p95_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p99_seconds_across_replications.sample_count == 1
+            )
+          ' "$REPORT"
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -266,6 +357,7 @@ jobs:
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
             docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md \
+            docs/research/EV_FACTORY_FLOWTIME_CENSORING_V0_1.md \
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
@@ -273,6 +365,8 @@ jobs:
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             ev-factory-shared-control-outage-report.json \
+            ev-factory-flowtime-short-horizon-fixture.json \
+            ev-factory-flowtime-short-horizon-report.json \
             ev-factory-sequence-aware-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
@@ -283,6 +377,8 @@ jobs:
             ev-factory-simulation-report.json
             ev-factory-shared-control-outage-report.json
             ev-factory-shared-control-outage-repeat.json
+            ev-factory-flowtime-short-horizon-fixture.json
+            ev-factory-flowtime-short-horizon-report.json
             ev-factory-sequence-aware-report.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json

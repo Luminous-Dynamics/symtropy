@@ -117,6 +117,9 @@ struct Report {
     scenario_statistics: Vec<ScenarioStatistics>,
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    system_wip_statistics: Vec<SystemWipStatistics>,
+    flow_time_statistics: Vec<FlowTimeStatistics>,
+    flow_time_cohort_accounting_valid: bool,
     paired_common_cause_control_outage_baseline_comparison: Option<PairedOutageComparison>,
     structural_robust_intervention_summary: Option<StructuralRobustInterventionSummary>,
     measured_horizon_seconds: u64,
@@ -165,8 +168,10 @@ struct ScenarioResult {
     supplier_backlog_average_units: f64,
     source_buffer_peak_units: usize,
     source_buffer_average_units: f64,
+    time_weighted_average_system_wip_units: f64,
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
+    flow_time: FlowTimeRunSummary,
     common_cause_control_outage_config: Option<CommonCauseControlOutage>,
     common_cause_control_outage_trace: Vec<CommonCauseControlOutageTraceEvent>,
     common_cause_control_outage_starts_after_warmup: u64,
@@ -190,6 +195,64 @@ struct DistributionSummary {
     maximum: f64,
     mean_confidence_95_lower: Option<f64>,
     mean_confidence_95_upper: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeObservationSummary {
+    sample_count: usize,
+    mean_seconds: f64,
+    p50_seconds: f64,
+    p90_seconds: f64,
+    p95_seconds: f64,
+    p99_seconds: f64,
+    maximum_seconds: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeRunSummary {
+    release_cohort_jobs: u64,
+    completed_good_jobs: u64,
+    completed_scrap_jobs: u64,
+    right_censored_jobs_at_horizon: u64,
+    cohort_accounting_valid: bool,
+    completed_good_flow_time_seconds: Option<FlowTimeObservationSummary>,
+    completed_scrap_flow_time_seconds: Option<FlowTimeObservationSummary>,
+    right_censored_observed_age_seconds: Option<FlowTimeObservationSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct SystemWipStatistics {
+    scenario_id: String,
+    time_weighted_average_system_wip_units: DistributionSummary,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct FlowTimeStatistics {
+    scenario_id: String,
+    replications_with_good_flow_time_observations: usize,
+    good_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p50_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p90_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p99_seconds_across_replications: Option<DistributionSummary>,
+    replications_with_scrap_flow_time_observations: usize,
+    scrap_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p50_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p90_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p99_seconds_across_replications: Option<DistributionSummary>,
+    release_cohort_jobs: DistributionSummary,
+    completed_good_jobs: DistributionSummary,
+    completed_scrap_jobs: DistributionSummary,
+    right_censored_jobs_at_horizon: DistributionSummary,
+    replications_with_right_censored_observations: usize,
+    right_censored_observed_age_mean_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p50_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p90_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p95_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p99_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_fraction_of_release_cohort: Option<DistributionSummary>,
+    cohort_accounting_valid: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -310,6 +373,7 @@ struct StationResult {
 #[derive(Debug, Clone)]
 struct Job {
     id: u64,
+    released_at_seconds: u64,
     variant: usize,
     queued_since_seconds: u64,
 }
@@ -375,8 +439,12 @@ struct SimState {
     supplier_backlog: VecDeque<Job>,
     supplier_backlog_peak: usize,
     supplier_backlog_wip_area: f64,
+    system_wip_area: f64,
     next_job_id: u64,
     released_jobs_total: u64,
+    release_cohort_jobs: u64,
+    completed_good_flow_times_seconds: Vec<f64>,
+    completed_scrap_flow_times_seconds: Vec<f64>,
     good_units_total: u64,
     measured_good_units: u64,
     scrapped_jobs_total: u64,
@@ -739,6 +807,234 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     report.replication_count = runs.len();
     report.replication_seeds = seeds;
     report.scenario_statistics = statistics;
+    let mut flow_time_statistics = Vec::with_capacity(report.scenario_count);
+    for scenario_index in 0..report.scenario_count {
+        let first_scenario = &runs[0].scenarios[scenario_index];
+        let flow_summaries: Vec<&FlowTimeRunSummary> = runs
+            .iter()
+            .map(|run| &run.scenarios[scenario_index].flow_time)
+            .collect();
+        let good_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
+            .collect();
+        let good_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let good_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
+        let good_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
+            .collect();
+        let good_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
+            })
+            .collect();
+        let scrap_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
+            .collect();
+        let scrap_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let scrap_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
+        let scrap_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
+            .collect();
+        let scrap_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
+            })
+            .collect();
+        let release_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.release_cohort_jobs as f64)
+            .collect();
+        let good_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.completed_good_jobs as f64)
+            .collect();
+        let scrap_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.completed_scrap_jobs as f64)
+            .collect();
+        let censored_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.right_censored_jobs_at_horizon as f64)
+            .collect();
+        let censored_age_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
+            .collect();
+        let censored_age_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let censored_age_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
+        let censored_age_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
+            .collect();
+        let censored_age_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
+            })
+            .collect();
+        let censor_fractions: Vec<f64> = flow_summaries
+            .iter()
+            .filter(|summary| summary.release_cohort_jobs > 0)
+            .map(|summary| {
+                summary.right_censored_jobs_at_horizon as f64 / summary.release_cohort_jobs as f64
+            })
+            .collect();
+        flow_time_statistics.push(FlowTimeStatistics {
+            scenario_id: first_scenario.scenario_id.clone(),
+            replications_with_good_flow_time_observations: good_mean.len(),
+            good_flow_time_mean_seconds_across_replications: optional_distribution_summary(
+                &good_mean,
+            )?,
+            good_flow_time_p50_seconds_across_replications: optional_distribution_summary(
+                &good_p50,
+            )?,
+            good_flow_time_p90_seconds_across_replications: optional_distribution_summary(
+                &good_p90,
+            )?,
+            good_flow_time_p95_seconds_across_replications: optional_distribution_summary(
+                &good_p95,
+            )?,
+            good_flow_time_p99_seconds_across_replications: optional_distribution_summary(
+                &good_p99,
+            )?,
+            replications_with_scrap_flow_time_observations: scrap_mean.len(),
+            scrap_flow_time_mean_seconds_across_replications: optional_distribution_summary(
+                &scrap_mean,
+            )?,
+            scrap_flow_time_p50_seconds_across_replications: optional_distribution_summary(
+                &scrap_p50,
+            )?,
+            scrap_flow_time_p90_seconds_across_replications: optional_distribution_summary(
+                &scrap_p90,
+            )?,
+            scrap_flow_time_p95_seconds_across_replications: optional_distribution_summary(
+                &scrap_p95,
+            )?,
+            scrap_flow_time_p99_seconds_across_replications: optional_distribution_summary(
+                &scrap_p99,
+            )?,
+            release_cohort_jobs: summarize_distribution(&release_counts)?,
+            completed_good_jobs: summarize_distribution(&good_counts)?,
+            completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
+            right_censored_jobs_at_horizon: summarize_distribution(&censored_counts)?,
+            replications_with_right_censored_observations: censored_age_mean.len(),
+            right_censored_observed_age_mean_seconds_across_replications:
+                optional_distribution_summary(&censored_age_mean)?,
+            right_censored_observed_age_p50_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p50)?,
+            right_censored_observed_age_p90_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p90)?,
+            right_censored_observed_age_p95_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p95)?,
+            right_censored_observed_age_p99_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p99)?,
+            right_censored_fraction_of_release_cohort: optional_distribution_summary(
+                &censor_fractions,
+            )?,
+            cohort_accounting_valid: flow_summaries
+                .iter()
+                .all(|summary| summary.cohort_accounting_valid),
+        });
+    }
+    report.flow_time_statistics = flow_time_statistics;
+    report.flow_time_cohort_accounting_valid = runs.iter().all(|run| {
+        run.scenarios
+            .iter()
+            .all(|scenario| scenario.flow_time.cohort_accounting_valid)
+    });
     let mut replication_outcomes = Vec::with_capacity(runs.len() * report.scenario_count);
     for run in &runs {
         let baseline = run
@@ -789,6 +1085,19 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         }
     }
     report.station_sequence_statistics = station_statistics;
+    let mut system_wip_statistics = Vec::with_capacity(report.scenario_count);
+    for scenario_index in 0..report.scenario_count {
+        let first_scenario = &runs[0].scenarios[scenario_index];
+        let averages: Vec<f64> = runs
+            .iter()
+            .map(|run| run.scenarios[scenario_index].time_weighted_average_system_wip_units)
+            .collect();
+        system_wip_statistics.push(SystemWipStatistics {
+            scenario_id: first_scenario.scenario_id.clone(),
+            time_weighted_average_system_wip_units: summarize_distribution(&averages)?,
+        });
+    }
+    report.system_wip_statistics = system_wip_statistics;
     report.output_never_exceeds_released_input = runs
         .iter()
         .all(|run| run.output_never_exceeds_released_input);
@@ -842,9 +1151,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     let nominal_baseline = no_outage_report
                         .replication_outcomes
                         .iter()
-                        .find(|outcome| {
-                            outcome.seed == *seed && outcome.scenario_id == "baseline"
-                        })
+                        .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
                         .ok_or_else(|| {
                             "paired_no_outage_baseline_seed_outcome_missing".to_string()
                         })?;
@@ -1168,6 +1475,11 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_statistics: Vec::new(),
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        system_wip_statistics: Vec::new(),
+        flow_time_statistics: Vec::new(),
+        flow_time_cohort_accounting_valid: scenarios
+            .iter()
+            .all(|scenario| scenario.flow_time.cohort_accounting_valid),
         paired_common_cause_control_outage_baseline_comparison: None,
         structural_robust_intervention_summary: None,
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
@@ -1229,8 +1541,12 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         supplier_backlog: VecDeque::new(),
         supplier_backlog_peak: 0,
         supplier_backlog_wip_area: 0.0,
+        system_wip_area: 0.0,
         next_job_id: 0,
         released_jobs_total: 0,
+        release_cohort_jobs: 0,
+        completed_good_flow_times_seconds: Vec::new(),
+        completed_scrap_flow_times_seconds: Vec::new(),
         good_units_total: 0,
         measured_good_units: 0,
         scrapped_jobs_total: 0,
@@ -1263,8 +1579,12 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let id = state.next_job_id;
                 state.next_job_id += 1;
                 state.released_jobs_total += 1;
+                if state.now >= catalog.warmup_seconds && state.now < catalog.horizon_seconds {
+                    state.release_cohort_jobs += 1;
+                }
                 state.supplier_backlog.push_back(Job {
                     id,
+                    released_at_seconds: state.now,
                     variant: ((id / catalog.variant_batch_size) % catalog.variant_count as u64)
                         as usize,
                     queued_since_seconds: state.now,
@@ -1349,6 +1669,22 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
+    let right_censored_observed_ages_seconds = collect_right_censored_observed_ages_seconds(
+        &state,
+        catalog.warmup_seconds,
+        catalog.horizon_seconds,
+    )?;
+    let right_censored_jobs_at_horizon = right_censored_observed_ages_seconds.len() as u64;
+    let right_censored_observed_age_seconds =
+        summarize_flow_time_seconds(&right_censored_observed_ages_seconds)?;
+    let completed_good_flow_time_seconds =
+        summarize_flow_time_seconds(&state.completed_good_flow_times_seconds)?;
+    let completed_scrap_flow_time_seconds =
+        summarize_flow_time_seconds(&state.completed_scrap_flow_times_seconds)?;
+    let flow_time_cohort_accounting_valid = state.release_cohort_jobs
+        == state.completed_good_flow_times_seconds.len() as u64
+            + state.completed_scrap_flow_times_seconds.len() as u64
+            + right_censored_jobs_at_horizon;
 
     let measured_seconds = catalog.horizon_seconds - catalog.warmup_seconds;
     let good_per_hour = state.measured_good_units as f64 / measured_seconds as f64 * 3600.0;
@@ -1448,8 +1784,22 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             state.source_buffer_wip_area,
             measured_seconds as f64,
         ),
+        time_weighted_average_system_wip_units: safe_ratio(
+            state.system_wip_area,
+            measured_seconds as f64,
+        ),
         interstation_buffers,
         stations: station_results,
+        flow_time: FlowTimeRunSummary {
+            release_cohort_jobs: state.release_cohort_jobs,
+            completed_good_jobs: state.completed_good_flow_times_seconds.len() as u64,
+            completed_scrap_jobs: state.completed_scrap_flow_times_seconds.len() as u64,
+            right_censored_jobs_at_horizon,
+            cohort_accounting_valid: flow_time_cohort_accounting_valid,
+            completed_good_flow_time_seconds,
+            completed_scrap_flow_time_seconds,
+            right_censored_observed_age_seconds,
+        },
         common_cause_control_outage_config: catalog.common_cause_control_outage.clone(),
         common_cause_control_outage_trace: state.common_cause_control_outage_trace.clone(),
         common_cause_control_outage_starts_after_warmup: state
@@ -1462,6 +1812,98 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         release_ready: false,
         claim_ceiling: CLAIM_CEILING.to_string(),
     })
+}
+
+fn summarize_flow_time_seconds(
+    values: &[f64],
+) -> Result<Option<FlowTimeObservationSummary>, String> {
+    if values.is_empty() {
+        return Ok(None);
+    }
+    if values
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("flow_time_observations_must_be_finite_and_nonnegative".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    Ok(Some(FlowTimeObservationSummary {
+        sample_count: sorted.len(),
+        mean_seconds: sorted.iter().sum::<f64>() / sorted.len() as f64,
+        p50_seconds: quantile_sorted(&sorted, 0.50),
+        p90_seconds: quantile_sorted(&sorted, 0.90),
+        p95_seconds: quantile_sorted(&sorted, 0.95),
+        p99_seconds: quantile_sorted(&sorted, 0.99),
+        maximum_seconds: *sorted.last().expect("nonempty flow time sample"),
+    }))
+}
+
+fn collect_right_censored_observed_ages_seconds(
+    state: &SimState,
+    warmup_seconds: u64,
+    horizon_seconds: u64,
+) -> Result<Vec<f64>, String> {
+    let mut seen_ids = BTreeSet::new();
+    let mut censored_ages_seconds = Vec::new();
+    let mut observe_job = |job: &Job| -> Result<(), String> {
+        if !seen_ids.insert(job.id) {
+            return Err("duplicate_job_id_in_live_system_at_horizon".into());
+        }
+        if job.released_at_seconds >= warmup_seconds && job.released_at_seconds < horizon_seconds {
+            censored_ages_seconds
+                .push(horizon_seconds.saturating_sub(job.released_at_seconds) as f64);
+        }
+        Ok(())
+    };
+
+    for job in &state.supplier_backlog {
+        observe_job(job)?;
+    }
+    for job in &state.source_buffer {
+        observe_job(job)?;
+    }
+    for queue in &state.buffers {
+        for job in queue {
+            observe_job(job)?;
+        }
+    }
+    for station in &state.stations {
+        for server in &station.servers {
+            match &server.state {
+                ServerState::Busy { job, .. } | ServerState::WaitingOutput { job, .. } => {
+                    observe_job(job)?;
+                }
+                ServerState::Idle | ServerState::Down => {}
+            }
+        }
+    }
+    Ok(censored_ages_seconds)
+}
+
+fn live_job_count(state: &SimState) -> Result<usize, String> {
+    let mut count = state.supplier_backlog.len();
+    count = count
+        .checked_add(state.source_buffer.len())
+        .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+    for buffer in &state.buffers {
+        count = count
+            .checked_add(buffer.len())
+            .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+    }
+    for station in &state.stations {
+        for server in &station.servers {
+            if matches!(
+                &server.state,
+                ServerState::Busy { .. } | ServerState::WaitingOutput { .. }
+            ) {
+                count = count
+                    .checked_add(1)
+                    .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+            }
+        }
+    }
+    Ok(count)
 }
 
 fn safe_ratio(numerator: f64, denominator: f64) -> f64 {
@@ -1488,6 +1930,8 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
     if dt <= 0.0 {
         return Ok(());
     }
+    let live_jobs = live_job_count(state)?;
+    state.system_wip_area += dt * live_jobs as f64;
     if state.common_cause_control_outage_active {
         state.measured_common_cause_control_outage_seconds += dt;
     }
@@ -1649,6 +2093,13 @@ fn complete_operation(
         };
     } else {
         state.scrapped_jobs_total += 1;
+        if job.released_at_seconds >= catalog.warmup_seconds
+            && job.released_at_seconds < catalog.horizon_seconds
+        {
+            state
+                .completed_scrap_flow_times_seconds
+                .push(state.now.saturating_sub(job.released_at_seconds) as f64);
+        }
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
                 .metrics
@@ -1764,6 +2215,13 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     state.good_units_total += 1;
                     if state.now >= catalog.warmup_seconds {
                         state.measured_good_units += 1;
+                    }
+                    if job.released_at_seconds >= catalog.warmup_seconds
+                        && job.released_at_seconds < catalog.horizon_seconds
+                    {
+                        state
+                            .completed_good_flow_times_seconds
+                            .push(state.now.saturating_sub(job.released_at_seconds) as f64);
                     }
                 } else {
                     let mut queued_job = job;
@@ -2291,12 +2749,21 @@ mod tests {
         assert!(report.output_never_exceeds_released_input);
         assert!(report.all_buffers_respected_capacity);
         assert!(report.station_time_accounting_within_horizon);
+        assert!(report.flow_time_cohort_accounting_valid);
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert!(
+            report
+                .flow_time_statistics
+                .iter()
+                .all(|statistic| statistic.cohort_accounting_valid)
+        );
         assert!(!report.release_ready);
     }
 
     fn job(id: u64, variant: usize, queued_since_seconds: u64) -> Job {
         Job {
             id,
+            released_at_seconds: queued_since_seconds,
             variant,
             queued_since_seconds,
         }
@@ -2520,6 +2987,249 @@ mod tests {
         assert!((summary.median - 2.0).abs() < 1e-12);
         assert!((summary.p05 - 1.1).abs() < 1e-12);
         assert!((summary.p95 - 2.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn flow_time_summary_reports_p50_p90_p95_p99_without_making_jobs_iid_claims() {
+        let summary = summarize_flow_time_seconds(&[1.0, 2.0, 3.0, 4.0])
+            .expect("flow-time summary")
+            .expect("nonempty flow-time observations");
+        assert_eq!(summary.sample_count, 4);
+        assert!((summary.mean_seconds - 2.5).abs() < 1e-12);
+        assert!((summary.p50_seconds - 2.5).abs() < 1e-12);
+        assert!((summary.p90_seconds - 3.7).abs() < 1e-12);
+        assert!((summary.p95_seconds - 3.85).abs() < 1e-12);
+        assert!((summary.p99_seconds - 3.97).abs() < 1e-12);
+        assert!((summary.maximum_seconds - 4.0).abs() < 1e-12);
+        assert!(
+            summarize_flow_time_seconds(&[])
+                .expect("empty result")
+                .is_none()
+        );
+        assert!(summarize_flow_time_seconds(&[-1.0]).is_err());
+        assert!(summarize_flow_time_seconds(&[f64::INFINITY]).is_err());
+    }
+
+    fn tiny_two_station_flowtime_catalog() -> Catalog {
+        let mut catalog = fixture();
+        catalog.replication_seeds.clear();
+        catalog.horizon_seconds = 100;
+        catalog.warmup_seconds = 0;
+        catalog.mean_supply_interarrival_seconds = 1_000.0;
+        catalog.supply_interarrival_variability_fraction = 0.0;
+        catalog.variant_count = 1;
+        catalog.variant_batch_size = 1;
+        catalog.source_buffer_capacity = 1;
+        catalog.buffer_capacities = vec![1];
+        catalog.stations.truncate(2);
+        for (station, cycle_seconds) in catalog.stations.iter_mut().zip([10.0_f64, 20.0_f64]) {
+            station.servers = 1;
+            station.mean_cycle_seconds = cycle_seconds;
+            station.cycle_time_variability_fraction = 0.0;
+            station.changeover_seconds = 0.0;
+            station.mean_time_between_failures_seconds = 1.0e300;
+            station.mean_time_to_repair_seconds = 1.0;
+            station.good_yield_fraction = 1.0;
+            station.max_rework_attempts = 0;
+        }
+        catalog
+    }
+
+    #[test]
+    fn tiny_two_station_flow_time_matches_exact_thirty_second_oracle() {
+        let catalog = tiny_two_station_flowtime_catalog();
+        validate_catalog(&catalog).expect("tiny known-answer fixture validates");
+        let report = evaluate_catalog(&catalog).expect("tiny known-answer DES run");
+        assert_eq!(report.replication_count, 1);
+        assert_eq!(report.scenario_count, 3);
+        assert_eq!(report.system_wip_statistics.len(), 3);
+        assert!(report.system_wip_statistics.iter().all(|statistic| {
+            statistic
+                .time_weighted_average_system_wip_units
+                .sample_count
+                == 1
+                && (statistic.time_weighted_average_system_wip_units.mean - 0.3).abs() < 1e-12
+        }));
+        assert!(report.flow_time_cohort_accounting_valid);
+        for scenario in &report.scenarios {
+            assert_eq!(scenario.flow_time.release_cohort_jobs, 1);
+            assert_eq!(scenario.flow_time.completed_good_jobs, 1);
+            assert_eq!(scenario.flow_time.completed_scrap_jobs, 0);
+            assert_eq!(scenario.flow_time.right_censored_jobs_at_horizon, 0);
+            assert!(scenario.flow_time.cohort_accounting_valid);
+            let summary = scenario
+                .flow_time
+                .completed_good_flow_time_seconds
+                .as_ref()
+                .expect("one completed good product");
+            assert_eq!(summary.sample_count, 1);
+            assert!((summary.mean_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p50_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p90_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p95_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p99_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.maximum_seconds - 30.0).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn flow_time_statistics_are_aggregated_across_seeds_not_pooled_as_iid_jobs() {
+        let report = evaluate_catalog(&fixture()).expect("flow-time replication panel");
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert_eq!(report.system_wip_statistics.len(), report.scenario_count);
+        assert_eq!(report.replication_count, 20);
+        assert!(report.system_wip_statistics.iter().all(|statistic| {
+            statistic
+                .time_weighted_average_system_wip_units
+                .sample_count
+                == 20
+                && statistic.time_weighted_average_system_wip_units.mean >= 0.0
+        }));
+        assert!(report.flow_time_cohort_accounting_valid);
+        assert!(report.flow_time_statistics.iter().all(
+            |statistic| statistic.cohort_accounting_valid
+                && statistic.release_cohort_jobs.sample_count == 20
+                && statistic.completed_good_jobs.sample_count == 20
+                && statistic.completed_scrap_jobs.sample_count == 20
+                && statistic.right_censored_jobs_at_horizon.sample_count == 20
+        ));
+
+        let mut any_good_observations = false;
+        let mut any_censored_observations = false;
+        for statistic in &report.flow_time_statistics {
+            if statistic.replications_with_right_censored_observations > 0 {
+                any_censored_observations = true;
+                let expected_count = statistic.replications_with_right_censored_observations;
+                let age_summaries = [
+                    statistic
+                        .right_censored_observed_age_mean_seconds_across_replications
+                        .as_ref()
+                        .expect("mean of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p50_seconds_across_replications
+                        .as_ref()
+                        .expect("p50 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p90_seconds_across_replications
+                        .as_ref()
+                        .expect("p90 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p95_seconds_across_replications
+                        .as_ref()
+                        .expect("p95 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p99_seconds_across_replications
+                        .as_ref()
+                        .expect("p99 of censored observed ages"),
+                ];
+                assert!(
+                    age_summaries.iter().all(
+                        |summary| summary.sample_count == expected_count && summary.mean >= 0.0
+                    )
+                );
+            } else {
+                assert!(
+                    statistic
+                        .right_censored_observed_age_mean_seconds_across_replications
+                        .is_none()
+                );
+                assert!(
+                    statistic
+                        .right_censored_observed_age_p50_seconds_across_replications
+                        .is_none()
+                );
+            }
+            if statistic.replications_with_good_flow_time_observations > 0 {
+                any_good_observations = true;
+                let mean = statistic
+                    .good_flow_time_mean_seconds_across_replications
+                    .as_ref()
+                    .expect("mean of per-replication good flow times");
+                let p50 = statistic
+                    .good_flow_time_p50_seconds_across_replications
+                    .as_ref()
+                    .expect("p50 of per-replication good flow times");
+                let p90 = statistic
+                    .good_flow_time_p90_seconds_across_replications
+                    .as_ref()
+                    .expect("p90 of per-replication good flow times");
+                let p95 = statistic
+                    .good_flow_time_p95_seconds_across_replications
+                    .as_ref()
+                    .expect("p95 of per-replication good flow times");
+                let p99 = statistic
+                    .good_flow_time_p99_seconds_across_replications
+                    .as_ref()
+                    .expect("p99 of per-replication good flow times");
+                assert_eq!(
+                    mean.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p50.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p90.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p95.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p99.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert!(mean.mean >= 0.0 && p95.mean >= 0.0 && p99.mean >= 0.0);
+            }
+        }
+        assert!(any_good_observations);
+        assert!(any_censored_observations);
+    }
+
+    #[test]
+    fn finite_horizon_jobs_are_right_censored_and_release_cohort_conserves() {
+        let mut catalog = fixture();
+        catalog.replication_seeds.clear();
+        catalog.horizon_seconds = 500;
+        catalog.warmup_seconds = 0;
+        let report = evaluate_catalog(&catalog).expect("short-horizon censored run");
+        assert_eq!(report.replication_count, 1);
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert_eq!(report.system_wip_statistics.len(), report.scenario_count);
+        assert!(report.flow_time_cohort_accounting_valid);
+        for scenario in &report.scenarios {
+            assert!(scenario.flow_time.cohort_accounting_valid);
+            assert!(scenario.flow_time.release_cohort_jobs > 0);
+            assert!(scenario.flow_time.right_censored_jobs_at_horizon > 0);
+            assert_eq!(
+                scenario
+                    .flow_time
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .expect("right-censored observed ages")
+                    .sample_count as u64,
+                scenario.flow_time.right_censored_jobs_at_horizon
+            );
+            assert_eq!(
+                scenario.flow_time.completed_good_jobs
+                    + scenario.flow_time.completed_scrap_jobs
+                    + scenario.flow_time.right_censored_jobs_at_horizon,
+                scenario.flow_time.release_cohort_jobs
+            );
+            assert!(
+                scenario
+                    .flow_time
+                    .completed_good_flow_time_seconds
+                    .is_none()
+            );
+        }
+        assert!(report.flow_time_statistics.iter().all(|statistic| {
+            statistic.cohort_accounting_valid
+                && statistic.release_cohort_jobs.sample_count == 1
+                && statistic.right_censored_jobs_at_horizon.sample_count == 1
+        }));
     }
 
     #[test]
