@@ -353,6 +353,8 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::{assemble_refined_released_joint_pin_truss, canonical_refinement_request};
     use crate::beam_pin_assembly::{
         assemble_released_joint_pin_truss, BeamPinDofKind, BeamPinMember, BeamPinNode,
@@ -435,6 +437,13 @@ mod tests {
             .count();
         assert_eq!(end_rotations, 4);
         assert_eq!(internal_rotations, 2);
+        let unique_dof_indices = result
+            .dof_descriptors
+            .iter()
+            .map(|descriptor| descriptor.index)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(unique_dof_indices.len(), result.dof_descriptors.len());
+        assert_eq!(result.dof_descriptors.len(), result.stiffness_global.len());
 
         for descriptor in &result.dof_descriptors {
             if matches!(
