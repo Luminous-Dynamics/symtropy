@@ -57,7 +57,9 @@ fn baseline_for(case_index: usize) -> (Scenario, Disruption) {
     };
 
     let disruption = Disruption {
-        observed_at_tick: start_tick,
+        // Observe the closure before these future reservations begin; this keeps the
+        // comparison about rescheduling choices rather than rewriting work already in progress.
+        observed_at_tick: start_tick - 1,
         new_exclusion_zones: vec![ExclusionZone {
             id: format!("zone-{case_index:03}"),
             footprint: rect(0, row, 1, row + 1),
