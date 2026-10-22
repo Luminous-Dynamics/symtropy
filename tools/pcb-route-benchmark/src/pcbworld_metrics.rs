@@ -861,9 +861,9 @@ mod tests {
       ]
     }"#;
 
-    const HEADER: &str = "board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time_secs\n";
+    const HEADER: &str = "board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time\n";
 
-    const CSV: &str = r#"board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time_secs
+    const CSV: &str = r#"board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time
 board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,"[{""severity_label"":""warning"",""severity"":1,""error_code"":12,""error_type"":""tracks_crossing"",""x_mm"":1.0,""y_mm"":2.0,""layer"":0,""net_names"":[""GND""],""is_error"":false,""is_promoted"":true}]",30
 board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,"",200
 board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,"[]",240
@@ -952,7 +952,7 @@ board-b,1,19,crashed,,,,,,,,,,,,,,,,
 
         // A source row that claims clean but has no runtime remains in every
         // denominator and must not be credited as a time-bounded pass.
-        let untimed_clean = CSV.replace(",240\\n", ",\\n");
+        let untimed_clean = CSV.replace(",240\n", ",\n");
         let untimed = import_pcbworld_per_rollout_csv(
             untimed_clean.as_bytes(),
             MANIFEST.as_bytes(),
