@@ -748,7 +748,7 @@ jobs:
               --arg case_id "PHYS-MMS-001-N${n}" \
               --arg log_sha "$log_sha" --arg deck_sha "$deck_sha" \
               --arg model_sha "$model_sha" --arg exe_sha "$exe_sha" \
-              --arg build_sha "$build_sha" \
+              --arg auditor_sha "$mms_sha" --arg build_sha "$build_sha" \
               --argjson cells "$n" --argjson exit_status "$solver_status" \
               --argjson started "$start_epoch" --argjson ended "$end_epoch" \
               --argjson dat_present "$dat_present" --argjson frd_present "$frd_present" \
@@ -758,7 +758,7 @@ jobs:
                 case_id:$case_id,source_sha:$source_sha,checkout_sha:$checkout_sha,
                 cells_per_axis:$cells,model_manifest_sha256:$model_sha,
                 deck_sha256:$deck_sha,build_manifest_sha256:$build_sha,
-                solver_executable_sha256:$exe_sha,auditor_executable_sha256:"$mms_sha",
+                solver_executable_sha256:$exe_sha,auditor_executable_sha256:$auditor_sha,
                 process_log_sha256:$log_sha,
                 solver_exit_code:$exit_status,solver_completed:($exit_status == 0),
                 dat_output_present:$dat_present,frd_output_present:$frd_present,
