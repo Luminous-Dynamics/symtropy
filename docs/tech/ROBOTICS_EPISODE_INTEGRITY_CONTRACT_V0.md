@@ -22,7 +22,7 @@ Each episode begins with monotonically versioned evidence dimensions:
 
 The episode also records safety gates for calibration, tool compatibility, human approval, localization, return reserve, authorization, site permission, and the declared environment envelope. Every plan proposal, validation event, and acceptance event must carry the same valid lowercase SHA-256-shaped `plan_digest`. Reusing a human-readable `plan_id` with different content identity must fail closed. In a production integration, the digest must be calculated over canonical plan bytes or an immutable authenticated artifact; this synthetic v0 auditor checks format and continuity, not the truth of a caller-supplied digest.
 
-The event stream is ordered and never sorted or deduplicated. Each event kind has an exact required-field set; unknown fields and missing required fields are rejected before scoring. The independent evaluator must fail closed on malformed or unknown events, missing snapshots, non-monotonic sequence numbers, unknown revision keys, invalid gate fields, repeated plan acceptance, stale plans, and any physical-actuation attempt.
+The event stream is ordered and never sorted or deduplicated. Each event kind has an exact required-field set; unknown kinds/fields and missing required fields are rejected before episode scoring. Such rejection is distinct from a well-formed episode that is blocked because no plan was accepted. The independent evaluator must fail closed on malformed or unknown events, missing snapshots, non-monotonic sequence numbers, unknown revision keys, invalid gate fields, repeated plan acceptance, stale plans, and any physical-actuation attempt.
 
 Required behaviors:
 - `plan_proposed` binds all revision keys to the current evidence snapshot.
