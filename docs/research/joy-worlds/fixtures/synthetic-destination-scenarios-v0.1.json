@@ -1,0 +1,1198 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "luminous-dynamics.symtropy.synthetic-destination-benchmark-v0.1",
+  "status": "synthetic_fixture",
+  "non_claims": [
+    "Every value, bound and constraint result in this fixture is invented for software testing.",
+    "These numbers do not describe an actual site, forecast, budget, guest population, legal authority or ecological threshold.",
+    "A comparator result cannot qualify real-world feasibility, safety, accessibility, consent or sustainability."
+  ],
+  "required_hard_constraints": [
+    "rights_and_access",
+    "safety_case",
+    "resource_envelope",
+    "ecological_capacity"
+  ],
+  "objective_dimensions": [
+    {
+      "id": "visitor_quality",
+      "label": "Synthetic visitor-experience proxy",
+      "unit": "index_0_100",
+      "direction": "maximize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "accessibility_coverage_pct",
+      "label": "Declared accessibility coverage proxy",
+      "unit": "percent",
+      "direction": "maximize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "local_value_retained_pct",
+      "label": "Locally retained destination value proxy",
+      "unit": "percent",
+      "direction": "maximize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "water_m3_year",
+      "label": "Annual water use proxy",
+      "unit": "m3/year",
+      "direction": "minimize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "energy_mwh_year",
+      "label": "Annual energy use proxy",
+      "unit": "MWh/year",
+      "direction": "minimize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "capex_musd",
+      "label": "Capital expenditure proxy",
+      "unit": "USD_millions",
+      "direction": "minimize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "reversibility_index",
+      "label": "Reversibility proxy",
+      "unit": "index_0_100",
+      "direction": "maximize",
+      "dominance_tolerance": 0
+    },
+    {
+      "id": "habitat_pressure_index",
+      "label": "Habitat pressure proxy",
+      "unit": "index_0_100",
+      "direction": "minimize",
+      "dominance_tolerance": 0
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "base",
+      "assumptions_ref": "synthetic://joy-worlds/base-v0.1",
+      "candidates": [
+        {
+          "id": "H0",
+          "name": "No-build / current baseline",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/base/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/base/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/base/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/base/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 30,
+              "lower_bound": 27,
+              "upper_bound": 33,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/base/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 75,
+              "lower_bound": 67.5,
+              "upper_bound": 82.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/base/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/base/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 500,
+              "lower_bound": 450,
+              "upper_bound": 550,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H0/base/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 240,
+              "lower_bound": 216,
+              "upper_bound": 264,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H0/base/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 0.2,
+              "lower_bound": 0.18,
+              "upper_bound": 0.22,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H0/base/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 95,
+              "lower_bound": 85.5,
+              "upper_bound": 104.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/base/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/base/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H6",
+          "name": "Play, Make & Move",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/base/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/base/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/base/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/base/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 72,
+              "lower_bound": 64.8,
+              "upper_bound": 79.2,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/base/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 90,
+              "lower_bound": 81,
+              "upper_bound": 99,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/base/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 55,
+              "lower_bound": 49.5,
+              "upper_bound": 60.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/base/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 900,
+              "lower_bound": 810,
+              "upper_bound": 990,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H6/base/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 1200,
+              "lower_bound": 1080,
+              "upper_bound": 1320,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H6/base/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 12,
+              "lower_bound": 10.8,
+              "upper_bound": 13.2,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H6/base/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 65,
+              "lower_bound": 58.5,
+              "upper_bound": 71.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/base/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 30,
+              "lower_bound": 27,
+              "upper_bound": 33,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/base/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H10",
+          "name": "Regenerative Destination Network",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/base/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/base/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/base/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/base/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 67,
+              "lower_bound": 60.3,
+              "upper_bound": 73.7,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/base/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 93,
+              "lower_bound": 83.7,
+              "upper_bound": 102.3,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/base/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 75,
+              "lower_bound": 67.5,
+              "upper_bound": 82.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/base/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 450,
+              "lower_bound": 405,
+              "upper_bound": 495,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H10/base/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 600,
+              "lower_bound": 540,
+              "upper_bound": 660,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H10/base/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 5,
+              "lower_bound": 4.5,
+              "upper_bound": 5.5,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H10/base/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 85,
+              "lower_bound": 76.5,
+              "upper_bound": 93.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/base/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 15,
+              "lower_bound": 13.5,
+              "upper_bound": 16.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/base/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H1",
+          "name": "Aqua Mythos",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/base/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/base/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/base/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/base/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 90,
+              "lower_bound": 81,
+              "upper_bound": 99,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/base/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 84,
+              "lower_bound": 75.6,
+              "upper_bound": 92.4,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/base/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 35,
+              "lower_bound": 31.5,
+              "upper_bound": 38.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/base/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 2800,
+              "lower_bound": 2520,
+              "upper_bound": 3080,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H1/base/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 3400,
+              "lower_bound": 3060,
+              "upper_bound": 3740,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H1/base/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 40,
+              "lower_bound": 36,
+              "upper_bound": 44,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H1/base/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 25,
+              "lower_bound": 22.5,
+              "upper_bound": 27.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/base/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 60,
+              "lower_bound": 54,
+              "upper_bound": 66,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/base/habitat_pressure_index"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "heat_water_stress",
+      "assumptions_ref": "synthetic://joy-worlds/heat-water-stress-v0.1",
+      "candidates": [
+        {
+          "id": "H0",
+          "name": "No-build / current baseline",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/heat_water_stress/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/heat_water_stress/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/heat_water_stress/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/heat_water_stress/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 28,
+              "lower_bound": 25.2,
+              "upper_bound": 30.8,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/heat_water_stress/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 75,
+              "lower_bound": 67.5,
+              "upper_bound": 82.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/heat_water_stress/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/heat_water_stress/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 500,
+              "lower_bound": 450,
+              "upper_bound": 550,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H0/heat_water_stress/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 280,
+              "lower_bound": 252,
+              "upper_bound": 308,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H0/heat_water_stress/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 0.2,
+              "lower_bound": 0.18,
+              "upper_bound": 0.22,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H0/heat_water_stress/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 95,
+              "lower_bound": 85.5,
+              "upper_bound": 104.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/heat_water_stress/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/heat_water_stress/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H6",
+          "name": "Play, Make & Move",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/heat_water_stress/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/heat_water_stress/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/heat_water_stress/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/heat_water_stress/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 61,
+              "lower_bound": 54.9,
+              "upper_bound": 67.1,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/heat_water_stress/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 90,
+              "lower_bound": 81,
+              "upper_bound": 99,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/heat_water_stress/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 52,
+              "lower_bound": 46.8,
+              "upper_bound": 57.2,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/heat_water_stress/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 950,
+              "lower_bound": 855,
+              "upper_bound": 1045,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H6/heat_water_stress/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 1600,
+              "lower_bound": 1440,
+              "upper_bound": 1760,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H6/heat_water_stress/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 12.5,
+              "lower_bound": 11.25,
+              "upper_bound": 13.75,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H6/heat_water_stress/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 65,
+              "lower_bound": 58.5,
+              "upper_bound": 71.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/heat_water_stress/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 32,
+              "lower_bound": 28.8,
+              "upper_bound": 35.2,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/heat_water_stress/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H10",
+          "name": "Regenerative Destination Network",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/heat_water_stress/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/heat_water_stress/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/heat_water_stress/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/heat_water_stress/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 47,
+              "lower_bound": 42.3,
+              "upper_bound": 51.7,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/heat_water_stress/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 92,
+              "lower_bound": 82.8,
+              "upper_bound": 101.2,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/heat_water_stress/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 72,
+              "lower_bound": 64.8,
+              "upper_bound": 79.2,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/heat_water_stress/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 500,
+              "lower_bound": 450,
+              "upper_bound": 550,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H10/heat_water_stress/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 750,
+              "lower_bound": 675,
+              "upper_bound": 825,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H10/heat_water_stress/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 5.3,
+              "lower_bound": 4.77,
+              "upper_bound": 5.83,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H10/heat_water_stress/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 84,
+              "lower_bound": 75.6,
+              "upper_bound": 92.4,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/heat_water_stress/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 17,
+              "lower_bound": 15.3,
+              "upper_bound": 18.7,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/heat_water_stress/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H1",
+          "name": "Aqua Mythos",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/heat_water_stress/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/heat_water_stress/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "fail",
+              "evidence_ref": "synthetic://H1/heat_water_stress/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "fail",
+              "evidence_ref": "synthetic://H1/heat_water_stress/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 50,
+              "lower_bound": 45,
+              "upper_bound": 55,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/heat_water_stress/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 80,
+              "lower_bound": 72,
+              "upper_bound": 88,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/heat_water_stress/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 32,
+              "lower_bound": 28.8,
+              "upper_bound": 35.2,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/heat_water_stress/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 3200,
+              "lower_bound": 2880,
+              "upper_bound": 3520,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H1/heat_water_stress/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 5000,
+              "lower_bound": 4500,
+              "upper_bound": 5500,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H1/heat_water_stress/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 42,
+              "lower_bound": 37.8,
+              "upper_bound": 46.2,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H1/heat_water_stress/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 22,
+              "lower_bound": 19.8,
+              "upper_bound": 24.2,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/heat_water_stress/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 70,
+              "lower_bound": 63,
+              "upper_bound": 77,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/heat_water_stress/habitat_pressure_index"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "peak_demand",
+      "assumptions_ref": "synthetic://joy-worlds/peak-demand-v0.1",
+      "candidates": [
+        {
+          "id": "H0",
+          "name": "No-build / current baseline",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/peak_demand/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/peak_demand/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/peak_demand/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H0/peak_demand/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 30,
+              "lower_bound": 27,
+              "upper_bound": 33,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/peak_demand/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 75,
+              "lower_bound": 67.5,
+              "upper_bound": 82.5,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/peak_demand/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H0/peak_demand/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 500,
+              "lower_bound": 450,
+              "upper_bound": 550,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H0/peak_demand/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 300,
+              "lower_bound": 270,
+              "upper_bound": 330,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H0/peak_demand/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 0.2,
+              "lower_bound": 0.18,
+              "upper_bound": 0.22,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H0/peak_demand/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 95,
+              "lower_bound": 85.5,
+              "upper_bound": 104.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/peak_demand/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 10,
+              "lower_bound": 9,
+              "upper_bound": 11,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H0/peak_demand/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H6",
+          "name": "Play, Make & Move",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/peak_demand/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/peak_demand/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/peak_demand/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H6/peak_demand/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 80,
+              "lower_bound": 72,
+              "upper_bound": 88,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/peak_demand/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 89,
+              "lower_bound": 80.1,
+              "upper_bound": 97.9,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/peak_demand/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 54,
+              "lower_bound": 48.6,
+              "upper_bound": 59.4,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H6/peak_demand/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 1100,
+              "lower_bound": 990,
+              "upper_bound": 1210,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H6/peak_demand/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 1900,
+              "lower_bound": 1710,
+              "upper_bound": 2090,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H6/peak_demand/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 13,
+              "lower_bound": 11.7,
+              "upper_bound": 14.3,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H6/peak_demand/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 63,
+              "lower_bound": 56.7,
+              "upper_bound": 69.3,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/peak_demand/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 34,
+              "lower_bound": 30.6,
+              "upper_bound": 37.4,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H6/peak_demand/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H10",
+          "name": "Regenerative Destination Network",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/peak_demand/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/peak_demand/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/peak_demand/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H10/peak_demand/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 65,
+              "lower_bound": 58.5,
+              "upper_bound": 71.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/peak_demand/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 93,
+              "lower_bound": 83.7,
+              "upper_bound": 102.3,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/peak_demand/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 76,
+              "lower_bound": 68.4,
+              "upper_bound": 83.6,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H10/peak_demand/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 550,
+              "lower_bound": 495,
+              "upper_bound": 605,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H10/peak_demand/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 800,
+              "lower_bound": 720,
+              "upper_bound": 880,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H10/peak_demand/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 5.5,
+              "lower_bound": 4.95,
+              "upper_bound": 6.05,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H10/peak_demand/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 83,
+              "lower_bound": 74.7,
+              "upper_bound": 91.3,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/peak_demand/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 18,
+              "lower_bound": 16.2,
+              "upper_bound": 19.8,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H10/peak_demand/habitat_pressure_index"
+            }
+          }
+        },
+        {
+          "id": "H1",
+          "name": "Aqua Mythos",
+          "constraint_checks": [
+            {
+              "id": "rights_and_access",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/peak_demand/rights_and_access"
+            },
+            {
+              "id": "safety_case",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/peak_demand/safety_case"
+            },
+            {
+              "id": "resource_envelope",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/peak_demand/resource_envelope"
+            },
+            {
+              "id": "ecological_capacity",
+              "status": "pass",
+              "evidence_ref": "synthetic://H1/peak_demand/ecological_capacity"
+            }
+          ],
+          "outcomes": {
+            "visitor_quality": {
+              "status": "known",
+              "value": 94,
+              "lower_bound": 84.6,
+              "upper_bound": 103.4,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/peak_demand/visitor_quality"
+            },
+            "accessibility_coverage_pct": {
+              "status": "known",
+              "value": 82,
+              "lower_bound": 73.8,
+              "upper_bound": 90.2,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/peak_demand/accessibility_coverage_pct"
+            },
+            "local_value_retained_pct": {
+              "status": "known",
+              "value": 34,
+              "lower_bound": 30.6,
+              "upper_bound": 37.4,
+              "unit": "percent",
+              "evidence_ref": "synthetic://H1/peak_demand/local_value_retained_pct"
+            },
+            "water_m3_year": {
+              "status": "known",
+              "value": 3000,
+              "lower_bound": 2700,
+              "upper_bound": 3300,
+              "unit": "m3/year",
+              "evidence_ref": "synthetic://H1/peak_demand/water_m3_year"
+            },
+            "energy_mwh_year": {
+              "status": "known",
+              "value": 3800,
+              "lower_bound": 3420,
+              "upper_bound": 4180,
+              "unit": "MWh/year",
+              "evidence_ref": "synthetic://H1/peak_demand/energy_mwh_year"
+            },
+            "capex_musd": {
+              "status": "known",
+              "value": 40,
+              "lower_bound": 36,
+              "upper_bound": 44,
+              "unit": "USD_millions",
+              "evidence_ref": "synthetic://H1/peak_demand/capex_musd"
+            },
+            "reversibility_index": {
+              "status": "known",
+              "value": 25,
+              "lower_bound": 22.5,
+              "upper_bound": 27.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/peak_demand/reversibility_index"
+            },
+            "habitat_pressure_index": {
+              "status": "known",
+              "value": 65,
+              "lower_bound": 58.5,
+              "upper_bound": 71.5,
+              "unit": "index_0_100",
+              "evidence_ref": "synthetic://H1/peak_demand/habitat_pressure_index"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

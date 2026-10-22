@@ -1,0 +1,57 @@
+name: Joy Worlds Profile Validation
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/joy-worlds/**"
+      - "tools/joy-worlds-profile-validator/**"
+      - ".github/workflows/joy-worlds-profile-validation.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/research/joy-worlds/**"
+      - "tools/joy-worlds-profile-validator/**"
+      - ".github/workflows/joy-worlds-profile-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: joy-worlds-profile-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate destination manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Run validator tests
+        run: cargo test --manifest-path tools/joy-worlds-profile-validator/Cargo.toml
+
+      - name: Run manifest cross-reference validation
+        run: |
+          cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
+            --portfolio docs/research/joy-worlds/experience-portfolio-v0.1.json \
+            --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json \
+            --decision-contract docs/research/joy-worlds/destination-decision-contract-v0.1.json
+
+      - name: Run deterministic synthetic comparison
+        run: |
+          cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin portfolio-compare -- \
+            --input docs/research/joy-worlds/fixtures/synthetic-destination-scenarios-v0.1.json \
+            --output /tmp/destination-decision-receipt.json
+          test -s /tmp/destination-decision-receipt.json
+
+      - name: Smoke-test generated comparator benchmark
+        run: |
+          cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin portfolio-benchmark -- \
+            --candidates 25 --scenarios 4 --objectives 8 --repetitions 1
+

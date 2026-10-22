@@ -1,0 +1,112 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "luminous-dynamics.symtropy.destination-decision-contract",
+  "status": "research_contract_not_site_validated",
+  "governing_rule": "Enforce legitimate hard constraints first, then compare locally authored alternatives across declared futures and separately reported outcomes; preserve uncertainty and future options.",
+  "non_claims": [
+    "A valid contract does not establish site feasibility, safety, legality, accessibility, market fit, sustainability or forecast accuracy.",
+    "A scenario result is not a permit, community consent, professional sign-off or authorization to actuate physical systems.",
+    "The contract does not prescribe universal weights, thresholds or a universally winning destination."
+  ],
+  "decision_states": [
+    "infeasible",
+    "not_evaluable",
+    "feasible_under_declared_assumptions"
+  ],
+  "hard_constraint_policy": {
+    "evaluation_order": [
+      "rights_and_feasibility_screen",
+      "hard_constraint_screen",
+      "pareto_analysis",
+      "robustness_analysis"
+    ],
+    "missing_critical_evidence_state": "not_evaluable",
+    "score_override_prohibited": true,
+    "non_substitution_rule": "Financial return, attendance, guest preference or aggregate score cannot override a failed or unevaluable hard constraint.",
+    "authority_rule": "Only the accountable competent authority and qualified professionals can accept the relevant real-world safety or regulatory case."
+  },
+  "required_alternatives": [
+    "current_or_no_build_baseline",
+    "maintenance_or_adaptive_reuse",
+    "reversible_pilot",
+    "proposed_new_build",
+    "distributed_local_operator_portfolio",
+    "managed_transition_or_closure"
+  ],
+  "gate_order": [
+    "rights_and_feasibility_envelope",
+    "meaningful_alternatives",
+    "scenario_set",
+    "hard_constraint_screen",
+    "separate_outcome_vector",
+    "pareto_and_robustness",
+    "staged_investment_gate",
+    "decision_receipt"
+  ],
+  "required_outcome_dimensions": [
+    "visitor_experience_and_access",
+    "workforce_quality_and_safety",
+    "host_community_wellbeing",
+    "local_economic_value_retention",
+    "ecology_and_resource_flows",
+    "climate_and_mobility",
+    "resilience_and_option_value"
+  ],
+  "required_negative_controls": [
+    "zero_demand",
+    "unavailable_service",
+    "closed_route",
+    "missing_or_stale_observation",
+    "resource_limit_breach",
+    "model_version_mismatch"
+  ],
+  "required_decision_receipt_fields": [
+    "candidate_and_scenario_identity",
+    "data_and_source_versions",
+    "model_and_code_identity",
+    "assumptions_units_and_uncertainty",
+    "hard_constraints_and_authority_references",
+    "independent_checks_and_negative_controls",
+    "separate_outcome_vector",
+    "local_value_commitments_and_distribution",
+    "community_decision_provenance_and_dissent",
+    "unresolved_objections_and_appeal_path",
+    "selected_and_rejected_alternatives",
+    "accountable_review_sign_off",
+    "investment_gate_and_exit_plan"
+  ],
+  "required_authority_boundaries": [
+    "community_rights_and_consent_remain_human_and_local",
+    "qualified_safety_authority_remains_accountable",
+    "no_autonomous_physical_actuation",
+    "privacy_and_culturally_restricted_evidence_protection",
+    "simulation_or_attestation_does_not_equal_real_world_truth"
+  ],
+  "required_analysis_rules": [
+    "hard_constraints_before_pareto",
+    "report_outcomes_separately",
+    "no_universal_weights",
+    "unknown_is_not_zero",
+    "preserve_no_build_and_reversible_options",
+    "publish_adverse_and_null_results"
+  ],
+  "promotion_rule": "Structural validation qualifies only contract completeness. Site decisions require local evidence, qualified review, legitimate community processes and accountable authority sign-off.",
+  "sources": [
+    {
+      "topic": "OECD destination resilience",
+      "url": "https://doi.org/10.1787/a57c343d-en"
+    },
+    {
+      "topic": "UN Tourism measurement framework",
+      "url": "https://www.untourism.int/tourism-statistics/measuring-sustainability-tourism"
+    },
+    {
+      "topic": "GSTC destination criteria",
+      "url": "https://www.gstc.org/gstc-criteria/gstc-destination-criteria/"
+    },
+    {
+      "topic": "Ski tourism adaptation review",
+      "url": "https://doi.org/10.1016/j.accre.2026.09.013"
+    }
+  ]
+}
