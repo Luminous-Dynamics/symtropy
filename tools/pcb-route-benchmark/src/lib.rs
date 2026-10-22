@@ -3511,6 +3511,130 @@ mod tests {
         assert!(!is_commit_sha(&"a".repeat(39)));
     }
 
+
+    #[test]
+    fn verified_run_requires_output_design_skeleton_to_match_pinned_source() {
+        fn synthetic_board(reference: &str) -> String {
+            format!(
+                r#"(kicad_pcb
+                  (version 20241229)
+                  (generator "pcbnew")
+                  (layers (0 "F.Cu" signal) (25 "Edge.Cuts" user))
+                  (setup (net_class "Default" "" (clearance 0.2) (trace_width 0.5)))
+                  (net 0 "") (net 1 "VCC")
+                  (footprint "AtomFab:Connector" (layer "F.Cu") (at 10 10)
+                    (property "Reference" "{reference}")
+                    (pad "1" thru_hole rect (at 0 0) (size 1.7 1.7) (drill 1)
+                      (layers "*.Cu" "*.Mask") (net 1 "VCC")))
+                  (gr_rect (start 0 0) (end 20 10) (layer "Edge.Cuts"))
+                )"#
+            )
+        }
+
+        fn with_route(source: &str) -> String {
+            let end = source.rfind(')').expect("board root close");
+            format!(
+                "{} (segment (start 10 10) (end 12 10) (width 0.5) (layer \"F.Cu\") (net 1)){}",
+                &source[..end],
+                &source[end..]
+            )
+        }
+
+        let temp = std::env::temp_dir().join(format!(
+            "pcb-route-skeleton-integration-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&temp);
+        let dataset_root = temp.join("dataset");
+        let run_root = temp.join("run");
+        std::fs::create_dir_all(dataset_root.join("inputs")).unwrap();
+        std::fs::create_dir_all(run_root.join("outputs")).unwrap();
+        std::fs::create_dir_all(run_root.join("drc")).unwrap();
+
+        let mut manifest: serde_json::Value = serde_json::from_str(MANIFEST).unwrap();
+        let mut report: serde_json::Value = serde_json::from_str(BASELINE).unwrap();
+        let mut source_by_id = BTreeMap::new();
+        for pin in manifest["boards"].as_array_mut().unwrap() {
+            let id = pin["board_id"].as_str().unwrap().to_string();
+            let source = synthetic_board(&id);
+            let relative = format!("inputs/{id}.kicad_pcb");
+            std::fs::write(dataset_root.join(&relative), source.as_bytes()).unwrap();
+            let fp = crate::design_skeleton::fingerprint_board_bytes(source.as_bytes()).unwrap();
+            pin["relative_path"] = serde_json::Value::String(relative);
+            pin["input_board_sha256"] = serde_json::Value::String(fp.board_sha256);
+            pin["design_skeleton_sha256"] =
+                serde_json::Value::String(fp.design_skeleton_sha256);
+            source_by_id.insert(id, source);
+        }
+
+        for case in report["cases"].as_array_mut().unwrap() {
+            let id = case["board_id"].as_str().unwrap().to_string();
+            case["input_board_sha256"] =
+                manifest["boards"].as_array().unwrap().iter()
+                    .find(|pin| pin["board_id"] == id).unwrap()["input_board_sha256"].clone();
+            if case["execution_status"] != "completed" {
+                case["output_board_relative_path"] = serde_json::Value::Null;
+                case["output_board_sha256"] = serde_json::Value::Null;
+                case["drc_report_relative_path"] = serde_json::Value::Null;
+                case["drc_report_sha256"] = serde_json::Value::Null;
+                continue;
+            }
+            let source = source_by_id.get(&id).unwrap();
+            let output = with_route(source);
+            let output_relative = format!("outputs/{id}.kicad_pcb");
+            let drc_relative = format!("drc/{id}.json");
+            let drc = format!(r#"{{"synthetic_fixture":true,"board_id":"{id}"}}"#);
+            std::fs::write(run_root.join(&output_relative), output.as_bytes()).unwrap();
+            std::fs::write(run_root.join(&drc_relative), drc.as_bytes()).unwrap();
+            case["output_board_relative_path"] = serde_json::Value::String(output_relative);
+            case["output_board_sha256"] = serde_json::Value::String(sha256_hex(output.as_bytes()));
+            case["drc_report_relative_path"] = serde_json::Value::String(drc_relative);
+            case["drc_report_sha256"] = serde_json::Value::String(sha256_hex(drc.as_bytes()));
+        }
+
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).unwrap();
+        report["dataset_manifest_sha256"] =
+            serde_json::Value::String(sha256_hex(&manifest_bytes));
+        let report_bytes = serde_json::to_vec_pretty(&report).unwrap();
+        let receipt = verify_run_design_skeletons(
+            &report_bytes,
+            &manifest_bytes,
+            &dataset_root,
+            &run_root,
+            EVALUATOR_HEAD,
+        ).expect("route-only edits preserve the source skeleton");
+        assert_eq!(receipt.verified_board_count, 4);
+        assert!(receipt.boards.iter().all(|board| board.skeleton_matches));
+        assert!(receipt.boards.iter().all(|board| board.excluded_output_segments == 1));
+
+        // A changed placement is rejected even when the report is updated to
+        // truthfully hash the modified output file.
+        let first = report["cases"].as_array().unwrap().iter()
+            .find(|case| case["execution_status"] == "completed").unwrap();
+        let relative = first["output_board_relative_path"].as_str().unwrap();
+        let output_path = run_root.join(relative);
+        let output = std::fs::read_to_string(&output_path).unwrap();
+        let changed = output.replacen("(at 10 10)", "(at 10.5 10)", 1);
+        assert_ne!(output, changed);
+        std::fs::write(&output_path, changed.as_bytes()).unwrap();
+        let target_id = first["board_id"].as_str().unwrap().to_string();
+        for case in report["cases"].as_array_mut().unwrap() {
+            if case["board_id"] == target_id {
+                case["output_board_sha256"] = serde_json::Value::String(sha256_hex(changed.as_bytes()));
+            }
+        }
+        let tampered_report = serde_json::to_vec_pretty(&report).unwrap();
+        assert!(verify_run_design_skeletons(
+            &tampered_report,
+            &manifest_bytes,
+            &dataset_root,
+            &run_root,
+            EVALUATOR_HEAD,
+        ).unwrap_err().contains("changed the design skeleton"));
+
+        let _ = std::fs::remove_dir_all(&temp);
+    }
+
     #[test]
     fn run_artifact_verifier_binds_actual_output_and_drc_bytes() {
         let mut value: serde_json::Value =
