@@ -1303,6 +1303,119 @@ mod tests {
     }
 
     #[test]
+    fn robust_envelope_accepts_only_when_candidate_survives_all_clearance_scenarios() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 5, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 2, 2, 4), 5, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let scenarios = [6, 7, 8].map(|clear_tick| RecoveryEnvelopeScenario {
+            scenario_id: format!("clear-at-{clear_tick}"),
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: clear_tick,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+
+        let report = evaluate_recovery_envelope(&baseline, &candidate, &scenarios);
+
+        assert!(report.robustly_accepted);
+        assert_eq!(report.metrics.total_scenarios, 3);
+        assert_eq!(report.metrics.accepted_scenarios, 3);
+        assert_eq!(report.metrics.worst_case_recovery_horizon_ticks, Some(6));
+        assert_eq!(report.metrics.worst_case_unaffected_placement_churn, 0);
+        assert_eq!(
+            report.scenarios.iter().map(|s| s.scenario_id.as_str()).collect::<Vec<_>>(),
+            vec!["clear-at-6", "clear-at-7", "clear-at-8"]
+        );
+    }
+
+    #[test]
+    fn robust_envelope_rejects_candidate_that_only_survives_optimistic_clearance() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 5, 10),
+            ],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming", "block-in", rect(0, 0, 2, 2), 6, 10),
+            ],
+            ..Scenario::default()
+        };
+        let scenarios = [6, 7].map(|clear_tick| RecoveryEnvelopeScenario {
+            scenario_id: format!("clear-at-{clear_tick}"),
+            disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: clear_tick,
+                }],
+                ..empty_disruption(4)
+            },
+        });
+
+        let report = evaluate_recovery_envelope(&baseline, &candidate, &scenarios);
+
+        assert!(!report.robustly_accepted);
+        assert_eq!(report.metrics.total_scenarios, 2);
+        assert_eq!(report.metrics.accepted_scenarios, 1);
+        assert!(report.scenarios.iter().any(|scenario| {
+            scenario.scenario_id == "clear-at-7"
+                && !scenario.report.metrics.candidate_feasible_after_disruption
+        }));
+    }
+
+    #[test]
+    fn robust_envelope_rejects_empty_or_ambiguous_scenario_sets() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 2, 2), 0, 8)],
+            ..Scenario::default()
+        };
+
+        let empty = evaluate_recovery_envelope(&baseline, &baseline, &[]);
+        assert!(!empty.robustly_accepted);
+        assert!(empty.violations.iter().any(|violation| {
+            violation.code == RecoveryEnvelopeViolationCode::EmptyScenarioSet
+        }));
+
+        let duplicate = RecoveryEnvelopeScenario {
+            scenario_id: "same-id".to_owned(),
+            disruption: empty_disruption(4),
+        };
+        let duplicate_report = evaluate_recovery_envelope(
+            &baseline,
+            &baseline,
+            &[duplicate.clone(), duplicate],
+        );
+        assert!(!duplicate_report.robustly_accepted);
+        assert!(duplicate_report.violations.iter().any(|violation| {
+            violation.code == RecoveryEnvelopeViolationCode::DuplicateScenarioId
+        }));
+    }
+
+    #[test]
     fn candidate_churn_on_unaffected_reservation_is_measured_separately() {
         let baseline = Scenario {
             yard_bounds: Some(yard()),
