@@ -42,14 +42,23 @@ whose height decreases from 1 to 1e-4. It reports the mean-ratio quality
 
 `q = 2 * sqrt(3) * abs(det) / sum(edge_length_squared)`
 
-and the dimensionless geometry-gradient amplification proxy
+the dimensionless geometry-gradient amplification proxy
 
-`a = longest_edge * max_i(norm(grad(N_i)))`.
+`a = longest_edge * max_i(norm(grad(N_i)))`,
 
-The proxy is not a global stiffness-matrix condition number and must not be marketed as
-one. The frozen sweep checks that quality decreases strictly and gradient amplification
-increases strictly as the triangle becomes a sliver. Quality is invariant under rigid
-rotation and uniform scaling. The element constructor rejects a triangle when
+and the local element spectral condition number. A symmetric Jacobi eigensolver computes
+the six-by-six CST stiffness eigenvalues; three rigid-body modes are classified using a
+scale-relative floating-point threshold, and the ratio of largest to smallest positive
+deformational eigenvalue is reported. This is a local element metric, **not** the
+condition number of the globally assembled, boundary-constrained FEM system.
+
+The frozen sweep checks that quality decreases strictly while gradient amplification and
+local non-rigid spectral condition increase. Unit tests check three near-zero rigid modes,
+three positive deformational modes, a monotonic spectral-condition trend for slivers, and
+a final local element condition number above 1e7. Quality is invariant under rigid rotation
+and uniform scaling. The spectral estimate is useful precisely because it comes from the
+element stiffness matrix rather than being only a geometry-derived proxy, but its rigid
+mode classification threshold and eigensolver accuracy still require independent tests. The element constructor rejects a triangle when
 `abs(det) <= 64 * f64::EPSILON * longest_edge_squared`; that is a floating-point
 degeneracy floor, not a general mesh-quality recommendation. Sliver elements above the
 floor are measured rather than automatically declared adequate for engineering analysis.
