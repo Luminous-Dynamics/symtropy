@@ -558,6 +558,16 @@ pub struct MaterialSweepPoint {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GlobalMeshConditioningPoint {
+    pub cells_per_side: usize,
+    pub free_dof_count: usize,
+    pub smallest_eigenvalue: f64,
+    pub largest_eigenvalue: f64,
+    /// Spectral condition number of the assembled matrix after fixing all boundary DOFs.
+    pub constrained_global_condition_number: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PatchProbe {
     pub elements: usize,
     pub interior_nodes: usize,
@@ -624,6 +634,180 @@ pub fn run_material_conditioning_sweep() -> Result<Vec<MaterialSweepPoint>, Elem
         points.push(point);
     }
     Ok(points)
+}
+
+/// Assemble the reduced global stiffness matrix for a zero-displacement
+/// Dirichlet boundary, then estimate its actual dense spectral condition number.
+/// This uses the independent CST kernel and is still not a CalculiX solver result.
+pub fn run_global_mesh_conditioning_sweep(
+) -> Result<Vec<GlobalMeshConditioningPoint>, ElementError> {
+    let resolutions = [2, 3, 4, 5, 6];
+    let material =
+        PlaneStrainMaterial::new(1.0, 0.3).expect("reference material is admissible");
+    let mut points = Vec::with_capacity(resolutions.len());
+    for cells_per_side in resolutions {
+        let mesh =
+            generate_mesh(cells_per_side).map_err(|_| ElementError::MeshConstruction)?;
+        let mut reduced_map = vec![None; 2 * mesh.nodes.len()];
+        let mut free_dof_count = 0_usize;
+        for node in &mesh.nodes {
+            if node.boundary {
+                continue;
+            }
+            let full_x = 2 * (node.id - 1);
+            let full_y = full_x + 1;
+            reduced_map[full_x] = Some(free_dof_count);
+            free_dof_count += 1;
+            reduced_map[full_y] = Some(free_dof_count);
+            free_dof_count += 1;
+        }
+        if free_dof_count == 0 {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let mut global_stiffness = vec![vec![0.0_f64; free_dof_count]; free_dof_count];
+        for triangle in &mesh.triangles {
+            let vertices = triangle.nodes.map(|node_id| {
+                let node = mesh.nodes[node_id - 1];
+                Point2 { x: node.x, y: node.y }
+            });
+            let element = TriangleElement::new(vertices, material, 1.0)?;
+            for (local_i, row) in element.stiffness.iter().enumerate() {
+                let node_i = triangle.nodes[local_i / 2] - 1;
+                let full_i = 2 * node_i + local_i % 2;
+                let Some(global_i) = reduced_map[full_i] else {
+                    continue;
+                };
+                for (local_j, value) in row.iter().enumerate() {
+                    let node_j = triangle.nodes[local_j / 2] - 1;
+                    let full_j = 2 * node_j + local_j % 2;
+                    let Some(global_j) = reduced_map[full_j] else {
+                        continue;
+                    };
+                    global_stiffness[global_i][global_j] += *value;
+                }
+            }
+        }
+        let mut eigenvalues = symmetric_eigenvalues_dynamic(global_stiffness)?;
+        eigenvalues.sort_by(f64::total_cmp);
+        if eigenvalues.iter().any(|value| !value.is_finite()) {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let smallest_eigenvalue = *eigenvalues
+            .first()
+            .ok_or(ElementError::InvalidStiffnessSpectrum)?;
+        let largest_eigenvalue = *eigenvalues
+            .last()
+            .ok_or(ElementError::InvalidStiffnessSpectrum)?;
+        if smallest_eigenvalue <= 0.0 || largest_eigenvalue < smallest_eigenvalue {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let constrained_global_condition_number = largest_eigenvalue / smallest_eigenvalue;
+        if !constrained_global_condition_number.is_finite()
+            || constrained_global_condition_number < 1.0
+        {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        points.push(GlobalMeshConditioningPoint {
+            cells_per_side,
+            free_dof_count,
+            smallest_eigenvalue,
+            largest_eigenvalue,
+            constrained_global_condition_number,
+        });
+    }
+    Ok(points)
+}
+
+/// Dense symmetric Jacobi eigensolver for the small reduced global matrices used
+/// in the fixed mesh-resolution sweep. The matrices are at most 50-by-50.
+#[allow(clippy::needless_range_loop)]
+fn symmetric_eigenvalues_dynamic(
+    mut matrix: Vec<Vec<f64>>,
+) -> Result<Vec<f64>, ElementError> {
+    let n = matrix.len();
+    if n == 0
+        || matrix.iter().any(|row| row.len() != n)
+        || matrix.iter().flatten().any(|value| !value.is_finite())
+    {
+        return Err(ElementError::InvalidStiffnessSpectrum);
+    }
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let average = 0.5 * (matrix[i][j] + matrix[j][i]);
+            if !average.is_finite() {
+                return Err(ElementError::InvalidStiffnessSpectrum);
+            }
+            matrix[i][j] = average;
+            matrix[j][i] = average;
+        }
+    }
+
+    let max_rotations = 64_usize
+        .checked_mul(n)
+        .and_then(|value| value.checked_mul(n))
+        .ok_or(ElementError::InvalidStiffnessSpectrum)?;
+    for _ in 0..max_rotations {
+        let mut pivot = (0_usize, 0_usize);
+        let mut largest_off_diagonal = 0.0_f64;
+        let mut scale = 0.0_f64;
+        for i in 0..n {
+            scale = scale.max(matrix[i][i].abs());
+            for j in (i + 1)..n {
+                if matrix[i][j].abs() > largest_off_diagonal {
+                    largest_off_diagonal = matrix[i][j].abs();
+                    pivot = (i, j);
+                }
+            }
+        }
+        if !scale.is_finite() || !largest_off_diagonal.is_finite() {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        if largest_off_diagonal <= 32.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE) {
+            let eigenvalues: Vec<f64> = (0..n).map(|index| matrix[index][index]).collect();
+            return if eigenvalues.iter().all(|value| value.is_finite()) {
+                Ok(eigenvalues)
+            } else {
+                Err(ElementError::InvalidStiffnessSpectrum)
+            };
+        }
+
+        let (p, q) = pivot;
+        let app = matrix[p][p];
+        let aqq = matrix[q][q];
+        let apq = matrix[p][q];
+        if apq == 0.0 {
+            continue;
+        }
+        let tau = (aqq - app) / (2.0 * apq);
+        if !tau.is_finite() {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let t = if tau >= 0.0 {
+            1.0 / (tau + tau.hypot(1.0))
+        } else {
+            -1.0 / (-tau + tau.hypot(1.0))
+        };
+        let cosine = 1.0 / (1.0 + t * t).sqrt();
+        let sine = t * cosine;
+        matrix[p][p] = app - t * apq;
+        matrix[q][q] = aqq + t * apq;
+        matrix[p][q] = 0.0;
+        matrix[q][p] = 0.0;
+        for k in 0..n {
+            if k == p || k == q {
+                continue;
+            }
+            let akp = matrix[k][p];
+            let akq = matrix[k][q];
+            let new_kp = cosine * akp - sine * akq;
+            let new_kq = sine * akp + cosine * akq;
+            matrix[k][p] = new_kp;
+            matrix[p][k] = new_kp;
+            matrix[k][q] = new_kq;
+            matrix[q][k] = new_kq;
+        }
+    }
+    Err(ElementError::EigenvalueIterationLimit)
 }
 
 /// Assemble an affine-strain patch using the independent element kernel.
@@ -1228,6 +1412,33 @@ mod tests {
         assert!(sweep.last().unwrap().lambda_over_mu > 1.0e4);
         assert!(
             sweep.last().unwrap().element_nonrigid_condition_number > 1.0e4
+        );
+    }
+
+
+    #[test]
+    fn constrained_global_condition_number_grows_under_uniform_refinement() {
+        let sweep = run_global_mesh_conditioning_sweep().unwrap();
+        assert_eq!(
+            sweep.iter().map(|point| point.cells_per_side).collect::<Vec<_>>(),
+            vec![2, 3, 4, 5, 6]
+        );
+        assert_eq!(
+            sweep.iter().map(|point| point.free_dof_count).collect::<Vec<_>>(),
+            vec![2, 8, 18, 32, 50]
+        );
+        assert!(sweep.windows(2).all(|pair| {
+            pair[1].constrained_global_condition_number
+                > pair[0].constrained_global_condition_number
+        }));
+        assert!(sweep.iter().all(|point| {
+            point.smallest_eigenvalue > 0.0
+                && point.largest_eigenvalue >= point.smallest_eigenvalue
+                && point.constrained_global_condition_number.is_finite()
+        }));
+        assert!(
+            sweep.last().unwrap().constrained_global_condition_number > 20.0,
+            "{sweep:?}"
         );
     }
 
