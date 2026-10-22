@@ -314,3 +314,16 @@ The global taboo eliminates repeat failure by preventing the action even after t
 This is a useful falsification result: recurrence alone rewards over-suppression. Symtropy should report recurrence jointly with valid-action retention and false suppression.
 
 VIS-MEM-014 (belief trapping / progress recovery) is now implemented in draft PR #2625, with its exact-head Rust workflow still queued at last check. It adds a separate question: can the agent detect that it is stuck despite no explicit action failure, distinguish epistemic from achievement gaps, and recover without mislabeling healthy gradual progress or visible exogenous changes as traps?
+
+
+## Paired causal memory admission (VIS-MEM-015)
+
+The separate [VIS-MEM-015 issue #2632 / draft PR #2633](https://github.com/Luminous-Dynamics/symtropy/pull/2633) adds a paired memory-use intervention. Existing slices ask whether a memory can transfer, resolve conflicts, repair failures or help detect traps; this slice asks the causal question: **for the same task state, did admitting the retrieved memory improve or harm the decision relative to the no-memory control?**
+
+The current diagnostic is a dependency-free Rust program with 18 hand-authored states and eight policies (144 case-policy rows): no memory, always recall, task match, revision-only, observation-first, fresh verified evidence, a deliberately weak scope-claim gate, and transfer-validated admission. The controls include fresh useful memory, old but independently transfer-validated memory, stale wrong memory, an unvalidated task-invariance claim, irrelevant-but-current memories, contradictory live observations, and missing evidence with/without verification.
+
+Metrics remain disaggregated: task success, wrong-action rate, memory-use rate, helpful/harmful memory use, paired success lift against the same case under no memory, verification cost, avoidable verification, abstention, and false abstention. The selector receives no evaluator safe-action label. Output replay, fixed field counts, test assertions and a SHA-256 artifact are part of the pinned Rust 1.96.0 workflow.
+
+At last check, [focused qualification run #39739584641](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39739584641) and general CI #39739584528 were queued for exact head `2b269f775dab6caac4daff132d3e3e2f2ccd183d`; no result is claimed yet. The implementation is a mechanism diagnostic, not a native benchmark or SOTA result.
+
+This direction follows directly from the external evaluation gap: MemTransfer reports sensitivity to changed start poses and irrelevant histories (https://arxiv.org/abs/2609.32313); MeMoREval jointly measures embodied memory utility and construction/use cost (https://arxiv.org/abs/2610.12561); SCOPER emphasizes evidence retention and progress verification over complete closed-loop task execution (https://arxiv.org/abs/2610.17657). Symtropy's longer-term test should apply these paired interventions to a licensed native benchmark, freeze the model/simulator/evaluator revisions, and report task/seed-block confidence intervals with memory and runtime cost. Synthetic rates must never be pooled with these external results.
