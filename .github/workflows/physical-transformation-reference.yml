@@ -533,6 +533,14 @@ jobs:
           grep -Fq 'element_theory_status=unresolved_primary_source' "$fixture"
           grep -Fq 'mass_rotary_inertia_status=unresolved_primary_source' "$fixture"
           printf 'PASS frozen FV5 reference manifest; full numerical FV5 run remains unqualified\n'
+          variant_fixture="research/physical-transformation-reference/fixtures/nafems_fv5_lsdyna_variant_v0_1.txt"
+          variant_canonical="$(tr -d '\n' < "$variant_fixture")"
+          test "$variant_canonical" = "schema=nafems-fv5-vm-lsdyna-solve-064-v0.1|fixture=PHYS-NAFEMS-FV5-LSDYNA-064|source_url=https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-064.html|source_variant=VM-LSDYNA-SOLVE-064|reference=NAFEMS_1987_target_as_published_by_Ansys|model_type=1D_beam_modal|length_m=10|section=2x2_m|E_Pa=200000000000|poisson_ratio=0.3|density_kg_m3=8000|support_A=ux,uy,uz,rx_fixed|support_B=uy,uz_fixed|target_family=flexural1,2,42.650|target_family=torsional1,1,71.200|target_family=extensional1,1,125.000|target_family=flexural2,2,148.150|target_family=torsional2,1,213.610|target_family=flexural3,2,283.470|solver_family_hz=42.642,70.735,124.968,148.000,211.769,282.405|claim_ceiling=vendor_published_variant_only_not_same_as_R0015_DIANA_theory_set_or_full_physical_validation"
+          variant_sha256="$(printf '%s' "$variant_canonical" | sha256sum | awk '{print $1}')"
+          test "$variant_sha256" = "16ef4dc3464c2365574b613d5bc7ae906db7c2869864f10d36723b35641a52f5"
+          grep -Fq 'section=2x2_m' "$variant_fixture"
+          grep -Fq 'claim_ceiling=vendor_published_variant_only' "$variant_fixture"
+          printf 'PASS frozen LS-DYNA FV5 variant; variant targets remain separate from R0015/DIANA theory\n'
 
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
@@ -549,6 +557,7 @@ jobs:
             nafems-nbc05-mutation-receipt.json
             beam-element-mutation-receipt.json
             research/physical-transformation-reference/fixtures/nafems_r0015_fv5_mode_manifest_v0_1.txt
+            research/physical-transformation-reference/fixtures/nafems_fv5_lsdyna_variant_v0_1.txt
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
