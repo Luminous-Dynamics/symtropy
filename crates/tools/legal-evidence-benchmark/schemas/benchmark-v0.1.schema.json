@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/benchmark-v0.1.schema.json",
+  "title": "Legal Evidence Benchmark Synthetic Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_kind",
+    "description",
+    "authorities",
+    "cases",
+    "metamorphic_pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_kind": {
+      "const": "synthetic_only"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/authority"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "metamorphic_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/metamorphicPair"
+      }
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "role",
+        "span_id"
+      ],
+      "properties": {
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "jurisdiction",
+        "kind",
+        "force",
+        "valid_from",
+        "valid_to",
+        "permitted_ai_use",
+        "span_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdiction": {
+          "type": "string",
+          "pattern": "^(fictional:|organization:|source-registry$)"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "force": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "valid_from": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_to": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "permitted_ai_use": {
+          "type": "string",
+          "enum": [
+            "synthetic_test_only",
+            "citation_only",
+            "prohibited"
+          ]
+        },
+        "span_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "family",
+        "prompt",
+        "jurisdiction",
+        "as_of",
+        "available_authority_ids",
+        "expected_action",
+        "expected_claim_codes",
+        "expected_citations",
+        "critical",
+        "tags"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jurisdiction": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(fictional:|organization:|source-registry$)"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "available_authority_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "expected_action": {
+          "type": "string",
+          "enum": [
+            "answer",
+            "clarify",
+            "abstain",
+            "reject_source"
+          ]
+        },
+        "expected_claim_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "expected_citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "critical": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "metamorphicPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_case_id",
+        "target_case_id",
+        "relation",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "action_must_change",
+            "action_must_match",
+            "evidence_must_change",
+            "output_must_match"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

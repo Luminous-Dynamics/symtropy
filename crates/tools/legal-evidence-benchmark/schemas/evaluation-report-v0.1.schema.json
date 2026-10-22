@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/evaluation-report-v0.1.schema.json",
+  "title": "Legal Evidence Benchmark Evaluation Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "evaluator_version",
+    "dataset_kind",
+    "corpus_sha256",
+    "submission_sha256",
+    "system_id",
+    "total_cases",
+    "provided_results",
+    "action_accuracy_pct",
+    "claim_code_exact_match_pct",
+    "citation_exact_match_pct",
+    "missing_result_case_ids",
+    "duplicate_result_case_ids",
+    "extra_result_case_ids",
+    "unknown_authority_citations",
+    "unavailable_source_citations",
+    "authority_role_mismatches",
+    "unknown_span_citations",
+    "temporally_inapplicable_citations",
+    "temporally_unverified_citations",
+    "prohibited_source_citations",
+    "unverified_authority_citations",
+    "duplicate_citations",
+    "duplicate_claim_codes",
+    "uncited_answers",
+    "critical_failure_case_ids",
+    "fixture_gate_passed",
+    "claim_ceiling",
+    "case_evaluations",
+    "metamorphic_pairs_total",
+    "metamorphic_pairs_passed",
+    "metamorphic_pair_failure_ids",
+    "metamorphic_gate_passed"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "0.1.0"
+    },
+    "evaluator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_kind": {
+      "const": "synthetic_only"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "submission_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "system_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "total_cases": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provided_results": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "action_accuracy_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "claim_code_exact_match_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "citation_exact_match_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "missing_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "duplicate_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "extra_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "unknown_authority_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unavailable_source_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "authority_role_mismatches": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unknown_span_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporally_inapplicable_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporally_unverified_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "prohibited_source_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unverified_authority_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_claim_codes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uncited_answers": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "critical_failure_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "fixture_gate_passed": {
+      "type": "boolean"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_evaluations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "critical",
+          "expected_action",
+          "observed_action",
+          "expected_claim_codes",
+          "observed_claim_codes",
+          "expected_citations",
+          "observed_citations",
+          "action_match",
+          "claim_code_exact_match",
+          "citation_exact_match",
+          "failure_codes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "expected_action": {
+            "type": "string",
+            "enum": [
+              "answer",
+              "clarify",
+              "abstain",
+              "reject_source"
+            ]
+          },
+          "observed_action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "answer",
+                  "clarify",
+                  "abstain",
+                  "reject_source"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_claim_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "observed_claim_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expected_citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/citation"
+            }
+          },
+          "observed_citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/citation"
+            }
+          },
+          "action_match": {
+            "type": "boolean"
+          },
+          "claim_code_exact_match": {
+            "type": "boolean"
+          },
+          "citation_exact_match": {
+            "type": "boolean"
+          },
+          "failure_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "metamorphic_pairs_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metamorphic_pairs_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metamorphic_pair_failure_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "metamorphic_gate_passed": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "role",
+        "span_id"
+      ],
+      "properties": {
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

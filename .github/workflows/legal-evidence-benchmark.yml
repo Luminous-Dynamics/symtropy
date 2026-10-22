@@ -1,0 +1,46 @@
+name: Legal Evidence Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "crates/tools/legal-evidence-benchmark/**"
+      - ".github/workflows/legal-evidence-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/tools/legal-evidence-benchmark/**"
+      - ".github/workflows/legal-evidence-benchmark.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legal-evidence-benchmark-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Synthetic Legal Evidence Oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml -- --check
+
+      - name: Unit tests
+        run: cargo test --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml
+
+      - name: Validate synthetic corpus
+        run: cargo run --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml -- validate crates/tools/legal-evidence-benchmark/fixtures/legal-knowledge-v0.1.json
+      - name: Exercise evaluator against synthetic reference submission
+        run: cargo run --manifest-path crates/tools/legal-evidence-benchmark/Cargo.toml -- evaluate crates/tools/legal-evidence-benchmark/fixtures/legal-knowledge-v0.1.json crates/tools/legal-evidence-benchmark/fixtures/reference-submission-v0.1.json

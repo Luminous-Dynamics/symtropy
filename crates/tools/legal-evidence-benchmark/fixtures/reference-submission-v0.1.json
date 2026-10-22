@@ -1,0 +1,146 @@
+{
+  "schema_version": "0.1.0",
+  "system_id": "synthetic-reference-oracle",
+  "results": [
+    {
+      "case_id": "SYN-TIME-001",
+      "action": "answer",
+      "claim_codes": [
+        "COASTLAND_CIVIL_ACT_V1_APPLIES_AT_DATE"
+      ],
+      "citations": [
+        {
+          "authority_id": "coastland-civil-act-v1",
+          "role": "binding_in_scope",
+          "span_id": "operative-version-v1"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-TIME-002",
+      "action": "answer",
+      "claim_codes": [
+        "COASTLAND_CIVIL_ACT_V2_APPLIES_AT_DATE"
+      ],
+      "citations": [
+        {
+          "authority_id": "coastland-civil-act-v2",
+          "role": "binding_in_scope",
+          "span_id": "operative-version-v2"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-JUR-001",
+      "action": "clarify",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-CONTEXT-001",
+      "action": "clarify",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-CITE-001",
+      "action": "abstain",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-AUTH-001",
+      "action": "answer",
+      "claim_codes": [
+        "FARLAND_CASE_IS_PERSUASIVE_NOT_BINDING_IN_COASTLAND"
+      ],
+      "citations": [
+        {
+          "authority_id": "farland-case-17",
+          "role": "persuasive_only",
+          "span_id": "holding-paragraph-2"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-POLICY-001",
+      "action": "answer",
+      "claim_codes": [
+        "ORGANIZATION_POLICY_IS_NOT_UNIVERSAL_EXTERNAL_LAW"
+      ],
+      "citations": [
+        {
+          "authority_id": "demo-coop-policy-9",
+          "role": "policy_only",
+          "span_id": "scope-clause"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-SOURCE-001",
+      "action": "reject_source",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-STALE-001",
+      "action": "abstain",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-AMEND-001",
+      "action": "abstain",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-CONFLICT-001",
+      "action": "abstain",
+      "claim_codes": [],
+      "citations": []
+    },
+    {
+      "case_id": "SYN-JUR-002",
+      "action": "answer",
+      "claim_codes": [
+        "COASTLAND_AGENCY_COMPETENCE_ESTABLISHED_BY_SYNTHETIC_CHARTER"
+      ],
+      "citations": [
+        {
+          "authority_id": "coastland-agency-charter",
+          "role": "binding_in_scope",
+          "span_id": "subject-matter-competence"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-AUTH-002",
+      "action": "answer",
+      "claim_codes": [
+        "FARLAND_CASE_IS_PERSUASIVE_NOT_BINDING_IN_COASTLAND"
+      ],
+      "citations": [
+        {
+          "authority_id": "farland-case-17",
+          "role": "persuasive_only",
+          "span_id": "holding-paragraph-2"
+        }
+      ]
+    },
+    {
+      "case_id": "SYN-SOURCE-002",
+      "action": "answer",
+      "claim_codes": [
+        "SYNTHETIC_EVALUATION_USE_EXPLICITLY_PERMITTED"
+      ],
+      "citations": [
+        {
+          "authority_id": "authorized-synthetic-source-record",
+          "role": "metadata_only",
+          "span_id": "benchmark-evaluation-permission"
+        }
+      ]
+    }
+  ]
+}
