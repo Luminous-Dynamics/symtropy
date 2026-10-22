@@ -208,7 +208,10 @@
       "gpu_timestamp_p50_p95_p99_when_supported",
       "visible_body_proxy_and_surface_tile_counts",
       "resident_asset_bytes_and_peak_memory",
-      "shader_and_fixture_digests"
+      "shader_and_fixture_digests",
+      "camera_waypoint_transition_discontinuity_count",
+      "camera_near_far_depth_precision_profile",
+      "explicit_visual_exaggeration_factor_by_entity"
     ],
     "claim_ceiling": [
       "This manifest is a workload contract, not a rendered result.",
@@ -237,6 +240,154 @@
     {
       "name": "Gaia Sky star rendering",
       "url": "https://gaia.ari.uni-heidelberg.de/gaiasky/docs/master/Star-rendering.html"
+    }
+  ],
+  "hierarchy_selection_cases": [
+    {
+      "case_id": "HIERARCHY-KEEP-PARENT",
+      "scenario": "parent error is within budget",
+      "expected": "render parent",
+      "hard_invariants": [
+        "semantic entity ID remains stable",
+        "child assets are not required to refine"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-REPLACE-COMPLETE",
+      "scenario": "replacement parent exceeds error budget and all children are resident with certified full coverage",
+      "expected": "render child representations and not parent",
+      "hard_invariants": [
+        "no missing child coverage",
+        "deterministic node order"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-HOLD-DURING-STREAMING",
+      "scenario": "replacement children are incomplete but parent asset is ready",
+      "expected": "hold and render parent",
+      "hard_invariants": [
+        "no visual hole due to loading child",
+        "record fallback reason"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-PINNED-DETAIL",
+      "scenario": "detail-pinned parent needs refinement but at least one required child is unavailable",
+      "expected": "fail with protected-detail error",
+      "hard_invariants": [
+        "never claim the requested detail was satisfied"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-ADDITIVE",
+      "scenario": "additive refinement is requested and all children are ready",
+      "expected": "render parent and refined descendants",
+      "hard_invariants": [
+        "parent and child identity remain independently represented"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-UNAVAILABLE-PARENT",
+      "scenario": "parent asset is unavailable",
+      "expected": "bypass only when resident children are certified to cover the parent",
+      "hard_invariants": [
+        "otherwise fail rather than display a hole as empty space"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-PERMUTATION",
+      "scenario": "reorder the input node array and child arrays without changing relationships",
+      "expected": "identical sorted representation selection",
+      "hard_invariants": [
+        "input ordering cannot alter scene selection"
+      ]
+    },
+    {
+      "case_id": "HIERARCHY-MALFORMED",
+      "scenario": "duplicate IDs, missing children, parent mismatch or cycle",
+      "expected": "reject",
+      "hard_invariants": [
+        "never normalize malformed hierarchy into a plausible render plan"
+      ]
+    }
+  ],
+  "camera_waypoints": [
+    {
+      "waypoint_id": "CAMERA-LOCAL-IN",
+      "focus_entity": "demo-local-engineering-feature",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 5,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 0.1,
+      "far_clip_m": 100,
+      "expected_view": "fine detail; cell-local origin"
+    },
+    {
+      "waypoint_id": "CAMERA-SURFACE",
+      "focus_entity": "Earth-surface-feature",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 2000,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 0.1,
+      "far_clip_m": 100000,
+      "expected_view": "planet-fixed local frame and surface-region detail"
+    },
+    {
+      "waypoint_id": "CAMERA-LOW-ORBIT",
+      "focus_entity": "Earth",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 6771008.4,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 10,
+      "far_clip_m": 100000000,
+      "expected_view": "whole body and spacecraft proxy; no surface-origin jump"
+    },
+    {
+      "waypoint_id": "CAMERA-EARTH-MOON",
+      "focus_entity": "Earth-Moon-system-illustrative-midpoint",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 500000000,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 1000,
+      "far_clip_m": 10000000000,
+      "expected_view": "Earth and Moon identified, with minimum-size proxies when subpixel"
+    },
+    {
+      "waypoint_id": "CAMERA-INNER-SYSTEM",
+      "focus_entity": "Sun",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 299195741400,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 100000,
+      "far_clip_m": 10000000000000,
+      "expected_view": "stellar/system overview with exaggerated markers separately declared"
+    },
+    {
+      "waypoint_id": "CAMERA-OUTER-SYSTEM",
+      "focus_entity": "Sun",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 5983914828000,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 1000000,
+      "far_clip_m": 100000000000000,
+      "expected_view": "outer-system overview; no absolute-f32 canonical position"
+    },
+    {
+      "waypoint_id": "CAMERA-LOCAL-RETURN",
+      "focus_entity": "demo-local-engineering-feature",
+      "source_mode": "illustrative_geometry_only",
+      "camera_distance_from_focus_m": 5,
+      "vertical_fov_radians": 1.0471975511965976,
+      "viewport_height_px": 1080,
+      "near_clip_m": 0.1,
+      "far_clip_m": 100,
+      "expected_view": "return to same feature identity and canonical position"
     }
   ]
 }

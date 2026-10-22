@@ -2,12 +2,14 @@ name: Large-World Coordinate Tests
 
 on:
   pull_request:
-    branches: ["main", "feat/solar-system-world-coordinates-001"]
+    branches: ["main", "feat/solar-system-world-coordinates-001", "feat/solar-system-apparent-scale-policy-003"]
     paths:
       - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
       - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
+      - "crates/bridges/symtropy-render-bridge/src/hierarchy_select.rs"
       - "crates/bridges/symtropy-render-bridge/src/lib.rs"
       - "docs/research/RENDER_SOLAR_SCALE_001.md"
+      - "docs/research/RENDER_HIERARCHY_004.md"
       - "benchmarks/render/SOLAR-SCALE-01.json"
       - ".github/workflows/large-world-coordinate-tests.yml"
   workflow_dispatch:
@@ -30,7 +32,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Validate solar-scale fixture contract
         run: |
-          python3 -c 'import json; p=json.load(open("benchmarks/render/SOLAR-SCALE-01.json")); assert p["fixture_id"] == "SOLAR-SCALE-01"; assert len(p["traversal_stages"]) == 7; assert len(p["coordinate_precision_ladder"]) == 7; assert len(p["apparent_size_known_answers"]) == 2; assert all(s["stage_id"] for s in p["traversal_stages"])'
+          python3 -c 'import json; p=json.load(open("benchmarks/render/SOLAR-SCALE-01.json")); assert p["fixture_id"] == "SOLAR-SCALE-01"; assert len(p["traversal_stages"]) == 7; assert len(p["coordinate_precision_ladder"]) == 7; assert len(p["apparent_size_known_answers"]) == 2; assert len(p["hierarchy_selection_cases"]) == 8; assert len(p["camera_waypoints"]) == 7; assert all(s["stage_id"] for s in p["traversal_stages"])'
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run render bridge library tests
