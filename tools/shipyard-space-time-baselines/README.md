@@ -33,6 +33,12 @@ Pinned expected outputs:
 
 The six-policy heuristic portfolio is expected to find 203/205 exact-feasible cases, miss two, and reject all 307 infeasible cases, with zero false-feasible outputs. The two heuristic misses are cases 48 (3×1, 2×2, 2×3, 2×4) and 244 (1×4, 4×1, 3×1, 2×4); exact enumeration confirms both have feasible packings. The combined `first_fit_portfolio` is expected to repair these two with exact search and classify all 307 infeasible cases by complete enumeration within the 100,000-node cap: 205/205 feasible layouts returned, zero false-feasible layouts, and zero budget exhaustions. These are pinned expectations awaiting exact-head Rust CI, and cover only four axis-aligned rectangles on a 5×5 grid with no disruptions. They are not an industrial or SOTA comparison.
 
+## Correctness fix found by independent verification
+
+An exact-head Rust run exposed a real false-feasible defect in the original first-fit implementation. The collision branch continued the scan over prior reservations, then still selected the overlapping rectangle; simply replacing a row jump with an unlabelled continue was not sufficient. The production loop now labels the current (x,y) candidate and rejects that candidate on either a prior-block collision or an active exclusion-zone collision. It then tries the next horizontal candidate, and only accepts a rectangle after all constraints have been checked. The existing overlapping-rectangle and same-row exclusion regressions exercise this path.
+
+The old implementation's run failed seven unit tests, with the independent verifier rejecting overlapping blocks and a block inside an exclusion zone. The corrected head is awaiting a rerun; no pass is claimed yet.
+
 ## Generated temporal-reuse and active-exclusion stress family
 
 The integration test `tests/generated_temporal_oracle.rs` uses seed `0x51a7_2026` to generate 512 four-block cases on a 4×4 yard. Each reservation uses one of five half-open time windows, and each case has one rectangular exclusion zone with an active interval. The exact oracle recursively enumerates legal cell masks and checks temporal overlap independently of the production geometry helper.
