@@ -585,13 +585,11 @@
         "independent_stop_required": true,
         "failure_release_mode": "passive_safe_release",
         "sharp_or_piercing_feature": false,
-        "energy_emission": false,
-        "sterile_field_claim": true
+        "energy_emission": false
       },
-      "expected_disposition": "rejected",
+      "expected_disposition": "blocked",
       "expected_reason_codes": [
-        "UNKNOWN_FIELD",
-        "PATIENT_CONTACT_OUT_OF_SCOPE"
+        "STERILE_FIELD_ACCESS_OUT_OF_SCOPE"
       ]
     }
   ]
