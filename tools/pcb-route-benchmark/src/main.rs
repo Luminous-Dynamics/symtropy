@@ -105,6 +105,7 @@ fn run() -> Result<Vec<u8>, String> {
                 .map_err(|error| format!("cannot read {report_path}: {error}"))?;
             let manifest = fs::read(manifest_path)
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
+            require_synthetic_only_for_normalized_comparison(&manifest, "validate")?;
             let validated = evaluate_report_bytes(&report, &manifest, &evaluator_head)?;
             serde_json::to_vec_pretty(&validated.receipt)
                 .map_err(|error| format!("cannot serialize validation receipt: {error}"))
@@ -258,4 +259,52 @@ fn load_report_series(
                 .map_err(|error| format!("run report {} rejected: {error}", path.display()))
         })
         .collect()
+}
+
+
+#[cfg(test)]
+mod cli_contract_tests {
+    use super::*;
+
+    #[test]
+    fn normalized_validate_and_comparison_reject_external_manifests() {
+        let synthetic = serde_json::json!({
+            "schema": "pcb-route-dataset-manifest-v0.1",
+            "evidence_class": "synthetic"
+        });
+        let external = serde_json::json!({
+            "schema": "pcb-route-dataset-manifest-v0.1",
+            "evidence_class": "external_benchmark"
+        });
+        assert!(require_synthetic_only_for_normalized_comparison(
+            &serde_json::to_vec(&synthetic).unwrap(),
+            "compare"
+        )
+        .is_ok());
+        for command in ["validate", "compare", "compare-series"] {
+            let error = require_synthetic_only_for_normalized_comparison(
+                &serde_json::to_vec(&external).unwrap(),
+                command,
+            )
+            .unwrap_err();
+            assert!(
+                error.contains("must use compare-verified"),
+                "{command}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn normalized_comparison_guard_rejects_missing_or_unknown_evidence_class() {
+        for manifest in [
+            serde_json::json!({"schema":"pcb-route-dataset-manifest-v0.1"}),
+            serde_json::json!({"evidence_class":"best_guess"}),
+        ] {
+            assert!(require_synthetic_only_for_normalized_comparison(
+                &serde_json::to_vec(&manifest).unwrap(),
+                "compare"
+            )
+            .is_err());
+        }
+    }
 }
