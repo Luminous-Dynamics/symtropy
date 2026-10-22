@@ -70,6 +70,7 @@ require_literal "$wrappers" 'obs.update({"task_cue": task_cue_, "oracle_info": o
 require_literal "$ppo_wrapper" 'ret["task_cue"] = observation["task_cue"]' 'flatten_wrapper_copies_task_cue_before_sentinel_filter'
 require_literal "$ppo_wrapper" 'if "task_cue" in ret.keys() and (ret["task_cue"] == 4242424242).any().item():' 'task_cue_removed_only_when_sentinel'
 require_literal "$trace_task" 'self.task_cue = self.shape_sequence.to(torch.int64)' 'trace_shape_seq_sets_task_cue_to_target_sequence'
+require_literal "$ROSTER" 'TraceShapeSeq' 'long_roster_includes_trace_shape_seq'
 
 if grep -Eq 'policy\.forward\([^)]*,|policy\.forward\(env|policy\.forward\([^)]*info' "$bench"; then
   fail "policy forward call appears to receive additional runner objects"
