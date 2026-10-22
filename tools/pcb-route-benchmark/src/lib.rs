@@ -2704,6 +2704,54 @@ mod tests {
     const TREATMENT: &str = include_str!("../fixtures/synthetic-treatment-run-v0_1.json");
     const EVALUATOR_HEAD: &str = "abababababababababababababababababababab";
 
+    #[test]
+    fn absent_pcbench_license_metadata_cannot_be_labelled_as_an_spdx_match() {
+        let no_metadata: Vec<LicenseAuditReportedLicense> = Vec::new();
+        assert!(
+            validate_license_reconciliation(
+                "license-metadata-missing",
+                &no_metadata,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .unwrap_err()
+            .contains("distinct no-metadata status")
+        );
+        assert!(
+            validate_license_reconciliation(
+                "license-metadata-missing",
+                &no_metadata,
+                Some("source_license_resolved_no_pcbench_license_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .is_ok()
+        );
+
+        let declared = vec![LicenseAuditReportedLicense {
+            spdx_id: Some("GPL-3.0".into()),
+            name: Some("GNU General Public License v3.0".into()),
+        }];
+        assert!(
+            validate_license_reconciliation(
+                "license-declared",
+                &declared,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "GPL-3.0",
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_license_reconciliation(
+                "license-declared",
+                &declared,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .unwrap_err()
+            .contains("does not match")
+        );
+    }
+
     fn valid_run(raw: &str) -> ValidatedRun {
         let mut value: serde_json::Value = serde_json::from_str(raw).expect("fixture JSON");
         value["dataset_manifest_sha256"] =
