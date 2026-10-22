@@ -4,6 +4,8 @@
 **Related implementation:** [draft PR #2238](https://github.com/Luminous-Dynamics/symtropy/pull/2238)  
 **Status:** research targets and comparison protocol, not benchmark results.
 
+**Modal qualification ladder:** [PHYSICAL_SOLVER_BENCHMARK_LADDER_V0_1.md](PHYSICAL_SOLVER_BENCHMARK_LADDER_V0_1.md) separates analytical verification, metamorphic sweeps, external benchmark reproduction, mesh convergence, physical validation and VVUQ. It also records the current BE25 input discrepancy and the limits of the axial-only NBC05 table reproduction.
+
 ## 1. Strategic thesis
 
 Do not build a second, weaker implementation of every solver. Build an evidence-carrying, multi-fidelity physical twin that can select the cheapest model capable of answering a declared question, pass a case to a suitable specialist solver, and retain the exact inputs, assumptions, model version, result and uncertainty.
