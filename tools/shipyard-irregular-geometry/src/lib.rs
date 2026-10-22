@@ -443,6 +443,33 @@ fn triangles_overlap_interior(left: [Point2; 3], right: [Point2; 3]) -> bool {
         return true;
     }
 
+    // A smaller triangle can be contained while all three vertices lie on the larger
+    // triangle's boundary (for example, one corner triangle of a triangulated rectangle).
+    // Exact doubled-coordinate edge-midpoint probes detect this positive-area case.
+    for index in 0..3 {
+        let left_a = left[index];
+        let left_b = left[(index + 1) % 3];
+        if doubled_point_location(
+            i128::from(left_a.x) + i128::from(left_b.x),
+            i128::from(left_a.y) + i128::from(left_b.y),
+            &right,
+        ) == PointLocation::Inside
+        {
+            return true;
+        }
+
+        let right_a = right[index];
+        let right_b = right[(index + 1) % 3];
+        if doubled_point_location(
+            i128::from(right_a.x) + i128::from(right_b.x),
+            i128::from(right_a.y) + i128::from(right_b.y),
+            &left,
+        ) == PointLocation::Inside
+        {
+            return true;
+        }
+    }
+
     // Identical triangles have no strictly interior vertex and no proper edge crossing.
     let left_area = cross(left[0], left[1], left[2]).abs();
     let right_area = cross(right[0], right[1], right[2]).abs();
