@@ -441,8 +441,9 @@ pub struct MmsMetrics {
     /// Quadrature-sampled maximum, not a proof of the true continuous L-infinity norm.
     pub displacement_quadrature_linf_error_m: f64,
     pub displacement_max_nodal_error_m: f64,
+    /// H1 seminorm of displacement error; units are m.
     pub displacement_h1_seminorm_error_m: f64,
-    /// L2 norm of the stress-tensor error with both shear entries counted.
+    /// L2 norm of the stress-tensor error including both shear entries; units are Pa·m.
     pub stress_l2_error_pa_m: f64,
 }
 
