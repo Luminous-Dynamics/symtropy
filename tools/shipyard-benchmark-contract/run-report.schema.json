@@ -85,7 +85,8 @@
           "case_id",
           "outcome",
           "runtime_ms",
-          "verifier"
+          "verifier",
+          "reference_outcome"
         ],
         "properties": {
           "case_id": {
@@ -169,6 +170,14 @@
           },
           "notes": {
             "type": "string"
+          },
+          "reference_outcome": {
+            "enum": [
+              "feasible",
+              "infeasible",
+              "unknown",
+              "not-applicable"
+            ]
           }
         }
       }
@@ -183,7 +192,9 @@
         "unknown_count",
         "timeout_count",
         "false_feasible_count",
-        "false_infeasible_count"
+        "false_infeasible_count",
+        "not_run_count",
+        "invalid_output_count"
       ],
       "properties": {
         "case_count": {
@@ -223,8 +234,17 @@
               "null"
             ]
           }
+        },
+        "not_run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_output_count": {
+          "type": "integer",
+          "minimum": 0
         }
-      }
+      },
+      "description": "Counts are audited against per-case results; false counts are derived from known reference outcomes, never trusted as input."
     },
     "evidence": {
       "type": "object",
