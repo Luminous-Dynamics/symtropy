@@ -135,6 +135,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     let mut valid_glass = false;
     let mut valid_silicon = false;
     let mut scenario_fragility = false;
+    let mut artifact_manifest_control = false;
     let mut valid_count = 0usize;
     let mut negative_count = 0usize;
     let mut hold_count = 0usize;
@@ -190,7 +191,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
             }
             "hold_control" => {
                 hold_count += 1;
-                if expected != "abstain" || fault_str.is_none() || !fault_classes.contains(fault_str.unwrap_or("").to_string().as_str()) {
+                if expected != "abstain" || fault_str.is_none() || !fault_classes.contains(fault_str.unwrap_or("")) {
                     report.fail("HOLD_CONTROL_DISPOSITION", format!("case index {index} must abstain with a schema-defined fault class"));
                 }
             }
@@ -203,6 +204,14 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
             && expected == "reject"
         {
             scenario_fragility = true;
+        }
+
+        if case_id.as_deref() == Some("unversioned-reference-artifacts")
+            && case_type == "negative_control"
+            && fault_str == Some("artifact_manifest_unpinned")
+            && expected == "reject"
+        {
+            artifact_manifest_control = true;
         }
     }
 
@@ -217,6 +226,9 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     }
     if !scenario_fragility {
         report.fail("ROBUST_SCENARIO_CONTROL", "missing single-scenario-cost-winner negative control");
+    }
+    if !artifact_manifest_control {
+        report.fail("ARTIFACT_MANIFEST_CONTROL", "missing unversioned-reference-artifacts negative control");
     }
 
     report.finish();
@@ -492,5 +504,16 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("ROBUST_SCENARIO_CONTROL:")));
+    }
+
+
+    #[test]
+    fn corpus_missing_artifact_manifest_control_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"].as_array_mut().unwrap().retain(|case| case["case_id"].as_str() != Some("unversioned-reference-artifacts"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_MANIFEST_CONTROL:")));
     }
 }
