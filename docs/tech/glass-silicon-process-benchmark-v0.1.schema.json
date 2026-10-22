@@ -43,7 +43,14 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["reference_id", "title", "url", "published_or_reviewed", "use", "limitation"],
+        "required": [
+          "reference_id",
+          "title",
+          "url",
+          "published_or_reviewed",
+          "use",
+          "limitation"
+        ],
         "properties": {
           "reference_id": {
             "type": "string",
@@ -134,7 +141,8 @@
                   "out_of_domain_acceptance",
                   "train_test_leakage",
                   "stale_or_unlicensed_source",
-                  "hidden_quality_regression"
+                  "hidden_quality_regression",
+                  "scenario_fragility_hidden"
                 ]
               },
               {
@@ -174,7 +182,9 @@
                   "const": "valid_control"
                 }
               },
-              "required": ["case_type"]
+              "required": [
+                "case_type"
+              ]
             },
             "then": {
               "properties": {
@@ -194,7 +204,9 @@
                   "const": "negative_control"
                 }
               },
-              "required": ["case_type"]
+              "required": [
+                "case_type"
+              ]
             },
             "then": {
               "properties": {
@@ -214,7 +226,9 @@
                   "const": "hold_control"
                 }
               },
-              "required": ["case_type"]
+              "required": [
+                "case_type"
+              ]
             },
             "then": {
               "properties": {
