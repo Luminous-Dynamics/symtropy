@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # Include stacked feature-branch PRs as well as direct PRs to main.
+    branches: [ "**" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -79,6 +80,9 @@ jobs:
 
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+
+    - name: Run Rapier Reference Bridge Regression Tests
+      run: cargo test -p symtropy-rapier3d-bridge --lib
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
