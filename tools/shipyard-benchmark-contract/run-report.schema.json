@@ -94,9 +94,9 @@
           },
           "outcome": {
             "enum": [
-              "verified-feasible",
-              "verified-infeasible",
-              "unknown",
+              "feasible-claim",
+              "infeasibility-proof",
+              "no-solution",
               "timeout",
               "invalid-output",
               "not-run"
@@ -178,25 +178,20 @@
       "additionalProperties": false,
       "required": [
         "case_count",
-        "verified_feasible_count",
-        "verified_infeasible_count",
         "unknown_count",
         "timeout_count",
         "false_feasible_count",
         "false_infeasible_count",
         "invalid_output_count",
-        "not_run_count"
+        "not_run_count",
+        "feasible_claim_count",
+        "infeasibility_proof_count",
+        "no_solution_count",
+        "feasible_reference_cases_found_count",
+        "feasible_reference_cases_missed_count"
       ],
       "properties": {
         "case_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "verified_feasible_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "verified_infeasible_count": {
           "type": "integer",
           "minimum": 0
         },
@@ -231,6 +226,26 @@
           "minimum": 0
         },
         "not_run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feasible_claim_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "infeasibility_proof_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_solution_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feasible_reference_cases_found_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feasible_reference_cases_missed_count": {
           "type": "integer",
           "minimum": 0
         }
