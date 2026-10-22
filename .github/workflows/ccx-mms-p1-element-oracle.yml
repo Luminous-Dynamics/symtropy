@@ -61,7 +61,7 @@ jobs:
             ../ccx-mms-p1-001-oracle/Cargo.toml \
             ../ccx-mms-p1-001-oracle/Cargo.lock \
             ../physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json \
-            ../docs/research/PHYS_CCX_MMS_P1_CONVERGENCE_001.md \
+            ../../docs/research/PHYS_CCX_MMS_P1_CONVERGENCE_001.md \
             ../../.github/workflows/ccx-mms-p1-element-oracle.yml \
             > /tmp/element-oracle-source-digests.sha256
           cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-a.json
