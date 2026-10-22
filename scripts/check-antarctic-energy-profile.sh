@@ -40,20 +40,19 @@ audit_fixture() {
     )
   ' "$candidate" >/dev/null || return 1
 
-  # Storage state transitions, capacity bounds, nonnegative flows, efficiencies
-  # and station-specific synthetic polar-night condition.
+  # Recompute storage-state transitions and check bounds/efficiencies.
   jq -e --argjson tol 0.001 '
     all(.periods[];
-      (((.battery_storage.opening_kwh_internal
-         + .battery_storage.charge_input_kwh_e * .battery_storage.charge_efficiency
-         - .battery_storage.discharge_to_bus_kwh_e / .battery_storage.discharge_efficiency
-         - .battery_storage.standing_loss_kwh_internal)
-         - .battery_storage.closing_kwh_internal) | abs) <= $tol)
-      and (((.thermal_storage.opening_kwh_th_internal
-         + .thermal_storage.charge_input_kwh_th * .thermal_storage.charge_efficiency
-         - .thermal_storage.discharge_to_service_kwh_th / .thermal_storage.discharge_efficiency
-         - .thermal_storage.standing_loss_kwh_th_internal)
-         - .thermal_storage.closing_kwh_th_internal) | abs) <= $tol)
+      ((.battery_storage.opening_kwh_internal
+        + .battery_storage.charge_input_kwh_e * .battery_storage.charge_efficiency
+        - .battery_storage.discharge_to_bus_kwh_e / .battery_storage.discharge_efficiency
+        - .battery_storage.standing_loss_kwh_internal
+        - .battery_storage.closing_kwh_internal) | abs) <= $tol
+      and ((.thermal_storage.opening_kwh_th_internal
+        + .thermal_storage.charge_input_kwh_th * .thermal_storage.charge_efficiency
+        - .thermal_storage.discharge_to_service_kwh_th / .thermal_storage.discharge_efficiency
+        - .thermal_storage.standing_loss_kwh_th_internal
+        - .thermal_storage.closing_kwh_th_internal) | abs) <= $tol
       and (.battery_storage.capacity_kwh_internal > 0)
       and (.battery_storage.opening_kwh_internal >= 0)
       and (.battery_storage.closing_kwh_internal >= 0)
@@ -99,10 +98,6 @@ expect_rejected() {
 audit_fixture "$fixture"
 echo "PASS: baseline synthetic fixture passes schema, electric/thermal balances, storage transitions, capacity and polar-night checks."
 
-# Mutate one invariant at a time where practical; all must be rejected by the
-# same independent audit that accepts the frozen fixture.
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
 expect_rejected "electric energy imbalance" '.periods[0].electric.sinks_kwh.critical_load += 1'
 expect_rejected "useful-heat imbalance" '.periods[0].heat.sinks_kwh_th.critical_useful_heat += 1'
 expect_rejected "tampered battery closing state" '.periods[0].battery_storage.closing_kwh_internal += 1'
