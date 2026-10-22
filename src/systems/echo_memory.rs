@@ -13,6 +13,7 @@
 //! a console line ("déjà vu").
 
 use bevy::prelude::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 use symtropy_hdc_physics::{
     EpisodeBuilder, EpisodeMemory, EpisodeMetadata, PhysicsEncoderConfig, PhysicsFrameEncoder,
 };
@@ -31,10 +32,14 @@ const EPISODE_LEN: usize = 60;
 const TEMPORAL_STRIDE: i64 = 101;
 /// Below this similarity, a match isn't distinctive enough to surface.
 const ECHO_SIMILARITY_THRESHOLD: f32 = 0.65;
+/// Explicit cap: 256 episodes at 60 samples per 3-second episode retains
+/// about 12.8 minutes of live-play history without unbounded growth.
+const MAX_STORED_EPISODES: usize = 256;
 
 #[derive(Resource)]
 pub struct EchoMemoryRes {
     encoder: PhysicsFrameEncoder,
+    session_id: String,
     memory: EpisodeMemory,
     builder: Option<EpisodeBuilder>,
     frames_in_episode: usize,
@@ -48,9 +53,16 @@ impl Default for EchoMemoryRes {
         let config = PhysicsEncoderConfig::default();
         let encoder =
             PhysicsFrameEncoder::new(config).expect("default PhysicsEncoderConfig is valid");
-        let memory = EpisodeMemory::from_encoder(&encoder);
+        let session_nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let session_id = format!("echo-session-{}-{session_nonce}", std::process::id());
+        let memory = EpisodeMemory::from_encoder_with_capacity(&encoder, MAX_STORED_EPISODES)
+            .expect("EchoMemory capacity is a positive compile-time constant");
         Self {
             encoder,
+            session_id,
             memory,
             builder: None,
             frames_in_episode: 0,
@@ -93,10 +105,10 @@ pub fn echo_memory_system(
     };
 
     if echo.builder.is_none() {
-        let episode_id = format!("episode-{}", echo.episode_index);
+        let episode_id = format!("{}-episode-{}", echo.session_id, echo.episode_index);
         let metadata = EpisodeMetadata {
             label: "live-play".to_owned(),
-            run_id: episode_id.clone(),
+            run_id: echo.session_id.clone(),
             ..EpisodeMetadata::default()
         };
         echo.builder = Some(
@@ -128,20 +140,49 @@ pub fn echo_memory_system(
     echo.frames_in_episode = 0;
     echo.episode_index += 1;
 
-    let Ok(episode) = builder.finish() else {
-        return;
+    let episode = match builder.finish() {
+        Ok(episode) => episode,
+        Err(error) => {
+            warn!("[echo-memory] dropping completed episode after finish failure: {error}");
+            return;
+        }
     };
 
-    if !echo.memory.is_empty()
-        && let Ok(hits) = echo.memory.query_episode(&episode, 1, false)
-        && let Some(hit) = hits.first()
-        && hit.similarity >= ECHO_SIMILARITY_THRESHOLD
-    {
-        println!(
-            "[echo-memory] déjà vu — this moment echoes {} (similarity {:.2})",
-            hit.episode_id, hit.similarity
-        );
+    if !echo.memory.is_empty() {
+        match echo.memory.query_episode(&episode, 1, false) {
+            Ok(hits) => {
+                if let Some(hit) = hits.first()
+                    && hit.similarity >= ECHO_SIMILARITY_THRESHOLD
+                {
+                    info!(
+                        "[echo-memory] déjà vu — this moment echoes {} (similarity {:.2})",
+                        hit.episode_id, hit.similarity
+                    );
+                }
+            }
+            Err(error) => warn!("[echo-memory] episode query failed; no match reported: {error}"),
+        }
     }
 
-    let _ = echo.memory.insert(episode);
+    let episode_id = episode.id.clone();
+    let evictions_before = echo.memory.evicted_count();
+    match echo.memory.insert(episode) {
+        Ok(_) => {
+            let evictions_after = echo.memory.evicted_count();
+            if evictions_after > evictions_before {
+                info!(
+                    "[echo-memory] bounded memory evicted its oldest episode after inserting {}; retained {}/{}, total evictions {}",
+                    episode_id,
+                    echo.memory.len(),
+                    MAX_STORED_EPISODES,
+                    evictions_after
+                );
+            }
+        }
+        Err(error) => warn!(
+            "[echo-memory] insertion rejected for episode {}; retained memory unchanged: {}",
+            episode_id,
+            error
+        ),
+    }
 }

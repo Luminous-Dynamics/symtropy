@@ -135,6 +135,8 @@ pub struct EpisodeMemory {
     encoder_fingerprint: u64,
     dimension: usize,
     episodes: Vec<PhysicsEpisode>,
+    max_episodes: Option<usize>,
+    evicted_count: u64,
 }
 
 impl EpisodeMemory {
@@ -143,7 +145,32 @@ impl EpisodeMemory {
             encoder_fingerprint,
             dimension,
             episodes: Vec::new(),
+            max_episodes: None,
+            evicted_count: 0,
         }
+    }
+
+    /// Construct a FIFO-bounded reference memory. When full, insertion of a
+    /// valid new episode evicts the oldest retained episode. A zero capacity
+    /// is rejected so a caller cannot accidentally create a memory that
+    /// reports successful inserts while retaining nothing.
+    pub fn with_capacity(
+        encoder_fingerprint: u64,
+        dimension: usize,
+        max_episodes: usize,
+    ) -> Result<Self, PhysicsHdcError> {
+        if max_episodes == 0 {
+            return Err(PhysicsHdcError::InvalidConfig(
+                "episode memory capacity must be greater than zero".to_owned(),
+            ));
+        }
+        Ok(Self {
+            encoder_fingerprint,
+            dimension,
+            episodes: Vec::new(),
+            max_episodes: Some(max_episodes),
+            evicted_count: 0,
+        })
     }
 
     pub fn from_encoder(encoder: &PhysicsFrameEncoder) -> Self {
@@ -151,6 +178,28 @@ impl EpisodeMemory {
             encoder.config().fingerprint(),
             encoder.config().hdc.dimension,
         )
+    }
+
+    pub fn from_encoder_with_capacity(
+        encoder: &PhysicsFrameEncoder,
+        max_episodes: usize,
+    ) -> Result<Self, PhysicsHdcError> {
+        Self::with_capacity(
+            encoder.config().fingerprint(),
+            encoder.config().hdc.dimension,
+            max_episodes,
+        )
+    }
+
+    /// Configured maximum retained episode count; None preserves legacy
+    /// unbounded behavior of new and from_encoder.
+    pub fn capacity(&self) -> Option<usize> {
+        self.max_episodes
+    }
+
+    /// Monotonic count of payload episodes evicted by the FIFO capacity policy.
+    pub fn evicted_count(&self) -> u64 {
+        self.evicted_count
     }
 
     pub fn len(&self) -> usize {
@@ -184,6 +233,14 @@ impl EpisodeMemory {
             .any(|existing| existing.id == episode.id)
         {
             return Err(PhysicsHdcError::DuplicateEpisodeId(episode.id));
+        }
+        if let Some(capacity) = self.max_episodes
+            && self.episodes.len() >= capacity
+        {
+            // All identity/encoder validations happen before eviction. A
+            // rejected write must never displace a valid retained episode.
+            self.episodes.remove(0);
+            self.evicted_count = self.evicted_count.saturating_add(1);
         }
         let index = self.episodes.len();
         self.episodes.push(episode);
@@ -314,6 +371,30 @@ mod tests {
         frames
     }
 
+    fn make_episode(
+        encoder: &PhysicsFrameEncoder,
+        id: &str,
+        direction: f64,
+    ) -> PhysicsEpisode {
+        let mut world = PhysicsWorld::<2>::default();
+        let body = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(body).unwrap().linear_velocity[0] = direction;
+        let mut builder = encoder.episode_builder(
+            id,
+            EpisodeMetadata {
+                label: id.to_owned(),
+                ..EpisodeMetadata::default()
+            },
+            53,
+        );
+        for tick in 0..8 {
+            let frame = encoder.encode_world(tick, &world).unwrap();
+            builder.push(&frame).unwrap();
+            world.step(1.0 / 30.0);
+        }
+        builder.finish().unwrap()
+    }
+
     #[test]
     fn temporal_order_changes_episode_vector() {
         let encoder = encoder();
@@ -369,6 +450,93 @@ mod tests {
         memory.insert(left).unwrap();
         let hits = memory.query_episode(&query, 1, false).unwrap();
         assert_eq!(hits[0].label, "right");
+    }
+
+    #[test]
+    fn zero_capacity_is_rejected() {
+        let encoder = encoder();
+        assert!(matches!(
+            EpisodeMemory::from_encoder_with_capacity(&encoder, 0),
+            Err(PhysicsHdcError::InvalidConfig(_))
+        ));
+    }
+
+    #[test]
+    fn bounded_memory_evicts_oldest_episode_and_reports_count() {
+        let encoder = encoder();
+        let mut memory = EpisodeMemory::from_encoder_with_capacity(&encoder, 2).unwrap();
+        assert_eq!(memory.capacity(), Some(2));
+        assert_eq!(memory.evicted_count(), 0);
+        memory.insert(make_episode(&encoder, "episode-0", 1.0)).unwrap();
+        memory.insert(make_episode(&encoder, "episode-1", 1.5)).unwrap();
+        memory.insert(make_episode(&encoder, "episode-2", 2.0)).unwrap();
+
+        assert_eq!(memory.len(), 2);
+        assert_eq!(memory.evicted_count(), 1);
+        assert_eq!(
+            memory.episodes().iter().map(|episode| episode.id.as_str()).collect::<Vec<_>>(),
+            vec!["episode-1", "episode-2"]
+        );
+    }
+
+    #[test]
+    fn invalid_writes_do_not_evict_valid_retained_episodes() {
+        let encoder = encoder();
+        let other_encoder = PhysicsFrameEncoder::new(PhysicsEncoderConfig::default()).unwrap();
+        let mut memory = EpisodeMemory::from_encoder_with_capacity(&encoder, 2).unwrap();
+        memory.insert(make_episode(&encoder, "keep-0", 1.0)).unwrap();
+        memory.insert(make_episode(&encoder, "keep-1", -1.0)).unwrap();
+
+        let duplicate = make_episode(&encoder, "keep-0", 1.0);
+        assert!(matches!(
+            memory.insert(duplicate),
+            Err(PhysicsHdcError::DuplicateEpisodeId(_))
+        ));
+        let mismatched = make_episode(&other_encoder, "wrong-encoder", 1.0);
+        assert!(matches!(
+            memory.insert(mismatched),
+            Err(PhysicsHdcError::EncoderMismatch { .. })
+        ));
+
+        assert_eq!(memory.evicted_count(), 0);
+        assert_eq!(
+            memory.episodes().iter().map(|episode| episode.id.as_str()).collect::<Vec<_>>(),
+            vec!["keep-0", "keep-1"]
+        );
+    }
+
+    #[test]
+    fn bounded_retrieval_matches_reference_over_the_same_retained_set() {
+        let encoder = encoder();
+        let episode_0 = make_episode(&encoder, "episode-0", 1.0);
+        let episode_1 = make_episode(&encoder, "episode-1", -1.0);
+        let episode_2 = make_episode(&encoder, "episode-2", 1.8);
+        let query = make_episode(&encoder, "query", 1.7);
+
+        let mut bounded = EpisodeMemory::from_encoder_with_capacity(&encoder, 2).unwrap();
+        bounded.insert(episode_0).unwrap();
+        bounded.insert(episode_1.clone()).unwrap();
+        bounded.insert(episode_2.clone()).unwrap();
+
+        let mut retained_reference = EpisodeMemory::from_encoder(&encoder);
+        retained_reference.insert(episode_1).unwrap();
+        retained_reference.insert(episode_2).unwrap();
+
+        let bounded_hit = bounded.query_episode(&query, 1, true).unwrap();
+        let reference_hit = retained_reference.query_episode(&query, 1, true).unwrap();
+        assert_eq!(bounded_hit, reference_hit);
+    }
+
+    #[test]
+    fn legacy_constructor_remains_unbounded() {
+        let encoder = encoder();
+        let mut memory = EpisodeMemory::from_encoder(&encoder);
+        for idx in 0..3 {
+            memory.insert(make_episode(&encoder, &format!("episode-{idx}"), idx as f64 + 1.0)).unwrap();
+        }
+        assert_eq!(memory.capacity(), None);
+        assert_eq!(memory.len(), 3);
+        assert_eq!(memory.evicted_count(), 0);
     }
 
     #[test]
