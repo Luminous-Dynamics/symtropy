@@ -69,15 +69,44 @@ impl fmt::Display for ParseError {
             Self::InvalidExpectedNodeId(id) => write!(f, "invalid expected node ID {id}"),
             Self::DuplicateExpectedNodeId(id) => write!(f, "duplicate expected node ID {id}"),
             Self::InvalidTargetTime => f.write_str("target time must be finite"),
-            Self::InvalidTimeTolerance => f.write_str("time tolerance must be finite and nonnegative"),
-            Self::MalformedHeader { line, detail } => write!(f, "malformed section header at line {line}: {detail}"),
-            Self::MalformedRow { line, text } => write!(f, "malformed numeric row at line {line}: {text}"),
-            Self::NonFiniteValue { line, node_id } => write!(f, "non-finite value at line {line}, node {node_id}"),
-            Self::DuplicateNode { kind, node_id } => write!(f, "duplicate node {node_id} in {kind} block"),
-            Self::MissingBlock { kind, set_name, time } => write!(f, "missing {kind} block for set {set_name} at time {time}"),
-            Self::DuplicateBlock { kind, set_name, time } => write!(f, "duplicate {kind} blocks for set {set_name} at time {time}"),
-            Self::TimeNotFound { kind, set_name, time, observed } => write!(f, "no {kind} block for set {set_name} at time {time}; observed {observed:?}"),
-            Self::NodeInventoryMismatch { kind, missing, unexpected } => write!(f, "{kind} node inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"),
+            Self::InvalidTimeTolerance => {
+                f.write_str("time tolerance must be finite and nonnegative")
+            },
+            Self::MalformedHeader { line, detail } => {
+                write!(f, "malformed section header at line {line}: {detail}")
+            }
+            Self::MalformedRow { line, text } => {
+                write!(f, "malformed numeric row at line {line}: {text}")
+            }
+            Self::NonFiniteValue { line, node_id } => {
+                write!(f, "non-finite value at line {line}, node {node_id}")
+            }
+            Self::DuplicateNode { kind, node_id } => {
+                write!(f, "duplicate node {node_id} in {kind} block")
+            }
+            Self::MissingBlock { kind, set_name, time } => {
+                write!(f, "missing {kind} block for set {set_name} at time {time}")
+            }
+            Self::DuplicateBlock { kind, set_name, time } => {
+                write!(f, "duplicate {kind} blocks for set {set_name} at time {time}")
+            }
+            Self::TimeNotFound {
+                kind,
+                set_name,
+                time,
+                observed,
+            } => write!(
+                f,
+                "no {kind} block for set {set_name} at time {time}; observed {observed:?}"
+            ),
+            Self::NodeInventoryMismatch {
+                kind,
+                missing,
+                unexpected,
+            } => write!(
+                f,
+                "{kind} node inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
         }
     }
 }
@@ -121,8 +150,22 @@ pub fn parse_dat(
     }
 
     let sections = parse_sections(text)?;
-    let displacements = select_section(&sections, BlockKind::Displacements, expected_set, &expected, target_time, time_tolerance)?;
-    let external_forces = select_section(&sections, BlockKind::ExternalForces, expected_set, &expected, target_time, time_tolerance)?;
+    let displacements = select_section(
+        &sections,
+        BlockKind::Displacements,
+        expected_set,
+        &expected,
+        target_time,
+        time_tolerance,
+    )?;
+    let external_forces = select_section(
+        &sections,
+        BlockKind::ExternalForces,
+        expected_set,
+        &expected,
+        target_time,
+        time_tolerance,
+    )?;
     Ok(ParsedDat { displacements, external_forces })
 }
 
@@ -187,7 +230,10 @@ fn parse_header(header: &str, line: usize) -> Result<(String, f64), ParseError> 
     let set_name = tokens.get(set_pos + 1).ok_or(ParseError::MalformedHeader {
         line, detail: "missing set name",
     })?.trim_end_matches(',').to_owned();
-    let time_pos = lower.iter().position(|token| token == "time").ok_or(ParseError::MalformedHeader {
+    let time_pos = lower
+        .iter()
+        .position(|token| token == "time")
+        .ok_or(ParseError::MalformedHeader {
         line, detail: "missing time",
     })?;
     let time_str = tokens.get(time_pos + 1).ok_or(ParseError::MalformedHeader {
@@ -243,7 +289,11 @@ fn select_section(
         .collect();
     if matching_time.is_empty() {
         if matching_set.is_empty() {
-            return Err(ParseError::MissingBlock { kind, set_name: expected_set.to_owned(), time: target_time });
+            return Err(ParseError::MissingBlock {
+                kind,
+                set_name: expected_set.to_owned(),
+                time: target_time,
+            });
         }
         return Err(ParseError::TimeNotFound {
             kind, set_name: expected_set.to_owned(), time: target_time,
@@ -251,7 +301,11 @@ fn select_section(
         });
     }
     if matching_time.len() != 1 {
-        return Err(ParseError::DuplicateBlock { kind, set_name: expected_set.to_owned(), time: target_time });
+        return Err(ParseError::DuplicateBlock {
+            kind,
+            set_name: expected_set.to_owned(),
+            time: target_time,
+        });
     }
     let section = matching_time[0];
     let actual: BTreeSet<usize> = section.values.keys().copied().collect();
@@ -311,7 +365,10 @@ mod tests {
 
         let duplicate = FIXTURE.replace(
             "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
-            "             3  0.000000E+00  2.000000E-03  0.000000E+00\n             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            concat!(
+                "             3  0.000000E+00  2.000000E-03  0.000000E+00\n",
+                "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            ),
         );
         assert!(matches!(
             parse_dat(&duplicate, "NALL", &NODES, 1.0, 1.0e-8),
@@ -349,7 +406,13 @@ mod tests {
         let duplicate_section = format!(
             "{}\n{}",
             FIXTURE,
-            "forces (fx,fy,fz) for set NALL and time 0.1000000E+01\n1 0 0 0\n2 0 0 0\n3 0 0 0\n4 0 0 0\n"
+            concat!(
+                "forces (fx,fy,fz) for set NALL and time 0.1000000E+01\n",
+                "1 0 0 0\n",
+                "2 0 0 0\n",
+                "3 0 0 0\n",
+                "4 0 0 0\n",
+            )
         );
         assert!(matches!(
             parse_dat(&duplicate_section, "NALL", &NODES, 1.0, 1.0e-8),
