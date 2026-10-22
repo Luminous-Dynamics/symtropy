@@ -368,6 +368,45 @@ mod tests {
     }
 
     #[test]
+    fn perspective_apparent_size_is_invariant_under_unit_rescaling() {
+        let baseline = projected_sphere_diameter_px(
+            100.0,
+            ApparentSizeProjection::Perspective {
+                viewport_height_px: 1_080,
+                vertical_fov_radians: 1.0,
+                centre_distance: 1_000.0,
+            },
+        )
+        .expect("baseline projection");
+
+        // Radius and centre distance are expressed in the same units. Scaling
+        // both must preserve the dimensionless angular geometry at extreme
+        // magnitudes, from sub-nanoscopic units through astronomical units.
+        for exponent in (-200..=200).step_by(20) {
+            let unit_scale = 10.0_f64.powi(exponent);
+            let actual = projected_sphere_diameter_px(
+                100.0 * unit_scale,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 1_080,
+                    vertical_fov_radians: 1.0,
+                    centre_distance: 1_000.0 * unit_scale,
+                },
+            )
+            .expect("rescaled projection remains finite");
+
+            assert!(
+                (actual - baseline).abs() <= baseline.abs() * 1e-12,
+                "unit scale 10^{exponent} changed apparent diameter: {actual} vs {baseline}"
+            );
+            assert_eq!(
+                PROFILE.classify(actual),
+                PROFILE.classify(baseline),
+                "unit scale 10^{exponent} changed representation band"
+            );
+        }
+    }
+
+    #[test]
     fn orthographic_diameter_matches_known_answer() {
         let diameter = projected_sphere_diameter_px(
             25.0,
