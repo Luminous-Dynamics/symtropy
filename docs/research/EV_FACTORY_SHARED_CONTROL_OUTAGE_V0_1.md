@@ -9,7 +9,7 @@ During a declared event, the affected stations:
 - do not transfer completed output to a downstream buffer or finished-goods sink;
 - allow cycles already underway to complete, with completed jobs held at the output boundary until the domain recovers.
 
-The event is scheduled on deterministic simulation time. The report carries the exact outage configuration, a start/end causal trace, number of outage starts after warm-up, measured outage seconds and per-station outage fractions. With an outage configured, the runner also executes a matched counterfactual catalog with the outage removed and reports per-seed paired good-units/hour deltas with a 95% mean interval. Existing catalogs omit this optional field and keep the prior independent-failure behavior; their paired-outage comparison remains `null`.
+The event is scheduled on deterministic simulation time. The report carries the exact outage configuration, a start/end causal trace, number of outage starts after warm-up, measured outage seconds and per-station outage fractions. Per-station outage fraction is an overlay on machine-state time accounting, not an additional mutually exclusive time category. With an outage configured, the runner also executes a matched counterfactual catalog with the outage removed and reports per-seed paired good-units/hour deltas with a 95% mean interval. Existing catalogs omit this optional field and keep the prior independent-failure behavior; their paired-outage comparison remains `null`.
 
 ## Why this is a deliberately narrow first mechanism
 
