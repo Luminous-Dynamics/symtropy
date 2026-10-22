@@ -1092,7 +1092,7 @@ mod tests {
             strict_source_kicad_version: strict.then(|| "9.0.8".into()),
             strict_source_drc_report_relative_path: strict.then(|| "drc/strict-source.json".into()),
             strict_source_drc_input_board_sha256: strict.then(|| sha256_hex(output)),
-            strict_source_policy_derivation_evidence_relative_path: strict.then(|| "evidence/strict-source-policy-derivation.txt".into()),
+            strict_source_policy_derivation_evidence_relative_path: strict.then(|| "evidence/strict-source-policy-derivation.json".into()),
             strict_source_policy_derivation_evidence_sha256: strict.then(|| String::new()),
             rule_assessments: assessments,
         };
@@ -1436,6 +1436,78 @@ mod tests {
             HEAD,
         ).unwrap_err();
         assert!(error.contains("source JSON pointer does not resolve"));
+    }
+
+    #[test]
+    fn migration_record_must_match_plan_even_if_its_new_digest_is_supplied() {
+        let migrated = RuleAssessment {
+            rule_id: "clearance.edge".into(),
+            classification: RuleClassification::VersionMigratedEquivalent,
+            source_rule_json_pointer: Some("/board/design_settings/rules/edge_clearance".into()),
+            source_value: Some("0.25mm".into()),
+            evaluated_value: Some("0.25mm effective".into()),
+            mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.json".into()),
+            mapping_evidence_sha256: Some("0".repeat(64)),
+            waiver_evidence_relative_path: None,
+            waiver_evidence_sha256: None,
+            rationale: "mapping must be bound to the reviewed rule".into(),
+        };
+        let mut plan = plan(OUTPUT_A, vec![migrated], true);
+        let mut files = evidence_files_for(&plan);
+        let path = "evidence/clearance-edge-migration.json";
+        let mut payload: Value = serde_json::from_slice(files.get(path).unwrap()).unwrap();
+        payload["source_value"] = Value::String("0.24mm".into());
+        let tampered = serde_json::to_vec_pretty(&payload).unwrap();
+        plan.rule_assessments[0].mapping_evidence_sha256 = Some(sha256_hex(&tampered));
+        let derivation = build_strict_derivation_evidence(&plan).unwrap();
+        plan.strict_source_policy_derivation_evidence_sha256 = Some(sha256_hex(&derivation));
+        files.insert(path.into(), tampered);
+        files.insert(
+            plan.strict_source_policy_derivation_evidence_relative_path.clone().unwrap(),
+            derivation,
+        );
+        assert!(verify_rule_evidence(&plan, &files)
+            .unwrap_err()
+            .contains("rule migration evidence does not match plan field source_value"));
+    }
+
+    #[test]
+    fn explicit_waiver_is_recorded_but_never_counts_as_strict_source_authority() {
+        let waived = RuleAssessment {
+            rule_id: "clearance.edge".into(),
+            classification: RuleClassification::ExplicitlyWaived,
+            source_rule_json_pointer: Some("/board/design_settings/rules/edge_clearance".into()),
+            source_value: Some("0.25mm".into()),
+            evaluated_value: Some("0.30mm".into()),
+            mapping_evidence_relative_path: None,
+            mapping_evidence_sha256: None,
+            waiver_evidence_relative_path: Some("evidence/clearance-edge-waiver.json".into()),
+            waiver_evidence_sha256: Some("0".repeat(64)),
+            rationale: "synthetic explicit waiver for negative control".into(),
+        };
+        let plan = plan(OUTPUT_A, vec![waived], true);
+        let receipt = evaluate(&plan, COMPAT_CLEAN.as_bytes(), Some(STRICT_CLEAN.as_bytes()));
+        assert!(receipt.compatibility_policy_clean_pass);
+        assert!(!receipt.source_authoritative);
+        assert!(!receipt.strict_source_clean_pass);
+        assert!(receipt.reason_codes.iter().any(|reason| reason == "RULE_EXPLICITLY_WAIVED:clearance.edge"));
+        assert!(receipt.verified_rule_evidence.iter().any(|item| item.purpose == "rule_waiver:clearance.edge"));
+    }
+
+    #[test]
+    fn strict_derivation_evidence_cannot_be_rebound_to_another_board_by_rehashing() {
+        let plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        let mut files = evidence_files_for(&plan);
+        let path = plan.strict_source_policy_derivation_evidence_relative_path.as_ref().unwrap();
+        let mut payload: Value = serde_json::from_slice(files.get(path).unwrap()).unwrap();
+        payload["board_id"] = Value::String("different-board".into());
+        let tampered = serde_json::to_vec_pretty(&payload).unwrap();
+        let mut plan = plan;
+        plan.strict_source_policy_derivation_evidence_sha256 = Some(sha256_hex(&tampered));
+        files.insert(path.clone(), tampered);
+        assert!(verify_rule_evidence(&plan, &files)
+            .unwrap_err()
+            .contains("strict-source derivation evidence does not match plan field board_id"));
     }
 
     #[test]
