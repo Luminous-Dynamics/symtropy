@@ -181,6 +181,8 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::FRAC_PI_2;
+
     use super::subspace_mac;
 
     const TOLERANCE: f64 = 1.0e-12;
