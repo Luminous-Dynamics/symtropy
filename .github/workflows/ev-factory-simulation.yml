@@ -20,10 +20,12 @@ on:
     paths:
       - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
       - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json"
       - "tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json"
       - "docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md"
       - "docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md"
+      - "docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md"
       - "docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md"
       - "docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md"
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
@@ -256,15 +258,18 @@ jobs:
           sha256sum \
             tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
             tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p0_outsourced_bare_board_v0_1.json \
             tools/ev-passenger-cost-frontier/fixtures/pcb_cell_p1_local_milling_v0_1.json \
             docs/research/EV_FACTORY_DISCRETE_EVENT_SIMULATION_V0_1.md \
+            docs/research/EV_FACTORY_SHARED_CONTROL_OUTAGE_V0_1.md \
             docs/research/EV_FACTORY_COMMON_RANDOM_STREAMS_V0_1.md \
             docs/research/EV_FACTORY_REPLICATION_STATISTICS_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
             docs/research/EV_FACTORY_SEQUENCE_AWARE_DISPATCH_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
+            ev-factory-shared-control-outage-report.json \
             ev-factory-sequence-aware-report.json \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
