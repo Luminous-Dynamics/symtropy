@@ -73,6 +73,58 @@ pub struct BeamPinAssembly {
 /// Canonical request for deterministic, receipt-bound released-joint assembly.
 /// Inputs are validated first and then sorted by stable ID; storage-order
 /// permutations therefore produce identical UTF-8 bytes.
+/// Source-attributed, coarse NBC05 geometry for the first released-joint
+/// beam assembly check. The circular-section interpretation r=0.01 m is
+/// explicit in these values: A=pi*r^2 and I=pi*r^4/4. This is one element per
+/// member for code verification only, not the converged NAFEMS beam model.
+pub fn nafems_nbc05_released_joint_beam_fixture() -> (Vec<BeamPinNode>, Vec<BeamPinMember>) {
+    (
+        vec![
+            BeamPinNode {
+                id: "A".to_owned(),
+                x_m: 0.0,
+                y_m: 1.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "B".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "C".to_owned(),
+                x_m: 1.0,
+                y_m: 1.0,
+                restrain_x: false,
+                restrain_y: false,
+            },
+        ],
+        vec![
+            BeamPinMember {
+                id: "AC".to_owned(),
+                start_node_id: "A".to_owned(),
+                end_node_id: "C".to_owned(),
+                area_m2: 3.141592653589793e-4,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7800.0,
+                second_moment_m4: 7.853981633974483e-9,
+            },
+            BeamPinMember {
+                id: "BC".to_owned(),
+                start_node_id: "B".to_owned(),
+                end_node_id: "C".to_owned(),
+                area_m2: 3.141592653589793e-4,
+                youngs_modulus_pa: 210.0e9,
+                density_kg_m3: 7800.0,
+                second_moment_m4: 7.853981633974483e-9,
+            },
+        ],
+    )
+}
+
 pub fn canonical_assembly_request(
     nodes: &[BeamPinNode],
     members: &[BeamPinMember],
