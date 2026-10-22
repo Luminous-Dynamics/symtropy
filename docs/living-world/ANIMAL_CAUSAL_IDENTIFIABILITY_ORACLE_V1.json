@@ -1,0 +1,501 @@
+{
+  "schema_version": "ANIMAL-CAUSAL-IDENTIFIABILITY-ORACLE-V1",
+  "status": "synthetic_contract_fixture",
+  "note": "All scenarios are synthetic expected-outcome contracts. They are not empirical animal observations, fitted biological mechanisms, or performance claims.",
+  "case_count": 27,
+  "independent_unit": "episode_or_scene",
+  "cases": [
+    {
+      "id": "confounder_only_no_effect",
+      "kind": "causal_identification",
+      "model": "confounded_association",
+      "setup": "U is a shared cause of cue X and outcome Y; X has no edge to Y. Observational P(X,Y) is strongly associated.",
+      "intervention": {
+        "do": "X",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "causal_effect_sign": "zero",
+        "equivalence_interval": "contains_zero_within_margin"
+      },
+      "reason": "observational_association_is_not_interventional_effect"
+    },
+    {
+      "id": "direct_cause_positive_effect",
+      "kind": "causal_identification",
+      "model": "direct_cause",
+      "setup": "X directly changes Y, with the other parent variables fixed.",
+      "intervention": {
+        "do": "X",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "causal_effect_sign": "positive"
+      },
+      "reason": "correct_intervention_direction"
+    },
+    {
+      "id": "observationally_equivalent_mechanisms_diverge",
+      "kind": "identifiability",
+      "model": "paired_models",
+      "setup": "Two candidate SCMs match all exposed observational training summaries, but one includes X->Y and the other is confounded-only.",
+      "intervention": {
+        "do": "X",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "training_fit": "both_acceptable",
+        "intervention_prediction": "separates_models"
+      },
+      "reason": "observational_fit_does_not_identify_mechanism"
+    },
+    {
+      "id": "null_intervention",
+      "kind": "negative_control",
+      "model": "no_causal_path",
+      "setup": "Intervene on a variable with no directed path to the measured outcome.",
+      "intervention": {
+        "do": "Z",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "causal_effect_sign": "zero",
+        "false_positive": "within_preregistered_equivalence_margin"
+      },
+      "reason": "null_effect_must_remain_null"
+    },
+    {
+      "id": "placebo_intervention",
+      "kind": "negative_control",
+      "model": "shuffled_control",
+      "setup": "Apply a placebo label unrelated to the actual causal system.",
+      "intervention": {
+        "do": "placebo_label",
+        "levels": [
+          "control",
+          "treated"
+        ]
+      },
+      "expected": {
+        "outcome_change": "none_beyond_noise"
+      },
+      "reason": "placebo_control"
+    },
+    {
+      "id": "correlate_changes_cause_fixed",
+      "kind": "confounding",
+      "model": "spurious_proxy",
+      "setup": "Change a proxy correlated with X during training while keeping the true causal parents of Y fixed.",
+      "intervention": {
+        "do": "proxy_P",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "outcome_change": "none_beyond_noise"
+      },
+      "reason": "robustness_to_noncausal_shortcut"
+    },
+    {
+      "id": "occluded_cause_observation_only",
+      "kind": "perception_vs_dynamics",
+      "model": "causal_cue_occluded",
+      "setup": "The causal event occurs identically in two scenes but is occluded in one observation stream.",
+      "intervention": {
+        "do": "visibility",
+        "levels": [
+          "visible",
+          "occluded"
+        ]
+      },
+      "expected": {
+        "world_event_equal": true,
+        "percept_differs": true,
+        "belief_uncertainty_not_lower_when_occluded": true
+      },
+      "reason": "evidence_change_is_not_world_cause_change"
+    },
+    {
+      "id": "hidden_truth_not_percept",
+      "kind": "authority_boundary",
+      "model": "sensor_gate",
+      "setup": "Evaluator knows source identity but the agent has no compatible permitted observation.",
+      "intervention": {
+        "do": "reveal_to_evaluator_only",
+        "levels": [
+          false,
+          true
+        ]
+      },
+      "expected": {
+        "agent_access": "no_hidden_truth",
+        "percept": "none_without_sensor_evidence"
+      },
+      "reason": "controller_must_not_receive_evaluator_state"
+    },
+    {
+      "id": "effect_sign_under_reversal",
+      "kind": "causal_identification",
+      "model": "directional_cause",
+      "setup": "The predeclared mechanism has a negative effect; swap treatment/control labels without changing the underlying SCM.",
+      "intervention": {
+        "do": "X",
+        "levels": [
+          1,
+          0
+        ]
+      },
+      "expected": {
+        "effect_sign": "negative_under_declared_contrast",
+        "contrast_order_recorded": true
+      },
+      "reason": "treatment_contrast_direction_must_be_explicit"
+    },
+    {
+      "id": "monotone_dose_response",
+      "kind": "dose_response",
+      "model": "monotonic_response",
+      "setup": "Within the declared non-saturated range, increasing dose increases outcome response.",
+      "intervention": {
+        "do": "dose",
+        "levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "ordered_effects": "nondecreasing",
+        "uncertainty_reported": true
+      },
+      "reason": "dose_response_shape"
+    },
+    {
+      "id": "dose_response_saturation",
+      "kind": "dose_response",
+      "model": "saturating_response",
+      "setup": "Response increases and then reaches a declared saturation plateau.",
+      "intervention": {
+        "do": "dose",
+        "levels": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected": {
+        "ordered_effects": "nondecreasing_until_plateau",
+        "plateau_detected": true
+      },
+      "reason": "no_unbounded_extrapolation"
+    },
+    {
+      "id": "temporal_precedence",
+      "kind": "temporal_causality",
+      "model": "delayed_effect",
+      "setup": "A cue arrives after the action/outcome window it would supposedly cause.",
+      "intervention": {
+        "do": "cue_time",
+        "levels": [
+          "after_outcome",
+          "before_outcome"
+        ]
+      },
+      "expected": {
+        "after_outcome_effect": "none_on_past_outcome",
+        "time_order_enforced": true
+      },
+      "reason": "future_cue_cannot_cause_past_event"
+    },
+    {
+      "id": "known_lag_effect",
+      "kind": "temporal_causality",
+      "model": "lagged_cause",
+      "setup": "A valid causal cue changes the response after a fixed declared lag.",
+      "intervention": {
+        "do": "cue_time",
+        "levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "response": "within_declared_lag_window",
+        "pre_lag_effect": "none"
+      },
+      "reason": "causal_lag_is_explicit"
+    },
+    {
+      "id": "sensor_ablation_vs_world_intervention",
+      "kind": "perception_vs_dynamics",
+      "model": "same_world_remove_sensor",
+      "setup": "A modality is removed while the physical environment and latent causal mechanism remain unchanged.",
+      "intervention": {
+        "do": "sensor_available",
+        "levels": [
+          true,
+          false
+        ]
+      },
+      "expected": {
+        "world_dynamics_equal": true,
+        "percept_quality_may_degrade": true,
+        "action_may_change_due_to_information": true
+      },
+      "reason": "sensor_ablation_is_not_environment_intervention"
+    },
+    {
+      "id": "environment_intervention_sensor_fixed",
+      "kind": "causal_identification",
+      "model": "change_causal_parent",
+      "setup": "Change a true causal environment variable while sensor configuration remains identical.",
+      "intervention": {
+        "do": "causal_parent",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "sensor_config_equal": true,
+        "outcome_changes_in_predicted_direction": true
+      },
+      "reason": "separate_intervention_from_instrument"
+    },
+    {
+      "id": "cost_change_action_not_percept",
+      "kind": "decision_value",
+      "model": "cost_only_change",
+      "setup": "Change the resource cost of an action while the emitted signal and sensor state are identical.",
+      "intervention": {
+        "do": "action_cost",
+        "levels": [
+          1,
+          5
+        ]
+      },
+      "expected": {
+        "percept_trace_equal": true,
+        "choice_may_change": true,
+        "resource_accounting_required": true
+      },
+      "reason": "choice_change_attributed_to_cost"
+    },
+    {
+      "id": "action_feedback_changes_future_observation",
+      "kind": "closed_loop",
+      "model": "agent_environment_feedback",
+      "setup": "The agent's action changes position, which changes the next observation through declared geometry.",
+      "intervention": {
+        "do": "move_action",
+        "levels": [
+          "stay",
+          "move"
+        ]
+      },
+      "expected": {
+        "body_state_changes": true,
+        "next_observation_changes_when_geometry_requires": true,
+        "action_cost_charged": true
+      },
+      "reason": "closed_loop_feedback_is_causal"
+    },
+    {
+      "id": "social_context_intervention",
+      "kind": "multi_agent",
+      "model": "interaction_context",
+      "setup": "Hold focal animal state and individual policy fixed while changing a partner's action.",
+      "intervention": {
+        "do": "partner_action",
+        "levels": [
+          "approach",
+          "withdraw"
+        ]
+      },
+      "expected": {
+        "interaction_effect_matches_declared_mechanism": true,
+        "individual_and_group_terms_separate": true
+      },
+      "reason": "social_effect_not_confounded_with_focal_state"
+    },
+    {
+      "id": "unseen_intervention_combination",
+      "kind": "generalization",
+      "model": "compositional_mechanism",
+      "setup": "Evaluate a combination of known intervention factors excluded from model selection.",
+      "intervention": {
+        "do": "noise_and_cost",
+        "levels": [
+          "low_noise_low_cost",
+          "high_noise_high_cost"
+        ]
+      },
+      "expected": {
+        "holdout_combination": true,
+        "reported_as_generalization_test": true
+      },
+      "reason": "heldout_intervention_combination"
+    },
+    {
+      "id": "null_effect_calibration",
+      "kind": "uncertainty",
+      "model": "null_effect_family",
+      "setup": "Run repeated null interventions across preregistered synthetic seeds.",
+      "intervention": {
+        "do": "null_factor",
+        "levels": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "interval_coverage_reported": true,
+        "false_positive_rate_reported": true,
+        "equivalence_margin_pinned": true
+      },
+      "reason": "nulls_test_calibration_not_only_power"
+    },
+    {
+      "id": "hidden_intervention_label_query",
+      "kind": "authority_boundary",
+      "model": "controller_api",
+      "setup": "Controller attempts to read hidden intervention assignment or evaluator truth.",
+      "intervention": {
+        "do": "query_hidden_label",
+        "levels": [
+          true
+        ]
+      },
+      "expected": {
+        "request": "denied",
+        "violation_receipt": true
+      },
+      "reason": "no_label_oracle_leakage"
+    },
+    {
+      "id": "independent_unit_split",
+      "kind": "leakage_control",
+      "model": "episode_group_split",
+      "setup": "Multiple correlated frames/ticks belong to one independent episode or animal.",
+      "intervention": {
+        "do": "split_policy",
+        "levels": [
+          "frame_random",
+          "episode_grouped"
+        ]
+      },
+      "expected": {
+        "frame_random": "disallowed_for_independent_claim",
+        "episode_grouped": "eligible_if_other_gates_pass"
+      },
+      "reason": "frames_are_not_independent_units"
+    },
+    {
+      "id": "missing_effect_is_not_zero",
+      "kind": "receipt_integrity",
+      "model": "missing_estimate",
+      "setup": "Intervention estimate is absent or analysis failed.",
+      "intervention": {
+        "do": "result_status",
+        "levels": [
+          "missing",
+          "failed"
+        ]
+      },
+      "expected": {
+        "qualification": "incomplete_or_failed",
+        "implicit_zero": false
+      },
+      "reason": "missingness_not_zero"
+    },
+    {
+      "id": "paired_baseline_same_units",
+      "kind": "comparison_fairness",
+      "model": "paired_methods",
+      "setup": "Candidate and baseline run on the same unit IDs, initial states and intervention assignments.",
+      "intervention": {
+        "do": "comparison",
+        "levels": [
+          "candidate",
+          "baseline"
+        ]
+      },
+      "expected": {
+        "paired_unit_digest_required": true,
+        "paired_effect_required": true,
+        "matched_budget_required": true
+      },
+      "reason": "same_units_and_budgets"
+    },
+    {
+      "id": "budget_mismatch_rejected",
+      "kind": "comparison_fairness",
+      "model": "budget_gate",
+      "setup": "The candidate or baseline receives extra training, inference, sensor or compute budget under matched-budget policy.",
+      "intervention": {
+        "do": "resource_budget",
+        "levels": [
+          "matched",
+          "baseline_extra"
+        ]
+      },
+      "expected": {
+        "matched_case": "eligible_if_other_gates_pass",
+        "unequal_case": "reject"
+      },
+      "reason": "no_free_compute_or_samples"
+    },
+    {
+      "id": "deterministic_counterfactual_replay",
+      "kind": "reproducibility",
+      "model": "fixed_seed_structural_model",
+      "setup": "Replay identical initial state, intervention, exogenous-noise seed and model version in deterministic mode.",
+      "intervention": {
+        "do": "replay",
+        "levels": [
+          1,
+          1
+        ]
+      },
+      "expected": {
+        "canonical_receipt_equal": true
+      },
+      "reason": "exact_replay_identity"
+    },
+    {
+      "id": "observation_fit_not_enough",
+      "kind": "claim_boundary",
+      "model": "correlation_shortcut",
+      "setup": "Candidate matches observational trajectories but fails known causal intervention checks.",
+      "intervention": {
+        "do": "qualification_scope",
+        "levels": [
+          "observational",
+          "interventional"
+        ]
+      },
+      "expected": {
+        "observational_fit_may_pass": true,
+        "causal_qualification": "reject"
+      },
+      "reason": "observational_fit_does_not_establish_causal_validity"
+    }
+  ]
+}
