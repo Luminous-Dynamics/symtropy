@@ -1360,7 +1360,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let id = state.next_job_id;
                 state.next_job_id += 1;
                 state.released_jobs_total += 1;
-                if state.now >= catalog.warmup_seconds {
+                if state.now >= catalog.warmup_seconds && state.now < catalog.horizon_seconds {
                     state.release_cohort_jobs += 1;
                 }
                 state.supplier_backlog.push_back(Job {
@@ -1448,8 +1448,11 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
-    let right_censored_jobs_at_horizon =
-        count_right_censored_jobs(&state, catalog.warmup_seconds)?;
+    let right_censored_jobs_at_horizon = count_right_censored_jobs(
+        &state,
+        catalog.warmup_seconds,
+        catalog.horizon_seconds,
+    )?;
     let completed_good_flow_time_seconds =
         summarize_flow_time_seconds(&state.completed_good_flow_times_seconds)?;
     let completed_scrap_flow_time_seconds =
@@ -1610,6 +1613,7 @@ fn summarize_flow_time_seconds(
 fn count_right_censored_jobs(
     state: &SimState,
     warmup_seconds: u64,
+    horizon_seconds: u64,
 ) -> Result<u64, String> {
     let mut seen_ids = BTreeSet::new();
     let mut censored_count = 0_u64;
@@ -1617,7 +1621,9 @@ fn count_right_censored_jobs(
         if !seen_ids.insert(job.id) {
             return Err("duplicate_job_id_in_live_system_at_horizon".into());
         }
-        if job.released_at_seconds >= warmup_seconds {
+        if job.released_at_seconds >= warmup_seconds
+            && job.released_at_seconds < horizon_seconds
+        {
             censored_count += 1;
         }
         Ok(())
@@ -1830,7 +1836,9 @@ fn complete_operation(
         };
     } else {
         state.scrapped_jobs_total += 1;
-        if job.released_at_seconds >= catalog.warmup_seconds {
+        if job.released_at_seconds >= catalog.warmup_seconds
+            && job.released_at_seconds < catalog.horizon_seconds
+        {
             state.completed_scrap_flow_times_seconds.push(
                 state.now.saturating_sub(job.released_at_seconds) as f64,
             );
@@ -1951,7 +1959,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     if state.now >= catalog.warmup_seconds {
                         state.measured_good_units += 1;
                     }
-                    if job.released_at_seconds >= catalog.warmup_seconds {
+                    if job.released_at_seconds >= catalog.warmup_seconds
+                        && job.released_at_seconds < catalog.horizon_seconds
+                    {
                         state.completed_good_flow_times_seconds.push(
                             state.now.saturating_sub(job.released_at_seconds) as f64,
                         );
@@ -2450,6 +2460,9 @@ mod tests {
         assert!(report.output_never_exceeds_released_input);
         assert!(report.all_buffers_respected_capacity);
         assert!(report.station_time_accounting_within_horizon);
+        assert!(report.flow_time_cohort_accounting_valid);
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert!(report.flow_time_statistics.iter().all(|statistic| statistic.cohort_accounting_valid));
         assert!(!report.release_ready);
     }
 
@@ -2680,6 +2693,49 @@ mod tests {
         assert!((summary.median - 2.0).abs() < 1e-12);
         assert!((summary.p05 - 1.1).abs() < 1e-12);
         assert!((summary.p95 - 2.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn flow_time_summary_reports_p50_p90_p95_p99_without_making_jobs_iid_claims() {
+        let summary = summarize_flow_time_seconds(&[1.0, 2.0, 3.0, 4.0])
+            .expect("flow-time summary")
+            .expect("nonempty flow-time observations");
+        assert_eq!(summary.sample_count, 4);
+        assert!((summary.mean_seconds - 2.5).abs() < 1e-12);
+        assert!((summary.p50_seconds - 2.5).abs() < 1e-12);
+        assert!((summary.p90_seconds - 3.7).abs() < 1e-12);
+        assert!((summary.p95_seconds - 3.85).abs() < 1e-12);
+        assert!((summary.p99_seconds - 3.97).abs() < 1e-12);
+        assert!((summary.maximum_seconds - 4.0).abs() < 1e-12);
+        assert!(summarize_flow_time_seconds(&[]).expect("empty result").is_none());
+        assert!(summarize_flow_time_seconds(&[-1.0]).is_err());
+        assert!(summarize_flow_time_seconds(&[f64::INFINITY]).is_err());
+    }
+
+    #[test]
+    fn finite_horizon_jobs_are_right_censored_and_release_cohort_conserves() {
+        let mut catalog = fixture();
+        catalog.replication_seeds.clear();
+        catalog.horizon_seconds = 500;
+        catalog.warmup_seconds = 0;
+        let report = evaluate_catalog(&catalog).expect("short-horizon censored run");
+        assert_eq!(report.replication_count, 1);
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert!(report.flow_time_cohort_accounting_valid);
+        for scenario in &report.scenarios {
+            assert!(scenario.flow_time.cohort_accounting_valid);
+            assert!(scenario.flow_time.release_cohort_jobs > 0);
+            assert!(scenario.flow_time.right_censored_jobs_at_horizon > 0);
+            assert_eq!(scenario.flow_time.completed_good_jobs + scenario.flow_time.completed_scrap_jobs
+                + scenario.flow_time.right_censored_jobs_at_horizon,
+                scenario.flow_time.release_cohort_jobs);
+            assert!(scenario.flow_time.completed_good_flow_time_seconds.is_none());
+        }
+        assert!(report.flow_time_statistics.iter().all(|statistic| {
+            statistic.cohort_accounting_valid
+                && statistic.release_cohort_jobs.sample_count == 1
+                && statistic.right_censored_jobs_at_horizon.sample_count == 1
+        }));
     }
 
     #[test]
