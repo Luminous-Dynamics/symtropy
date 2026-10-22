@@ -2290,7 +2290,8 @@ mod tests {
     }
     #[test]
     fn joint_pareto_frontier_preserves_spatial_resource_tradeoffs() {
-        fn score(
+        #[derive(Clone, Copy)]
+        struct ScoreSpec {
             spatial_horizon: u64,
             resource_horizon: u64,
             changed_placements: usize,
@@ -2298,19 +2299,21 @@ mod tests {
             rectangle_edge_shift: u64,
             changed_resources: usize,
             resource_shift: u64,
-        ) -> JointParetoScore {
+        }
+
+        fn score(spec: ScoreSpec) -> JointParetoScore {
             JointParetoScore {
-                worst_spatial_recovery_horizon_ticks: Some(spatial_horizon),
-                worst_resource_recovery_horizon_ticks: Some(resource_horizon),
-                worst_changed_placement_reservations: changed_placements,
+                worst_spatial_recovery_horizon_ticks: Some(spec.spatial_horizon),
+                worst_resource_recovery_horizon_ticks: Some(spec.resource_horizon),
+                worst_changed_placement_reservations: spec.changed_placements,
                 worst_changed_transfer_reservations: 0,
                 worst_unaffected_placement_churn: 0,
                 worst_unaffected_transfer_churn: 0,
-                worst_spatial_time_shift_ticks: spatial_shift,
-                worst_rectangle_edge_shift_units: rectangle_edge_shift,
-                worst_changed_resource_reservations: changed_resources,
+                worst_spatial_time_shift_ticks: spec.spatial_shift,
+                worst_rectangle_edge_shift_units: spec.rectangle_edge_shift,
+                worst_changed_resource_reservations: spec.changed_resources,
                 worst_unaffected_resource_churn: 0,
-                worst_resource_time_shift_ticks: resource_shift,
+                worst_resource_time_shift_ticks: spec.resource_shift,
             }
         }
 
@@ -2351,14 +2354,14 @@ mod tests {
         }
 
         let alternatives = vec![
-            alternative("fast-far", true, score(5, 8, 2, 5, 10, 1, 3)),
-            alternative("slow-near", true, score(7, 6, 1, 6, 2, 1, 2)),
+            alternative("fast-far", true, score(ScoreSpec { spatial_horizon: 5, resource_horizon: 8, changed_placements: 2, spatial_shift: 5, rectangle_edge_shift: 10, changed_resources: 1, resource_shift: 3 })),
+            alternative("slow-near", true, score(ScoreSpec { spatial_horizon: 7, resource_horizon: 6, changed_placements: 1, spatial_shift: 6, rectangle_edge_shift: 2, changed_resources: 1, resource_shift: 2 })),
             alternative(
                 "unnecessary-churn",
                 true,
-                score(6, 10, 3, 7, 12, 2, 5),
+                score(ScoreSpec { spatial_horizon: 6, resource_horizon: 10, changed_placements: 3, spatial_shift: 7, rectangle_edge_shift: 12, changed_resources: 2, resource_shift: 5 }),
             ),
-            alternative("fragile", false, score(3, 3, 0, 0, 0, 0, 0)),
+            alternative("fragile", false, score(ScoreSpec { spatial_horizon: 3, resource_horizon: 3, changed_placements: 0, spatial_shift: 0, rectangle_edge_shift: 0, changed_resources: 0, resource_shift: 0 })),
         ];
 
         let report = pareto_joint_recovery_candidates(&alternatives);
