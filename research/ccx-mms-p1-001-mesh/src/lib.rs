@@ -44,14 +44,15 @@ pub enum MeshError {
 }
 
 impl Mesh {
-    /// Serialize the mesh canonically. Floating-point coordinates are encoded
-    /// by IEEE-754 bit patterns; this is deterministic, not a cryptographic hash.
+    /// Serialize the mesh canonically. Coordinates are encoded using IEEE-754
+    /// bit patterns; the result is deterministic, but is not itself a hash.
     pub fn canonical_text(&self) -> String {
         let mut output = String::new();
         writeln!(&mut output, "ccx-mms-p1-mesh-v1").expect("String writes cannot fail");
         writeln!(&mut output, "resolution {}", self.cells_per_side)
             .expect("String writes cannot fail");
-        writeln!(&mut output, "nodes {}", self.nodes.len()).expect("String writes cannot fail");
+        writeln!(&mut output, "nodes {}", self.nodes.len())
+            .expect("String writes cannot fail");
         for node in &self.nodes {
             writeln!(
                 &mut output,
@@ -86,28 +87,15 @@ impl Mesh {
         problem: ManufacturedProblem,
         quadrature_order: usize,
     ) -> Result<Vec<Vec2>, MeshError> {
+        validate_mesh(self)?;
         let quadrature = gauss_legendre_unit_interval(quadrature_order)?;
         let mut loads = vec![Vec2 { x: 0.0, y: 0.0 }; self.nodes.len()];
 
         for triangle in &self.triangles {
-            let Some(a) = self.nodes.get(triangle.nodes[0].checked_sub(1).ok_or(
-                MeshError::InvalidMeshTopology,
-            )?) else {
-                return Err(MeshError::InvalidMeshTopology);
-            };
-            let Some(b) = self.nodes.get(triangle.nodes[1].checked_sub(1).ok_or(
-                MeshError::InvalidMeshTopology,
-            )?) else {
-                return Err(MeshError::InvalidMeshTopology);
-            };
-            let Some(c) = self.nodes.get(triangle.nodes[2].checked_sub(1).ok_or(
-                MeshError::InvalidMeshTopology,
-            )?) else {
-                return Err(MeshError::InvalidMeshTopology);
-            };
-
-            let determinant =
-                (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+            let a = self.nodes[triangle.nodes[0] - 1];
+            let b = self.nodes[triangle.nodes[1] - 1];
+            let c = self.nodes[triangle.nodes[2] - 1];
+            let determinant = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
             if !determinant.is_finite() || determinant <= 0.0 {
                 return Err(MeshError::InvalidMeshTopology);
             }
@@ -122,17 +110,20 @@ impl Mesh {
                     let force = problem.body_force_closed_form(x, y);
                     let weight = determinant * (1.0 - u) * wu * wv;
 
-                    for local in 0..3 {
-                        let global_index = triangle.nodes[local] - 1;
-                        let contribution = shape[local] * weight;
-                        loads[global_index].x += contribution * force.x;
-                        loads[global_index].y += contribution * force.y;
+                    for (node_id, shape_value) in triangle.nodes.iter().zip(shape) {
+                        let contribution = shape_value * weight;
+                        let load = &mut loads[node_id - 1];
+                        load.x += contribution * force.x;
+                        load.y += contribution * force.y;
                     }
                 }
             }
         }
 
-        if loads.iter().any(|load| !load.x.is_finite() || !load.y.is_finite()) {
+        if loads
+            .iter()
+            .any(|load| !load.x.is_finite() || !load.y.is_finite())
+        {
             return Err(MeshError::InvalidMeshTopology);
         }
         Ok(loads)
@@ -140,7 +131,7 @@ impl Mesh {
 
     /// Sum the nodal loads to recover the global body-force resultant.
     pub fn resultant(loads: &[Vec2]) -> Result<Vec2, MeshError> {
-        if loads.len() == 0 {
+        if loads.is_empty() {
             return Err(MeshError::InvalidLoadVectorLength);
         }
         let mut total = Vec2 { x: 0.0, y: 0.0 };
@@ -167,7 +158,9 @@ pub fn generate_mesh(cells_per_side: usize) -> Result<Mesh, MeshError> {
 
     let n = cells_per_side;
     let side = n + 1;
-    let node_count = side.checked_mul(side).ok_or(MeshError::ResolutionTooLarge)?;
+    let node_count = side
+        .checked_mul(side)
+        .ok_or(MeshError::ResolutionTooLarge)?;
     let element_count = n
         .checked_mul(n)
         .and_then(|cells| cells.checked_mul(2))
@@ -217,6 +210,9 @@ pub fn generate_mesh(cells_per_side: usize) -> Result<Mesh, MeshError> {
 
 fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     let n = mesh.cells_per_side;
+    if n == 0 || n > MAX_RESOLUTION {
+        return Err(MeshError::InvalidMeshTopology);
+    }
     let side = n + 1;
     if mesh.nodes.len() != side * side || mesh.triangles.len() != 2 * n * n {
         return Err(MeshError::InvalidMeshTopology);
@@ -231,11 +227,18 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     let mut seen_elements = vec![false; mesh.triangles.len()];
     let mut used_nodes = vec![false; mesh.nodes.len()];
     for element in &mesh.triangles {
-        if element.id == 0 || element.id > seen_elements.len() || seen_elements[element.id - 1] {
+        if element.id == 0
+            || element.id > seen_elements.len()
+            || seen_elements[element.id - 1]
+        {
             return Err(MeshError::InvalidMeshTopology);
         }
         seen_elements[element.id - 1] = true;
-        if element.nodes.iter().any(|id| *id == 0 || *id > mesh.nodes.len()) {
+        if element
+            .nodes
+            .iter()
+            .any(|id| *id == 0 || *id > mesh.nodes.len())
+        {
             return Err(MeshError::InvalidMeshTopology);
         }
         let a = mesh.nodes[element.nodes[0] - 1];
@@ -275,20 +278,9 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
 
     for i in 0..half {
         let mut z = (std::f64::consts::PI * (i as f64 + 0.75) / (order as f64 + 0.5)).cos();
-        let mut derivative = 0.0;
         for _ in 0..64 {
-            let mut p_previous = 1.0;
-            let mut p_current = z;
-            for degree in 2..=order {
-                let p_next = ((2 * degree - 1) as f64 * z * p_current
-                    - (degree - 1) as f64 * p_previous)
-                    / degree as f64;
-                p_previous = p_current;
-                p_current = p_next;
-            }
-            let polynomial = if order == 1 { z } else { p_current };
-            let previous = if order == 1 { 1.0 } else { p_previous };
-            derivative = order as f64 * (z * polynomial - previous) / (z * z - 1.0);
+            let (polynomial, previous) = legendre_pair(order, z);
+            let derivative = order as f64 * (z * polynomial - previous) / (z * z - 1.0);
             let next = z - polynomial / derivative;
             if (next - z).abs() <= 2.0 * f64::EPSILON * next.abs().max(1.0) {
                 z = next;
@@ -297,26 +289,29 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
             z = next;
         }
 
-        let mut p_previous = 1.0;
-        let mut p_current = z;
-        for degree in 2..=order {
-            let p_next = ((2 * degree - 1) as f64 * z * p_current
-                - (degree - 1) as f64 * p_previous)
-                / degree as f64;
-            p_previous = p_current;
-            p_current = p_next;
-        }
-        let polynomial = if order == 1 { z } else { p_current };
-        let previous = if order == 1 { 1.0 } else { p_previous };
-        derivative = order as f64 * (z * polynomial - previous) / (z * z - 1.0);
-        let weight_minus_one_to_one = 2.0 / ((1.0 - z * z) * derivative * derivative);
-        let low = (1.0 - z) * 0.5;
-        let high = (1.0 + z) * 0.5;
-        let weight = weight_minus_one_to_one * 0.5;
-        points[i] = (low, weight);
-        points[order - 1 - i] = (high, weight);
+        let (polynomial, previous) = legendre_pair(order, z);
+        let derivative = order as f64 * (z * polynomial - previous) / (z * z - 1.0);
+        let weight = 1.0 / ((1.0 - z * z) * derivative * derivative);
+        points[i] = ((1.0 - z) * 0.5, weight);
+        points[order - 1 - i] = ((1.0 + z) * 0.5, weight);
     }
     Ok(points)
+}
+
+fn legendre_pair(order: usize, z: f64) -> (f64, f64) {
+    if order == 1 {
+        return (z, 1.0);
+    }
+    let mut previous = 1.0;
+    let mut current = z;
+    for degree in 2..=order {
+        let next = ((2 * degree - 1) as f64 * z * current
+            - (degree - 1) as f64 * previous)
+            / degree as f64;
+        previous = current;
+        current = next;
+    }
+    (current, previous)
 }
 
 /// Relative Euclidean difference of two equally sized load vectors.
@@ -330,7 +325,8 @@ pub fn relative_load_difference(left: &[Vec2], right: &[Vec2]) -> Result<f64, Me
         difference_squared += (a.x - b.x).powi(2) + (a.y - b.y).powi(2);
         reference_squared += b.x.powi(2) + b.y.powi(2);
     }
-    if !difference_squared.is_finite() || !reference_squared.is_finite() || reference_squared == 0.0 {
+    if !difference_squared.is_finite() || !reference_squared.is_finite() || reference_squared == 0.0
+    {
         return Err(MeshError::InvalidLoadVectorLength);
     }
     Ok(difference_squared.sqrt() / reference_squared.sqrt())
@@ -350,7 +346,7 @@ mod tests {
             assert_eq!(first.canonical_text(), second.canonical_text());
             assert_eq!(first.nodes[0].id, 1);
             assert_eq!(first.nodes.last().unwrap().id, first.nodes.len());
-            assert!(first.nodes.iter().filter(|node| node.boundary).count() == 4 * n);
+            assert_eq!(first.nodes.iter().filter(|node| node.boundary).count(), 4 * n);
         }
     }
 
@@ -397,26 +393,28 @@ mod tests {
         let problem = ManufacturedProblem::reference();
         let loads_32 = mesh.assemble_body_force(problem, 32).unwrap();
         let loads_48 = mesh.assemble_body_force(problem, 48).unwrap();
-        assert!(relative_load_difference(&loads_32, &loads_48).unwrap() <= 1.0e-12);
+        let difference = relative_load_difference(&loads_32, &loads_48).unwrap();
+        assert!(difference <= 1.0e-12, "relative load difference={difference:e}");
 
         let total = Mesh::resultant(&loads_48).unwrap();
         let exact = problem.integrated_body_force();
         let normalized_x = (total.x - exact.x).abs() / exact.x.abs().max(1.0);
-        let normalized_y = total.y.abs()
-            / loads_48.iter().map(|load| load.y.abs()).sum::<f64>().max(1.0);
+        let normalized_y =
+            total.y.abs() / loads_48.iter().map(|load| load.y.abs()).sum::<f64>().max(1.0);
         assert!(normalized_x <= 1.0e-10, "x resultant residual={normalized_x:e}");
-        assert!(normalized_y <= 1.0e-10, "y resultant residual={normalized_y:e}");
+        assert!(normalized_y <= 1.0e-10, "y normalized residual={normalized_y:e}");
     }
 
     #[test]
     fn one_percent_load_perturbation_is_measurable() {
         let mesh = generate_mesh(8).unwrap();
         let problem = ManufacturedProblem::reference();
-        let mut trusted = mesh.assemble_body_force(problem, 16).unwrap();
-        let tampered = mesh.assemble_body_force(problem, 16).unwrap();
+        let baseline = mesh.assemble_body_force(problem, 16).unwrap();
+        let mut tampered = baseline.clone();
         let first_interior = mesh.nodes.iter().position(|node| !node.boundary).unwrap();
-        trusted[first_interior].x *= 1.01;
-        assert!(relative_load_difference(&trusted, &tampered).unwrap() > 1.0e-5);
+        tampered[first_interior].x *= 1.01;
+        let measured = relative_load_difference(&baseline, &tampered).unwrap();
+        assert!(measured > 1.0e-5, "tamper signal={measured:e}");
     }
 
     #[test]
