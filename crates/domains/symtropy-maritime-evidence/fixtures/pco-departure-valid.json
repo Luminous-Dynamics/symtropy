@@ -1,0 +1,9 @@
+{
+  "shipIMONumber": "9990001",
+  "shipStayReferenceNumber": "SYNTH-CALL-001",
+  "shipReportingSystemEntryPortCode": "ZZSYN",
+  "dateTimeDeparturePlanned": {
+    "berthName": "SYNTH-BERTH-01",
+    "plannedTimeOfDeparture": "2026-10-19T17:20:50.52Z"
+  }
+}
