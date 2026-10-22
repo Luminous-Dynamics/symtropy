@@ -381,6 +381,25 @@ mod tests {
         assert_eq!(member_end_rotation_count, 4);
         assert_eq!(interior_rotation_count, 2);
         assert_eq!(interior_translation_count, 4);
+        for descriptor in &mesh.assembly.dof_descriptors {
+            if matches!(
+                &descriptor.kind,
+                BeamPinDofKind::MemberInteriorRotation { .. }
+                    | BeamPinDofKind::MemberInteriorTranslationX { .. }
+                    | BeamPinDofKind::MemberInteriorTranslationY { .. }
+            ) {
+                assert!(
+                    mesh.assembly.stiffness_global[descriptor.index][descriptor.index] > 0.0,
+                    "internal mesh DOF {} must have bending/axial stiffness",
+                    descriptor.index
+                );
+                assert!(
+                    mesh.assembly.mass_global[descriptor.index][descriptor.index] > 0.0,
+                    "internal mesh DOF {} must have inertia",
+                    descriptor.index
+                );
+            }
+        }
 
         let ac_end = mesh.assembly.dof_descriptors.iter().find_map(|descriptor| {
             match &descriptor.kind {
