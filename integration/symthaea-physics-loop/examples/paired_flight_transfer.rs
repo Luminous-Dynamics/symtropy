@@ -122,11 +122,11 @@ fn evaluate_classical<S: PhysicsSimulator + SimulatorDiagnostics>(
             within += 1;
         }
         let command_started = Instant::now();
-        let command = if use_pid {
+        let command = (if use_pid {
             pid_baseline(&state, setpoint, gains, &mut pid_state, dt)
         } else {
             pd_baseline(&state, setpoint, gains)
-        }.clamped();
+        }).clamped();
         controller_latencies_us.push(command_started.elapsed().as_secs_f64() * 1.0e6);
         impulse += command.thrust as f64 * dt;
         if force_enabled {
