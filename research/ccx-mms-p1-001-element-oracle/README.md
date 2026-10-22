@@ -67,6 +67,25 @@ require independent tests. The element constructor rejects a triangle when
 degeneracy floor, not a general mesh-quality recommendation. Sliver elements above the
 floor are measured rather than automatically declared adequate for engineering analysis.
 
+## Near-incompressibility material sweep
+
+`triangle-material-conditioning-probe` emits a deterministic
+`ccx-mms-p1-material-conditioning-v1` receipt over Poisson ratios 0.3, 0.49, 0.4999,
+and 0.49999, with Young's modulus fixed to 1. Each record includes `lambda/mu`, the
+smallest and largest positive element-stiffness eigenvalues, and the local non-rigid
+spectral condition number. The receipt requires the Lamé ratio and local condition
+number to increase strictly across the frozen parameter sequence and explicitly records
+`volumetric_locking_measured: false`.
+
+An independent NumPy calculation for the current skew triangle produced local condition
+numbers of approximately 2.76347, 52.3931, 5,230.02, and 52,299.4 for those four values.
+These figures are mathematical cross-checks, not Rust output. This is a local spectral
+conditioning study: **it does not measure volumetric locking**. To measure locking, the
+next protocol must solve a global near-incompressible displacement benchmark and track
+response/displacement error as `nu -> 0.5`, ideally against a stable mixed formulation or
+a trusted reference solution. A single element's eigenvalue ratio cannot establish that
+global approximation pathology.
+
 ## Frozen probe gates
 
 `triangle-patch-probe` emits deterministic JSON and source/checkout Git SHAs. The
