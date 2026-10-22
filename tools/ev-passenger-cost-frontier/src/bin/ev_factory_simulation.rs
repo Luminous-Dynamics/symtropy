@@ -222,11 +222,16 @@ struct FlowTimeStatistics {
     scenario_id: String,
     replications_with_good_flow_time_observations: usize,
     good_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p50_seconds_across_replications: Option<DistributionSummary>,
+    good_flow_time_p90_seconds_across_replications: Option<DistributionSummary>,
     good_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
     good_flow_time_p99_seconds_across_replications: Option<DistributionSummary>,
     replications_with_scrap_flow_time_observations: usize,
     scrap_flow_time_mean_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p50_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p90_seconds_across_replications: Option<DistributionSummary>,
     scrap_flow_time_p95_seconds_across_replications: Option<DistributionSummary>,
+    scrap_flow_time_p99_seconds_across_replications: Option<DistributionSummary>,
     release_cohort_jobs: DistributionSummary,
     completed_good_jobs: DistributionSummary,
     completed_scrap_jobs: DistributionSummary,
@@ -802,6 +807,24 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     .map(|value| value.mean_seconds)
             })
             .collect();
+        let good_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let good_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
         let good_p95: Vec<f64> = flow_summaries
             .iter()
             .filter_map(|summary| {
@@ -829,6 +852,24 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     .map(|value| value.mean_seconds)
             })
             .collect();
+        let scrap_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let scrap_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
         let scrap_p95: Vec<f64> = flow_summaries
             .iter()
             .filter_map(|summary| {
@@ -836,6 +877,15 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     .completed_scrap_flow_time_seconds
                     .as_ref()
                     .map(|value| value.p95_seconds)
+            })
+            .collect();
+        let scrap_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
             })
             .collect();
         let release_counts: Vec<f64> = flow_summaries
@@ -866,6 +916,10 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             replications_with_good_flow_time_observations: good_mean.len(),
             good_flow_time_mean_seconds_across_replications:
                 optional_distribution_summary(&good_mean)?,
+            good_flow_time_p50_seconds_across_replications:
+                optional_distribution_summary(&good_p50)?,
+            good_flow_time_p90_seconds_across_replications:
+                optional_distribution_summary(&good_p90)?,
             good_flow_time_p95_seconds_across_replications:
                 optional_distribution_summary(&good_p95)?,
             good_flow_time_p99_seconds_across_replications:
@@ -873,8 +927,14 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             replications_with_scrap_flow_time_observations: scrap_mean.len(),
             scrap_flow_time_mean_seconds_across_replications:
                 optional_distribution_summary(&scrap_mean)?,
+            scrap_flow_time_p50_seconds_across_replications:
+                optional_distribution_summary(&scrap_p50)?,
+            scrap_flow_time_p90_seconds_across_replications:
+                optional_distribution_summary(&scrap_p90)?,
             scrap_flow_time_p95_seconds_across_replications:
                 optional_distribution_summary(&scrap_p95)?,
+            scrap_flow_time_p99_seconds_across_replications:
+                optional_distribution_summary(&scrap_p99)?,
             release_cohort_jobs: summarize_distribution(&release_counts)?,
             completed_good_jobs: summarize_distribution(&good_counts)?,
             completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
@@ -2797,6 +2857,14 @@ mod tests {
                     .good_flow_time_mean_seconds_across_replications
                     .as_ref()
                     .expect("mean of per-replication good flow times");
+                let p50 = statistic
+                    .good_flow_time_p50_seconds_across_replications
+                    .as_ref()
+                    .expect("p50 of per-replication good flow times");
+                let p90 = statistic
+                    .good_flow_time_p90_seconds_across_replications
+                    .as_ref()
+                    .expect("p90 of per-replication good flow times");
                 let p95 = statistic
                     .good_flow_time_p95_seconds_across_replications
                     .as_ref()
@@ -2807,6 +2875,14 @@ mod tests {
                     .expect("p99 of per-replication good flow times");
                 assert_eq!(
                     mean.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p50.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p90.sample_count,
                     statistic.replications_with_good_flow_time_observations
                 );
                 assert_eq!(
