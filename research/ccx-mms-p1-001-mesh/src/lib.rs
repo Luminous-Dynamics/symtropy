@@ -394,7 +394,18 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     }
 
     for (index, node) in mesh.nodes.iter().enumerate() {
-        if node.id != index + 1 || !node.x.is_finite() || !node.y.is_finite() {
+        let i = index % side;
+        let j = index / side;
+        let expected_x = i as f64 / n as f64;
+        let expected_y = j as f64 / n as f64;
+        let expected_boundary = i == 0 || i == n || j == 0 || j == n;
+        if node.id != index + 1
+            || !node.x.is_finite()
+            || !node.y.is_finite()
+            || node.x.to_bits() != expected_x.to_bits()
+            || node.y.to_bits() != expected_y.to_bits()
+            || node.boundary != expected_boundary
+        {
             return Err(MeshError::InvalidMeshTopology);
         }
     }
@@ -431,15 +442,7 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
         return Err(MeshError::InvalidMeshTopology);
     }
 
-    for j in 0..=n {
-        for i in 0..=n {
-            let node = mesh.nodes[j * side + i];
-            let expected_boundary = i == 0 || i == n || j == 0 || j == n;
-            if node.boundary != expected_boundary {
-                return Err(MeshError::InvalidMeshTopology);
-            }
-        }
-    }
+
     Ok(())
 }
 
