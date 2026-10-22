@@ -153,6 +153,241 @@ pub struct RecoveryInput {
     pub disruption: Disruption,
 }
 
+/// One scheduled plan update after the preceding stage has been accepted.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoverySequenceStage {
+    pub stage_id: String,
+    pub candidate: Scenario,
+    pub disruption: Disruption,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum RecoverySequenceViolationCode {
+    EmptyStageSet,
+    EmptyStageId,
+    DuplicateStageId,
+    ObservationTimeWentBackwards,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoverySequenceViolation {
+    pub code: RecoverySequenceViolationCode,
+    pub stage_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoverySequenceStageReport {
+    pub stage_id: String,
+    pub report: RecoveryReport,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RecoverySequenceMetrics {
+    pub total_stages: usize,
+    pub accepted_stages: usize,
+    pub total_changed_placement_reservations: usize,
+    pub total_changed_transfer_reservations: usize,
+    pub cumulative_time_shift_ticks: u64,
+    pub cumulative_rectangle_edge_shift_units: u64,
+    pub worst_case_recovery_horizon_ticks: Option<u64>,
+    pub worst_unaffected_placement_churn: usize,
+    pub worst_unaffected_transfer_churn: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoverySequenceReport {
+    pub accepted: bool,
+    /// Set when a valid stage sequence reaches a failed recovery and execution stops.
+    pub stopped_at_stage: Option<String>,
+    pub metrics: RecoverySequenceMetrics,
+    pub violations: Vec<RecoverySequenceViolation>,
+    pub stages: Vec<RecoverySequenceStageReport>,
+}
+
+fn merge_known_zones(candidate: &mut Scenario, known_zones: &[ExclusionZone]) {
+    for zone in known_zones {
+        if !candidate
+            .exclusion_zones
+            .iter()
+            .any(|present| present.id == zone.id)
+        {
+            candidate.exclusion_zones.push(zone.clone());
+        }
+    }
+    candidate.exclusion_zones.sort_by(|left, right| left.id.cmp(&right.id));
+}
+
+fn merge_active_outages(
+    current: &Disruption,
+    known_outages: &[VehicleOutage],
+) -> Vec<VehicleOutage> {
+    let mut outages = current.vehicle_outages.clone();
+    outages.extend(
+        known_outages
+            .iter()
+            .filter(|outage| outage.unavailable.end_tick > current.observed_at_tick)
+            .cloned(),
+    );
+    outages.sort_by(|left, right| {
+        left.vehicle_id
+            .cmp(&right.vehicle_id)
+            .then_with(|| left.unavailable.cmp(&right.unavailable))
+    });
+    outages.dedup();
+    outages
+}
+
+/// Execute a fixed sequence of plan revisions against cumulative observed disruption evidence.
+///
+/// Each stage starts from the prior stage's accepted, disruption-applied candidate. Known exclusion
+/// zones are carried into the next candidate, and vehicle outages remain binding while their
+/// interval has not ended. Occupancy extensions persist through the extended placement itself.
+/// Sequence times must be monotonic and stage IDs unique. The evaluator stops on the first failed
+/// stage: later recovery is not silently evaluated against a state whose physical validity is
+/// already unknown.
+pub fn evaluate_recovery_sequence(
+    initial_baseline: &Scenario,
+    stages: &[RecoverySequenceStage],
+) -> RecoverySequenceReport {
+    let mut sequence_violations = Vec::new();
+    if stages.is_empty() {
+        sequence_violations.push(RecoverySequenceViolation {
+            code: RecoverySequenceViolationCode::EmptyStageSet,
+            stage_id: String::new(),
+        });
+    }
+
+    let mut seen_ids = BTreeSet::new();
+    let mut prior_tick = None;
+    for stage in stages {
+        if stage.stage_id.trim().is_empty() {
+            sequence_violations.push(RecoverySequenceViolation {
+                code: RecoverySequenceViolationCode::EmptyStageId,
+                stage_id: stage.stage_id.clone(),
+            });
+        }
+        if !seen_ids.insert(stage.stage_id.as_str()) {
+            sequence_violations.push(RecoverySequenceViolation {
+                code: RecoverySequenceViolationCode::DuplicateStageId,
+                stage_id: stage.stage_id.clone(),
+            });
+        }
+        if prior_tick.is_some_and(|tick| stage.disruption.observed_at_tick < tick) {
+            sequence_violations.push(RecoverySequenceViolation {
+                code: RecoverySequenceViolationCode::ObservationTimeWentBackwards,
+                stage_id: stage.stage_id.clone(),
+            });
+        }
+        prior_tick = Some(stage.disruption.observed_at_tick);
+    }
+
+    sequence_violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.stage_id.cmp(&right.stage_id))
+    });
+    sequence_violations.dedup();
+    if !sequence_violations.is_empty() {
+        return RecoverySequenceReport {
+            accepted: false,
+            stopped_at_stage: None,
+            metrics: RecoverySequenceMetrics {
+                total_stages: stages.len(),
+                ..RecoverySequenceMetrics::default()
+            },
+            violations: sequence_violations,
+            stages: Vec::new(),
+        };
+    }
+
+    let mut current_state = initial_baseline.clone();
+    let mut known_outages: Vec<VehicleOutage> = Vec::new();
+    let mut stage_reports = Vec::new();
+    let mut total_changed_placement_reservations = 0usize;
+    let mut total_changed_transfer_reservations = 0usize;
+    let mut cumulative_time_shift_ticks = 0u64;
+    let mut cumulative_rectangle_edge_shift_units = 0u64;
+    let mut worst_case_recovery_horizon_ticks: Option<u64> = None;
+    let mut worst_unaffected_placement_churn = 0usize;
+    let mut worst_unaffected_transfer_churn = 0usize;
+    let mut stopped_at_stage = None;
+
+    for stage in stages {
+        let mut candidate = stage.candidate.clone();
+        merge_known_zones(&mut candidate, &current_state.exclusion_zones);
+
+        let mut disruption = stage.disruption.clone();
+        disruption.vehicle_outages = merge_active_outages(&stage.disruption, &known_outages);
+
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline: current_state.clone(),
+            candidate: candidate.clone(),
+            disruption: disruption.clone(),
+        });
+
+        total_changed_placement_reservations = total_changed_placement_reservations
+            .saturating_add(report.metrics.changed_placement_reservations);
+        total_changed_transfer_reservations = total_changed_transfer_reservations
+            .saturating_add(report.metrics.changed_transfer_reservations);
+        cumulative_time_shift_ticks = cumulative_time_shift_ticks
+            .saturating_add(report.metrics.time_shift_ticks);
+        cumulative_rectangle_edge_shift_units = cumulative_rectangle_edge_shift_units
+            .saturating_add(report.metrics.rectangle_edge_shift_units);
+        if let Some(horizon) = report.metrics.recovery_horizon_ticks {
+            worst_case_recovery_horizon_ticks = Some(
+                worst_case_recovery_horizon_ticks.map_or(horizon, |prior| prior.max(horizon)),
+            );
+        }
+        worst_unaffected_placement_churn = worst_unaffected_placement_churn
+            .max(report.metrics.unaffected_placement_churn);
+        worst_unaffected_transfer_churn = worst_unaffected_transfer_churn
+            .max(report.metrics.unaffected_transfer_churn);
+
+        let accepted = report.accepted;
+        stage_reports.push(RecoverySequenceStageReport {
+            stage_id: stage.stage_id.clone(),
+            report,
+        });
+        if !accepted {
+            stopped_at_stage = Some(stage.stage_id.clone());
+            break;
+        }
+
+        current_state = apply_disruption(&candidate, &disruption);
+        known_outages.extend(stage.disruption.vehicle_outages.iter().cloned());
+        known_outages.sort_by(|left, right| {
+            left.vehicle_id
+                .cmp(&right.vehicle_id)
+                .then_with(|| left.unavailable.cmp(&right.unavailable))
+        });
+        known_outages.dedup();
+    }
+
+    let accepted_stages = stage_reports
+        .iter()
+        .filter(|stage| stage.report.accepted)
+        .count();
+    let accepted = stopped_at_stage.is_none() && accepted_stages == stages.len();
+
+    RecoverySequenceReport {
+        accepted,
+        stopped_at_stage,
+        metrics: RecoverySequenceMetrics {
+            total_stages: stages.len(),
+            accepted_stages,
+            total_changed_placement_reservations,
+            total_changed_transfer_reservations,
+            cumulative_time_shift_ticks,
+            cumulative_rectangle_edge_shift_units,
+            worst_case_recovery_horizon_ticks,
+            worst_unaffected_placement_churn,
+            worst_unaffected_transfer_churn,
+        },
+        violations: sequence_violations,
+        stages: stage_reports,
+    }
+}
+
 /// One plausible disturbance trajectory for a deterministic robust-envelope evaluation.
 ///
 /// Scenarios are not assigned probabilities in V0: every supplied trajectory is a hard
