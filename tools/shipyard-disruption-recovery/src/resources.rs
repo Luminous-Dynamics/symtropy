@@ -1606,8 +1606,8 @@ pub fn audit_joint_scenario_coverage(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Disruption;
-    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange, Transfer};
+    use crate::{Disruption, PlacementOccupancyExtension, VehicleOutage};
+    use shipyard_space_time::{ExclusionZone, Footprint, Placement, Rect, Scenario, TimeRange, Transfer};
 
     fn reservation(
         id: &str,
@@ -2560,6 +2560,170 @@ mod tests {
         assert!(report.violations.iter().any(|violation| {
             violation.code == JointParetoViolationCode::DuplicateCandidateId
         }));
+    }
+
+
+    #[test]
+    fn coverage_audit_receipts_every_required_disruption_dimension() {
+        let clearance = JointDisruptionScenario {
+            scenario_id: "clearance-overrun".to_owned(),
+            spatial_disruption: Disruption {
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "p-a".to_owned(),
+                    occupied_until_tick: 12,
+                }],
+                ..no_spatial_disruption(4)
+            },
+            resource_outages: Vec::new(),
+        };
+        let vehicle = JointDisruptionScenario {
+            scenario_id: "vehicle-outage".to_owned(),
+            spatial_disruption: Disruption {
+                vehicle_outages: vec![VehicleOutage {
+                    vehicle_id: "tug-1".to_owned(),
+                    unavailable: TimeRange {
+                        start_tick: 5,
+                        end_tick: 8,
+                    },
+                }],
+                ..no_spatial_disruption(4)
+            },
+            resource_outages: Vec::new(),
+        };
+        let zone = JointDisruptionScenario {
+            scenario_id: "zone-closure".to_owned(),
+            spatial_disruption: Disruption {
+                new_exclusion_zones: vec![ExclusionZone {
+                    id: "zone-a".to_owned(),
+                    footprint: Footprint::AxisAlignedRect(Rect {
+                        min_x: 3,
+                        min_y: 3,
+                        max_x: 4,
+                        max_y: 4,
+                    }),
+                    active: TimeRange {
+                        start_tick: 5,
+                        end_tick: 8,
+                    },
+                }],
+                ..no_spatial_disruption(4)
+            },
+            resource_outages: Vec::new(),
+        };
+        let resource = JointDisruptionScenario {
+            scenario_id: "resource-outage".to_owned(),
+            spatial_disruption: no_spatial_disruption(4),
+            resource_outages: vec![outage("crane-down", "crane-1", 5, 8)],
+        };
+        let cross_layer = JointDisruptionScenario {
+            scenario_id: "zone-plus-resource".to_owned(),
+            spatial_disruption: zone.spatial_disruption.clone(),
+            resource_outages: vec![outage("crane-down-2", "crane-1", 5, 8)],
+        };
+        let scenarios = vec![clearance, vehicle, zone, resource, cross_layer];
+        let required = [
+            JointDisruptionDimension::ClearanceOverrun,
+            JointDisruptionDimension::VehicleOutage,
+            JointDisruptionDimension::ExclusionZoneClosure,
+            JointDisruptionDimension::ResourceOutage,
+            JointDisruptionDimension::CrossLayerCombination,
+            JointDisruptionDimension::MultiDimensionCombination,
+        ];
+
+        let report = audit_joint_scenario_coverage(&scenarios, &required);
+
+        assert!(report.complete);
+        assert_eq!(report.scenario_count, 5);
+        assert!(report.missing_required_dimensions.is_empty());
+        assert!(report.violations.is_empty());
+        for dimension in required {
+            assert!(report.receipts.iter().any(|receipt| receipt.dimension == dimension));
+        }
+        let cross = report
+            .receipts
+            .iter()
+            .find(|receipt| receipt.dimension == JointDisruptionDimension::CrossLayerCombination)
+            .unwrap();
+        assert_eq!(cross.scenario_ids, vec!["zone-plus-resource"]);
+    }
+
+    #[test]
+    fn coverage_audit_reports_missing_families_even_if_scenario_count_is_nonzero() {
+        let scenarios = [JointDisruptionScenario {
+            scenario_id: "only-resource".to_owned(),
+            spatial_disruption: no_spatial_disruption(4),
+            resource_outages: vec![outage("station-down", "station-1", 5, 8)],
+        }];
+        let report = audit_joint_scenario_coverage(
+            &scenarios,
+            &[
+                JointDisruptionDimension::ResourceOutage,
+                JointDisruptionDimension::ClearanceOverrun,
+                JointDisruptionDimension::VehicleOutage,
+            ],
+        );
+
+        assert!(!report.complete);
+        assert_eq!(
+            report.missing_required_dimensions,
+            vec![
+                JointDisruptionDimension::ClearanceOverrun,
+                JointDisruptionDimension::VehicleOutage,
+            ]
+        );
+        assert_eq!(
+            report
+                .violations
+                .iter()
+                .filter(|violation| {
+                    violation.code == JointCoverageViolationCode::MissingRequiredDimension
+                })
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn coverage_audit_rejects_empty_or_duplicated_requirements_and_is_order_invariant() {
+        let scenarios = [
+            JointDisruptionScenario {
+                scenario_id: "resource-a".to_owned(),
+                spatial_disruption: no_spatial_disruption(4),
+                resource_outages: vec![outage("out-a", "crane-1", 5, 8)],
+            },
+            JointDisruptionScenario {
+                scenario_id: "resource-b".to_owned(),
+                spatial_disruption: no_spatial_disruption(6),
+                resource_outages: vec![outage("out-b", "tug-1", 6, 9)],
+            },
+        ];
+        let empty_required = audit_joint_scenario_coverage(&scenarios, &[]);
+        assert!(!empty_required.complete);
+        assert!(empty_required.violations.iter().any(|violation| {
+            violation.code == JointCoverageViolationCode::EmptyRequiredDimensionSet
+        }));
+
+        let duplicated_required = audit_joint_scenario_coverage(
+            &scenarios,
+            &[
+                JointDisruptionDimension::ResourceOutage,
+                JointDisruptionDimension::ResourceOutage,
+            ],
+        );
+        assert!(!duplicated_required.complete);
+        assert!(duplicated_required.violations.iter().any(|violation| {
+            violation.code == JointCoverageViolationCode::DuplicateRequiredDimension
+        }));
+
+        let forward = audit_joint_scenario_coverage(
+            &scenarios,
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+        let reversed = audit_joint_scenario_coverage(
+            &[scenarios[1].clone(), scenarios[0].clone()],
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+        assert_eq!(forward, reversed);
     }
 
 
