@@ -7,6 +7,7 @@
 use crate::beam_mesh::assemble_released_joint_beam_mesh;
 use crate::beam_modal::{BeamModalMode, BeamModalOptions, BeamModalSpectrum, solve_released_joint_beam_modes};
 use crate::beam_pin_assembly::{BeamPinAssembly, BeamPinDofKind, BeamPinMember, BeamPinNode, canonical_assembly_request};
+use crate::beam_subspace_mac::{SubspaceMacResult, subspace_mac};
 use crate::Check;
 use std::collections::BTreeMap;
 
@@ -71,6 +72,8 @@ pub struct TrackedMeshLevel {
     pub maximum_mass_norm_residual: f64,
     pub maximum_mass_orthogonality_residual: f64,
     pub pairs_from_previous: Option<Vec<TrackedModePair>>,
+    pub subspace_mac_from_previous: Option<SubspaceMacResult>,
+    pub subspace_mac_unresolved_reason: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -126,19 +129,36 @@ pub fn run_beam_mode_tracking(
             return Err(format!("mesh {elements_per_member} exceeded the declared modal diagnostic limit"));
         }
 
-        let pairs = if let Some((previous_elements, previous_assembly, previous_spectrum)) = &previous {
-            Some(match_adjacent_mesh_modes(
-                previous_assembly,
-                *previous_elements,
-                &previous_spectrum.modes,
-                &mesh.assembly,
-                *elements_per_member,
-                &spectrum.modes,
-                length_scale,
-            )?)
-        } else {
-            None
-        };
+        let (pairs, subspace_mac_result, subspace_mac_error) =
+            if let Some((previous_elements, previous_assembly, previous_spectrum)) = &previous {
+                let pairs = Some(match_adjacent_mesh_modes(
+                    previous_assembly,
+                    *previous_elements,
+                    &previous_spectrum.modes,
+                    &mesh.assembly,
+                    *elements_per_member,
+                    &spectrum.modes,
+                    length_scale,
+                )?);
+                let (subspace, error) = match common_station_samples(
+                    previous_assembly,
+                    *previous_elements,
+                    &previous_spectrum.modes,
+                    &mesh.assembly,
+                    *elements_per_member,
+                    &spectrum.modes,
+                    length_scale,
+                ) {
+                    Ok(samples) => match subspace_mac(&samples.combined_left, &samples.combined_right, 1.0e-12) {
+                        Ok(score) => (Some(score), None),
+                        Err(reason) => (None, Some(reason)),
+                    },
+                    Err(reason) => (None, Some(reason)),
+                };
+                (pairs, subspace, error)
+            } else {
+                (None, None, None)
+            };
 
         levels.push(TrackedMeshLevel {
             elements_per_member: *elements_per_member,
@@ -149,6 +169,8 @@ pub fn run_beam_mode_tracking(
             maximum_mass_norm_residual: spectrum.maximum_mass_norm_residual,
             maximum_mass_orthogonality_residual: spectrum.maximum_mass_orthogonality_residual,
             pairs_from_previous: pairs,
+            subspace_mac_from_previous: subspace_mac_result,
+            subspace_mac_unresolved_reason: subspace_mac_error,
         });
         previous = Some((*elements_per_member, mesh.assembly, spectrum));
     }
@@ -217,6 +239,17 @@ fn match_adjacent_mesh_modes(
     Ok(pairs)
 }
 
+struct CommonStationSamples {
+    translation_left: Vec<Vec<f64>>,
+    translation_right: Vec<Vec<f64>>,
+    rotation_left: Vec<Vec<f64>>,
+    rotation_right: Vec<Vec<f64>>,
+    combined_left: Vec<Vec<f64>>,
+    combined_right: Vec<Vec<f64>>,
+    common_translation_dof_count: usize,
+    common_rotation_dof_count: usize,
+}
+
 fn common_station_mac_scores(
     previous_assembly: &BeamPinAssembly,
     previous_elements: usize,
@@ -226,41 +259,95 @@ fn common_station_mac_scores(
     current_mode: &BeamModalMode,
     rotation_scale: f64,
 ) -> Check<ModeMacScores> {
-    let previous_values = mode_dof_map(previous_assembly, previous_elements, previous_mode)?;
-    let current_values = mode_dof_map(current_assembly, current_elements, current_mode)?;
-    let mut translation_left = Vec::new();
-    let mut translation_right = Vec::new();
-    let mut rotation_left = Vec::new();
-    let mut rotation_right = Vec::new();
-    let mut combined_left = Vec::new();
-    let mut combined_right = Vec::new();
+    let samples = common_station_samples(
+        previous_assembly,
+        previous_elements,
+        std::slice::from_ref(previous_mode),
+        current_assembly,
+        current_elements,
+        std::slice::from_ref(current_mode),
+        rotation_scale,
+    )?;
+    Ok(ModeMacScores {
+        translation_mac: mac(&samples.translation_left[0], &samples.translation_right[0]),
+        rotation_mac: mac(&samples.rotation_left[0], &samples.rotation_right[0]),
+        scaled_combined_mac: mac(&samples.combined_left[0], &samples.combined_right[0]),
+        common_translation_dof_count: samples.common_translation_dof_count,
+        common_rotation_dof_count: samples.common_rotation_dof_count,
+    })
+}
 
-    for (key, previous_value) in &previous_values {
-        if let Some(current_value) = current_values.get(key) {
+fn common_station_samples(
+    previous_assembly: &BeamPinAssembly,
+    previous_elements: usize,
+    previous_modes: &[BeamModalMode],
+    current_assembly: &BeamPinAssembly,
+    current_elements: usize,
+    current_modes: &[BeamModalMode],
+    rotation_scale: f64,
+) -> Check<CommonStationSamples> {
+    if previous_modes.is_empty() || previous_modes.len() != current_modes.len() {
+        return Err("common-station sampling requires equal positive mode counts".to_owned());
+    }
+    let previous_maps = previous_modes
+        .iter()
+        .map(|mode| mode_dof_map(previous_assembly, previous_elements, mode))
+        .collect::<Check<Vec<_>>>()?;
+    let current_maps = current_modes
+        .iter()
+        .map(|mode| mode_dof_map(current_assembly, current_elements, mode))
+        .collect::<Check<Vec<_>>>()?;
+
+    let mut translation_left = vec![Vec::new(); previous_modes.len()];
+    let mut translation_right = vec![Vec::new(); current_modes.len()];
+    let mut rotation_left = vec![Vec::new(); previous_modes.len()];
+    let mut rotation_right = vec![Vec::new(); current_modes.len()];
+    let mut combined_left = vec![Vec::new(); previous_modes.len()];
+    let mut combined_right = vec![Vec::new(); current_modes.len()];
+    let mut translation_count = 0;
+    let mut rotation_count = 0;
+
+    for (key, _) in &previous_maps[0] {
+        if !current_maps[0].contains_key(key) {
+            continue;
+        }
+        if key.is_rotation() {
+            rotation_count += 1;
+        } else {
+            translation_count += 1;
+        }
+        for mode_index in 0..previous_modes.len() {
+            let previous_value = previous_maps[mode_index]
+                .get(key)
+                .ok_or_else(|| "previous mesh mode maps use inconsistent DOF keys".to_owned())?;
+            let current_value = current_maps[mode_index]
+                .get(key)
+                .ok_or_else(|| "current mesh mode maps use inconsistent DOF keys".to_owned())?;
             if key.is_rotation() {
-                rotation_left.push(*previous_value);
-                rotation_right.push(*current_value);
-                combined_left.push(*previous_value * rotation_scale);
-                combined_right.push(*current_value * rotation_scale);
+                rotation_left[mode_index].push(*previous_value);
+                rotation_right[mode_index].push(*current_value);
+                combined_left[mode_index].push(*previous_value * rotation_scale);
+                combined_right[mode_index].push(*current_value * rotation_scale);
             } else {
-                translation_left.push(*previous_value);
-                translation_right.push(*current_value);
-                combined_left.push(*previous_value);
-                combined_right.push(*current_value);
+                translation_left[mode_index].push(*previous_value);
+                translation_right[mode_index].push(*current_value);
+                combined_left[mode_index].push(*previous_value);
+                combined_right[mode_index].push(*current_value);
             }
         }
     }
-    let translation_count = translation_left.len();
-    let rotation_count = rotation_left.len();
     if translation_count == 0 || rotation_count == 0 {
         return Err(format!(
             "insufficient common physical DOFs: translations={translation_count}, rotations={rotation_count}"
         ));
     }
-    Ok(ModeMacScores {
-        translation_mac: mac(&translation_left, &translation_right),
-        rotation_mac: mac(&rotation_left, &rotation_right),
-        scaled_combined_mac: mac(&combined_left, &combined_right),
+    Ok(CommonStationSamples {
+        translation_left,
+        translation_right,
+        rotation_left,
+        rotation_right,
+        combined_left,
+        combined_right,
         common_translation_dof_count: translation_count,
         common_rotation_dof_count: rotation_count,
     })
@@ -499,6 +586,11 @@ mod tests {
             assert!(pairs.iter().all(|pair| pair.mac.common_translation_dof_count == expected_translation_dofs));
             assert!(pairs.iter().all(|pair| pair.mac.common_rotation_dof_count == expected_rotation_dofs));
             assert!(pairs.iter().all(|pair| pair.mac.scaled_combined_mac.is_none_or(|score| (0.0..=1.0).contains(&score))));
+            let subspace = level.subspace_mac_from_previous.as_ref().expect("subspace correlation");
+            assert_eq!(subspace.subspace_dimension, REQUESTED_MODES);
+            assert!(subspace.mean_squared_principal_cosine.is_finite());
+            assert!((0.0..=1.0).contains(&subspace.mean_squared_principal_cosine));
+            assert!(level.subspace_mac_unresolved_reason.is_none());
         }
     }
 
