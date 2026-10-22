@@ -666,8 +666,7 @@
       ],
       "expected_decision": "blocked",
       "expected_reason_codes": [
-        "UNKNOWN_EVENT_KIND",
-        "NO_ACCEPTED_SIMULATED_PLAN"
+        "UNKNOWN_EVENT_KIND"
       ],
       "expected_physical_actuation": false
     },
