@@ -2,6 +2,8 @@
 
 Status: protocol prepared; the published irregular-block experiment is NOT yet reproduced.
 
+The publisher's article page is available online, including Table 6 aggregate values and Appendix A vehicle/shape tables. The article's Data Availability Statement says underlying experimental data and simulation results are available from the corresponding author upon request. See [PUBLISHED-SOURCE-AVAILABILITY.md](PUBLISHED-SOURCE-AVAILABILITY.md) for a factored list of recoverable and missing inputs, and [fixtures/published-case9-table6-summary.json](fixtures/published-case9-table6-summary.json) for the six published Case9 aggregate rows (not local results).
+
 ## First target
 
 Wang, Yin, and Khan, “Spatial-Scheduling Strategy for Irregularly Shaped Blocks Under Disruption in Shipbuilding,” IET Collaborative Intelligent Manufacturing, first published 11 July 2026. DOI: https://doi.org/10.1049/cim2.70066.
