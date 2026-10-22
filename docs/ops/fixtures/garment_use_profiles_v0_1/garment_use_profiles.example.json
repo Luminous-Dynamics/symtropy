@@ -1,0 +1,320 @@
+{
+  "benchmark_id": "TEXTILE-GARMENT-USE",
+  "version": "0.1",
+  "evidence_status": "synthetic_contract_profiles",
+  "profiles": [
+    {
+      "profile_id": "EVERYDAY-BASE-LAYER",
+      "archetype": "everyday",
+      "use_pattern": "frequent",
+      "functional_unit_basis": "wear_and_care_cycles",
+      "functional_unit_definition": "one accepted wear-and-care cycle while declared fit, comfort and fabric integrity remain within the frozen profile",
+      "intended_service": "frequent daily wear under a declared wash, comfort and abrasion profile",
+      "value_dimensions": [
+        "protection_or_utility",
+        "fit_and_comfort",
+        "accessibility_and_ease_of_use"
+      ],
+      "decoration_risks": [],
+      "specialist_assessment_required": false,
+      "care_constraints": [
+        "machine_washable"
+      ],
+      "circulation_routes": [
+        "repair_and_return",
+        "resale",
+        "qualified_material_recovery"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "forecast_driven_batch",
+        "small_batch"
+      ]
+    },
+    {
+      "profile_id": "WORKWEAR-REPAIRABLE",
+      "archetype": "workwear",
+      "use_pattern": "frequent",
+      "functional_unit_basis": "wear_and_care_cycles",
+      "functional_unit_definition": "one accepted service shift with the declared coverage, mobility and repair profile met",
+      "intended_service": "repeat work shifts with specified durability, access and comfort",
+      "value_dimensions": [
+        "protection_or_utility",
+        "fit_and_comfort",
+        "accessibility_and_ease_of_use"
+      ],
+      "decoration_risks": [
+        "applique_or_patchwork"
+      ],
+      "specialist_assessment_required": false,
+      "care_constraints": [
+        "machine_washable"
+      ],
+      "circulation_routes": [
+        "repair_and_return",
+        "alteration_or_restyling",
+        "qualified_material_recovery"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "forecast_driven_batch",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
+    },
+    {
+      "profile_id": "RENTAL-OCCASION-SUIT",
+      "archetype": "occasionwear",
+      "use_pattern": "seasonal",
+      "functional_unit_basis": "distinct_events",
+      "functional_unit_definition": "one accepted occasion appearance with fit, visual presentation and hygiene/care profile satisfied",
+      "intended_service": "repeated formal occasion use across different wearers or owners",
+      "value_dimensions": [
+        "fit_and_comfort",
+        "aesthetic_expression",
+        "accessibility_and_ease_of_use"
+      ],
+      "decoration_risks": [
+        "color_sensitive_surface"
+      ],
+      "specialist_assessment_required": false,
+      "care_constraints": [
+        "professional_cleaning",
+        "spot_clean_only"
+      ],
+      "circulation_routes": [
+        "rental_or_costume_hire",
+        "repair_and_return",
+        "alteration_or_restyling",
+        "resale"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "rental_or_shared_inventory",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
+    },
+    {
+      "profile_id": "COUTURE-BEADED-EVENING-GOWN",
+      "archetype": "couture_or_decorative",
+      "use_pattern": "event_specific",
+      "functional_unit_basis": "distinct_events",
+      "functional_unit_definition": "one accepted formal event appearance while beadwork, drape, fit and declared visual characteristics stay within profile",
+      "intended_service": "highly decorative event wear with fragile embellishments and preservation-sensitive construction",
+      "value_dimensions": [
+        "aesthetic_expression",
+        "collectability",
+        "fit_and_comfort"
+      ],
+      "decoration_risks": [
+        "beadwork",
+        "metallic_thread",
+        "dense_embroidery",
+        "mixed_material_trim"
+      ],
+      "specialist_assessment_required": true,
+      "care_constraints": [
+        "spot_clean_only",
+        "padded_or_flat_storage",
+        "repair_by_qualified_embellishment_specialist"
+      ],
+      "circulation_routes": [
+        "owner_retained",
+        "repair_and_return",
+        "resale",
+        "archive_or_museum_collection",
+        "exhibition_or_display",
+        "donation_or_community_transfer"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "made_to_order",
+        "one_off_artisanal",
+        "reuse_existing_sample"
+      ]
+    },
+    {
+      "profile_id": "BRIDAL-AND-CEREMONIAL-GARMENT",
+      "archetype": "ceremonial_or_heritage",
+      "use_pattern": "event_specific",
+      "functional_unit_basis": "distinct_events",
+      "functional_unit_definition": "one accepted ceremony or family/community event with cultural, fit and material-integrity requirements respected",
+      "intended_service": "rare ceremonial use with possible alterations, heirloom retention or transfer",
+      "value_dimensions": [
+        "cultural_or_ceremonial_meaning",
+        "aesthetic_expression",
+        "identity_or_belonging",
+        "collectability"
+      ],
+      "decoration_risks": [
+        "beadwork",
+        "applique_or_patchwork",
+        "color_sensitive_surface"
+      ],
+      "specialist_assessment_required": true,
+      "care_constraints": [
+        "professional_cleaning",
+        "padded_or_flat_storage",
+        "repair_by_qualified_embellishment_specialist"
+      ],
+      "circulation_routes": [
+        "owner_retained",
+        "repair_and_return",
+        "alteration_or_restyling",
+        "lending_or_shared_wardrobe",
+        "resale"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "commissioned_or_ceremonial",
+        "made_to_order",
+        "repair_or_alteration_first"
+      ]
+    },
+    {
+      "profile_id": "STAGE-AND-PERFORMANCE-COSTUME",
+      "archetype": "performance_or_costume",
+      "use_pattern": "performance_schedule",
+      "functional_unit_basis": "performance_runs",
+      "functional_unit_definition": "one completed performance run meeting movement, quick-change, appearance and stage-handling requirements",
+      "intended_service": "repeated stage or screen use with repair between performances and possible costume hire",
+      "value_dimensions": [
+        "performance_function",
+        "aesthetic_expression",
+        "accessibility_and_ease_of_use"
+      ],
+      "decoration_risks": [
+        "detachable_modular_trim",
+        "mixed_material_trim",
+        "adhesive_bonded_decoration"
+      ],
+      "specialist_assessment_required": true,
+      "care_constraints": [
+        "remove_detachable_embellishments_before_cleaning",
+        "repair_by_qualified_embellishment_specialist",
+        "padded_or_flat_storage"
+      ],
+      "circulation_routes": [
+        "rental_or_costume_hire",
+        "repair_and_return",
+        "transform_into_another_article",
+        "archive_or_museum_collection"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "rental_or_shared_inventory",
+        "one_off_artisanal",
+        "reuse_existing_sample"
+      ]
+    },
+    {
+      "profile_id": "MODULAR-DECORATIVE-STATEMENT-GARMENT",
+      "archetype": "modular_decorative",
+      "use_pattern": "occasional",
+      "functional_unit_basis": "distinct_events",
+      "functional_unit_definition": "one distinct styled appearance with the chosen detachable trim/module securely attached and within the appearance profile",
+      "intended_service": "multiple looks from one garment through reversible trim, overlays or detachable decorative modules",
+      "value_dimensions": [
+        "aesthetic_expression",
+        "identity_or_belonging",
+        "fit_and_comfort"
+      ],
+      "decoration_risks": [
+        "detachable_modular_trim",
+        "mixed_material_trim"
+      ],
+      "specialist_assessment_required": false,
+      "care_constraints": [
+        "remove_detachable_embellishments_before_cleaning",
+        "spot_clean_only"
+      ],
+      "circulation_routes": [
+        "alteration_or_restyling",
+        "repair_and_return",
+        "lending_or_shared_wardrobe",
+        "transform_into_another_article"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "made_to_order",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
+    },
+    {
+      "profile_id": "DEADSTOCK-AND-RUNWAY-SAMPLE",
+      "archetype": "deadstock_or_runway_sample",
+      "use_pattern": "occasional",
+      "functional_unit_basis": "custom",
+      "functional_unit_definition": "one declared editorial, runway, sample-review or exhibition service; unit must be fixed before comparison",
+      "intended_service": "one-off design expression or sample with material composition and subsequent route possibly unresolved",
+      "value_dimensions": [
+        "aesthetic_expression",
+        "collectability",
+        "identity_or_belonging"
+      ],
+      "decoration_risks": [
+        "unknown_blend_or_deadstock_composition",
+        "mixed_material_trim",
+        "adhesive_bonded_decoration"
+      ],
+      "specialist_assessment_required": true,
+      "care_constraints": [
+        "spot_clean_only",
+        "specialist_conservation_review"
+      ],
+      "circulation_routes": [
+        "owner_retained",
+        "lending_or_shared_wardrobe",
+        "resale",
+        "archive_or_museum_collection",
+        "transform_into_another_article",
+        "unsold_inventory_reallocation",
+        "donation_or_community_transfer"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "reuse_existing_sample",
+        "preorder_or_demand_signal",
+        "one_off_artisanal"
+      ]
+    },
+    {
+      "profile_id": "HERITAGE-COSTUME-ARCHIVE",
+      "archetype": "archive_or_display",
+      "use_pattern": "archive_preservation",
+      "functional_unit_basis": "conservation_years",
+      "functional_unit_definition": "one conservation-year meeting a declared condition, handling and access profile; wear cycles are not the unit",
+      "intended_service": "preserve a historic or culturally significant garment for study, controlled display or future access",
+      "value_dimensions": [
+        "historical_evidence",
+        "cultural_or_ceremonial_meaning",
+        "collectability"
+      ],
+      "decoration_risks": [
+        "historic_or_degrading_material",
+        "metallic_thread",
+        "beadwork"
+      ],
+      "specialist_assessment_required": true,
+      "care_constraints": [
+        "hand_support_during_handling",
+        "padded_or_flat_storage",
+        "light_and_humidity_controlled_storage",
+        "pest_inspection",
+        "specialist_conservation_review"
+      ],
+      "circulation_routes": [
+        "archive_or_museum_collection",
+        "exhibition_or_display"
+      ],
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "commissioned_or_ceremonial",
+        "repair_or_alteration_first",
+        "reuse_existing_sample"
+      ]
+    }
+  ]
+}

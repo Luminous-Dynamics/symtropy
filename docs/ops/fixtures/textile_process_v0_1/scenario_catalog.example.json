@@ -1,0 +1,388 @@
+{
+  "benchmark_id": "TEXTILE-PROC",
+  "version": "0.1",
+  "evidence_status": "synthetic_contract_cases",
+  "cases": [
+    {
+      "id": "water-steam-schedule-tradeoff",
+      "category": "scheduling",
+      "synthetic": true,
+      "purpose": "Ensure batch grouping and low-water routes expose trade-offs against thermal energy, delivery slack, and wastewater rather than selecting a universal winner.",
+      "facts": [
+        {
+          "field": "candidate_routes",
+          "state": "synthetic_declared",
+          "value": [
+            {
+              "route_id": "route-a",
+              "freshwater_l_per_batch": 1800,
+              "thermal_energy_kwh_per_batch": 240,
+              "changeover_hours": 1
+            },
+            {
+              "route_id": "route-b",
+              "freshwater_l_per_batch": 1250,
+              "thermal_energy_kwh_per_batch": 310,
+              "changeover_hours": 0.4
+            }
+          ],
+          "notes": "Illustrative values only; not a production recipe or measured process."
+        },
+        {
+          "field": "delivery_slack_hours",
+          "state": "synthetic_declared",
+          "value": 2,
+          "unit": "h"
+        },
+        {
+          "field": "hard_product_quality_profile",
+          "state": "synthetic_declared",
+          "value": "same_frozen_profile"
+        }
+      ],
+      "expected_decision": "feasible_pareto_set",
+      "required_invariants": [
+        "Show named water, energy and schedule objectives separately.",
+        "Retain both routes when neither dominates and both satisfy hard constraints.",
+        "Reject any route that exceeds the frozen delivery or quality constraint."
+      ],
+      "forbidden_claims": [
+        "Do not call either route universally greener or cheaper.",
+        "Do not treat synthetic resource values as measured savings."
+      ]
+    },
+    {
+      "id": "weaving-defect-rework",
+      "category": "quality",
+      "synthetic": true,
+      "purpose": "Ensure gross throughput and nominal speed do not hide defects, rework, false negatives or reduced accepted output.",
+      "facts": [
+        {
+          "field": "gross_output_kg",
+          "state": "synthetic_declared",
+          "value": 1000,
+          "unit": "kg"
+        },
+        {
+          "field": "first_pass_yield",
+          "state": "synthetic_declared",
+          "value": 0.87,
+          "unit": "fraction"
+        },
+        {
+          "field": "visual_inspection_false_negative_rate",
+          "state": "unknown",
+          "unit": "fraction"
+        },
+        {
+          "field": "accepted_product_profile",
+          "state": "synthetic_declared",
+          "value": "frozen_profile_v1"
+        }
+      ],
+      "expected_decision": "incomplete_assessment",
+      "required_invariants": [
+        "Calculate accepted output separately from gross output.",
+        "Mark defect performance as incomplete while the false-negative evidence is unknown.",
+        "Do not rank a faster process above another using gross output alone."
+      ],
+      "forbidden_claims": [
+        "Do not claim general defect-detection accuracy from the synthetic fixture.",
+        "Do not treat unobserved defects as absent."
+      ]
+    },
+    {
+      "id": "blended-fiber-recovery-grade",
+      "category": "circularity",
+      "synthetic": true,
+      "purpose": "Prevent a recovered blended fiber from being treated as qualified fiber-to-fiber feedstock when composition or secondary grade is unresolved.",
+      "facts": [
+        {
+          "field": "nominal_blend_composition",
+          "state": "conflicting",
+          "value": [
+            "cotton-rich supplier declaration",
+            "unverified mixed-fiber report"
+          ]
+        },
+        {
+          "field": "secondary_fiber_grade",
+          "state": "unknown"
+        },
+        {
+          "field": "collection_and_sorting_completed",
+          "state": "synthetic_declared",
+          "value": true
+        }
+      ],
+      "expected_decision": "blocked",
+      "required_invariants": [
+        "Preserve the conflict between blend claims.",
+        "Allow only claims supported by the known collection/sorting state.",
+        "Block admission as specification-grade secondary fiber until required grade evidence exists."
+      ],
+      "forbidden_claims": [
+        "Do not equate collection, sorting or shredding with fiber-to-fiber recycling.",
+        "Do not infer composition or purity from a nominal product name."
+      ]
+    },
+    {
+      "id": "service-life-functional-unit",
+      "category": "durability",
+      "synthetic": true,
+      "purpose": "Prevent per-kilogram comparisons from treating products with different verified useful lives as functionally equivalent.",
+      "facts": [
+        {
+          "field": "candidate_a_service_cycles",
+          "state": "synthetic_declared",
+          "value": 50,
+          "unit": "cycles"
+        },
+        {
+          "field": "candidate_b_service_cycles",
+          "state": "unknown"
+        },
+        {
+          "field": "functional_unit_definition",
+          "state": "synthetic_declared",
+          "value": "one accepted service cycle under profile v1"
+        }
+      ],
+      "expected_decision": "incomplete_assessment",
+      "required_invariants": [
+        "Keep service-life evidence separate from material intensity.",
+        "Do not assert lifecycle superiority while Candidate B service-life evidence is unknown.",
+        "Report the missing evidence needed to compare equivalent delivered service."
+      ],
+      "forbidden_claims": [
+        "Do not label the lower-mass candidate better per use without service-life support.",
+        "Do not convert an unverified durability claim into a measured fact."
+      ]
+    },
+    {
+      "id": "machine-outage-delivery-resilience",
+      "category": "resilience",
+      "synthetic": true,
+      "purpose": "Test schedule robustness when a bottleneck machine becomes unavailable without violating product or delivery constraints silently.",
+      "facts": [
+        {
+          "field": "bottleneck_machine_availability",
+          "state": "synthetic_declared",
+          "value": "unavailable_during_frozen_window"
+        },
+        {
+          "field": "alternative_machine_qualification",
+          "state": "synthetic_declared",
+          "value": "qualified_for_subset_of_routes"
+        },
+        {
+          "field": "delivery_commitment",
+          "state": "synthetic_declared",
+          "value": "hard_constraint"
+        }
+      ],
+      "expected_decision": "feasible_pareto_set",
+      "required_invariants": [
+        "Recompute the schedule under the declared outage scenario.",
+        "Use the alternative machine only for routes it is qualified to perform.",
+        "Expose infeasibility when the commitment cannot be met."
+      ],
+      "forbidden_claims": [
+        "Do not assume the failed machine or unqualified substitute is available.",
+        "Do not hide missed delivery behind aggregate throughput."
+      ]
+    },
+    {
+      "id": "missing-effluent-admission",
+      "category": "environmental_gate",
+      "synthetic": true,
+      "purpose": "Ensure apparent resource gains cannot compensate for missing required wastewater-treatment or discharge evidence.",
+      "facts": [
+        {
+          "field": "electricity_intensity",
+          "state": "synthetic_declared",
+          "value": 0.8,
+          "unit": "kWh/functional_unit"
+        },
+        {
+          "field": "freshwater_intensity",
+          "state": "synthetic_declared",
+          "value": 12,
+          "unit": "L/functional_unit"
+        },
+        {
+          "field": "required_effluent_treatment_capacity",
+          "state": "unknown"
+        },
+        {
+          "field": "discharge_admission_evidence",
+          "state": "unknown"
+        }
+      ],
+      "expected_decision": "blocked",
+      "required_invariants": [
+        "Block feasibility while the required effluent authority is unknown.",
+        "Keep measured/synthetic resource values visible without upgrading admissibility.",
+        "Identify the exact missing evidence reference."
+      ],
+      "forbidden_claims": [
+        "Do not declare the route feasible because its energy and water figures are favorable.",
+        "Do not imply regulatory compliance from this synthetic case."
+      ]
+    },
+    {
+      "id": "partial-local-supply-closure",
+      "category": "supply_closure",
+      "synthetic": true,
+      "purpose": "Distinguish local assembly from a fully renewable manufacturing chain when critical textile inputs or processes remain imported/unqualified.",
+      "facts": [
+        {
+          "field": "cut_and_sew_capability",
+          "state": "synthetic_declared",
+          "value": "local_and_qualified"
+        },
+        {
+          "field": "specialty_membrane_supply",
+          "state": "synthetic_declared",
+          "value": "imported"
+        },
+        {
+          "field": "membrane_substitution_qualification",
+          "state": "unknown"
+        },
+        {
+          "field": "fastener_grade_evidence",
+          "state": "synthetic_declared",
+          "value": "available_for_one_profile"
+        }
+      ],
+      "expected_decision": "partial_closure",
+      "required_invariants": [
+        "Represent local cut/sew capability separately from specialty-input closure.",
+        "Preserve the imported dependency and its evidence state.",
+        "Do not claim full multi-generation supply closure."
+      ],
+      "forbidden_claims": [
+        "Do not equate local assembly with full local industrial capability.",
+        "Do not silently substitute an unqualified material."
+      ]
+    },
+    {
+      "id": "conflicting-lot-lineage",
+      "category": "provenance",
+      "synthetic": true,
+      "purpose": "Ensure lots sharing a nominal fiber or fabric name remain distinct when source, process version, assay scope or validity conflicts.",
+      "facts": [
+        {
+          "field": "lot_a_identity",
+          "state": "synthetic_declared",
+          "value": "LOT-A"
+        },
+        {
+          "field": "lot_b_identity",
+          "state": "synthetic_declared",
+          "value": "LOT-B"
+        },
+        {
+          "field": "nominal_material_label",
+          "state": "synthetic_declared",
+          "value": "same_label"
+        },
+        {
+          "field": "supplier_and_process_claims",
+          "state": "conflicting",
+          "value": [
+            "process-version-1",
+            "process-version-2"
+          ]
+        }
+      ],
+      "expected_decision": "blocked",
+      "required_invariants": [
+        "Retain distinct lot identities and conflicting claims.",
+        "Require compatible scope and validity before evidence can be reused.",
+        "Preserve an audit trail for any resolved claim."
+      ],
+      "forbidden_claims": [
+        "Do not merge the lots into one evidence subject solely because labels match.",
+        "Do not let custody attestations prove product performance."
+      ]
+    },
+    {
+      "id": "permutation-determinism",
+      "category": "determinism",
+      "synthetic": true,
+      "purpose": "Ensure ordering independent jobs, resources and evidence records does not change the canonical result.",
+      "facts": [
+        {
+          "field": "base_manifest_hash",
+          "state": "synthetic_declared",
+          "value": "sha256:synthetic-base"
+        },
+        {
+          "field": "solver_version",
+          "state": "synthetic_declared",
+          "value": "textile-benchmark-contract-0.1"
+        },
+        {
+          "field": "seed",
+          "state": "synthetic_declared",
+          "value": 1729
+        },
+        {
+          "field": "input_order_variants",
+          "state": "synthetic_declared",
+          "value": 100
+        }
+      ],
+      "expected_decision": "determinism_invariant",
+      "required_invariants": [
+        "Produce the same canonical output for semantically identical inputs.",
+        "Record manifest, solver version and seed in the result.",
+        "Reject duplicate canonical IDs rather than resolving them by input order."
+      ],
+      "forbidden_claims": [
+        "Do not claim determinism across different solver builds or hardware unless tested.",
+        "Do not claim that this contract fixture is itself a completed runtime test."
+      ]
+    },
+    {
+      "id": "unknown-impact-factor",
+      "category": "uncertainty",
+      "synthetic": true,
+      "purpose": "Prevent a missing material, electricity, waste or transport factor from making a candidate appear artificially favorable.",
+      "facts": [
+        {
+          "field": "electricity_factor",
+          "state": "synthetic_declared",
+          "value": 0.35,
+          "unit": "kgCO2e/kWh",
+          "notes": "Illustrative scope only."
+        },
+        {
+          "field": "secondary_fiber_embodied_impact_factor",
+          "state": "unknown"
+        },
+        {
+          "field": "waste_route_factor",
+          "state": "unknown"
+        },
+        {
+          "field": "required_impact_scope",
+          "state": "synthetic_declared",
+          "value": "declared_boundary_v1"
+        }
+      ],
+      "expected_decision": "incomplete_assessment",
+      "required_invariants": [
+        "Mark impact assessment incomplete where required factors are unknown.",
+        "Return the highest-impact missing factor or evidence gap as a measurement request.",
+        "Do not substitute zero for unknown."
+      ],
+      "forbidden_claims": [
+        "Do not declare a lower greenhouse-gas result with incomplete required scope.",
+        "Do not present an illustrative emission factor as universal."
+      ]
+    }
+  ]
+}
