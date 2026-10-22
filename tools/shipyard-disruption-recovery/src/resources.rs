@@ -34,6 +34,7 @@ pub struct ResourceOutage {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ResourceViolationCode {
+    EmptyResourceSchedule,
     EmptyReservationId,
     EmptyOperationId,
     EmptyResourceId,
@@ -58,6 +59,7 @@ pub enum ResourceViolationCode {
 impl ResourceViolationCode {
     pub const fn as_str(&self) -> &'static str {
         match self {
+            Self::EmptyResourceSchedule => "EmptyResourceSchedule",
             Self::EmptyReservationId => "EmptyReservationId",
             Self::EmptyOperationId => "EmptyOperationId",
             Self::EmptyResourceId => "EmptyResourceId",
@@ -114,6 +116,14 @@ fn sort_dedup(violations: &mut Vec<ResourceViolation>) {
 
 fn validate_schedule(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
     let mut violations = Vec::new();
+    if schedule.reservations.is_empty() {
+        push(
+            &mut violations,
+            ResourceViolationCode::EmptyResourceSchedule,
+            Vec::new(),
+            "resource schedule must explicitly enumerate at least one required resource reservation",
+        );
+    }
     let mut seen_ids = BTreeSet::new();
     let mut kinds_by_resource: BTreeMap<&str, &str> = BTreeMap::new();
 
@@ -765,6 +775,16 @@ mod tests {
             placement_occupancy_extensions: Vec::new(),
             explicitly_affected_reservation_ids: Vec::new(),
         }
+    }
+
+    #[test]
+    fn empty_resource_schedule_fails_closed() {
+        let empty = ResourceSchedule::default();
+        let report = evaluate_resource_recovery(&empty, &empty, 0, &[]);
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::EmptyResourceSchedule
+        }));
     }
 
     #[test]
