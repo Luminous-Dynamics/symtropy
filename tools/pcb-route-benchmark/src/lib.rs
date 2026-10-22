@@ -1155,6 +1155,14 @@ fn validate_audit_envelope(
         if board.board_id.trim().is_empty() || !ids.insert(board.board_id.as_str()) {
             return Err(format!("empty or duplicate board ID in license audit: {}", board.board_id));
         }
+        validate_relative_path(&board.pcbench_directory, &format!("{} PCBench directory", board.board_id))?;
+        validate_relative_path(&board.metadata_path, &format!("{} PCBench metadata path", board.board_id))?;
+        if board.metadata_path != format!("PCBs/{}/metadata.json", board.pcbench_directory) {
+            return Err(format!("{}: PCBench metadata path does not match the pinned dataset directory", board.board_id));
+        }
+        if !is_git_blob_sha1(&board.metadata_git_blob_sha1) {
+            return Err(format!("{}: PCBench metadata Git blob SHA-1 is malformed", board.board_id));
+        }
         if board.original_source_repository.trim().is_empty()
             || !board.original_source_repository.starts_with("https://")
         {
@@ -1186,6 +1194,12 @@ fn validate_audit_manifest_for_manifest(
         &manifest.benchmark_id,
         &manifest.dataset_id,
     )?;
+    let source_split_url = manifest.source_split_config_url.as_deref().unwrap_or_default();
+    let source_split_commit = manifest.source_split_commit_sha.as_deref().unwrap_or_default();
+    let expected_split_suffix = format!("/{source_split_commit}/{}", audit.upstream.d3_split_config_path);
+    if !source_split_url.ends_with(&expected_split_suffix) {
+        return Err("manifest source split-config URL path differs from the pinned license-audit path".into());
+    }
     for pin in &manifest.boards {
         let record = audit.boards.iter()
             .find(|record| record.board_id == pin.board_id)
