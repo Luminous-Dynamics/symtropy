@@ -2693,6 +2693,17 @@ mod tests {
             2
         );
 
+        let mut aliased_manifest: serde_json::Value =
+            serde_json::from_slice(&manifest_bytes).unwrap();
+        let first_board_path = aliased_manifest["boards"][0]["relative_path"].clone();
+        aliased_manifest["boards"][1]["relative_path"] = first_board_path;
+        let aliased_bytes = serde_json::to_vec(&aliased_manifest).unwrap();
+        assert!(
+            verify_dataset_files(&aliased_bytes, &root, EVALUATOR_HEAD)
+                .unwrap_err()
+                .contains("source path aliases another pinned dataset artifact")
+        );
+
         // A manifest with an incorrect upstream Git blob pin must reject even
         // when its SHA-256 still matches the actual copied evidence bytes.
         let mut wrong_blob_manifest: serde_json::Value =
