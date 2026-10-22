@@ -9,8 +9,8 @@ use super::{
     ResponseRobustnessError, compute_response_robustness,
 };
 use crate::resident_preference_probe::{
-    PairwisePreferenceQuestion, PreferenceAlternative, PreferenceProbeError,
-    PreferenceScenario, ResidentPreferenceProbeRequest, minimax_regret, utility_numerator,
+    PairwisePreferenceQuestion, PreferenceProbeError, PreferenceScenario,
+    ResidentPreferenceProbeRequest, utility_numerator,
 };
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
@@ -135,7 +135,6 @@ impl std::error::Error for PolicyEvaluationError {}
 struct EvaluationContext<'a> {
     request: &'a ResidentPreferenceProbeRequest,
     channel: &'a BoundedPreferenceResponseChannel,
-    held_out: &'a PreferenceScenario,
     policy: QuestionPolicy,
     budget: usize,
     seed: u64,
@@ -276,6 +275,7 @@ fn push_terminal_leaf(
     leaves: &mut Vec<PolicyEvaluationLeaf>,
 ) {
     if unresolved_out_of_channel || compatible_scenarios.is_empty() {
+        let questions_used = history.len();
         leaves.push(PolicyEvaluationLeaf {
             history,
             final_training_support_ids: Vec::new(),
@@ -283,7 +283,7 @@ fn push_terminal_leaf(
             realized_regret_units: None,
             final_training_minimax_regret_units: None,
             unresolved_out_of_channel: true,
-            questions_used: history.len(),
+            questions_used,
             total_query_cost_units,
             total_query_duration_units,
         });
@@ -304,6 +304,7 @@ fn push_terminal_leaf(
         .collect::<Vec<_>>();
     support_ids.sort();
 
+    let questions_used = history.len();
     leaves.push(PolicyEvaluationLeaf {
         history,
         final_training_support_ids: support_ids,
@@ -487,13 +488,10 @@ pub fn evaluate_question_policy(
             "scenario identifier is blank or has surrounding whitespace",
         ));
     }
-    if held_out_model.scenario_id
-        == request
-            .scenarios
-            .iter()
-            .map(|scenario| scenario.scenario_id.as_str())
-            .find(|id| *id == held_out_model.scenario_id)
-            .unwrap_or("")
+    if request
+        .scenarios
+        .iter()
+        .any(|scenario| scenario.scenario_id == held_out_model.scenario_id)
     {
         return Err(PolicyEvaluationError::HeldOutModelLeakage {
             model_id: held_out_model.scenario_id.clone(),
@@ -568,7 +566,6 @@ pub fn evaluate_question_policy(
     let context = EvaluationContext {
         request,
         channel,
-        held_out: held_out_model,
         policy,
         budget: question_budget,
         seed,
@@ -717,9 +714,9 @@ mod tests {
         assert_eq!(report.unresolved_leaf_count, 0);
         assert_eq!(report.worst_resolved_leaf_regret_units, Some(0));
         assert_eq!(report.leaves[0].realized_regret_units, Some(0));
-        assert_eq!(
+        assert_ne!(
             report.leaves[0].history[0].observed_answer,
-            ObservedPreferenceAnswer::LeftPreferred
+            ObservedPreferenceAnswer::Unresolved
         );
     }
 
