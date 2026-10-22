@@ -159,8 +159,8 @@ jq -n \
         disposition: "detected"
       }
     ],
-    mutation_count: 5,
-    detected_count: 5,
+    mutation_count: 6,
+    detected_count: 6,
     production_source_unchanged: true,
     claim_ceiling: "software test sensitivity for synthetic one-element-per-member generalized modal solve; no refined NAFEMS spectrum or physical validation"
   }' > "$receipt_path"
