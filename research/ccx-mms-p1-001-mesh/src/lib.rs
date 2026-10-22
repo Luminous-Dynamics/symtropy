@@ -34,6 +34,18 @@ pub struct Mesh {
     pub triangles: Vec<Triangle>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ErrorNorms {
+    pub displacement_l2_absolute: f64,
+    pub displacement_l2_relative: f64,
+    pub energy_error_absolute: f64,
+    pub energy_error_relative: f64,
+    pub stress_l2_relative: f64,
+    pub exact_displacement_l2_norm: f64,
+    pub exact_energy_norm: f64,
+    pub exact_stress_l2_norm: f64,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MeshError {
     ZeroResolution,
@@ -41,6 +53,9 @@ pub enum MeshError {
     InvalidQuadratureOrder,
     InvalidMeshTopology,
     InvalidLoadVectorLength,
+    InvalidDisplacementVectorLength,
+    NonFiniteDisplacement,
+    InvalidReferenceNorm,
 }
 
 impl Mesh {
@@ -127,6 +142,167 @@ impl Mesh {
             return Err(MeshError::InvalidMeshTopology);
         }
         Ok(loads)
+    }
+
+
+    /// Evaluate exact-continuum errors of a P1 finite-element field.
+    ///
+    /// This is a postprocessor, not a solver. The nodal displacement slice must
+    /// use the same node order as this mesh. FE strain is constant per triangle;
+    /// exact displacement, strain, and stress are integrated by Duffy/Gauss.
+    /// Plane-strain energy density is lambda*trace(epsilon)^2 plus
+    /// 2*mu*(epsilon:epsilon).
+    pub fn compute_error_norms(
+        &self,
+        problem: ManufacturedProblem,
+        nodal_displacements: &[Vec2],
+        quadrature_order: usize,
+    ) -> Result<ErrorNorms, MeshError> {
+        validate_mesh(self)?;
+        if nodal_displacements.len() != self.nodes.len() {
+            return Err(MeshError::InvalidDisplacementVectorLength);
+        }
+        if nodal_displacements
+            .iter()
+            .any(|u| !u.x.is_finite() || !u.y.is_finite())
+        {
+            return Err(MeshError::NonFiniteDisplacement);
+        }
+
+        let quadrature = gauss_legendre_unit_interval(quadrature_order)?;
+        let (lambda, mu) = problem.material().lame_parameters();
+        let mut displacement_error_squared = 0.0;
+        let mut exact_displacement_squared = 0.0;
+        let mut energy_error_squared = 0.0;
+        let mut exact_energy_squared = 0.0;
+        let mut stress_error_squared = 0.0;
+        let mut exact_stress_squared = 0.0;
+
+        for triangle in &self.triangles {
+            let a = self.nodes[triangle.nodes[0] - 1];
+            let b = self.nodes[triangle.nodes[1] - 1];
+            let c = self.nodes[triangle.nodes[2] - 1];
+            let nodal = [
+                nodal_displacements[triangle.nodes[0] - 1],
+                nodal_displacements[triangle.nodes[1] - 1],
+                nodal_displacements[triangle.nodes[2] - 1],
+            ];
+            let determinant = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+            if !determinant.is_finite() || determinant <= 0.0 {
+                return Err(MeshError::InvalidMeshTopology);
+            }
+
+            let gradients = [
+                [(b.y - c.y) / determinant, (c.x - b.x) / determinant],
+                [(c.y - a.y) / determinant, (a.x - c.x) / determinant],
+                [(a.y - b.y) / determinant, (b.x - a.x) / determinant],
+            ];
+            let mut dux_dx = 0.0;
+            let mut dux_dy = 0.0;
+            let mut duy_dx = 0.0;
+            let mut duy_dy = 0.0;
+            for (displacement, gradient) in nodal.iter().zip(gradients) {
+                dux_dx += displacement.x * gradient[0];
+                dux_dy += displacement.x * gradient[1];
+                duy_dx += displacement.y * gradient[0];
+                duy_dy += displacement.y * gradient[1];
+            }
+            let fem_strain = ccx_mms_p1_oracle::Strain2 {
+                xx: dux_dx,
+                yy: duy_dy,
+                xy: 0.5 * (dux_dy + duy_dx),
+            };
+
+            for &(u, wu) in &quadrature {
+                for &(v, wv) in &quadrature {
+                    let r = u;
+                    let s = (1.0 - u) * v;
+                    let shape = [1.0 - r - s, r, s];
+                    let x = a.x + r * (b.x - a.x) + s * (c.x - a.x);
+                    let y = a.y + r * (b.y - a.y) + s * (c.y - a.y);
+                    let fem_displacement = Vec2 {
+                        x: shape[0] * nodal[0].x
+                            + shape[1] * nodal[1].x
+                            + shape[2] * nodal[2].x,
+                        y: shape[0] * nodal[0].y
+                            + shape[1] * nodal[1].y
+                            + shape[2] * nodal[2].y,
+                    };
+                    let exact_displacement = problem.displacement(x, y);
+                    let exact_strain = problem.strain(x, y);
+                    let strain_error = ccx_mms_p1_oracle::Strain2 {
+                        xx: fem_strain.xx - exact_strain.xx,
+                        yy: fem_strain.yy - exact_strain.yy,
+                        xy: fem_strain.xy - exact_strain.xy,
+                    };
+                    let weight = determinant * (1.0 - u) * wu * wv;
+
+                    displacement_error_squared += weight
+                        * ((fem_displacement.x - exact_displacement.x).powi(2)
+                            + (fem_displacement.y - exact_displacement.y).powi(2));
+                    exact_displacement_squared += weight
+                        * (exact_displacement.x.powi(2) + exact_displacement.y.powi(2));
+                    energy_error_squared += weight * energy_density(strain_error, lambda, mu);
+                    exact_energy_squared += weight * energy_density(exact_strain, lambda, mu);
+
+                    let fem_trace = fem_strain.xx + fem_strain.yy;
+                    let fem_stress = [
+                        lambda * fem_trace + 2.0 * mu * fem_strain.xx,
+                        lambda * fem_trace + 2.0 * mu * fem_strain.yy,
+                        lambda * fem_trace,
+                        2.0 * mu * fem_strain.xy,
+                    ];
+                    let exact_stress = problem.stress(x, y);
+                    let exact_stress_components = [
+                        exact_stress.xx,
+                        exact_stress.yy,
+                        exact_stress.zz,
+                        exact_stress.xy,
+                    ];
+                    stress_error_squared += weight
+                        * ((fem_stress[0] - exact_stress_components[0]).powi(2)
+                            + (fem_stress[1] - exact_stress_components[1]).powi(2)
+                            + (fem_stress[2] - exact_stress_components[2]).powi(2)
+                            + 2.0 * (fem_stress[3] - exact_stress_components[3]).powi(2));
+                    exact_stress_squared += weight
+                        * (exact_stress_components[0].powi(2)
+                            + exact_stress_components[1].powi(2)
+                            + exact_stress_components[2].powi(2)
+                            + 2.0 * exact_stress_components[3].powi(2));
+                }
+            }
+        }
+
+        let exact_displacement_norm = exact_displacement_squared.sqrt();
+        let exact_energy_norm = exact_energy_squared.sqrt();
+        let exact_stress_norm = exact_stress_squared.sqrt();
+        if !exact_displacement_norm.is_finite()
+            || !exact_energy_norm.is_finite()
+            || !exact_stress_norm.is_finite()
+            || exact_displacement_norm <= 0.0
+            || exact_energy_norm <= 0.0
+            || exact_stress_norm <= 0.0
+            || !displacement_error_squared.is_finite()
+            || !energy_error_squared.is_finite()
+            || !stress_error_squared.is_finite()
+            || energy_error_squared < 0.0
+            || stress_error_squared < 0.0
+        {
+            return Err(MeshError::InvalidReferenceNorm);
+        }
+
+        let displacement_l2_absolute = displacement_error_squared.sqrt();
+        let energy_error_absolute = energy_error_squared.sqrt();
+        Ok(ErrorNorms {
+            displacement_l2_absolute,
+            displacement_l2_relative: displacement_l2_absolute / exact_displacement_norm,
+            energy_error_absolute,
+            energy_error_relative: energy_error_absolute / exact_energy_norm,
+            stress_l2_relative: stress_error_squared.sqrt() / exact_stress_norm,
+            exact_displacement_l2_norm: exact_displacement_norm,
+            exact_energy_norm,
+            exact_stress_l2_norm: exact_stress_norm,
+        })
     }
 
     /// Sum the nodal loads to recover the global body-force resultant.
@@ -266,6 +442,12 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
         }
     }
     Ok(())
+}
+
+
+fn energy_density(strain: ccx_mms_p1_oracle::Strain2, lambda: f64, mu: f64) -> f64 {
+    lambda * (strain.xx + strain.yy).powi(2)
+        + 2.0 * mu * (strain.xx.powi(2) + strain.yy.powi(2) + 2.0 * strain.xy.powi(2))
 }
 
 /// Gauss-Legendre points and weights mapped to [0,1], sorted by point.
@@ -415,6 +597,94 @@ mod tests {
         tampered[first_interior].x *= 1.01;
         let measured = relative_load_difference(&baseline, &tampered).unwrap();
         assert!(measured > 1.0e-5, "tamper signal={measured:e}");
+    }
+
+
+    #[test]
+    fn exact_nodal_interpolation_exhibits_expected_l2_and_energy_orders() {
+        let problem = ManufacturedProblem::reference();
+        let mut errors = Vec::new();
+        for n in [8, 16, 32, 64] {
+            let mesh = generate_mesh(n).unwrap();
+            let exact_nodal: Vec<Vec2> = mesh
+                .nodes
+                .iter()
+                .map(|node| problem.displacement(node.x, node.y))
+                .collect();
+            errors.push(mesh.compute_error_norms(problem, &exact_nodal, 12).unwrap());
+        }
+
+        for pair in errors.windows(2) {
+            assert!(
+                pair[1].displacement_l2_relative < pair[0].displacement_l2_relative,
+                "displacement L2 error did not decrease"
+            );
+            assert!(
+                pair[1].energy_error_relative < pair[0].energy_error_relative,
+                "energy error did not decrease"
+            );
+        }
+
+        for index in [1, 2] {
+            let l2_order = (errors[index].displacement_l2_relative
+                / errors[index + 1].displacement_l2_relative)
+                .ln()
+                / 2.0_f64.ln();
+            let energy_order = (errors[index].energy_error_relative
+                / errors[index + 1].energy_error_relative)
+                .ln()
+                / 2.0_f64.ln();
+            assert!(
+                (1.5..=2.5).contains(&l2_order),
+                "interpolation L2 order={l2_order:.6}"
+            );
+            assert!(
+                (0.75..=1.25).contains(&energy_order),
+                "interpolation energy order={energy_order:.6}"
+            );
+        }
+    }
+
+    #[test]
+    fn interpolation_error_norms_are_quadrature_independent() {
+        let mesh = generate_mesh(8).unwrap();
+        let problem = ManufacturedProblem::reference();
+        let exact_nodal: Vec<Vec2> = mesh
+            .nodes
+            .iter()
+            .map(|node| problem.displacement(node.x, node.y))
+            .collect();
+        let low = mesh.compute_error_norms(problem, &exact_nodal, 32).unwrap();
+        let high = mesh.compute_error_norms(problem, &exact_nodal, 48).unwrap();
+        let relative_l2 = (low.displacement_l2_relative - high.displacement_l2_relative).abs()
+            / high.displacement_l2_relative.abs();
+        let relative_energy = (low.energy_error_relative - high.energy_error_relative).abs()
+            / high.energy_error_relative.abs();
+        assert!(relative_l2 <= 1.0e-10, "L2 quadrature difference={relative_l2:e}");
+        assert!(
+            relative_energy <= 1.0e-10,
+            "energy quadrature difference={relative_energy:e}"
+        );
+    }
+
+    #[test]
+    fn error_postprocessor_fails_closed_on_invalid_nodal_data() {
+        let mesh = generate_mesh(4).unwrap();
+        let problem = ManufacturedProblem::reference();
+        assert_eq!(
+            mesh.compute_error_norms(problem, &[], 8).unwrap_err(),
+            MeshError::InvalidDisplacementVectorLength
+        );
+        let mut nodal: Vec<Vec2> = mesh
+            .nodes
+            .iter()
+            .map(|node| problem.displacement(node.x, node.y))
+            .collect();
+        nodal[3].x = f64::NAN;
+        assert_eq!(
+            mesh.compute_error_norms(problem, &nodal, 8).unwrap_err(),
+            MeshError::NonFiniteDisplacement
+        );
     }
 
     #[test]
