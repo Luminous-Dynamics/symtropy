@@ -552,6 +552,44 @@ mod tests {
     }
 
     #[test]
+    fn refined_released_joint_mesh_converges_without_losing_modes() {
+        use crate::beam_mesh::assemble_refined_released_joint_pin_truss;
+
+        let mut fundamental_frequencies = Vec::new();
+        for elements_per_member in [1_usize, 2, 4, 8] {
+            let assembly = assemble_refined_released_joint_pin_truss(
+                &sample_nodes(),
+                &sample_members(),
+                elements_per_member,
+            )
+            .expect("refined released-joint beam assembly");
+            let result =
+                solve_beam_pin_assembly_modes(&assembly).expect("refined beam modal solution");
+            assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
+            assert!(result.modes.iter().all(|mode| mode.class == BeamModeClass::Elastic));
+            assert!(result.maximum_normalized_eigen_residual < 1.0e-8);
+            assert!(result.maximum_mass_norm_residual < 1.0e-8);
+            assert!(result.maximum_off_diagonal_mass_orthogonality_residual < 1.0e-8);
+            fundamental_frequencies.push(
+                result.modes[0]
+                    .frequency_hz
+                    .expect("fundamental elastic frequency"),
+            );
+        }
+
+        // The piecewise-Hermite trial spaces are nested for 1, 2, 4 and 8
+        // elements per member. Their first Ritz eigenfrequency should not rise
+        // under uniform refinement (allowing a small floating-point tolerance).
+        for pair in fundamental_frequencies.windows(2) {
+            assert!(
+                pair[1] <= pair[0] * (1.0 + 1.0e-8),
+                "fundamental frequency rose under mesh refinement: {:?}",
+                fundamental_frequencies
+            );
+        }
+    }
+
+    #[test]
     fn zero_eigenvalues_are_reported_not_silently_dropped() {
         let mut assembly = fixture();
         let free = assembly.free_dof_indices.clone();
