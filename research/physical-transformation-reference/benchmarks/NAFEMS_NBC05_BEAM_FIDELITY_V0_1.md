@@ -71,7 +71,9 @@ Verify mass-matrix symmetry and positivity on the constrained subspace; emit mod
 
 ### B3 — Mesh and modal convergence
 
-Start with small meshes and build an explicit convergence matrix (1, 2, 4, 8, 16, 32, 64, 100, 200 elements/member as feasible). Report mode count, frequency change, MAC-based mode correspondence and mechanism count at each level. Avoid computing a dense eigenspectrum at 400 elements if a sparse eigen-solver is needed; declare the backend and exact version.
+The topology foundation is in draft [PR #2562](https://github.com/Luminous-Dynamics/symtropy/pull/2562). Its four-element, five-node fixture splits both physical members once: rotations remain shared at interior nodes D/E, while the four released physical endpoints at A/B/C receive private rotations. The canonical request and deterministic receipt pin a 16-DOF assembly (4 restrained translations, 2 shared interior rotations and 4 private release rotations). Its mutation audit changes a correct released endpoint into a shared node rotation and requires the named topology test to fail. This is the first refinement-ready topology slice, not a convergence result.
+
+For actual modal convergence, start with meshes of 1, 2, 4, 8, 16, 32, 64, 100 and 200 elements per physical member as feasible. Interior rotations must remain continuous across element boundaries; only the physical pin joints release rotations. Report mode count, frequency change, MAC-based mode correspondence and mechanism count at each level. Avoid computing a dense eigenspectrum at 400 elements if a sparse eigen-solver is needed; declare the backend and exact version.
 
 The published 'within 1% up to 1600 Hz' figure is a result for the source's beam formulation and assumptions, not a universal promise for a different implementation. A result counts as a reproduction only when the DOFs, joint releases, cross section, beam theory, mass and rotary-inertia choices, solver, mode pairing and convergence trend agree.
 
