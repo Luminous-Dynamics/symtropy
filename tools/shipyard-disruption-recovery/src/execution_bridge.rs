@@ -341,7 +341,7 @@ pub fn augment_disruption_from_execution(
             continue;
         }
 
-        let Some(operation) = plan_by_id.get(binding.operation_id.as_str()) else {
+        let Some(_operation) = plan_by_id.get(binding.operation_id.as_str()) else {
             push(
                 &mut violations,
                 ExecutionRecoveryBridgeViolationCode::UnknownBoundOperation,
@@ -582,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn late_clearance_event_generates_receipted_occupancy_extension() {
+    fn positive_current_occupancy_witness_generates_receipted_extension() {
         let report = augment_disruption_from_execution(
             &baseline(5),
             &plan(5),
@@ -696,7 +696,7 @@ mod tests {
     }
 
     #[test]
-    fn late_recorded_completion_is_not_usable_for_an_earlier_recovery_decision() {
+    fn late_recorded_occupancy_witness_is_not_usable_for_an_earlier_decision() {
         let report = augment_disruption_from_execution(
             &baseline(5),
             &plan(5),
