@@ -98,6 +98,7 @@ These are proposed engineering gates. They are not achieved results or universal
 | P3: analytical mechanics | Bar, beam and cantilever closed-form cases, plus invalid-domain controls | Relative error at or below 1e-10 for well-conditioned double-precision cases, using an independently implemented oracle and a declared absolute floor near zero. |
 | P4: solver verification | Mesh/time-step refinement and solver outputs for the same benchmark | Demonstrate convergence trend, residuals, tolerances and sensitivity; do not compare only one mesh result. |
 | P4-M: modal mesh qualification | Released-joint Euler-Bernoulli member-chain meshes with explicitly shared interior rotations and private physical-pin end rotations | Exact free-DOF/mode count at each mesh; every generalized eigenpair residual, mass norm and mass orthogonality checked; preserve/classify every near-zero mode; publish same-index low-frequency shifts and fixed-grid MAC matrices; predeclare a one-to-one mode assignment and MAC/convergence thresholds before claiming convergence. |
+| P4-UQ: modal sensitivity and uncertainty | Frozen material/section/geometry input perturbations with mode identity preserved by sampled-shape MAC | Exact analytic scaling-law sensitivities for uniform E and density changes; report parameter uncertainty separately from eigenpair residual and mesh error; abstain on clustered/ambiguous modes; never combine marginal contributions without a declared covariance model. |
 | P5: experimental mechanics | Blind holdout specimens with measured geometry, loads and deflections | Report normalized force-displacement error, failure-load error, uncertainty intervals and baseline deltas. A provisional stretch target for simple in-domain cases is median displacement error <=5% and P95 <=10%, only when the measurement uncertainty supports those thresholds. |
 | P6: fracture/contact | Controlled fracture or fragmentation measurements | Compare fracture initiation/load, energy balance, fragment-size distribution and contact trajectories; report a defined distribution distance and uncertainty. No generic target should be claimed before selecting a compatible dataset and baseline. |
 | P7: construction sequence | Installation/removal plans, temporary support, tool access and inspected state changes | Zero violated hard prerequisites in the qualified fixture set; report infeasibility and unresolved evidence separately from planner rank. |
@@ -133,12 +134,14 @@ No single weighted “realism score” can compensate for failed conservation, i
 ## 7. Immediate next steps
 
 1. Qualify the current Rust state/accounting and analytical-reference kernel on exact head.
-2. Continue the released-joint modal ladder: the beam element, local/global transformation, canonical pin assembly, generalized-eigenproblem and continuity-preserving member-chain mesh sweep are now separate draft increments; require exact-head CI plus mutation controls at every layer.
-3. Add unit-conversion metamorphic tests and additional closed-form beam cases.
-3. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
-4. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
-5. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
-6. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
+2. Continue the released-joint modal ladder with exact-head CI and mutation controls at each layer; do not treat element verification, modal verification, mesh convergence and physical validation as interchangeable evidence.
+3. Extend the modal chain with mode-assignment and repeated-mode subspace gates, then qualify mesh convergence before comparing against the NAFEMS beam family.
+4. Add input-uncertainty propagation only for modes with stable identity; preserve abstentions, and report solver residual, mesh error, input uncertainty and model-form alternatives separately.
+5. Add unit-conversion metamorphic tests and additional closed-form beam cases.
+6. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
+7. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
+8. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
+9. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
 
 ## Claim ceiling
 
