@@ -54,6 +54,7 @@ jobs:
             src/bin/triangle-conditioning-probe.rs \
             src/bin/triangle-material-conditioning-probe.rs \
             src/bin/triangle-global-condition-probe.rs \
+            src/bin/triangle-global-pcg-probe.rs \
             Cargo.toml \
             Cargo.lock \
             README.md \
@@ -156,6 +157,35 @@ jobs:
             and .sweep[4].constrained_global_condition_number > 20
           ' /tmp/triangle-global-condition-a.json > /dev/null
           sha256sum /tmp/triangle-global-condition-a.json > /tmp/triangle-global-condition-a.sha256
+          cargo run --locked --release --quiet --bin triangle-global-pcg-probe > /tmp/triangle-global-pcg-a.json
+          cargo run --locked --release --quiet --bin triangle-global-pcg-probe > /tmp/triangle-global-pcg-b.json
+          cmp /tmp/triangle-global-pcg-a.json /tmp/triangle-global-pcg-b.json
+          jq -e '
+            .schema == "ccx-mms-p1-global-pcg-v1"
+            and .solver_executed == false
+            and .qualification_pass == false
+            and .solver_diagnostics_pass == true
+            and .relative_residual_tolerance == 1e-10
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and (.sweep | length == 5)
+            and .sweep[0].cells_per_side == 2
+            and .sweep[1].cells_per_side == 3
+            and .sweep[2].cells_per_side == 4
+            and .sweep[3].cells_per_side == 5
+            and .sweep[4].cells_per_side == 6
+            and .sweep[0].free_dof_count == 2
+            and .sweep[1].free_dof_count == 8
+            and .sweep[2].free_dof_count == 18
+            and .sweep[3].free_dof_count == 32
+            and .sweep[4].free_dof_count == 50
+            and all(.sweep[]; .condition_number_unscaled >= 1 and .condition_number_unscaled < 1e12)
+            and all(.sweep[]; .condition_number_jacobi_scaled >= 1 and .condition_number_jacobi_scaled < 1e12)
+            and all(.sweep[]; .cg_relative_residual <= 1e-10 and .pcg_relative_residual <= 1e-10)
+            and all(.sweep[]; .cg_iterations <= (.free_dof_count * 4 | if . < 32 then 32 else . end))
+            and all(.sweep[]; .pcg_iterations <= (.free_dof_count * 4 | if . < 32 then 32 else . end))
+          ' /tmp/triangle-global-pcg-a.json > /dev/null
+          sha256sum /tmp/triangle-global-pcg-a.json > /tmp/triangle-global-pcg-a.sha256
 
       - name: Preserve verification receipt and source digests
         if: always()
@@ -172,6 +202,8 @@ jobs:
             /tmp/triangle-material-conditioning-a.sha256
             /tmp/triangle-global-condition-a.json
             /tmp/triangle-global-condition-a.sha256
+            /tmp/triangle-global-pcg-a.json
+            /tmp/triangle-global-pcg-a.sha256
           if-no-files-found: ignore
           retention-days: 90
 
