@@ -103,6 +103,8 @@ The [beam-fidelity contract](benchmarks/NAFEMS_NBC05_BEAM_FIDELITY_V0_1.md) reco
 
 A separate [beam-theory applicability screen](benchmarks/BEAM_THEORY_APPLICABILITY_V0_1.md) now encodes two dimensionless gates: cross-section size relative to member / shortest relevant modal wavelength, and the reference shear-slenderness indicator G*A*L_eff^2/(E*I). It has explicit candidate / compare / outside-screen / missing-wavelength statuses, five frozen request cases, deterministic receipt generation, and mutation gates for wavelength selection and the thresholds. The result only recommends an analysis model; it does not quantify actual solver error. The 3/S cantilever metric is labelled an uncorrected proxy that omits section shear-correction factors.
 
+A separate static [Timoshenko cantilever comparison](benchmarks/TIMOSHENKO_STATIC_COMPARISON_V0_1.md) now provides a local stiffness element with explicit shear correction, exact cantilever bending-plus-shear response checks, and a three-case shear-slenderness ladder (25/50/100) targeting deflection ratios 1.12/1.06/1.03. It remains a static element reference only: no Timoshenko mass matrix or modal solve has been qualified.
+
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.

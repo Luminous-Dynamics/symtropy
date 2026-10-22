@@ -55,6 +55,6 @@ For static/quasi-static cases the report includes an **uncorrected** `3/S` canti
 
 ## Limits / next experiment
 
-This screen does not yet run two beam theories on the same assembled structure. The next experimental deliverable should solve Euler–Bernoulli and Timoshenko cantilevers / released-joint beam meshes with the same (E,G,A,I,ho), boundary conditions and mesh ladder, then report frequency and shape differences separately. A screen recommendation is not a pass until that paired model-form experiment—and, later, an eligible external reference or measured experiment—supports the intended claim.
+A first local [Timoshenko static cantilever comparator](TIMOSHENKO_STATIC_COMPARISON_V0_1.md) now tests the same cantilever geometry under Euler–Bernoulli and Timoshenko stiffness models, including the explicit shear term. It recovers the named cantilever deflection ratios at S=25/50/100. This closes the first static model-form check but does not establish modal fidelity. Next solve paired Euler–Bernoulli and Timoshenko released-joint beam meshes with matched material/section properties, boundary and release conditions, declared shear correction, inertia matrices and mesh ladder, then report frequency and subspace-MAC differences separately. The screen remains a heuristic until those paired results—and later an eligible external reference or measured experiment—support the intended claim.
 
 **Claim ceiling:** model-class screening only. No solver superiority, experimental validation, structural safety or code-compliance claim.

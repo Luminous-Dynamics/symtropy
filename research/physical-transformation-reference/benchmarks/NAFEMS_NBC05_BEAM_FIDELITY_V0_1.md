@@ -63,6 +63,8 @@ A new [beam-theory applicability screen](BEAM_THEORY_APPLICABILITY_V0_1.md) defi
 
 The five canonical cases include a globally slender member whose short modal wavelength pushes it outside the screen, a missing-wavelength mode request, and shear indicators 25, 50 and 150. These are screening tests—not universal error limits. The static (3/S) metric is explicitly uncorrected and omits section shear-correction factors. Full qualification still requires paired Euler–Bernoulli/Timoshenko solutions under matched geometry, supports, mass conventions and mesh, followed by comparison to independent references or measurement.
 
+The local Timoshenko static element and known-answer cantilever comparison are specified in [TIMOSHENKO_STATIC_COMPARISON_V0_1.md](TIMOSHENKO_STATIC_COMPARISON_V0_1.md). It verifies the bending-plus-shear compliance term and is a first model-form check, but it does not replace the later modal model with explicit inertia, release semantics and cross-mesh mode pairing.
+
 ### B1 — Pin releases at all three truss joints
 
 Do not simulate a pin simply by fixing the node's shared rotation to zero. At an ideal pin the connected member end rotations are not shared and no end moment is transmitted. Represent released member-end rotations explicitly, while the translational DOFs at the joint remain connected. At the two supported joints, restrain translations per the source model while preserving the intended moment release.

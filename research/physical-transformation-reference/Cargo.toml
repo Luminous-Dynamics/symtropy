@@ -45,4 +45,8 @@ path = "src/bin/beam-mode-tracking-reference.rs"
 name = "beam-theory-applicability-reference"
 path = "src/bin/beam-theory-applicability-reference.rs"
 
+[[bin]]
+name = "timoshenko-cantilever-reference"
+path = "src/bin/timoshenko-cantilever-reference.rs"
+
 [workspace]

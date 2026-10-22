@@ -260,6 +260,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify Timoshenko static element mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_timoshenko_element_mutations.sh
+
+      - name: Re-verify Timoshenko element source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/timoshenko_element.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify beam-theory applicability mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_beam_theory_applicability_mutations.sh
@@ -685,6 +698,58 @@ jobs:
             and (.claim_ceiling | contains("no solver accuracy"))
           ' beam-theory-applicability-receipt.json
 
+      - name: Generate and verify deterministic Timoshenko cantilever comparison receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin timoshenko-cantilever-reference -- --source-commit "$source_commit" > timoshenko-cantilever-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin timoshenko-cantilever-reference -- --source-commit "$source_commit" > timoshenko-cantilever-raw-b.json
+          cmp --silent timoshenko-cantilever-raw-a.json timoshenko-cantilever-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/timoshenko_cantilever_static_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' timoshenko-cantilever-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=timoshenko-cantilever-static-request-v0.1|fixture=PHYS-TIMOSHENKO-CANTILEVER-001|length_m=1|area_m2=0.0001|youngs_modulus_pa=200000000000|shear_modulus_pa=80000000000|shear_correction_factor=1|shear_slenderness_indicators=25,50,100|second_moment_m4=0.0000016,0.0000008,0.0000004|load_n=100|target_timoshenko_to_euler_bernoulli_deflection_ratios=1.12,1.06,1.03|oracle=closed_form_cantilever_bending_plus_shear_deflection"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "9d4ab878751430fdbaa3f6855865bf2f8a12a1b63882ef7479e95912b9b731b9"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' timoshenko-cantilever-raw-a.json > timoshenko-cantilever-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "timoshenko-cantilever-static-receipt-v0.1"
+            and .benchmark_id == "PHYS-TIMOSHENKO-CANTILEVER-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "analytical_static_model_comparison"
+            and .result == "pass"
+            and .case_count == 3
+            and .mass_model == "not_applicable_static_stiffness_only"
+            and (.cases | length == 3)
+            and ((.cases[0].shear_slenderness - 25) | abs < 1e-12)
+            and ((.cases[0].measured_deflection_ratio - 1.12) | abs < 1e-12)
+            and ((.cases[1].shear_slenderness - 50) | abs < 1e-12)
+            and ((.cases[1].measured_deflection_ratio - 1.06) | abs < 1e-12)
+            and ((.cases[2].shear_slenderness - 100) | abs < 1e-12)
+            and ((.cases[2].measured_deflection_ratio - 1.03) | abs < 1e-12)
+            and (.cases | all(.[]; .relative_error < 1e-12 and .euler_bernoulli_tip_deflection_m > 0 and .timoshenko_tip_deflection_m >= .euler_bernoulli_tip_deflection_m))
+            and (.claim_ceiling | contains("no Timoshenko modal mass"))
+          ' timoshenko-cantilever-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -710,5 +775,7 @@ jobs:
             beam-mode-tracking-receipt.json
             beam-theory-applicability-mutation-receipt.json
             beam-theory-applicability-receipt.json
+            timoshenko-element-mutation-receipt.json
+            timoshenko-cantilever-receipt.json
           if-no-files-found: error
           retention-days: 90
