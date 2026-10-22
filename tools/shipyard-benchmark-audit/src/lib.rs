@@ -588,6 +588,14 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                 }
             }
         }
+        if let (Some(run_revision),Some(candidate_revision)) = (
+            field(meta,"git_commit_sha").and_then(string),
+            field(&manifest,"candidate").and_then(|v|field(v,"revision")).and_then(string),
+        ) {
+            if !run_revision.eq_ignore_ascii_case(candidate_revision) {
+                errors.push("$report.run_metadata.git_commit_sha: does not match manifest candidate revision".to_owned());
+            }
+        }
     } else if field(&report,"run_metadata").is_none() { errors.push("$report.run_metadata: missing required field".to_owned()); }
 
     let mut ids=BTreeSet::new();
@@ -709,6 +717,17 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
 
     if let Some(summary)=expect_object(field(&report,"summary"),"$report.summary",&mut errors) {
         check_allowed(summary,&["case_count","verified_feasible_count","verified_infeasible_count","unknown_count","timeout_count","invalid_output_count","not_run_count","false_feasible_count","false_infeasible_count","aggregate_metrics"],"$report.summary",&mut errors);
+        if let Some(metrics)=field(summary,"aggregate_metrics") {
+            if let Some(metrics)=object(metrics) {
+                for (name,value) in metrics {
+                    if !matches!(value,Json::Null) && is_number(value).is_none() {
+                        errors.push(format!("$report.summary.aggregate_metrics.{}: expected numeric or null metric",name));
+                    }
+                }
+            } else {
+                errors.push("$report.summary.aggregate_metrics: expected object".to_owned());
+            }
+        }
         let expected=[
             ("case_count",cases.map(|v|v.len()).unwrap_or(0)),
             ("verified_feasible_count",feasible),
@@ -736,4 +755,13 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
     }
     errors.sort();
     errors
+}
+
+#[cfg(test)]
+mod internal_tests {
+    #[test]
+    fn sha256_known_vectors() {
+        assert_eq!(super::sha256_hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(super::sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
 }
