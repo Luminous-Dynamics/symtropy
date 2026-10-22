@@ -312,6 +312,10 @@ fn score_queries(
 }
 
 fn choose_threshold(calibration: &[ScoredQuery]) -> ThresholdMetrics {
+    assert!(
+        calibration.iter().all(|query| query.split == Split::Calibration),
+        "threshold selector rejects non-calibration queries"
+    );
     let mut best: Option<ThresholdMetrics> = None;
     for step in 0..=THRESHOLD_STEPS {
         let threshold = f32::from(step) / f32::from(THRESHOLD_STEPS);
@@ -463,6 +467,23 @@ mod tests {
         let selected = choose_threshold(&calibration);
         assert!(selected.threshold >= 0.70);
         assert!(selected.cost <= ThresholdMetrics::from_queries(&calibration, CURRENT_THRESHOLD).cost);
+    }
+
+    #[test]
+    #[should_panic(expected = "threshold selector rejects non-calibration queries")]
+    fn threshold_selector_rejects_evaluation_data() {
+        let evaluation = [ScoredQuery {
+            id: "held-out".into(),
+            split: Split::Evaluation,
+            true_label: "known",
+            label_is_stored: true,
+            nearest_episode: "bank".into(),
+            predicted_label: "known".into(),
+            similarity: 0.8,
+            query_vector: BipolarHV::new(vec![1]).unwrap(),
+            useful_if_accepted: true,
+        }];
+        let _ = choose_threshold(&evaluation);
     }
 
     #[test]
