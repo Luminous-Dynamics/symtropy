@@ -41,6 +41,7 @@ fn run() -> Result<String, String> {
 
     let mut meshes_json = Vec::with_capacity(ELEMENT_COUNTS.len());
     let mut previous_fundamental: Option<f64> = None;
+    let mut first_fundamental: Option<f64> = None;
     for elements_per_member in ELEMENT_COUNTS {
         let assembly =
             assemble_refined_released_joint_pin_truss(&nodes, &members, elements_per_member)?;
@@ -64,6 +65,9 @@ fn run() -> Result<String, String> {
         let fundamental = solution.modes[0]
             .frequency_hz
             .ok_or_else(|| "fundamental mode has no positive frequency".to_owned())?;
+        if first_fundamental.is_none() {
+            first_fundamental = Some(fundamental);
+        }
         let shift_percent = previous_fundamental
             .map(|previous| number((fundamental / previous - 1.0) * 100.0))
             .unwrap_or_else(|| "null".to_owned());
@@ -136,8 +140,10 @@ fn run() -> Result<String, String> {
         ));
     }
 
-    let first_frequency = previous_first_fundamental(&meshes_json)?;
-    let last_frequency = previous_last_fundamental(&meshes_json)?;
+    let first_frequency = first_fundamental
+        .ok_or_else(|| "first mesh fundamental frequency is missing".to_owned())?;
+    let last_frequency = previous_fundamental
+        .ok_or_else(|| "last mesh fundamental frequency is missing".to_owned())?;
     if last_frequency > first_frequency * (1.0 + 1.0e-8) {
         return Err("fundamental frequency increased across nested refinement levels".to_owned());
     }
@@ -163,26 +169,6 @@ fn run() -> Result<String, String> {
         ELEMENT_COUNTS.len(),
         meshes_json.join(",")
     ))
-}
-
-fn previous_first_fundamental(meshes: &[String]) -> Result<f64, String> {
-    meshes
-        .first()
-        .and_then(|mesh| numeric_json_field(mesh, "\"fundamental_frequency_hz\":"))
-        .ok_or_else(|| "first mesh fundamental frequency is missing".to_owned())
-}
-
-fn previous_last_fundamental(meshes: &[String]) -> Result<f64, String> {
-    meshes
-        .last()
-        .and_then(|mesh| numeric_json_field(mesh, "\"fundamental_frequency_hz\":"))
-        .ok_or_else(|| "last mesh fundamental frequency is missing".to_owned())
-}
-
-fn numeric_json_field(text: &str, key: &str) -> Option<f64> {
-    let rest = text.split_once(key)?.1;
-    let token = rest.split([',', '}']).next()?;
-    token.parse().ok()
 }
 
 fn class_name(class: BeamModeClass) -> &'static str {
