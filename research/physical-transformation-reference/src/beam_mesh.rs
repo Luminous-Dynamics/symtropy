@@ -502,6 +502,199 @@ mod tests {
         assert_eq!(first, second);
     }
 
+    fn solve_small_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Vec<f64> {
+        let size = rhs.len();
+        assert_eq!(matrix.len(), size);
+        let scale = matrix
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        assert!(scale > 0.0);
+
+        for pivot_col in 0..size {
+            let pivot_row = (pivot_col..size)
+                .max_by(|left, right| {
+                    matrix[*left][pivot_col]
+                        .abs()
+                        .total_cmp(&matrix[*right][pivot_col].abs())
+                })
+                .expect("pivot row");
+            assert!(
+                matrix[pivot_row][pivot_col].abs() > 1.0e-13 * scale,
+                "rotation stiffness block is singular"
+            );
+            matrix.swap(pivot_col, pivot_row);
+            rhs.swap(pivot_col, pivot_row);
+            let pivot = matrix[pivot_col][pivot_col];
+
+            for row in pivot_col + 1..size {
+                let factor = matrix[row][pivot_col] / pivot;
+                matrix[row][pivot_col] = 0.0;
+                for col in pivot_col + 1..size {
+                    matrix[row][col] -= factor * matrix[pivot_col][col];
+                }
+                rhs[row] -= factor * rhs[pivot_col];
+            }
+        }
+
+        let mut solution = vec![0.0; size];
+        for row in (0..size).rev() {
+            let known = (row + 1..size)
+                .map(|col| matrix[row][col] * solution[col])
+                .sum::<f64>();
+            solution[row] = (rhs[row] - known) / matrix[row][row];
+        }
+        solution
+    }
+
+    #[test]
+    fn condensing_refined_beam_rotations_recovers_independent_axial_mesh_stiffness() {
+        let source_nodes = nodes();
+        let source_members = members();
+        let elements_per_member = 2_usize;
+        let assembly = assemble_refined_released_joint_pin_truss(
+            &source_nodes,
+            &source_members,
+            elements_per_member,
+        )
+        .expect("refined beam assembly");
+        let translation_dofs = 2 * assembly.ordered_node_ids.len();
+        let rotation_dofs = assembly.stiffness_global.len() - translation_dofs;
+
+        let k_tt = (0..translation_dofs)
+            .map(|row| {
+                (0..translation_dofs)
+                    .map(|col| assembly.stiffness_global[row][col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let k_rr = (0..rotation_dofs)
+            .map(|row| {
+                (0..rotation_dofs)
+                    .map(|col| {
+                        assembly.stiffness_global[translation_dofs + row]
+                            [translation_dofs + col]
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut condensed = k_tt;
+
+        for column in 0..translation_dofs {
+            let rhs = (0..rotation_dofs)
+                .map(|row| {
+                    assembly.stiffness_global[translation_dofs + row][column]
+                })
+                .collect::<Vec<_>>();
+            let rotation_response = solve_small_dense(k_rr.clone(), rhs);
+            for row in 0..translation_dofs {
+                let correction = (0..rotation_dofs)
+                    .map(|rotation| {
+                        assembly.stiffness_global[row][translation_dofs + rotation]
+                            * rotation_response[rotation]
+                    })
+                    .sum::<f64>();
+                condensed[row][column] -= correction;
+            }
+        }
+
+        // Independent axial mesh assembly from segment geometry and EA/L;
+        // it does not reuse any beam element or assembled beam K block.
+        let mut coordinates = BTreeMap::new();
+        for node in &source_nodes {
+            coordinates.insert(node.id.clone(), (node.x_m, node.y_m));
+        }
+        for member in &source_members {
+            let start = source_nodes
+                .iter()
+                .find(|node| node.id == member.start_node_id)
+                .expect("axial oracle start node");
+            let end = source_nodes
+                .iter()
+                .find(|node| node.id == member.end_node_id)
+                .expect("axial oracle end node");
+            for point in 1..elements_per_member {
+                let fraction = point as f64 / elements_per_member as f64;
+                coordinates.insert(
+                    super::interior_node_id(&member.id, point),
+                    (
+                        start.x_m + fraction * (end.x_m - start.x_m),
+                        start.y_m + fraction * (end.y_m - start.y_m),
+                    ),
+                );
+            }
+        }
+
+        let mut axial_oracle = vec![vec![0.0; translation_dofs]; translation_dofs];
+        for member in &source_members {
+            for segment in 0..elements_per_member {
+                let start_id = if segment == 0 {
+                    member.start_node_id.clone()
+                } else {
+                    super::interior_node_id(&member.id, segment)
+                };
+                let end_id = if segment + 1 == elements_per_member {
+                    member.end_node_id.clone()
+                } else {
+                    super::interior_node_id(&member.id, segment + 1)
+                };
+                let (start_x, start_y) = coordinates[&start_id];
+                let (end_x, end_y) = coordinates[&end_id];
+                let length = (end_x - start_x).hypot(end_y - start_y);
+                let cosine = (end_x - start_x) / length;
+                let sine = (end_y - start_y) / length;
+                let factor = member.youngs_modulus_pa * member.area_m2 / length;
+                let c2 = cosine * cosine;
+                let s2 = sine * sine;
+                let cs = cosine * sine;
+                let block = [
+                    [c2, cs, -c2, -cs],
+                    [cs, s2, -cs, -s2],
+                    [-c2, -cs, c2, cs],
+                    [-cs, -s2, cs, s2],
+                ];
+                let start_index = assembly
+                    .ordered_node_ids
+                    .iter()
+                    .position(|id| id == &start_id)
+                    .expect("ordered axial oracle start node");
+                let end_index = assembly
+                    .ordered_node_ids
+                    .iter()
+                    .position(|id| id == &end_id)
+                    .expect("ordered axial oracle end node");
+                let dof_map = [
+                    2 * start_index,
+                    2 * start_index + 1,
+                    2 * end_index,
+                    2 * end_index + 1,
+                ];
+                for row in 0..4 {
+                    for col in 0..4 {
+                        axial_oracle[dof_map[row]][dof_map[col]] += factor * block[row][col];
+                    }
+                }
+            }
+        }
+
+        let scale = axial_oracle
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        let maximum_scaled_error = condensed
+            .iter()
+            .flatten()
+            .zip(axial_oracle.iter().flatten())
+            .map(|(actual, expected)| (actual - expected).abs() / scale)
+            .fold(0.0_f64, f64::max);
+        assert!(
+            maximum_scaled_error < 1.0e-8,
+            "refined pin beam Schur complement differs from independent axial mesh: {maximum_scaled_error:.17e}"
+        );
+    }
+
     #[test]
     fn mesh_request_is_frozen_and_includes_element_count() {
         let request =
