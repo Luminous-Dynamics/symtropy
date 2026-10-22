@@ -19,8 +19,8 @@
     "u_x": "A*sin(pi*x)*sin(pi*y)",
     "u_y": "B*sin(2*pi*x)*sin(pi*y)",
     "body_force_convention": "f = -mu*laplacian(u) - (lambda+mu)*grad(div(u))",
-    "body_force_x": "(lambda+3*mu)*A*pi^2*sin(pi*x)*sin(pi*y) - 4*(lambda+mu)*B*pi^2*cos(pi*y)*cos(2*pi*x)",
-    "body_force_y": "(2*lambda+7*mu)*B*pi^2*sin(2*pi*x)*sin(pi*y) - (lambda+mu)*A*pi^2*cos(pi*x)*cos(pi*y)",
+    "body_force_x": "(lambda+3*mu)*A*pi^2*sin(pi*x)*sin(pi*y) - 2*(lambda+mu)*B*pi^2*cos(pi*y)*cos(2*pi*x)",
+    "body_force_y": "(lambda+6*mu)*B*pi^2*sin(2*pi*x)*sin(pi*y) - (lambda+mu)*A*pi^2*cos(pi*x)*cos(pi*y)",
     "integrated_body_force_x": "4*A*(lambda+3*mu)",
     "integrated_body_force_y": 0.0,
     "boundary_condition": "analytical_displacement_on_all_boundary_nodes"
