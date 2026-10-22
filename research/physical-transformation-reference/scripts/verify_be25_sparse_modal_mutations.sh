@@ -52,7 +52,7 @@ run_mutation() {
       ;;
     rotational_mode_shape_sign)
       grep -Fq 'let physical_scale = if global_index % 2 == 0 { 1.0 } else { 1.0 / element_length_m };' "$source"
-      perl -0pi -e 's/let physical_scale = if global_index % 2 == 0 \\{ 1\\.0 \\} else \\{ 1\\.0 \\/ element_length_m \\};/let physical_scale = if global_index % 2 == 0 { 1.0 } else { -1.0 \/ element_length_m };/' "$source"
+      perl -0pi -e 's#let physical_scale = if global_index % 2 == 0 \\{ 1\\.0 \\} else \\{ 1\\.0 / element_length_m \\};#let physical_scale = if global_index % 2 == 0 { 1.0 } else { -1.0 / element_length_m };#' "$source"
       grep -Fq 'let physical_scale = if global_index % 2 == 0 { 1.0 } else { -1.0 / element_length_m };' "$source"
       ;;
     *)
