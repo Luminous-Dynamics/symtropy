@@ -107,7 +107,9 @@ impl ResourceViolationCode {
             Self::UnknownBoundTransfer => "UnknownBoundTransfer",
             Self::DuplicateSpatialBindingPair => "DuplicateSpatialBindingPair",
             Self::TransferMissingResourceBinding => "TransferMissingResourceBinding",
-            Self::ResourceReservationDoesNotCoverTransfer => "ResourceReservationDoesNotCoverTransfer",
+            Self::ResourceReservationDoesNotCoverTransfer => {
+                "ResourceReservationDoesNotCoverTransfer"
+            }
             Self::ResourceOperationTransferMismatch => "ResourceOperationTransferMismatch",
             Self::TransferVehicleResourceMismatch => "TransferVehicleResourceMismatch",
             Self::TransferVehicleReservationMissing => "TransferVehicleReservationMissing",
@@ -880,7 +882,10 @@ fn validate_spatial_bindings(
             push(
                 &mut violations,
                 ResourceViolationCode::EmptySpatialBindingId,
-                vec![binding.resource_reservation_id.clone(), binding.transfer_id.clone()],
+                vec![
+                    binding.resource_reservation_id.clone(),
+                    binding.transfer_id.clone(),
+                ],
                 "resource-to-transfer binding identity is required",
             );
         } else if !seen_binding_ids.insert(binding.binding_id.as_str()) {
@@ -900,7 +905,10 @@ fn validate_spatial_bindings(
             push(
                 &mut violations,
                 ResourceViolationCode::DuplicateSpatialBindingPair,
-                vec![binding.resource_reservation_id.clone(), binding.transfer_id.clone()],
+                vec![
+                    binding.resource_reservation_id.clone(),
+                    binding.transfer_id.clone(),
+                ],
                 "one resource reservation and transfer pair may only be bound once",
             );
         }
@@ -911,7 +919,10 @@ fn validate_spatial_bindings(
             push(
                 &mut violations,
                 ResourceViolationCode::UnknownBoundResourceReservation,
-                vec![binding.binding_id.clone(), binding.resource_reservation_id.clone()],
+                vec![
+                    binding.binding_id.clone(),
+                    binding.resource_reservation_id.clone(),
+                ],
                 "binding references a resource reservation absent from the schedule",
             );
         }
@@ -1027,12 +1038,16 @@ pub fn evaluate_joint_recovery(input: &JointRecoveryInput) -> JointRecoveryRepor
     if !baseline_binding_violations.is_empty() {
         resources.metrics.baseline_feasible_before_disruption = false;
         resources.metrics.baseline_feasible_after_disruption = false;
-        resources.baseline_violations.extend(baseline_binding_violations.iter().cloned());
+        resources
+            .baseline_violations
+            .extend(baseline_binding_violations.iter().cloned());
         resources.violations.extend(baseline_binding_violations);
     }
     if !candidate_binding_violations.is_empty() {
         resources.metrics.candidate_feasible_after_disruption = false;
-        resources.candidate_violations.extend(candidate_binding_violations.iter().cloned());
+        resources
+            .candidate_violations
+            .extend(candidate_binding_violations.iter().cloned());
         resources.violations.extend(candidate_binding_violations);
     }
     sort_resource_violations(&mut resources.baseline_violations);
@@ -1564,16 +1579,15 @@ mod tests {
             precedence_constraints: Vec::new(),
             reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 5)],
         };
-        let empty =
-            evaluate_joint_recovery_envelope(
-                &spatial,
-                &spatial,
-                &resources,
-                &resources,
-                &[],
-                &[],
-                &[],
-            );
+        let empty = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &resources,
+            &resources,
+            &[],
+            &[],
+            &[],
+        );
         assert!(!empty.robustly_accepted);
         assert!(
             empty.violations.iter().any(|violation| {
@@ -1773,41 +1787,38 @@ mod tests {
             .push(spatial_transfer("move-a", 4, 6, "tug-1"));
         let resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-1",
-                "tug",
-                3,
-                7,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-1", "tug", 3, 7)],
         };
         let binding = transfer_binding();
-        let make_input = |baseline_bindings: Vec<ResourceSpatialBinding>,
-                          candidate_bindings: Vec<ResourceSpatialBinding>| {
-            JointRecoveryInput {
-                spatial: RecoveryInput {
-                    baseline: spatial.clone(),
-                    candidate: spatial.clone(),
-                    disruption: no_spatial_disruption(2),
-                },
-                baseline_resources: resources.clone(),
-                candidate_resources: resources.clone(),
-                resource_outages: Vec::new(),
-                baseline_bindings,
-                candidate_bindings,
-            }
-        };
+        let make_input =
+            |baseline_bindings: Vec<ResourceSpatialBinding>,
+             candidate_bindings: Vec<ResourceSpatialBinding>| {
+                JointRecoveryInput {
+                    spatial: RecoveryInput {
+                        baseline: spatial.clone(),
+                        candidate: spatial.clone(),
+                        disruption: no_spatial_disruption(2),
+                    },
+                    baseline_resources: resources.clone(),
+                    candidate_resources: resources.clone(),
+                    resource_outages: Vec::new(),
+                    baseline_bindings,
+                    candidate_bindings,
+                }
+            };
 
-        let bound = evaluate_joint_recovery(&make_input(
-            vec![binding.clone()],
-            vec![binding.clone()],
-        ));
+        let bound =
+            evaluate_joint_recovery(&make_input(vec![binding.clone()], vec![binding.clone()]));
         assert!(bound.accepted, "{:?}", bound.resources.violations);
 
         let unbound = evaluate_joint_recovery(&make_input(Vec::new(), Vec::new()));
         assert!(!unbound.accepted);
-        assert!(!unbound.resources.metrics.candidate_feasible_after_disruption);
+        assert!(
+            !unbound
+                .resources
+                .metrics
+                .candidate_feasible_after_disruption
+        );
         assert!(unbound.resources.violations.iter().any(|violation| {
             violation.code == ResourceViolationCode::TransferMissingResourceBinding
         }));
@@ -1821,14 +1832,7 @@ mod tests {
             .push(spatial_transfer("move-a", 4, 6, "tug-1"));
         let baseline_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-1",
-                "tug",
-                3,
-                7,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-1", "tug", 3, 7)],
         };
         let candidate_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
@@ -1869,25 +1873,11 @@ mod tests {
             .push(spatial_transfer("move-a", 4, 6, "tug-1"));
         let baseline_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-1",
-                "tug",
-                3,
-                7,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-1", "tug", 3, 7)],
         };
         let candidate_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-1",
-                "tug",
-                3,
-                5,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-1", "tug", 3, 5)],
         };
         let binding = transfer_binding();
         let report = evaluate_joint_recovery(&JointRecoveryInput {
@@ -1918,25 +1908,11 @@ mod tests {
             .push(spatial_transfer("move-a", 4, 6, "tug-1"));
         let baseline_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-1",
-                "tug",
-                3,
-                7,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-1", "tug", 3, 7)],
         };
         let candidate_resources = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation(
-                "tug-move-a",
-                "move-a",
-                "tug-2",
-                "tug",
-                3,
-                7,
-            )],
+            reservations: vec![reservation("tug-move-a", "move-a", "tug-2", "tug", 3, 7)],
         };
         let binding = transfer_binding();
         let report = evaluate_joint_recovery(&JointRecoveryInput {
