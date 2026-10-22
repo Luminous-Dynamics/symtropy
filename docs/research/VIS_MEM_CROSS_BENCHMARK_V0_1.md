@@ -84,14 +84,14 @@ Use VIS-MEM-008 to test:
 
 A pass qualifies the synthetic semantics only. It does not qualify a robot policy.
 
-### Stage B — EmbodiedMemory-Bench native baseline
+### Stage B — EmbodiedMemory-Bench native baseline (license-gated)
 
-1. Apply a license gate before fetching data: the dataset card is CC BY-NC 4.0 (noncommercial), while the public code repository carries a Mulan PSL v2 notice and the underlying simulator/assets retain their own terms. Use the dataset only within permissions confirmed for the specific study; obtain additional permission or choose another dataset for commercial use. This is a research workflow note, not legal advice.\n2. Pin the exact repository commit and dataset revision, download manifests/assets only after approval, and record hashes.
-2. Run the dependency-free demo and save the stdout/exit receipt.
-3. Run one real simulator-backed smoke episode per available family and verify reset, legal action sequence, terminal predicate, failure labels, and artifact schema.
-4. Reproduce an eligible reference configuration from the official runner. If a reference model requires a proprietary API that is unavailable, record this blocker and use the strongest eligible open baseline; do not claim reproducing a closed system.
-5. Run memory-only ablations on paired episode IDs: full context, no persistent memory/current observation only, FIFO/recent window, raw-frame memory, scene/spatial memory, event/outcome memory, fixed hybrid, adaptive hybrid.
-
+1. **Resolve permission first.** The [dataset card](https://huggingface.co/datasets/lzLiang/EmbodiedMemoryBench) labels the 2,554-episode dataset CC BY-NC 4.0; the public [code repository](https://github.com/ZJU-OmniAI/Embodied-Omni) has a separate Mulan PSL v2 license notice, and AI2-THOR/ProcTHOR assets have their own upstream terms. Do not infer the data's license from the code's license. Use the dataset only for a purpose allowed by the relevant terms; for commercial Luminous work, obtain explicit permission or use a separately cleared benchmark. This is a research execution gate, not legal advice.
+2. **Freeze the evaluation set.** Re-resolve the exact repository commit and dataset revision; record all manifest/episode SHA-256 digests. The published dataset card states that the release is `split: all` and declares no train/validation split. Treat all 2,554 episodes as evaluation-only: do not tune prompts, memory policy, thresholds or weights against the same full manifest and then report it as a held-out result. Use separate synthetic/owned development cases or ask the authors for a valid development protocol.
+3. Run the dependency-free demo and save the stdout/exit receipt.
+4. Run one real simulator-backed smoke episode per available family and verify reset, legal action sequence, terminal predicate, failure labels, and artifact schema.
+5. Reproduce an eligible reference configuration from the official runner. If a reference model requires a proprietary API that is unavailable, record this blocker and use the strongest eligible open baseline; do not claim reproducing a closed system.
+6. Run memory-only ablations on paired episode IDs: full context, no persistent memory/current observation only, FIFO/recent window, raw-frame memory, scene/spatial memory, event/outcome memory, fixed hybrid, adaptive hybrid. Keep this research dataset and any derived artifacts in the license boundary approved for the run.
 ### Stage C — MIKASA long split
 
 1. Start with a single-task/one-episode smoke test using the official wrapper.
