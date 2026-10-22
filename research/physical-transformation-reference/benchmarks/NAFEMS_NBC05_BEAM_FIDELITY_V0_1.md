@@ -42,6 +42,8 @@ That is an engineering assumption which must be preserved in the receipt; if the
 
 The first element-matrix implementation is in draft [PR #2559](https://github.com/Luminous-Dynamics/symtropy/pull/2559), which adds a local 6-DOF Euler-Bernoulli frame-element reference in order [u1, v1, theta1, u2, v2, theta2]. It builds the axial EA/L block, bending EI/L³ block, axial/transverse consistent mass, and a separate rotary-inertia mass contribution. This is a local element primitive, not a global beam/modal solver.
 
+The [64-case released-joint modal parameter sweep](https://github.com/Luminous-Dynamics/symtropy/pull/2660) independently checks full-spectrum scale laws across geometry, circular section radius, Young's modulus and density. It is a regression/robustness test family, not an external validation dataset; its current exact-head receipt must pass before counts are recorded.
+
 The stacked global-axis transformation increment in PR #2560 adds congruence transforms for stiffness and each mass contribution, rejects geometry-length mismatch, verifies strain-energy invariance and global matrix symmetry, and checks rigid-body translation/rotation residuals. B0 now separately pins the local and transformed contracts.
 
 The draft CI mutation audit is intended to kill omitted/incorrect second moment, bending-coupling sign, omitted axial area, omitted rotary inertia, wrong rotary length exponent, transverse-mass factor error, rotary-mass off-diagonal sign error, and a local-to-global transverse sign defect. Only the mutations actually reported detected at an exact-head passing run count as evidence.
