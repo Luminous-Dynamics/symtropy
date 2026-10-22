@@ -467,7 +467,7 @@ jobs:
               jq -e --argjson nu "$nu" --argjson n "$n" '
                 .schema == "ccx-mms-p1-real-run-verification-v1"
                 and .resolution == $n
-                and (.poisson_ratio - $nu | fabs) < 1e-12
+                and ((.poisson_ratio - $nu | fabs) < 1e-12)
                 and .field == "divergence-free"
                 and .exact_volumetric_strain_l2_norm == 0
                 and .fem_volumetric_strain_l2_absolute >= 0
