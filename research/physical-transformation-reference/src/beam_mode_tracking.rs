@@ -470,6 +470,18 @@ mod tests {
     const REQUESTED_MODES: usize = 6;
 
     #[test]
+    fn canonical_mode_tracking_request_matches_frozen_fixture() {
+        let (nodes, members) = nafems_nbc05_released_joint_beam_fixture();
+        let request = canonical_beam_mode_tracking_request(&nodes, &members, &ELEMENT_COUNTS, REQUESTED_MODES)
+            .expect("canonical mode tracking request");
+        assert_eq!(
+            request,
+            include_str!("../fixtures/beam_mode_tracking_request_v0_1.txt")
+                .trim_end_matches('\\n')
+        );
+    }
+
+    #[test]
     fn mode_tracking_reports_mac_and_bijective_assignments_across_nested_meshes() {
         let (nodes, members) = nafems_nbc05_released_joint_beam_fixture();
         let report = run_beam_mode_tracking(&nodes, &members, &ELEMENT_COUNTS, REQUESTED_MODES)
