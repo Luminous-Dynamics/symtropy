@@ -2903,6 +2903,64 @@ mod tests {
         assert!(summarize_flow_time_seconds(&[f64::INFINITY]).is_err());
     }
 
+    fn tiny_two_station_flowtime_catalog() -> Catalog {
+        let mut catalog = fixture();
+        catalog.replication_seeds.clear();
+        catalog.horizon_seconds = 100;
+        catalog.warmup_seconds = 0;
+        catalog.mean_supply_interarrival_seconds = 1_000.0;
+        catalog.supply_interarrival_variability_fraction = 0.0;
+        catalog.variant_count = 1;
+        catalog.variant_batch_size = 1;
+        catalog.source_buffer_capacity = 1;
+        catalog.buffer_capacities = vec![1];
+        catalog.stations.truncate(2);
+        for (station, cycle_seconds) in catalog
+            .stations
+            .iter_mut()
+            .zip([10.0_f64, 20.0_f64])
+        {
+            station.servers = 1;
+            station.mean_cycle_seconds = cycle_seconds;
+            station.cycle_time_variability_fraction = 0.0;
+            station.changeover_seconds = 0.0;
+            station.mean_time_between_failures_seconds = 1.0e300;
+            station.mean_time_to_repair_seconds = 1.0;
+            station.good_yield_fraction = 1.0;
+            station.max_rework_attempts = 0;
+        }
+        catalog
+    }
+
+    #[test]
+    fn tiny_two_station_flow_time_matches_exact_thirty_second_oracle() {
+        let catalog = tiny_two_station_flowtime_catalog();
+        validate_catalog(&catalog).expect("tiny known-answer fixture validates");
+        let report = evaluate_catalog(&catalog).expect("tiny known-answer DES run");
+        assert_eq!(report.replication_count, 1);
+        assert_eq!(report.scenario_count, 3);
+        assert!(report.flow_time_cohort_accounting_valid);
+        for scenario in &report.scenarios {
+            assert_eq!(scenario.flow_time.release_cohort_jobs, 1);
+            assert_eq!(scenario.flow_time.completed_good_jobs, 1);
+            assert_eq!(scenario.flow_time.completed_scrap_jobs, 0);
+            assert_eq!(scenario.flow_time.right_censored_jobs_at_horizon, 0);
+            assert!(scenario.flow_time.cohort_accounting_valid);
+            let summary = scenario
+                .flow_time
+                .completed_good_flow_time_seconds
+                .as_ref()
+                .expect("one completed good product");
+            assert_eq!(summary.sample_count, 1);
+            assert!((summary.mean_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p50_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p90_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p95_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.p99_seconds - 30.0).abs() < 1e-12);
+            assert!((summary.maximum_seconds - 30.0).abs() < 1e-12);
+        }
+    }
+
     #[test]
     fn flow_time_statistics_are_aggregated_across_seeds_not_pooled_as_iid_jobs() {
         let report = evaluate_catalog(&fixture()).expect("flow-time replication panel");
