@@ -54,8 +54,8 @@ enum Policy {
     Lru,
     Lfu,
     Rarity,
-    HistoricalValue,
-    RiskAwareValue,
+    RiskOnly,
+    RiskAwareAccess,
 }
 
 impl Policy {
@@ -64,8 +64,8 @@ impl Policy {
         Self::Lru,
         Self::Lfu,
         Self::Rarity,
-        Self::HistoricalValue,
-        Self::RiskAwareValue,
+        Self::RiskOnly,
+        Self::RiskAwareAccess,
     ];
 
     fn label(self) -> &'static str {
@@ -74,8 +74,8 @@ impl Policy {
             Self::Lru => "lru",
             Self::Lfu => "lfu",
             Self::Rarity => "rarity_by_write_frequency",
-            Self::HistoricalValue => "historical_outcome_value",
-            Self::RiskAwareValue => "risk_plus_outcome_value",
+            Self::RiskOnly => "source_risk_only",
+            Self::RiskAwareAccess => "source_risk_plus_access",
         }
     }
 }
@@ -88,7 +88,6 @@ struct Entry {
     last_access_step: u32,
     access_count: u32,
     writes_while_resident: u32,
-    outcome_value: i64,
     risk_band: u8,
 }
 
@@ -101,7 +100,6 @@ impl Entry {
             last_access_step: 0,
             access_count: 0,
             writes_while_resident: 1,
-            outcome_value: 0,
             risk_band: source_risk_band(key),
         }
     }
@@ -130,11 +128,11 @@ fn evaluator_impact(key: u8) -> i64 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Event {
     Write { key: u8, revision: u16 },
-    Query { key: u8, truth_revision: u16 },
+    Query { key: u8 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Query {
+struct FutureQuery {
     key: u8,
     truth_revision: u16,
 }
@@ -272,7 +270,6 @@ fn build_online_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_
             let key = sample_key(&mut rng, &historical_weights);
             events.push(Event::Query {
                 key,
-                truth_revision: current_revision[key as usize],
             });
         }
     }
@@ -286,12 +283,12 @@ fn build_future_queries(
     workload: Workload,
     latest_revisions: &[u16; KEY_COUNT],
     rng: &mut Rng,
-) -> Vec<Query> {
+) -> Vec<FutureQuery> {
     let future_weights = query_weights(workload, true);
     let mut future = Vec::with_capacity(FUTURE_QUERIES);
     for _ in 0..FUTURE_QUERIES {
         let key = sample_key(rng, &future_weights);
-        future.push(Query {
+        future.push(FutureQuery {
             key,
             truth_revision: latest_revisions[key as usize],
         });
@@ -311,10 +308,10 @@ fn entry_score(entry: &Entry, policy: Policy, now: u32) -> i64 {
             1_000_000 / i64::from(entry.writes_while_resident.max(1))
                 + i64::from(entry.write_step.min(now))
         }
-        Policy::HistoricalValue => entry.outcome_value,
-        Policy::RiskAwareValue => i64::from(entry.risk_band) * 10_000
-            + entry.outcome_value * 4
-            + i64::from(entry.access_count.min(1_000)),
+        Policy::RiskOnly => i64::from(entry.risk_band) * 10_000,
+        Policy::RiskAwareAccess => i64::from(entry.risk_band) * 10_000
+            + i64::from(entry.access_count.min(1_000)) * 1_000
+            + i64::from(entry.last_access_step.min(999)),
     }
 }
 
@@ -360,15 +357,13 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
                 if let Some(idx) = entries.iter().position(|entry| entry.key == key) {
                     let old = entries[idx];
                     let mut updated = Entry::new(key, revision, now);
-                    // Access experience persists when the currently retained
-                    // state is revised; successful outcome value is retained
-                    // as a heuristic signal and is not treated as ground truth.
+                    // Access experience persists when a retained key is revised.
+                    // No evaluator labels are carried in online events.
                     updated.write_step = old.write_step; // keyed update does not refresh FIFO admission order
                     updated.last_access_step = old.last_access_step;
                     updated.access_count = old.access_count;
                     updated.writes_while_resident =
                         old.writes_while_resident.saturating_add(1);
-                    updated.outcome_value = old.outcome_value;
                     entries[idx] = updated;
                 } else {
                     if entries.len() == budget {
@@ -380,20 +375,10 @@ fn replay(events: &[Event], policy: Policy, budget: usize) -> Replay {
                     entries.push(Entry::new(key, revision, now));
                 }
             }
-            Event::Query {
-                key,
-                truth_revision,
-            } => {
+            Event::Query { key } => {
                 if let Some(entry) = entries.iter_mut().find(|entry| entry.key == key) {
                     entry.last_access_step = now;
                     entry.access_count = entry.access_count.saturating_add(1);
-                    if entry.revision == truth_revision {
-                        // Only generic observed success feedback is visible to
-                        // the retention policy; evaluator utility weights are not.
-                        entry.outcome_value = entry.outcome_value.saturating_add(1);
-                    } else {
-                        entry.outcome_value = entry.outcome_value.saturating_sub(2);
-                    }
                 }
             }
         }
@@ -416,7 +401,7 @@ struct Score {
     utility: i64,
 }
 
-fn score_future(entries: &[Entry], future: &[Query]) -> Score {
+fn score_future(entries: &[Entry], future: &[FutureQuery]) -> Score {
     let mut result = Score {
         hit: 0,
         stale: 0,
@@ -453,7 +438,7 @@ fn score_future(entries: &[Entry], future: &[Query]) -> Score {
 // deliberately impossible for online policies and must never guide selection.
 fn hindsight_upper_bound(
     latest_revisions: &[u16; KEY_COUNT],
-    future: &[Query],
+    future: &[FutureQuery],
     budget: usize,
 ) -> i64 {
     let mut counts = [0_u64; KEY_COUNT];
@@ -635,11 +620,11 @@ mod tests {
         let events = [
             Event::Write { key: 0, revision: 1 },
             Event::Write { key: 11, revision: 1 },
-            Event::Query { key: 11, truth_revision: 1 },
+            Event::Query { key: 11 },
             Event::Write { key: 2, revision: 1 },
         ];
-        let future_a = [Query { key: 0, truth_revision: 1 }];
-        let future_b = [Query { key: 11, truth_revision: 1 }];
+        let future_a = [FutureQuery { key: 0, truth_revision: 1 }];
+        let future_b = [FutureQuery { key: 11, truth_revision: 1 }];
         for policy in Policy::ALL {
             // Retention sees only events. Changing the held-out workload can
             // change the evaluation score, but cannot change the frozen store.
@@ -715,7 +700,7 @@ mod tests {
     #[test]
     fn stale_memory_is_scored_worse_than_a_miss() {
         let stale = Entry::new(3, 1, 1);
-        let query = Query { key: 3, truth_revision: 2 };
+        let query = FutureQuery { key: 3, truth_revision: 2 };
         let stale_score = score_future(&[stale], &[query]);
         let miss_score = score_future(&[], &[query]);
         assert!(stale_score.utility < miss_score.utility);
