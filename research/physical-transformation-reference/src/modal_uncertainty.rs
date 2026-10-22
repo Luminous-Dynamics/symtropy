@@ -330,19 +330,12 @@ struct ModeMatch {
     mac: f64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 enum ModeMatchOutcome {
     Matched(ModeMatch),
     Clustered,
     Ambiguous,
     Missing,
-}
-
-// This enum is used only internally; ModeMatch is numerical and can't derive Eq.
-impl ModeMatchOutcome {
-    fn outcome_is_matched(self) -> bool {
-        matches!(self, Self::Matched(_))
-    }
 }
 
 fn match_perturbed_mode(
