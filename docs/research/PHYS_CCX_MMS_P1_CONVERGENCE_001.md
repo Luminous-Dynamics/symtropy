@@ -1,4 +1,4 @@
-# PHYS-CCX-MMS-P1-001 — manufactured 2D elasticity convergence protocol
+# PHYS-CCX-MMS-P1-001 v0.3.0 — manufactured 2D elasticity convergence protocol
 
 **Status:** protocol frozen for implementation; no CalculiX execution or numerical qualification has been performed by this change.  
 **Class:** code verification, not physical validation.  
@@ -74,7 +74,7 @@ This is a manufactured mathematical benchmark, not a model of a real structure.
 - Mesh levels: uniform \(n\times n\) Cartesian cells with each cell split along its lower-left to upper-right diagonal, \(n\in\{8,16,32,64\}\). Every node/element identifier, connectivity list, and boundary inventory is generated deterministically from the frozen recipe. Maximum element diameter halves between levels.
 - The source term and load-vector generator must be tested separately from the CalculiX result parser.
 
-Use a 32-by-32 Gauss–Legendre product rule under a Duffy transform for each reference triangle for load integration and error norms. Independently repeat these integrations with a 48-by-48 rule. Require the relative Euclidean difference between the resulting global load vectors to be at most \(10^{-12}\), and the relative difference between each reported global error norm to be at most \(10^{-10}\). If these integration checks fail, the case is unqualified; do not silently change the quadrature or tolerance after inspecting solver convergence.
+Use a 32-by-32 Gauss–Legendre product rule under a Duffy transform for each reference triangle for load integration and error norms. Independently repeat these integrations with a 48-by-48 rule at every mesh resolution, not only the coarsest mesh. Require the relative Euclidean difference between the resulting global load vectors to be at most \(10^{-12}\), and the relative difference between each reported global error norm to be at most \(10^{-10}\). If these integration checks fail, the case is unqualified; do not silently change the quadrature or tolerance after inspecting solver convergence.
 
 ## 4. Error measures and observed order
 
@@ -143,7 +143,7 @@ A separate timing record must include warm-up policy, repetitions, raw durations
 ## 7. Implementation sequence
 
 1. Add analytic unit tests for displacement, strain, stress, and both body-force components at fixed points; check force-resultant identities independently.
-2. Implement deterministic mesh/request generation, consistent nodal-force integration, and a canonical CPE3 input-deck writer. Preserve the full boundary-equivalent loads separately when omitting constrained DOFs from the CLOAD section; validate the reaction-correction convention using the real pinned solver before qualification. Cross-check quadrature order before invoking CalculiX.
+2. Implement deterministic mesh/request generation, consistent nodal-force integration, and a canonical CPE3 input-deck writer. Cross-check the complete load vector and every reported error norm using both quadrature orders on every mesh resolution. Preserve the full boundary-equivalent loads separately when omitting constrained DOFs from the CLOAD section; validate the reaction-correction convention using the real pinned solver before qualification. Cross-check quadrature order before invoking CalculiX.
 3. **Calibrate the error postprocessor without a solver:** sample the exact displacement at all nodes on each of the four meshes, interpolate those samples with the P1 field, and integrate L2, energy, and stress errors. Require strict L2/energy decrease, observed L2 order in the preregistered 1.5–2.5 window and energy order in 0.75–1.25 for the final two intervals. Separately compare the primary error norms with 32- and 48-point quadrature. This is a postprocessor regression test, not a solver qualification result.
 4. Add a strict output parser bound to the exact per-mesh request, deck, solver binary, and output bytes.
 5. Execute all four meshes plus the \(n=16\) repeat, preserving process receipts on both success and failure.
