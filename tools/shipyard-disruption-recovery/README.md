@@ -38,6 +38,14 @@ This is a finite robustness envelope, not a probabilistic guarantee over disturb
 
 
 
+## Sequential disruptions: replay the plan as a state trajectory
+
+\`evaluate_recovery_sequence\` evaluates plan updates in chronological order. Each accepted stage's candidate, with its observed occupancy extensions and newly known exclusion zones applied, becomes the next stage's baseline. Prior exclusion zones are carried forward; vehicle outages remain binding while their intervals have not ended. A stage may change future reservations but cannot silently alter already completed or in-progress operations. Stage IDs must be unique and observation ticks monotonic.
+
+The sequence stops at the first failed recovery rather than pretending the next step is grounded in a valid physical state. It reports accepted/total stages, cumulative changed-reservation counts and time/geometry shifts, plus worst per-stage recovery horizon and unaffected-work churn. These cumulative shift values count repeated revisions separately, which makes schedule thrashing visible; they are not unique-block counts.
+
+A test trajectory first extends a departing block's occupancy from tick 5 to tick 7, then applies a transfer-corridor closure and a tug outage. The next plan must preserve the confirmed outgoing footprint through tick 7 and reroute the not-yet-started transfer to an available tug. A separate test verifies an earlier outage stays binding in a later stage. This is deterministic sequence replay, not stochastic forecasting; scenario probabilities still require calibrated evidence.
+
 ## Pareto selection without hidden weights
 
 `pareto_recovery_candidates` compares only robustly accepted candidates. A missing recovery horizon/makespan is treated as not-applicable: when one candidate has a metric and another does not, neither is allowed to dominate solely because an `Option` sorts before the other. It publishes separate objectives for worst-case recovery horizon, makespan, changed placement/transfer count, unaffected placement/transfer churn, time shift and rectangle-edge displacement. One candidate dominates another only when it is no worse on every published objective and strictly better on at least one. A candidate failing any scenario is excluded from the frontier; empty or duplicate candidate IDs invalidate the comparison. Equal-scoring alternatives may both remain on the frontier.
@@ -47,7 +55,7 @@ This intentionally avoids inventing a single weighted score. Yard managers can r
 
 ## Tests authored in V0
 
-Twenty unit tests cover:
+Twenty-three unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -68,6 +76,9 @@ Twenty unit tests cover:
 18. prevention of moving an active block before clearance;
 19. prevention of reassigning/rerouting an active transfer mid-operation;
 20. treatment of not-applicable Pareto metrics as incomparable, not automatically better.
+21. sequential recovery from a delayed clearance followed by a vehicle and corridor disruption;
+22. persistence of an earlier vehicle outage across later planning stages, with fail-closed stop on an invalid recovery;
+23. rejection of empty, duplicate-ID and time-reversed disruption sequences.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
