@@ -342,6 +342,10 @@ fn check_string_field_nonempty(value: &Json, key: &str, path: &str, errors: &mut
     }
 }
 
+pub fn validate_json_syntax(input: &str) -> Result<(), String> {
+    Parser::new(input).parse().map(|_| ())
+}
+
 pub fn validate_manifest_json(input: &str) -> Vec<String> {
     let root = match Parser::new(input).parse() {
         Ok(v) => v,
