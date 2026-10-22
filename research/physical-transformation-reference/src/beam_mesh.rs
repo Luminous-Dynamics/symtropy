@@ -33,6 +33,34 @@ pub fn canonical_refinement_request(
     ))
 }
 
+/// Canonical request for a fixed, ordered mesh-refinement ladder.
+pub fn canonical_refinement_sweep_request(
+    nodes: &[BeamPinNode],
+    members: &[BeamPinMember],
+    element_counts: &[usize],
+) -> Check<String> {
+    if element_counts.is_empty() {
+        return Err("mesh refinement ladder must contain at least one element count".to_owned());
+    }
+    let mut previous = 0_usize;
+    for count in element_counts {
+        validate_refinement_budget(nodes.len(), members.len(), *count)?;
+        if *count <= previous {
+            return Err("mesh refinement element counts must be strictly increasing".to_owned());
+        }
+        previous = *count;
+    }
+    let base_request = canonical_assembly_request(nodes, members)?;
+    let counts = element_counts
+        .iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!(
+        "schema=beam-mesh-sweep-request-v0.1\nelements_per_member={counts}\nbase_request={base_request}"
+    ))
+}
+
 /// Assemble a uniformly subdivided planar beam model. Each source member is
 /// split into elements_per_member straight Euler-Bernoulli elements. Internal
 /// mesh points share a translation and one rotation within their own physical
@@ -355,7 +383,10 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{assemble_refined_released_joint_pin_truss, canonical_refinement_request};
+    use super::{
+        assemble_refined_released_joint_pin_truss, canonical_refinement_request,
+        canonical_refinement_sweep_request,
+    };
     use crate::beam_pin_assembly::{
         assemble_released_joint_pin_truss, BeamPinDofKind, BeamPinMember, BeamPinNode,
     };
@@ -482,6 +513,17 @@ mod tests {
             canonical_refinement_request(&nodes(), &members(), 2).unwrap(),
             canonical_refinement_request(&nodes(), &members(), 4).unwrap()
         );
+    }
+
+    #[test]
+    fn mesh_sweep_request_freezes_all_refinement_levels() {
+        let request = canonical_refinement_sweep_request(&nodes(), &members(), &[1, 2, 4, 8])
+            .expect("canonical refinement sweep request");
+        let frozen = include_str!("../fixtures/beam_mesh_sweep_request_v0_1.txt")
+            .trim_end_matches('\\n');
+        assert_eq!(request, frozen);
+        assert!(canonical_refinement_sweep_request(&nodes(), &members(), &[1, 4, 2]).is_err());
+        assert!(canonical_refinement_sweep_request(&nodes(), &members(), &[]).is_err());
     }
 
     #[test]
