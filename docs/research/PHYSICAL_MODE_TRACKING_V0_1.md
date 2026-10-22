@@ -102,7 +102,7 @@ Publish per-case results, uncertainty/ambiguity outcomes, and failures. A high a
 
 Only compare against an external tracking method after pinning its implementation/version, algorithm, thresholds and mode-selection semantics. Feed both methods identical eigensolutions first to isolate tracker quality from eigensolver quality. Then conduct a separate end-to-end comparison with solver, mesh, constraints, mass convention, precision and compute budget aligned.
 
-Report quality-versus-cost curves, not just a single setting. Include frequency-sorted baseline, MAC-only baseline, global-assignment MAC baseline, and the cluster-aware method. Use an analytical or independently generated oracle for synthetic cases and never treat two methods' agreement as independent proof when both share the same input or underlying solver defects.
+Report quality-versus-cost curves, not just a single setting. Include frequency-sorted baseline, MAC-only baseline, global-assignment MAC baseline, and the cluster-aware method. Where input semantics are compatible, include a pinned reproduction of Chen & Wang (2026)'s clustering-free greedy association with adaptive filtering for time-varying modal trajectories. That paper addresses online trajectories under non-stationary excitation, which is not automatically the same problem as a static generalized-eigenproblem parameter sweep; therefore, compare algorithms first on identical already-computed modal inputs, then report any end-to-end application comparison separately. Use an analytical or independently generated oracle for synthetic cases and never treat two methods' agreement as independent proof when both share the same input or underlying solver defects.
 
 ## 8. Adaptive parameter-step control
 
@@ -139,5 +139,7 @@ This document defines a proposed tracking qualification protocol. Passing it wou
 - Lu et al. (2020), *A mode tracking method in modal metamodeling for structures with clustered eigenvalues*, Computer Methods in Applied Mechanics and Engineering. https://doi.org/10.1016/j.cma.2020.113174
 - Ruiz, Bellido & Donoso (2017), *Eigenvector sensitivity when tracking modes with repeated eigenvalues*, Computer Methods in Applied Mechanics and Engineering. https://doi.org/10.1016/j.cma.2017.07.031
 - Xiao, Sharif-Khodaei & Aliabadi (2026), *Rigorous foundations of adaptive mode tracking in single-parametric Hermitian eigenvalue problems*, arXiv:2603.13193. https://arxiv.org/abs/2603.13193
+- Chen & Wang (2026), *Automated identification of time-varying modal parameter trajectories for structural systems*, Computers & Structures 330, article 108355. https://doi.org/10.1016/j.compstruc.2026.108355
 - SLEPc, *EPS: Eigenvalue Problem Solver* documentation, including discussion of eigenvector accuracy and clustered spectra. https://slepc.upv.es/release/documentation/manual/eps.html
 - SOFiSTiK, *Verification Benchmarks 2026*, BE25: Eigenvalue Analysis of Beam Structures Under Various Boundary Conditions. https://docs.sofistik.com/2026/en/verification/index.html
+- NIST (2026-10-05), *On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices*. https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing
