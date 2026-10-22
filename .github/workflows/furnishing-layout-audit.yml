@@ -7,8 +7,9 @@ on:
       - feat/interior-verified-pareto-frontier-v0-1-20261021-ready
       - feat/interior-resident-preference-probe-v0-1-20261021
       - feat/interior-bounded-response-channel-v0-2-20261022
+      - feat/interior-adaptive-policy-eval-v0-1-20261022
   pull_request:
-    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020", "feat/interior-verified-pareto-frontier-v0-1-20261021-ready", "feat/interior-resident-preference-probe-v0-1-20261021", "feat/interior-bounded-response-channel-v0-2-20261022"]
+    branches: ["main", "research/furnishing-layout-benchmark-v0-1-20261020", "feat/furnishing-functional-envelope-oracle-v0-2-20261020", "feat/furnishing-spatial-index-benchmark-v0-3-20261020", "feat/interior-verified-pareto-frontier-v0-1-20261021-ready", "feat/interior-resident-preference-probe-v0-1-20261021", "feat/interior-bounded-response-channel-v0-2-20261022", "feat/interior-adaptive-policy-eval-v0-1-20261022"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
@@ -68,4 +69,6 @@ jobs:
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench resident_preference_probe_scaling
       - name: Benchmark preference answer robustness
         run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench response_robustness_scaling
+      - name: Benchmark adaptive preference policy evaluation
+        run: cargo bench --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --bench preference_policy_evaluation_scaling
 
