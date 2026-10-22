@@ -844,7 +844,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                         .find(|outcome| {
                             outcome.seed == *seed && outcome.scenario_id == "baseline"
                         })
-                        .ok_or_else(|| "paired_no_outage_baseline_seed_outcome_missing".to_string())?;
+                        .ok_or_else(|| {
+                            "paired_no_outage_baseline_seed_outcome_missing".to_string()
+                        })?;
                     let outage_intervention_effect = outage_outcome.good_units_per_hour
                         - outage_baseline.good_units_per_hour;
                     let nominal_intervention_effect = nominal_outcome.good_units_per_hour
@@ -862,21 +864,12 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 seed_count: scenario_deltas.len(),
                 paired_good_units_per_hour_delta_vs_no_outage:
                     summarize_distribution(&scenario_deltas)?,
-                paired_intervention_effect_vs_baseline_in_outage_model: if outage_intervention_effects.is_empty() {
-                    None
-                } else {
-                    Some(summarize_distribution(&outage_intervention_effects)?)
-                },
-                paired_intervention_effect_vs_baseline_in_no_outage_model: if nominal_intervention_effects.is_empty() {
-                    None
-                } else {
-                    Some(summarize_distribution(&nominal_intervention_effects)?)
-                },
-                paired_intervention_effect_delta_vs_no_outage: if intervention_effect_deltas.is_empty() {
-                    None
-                } else {
-                    Some(summarize_distribution(&intervention_effect_deltas)?)
-                },
+                paired_intervention_effect_vs_baseline_in_outage_model:
+                    optional_distribution_summary(&outage_intervention_effects)?,
+                paired_intervention_effect_vs_baseline_in_no_outage_model:
+                    optional_distribution_summary(&nominal_intervention_effects)?,
+                paired_intervention_effect_delta_vs_no_outage:
+                    optional_distribution_summary(&intervention_effect_deltas)?,
             });
         }
         report.structural_robust_intervention_summary = Some(
@@ -903,7 +896,7 @@ fn summarize_structural_intervention_decisions(
     if scenario_comparisons.len() < 2
         || !scenario_comparisons.iter().any(|scenario| scenario.scenario_id == "baseline")
     {
-        return Err("structural_decision_summary_requires_baseline_and_intervention_scenarios".into());
+        return Err("structural_summary_requires_baseline_and_intervention".into());
     }
 
     let mut effects_by_scenario: Vec<(String, Option<String>, f64, f64)> = Vec::new();
@@ -1021,6 +1014,16 @@ fn summarize_structural_intervention_decisions(
         family_winners,
         intervention_scores,
     })
+}
+
+fn optional_distribution_summary(
+    values: &[f64],
+) -> Result<Option<DistributionSummary>, String> {
+    if values.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(summarize_distribution(values)?))
+    }
 }
 
 fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
