@@ -9,6 +9,8 @@ use super::{
     PreferenceProbeError, ResidentPreferenceProbeRequest, compute_resident_preference_probe,
     minimax_regret, utility_numerator,
 };
+pub mod policy_evaluation;
+
 use std::fmt;
 
 const OBSERVED_ANSWER_MASK: u8 = 0b1111;
