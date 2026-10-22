@@ -479,15 +479,23 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
 
     for i in 0..half {
         let mut z = (std::f64::consts::PI * (i as f64 + 0.75) / (order as f64 + 0.5)).cos();
+        let mut converged = false;
         for _ in 0..64 {
             let (polynomial, previous) = legendre_pair(order, z);
             let derivative = order as f64 * (z * polynomial - previous) / (z * z - 1.0);
             let next = z - polynomial / derivative;
+            if !next.is_finite() {
+                return Err(MeshError::InvalidQuadratureOrder);
+            }
             if (next - z).abs() <= 2.0 * f64::EPSILON * next.abs().max(1.0) {
                 z = next;
+                converged = true;
                 break;
             }
             z = next;
+        }
+        if !converged || !z.is_finite() || z.abs() >= 1.0 {
+            return Err(MeshError::InvalidQuadratureOrder);
         }
 
         let (polynomial, previous) = legendre_pair(order, z);
@@ -495,6 +503,12 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
         let weight = 1.0 / ((1.0 - z * z) * derivative * derivative);
         points[i] = ((1.0 - z) * 0.5, weight);
         points[order - 1 - i] = ((1.0 + z) * 0.5, weight);
+    }
+    if points
+        .iter()
+        .any(|(point, weight)| !point.is_finite() || !weight.is_finite() || *point < 0.0 || *point > 1.0 || *weight <= 0.0)
+    {
+        return Err(MeshError::InvalidQuadratureOrder);
     }
     Ok(points)
 }
@@ -565,6 +579,25 @@ mod tests {
         assert_eq!(
             gauss_legendre_unit_interval(65).unwrap_err(),
             MeshError::InvalidQuadratureOrder
+        );
+    }
+
+    #[test]
+    fn mutated_mesh_coordinates_or_connectivity_are_rejected() {
+        let problem = ManufacturedProblem::reference();
+
+        let mut changed_coordinate = generate_mesh(4).unwrap();
+        changed_coordinate.nodes[0].x = 0.01;
+        assert_eq!(
+            changed_coordinate.assemble_body_force(problem, 4).unwrap_err(),
+            MeshError::InvalidMeshTopology
+        );
+
+        let mut changed_connectivity = generate_mesh(4).unwrap();
+        changed_connectivity.triangles.swap(0, 1);
+        assert_eq!(
+            changed_connectivity.assemble_body_force(problem, 4).unwrap_err(),
+            MeshError::InvalidMeshTopology
         );
     }
 
