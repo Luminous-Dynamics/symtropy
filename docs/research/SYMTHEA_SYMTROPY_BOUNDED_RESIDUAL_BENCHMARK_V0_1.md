@@ -40,11 +40,11 @@ The current smoke lane runs two matched seeds to verify the receipt/contract onl
 - **Correctness:** tests prove the residual is zero at authority 0, the clipped delta respects its configured envelope before actuator clamping, invalid values fail closed, and output commands respect actuator ranges.
 - **Baseline integrity:** per-seed authority-0 metrics exactly match the baseline PID reference; no training/evaluation state leaks across arms.
 - **No hidden safety claim:** report every rejected command and every residual-clipped step. Any nonzero rejection count blocks a superiority claim until explained.
-- **Performance:** report paired RMSE and within-5-cm deltas at each authority. Only claim benefit at an authority selected before held-out evaluation, with uncertainty intervals, no worse tail error or limit-event rates, and a predeclared practical-effect margin.
+- **Performance (prospective target, not achieved):** report paired RMSE and within-5-cm deltas at each authority. Aim for at least 10% lower held-out RMSE than tuned PID, with the paired 95% interval for the RMSE delta below zero and no regression in p95/max error, ground contacts or guard rejections. Select the authority before looking at held-out results and declare the practical-effect margin and power analysis up front.
 - **Latency/cost:** measure nominal+residual path p95, not just cognitive forward time; later add complete sensor-to-actuator latency, peak memory and electrical energy.
 - **Generalization:** separate training and held-out trajectory families, target positions, pulse axes/onsets/durations, sensor noise/staleness, actuator lag and model parameters. At least 100 matched seeds per scenario family is an initial floor, not a substitute for power analysis.
 
-## Paradigm-shift path
+## Minimum credible comparison set\n\nThe immediate matched baseline is PID, not a claimed industry frontier. Before a state-of-the-art claim, add an independently tuned LQR baseline and a constrained MPC or robust-MPC baseline on the same plant, states, disturbance traces and evaluation budget. Freeze baseline parameters before scoring held-out scenarios; publish tuning budgets and failed/unstable runs. Simulator, state dimension, flight regime and hardware differ across published studies, so cross-paper RMSE percentages are context—not a leaderboard.\n\n## Paradigm-shift path
 
 1. **Residual cognition:** add cognitive capability without transferring all authority away from well-understood control.
 2. **Uncertainty-gated authority:** eventually permit authority to vary only from a calibrated uncertainty estimate and validated operating envelope, rather than a hand-selected constant. Calibration and failure modes must be independently measured.
