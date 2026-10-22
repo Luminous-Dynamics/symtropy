@@ -333,10 +333,7 @@ pub struct PortfolioResult {
     pub score: PortfolioScore,
 }
 
-fn order_requests(
-    requests: &[PlacementRequest],
-    policy: PortfolioPolicy,
-) -> Vec<PlacementRequest> {
+fn order_requests(requests: &[PlacementRequest], policy: PortfolioPolicy) -> Vec<PlacementRequest> {
     let mut ordered = requests.to_vec();
     match policy {
         PortfolioPolicy::CallerOrder => {}
@@ -345,7 +342,12 @@ fn order_requests(
             let right_area = i128::from(right.width) * i128::from(right.height);
             right_area
                 .cmp(&left_area)
-                .then_with(|| right.width.max(right.height).cmp(&left.width.max(left.height)))
+                .then_with(|| {
+                    right
+                        .width
+                        .max(right.height)
+                        .cmp(&left.width.max(left.height))
+                })
                 .then_with(|| right.width.cmp(&left.width))
                 .then_with(|| right.height.cmp(&left.height))
                 .then_with(|| left.reservation_id.cmp(&right.reservation_id))
@@ -484,7 +486,9 @@ pub fn first_fit_heuristic_portfolio(
             scenario
                 .placements
                 .sort_by(|left, right| left.reservation_id.cmp(&right.reservation_id));
-            scenario.transfers.sort_by(|left, right| left.id.cmp(&right.id));
+            scenario
+                .transfers
+                .sort_by(|left, right| left.id.cmp(&right.id));
             scenario
                 .exclusion_zones
                 .sort_by(|left, right| left.id.cmp(&right.id));
@@ -511,8 +515,9 @@ pub fn first_fit_heuristic_portfolio(
         None => Err(vec![BaselineError {
             code: BaselineErrorCode::AllPoliciesFailed,
             subject_id: "yard".to_owned(),
-            detail: "no heuristic policy produced a verified plan; this is not proof of infeasibility"
-                .to_owned(),
+            detail:
+                "no heuristic policy produced a verified plan; this is not proof of infeasibility"
+                    .to_owned(),
         }]),
     }
 }
@@ -1105,10 +1110,7 @@ mod tests {
             max_y: 5,
         };
         let errors = first_fit_portfolio_with_budget(small_yard, &requests, &[], 1).unwrap_err();
-        assert_eq!(
-            errors[0].code,
-            BaselineErrorCode::ExactSearchBudgetExceeded
-        );
+        assert_eq!(errors[0].code, BaselineErrorCode::ExactSearchBudgetExceeded);
     }
 
     #[test]
