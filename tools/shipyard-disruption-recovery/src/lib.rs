@@ -59,6 +59,8 @@ pub enum RecoveryViolationCode {
     OccupancyExtensionTargetMismatch,
     HistoricalPlacementChanged,
     HistoricalTransferChanged,
+    ActivePlacementMovedBeforeClearance,
+    ActiveTransferChangedBeforeCompletion,
     VehicleUnavailable,
 }
 
@@ -80,6 +82,8 @@ impl RecoveryViolationCode {
             Self::OccupancyExtensionTargetMismatch => "OccupancyExtensionTargetMismatch",
             Self::HistoricalPlacementChanged => "HistoricalPlacementChanged",
             Self::HistoricalTransferChanged => "HistoricalTransferChanged",
+            Self::ActivePlacementMovedBeforeClearance => "ActivePlacementMovedBeforeClearance",
+            Self::ActiveTransferChangedBeforeCompletion => "ActiveTransferChangedBeforeCompletion",
             Self::VehicleUnavailable => "VehicleUnavailable",
         }
     }
@@ -933,6 +937,66 @@ fn historical_mutations(
     }
 }
 
+/// Keep physical work already in progress fixed until its reservation completes.
+///
+/// A recovery may alter future reservations but cannot teleport an active block or reroute a
+/// transfer while it is already executing. An extension of the scheduled end is allowed; shortening
+/// the old end, changing the start, or changing the resource/geometry is not.
+fn in_progress_mutations(
+    baseline: &Scenario,
+    candidate: &Scenario,
+    disruption_tick: u64,
+    violations: &mut Vec<RecoveryViolation>,
+) {
+    let old_placements = placement_map(baseline);
+    let new_placements = placement_map(candidate);
+    for (id, old) in old_placements {
+        if old.occupied.start_tick <= disruption_tick
+            && disruption_tick < old.occupied.end_tick
+        {
+            let matches = new_placements.get(id).is_some_and(|new| {
+                new.block_id == old.block_id
+                    && new.footprint == old.footprint
+                    && new.occupied.start_tick == old.occupied.start_tick
+                    && new.occupied.end_tick >= old.occupied.end_tick
+            });
+            if !matches {
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::ActivePlacementMovedBeforeClearance,
+                    vec![id.to_owned()],
+                    None,
+                );
+            }
+        }
+    }
+
+    let old_transfers = transfer_map(baseline);
+    let new_transfers = transfer_map(candidate);
+    for (id, old) in old_transfers {
+        if old.interval.start_tick <= disruption_tick
+            && disruption_tick < old.interval.end_tick
+        {
+            let matches = new_transfers.get(id).is_some_and(|new| {
+                new.block_id == old.block_id
+                    && new.corridor == old.corridor
+                    && new.interval.start_tick == old.interval.start_tick
+                    && new.interval.end_tick >= old.interval.end_tick
+                    && new.vehicle_id == old.vehicle_id
+                    && new.predecessor_move_ids == old.predecessor_move_ids
+            });
+            if !matches {
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::ActiveTransferChangedBeforeCompletion,
+                    vec![id.to_owned()],
+                    None,
+                );
+            }
+        }
+    }
+}
+
 fn makespan(scenario: &Scenario) -> Option<u64> {
     scenario
         .placements
@@ -1021,6 +1085,12 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
     }
 
     historical_mutations(
+        &input.baseline,
+        &input.candidate,
+        input.disruption.observed_at_tick,
+        &mut violations,
+    );
+    in_progress_mutations(
         &input.baseline,
         &input.candidate,
         input.disruption.observed_at_tick,
@@ -1388,6 +1458,58 @@ mod tests {
             .baseline_spatial_violations
             .iter()
             .any(|violation| violation.code == ViolationCode::BlockFootprintOverlap));
+    }
+
+    #[test]
+    fn active_block_cannot_be_relocated_mid_occupancy_without_clearance() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("active", "block-a", rect(0, 0, 2, 2), 0, 8)],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("active", "block-a", rect(2, 0, 4, 2), 0, 8)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: empty_disruption(4),
+        });
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::ActivePlacementMovedBeforeClearance
+        }));
+    }
+
+    #[test]
+    fn transfer_already_in_progress_cannot_be_reassigned_or_rerouted_mid_move() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 2, 2), 0, 10)],
+            transfers: vec![transfer("move-a", "block-a", 2, 7, "tug-1")],
+            ..Scenario::default()
+        };
+        let mut changed_transfer = transfer("move-a", "block-a", 2, 7, "tug-2");
+        changed_transfer.corridor = rect(6, 8, 7, 9);
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: baseline.placements.clone(),
+            transfers: vec![changed_transfer],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: empty_disruption(4),
+        });
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::ActiveTransferChangedBeforeCompletion
+        }));
     }
 
     #[test]
