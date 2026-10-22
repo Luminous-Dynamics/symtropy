@@ -118,6 +118,16 @@ The integration test \`tests/resource_precedence_oracle.rs\` enumerates 4,096 co
 
 The frozen oracle expects 16 feasible schedules and 4,080 infeasible schedules. The acceptance criterion is zero false-feasible and zero false-infeasible results. This exhausts a tiny, deliberately discrete subproblem; it does not validate resource capacities above one, variable setup/processing durations, alternate operation routes, crane interference, or industrial scale. The exact-head workflow must pass before those counts are treated as verified.
 
+## Execution-versus-plan replay and observability metrics
+
+The public execution module can replay a frozen list of planned operation windows against source-referenced Started and Completed events. It keeps occurrence time separate from recorded/ingestion time: an event that happened before the cutoff but was not recorded until later is withheld from the earlier as-of replay. This supports honest historical views of what the scheduler could have known at a decision point.
+
+The report separates schedule deviation from evidence validity. It measures observed start/completion counts, missing events, signed start/finish deviations, late-start and late-finish ticks, operation-duration overruns, absolute deviation and event-recording latency. Missing events are reported as observability gaps, not fabricated zero-duration operations. Duplicate IDs, unknown operations, duplicate start/completion claims, malformed plan windows, missing source/evidence references and completion-before-start fail closed. Assessment order is deterministic even if input events arrive in another order.
+
+Six unit tests cover a late-arriving completion visible only in a later as-of snapshot, event input-order invariance, duplicate ID/start rejection, unknown operation and invalid time ordering, missing-evidence metrics, and completion-before-start. These are authored tests pending exact-head CI. V0 requires event and recorded ticks to be normalized to a common monotonic time domain; evidence references are preserved as references, not treated as cryptographic attestations. The replay measures adherence and data quality; it does not approve physical work or by itself provide a discrete-event simulation.
+
+This bridges an important gap between static plan feasibility and industrial evaluation. The 2026 shipyard digitalisation review identifies historical execution replay, APS/MES connection and sustained KPI validation as materially stronger evidence than architecture alone. The next benchmark should compare a frozen planned schedule with synthetic or permissioned actual event traces and publish the same as-of reports at multiple ingestion cutoffs.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
