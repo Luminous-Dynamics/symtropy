@@ -50,9 +50,22 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
-    /// Join a room and start peer discovery.
+    /// Join a room using the synchronous path.
+    ///
+    /// Async transports fail closed here. Use Self::join_async for transports
+    /// that require network I/O and a remote handshake.
     pub fn join(&mut self, room_id: &str) -> Result<(), String> {
         self.transport.connect(room_id)
+    }
+
+    /// Start joining a room through the transport's async connection path.
+    ///
+    /// A successful return means the transport's connection/join request was
+    /// accepted by its local async API. For asynchronous transports, call `tick()`
+    /// and then inspect `is_connected()`; returning from this method does not
+    /// prove that a remote server has completed its Welcome handshake.
+    pub async fn join_async(&mut self, room_id: &str) -> Result<(), String> {
+        self.transport.connect_async(room_id).await
     }
 
     /// Leave the session.
@@ -104,7 +117,13 @@ impl<T: Transport> NetworkSession<T> {
                         }
                     }
                 }
-                TransportEvent::SignalingConnected => {}
+                TransportEvent::SignalingConnected => {
+                    // Some transports receive their authoritative local peer ID
+                    // only after the remote handshake. Keep spatial authority in
+                    // sync with that assigned identity before accepting gameplay.
+                    self.authority
+                        .reidentify_local_peer(self.transport.local_peer_id());
+                }
                 TransportEvent::SignalingDisconnected => {}
                 TransportEvent::Error(e) => {
                     // Log but don't crash — graceful degradation
@@ -155,6 +174,15 @@ impl<T: Transport> NetworkSession<T> {
         }
     }
 
+    /// Whether the underlying transport reports its connection/control-plane state as established.
+    ///
+    /// This is separate from peer admission and remote delivery. The exact state is
+    /// transport-specific: relay transports require Welcome to be processed by
+    /// `tick()`, while an in-memory transport may report its local endpoint connected.
+    pub fn is_connected(&self) -> bool {
+        self.transport.is_signaling_connected()
+    }
+
     /// Number of connected peers.
     pub fn peer_count(&self) -> usize {
         self.peers.len()
@@ -180,6 +208,36 @@ mod tests {
         session.join("test-room").unwrap();
         session.tick();
         assert_eq!(session.tick, 1);
+    }
+
+    #[test]
+    fn session_async_join_supports_synchronous_transports() {
+        let (transport, _peer) = loopback_pair();
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
+
+        tokio::runtime::Runtime::new()
+            .expect("runtime")
+            .block_on(session.join_async("test-room"))
+            .expect("async join delegates to sync transport");
+
+        assert!(session.is_connected());
+    }
+
+    #[test]
+    fn session_connection_state_is_separate_from_peer_admission() {
+        let (transport, _peer) = loopback_pair();
+        let mut session = NetworkSession::new(transport, NetworkConfig::local_test());
+
+        assert!(!session.is_connected());
+        assert_eq!(session.peer_count(), 0);
+
+        session.join("test-room").expect("connect local transport");
+        assert!(session.is_connected());
+        assert_eq!(
+            session.peer_count(),
+            0,
+            "local connection is not proof that a remote peer was admitted"
+        );
     }
 
     #[test]
