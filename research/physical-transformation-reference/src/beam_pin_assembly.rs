@@ -438,6 +438,34 @@ mod tests {
             .collect::<BTreeSet<_>>();
         assert_eq!(unique_indices.len(), 4);
         assert!(rotation_descriptors.iter().all(|(_, _, index)| *index >= 6));
+        // Every member-end rotation is a real, independently assembled DOF.
+        // A shared node rotation would leave one descriptor index unused.
+        for (_, _, index) in &rotation_descriptors {
+            assert!(
+                result.stiffness_global[*index][*index] > 0.0,
+                "member-end rotation DOF {index} has no assembled bending stiffness"
+            );
+            assert!(
+                result.mass_global[*index][*index] > 0.0,
+                "member-end rotation DOF {index} has no assembled inertia"
+            );
+        }
+        let ac_end_rotation = rotation_descriptors
+            .iter()
+            .find(|(member_id, at_start, _)| member_id == "AC" && !at_start)
+            .map(|(_, _, index)| *index)
+            .expect("AC end rotation");
+        let bc_end_rotation = rotation_descriptors
+            .iter()
+            .find(|(member_id, at_start, _)| member_id == "BC" && !at_start)
+            .map(|(_, _, index)| *index)
+            .expect("BC end rotation");
+        assert_ne!(ac_end_rotation, bc_end_rotation);
+        assert_eq!(
+            result.stiffness_global[ac_end_rotation][bc_end_rotation],
+            0.0,
+            "ideal pins must not transmit an end moment between members"
+        );
     }
 
     #[test]
