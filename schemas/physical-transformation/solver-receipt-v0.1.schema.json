@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/physical-transformation/solver-receipt-v0.1.schema.json",
+  "title": "Physical Solver Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "request_sha256",
+    "source_revision",
+    "adapter",
+    "status",
+    "evidence_class",
+    "physics_evaluated",
+    "physics_omitted",
+    "convergence",
+    "outputs",
+    "uncertainty",
+    "validity_envelope",
+    "claim_ceiling",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": { "const": "physical-solver-receipt-v0.1" },
+    "request_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+    "request_sha256": { "$ref": "#/$defs/sha256" },
+    "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter_id", "version", "executable_sha256", "configuration_sha256"],
+      "properties": {
+        "adapter_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "executable_sha256": { "$ref": "#/$defs/sha256" },
+        "configuration_sha256": { "$ref": "#/$defs/sha256" },
+        "solver_name": { "type": ["string", "null"], "maxLength": 256 },
+        "solver_version": { "type": ["string", "null"], "maxLength": 128 },
+        "solver_build_ref": { "type": ["string", "null"], "maxLength": 2048 }
+      }
+    },
+    "status": { "enum": ["PASS", "FAIL", "UNRESOLVED"] },
+    "evidence_class": {
+      "enum": ["synthetic", "analytical_reference", "simulated", "measured_comparison", "unknown"]
+    },
+    "physics_evaluated": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "physics_omitted": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "convergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "iterations", "residual", "mesh_refinement_evaluated", "details"],
+      "properties": {
+        "state": { "enum": ["not_applicable", "converged", "not_converged", "unknown"] },
+        "iterations": { "type": ["integer", "null"], "minimum": 0 },
+        "residual": { "type": ["number", "null"], "minimum": 0 },
+        "mesh_refinement_evaluated": { "type": "boolean" },
+        "details": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["output_id", "kind", "sha256", "media_type", "unit", "artifact_ref"],
+        "properties": {
+          "output_id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,128}$" },
+          "kind": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "media_type": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "unit": { "type": ["string", "null"], "maxLength": 64 },
+          "artifact_ref": { "type": "string", "minLength": 1, "maxLength": 2048 }
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "method", "summary"],
+      "properties": {
+        "state": { "enum": ["quantified", "qualitative", "unknown", "not_applicable"] },
+        "method": { "type": ["string", "null"], "maxLength": 256 },
+        "summary": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "validity_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported_geometry", "supported_material_model", "load_regime", "limitations"],
+      "properties": {
+        "supported_geometry": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "supported_material_model": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "load_regime": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "limitations": { "type": "array", "items": { "type": "string", "maxLength": 2048 } }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "diagnostics": { "type": "array", "items": { "type": "string", "maxLength": 2048 } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "PASS" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "outputs": { "minItems": 1 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "UNRESOLVED" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "claim_ceiling": { "pattern": "(UNRESOLVED|unresolved|not qualified|not a safety|not validated)" }
+        }
+      }
+    }
+  ]
+}

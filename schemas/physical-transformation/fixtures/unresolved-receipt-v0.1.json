@@ -1,0 +1,40 @@
+{
+  "schema_version": "physical-solver-receipt-v0.1",
+  "request_id": "fixture:unsupported-fracture-001",
+  "request_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "source_revision": "556e78c6e93a63b1b734c9d1b9d3f91cdd7223ac",
+  "adapter": {
+    "adapter_id": "symtropy.synthetic-capability-gate",
+    "version": "0.1.0",
+    "executable_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "solver_name": null,
+    "solver_version": null,
+    "solver_build_ref": null
+  },
+  "status": "UNRESOLVED",
+  "evidence_class": "synthetic",
+  "physics_evaluated": ["topology"],
+  "physics_omitted": ["dynamic_response", "fracture", "contact"],
+  "convergence": {
+    "state": "not_applicable",
+    "iterations": null,
+    "residual": null,
+    "mesh_refinement_evaluated": false,
+    "details": "Rejected before solver invocation because requested physics exceed declared adapter capabilities."
+  },
+  "outputs": [],
+  "uncertainty": {
+    "state": "unknown",
+    "method": null,
+    "summary": "No physical result was produced."
+  },
+  "validity_envelope": {
+    "supported_geometry": "topological graph only",
+    "supported_material_model": "no continuum material response",
+    "load_regime": "no load solving",
+    "limitations": ["Not a structural result.", "Not a collapse prediction."]
+  },
+  "claim_ceiling": "UNRESOLVED: not qualified; unsupported dynamic fracture is not evaluated.",
+  "diagnostics": ["requested_physics contains unsupported dynamic_response and fracture capabilities"]
+}
