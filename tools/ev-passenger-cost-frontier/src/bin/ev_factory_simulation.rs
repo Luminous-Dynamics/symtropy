@@ -842,9 +842,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     let nominal_baseline = no_outage_report
                         .replication_outcomes
                         .iter()
-                        .find(|outcome| {
-                            outcome.seed == *seed && outcome.scenario_id == "baseline"
-                        })
+                        .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
                         .ok_or_else(|| {
                             "paired_no_outage_baseline_seed_outcome_missing".to_string()
                         })?;
