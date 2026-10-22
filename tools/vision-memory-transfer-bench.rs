@@ -173,7 +173,7 @@ impl Policy {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Scenario {
-    name: &'static str,
+    name: String,
     start: u8,
     world: World,
     distractor_first: bool,
@@ -181,20 +181,51 @@ struct Scenario {
 
 fn scenarios() -> Vec<Scenario> {
     let open = World::base();
-    let edge_23 = [Edge::new(2, 3)];
     let edge_12 = [Edge::new(1, 2)];
     let edge_01 = [Edge::new(0, 1)];
     let isolate_3 = [Edge::new(2, 3), Edge::new(3, 5), Edge::new(3, 7)];
-    vec![
-        Scenario { name: "matched_open", start: 0, world: open.clone(), distractor_first: false },
-        Scenario { name: "shifted_start", start: 4, world: open.clone(), distractor_first: false },
-        Scenario { name: "matched_route_blocked", start: 0, world: open.clone().with_blocked(&edge_12), distractor_first: false },
-        Scenario { name: "shifted_and_blocked", start: 4, world: open.clone().with_blocked(&edge_12), distractor_first: false },
-        Scenario { name: "irrelevant_demo_first", start: 0, world: open.clone(), distractor_first: true },
-        Scenario { name: "alternate_route", start: 0, world: open.clone().with_blocked(&edge_01), distractor_first: false },
-        Scenario { name: "target_disconnected", start: 0, world: open.with_blocked(&isolate_3), distractor_first: false },
-        Scenario { name: "far_start", start: 7, world: World::base(), distractor_first: false },
-    ]
+    let mut all = vec![
+        Scenario { name: "matched_open".to_owned(), start: 0, world: open.clone(), distractor_first: false },
+        Scenario { name: "shifted_start".to_owned(), start: 4, world: open.clone(), distractor_first: false },
+        Scenario { name: "matched_route_blocked".to_owned(), start: 0, world: open.clone().with_blocked(&edge_12), distractor_first: false },
+        Scenario { name: "shifted_and_blocked".to_owned(), start: 4, world: open.clone().with_blocked(&edge_12), distractor_first: false },
+        Scenario { name: "irrelevant_demo_first".to_owned(), start: 0, world: open.clone(), distractor_first: true },
+        Scenario { name: "alternate_route".to_owned(), start: 0, world: open.clone().with_blocked(&edge_01), distractor_first: false },
+        Scenario { name: "target_disconnected".to_owned(), start: 0, world: open.clone().with_blocked(&isolate_3), distractor_first: false },
+        Scenario { name: "far_start".to_owned(), start: 7, world: open, distractor_first: false },
+    ];
+
+    // Exhaustive single-edge transfer matrix: every start node, every edge
+    // blocked individually (plus no blockage), and distractor history on/off.
+    // This deterministic finite matrix is reported exactly, not treated as a
+    // random sample from a population.
+    let base = World::base();
+    let edges = base.edges.clone();
+    for start in 0..NODE_COUNT as u8 {
+        for block_index in 0..=edges.len() {
+            let blocked = if block_index == 0 {
+                Vec::new()
+            } else {
+                vec![edges[block_index - 1]]
+            };
+            let world = base.clone().with_blocked(&blocked);
+            for distractor_first in [false, true] {
+                let suffix = if distractor_first { "d1" } else { "d0" };
+                let block_label = if block_index == 0 {
+                    "none".to_owned()
+                } else {
+                    format!("{}-{}", blocked[0].0, blocked[0].1)
+                };
+                all.push(Scenario {
+                    name: format!("matrix_s{start}_b{block_label}_{suffix}"),
+                    start,
+                    world: world.clone(),
+                    distractor_first,
+                });
+            }
+        }
+    }
+    all
 }
 
 fn append_segment(path: &mut Vec<u8>, segment: &[u8]) {
