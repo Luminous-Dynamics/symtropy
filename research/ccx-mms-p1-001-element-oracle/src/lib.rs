@@ -33,8 +33,12 @@ pub enum ElementError {
 impl fmt::Display for ElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFiniteGeometry => f.write_str("triangle coordinates are non-finite or overflow"),
-            Self::DegenerateTriangle => f.write_str("triangle area is zero or numerically degenerate"),
+            Self::NonFiniteGeometry => {
+                f.write_str("triangle coordinates are non-finite or overflow")
+            }
+            Self::DegenerateTriangle => {
+                f.write_str("triangle area is zero or numerically degenerate")
+            }
             Self::InvalidThickness => f.write_str("thickness must be finite and positive"),
             Self::NonFiniteDisplacement => f.write_str("nodal displacement is non-finite"),
             Self::NonFiniteStiffness => f.write_str("element stiffness contains non-finite values"),
@@ -139,18 +143,26 @@ impl TriangleElement {
         ];
         let area = determinant.abs() * 0.5;
         let scale = area * thickness;
-        let mut stiffness = [[0.0_f64; 6]; 6];
-        for i in 0..6 {
-            for j in 0..6 {
-                let mut value = 0.0;
-                for row in 0..3 {
-                    for column in 0..3 {
-                        value += b_matrix[row][i]
-                            * constitutive[row][column]
-                            * b_matrix[column][j];
-                    }
+        let mut constitutive_times_b = [[0.0_f64; 6]; 3];
+        for (row_index, result_row) in constitutive_times_b.iter_mut().enumerate() {
+            for (constitutive_value, b_row) in
+                constitutive[row_index].iter().zip(b_matrix.iter())
+            {
+                for (result, b_value) in result_row.iter_mut().zip(b_row.iter()) {
+                    *result += constitutive_value * b_value;
                 }
-                stiffness[i][j] = scale * value;
+            }
+        }
+
+        let mut stiffness = [[0.0_f64; 6]; 6];
+        for (i, stiffness_row) in stiffness.iter_mut().enumerate() {
+            for (j, stiffness_value) in stiffness_row.iter_mut().enumerate() {
+                let value = b_matrix
+                    .iter()
+                    .zip(constitutive_times_b.iter())
+                    .map(|(b_row, db_row)| b_row[i] * db_row[j])
+                    .sum::<f64>();
+                *stiffness_value = scale * value;
             }
         }
         if stiffness.iter().flatten().any(|value| !value.is_finite()) {
@@ -235,10 +247,10 @@ impl TriangleElement {
             displacements[2].y,
         ];
         let mut force = [0.0; 6];
-        for (row, total) in force.iter_mut().enumerate() {
-            *total = self.stiffness[row]
+        for (stiffness_row, total) in self.stiffness.iter().zip(force.iter_mut()) {
+            *total = stiffness_row
                 .iter()
-                .zip(dofs)
+                .zip(dofs.iter())
                 .map(|(stiffness, displacement)| stiffness * displacement)
                 .sum();
         }
@@ -309,12 +321,10 @@ pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
             .max((strain.yy - expected_strain.yy).abs())
             .max((strain.xy - expected_strain.xy).abs());
 
-        for i in 0..6 {
-            for j in 0..6 {
-                max_stiffness_symmetry_defect =
-                    max_stiffness_symmetry_defect.max(
-                        (element.stiffness[i][j] - element.stiffness[j][i]).abs(),
-                    );
+        for (i, row) in element.stiffness.iter().enumerate() {
+            for (j, value) in row.iter().enumerate() {
+                max_stiffness_symmetry_defect = max_stiffness_symmetry_defect
+                    .max((*value - element.stiffness[j][i]).abs());
             }
         }
 
@@ -411,9 +421,9 @@ mod tests {
     fn stiffness_is_symmetric_and_has_rigid_body_null_modes() {
         let vertices = points();
         let element = TriangleElement::new(vertices, material(), 1.7).unwrap();
-        for i in 0..6 {
-            for j in 0..6 {
-                close(element.stiffness[i][j], element.stiffness[j][i], 1.0e-14);
+        for (i, row) in element.stiffness.iter().enumerate() {
+            for (j, value) in row.iter().enumerate() {
+                close(*value, element.stiffness[j][i], 1.0e-14);
             }
         }
         for mode in [
@@ -435,10 +445,10 @@ mod tests {
         let reversed =
             TriangleElement::new([vertices[0], vertices[2], vertices[1]], material(), 0.8).unwrap();
         let permutation = [0, 1, 4, 5, 2, 3];
-        for i in 0..6 {
-            for j in 0..6 {
+        for (i, row) in reversed.stiffness.iter().enumerate() {
+            for (j, value) in row.iter().enumerate() {
                 close(
-                    reversed.stiffness[i][j],
+                    *value,
                     original.stiffness[permutation[i]][permutation[j]],
                     1.0e-14,
                 );
