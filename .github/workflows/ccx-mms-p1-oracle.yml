@@ -74,7 +74,7 @@ jobs:
         run: |
           checkout_sha="$(git rev-parse HEAD)"
           export MMS_BENCH_CHECKOUT_SHA="$checkout_sha"
-          sha256sum src/lib.rs src/bin/mms-p1-probe.rs src/bin/mms-p1-calibration.rs src/bin/mms-p1-deck.rs Cargo.toml ../ccx-mms-p1-001-oracle/src/lib.rs ../ccx-mms-p1-001-oracle/Cargo.toml ../physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json > /tmp/mms-p1-source-digests.sha256
+          sha256sum src/lib.rs src/bin/mms-p1-probe.rs src/bin/mms-p1-calibration.rs src/bin/mms-p1-deck.rs Cargo.toml Cargo.lock ../ccx-mms-p1-001-oracle/src/lib.rs ../ccx-mms-p1-001-oracle/Cargo.toml ../ccx-mms-p1-001-oracle/Cargo.lock ../physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json ../../docs/research/PHYS_CCX_MMS_P1_CONVERGENCE_001.md ../../.github/workflows/ccx-mms-p1-oracle.yml > /tmp/mms-p1-source-digests.sha256
           cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
           cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
           cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
