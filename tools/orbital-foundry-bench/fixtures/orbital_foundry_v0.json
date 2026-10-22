@@ -1,0 +1,82 @@
+{
+  "schema_version": "0.2.0",
+  "evidence_class": "synthetic",
+  "model": "event_driven_discrete_lifecycle_contract_not_physics",
+  "units": {
+    "mass": "synthetic_mass_units",
+    "time": "synthetic_ticks"
+  },
+  "hard_gates": {
+    "max_worst_case_service_loss_ticks": 12,
+    "end_of_life_plan_required": true
+  },
+  "scenarios": [
+    {
+      "id": "ROBOT_JOINT_FAILURE",
+      "disturbance": "robot joint or end-effector failure",
+      "claim_ceiling": "synthetic service-loss accounting only",
+      "events": [
+        {
+          "at_tick": 3,
+          "kind": "robot_joint_failure"
+        }
+      ]
+    },
+    {
+      "id": "INTERFACE_MISMATCH",
+      "disturbance": "module interface incompatibility discovered before mating",
+      "claim_ceiling": "synthetic interface-policy comparison only",
+      "events": [
+        {
+          "at_tick": 3,
+          "kind": "interface_mismatch"
+        }
+      ]
+    },
+    {
+      "id": "POWER_DOMAIN_FAILURE",
+      "disturbance": "one power-domain failure",
+      "claim_ceiling": "synthetic abstract discrete failure response only",
+      "events": [
+        {
+          "at_tick": 3,
+          "kind": "power_domain_failure"
+        }
+      ]
+    },
+    {
+      "id": "DELAYED_RESUPPLY",
+      "disturbance": "delayed cargo resupply",
+      "claim_ceiling": "synthetic spare-inventory policy comparison only",
+      "events": [
+        {
+          "at_tick": 3,
+          "kind": "resupply_delay"
+        }
+      ]
+    },
+    {
+      "id": "COMMON_CAUSE_FAILURE",
+      "disturbance": "compound failure affecting nominally redundant services",
+      "claim_ceiling": "synthetic common-cause stress test only",
+      "events": [
+        {
+          "at_tick": 2,
+          "kind": "robot_joint_failure"
+        },
+        {
+          "at_tick": 2,
+          "kind": "power_domain_failure"
+        },
+        {
+          "at_tick": 3,
+          "kind": "common_cause_power_failure"
+        },
+        {
+          "at_tick": 3,
+          "kind": "resupply_delay"
+        }
+      ]
+    }
+  ]
+}

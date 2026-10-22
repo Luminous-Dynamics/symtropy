@@ -1,0 +1,74 @@
+name: Orbital Foundry Synthetic Reference
+
+on:
+  push:
+    branches: ["feat/orbital-foundry-v0-benchmark"]
+    paths:
+      - "tools/orbital-foundry-bench/**"
+      - ".github/workflows/orbital-foundry-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-foundry-bench/**"
+      - ".github/workflows/orbital-foundry-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-foundry-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Format check
+        run: cargo fmt --manifest-path tools/orbital-foundry-bench/Cargo.toml -- --check
+
+      - name: Unit and negative-control tests
+        run: cargo test --manifest-path tools/orbital-foundry-bench/Cargo.toml
+
+      - name: Execute synthetic reference and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/orbital-foundry-bench/Cargo.toml -- \
+            --source-commit "$source_commit" > orbital-foundry-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .evidence_class == "synthetic"
+            and .candidate_count == 16
+            and .verified_candidate_count == 16
+            and .hard_gate_eligible_count == 2
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.pareto_frontier_design_ids | length == 2)
+            and (.candidates | all(.independent_oracle == "pass"))
+            and (.candidates | all(.metrics.scenario_recovery_elapsed_ticks | length == 5))
+            and (.candidates | all(.metrics.worst_case_recovery_elapsed_ticks >= 0))
+            and (.candidates | all(.metrics.hard_gates_pass == (.metrics.end_of_life_plan_declared and (.metrics.worst_case_service_loss_ticks <= 12))))
+          ' orbital-foundry-reference-receipt.json
+          test "$(jq -r .source_commit orbital-foundry-reference-receipt.json)" = "$source_commit"
+
+      - name: Upload deterministic synthetic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-foundry-reference-receipt
+          path: orbital-foundry-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90
