@@ -29,6 +29,8 @@ pub struct DatasetManifest {
     #[serde(default)]
     pub source_split_config_sha256: Option<String>,
     #[serde(default)]
+    pub source_split_config_relative_path: Option<String>,
+    #[serde(default)]
     pub source_split_config_url: Option<String>,
     #[serde(default)]
     pub source_split_config_git_blob_sha1: Option<String>,
@@ -53,6 +55,7 @@ pub struct IntakeSpec {
     pub source_split_commit_sha: String,
     pub source_split_config_url: String,
     pub source_split_config_git_blob_sha1: String,
+    pub source_split_config_relative_path: String,
     pub split_name: String,
     pub boards: Vec<IntakeBoard>,
 }
@@ -512,6 +515,9 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             );
         }
     }
+    if let Some(relative_path) = manifest.source_split_config_relative_path.as_deref() {
+        validate_relative_path(relative_path, "source split config")?;
+    }
     if let Some(url) = manifest.source_split_config_url.as_deref() {
         if !url.starts_with("https://") {
             return Err("source_split_config_url must use HTTPS".into());
@@ -539,6 +545,7 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
     }
     if manifest.evidence_class == "external_benchmark"
         && (manifest.source_split_config_sha256.is_none()
+            || manifest.source_split_config_relative_path.is_none()
             || manifest.source_split_config_url.is_none()
             || manifest.source_split_config_git_blob_sha1.is_none()
             || manifest.source_split_commit_sha.is_none()
@@ -733,6 +740,10 @@ pub fn build_dataset_manifest(
             "source split-config bytes do not match the pinned upstream Git blob SHA-1".into(),
         );
     }
+    validate_relative_path(
+        &intake.source_split_config_relative_path,
+        "source split config",
+    )?;
     if intake.split_name.trim().is_empty()
         || intake.benchmark_id.trim().is_empty()
         || intake.benchmark_version.trim().is_empty()
@@ -762,6 +773,32 @@ pub fn build_dataset_manifest(
             "dataset root is not a directory: {}",
             root.display()
         ));
+    }
+
+    let actual_split_path = root
+        .join(&intake.source_split_config_relative_path)
+        .canonicalize()
+        .map_err(|error| {
+            format!(
+                "cannot resolve source split config {}: {error}",
+                intake.source_split_config_relative_path
+            )
+        })?;
+    if !actual_split_path.starts_with(&root) || !actual_split_path.is_file() {
+        return Err("source split config is not a regular file contained by the dataset root".into());
+    }
+    let actual_split_bytes = fs::read(&actual_split_path)
+        .map_err(|error| format!("cannot read source split config bytes: {error}"))?;
+    if actual_split_bytes != split_config_bytes {
+        return Err(
+            "dataset-root split-config bytes differ from the supplied pinned split config".into(),
+        );
+    }
+    if git_blob_sha1(&actual_split_bytes) != intake.source_split_config_git_blob_sha1 {
+        return Err(
+            "dataset-root split-config bytes do not match the pinned upstream Git blob SHA-1"
+                .into(),
+        );
     }
 
     let mut seen = BTreeSet::new();
@@ -957,6 +994,9 @@ pub fn build_dataset_manifest(
         evidence_class: "external_benchmark".into(),
         source_url: intake.source_url.clone(),
         source_split_config_sha256: Some(sha256_hex(split_config_bytes)),
+        source_split_config_relative_path: Some(
+            intake.source_split_config_relative_path.clone(),
+        ),
         source_split_config_url: Some(intake.source_split_config_url.clone()),
         source_split_config_git_blob_sha1: Some(git_blob_sha1(split_config_bytes)),
         source_split_commit_sha: Some(intake.source_split_commit_sha.to_ascii_lowercase()),
@@ -995,8 +1035,48 @@ pub fn verify_dataset_files(
         ));
     }
 
-    let mut entries = Vec::with_capacity(manifest.boards.len() * 2);
+    let mut entries = Vec::with_capacity(manifest.boards.len() * 2 + 1);
     let mut verified_license_evidence_count = 0usize;
+
+    if manifest.evidence_class == "external_benchmark" {
+        let split_relative_path = manifest
+            .source_split_config_relative_path
+            .as_deref()
+            .ok_or_else(|| "external manifest lacks source split-config path".to_string())?;
+        validate_relative_path(split_relative_path, "source split config")?;
+        let split_path = root.join(split_relative_path).canonicalize().map_err(|error| {
+            format!("cannot resolve source split config {split_relative_path}: {error}")
+        })?;
+        if !split_path.starts_with(&root) || !split_path.is_file() {
+            return Err("source split config is not a regular file contained by the dataset root".into());
+        }
+        let split_bytes = fs::read(&split_path)
+            .map_err(|error| format!("cannot read source split config {split_relative_path}: {error}"))?;
+        let expected_sha256 = manifest
+            .source_split_config_sha256
+            .as_deref()
+            .ok_or_else(|| "external manifest lacks source split-config SHA-256".to_string())?;
+        if sha256_hex(&split_bytes) != expected_sha256 {
+            return Err("source split-config bytes SHA-256 does not match the pinned manifest".into());
+        }
+        let expected_git_blob_sha1 = manifest
+            .source_split_config_git_blob_sha1
+            .as_deref()
+            .ok_or_else(|| "external manifest lacks source split-config Git blob SHA-1".to_string())?;
+        let observed_git_blob_sha1 = git_blob_sha1(&split_bytes);
+        if observed_git_blob_sha1 != expected_git_blob_sha1 {
+            return Err("source split-config bytes do not match the immutable source repository Git blob".into());
+        }
+        entries.push(DatasetFileVerificationEntry {
+            board_id: "__dataset__".into(),
+            role: "source_split_config".into(),
+            relative_path: split_relative_path.to_string(),
+            byte_len: split_bytes.len() as u64,
+            sha256: expected_sha256.to_string(),
+            git_blob_sha1: Some(observed_git_blob_sha1),
+        });
+    }
+
     for board in &manifest.boards {
         let relative_path = board
             .relative_path
@@ -2453,6 +2533,7 @@ mod tests {
                 "c".repeat(40)
             ),
             source_split_config_git_blob_sha1: git_blob_sha1(&split_config_bytes),
+            source_split_config_relative_path: "provenance/d3.json".into(),
             split_name: "test".into(),
             boards: vec![
                 IntakeBoard {
@@ -2487,6 +2568,8 @@ mod tests {
         let root =
             std::env::temp_dir().join(format!("pcb-route-manifest-build-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("provenance")).unwrap();
+        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
         for id in ["board-easy-1", "board-hard-1"] {
             std::fs::create_dir_all(root.join(id)).unwrap();
             std::fs::write(
@@ -2549,12 +2632,28 @@ mod tests {
             manifest.source_split_config_sha256.as_deref(),
             Some(sha256_hex(&split_config_bytes).as_str())
         );
+        assert_eq!(
+            manifest.source_split_config_relative_path.as_deref(),
+            Some("provenance/d3.json")
+        );
+        assert_eq!(
+            manifest.source_split_config_git_blob_sha1.as_deref(),
+            Some(git_blob_sha1(&split_config_bytes).as_str())
+        );
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
         let receipt = verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
             .expect("built source files verify");
         assert_eq!(receipt.verified_board_count, 2);
         assert_eq!(receipt.verified_license_evidence_count, 2);
-        assert_eq!(receipt.entries.len(), 4);
+        assert_eq!(receipt.entries.len(), 5);
+        assert_eq!(
+            receipt
+                .entries
+                .iter()
+                .filter(|entry| entry.role == "source_split_config")
+                .count(),
+            1
+        );
         assert_eq!(
             receipt
                 .entries
@@ -2589,6 +2688,16 @@ mod tests {
         );
 
         std::fs::write(
+            root.join("provenance/d3.json"),
+            b"{\"tampered_split_config\":true}\n",
+        )
+        .unwrap();
+        assert!(verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("source split-config bytes SHA-256"));
+        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
+
+        std::fs::write(
             root.join("license-evidence/board-easy-1.txt"),
             b"modified after manifest creation\n",
         )
@@ -2619,6 +2728,7 @@ mod tests {
             "b".repeat(40)
         ));
         manifest.source_split_config_git_blob_sha1 = Some("e".repeat(40));
+        manifest.source_split_config_relative_path = Some("provenance/d3.json".into());
         manifest.source_split_commit_sha = Some("b".repeat(40));
         manifest.source_split_name = Some("test".into());
         manifest.intake_metadata_sha256 = Some("c".repeat(64));
