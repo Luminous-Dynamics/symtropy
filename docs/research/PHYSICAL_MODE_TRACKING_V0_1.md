@@ -104,7 +104,26 @@ Only compare against an external tracking method after pinning its implementatio
 
 Report quality-versus-cost curves, not just a single setting. Include frequency-sorted baseline, MAC-only baseline, global-assignment MAC baseline, and the cluster-aware method. Use an analytical or independently generated oracle for synthetic cases and never treat two methods' agreement as independent proof when both share the same input or underlying solver defects.
 
-## 8. Application order and claim ceiling
+## 8. Adaptive parameter-step control
+
+Mode tracking should not be evaluated only at a uniformly spaced parameter grid. In a single-parameter Hermitian eigenproblem, mode ambiguity increases as eigenvalue gaps shrink and eigenvectors change rapidly; the 2026 Xiao, Sharif-Khodaei & Aliabadi preprint develops a gap-aware framework and adaptive sampling strategy for tracking through veering regions. Its assumptions and reported advantages must be checked before transferring the method to Symtropy's generalized structural models.
+
+For the first adaptive experiment:
+
+1. Propose a next parameter step from the previous accepted state.
+2. Solve the candidate state and calculate the declared mode/subspace separation metrics, assignment margins, cluster changes, and eigen-residuals.
+3. Accept a step only when the frozen confidence rule is satisfied; otherwise bisect or reduce the step.
+4. Enforce declared minimum and maximum step sizes and a maximum solve budget.
+5. At the minimum step or budget exhaustion, return an explicit ambiguous/unfinished disposition instead of forcing a match.
+6. Save every accepted and rejected parameter point, including rejected-step reasons, so the path can be replayed and audit effort cannot disappear from the cost metric.
+
+Compare adaptive sampling against uniform sampling and fixed-step continuation on identical parameter paths and error tolerances. Report eigensolve count, wall time, peak memory, maximum subspace-angle error, false-match rate, ambiguity rate, and convergence/failure rate. The primary efficiency claim should be fewer solves **at the same correspondence quality**, not merely fewer sampled points.
+
+Adversarial cases must include a narrow veering region between coarse sample points, exact crossings with different symmetry behavior, repeated eigenvalues, a cluster that only appears over a small parameter interval, noisy candidate metrics, and a failure just below the minimum step. Also test whether threshold/step controls were tuned against the held-out path; adaptive efficiency must be evaluated prospectively.
+
+The adaptive result is applicable only where the mathematical assumptions of the chosen tracker and parameterization are met. Do not generalize a theorem for Hermitian problems to arbitrary nonsymmetric, damped, nonlinear, or changing-constraint systems without a separate derivation and qualification.
+
+## 9. Application order and claim ceiling
 
 1. Qualify the synthetic oracle and named mutations.
 2. Add cross-mesh comparison only after the physical meaning of the mapping is independently reviewed.
@@ -115,7 +134,7 @@ Report quality-versus-cost curves, not just a single setting. Include frequency-
 
 This document defines a proposed tracking qualification protocol. Passing it would support claims about mode correspondence on the declared fixtures and mappings only. It would not establish a complete NAFEMS/SOFiSTiK reproduction, physical validation, structural safety, code compliance, or state-of-the-art superiority.
 
-## 9. References
+## 10. References
 
 - Lu et al. (2020), *A mode tracking method in modal metamodeling for structures with clustered eigenvalues*, Computer Methods in Applied Mechanics and Engineering. https://doi.org/10.1016/j.cma.2020.113174
 - Ruiz, Bellido & Donoso (2017), *Eigenvector sensitivity when tracking modes with repeated eigenvalues*, Computer Methods in Applied Mechanics and Engineering. https://doi.org/10.1016/j.cma.2017.07.031
