@@ -37,11 +37,7 @@ run_mutation() {
   case "$mutation" in
     axial_stiffness_drops_area)
       grep -Fq 'let axial_stiffness = youngs_modulus * area / length;' "$source"
-      perl -0pi -e 's/let axial_stiffness = youngs_modulus_modulus \* area \/ length;/let axial_stiffness = youngs_modulus \/ length;/' "$source"
-      # The mutation must be confirmed; correct the exact expected variable spelling below.
-      if grep -Fq 'let axial_stiffness = youngs_modulus * area / length;' "$source"; then
-        perl -0pi -e 's/let axial_stiffness = youngs_modulus \* area \/ length;/let axial_stiffness = youngs_modulus \/ length;/' "$source"
-      fi
+      perl -0pi -e 's/let axial_stiffness = youngs_modulus \\* area \\/ length;/let axial_stiffness = youngs_modulus \\/ length;/' "$source"
       grep -Fq 'let axial_stiffness = youngs_modulus / length;' "$source"
       ;;
     torsional_stiffness_drops_J)
