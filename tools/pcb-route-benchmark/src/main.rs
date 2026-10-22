@@ -4,7 +4,7 @@ use pcb_route_benchmark::{
         VerifiedIncumbentArchive,
     },
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
-    kicad_drc::verify_run_artifacts_with_kicad_drc_policy,
+    kicad_drc::verify_run_artifacts_with_kicad_drc_policy, EnvironmentPin, RouterPin,
     pcbworld_metrics::import_pcbworld_per_rollout_csv, verify_dataset_files, verify_run_artifacts,
     ValidatedRun,
 };
@@ -37,14 +37,24 @@ fn run() -> Result<Vec<u8>, String> {
     })?;
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
-        [command, manifest_path, policy_path, board_id]
+        [command, manifest_path, policy_path, board_id, router_pin_path, environment_pin_path]
             if command == "init-incumbent-archive" =>
         {
             let manifest = fs::read(manifest_path)
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
             let policy = fs::read(policy_path)
                 .map_err(|error| format!("cannot read {policy_path}: {error}"))?;
-            let identity = ArchiveIdentity::from_pinned_sources(&manifest, &policy, board_id)?;
+            let router_bytes = fs::read(router_pin_path)
+                .map_err(|error| format!("cannot read {router_pin_path}: {error}"))?;
+            let router: RouterPin = serde_json::from_slice(&router_bytes)
+                .map_err(|error| format!("router pin JSON invalid: {error}"))?;
+            let environment_bytes = fs::read(environment_pin_path)
+                .map_err(|error| format!("cannot read {environment_pin_path}: {error}"))?;
+            let environment: EnvironmentPin = serde_json::from_slice(&environment_bytes)
+                .map_err(|error| format!("environment pin JSON invalid: {error}"))?;
+            let identity = ArchiveIdentity::from_pinned_sources(
+                &manifest, &policy, board_id, router, environment
+            )?;
             let archive = VerifiedIncumbentArchive::new(&evaluator_head, identity)?;
             serde_json::to_vec_pretty(&archive)
                 .map_err(|error| format!("cannot serialize initial incumbent archive: {error}"))
@@ -296,7 +306,7 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
+        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID ROUTER_PIN.json ENVIRONMENT_PIN.json | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
     }
 }
 
