@@ -73,7 +73,27 @@ jobs:
           cargo run --locked --release --quiet --bin triangle-conditioning-probe > /tmp/triangle-conditioning-a.json
           cargo run --locked --release --quiet --bin triangle-conditioning-probe > /tmp/triangle-conditioning-b.json
           cmp /tmp/triangle-conditioning-a.json /tmp/triangle-conditioning-b.json
-          jq -e '.solver_executed == false and .qualification_pass == false and .geometry_conditioning_pass == true and (.sweep | length == 5) and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$")) and .sweep[0].mean_ratio_quality > .sweep[1].mean_ratio_quality and .sweep[1].mean_ratio_quality > .sweep[2].mean_ratio_quality and .sweep[2].mean_ratio_quality > .sweep[3].mean_ratio_quality and .sweep[3].mean_ratio_quality > .sweep[4].mean_ratio_quality and .sweep[0].dimensionless_gradient_amplification < .sweep[1].dimensionless_gradient_amplification and .sweep[1].dimensionless_gradient_amplification < .sweep[2].dimensionless_gradient_amplification and .sweep[2].dimensionless_gradient_amplification < .sweep[3].dimensionless_gradient_amplification and .sweep[3].dimensionless_gradient_amplification < .sweep[4].dimensionless_gradient_amplification' /tmp/triangle-conditioning-a.json > /dev/null
+          jq -e '
+            .solver_executed == false
+            and .qualification_pass == false
+            and .geometry_conditioning_pass == true
+            and (.sweep | length == 5)
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and .sweep[0].mean_ratio_quality > .sweep[1].mean_ratio_quality
+            and .sweep[1].mean_ratio_quality > .sweep[2].mean_ratio_quality
+            and .sweep[2].mean_ratio_quality > .sweep[3].mean_ratio_quality
+            and .sweep[3].mean_ratio_quality > .sweep[4].mean_ratio_quality
+            and .sweep[0].dimensionless_gradient_amplification < .sweep[1].dimensionless_gradient_amplification
+            and .sweep[1].dimensionless_gradient_amplification < .sweep[2].dimensionless_gradient_amplification
+            and .sweep[2].dimensionless_gradient_amplification < .sweep[3].dimensionless_gradient_amplification
+            and .sweep[3].dimensionless_gradient_amplification < .sweep[4].dimensionless_gradient_amplification
+            and .sweep[0].element_nonrigid_condition_number < .sweep[1].element_nonrigid_condition_number
+            and .sweep[1].element_nonrigid_condition_number < .sweep[2].element_nonrigid_condition_number
+            and .sweep[2].element_nonrigid_condition_number < .sweep[3].element_nonrigid_condition_number
+            and .sweep[3].element_nonrigid_condition_number < .sweep[4].element_nonrigid_condition_number
+            and .sweep[4].element_nonrigid_condition_number > 1e7
+          ' /tmp/triangle-conditioning-a.json > /dev/null
           sha256sum /tmp/triangle-conditioning-a.json > /tmp/triangle-conditioning-a.sha256
 
       - name: Preserve verification receipt and source digests
