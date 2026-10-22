@@ -315,7 +315,7 @@ jobs:
 
           REFERENCE_DAT="$ROOT/cases/n16/model.dat"
           if [ -s "$REFERENCE_DAT" ]; then
-            if ! run_case "n16-repeat" 16 "$REFERENCE_DAT"; then
+            if ! run_case "n16-repeat" 16 0.3 smooth-sine "$REFERENCE_DAT"; then
               echo "repeat n16 failed; raw artifacts preserved" >&2
             fi
           else
@@ -324,12 +324,44 @@ jobs:
             FAILURE_COUNT=$((FAILURE_COUNT + 1))
           fi
 
+          # Near-incompressible, divergence-free manufactured-solution diagnostic.
+          # The exact volumetric strain is zero; measured FE div(u_h) quantifies the
+          # volumetric defect. We explicitly do not mark locking qualified without
+          # a stable mixed-formulation or authoritative reference comparison.
+          for nu in 0.3 0.49 0.4999 0.49999; do
+            for n in 16 32; do
+              label="locking-nu$nu-n$n"
+              if ! run_case "$label" "$n" "$nu" divergence-free; then
+                echo "near-incompressible diagnostic $label failed; artifacts preserved" >&2
+              fi
+            done
+          done
+
+          # Seven measured solve repetitions per resolution, after the four primary
+          # verification runs have exercised/warmed each mesh family. Timing excludes
+          # deck generation and postprocessing; raw wall/RSS samples remain per-run.
+          for n in 8 16 32 64; do
+            reference="$ROOT/cases/n$n/model.dat"
+            if [ ! -s "$reference" ]; then
+              echo "timing baseline DAT missing for n=$n" >&2
+              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+              continue
+            fi
+            for repetition in 1 2 3 4 5 6 7; do
+              label="work-n$n-r$repetition"
+              if ! run_case "$label" "$n" 0.3 smooth-sine "$reference"; then
+                echo "work-precision sample $label failed; artifacts preserved" >&2
+              fi
+            done
+          done
+
           sha256sum \
             research/ccx-mms-p1-001-dat-parser/src/lib.rs \
             research/ccx-mms-p1-001-dat-parser/src/bin/mms-p1-real-verify.rs \
             research/ccx-mms-p1-001-dat-parser/Cargo.toml \
             research/ccx-mms-p1-001-dat-parser/Cargo.lock \
             research/ccx-mms-p1-001-mesh/src/lib.rs \
+            research/ccx-mms-p1-001-mesh/src/bin/mms-p1-deck.rs \
             research/ccx-mms-p1-001-mesh/Cargo.toml \
             research/ccx-mms-p1-001-mesh/Cargo.lock \
             research/ccx-mms-p1-001-oracle/src/lib.rs \
