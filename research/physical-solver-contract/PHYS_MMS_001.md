@@ -74,6 +74,25 @@ For linear elements in the asymptotic regime, the expected rates are \(p_{L^2}\t
 
 These are fixture-specific gates, not universal FEM tolerances. A deviation is a failed or unresolved verification result, not permission to relax the threshold after observing the data.
 
+## Frozen interpolation calibration (not a solver result)
+
+Before running CCX, the verifier's normalized interpolation-error calculation was independently calibrated from the exact sine nodal values using generated eight-point Gauss–Legendre nodes. These are the expected (L^2) and (H^1)-seminorm errors of the *piecewise-linear interpolant* of the exact field, not observed solver outputs.
+
+| Elements | Normalized (L^2) interpolation error | Normalized (H^1)-seminorm error |
+|---:|---:|---:|
+| 4 | 3.9284347764823827e-2 | 1.5868017590142830e-1 |
+| 8 | 9.920919911464134e-3 | 7.9953640421627820e-2 |
+| 16 | 2.486501339423377e-3 | 4.0053938352172210e-2 |
+| 32 | 6.220177931436641e-4 | 2.0036622229917410e-2 |
+
+| Refinement | Observed (L^2) order | Observed (H^1)-seminorm order |
+|---|---:|---:|
+| 4 → 8 | 1.98541 | 0.98889 |
+| 8 → 16 | 1.99636 | 0.99722 |
+| 16 → 32 | 1.99909 | 0.99930 |
+
+The Rust test freezes these metric values within a (5\times10^{-11}) relative comparison tolerance, then checks the predeclared order intervals. This catches changes to the normalization, derivative scaling, quadrature, or error computation before interpreting any solver output. The real CCX output remains a separate qualification layer and must pass the same gates.
+
 ## Claim ceiling
 
 Passing this test would be evidence that this pinned CalculiX build and this exact 1D linear-truss profile reproduce a smooth manufactured solution and show the expected convergence rates on the four checked meshes. It would **not** establish general 2D/3D FEM accuracy, contact/nonlinear/transient correctness, experimental physical validity, structural safety, or engineering-use authorization.
