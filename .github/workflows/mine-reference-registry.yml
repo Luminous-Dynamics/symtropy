@@ -1,0 +1,70 @@
+name: Mine Reference Registry Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-reference-registry-v0-1"]
+    paths:
+      - "docs/tech/MINE_REFERENCE_REGISTRY_V0_1.md"
+      - "docs/tech/mine-reference-registry-v0.1.json"
+      - "tools/mine-reference-registry/**"
+      - ".github/workflows/mine-reference-registry.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/MINE_REFERENCE_REGISTRY_V0_1.md"
+      - "docs/tech/mine-reference-registry-v0.1.json"
+      - "tools/mine-reference-registry/**"
+      - ".github/workflows/mine-reference-registry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-reference-registry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-reference-registry/Cargo.toml -- --check
+      - name: Run registry and adversarial tests
+        run: cargo test --manifest-path tools/mine-reference-registry/Cargo.toml
+      - name: Validate registry at exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-reference-registry/Cargo.toml -- \
+            docs/tech/mine-reference-registry-v0.1.json --source-commit "$source_commit" \
+            > mine-reference-registry-receipt.json
+          jq -e '
+            .result == "validated"
+            and .schema_id == "MINE-REFERENCE-001"
+            and .entry_count == 6
+            and .expected_entries_matched == 6
+            and .source_data_hashes_present == 0
+            and ([.entries[].source_id] == [
+              "minelib-dataset-catalogue",
+              "minelib-format-spec-v1",
+              "lotsu-2026-production-scheduling-article",
+              "lotsu-2026-zenodo-artifacts",
+              "jeuken-forbes-value-of-drilling-2024",
+              "andrade-dimitrakopoulos-underground-stockpiling-2024"
+            ])
+            and (.registry_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+          ' mine-reference-registry-receipt.json
