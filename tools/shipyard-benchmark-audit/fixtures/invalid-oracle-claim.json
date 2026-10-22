@@ -14,7 +14,7 @@
   "case_results": [
     {
       "case_id": "case-feasible-001",
-      "outcome": "verified-feasible",
+      "outcome": "feasible-claim",
       "runtime_ms": 0.45,
       "peak_memory_bytes": 4096,
       "verifier": {
@@ -28,7 +28,7 @@
     },
     {
       "case_id": "case-infeasible-001",
-      "outcome": "verified-infeasible",
+      "outcome": "infeasibility-proof",
       "runtime_ms": 0.67,
       "peak_memory_bytes": 4096,
       "verifier": {
@@ -43,8 +43,6 @@
   ],
   "summary": {
     "case_count": 2,
-    "verified_feasible_count": 1,
-    "verified_infeasible_count": 1,
     "unknown_count": 0,
     "timeout_count": 0,
     "invalid_output_count": 0,
@@ -54,6 +52,11 @@
     "aggregate_metrics": {
       "feasible_case_recall": 1,
       "runtime_ms": 1.12
-    }
+    },
+    "feasible_claim_count": 1,
+    "infeasibility_proof_count": 1,
+    "no_solution_count": 0,
+    "feasible_reference_cases_found_count": 0,
+    "feasible_reference_cases_missed_count": 1
   }
 }
