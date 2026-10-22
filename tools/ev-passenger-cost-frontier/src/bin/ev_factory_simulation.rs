@@ -201,10 +201,20 @@ struct ScenarioStatistics {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct PairedOutageScenarioComparison {
+    scenario_id: String,
+    intervention_station_id: Option<String>,
+    seed_count: usize,
+    paired_good_units_per_hour_delta_vs_no_outage: DistributionSummary,
+    paired_intervention_effect_delta_vs_no_outage: Option<DistributionSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct PairedOutageComparison {
     baseline_scenario_id: String,
     seed_count: usize,
     paired_good_units_per_hour_delta_vs_no_outage: DistributionSummary,
+    scenario_comparisons: Vec<PairedOutageScenarioComparison>,
     comparison_contract: String,
 }
 
@@ -753,20 +763,67 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             return Err("paired_outage_comparison_seed_catalog_mismatch".into());
         }
         let mut paired_deltas = Vec::with_capacity(report.replication_seeds.len());
-        for seed in &report.replication_seeds {
-            let outage_baseline = report
-                .replication_outcomes
-                .iter()
-                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
-                .ok_or_else(|| "paired_outage_baseline_seed_outcome_missing".to_string())?;
-            let nominal_baseline = no_outage_report
-                .replication_outcomes
-                .iter()
-                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
-                .ok_or_else(|| "paired_no_outage_baseline_seed_outcome_missing".to_string())?;
-            paired_deltas.push(
-                outage_baseline.good_units_per_hour - nominal_baseline.good_units_per_hour,
-            );
+        let mut scenario_comparisons = Vec::with_capacity(report.scenario_count);
+        for scenario in &report.scenarios {
+            let mut scenario_deltas = Vec::with_capacity(report.replication_seeds.len());
+            let mut intervention_effect_deltas =
+                Vec::with_capacity(report.replication_seeds.len());
+            for seed in &report.replication_seeds {
+                let outage_outcome = report
+                    .replication_outcomes
+                    .iter()
+                    .find(|outcome| {
+                        outcome.seed == *seed && outcome.scenario_id == scenario.scenario_id
+                    })
+                    .ok_or_else(|| "paired_outage_scenario_seed_outcome_missing".to_string())?;
+                let nominal_outcome = no_outage_report
+                    .replication_outcomes
+                    .iter()
+                    .find(|outcome| {
+                        outcome.seed == *seed && outcome.scenario_id == scenario.scenario_id
+                    })
+                    .ok_or_else(|| "paired_no_outage_scenario_seed_outcome_missing".to_string())?;
+                let delta =
+                    outage_outcome.good_units_per_hour - nominal_outcome.good_units_per_hour;
+                scenario_deltas.push(delta);
+                if scenario.scenario_id == "baseline" {
+                    paired_deltas.push(delta);
+                } else {
+                    let outage_baseline = report
+                        .replication_outcomes
+                        .iter()
+                        .find(|outcome| {
+                            outcome.seed == *seed && outcome.scenario_id == "baseline"
+                        })
+                        .ok_or_else(|| "paired_outage_baseline_seed_outcome_missing".to_string())?;
+                    let nominal_baseline = no_outage_report
+                        .replication_outcomes
+                        .iter()
+                        .find(|outcome| {
+                            outcome.seed == *seed && outcome.scenario_id == "baseline"
+                        })
+                        .ok_or_else(|| "paired_no_outage_baseline_seed_outcome_missing".to_string())?;
+                    let outage_intervention_effect = outage_outcome.good_units_per_hour
+                        - outage_baseline.good_units_per_hour;
+                    let nominal_intervention_effect = nominal_outcome.good_units_per_hour
+                        - nominal_baseline.good_units_per_hour;
+                    intervention_effect_deltas.push(
+                        outage_intervention_effect - nominal_intervention_effect,
+                    );
+                }
+            }
+            scenario_comparisons.push(PairedOutageScenarioComparison {
+                scenario_id: scenario.scenario_id.clone(),
+                intervention_station_id: scenario.intervention_station_id.clone(),
+                seed_count: scenario_deltas.len(),
+                paired_good_units_per_hour_delta_vs_no_outage:
+                    summarize_distribution(&scenario_deltas)?,
+                paired_intervention_effect_delta_vs_no_outage: if intervention_effect_deltas.is_empty() {
+                    None
+                } else {
+                    Some(summarize_distribution(&intervention_effect_deltas)?)
+                },
+            });
         }
         report.paired_common_cause_control_outage_baseline_comparison = Some(
             PairedOutageComparison {
@@ -774,7 +831,8 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 seed_count: paired_deltas.len(),
                 paired_good_units_per_hour_delta_vs_no_outage:
                     summarize_distribution(&paired_deltas)?,
-                comparison_contract: "Same catalog, seed IDs and entity-keyed processing/quality streams; only the optional shared control outage is removed from the counterfactual catalog. The paired interval describes this synthetic fixture, not a calibrated plant effect.".into(),
+                scenario_comparisons,
+                comparison_contract: "All baseline and server-addition scenarios are compared on the same seed IDs and entity-keyed processing/quality streams. The paired marginal-intervention delta is difference-in-differences: (intervention - baseline) under shared outage minus (intervention - baseline) with the outage removed. The paired intervals describe this synthetic fixture, not a calibrated plant effect.".into(),
             },
         );
     }
@@ -1698,6 +1756,31 @@ mod tests {
                 .mean_confidence_95_upper
                 .is_some()
         );
+        assert_eq!(paired.scenario_comparisons.len(), outage_report.scenario_count);
+        let baseline_comparison = paired
+            .scenario_comparisons
+            .iter()
+            .find(|comparison| comparison.scenario_id == "baseline")
+            .expect("paired baseline comparison");
+        assert!(
+            baseline_comparison
+                .paired_intervention_effect_delta_vs_no_outage
+                .is_none()
+        );
+        for comparison in paired
+            .scenario_comparisons
+            .iter()
+            .filter(|comparison| comparison.scenario_id != "baseline")
+        {
+            let delta = comparison
+                .paired_intervention_effect_delta_vs_no_outage
+                .as_ref()
+                .expect("paired intervention difference-in-differences");
+            assert_eq!(comparison.seed_count, 20);
+            assert_eq!(delta.sample_count, 20);
+            assert!(delta.mean_confidence_95_lower.is_some());
+            assert!(delta.mean_confidence_95_upper.is_some());
+        }
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
