@@ -328,7 +328,7 @@ impl Mesh {
 
         writeln!(
             &mut deck,
-            "** PHYS-CCX-MMS-P1-001; protocol=0.2.0; mesh_n={}",
+            "** PHYS-CCX-MMS-P1-001; protocol=0.3.0; mesh_n={}",
             self.cells_per_side
         )
         .expect("String writes cannot fail");
