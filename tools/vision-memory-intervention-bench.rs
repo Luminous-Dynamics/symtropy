@@ -425,6 +425,42 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn source_time_metrics_show_relevant_use_and_irrelevant_invariance() {
+        let result = evaluate_episode(&sample(), Policy::LatestBySourceTime);
+        assert_eq!(result.baseline_correct, 1.0);
+        assert_eq!(result.relevant_sensitive, 1.0);
+        assert_eq!(result.relevant_counterfactual_correct, 1.0);
+        assert_eq!(result.irrelevant_invariant, 1.0);
+        assert_eq!(result.stale_rejected, 1.0);
+        assert_eq!(result.reactive_correct, 1.0);
+        assert_eq!(result.reactive_history_invariant, 1.0);
+    }
+
+    #[test]
+    fn no_memory_metric_does_not_fake_relevant_sensitivity() {
+        let result = evaluate_episode(&sample(), Policy::NoMemory);
+        assert_eq!(result.relevant_sensitive, 0.0);
+        assert_eq!(result.irrelevant_invariant, 1.0);
+        assert_eq!(result.stale_rejected, 1.0);
+        assert_eq!(result.reactive_correct, 1.0);
+    }
+
+    #[test]
+    fn arrival_order_metric_fails_stale_rejection() {
+        let result = evaluate_episode(&sample(), Policy::LatestByArrival);
+        assert_eq!(result.baseline_correct, 1.0);
+        assert_eq!(result.stale_rejected, 0.0);
+    }
+
+    #[test]
+    fn global_last_metric_fails_irrelevant_invariance() {
+        let result = evaluate_episode(&sample(), Policy::GlobalLast);
+        assert_eq!(result.relevant_sensitive, 0.0);
+        assert_eq!(result.irrelevant_invariant, 0.0);
+    }
+
     #[test]
     fn relabeling_evaluator_truth_does_not_change_policy_output() {
         let e = sample();
