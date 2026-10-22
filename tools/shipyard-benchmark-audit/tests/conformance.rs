@@ -136,3 +136,13 @@ fn heuristic_exhaustion_is_not_an_infeasibility_proof() {
     assert!(report.contains("\"no_solution_count\": 1"));
     assert!(report.contains("\"feasible_reference_cases_missed_count\": 1"));
 }
+
+
+#[test]
+fn published_aggregate_reference_is_valid_json_and_not_reproduction_claim() {
+    let data = include_str!("../../shipyard-benchmark-contract/fixtures/published-case9-table6-summary.json");
+    assert!(validate_json_syntax(data).is_ok());
+    assert!(data.contains("\\\"is_local_reproduction\\\": false") || data.contains("\"is_local_reproduction\": false"));
+    assert!(data.contains("\"reproduction_status\": \"not-reproduced\""));
+    assert_eq!(data.matches("\\\"case\\\": ").count(), 6);
+}
