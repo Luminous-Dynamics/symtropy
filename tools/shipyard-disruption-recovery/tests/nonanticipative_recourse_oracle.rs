@@ -5,8 +5,8 @@
 //! expected result.
 
 use shipyard_disruption_recovery::resources::{
-    JointDisruptionScenario, JointRecourseScenario, ResourceReservation, ResourceSchedule,
-    evaluate_joint_recourse_policy,
+    JointDisruptionScenario, JointRecourseScenario, JointRecourseViolationCode,
+    ResourceReservation, ResourceSchedule, evaluate_joint_recourse_policy,
 };
 use shipyard_disruption_recovery::Disruption;
 use shipyard_space_time::{ExclusionZone, Footprint, Placement, Rect, Scenario, TimeRange};
@@ -116,7 +116,7 @@ fn exact_case(
     let feasible_b = zone_x_b != candidate_x_b;
     let anticipative = same_information_set && candidate_x_a != candidate_x_b;
     let accepted = feasible_a && feasible_b && !anticipative;
-    let accepted_scenarios = usize::from(feasible_a) + usize::from(feasible_b);
+    let accepted_scenarios = if feasible_a { 1 } else { 0 } + if feasible_b { 1 } else { 0 };
     (accepted, accepted_scenarios, anticipative)
 }
 
@@ -181,7 +181,7 @@ fn generated_recourse_policy_matches_independent_non_anticipativity_oracle() {
         );
         assert_eq!(
             report.violations.iter().any(|violation| {
-                violation.code.to_string() == "NonAnticipativeActionMismatch"
+                violation.code == JointRecourseViolationCode::NonAnticipativeActionMismatch
             }),
             expected.2,
             "non-anticipativity mismatch in case {case_index}: {report:?}"
@@ -200,14 +200,20 @@ fn generated_recourse_policy_matches_independent_non_anticipativity_oracle() {
         );
 
         cases += 1;
-        expected_policy_acceptances += usize::from(expected.0);
-        actual_policy_acceptances += usize::from(report.robustly_accepted);
-        expected_non_anticipativity_rejections += usize::from(expected.2);
-        actual_non_anticipativity_rejections += usize::from(
-            report.violations.iter().any(|violation| {
-                violation.code.to_string() == "NonAnticipativeActionMismatch"
-            }),
-        );
+        if expected.0 {
+            expected_policy_acceptances += 1;
+        }
+        if report.robustly_accepted {
+            actual_policy_acceptances += 1;
+        }
+        if expected.2 {
+            expected_non_anticipativity_rejections += 1;
+        }
+        if report.violations.iter().any(|violation| {
+            violation.code == JointRecourseViolationCode::NonAnticipativeActionMismatch
+        }) {
+            actual_non_anticipativity_rejections += 1;
+        }
         expected_accepted_scenarios += expected.1;
         actual_accepted_scenarios += report.metrics.accepted_scenarios;
     }
