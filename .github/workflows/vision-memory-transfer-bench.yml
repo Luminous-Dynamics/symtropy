@@ -62,7 +62,7 @@ jobs:
           grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
           grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
           grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
-          awk -F '\t' '$1 == "HEADER" { if (NF != 11) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
+          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 11) exit 1; n++ } END { if (h != 1 || n != 1000) exit 1 }' vis-mem-transfer.tsv
           sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
           sha256sum -c vis-mem-transfer.sha256
 
