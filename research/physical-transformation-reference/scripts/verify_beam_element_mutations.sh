@@ -143,14 +143,12 @@ jq -n \
         id: "PHYS-BEAM-MUT-ROTARY-EXPONENT-001",
         expected_test: "rotary_inertia_is_separate_and_scales_with_density_and_second_moment",
         disposition: "detected"
-      }
-      ,
+      },
       {
         id: "PHYS-BEAM-MUT-GLOBAL-TRANSVERSE-SIGN-001",
         expected_test: "rigid_body_translation_and_rotation_have_zero_internal_force",
         disposition: "detected"
-      }
-      ,
+      },
       {
         id: "PHYS-BEAM-MUT-TRANSVERSE-MASS-FACTOR-001",
         expected_test: "transverse_translational_mass_matches_closed_form_entrywise",
@@ -162,8 +160,8 @@ jq -n \
         disposition: "detected"
       }
     ],
-    mutation_count: 5,
-    detected_count: 5,
+    mutation_count: 8,
+    detected_count: 8,
     production_source_unchanged: true,
     claim_ceiling: "local planar Euler-Bernoulli element matrix sensitivity only; no global modal or physical validation"
   }' > "$receipt_path"
