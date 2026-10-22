@@ -12,11 +12,11 @@ fn is_lowercase_sha40(value: &str) -> bool {
 fn main() -> ExitCode {
     let source_sha = env::var("MMS_BENCH_SOURCE_SHA").unwrap_or_default();
     let checkout_sha = env::var("MMS_BENCH_CHECKOUT_SHA").unwrap_or_default();
-    if !is_lowercase_sha40(&source_sha) {}
+    if !is_lowercase_sha40(&source_sha) {
         eprintln!("MMS_BENCH_SOURCE_SHA must be a 40-character lowercase Git SHA");
         return ExitCode::FAILURE;
     }
-    if !is_lowercase_sha40(&checkout_sha) {}
+    if !is_lowercase_sha40(&checkout_sha) {
         eprintln!("MMS_BENCH_CHECKOUT_SHA must be a 40-character lowercase Git SHA");
         return ExitCode::FAILURE;
     }
