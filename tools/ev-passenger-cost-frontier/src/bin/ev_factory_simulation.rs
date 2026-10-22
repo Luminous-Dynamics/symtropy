@@ -985,28 +985,19 @@ fn summarize_structural_intervention_decisions(
         .ok_or_else(|| "structural_minimax_regret_choice_missing".to_string())?;
 
     let family_winners = [
-        (
-            "no_shared_control_outage",
-            2usize,
-        ),
-        (
-            "shared_control_outage",
-            3usize,
-        ),
+        ("no_shared_control_outage", 2usize),
+        ("shared_control_outage", 3usize),
     ]
     .into_iter()
     .map(|(family_id, effect_index)| {
         let winner = effects_by_scenario
             .iter()
             .min_by(|left, right| {
-                right.0.cmp(&left.0).then_with(|| {
-                    // Compare larger effects first; use lexical scenario identity for exact ties.
-                    let left_effect = if effect_index == 2 { left.2 } else { left.3 };
-                    let right_effect = if effect_index == 2 { right.2 } else { right.3 };
-                    right_effect
-                        .total_cmp(&left_effect)
-                        .then_with(|| left.0.cmp(&right.0))
-                })
+                let left_effect = if effect_index == 2 { left.2 } else { left.3 };
+                let right_effect = if effect_index == 2 { right.2 } else { right.3 };
+                right_effect
+                    .total_cmp(&left_effect)
+                    .then_with(|| left.0.cmp(&right.0))
             })
             .ok_or_else(|| "structural_family_winner_missing".to_string())?;
         let effect = if effect_index == 2 { winner.2 } else { winner.3 };
@@ -1974,6 +1965,64 @@ mod tests {
             assert!(delta.mean_confidence_95_lower.is_some());
             assert!(delta.mean_confidence_95_upper.is_some());
         }
+        let structural = outage_report
+            .structural_robust_intervention_summary
+            .as_ref()
+            .expect("DES-derived structural selector summary");
+        assert_eq!(structural.model_family_count, 2);
+        assert!(!structural.family_probabilities_used);
+        assert!(!structural.model_families_treated_as_iid_replications);
+        assert_eq!(structural.family_winners.len(), 2);
+        assert_eq!(structural.intervention_scores.len(), outage_report.scenario_count);
+        let best_no_outage = structural
+            .family_winners
+            .iter()
+            .find(|winner| winner.family_id == "no_shared_control_outage")
+            .expect("no-outage family winner")
+            .mean_incremental_good_units_per_hour;
+        let best_shared_outage = structural
+            .family_winners
+            .iter()
+            .find(|winner| winner.family_id == "shared_control_outage")
+            .expect("shared-outage family winner")
+            .mean_incremental_good_units_per_hour;
+        for score in &structural.intervention_scores {
+            let no_outage_gain = score.family_effects[0].mean_incremental_good_units_per_hour;
+            let shared_outage_gain = score.family_effects[1].mean_incremental_good_units_per_hour;
+            assert!(
+                (score.worst_family_mean_incremental_good_units_per_hour
+                    - no_outage_gain.min(shared_outage_gain))
+                .abs()
+                    < 1e-9
+            );
+            let expected_regret = (best_no_outage - no_outage_gain)
+                .max(best_shared_outage - shared_outage_gain);
+            assert!((score.maximum_regret_units_per_hour - expected_regret).abs() < 1e-9);
+        }
+        let independently_selected_maximin = structural
+            .intervention_scores
+            .iter()
+            .min_by(|left, right| {
+                right
+                    .worst_family_mean_incremental_good_units_per_hour
+                    .total_cmp(&left.worst_family_mean_incremental_good_units_per_hour)
+                    .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+            })
+            .expect("independently recomputed maximin");
+        assert_eq!(structural.maximin_scenario_id, independently_selected_maximin.scenario_id);
+        let independently_selected_regret = structural
+            .intervention_scores
+            .iter()
+            .min_by(|left, right| {
+                left.maximum_regret_units_per_hour
+                    .total_cmp(&right.maximum_regret_units_per_hour)
+                    .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+            })
+            .expect("independently recomputed minimax regret");
+        assert_eq!(
+            structural.minimax_regret_scenario_id,
+            independently_selected_regret.scenario_id
+        );
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
