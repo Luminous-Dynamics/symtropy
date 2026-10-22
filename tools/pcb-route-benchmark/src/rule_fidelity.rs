@@ -27,7 +27,9 @@ pub struct RuleFidelityPlan {
     pub compatibility_policy_sha256: String,
     pub compatibility_kicad_version: String,
     pub compatibility_drc_report_relative_path: String,
+    pub compatibility_drc_input_board_sha256: String,
     pub strict_source_policy_relative_path: Option<String>,
+    pub strict_source_drc_input_board_sha256: Option<String>,
     pub strict_source_policy_sha256: Option<String>,
     pub strict_source_kicad_version: Option<String>,
     pub strict_source_drc_report_relative_path: Option<String>,
@@ -152,6 +154,10 @@ pub fn evaluate_rule_fidelity(
     if output_board_sha != plan.output_board_sha256 {
         return Err("output-board bytes SHA-256 differs from the rule-fidelity plan".into());
     }
+    require_sha256(&plan.compatibility_drc_input_board_sha256, "compatibility_drc_input_board_sha256")?;
+    if plan.compatibility_drc_input_board_sha256 != output_board_sha {
+        return Err("compatibility DRC input board digest differs from verified output-board bytes".into());
+    }
 
     match (
         plan.source_rule_profile_relative_path.as_deref(),
@@ -184,6 +190,7 @@ pub fn evaluate_rule_fidelity(
         "compatibility",
     )?;
     validate_report_path(&plan.compatibility_drc_report_relative_path, "compatibility DRC report path")?;
+    require_sha256(&plan.compatibility_drc_input_board_sha256, "compatibility_drc_input_board_sha256")?;
     let compatibility_drc = parse_drc_report(compatibility_drc_report_bytes)?;
 
     match (
@@ -191,21 +198,26 @@ pub fn evaluate_rule_fidelity(
         plan.strict_source_policy_sha256.as_deref(),
         plan.strict_source_kicad_version.as_deref(),
         plan.strict_source_drc_report_relative_path.as_deref(),
+        plan.strict_source_drc_input_board_sha256.as_deref(),
         plan.strict_source_policy_derivation_evidence_relative_path.as_deref(),
         plan.strict_source_policy_derivation_evidence_sha256.as_deref(),
         strict_source_policy_bytes,
         strict_source_drc_report_bytes,
     ) {
-        (Some(policy_path), Some(policy_sha), Some(version), Some(report_path), Some(derivation_path), Some(derivation_sha), Some(policy_bytes), Some(report_bytes)) => {
+        (Some(policy_path), Some(policy_sha), Some(version), Some(report_path), Some(drc_input_sha), Some(derivation_path), Some(derivation_sha), Some(policy_bytes), Some(report_bytes)) => {
             validate_report_path(policy_path, "strict source policy path")?;
             validate_report_path(report_path, "strict source DRC report path")?;
+            require_sha256(drc_input_sha, "strict_source_drc_input_board_sha256")?;
+            if drc_input_sha != output_board_sha {
+                return Err("strict-source DRC input board digest differs from verified output-board bytes".into());
+            }
             validate_relative_path(derivation_path, "strict-source policy derivation evidence path")?;
             require_sha256(policy_sha, "strict_source_policy_sha256")?;
             require_sha256(derivation_sha, "strict_source_policy_derivation_evidence_sha256")?;
             validate_policy_bytes(policy_bytes, policy_sha, version, "strict source")?;
             let _ = parse_drc_report(report_bytes)?;
         }
-        (None, None, None, None, None, None, None, None) => {}
+        (None, None, None, None, None, None, None, None, None) => {}
         _ => {
             return Err(
                 "strict-source policy, report, derivation evidence path/digest and supplied bytes must be present together or all absent"
@@ -390,6 +402,7 @@ fn validate_plan_shape(plan: &RuleFidelityPlan) -> Result<(), String> {
     validate_relative_path(&plan.output_board_relative_path, "output board path")?;
     validate_relative_path(&plan.compatibility_policy_relative_path, "compatibility policy path")?;
     validate_report_path(&plan.compatibility_drc_report_relative_path, "compatibility DRC report path")?;
+    require_sha256(&plan.compatibility_drc_input_board_sha256, "compatibility_drc_input_board_sha256")?;
 
     match (
         plan.source_rule_profile_relative_path.as_deref(),
@@ -411,12 +424,14 @@ fn validate_plan_shape(plan: &RuleFidelityPlan) -> Result<(), String> {
         plan.strict_source_policy_sha256.as_deref(),
         plan.strict_source_kicad_version.as_deref(),
         plan.strict_source_drc_report_relative_path.as_deref(),
+        plan.strict_source_drc_input_board_sha256.as_deref(),
         plan.strict_source_policy_derivation_evidence_relative_path.as_deref(),
         plan.strict_source_policy_derivation_evidence_sha256.as_deref(),
     ) {
-        (Some(policy), Some(digest), Some(version), Some(report), Some(derivation_path), Some(derivation_sha)) => {
+        (Some(policy), Some(digest), Some(version), Some(report), Some(drc_input_sha), Some(derivation_path), Some(derivation_sha)) => {
             validate_relative_path(policy, "strict source policy path")?;
             validate_report_path(report, "strict source DRC report path")?;
+            require_sha256(drc_input_sha, "strict_source_drc_input_board_sha256")?;
             validate_relative_path(derivation_path, "strict-source policy derivation evidence path")?;
             require_sha256(digest, "strict_source_policy_sha256")?;
             require_sha256(derivation_sha, "strict_source_policy_derivation_evidence_sha256")?;
@@ -424,8 +439,8 @@ fn validate_plan_shape(plan: &RuleFidelityPlan) -> Result<(), String> {
                 return Err("strict_source_kicad_version must not be empty".into());
             }
         }
-        (None, None, None, None, None, None) => {}
-        _ => return Err("strict-source policy, report, and derivation evidence pins must be supplied together or all absent".into()),
+        (None, None, None, None, None, None, None) => {}
+        _ => return Err("strict-source policy, report, input board digest, and derivation evidence pins must be supplied together or all absent".into()),
     }
     if plan.rule_assessments.is_empty() {
         return Err("rule_assessments must enumerate every required rule or explicitly mark unavailable".into());
@@ -609,6 +624,9 @@ fn validate_policy_bytes(
     if value.get("block_unconnected_items").and_then(Value::as_bool) != Some(true) {
         return Err(format!("{label} policy must block unconnected items"));
     }
+    if value.get("block_schematic_parity").and_then(Value::as_bool) != Some(true) {
+        return Err(format!("{label} policy must block schematic-parity violations"));
+    }
     Ok(())
 }
 
@@ -743,14 +761,16 @@ mod tests {
       "kicad_version":"9.0.8",
       "routing_violation_types":["clearance","tracks_crossing","unconnected_items"],
       "blocking_severities":["error","warning"],
-      "block_unconnected_items":true
+      "block_unconnected_items":true,
+      "block_schematic_parity":true
     }"#;
     const STRICT_POLICY: &str = r#"{
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.8",
       "routing_violation_types":["clearance","tracks_crossing","unconnected_items"],
       "blocking_severities":["error","warning"],
-      "block_unconnected_items":true
+      "block_unconnected_items":true,
+      "block_schematic_parity":true
     }"#;
     const COMPAT_CLEAN: &str = r#"{"violations":[],"unconnected_items":[]}"#;
     const STRICT_FAIL: &str = r#"{"violations":[{"type":"clearance","severity":"error"}],"unconnected_items":[]}"#;
@@ -783,10 +803,12 @@ mod tests {
             compatibility_policy_sha256: policy_sha(compat),
             compatibility_kicad_version: "9.0.8".into(),
             compatibility_drc_report_relative_path: "drc/compatibility.json".into(),
+            compatibility_drc_input_board_sha256: sha256_hex(output),
             strict_source_policy_relative_path: strict.then(|| "policies/strict-source.json".into()),
             strict_source_policy_sha256: strict.then(|| policy_sha(strict_bytes)),
             strict_source_kicad_version: strict.then(|| "9.0.8".into()),
             strict_source_drc_report_relative_path: strict.then(|| "drc/strict-source.json".into()),
+            strict_source_drc_input_board_sha256: strict.then(|| sha256_hex(output)),
             strict_source_policy_derivation_evidence_relative_path: strict.then(|| "evidence/strict-source-policy-derivation.txt".into()),
             strict_source_policy_derivation_evidence_sha256: strict.then(|| sha256_hex(STRICT_DERIVATION_EVIDENCE)),
             rule_assessments: assessments,
