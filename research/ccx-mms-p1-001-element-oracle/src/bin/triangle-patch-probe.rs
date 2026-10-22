@@ -2,18 +2,21 @@ use ccx_mms_p1_element_oracle::run_patch_probe;
 use std::env;
 use std::process::ExitCode;
 
-fn is_sha40(value: &str) -> bool {
-    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+fn is_lowercase_sha40(value: &str) -> bool {
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
 }
 
 fn main() -> ExitCode {
     let source_sha = env::var("MMS_BENCH_SOURCE_SHA").unwrap_or_default();
     let checkout_sha = env::var("MMS_BENCH_CHECKOUT_SHA").unwrap_or_default();
-    if !is_sha40(&source_sha) || !source_sha.bytes().all(|b| !b.is_ascii_uppercase()) {
+    if !is_lowercase_sha40(&source_sha) {}
         eprintln!("MMS_BENCH_SOURCE_SHA must be a 40-character lowercase Git SHA");
         return ExitCode::FAILURE;
     }
-    if !is_sha40(&checkout_sha) || !checkout_sha.bytes().all(|b| !b.is_ascii_uppercase()) {
+    if !is_lowercase_sha40(&checkout_sha) {}
         eprintln!("MMS_BENCH_CHECKOUT_SHA must be a 40-character lowercase Git SHA");
         return ExitCode::FAILURE;
     }
