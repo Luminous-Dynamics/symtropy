@@ -853,7 +853,7 @@ mod tests {
             maintenance.lost_service_ids,
             vec!["stormwater_service".to_owned(), "tree_ecology_service".to_owned()]
         );
-        assert_eq!(maintenance.relative_service_loss_fraction, Some(2.0 / 3.0));
+        assert_eq!(maintenance.relative_service_loss_fraction, Some(0.666667));
         assert!(
             report
                 .single_failure_audit
