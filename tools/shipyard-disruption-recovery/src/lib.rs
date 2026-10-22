@@ -1343,7 +1343,7 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
     let candidate_spatial_report = verify(&candidate_after);
     let candidate_outage_violations =
         outage_violations(&candidate_after, &input.disruption.vehicle_outages);
-    let candidate_feasible_after_disruption = candidate_spatial_report.is_feasible()
+    let mut candidate_feasible_after_disruption = candidate_spatial_report.is_feasible()
         && candidate_outage_violations.is_empty()
         && outages_valid
         && occupancy_extensions_valid;
@@ -1372,6 +1372,22 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
         input.disruption.observed_at_tick,
         &mut violations,
     );
+
+    let candidate_integrity_violation = violations.iter().any(|violation| {
+        matches!(
+            violation.code,
+            RecoveryViolationCode::HistoricalPlacementChanged
+                | RecoveryViolationCode::HistoricalTransferChanged
+                | RecoveryViolationCode::FuturePlacementReservationRemoved
+                | RecoveryViolationCode::FutureTransferReservationRemoved
+                | RecoveryViolationCode::ActivePlacementMovedBeforeClearance
+                | RecoveryViolationCode::ActiveTransferChangedBeforeCompletion
+                | RecoveryViolationCode::OccupancyExtensionTargetMismatch
+        )
+    });
+    if candidate_integrity_violation {
+        candidate_feasible_after_disruption = false;
+    }
 
     let baseline_ids = all_reservation_ids(&input.baseline);
     let candidate_ids = all_reservation_ids(&input.candidate);
@@ -1673,6 +1689,31 @@ mod tests {
         assert!(report.violations.iter().any(|violation| {
             violation.code == RecoveryViolationCode::VehicleUnavailable
         }));
+    }
+
+    #[test]
+    fn removed_required_future_work_is_not_counted_as_candidate_feasible() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("required", "block-a", rect(0, 0, 2, 2), 5, 10),
+                placement("stay", "block-b", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("stay", "block-b", rect(4, 0, 6, 2), 0, 10)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: empty_disruption(4),
+        });
+
+        assert!(!report.accepted);
+        assert!(!report.metrics.candidate_feasible_after_disruption);
     }
 
     #[test]
