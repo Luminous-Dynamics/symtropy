@@ -837,4 +837,51 @@ mod tests {
         .expect("deterministic replay");
         assert_eq!(first, replay);
     }
+
+    #[test]
+    fn ambiguous_budget_two_enumerates_every_reachable_answer_history() {
+        let report = evaluate_question_policy(
+            &request(),
+            &BoundedPreferenceResponseChannel::fully_ambiguous(),
+            &hidden_cost_biased(),
+            QuestionPolicy::FixedIdentifierOrder,
+            2,
+            0,
+        )
+        .expect("valid fully ambiguous policy tree");
+
+        assert_eq!(report.leaves.len(), 16);
+        assert!(report.leaves.iter().all(|leaf| leaf.questions_used == 2));
+        assert!(report.leaves.iter().all(|leaf| leaf.history.len() == 2));
+        assert_eq!(report.expansion_nodes_visited, 21);
+    }
+
+    #[test]
+    fn exhaustive_baseline_continues_after_the_training_decision_is_identified() {
+        let input = request();
+        let channel = BoundedPreferenceResponseChannel::exact();
+        let adaptive = evaluate_question_policy(
+            &input,
+            &channel,
+            &hidden_cost_biased(),
+            QuestionPolicy::AdaptiveMinimaxRegret,
+            2,
+            0,
+        )
+        .expect("adaptive policy");
+        let exhaustive = evaluate_question_policy(
+            &input,
+            &channel,
+            &hidden_cost_biased(),
+            QuestionPolicy::ExhaustivePairwiseOrder,
+            2,
+            0,
+        )
+        .expect("exhaustive policy");
+
+        assert_eq!(adaptive.leaves.len(), 1);
+        assert_eq!(adaptive.leaves[0].questions_used, 1);
+        assert_eq!(exhaustive.leaves.len(), 1);
+        assert_eq!(exhaustive.leaves[0].questions_used, 2);
+    }
 }
