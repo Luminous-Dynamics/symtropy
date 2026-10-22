@@ -37,6 +37,21 @@ jobs:
         with:
           components: rustfmt
 
+      # Temporary exact-toolchain formatting materialization. The generated
+      # files are uploaded so their canonical bytes can be committed on the PR
+      # branch; the next revision removes this mutating step and checks HEAD only.
+      - name: Materialize canonical Rust formatting
+        run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pcb-route-benchmark-formatted-source
+          path: |
+            tools/pcb-route-benchmark/src/lib.rs
+            tools/pcb-route-benchmark/src/main.rs
+          if-no-files-found: error
+
       - name: Check formatting
         run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all -- --check
 
