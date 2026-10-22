@@ -8,7 +8,7 @@ on:
       - "tools/shipyard-space-time/**"
       - ".github/workflows/shipyard-space-time-baseline.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "research/shipyard-space-time-first-fit-v0"]
     paths:
       - "tools/shipyard-space-time-baselines/**"
       - "tools/shipyard-space-time/**"
