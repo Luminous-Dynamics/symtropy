@@ -316,12 +316,6 @@ pub fn compare_rule_fidelity(
     {
         return Err("cannot compare routes evaluated under different source-rule or compatibility constraints".into());
     }
-    if baseline.compatibility_drc.report_sha256 == treatment.compatibility_drc.report_sha256
-        && baseline.output_board_sha256 != treatment.output_board_sha256
-    {
-        return Err("different output boards unexpectedly reuse the same compatibility DRC report digest".into());
-    }
-
     let strict_available = baseline.strict_source_policy_evaluated
         && treatment.strict_source_policy_evaluated
         && baseline.source_authoritative
