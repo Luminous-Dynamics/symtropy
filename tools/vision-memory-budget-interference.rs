@@ -159,6 +159,7 @@ enum Policy {
     ArrivalUpsertFifo,
     SourceRevisionUpsertFifo,
     EvidenceTierBounded,
+    RevisionWatermarkEvidenceTier,
 }
 
 impl Policy {
@@ -167,6 +168,7 @@ impl Policy {
         Self::ArrivalUpsertFifo,
         Self::SourceRevisionUpsertFifo,
         Self::EvidenceTierBounded,
+        Self::RevisionWatermarkEvidenceTier,
     ];
 
     fn label(self) -> &'static str {
@@ -175,6 +177,7 @@ impl Policy {
             Self::ArrivalUpsertFifo => "arrival_upsert_fifo",
             Self::SourceRevisionUpsertFifo => "source_revision_upsert_fifo",
             Self::EvidenceTierBounded => "evidence_tier_bounded",
+            Self::RevisionWatermarkEvidenceTier => "revision_watermark_evidence_tier",
         }
     }
 }
@@ -186,6 +189,7 @@ struct WriteEvent {
     store_size: usize,
     update_ops: usize,
     rejected_stale_writes: usize,
+    watermark_entries: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -196,6 +200,9 @@ struct Store {
     write_ops: usize,
     update_ops: usize,
     rejected_stale_writes: usize,
+    // Source-revision high-water marks survive payload eviction. Logical
+    // payload cost is reported separately from fixed record slots.
+    watermarks: Vec<(u16, u16)>,
 }
 
 impl Store {
@@ -207,6 +214,7 @@ impl Store {
             write_ops: 0,
             update_ops: 0,
             rejected_stale_writes: 0,
+            watermarks: Vec::new(),
         }
     }
 
@@ -218,13 +226,35 @@ impl Store {
             self.update_ops += 1;
         }
 
+        if self.policy == Policy::RevisionWatermarkEvidenceTier {
+            match self.watermarks.iter().position(|(entity, _)| *entity == record.entity) {
+                Some(index) if record.source_revision < self.watermarks[index].1 => {
+                    self.rejected_stale_writes += 1;
+                    return WriteEvent {
+                        result: "reject_stale_against_watermark",
+                        evicted: None,
+                        store_size: self.records.len(),
+                        update_ops: self.update_ops,
+                        rejected_stale_writes: self.rejected_stale_writes,
+                        watermark_entries: self.watermarks.len(),
+                    };
+                }
+                Some(index) => {
+                    self.watermarks[index].1 = self.watermarks[index].1.max(record.source_revision);
+                }
+                None => self.watermarks.push((record.entity, record.source_revision)),
+            }
+        }
+
         if self.policy == Policy::FifoRecords {
             self.records.push(record);
         } else if let Some(index) = existing {
             let previous = self.records[index];
             if matches!(
                 self.policy,
-                Policy::SourceRevisionUpsertFifo | Policy::EvidenceTierBounded
+                Policy::SourceRevisionUpsertFifo
+                    | Policy::EvidenceTierBounded
+                    | Policy::RevisionWatermarkEvidenceTier
             ) && record.source_revision < previous.source_revision
             {
                 self.rejected_stale_writes += 1;
@@ -234,6 +264,7 @@ impl Store {
                     store_size: self.records.len(),
                     update_ops: self.update_ops,
                     rejected_stale_writes: self.rejected_stale_writes,
+                    watermark_entries: self.watermarks.len(),
                 };
             }
             self.records.remove(index);
@@ -244,7 +275,7 @@ impl Store {
 
         let mut evicted = None;
         if self.records.len() > self.budget {
-            let index = if self.policy == Policy::EvidenceTierBounded {
+            let index = if matches!(self.policy, Policy::EvidenceTierBounded | Policy::RevisionWatermarkEvidenceTier) {
                 self.evidence_tier_eviction_index()
             } else {
                 0
@@ -254,7 +285,7 @@ impl Store {
 
         let result = match (existing, self.policy) {
             (Some(_), Policy::ArrivalUpsertFifo) => "replace_by_arrival",
-            (Some(_), Policy::SourceRevisionUpsertFifo | Policy::EvidenceTierBounded) => {
+            (Some(_), Policy::SourceRevisionUpsertFifo | Policy::EvidenceTierBounded | Policy::RevisionWatermarkEvidenceTier) => {
                 "replace_by_source_revision"
             }
             (Some(_), Policy::FifoRecords) => "append_duplicate_version",
@@ -267,6 +298,7 @@ impl Store {
             store_size: self.records.len(),
             update_ops: self.update_ops,
             rejected_stale_writes: self.rejected_stale_writes,
+            watermark_entries: self.watermarks.len(),
         }
     }
 
@@ -329,7 +361,7 @@ impl Store {
             Policy::FifoRecords | Policy::ArrivalUpsertFifo => {
                 matches.into_iter().max_by_key(|record| record.arrival)
             }
-            Policy::SourceRevisionUpsertFifo | Policy::EvidenceTierBounded => {
+            Policy::SourceRevisionUpsertFifo | Policy::EvidenceTierBounded | Policy::RevisionWatermarkEvidenceTier => {
                 matches.into_iter().max_by_key(|record| record.source_revision)
             }
         };
@@ -357,6 +389,8 @@ struct QueryResult {
     write_ops: usize,
     update_ops: usize,
     rejected_stale_writes: usize,
+    watermark_entries: usize,
+    watermark_payload_bytes: usize,
     capacity_overrun: bool,
 }
 
@@ -449,6 +483,8 @@ fn make_report() -> String {
                             write_ops: store.write_ops,
                             update_ops: store.update_ops,
                             rejected_stale_writes: store.rejected_stale_writes,
+                            watermark_entries: store.watermarks.len(),
+                            watermark_payload_bytes: store.watermarks.len() * 4,
                             capacity_overrun: store.records.len() > budget,
                         });
                     }
@@ -461,12 +497,13 @@ fn make_report() -> String {
     line(&mut out, &["META".into(), "format".into(), "VIS-MEM-016-v0.1".into()]);
     line(&mut out, &["META".into(), "scope".into(), "synthetic fixed-budget storage/update/interference diagnostic; not native task success".into()]);
     line(&mut out, &["META".into(), "query_boundary".into(), "future query is issued only after the storage stream completes".into()]);
+    line(&mut out, &["META".into(), "watermark_cost".into(), "logical payload bytes count 4 bytes per entity/revision pair; allocator overhead is not included".into()]);
     line(&mut out, &[
         "LEDGER_HEADER".into(), "regime".into(), "distractors".into(), "budget".into(),
         "policy".into(), "step".into(), "input_entity".into(), "input_revision".into(),
         "input_value".into(), "input_kind".into(), "write_result".into(), "evicted_entity".into(),
         "evicted_revision".into(), "store_size".into(), "update_ops".into(),
-        "rejected_stale_writes".into(),
+        "rejected_stale_writes".into(), "watermark_entries".into(),
     ]);
     line(&mut out, &[
         "ROW_HEADER".into(), "regime".into(), "distractors".into(), "budget".into(),
@@ -474,7 +511,8 @@ fn make_report() -> String {
         "found_revision".into(), "expected_value".into(), "returned_value".into(), "success".into(),
         "stale_answer".into(), "missing_answer".into(), "duplicate_versions".into(),
         "store_size".into(), "write_ops".into(), "update_ops".into(),
-        "rejected_stale_writes".into(), "capacity_overrun".into(),
+        "rejected_stale_writes".into(), "watermark_entries".into(),
+        "watermark_payload_bytes".into(), "capacity_overrun".into(),
     ]);
     line(&mut out, &[
         "SUMMARY_HEADER".into(), "policy".into(), "regime".into(), "distractors".into(),
@@ -482,6 +520,7 @@ fn make_report() -> String {
         "missing_rate".into(), "duplicate_query_rate".into(), "outcome_success_rate".into(),
         "observation_success_rate".into(), "capacity_overrun_rate".into(), "mean_store_size".into(),
         "mean_write_ops".into(), "mean_update_ops".into(), "mean_rejected_stale_writes".into(),
+        "mean_watermark_entries".into(), "mean_watermark_payload_bytes".into(),
     ]);
 
     for entry in &ledger {
@@ -494,7 +533,7 @@ fn make_report() -> String {
             entry.event.evicted.map(|record| record.entity.to_string()).unwrap_or_else(|| "NA".into()),
             entry.event.evicted.map(|record| record.source_revision.to_string()).unwrap_or_else(|| "NA".into()),
             entry.event.store_size.to_string(), entry.event.update_ops.to_string(),
-            entry.event.rejected_stale_writes.to_string(),
+            entry.event.rejected_stale_writes.to_string(), entry.event.watermark_entries.to_string(),
         ]);
     }
 
@@ -507,7 +546,8 @@ fn make_report() -> String {
             opt_u32(result.returned_value), flag(result.success), flag(result.stale_answer),
             flag(result.missing_answer), result.duplicate_versions.to_string(),
             result.store_size.to_string(), result.write_ops.to_string(), result.update_ops.to_string(),
-            result.rejected_stale_writes.to_string(), flag(result.capacity_overrun),
+            result.rejected_stale_writes.to_string(), result.watermark_entries.to_string(),
+            result.watermark_payload_bytes.to_string(), flag(result.capacity_overrun),
         ]);
     }
 
@@ -551,6 +591,8 @@ fn make_report() -> String {
                         format!("{:.3}", mean_write_ops),
                         format!("{:.3}", mean_update_ops),
                         format!("{:.3}", mean_rejected),
+                        format!("{:.3}", rows.iter().map(|r| r.watermark_entries as f64).sum::<f64>() / rows.len().max(1) as f64),
+                        format!("{:.3}", rows.iter().map(|r| r.watermark_payload_bytes as f64).sum::<f64>() / rows.len().max(1) as f64),
                     ]);
                 }
             }
@@ -593,6 +635,24 @@ mod tests {
         }
         assert!(fifo.retrieve(0).1 > 0);
         assert_eq!(keyed.retrieve(0).1, 0);
+    }
+
+    #[test]
+    fn persistent_watermark_rejects_stale_arrival_even_after_payload_eviction() {
+        let (stream, truth) = build_stream(Regime::ArrivalReversal, 72);
+        let mut unwatermarked = Store::new(Policy::SourceRevisionUpsertFifo, 4);
+        let mut watermarked = Store::new(Policy::RevisionWatermarkEvidenceTier, 4);
+        for record in stream.iter().copied() {
+            unwatermarked.insert(record);
+            watermarked.insert(record);
+        }
+        assert!(unwatermarked.retrieve(8).0.is_some_and(|r| r.source_revision < truth[8].source_revision));
+        assert!(watermarked.rejected_stale_writes >= usize::from(CORE_ENTITIES));
+        for entity in 0..CORE_ENTITIES {
+            assert!(!watermarked.retrieve(entity).0.is_some_and(|r| r.source_revision < truth[usize::from(entity)].source_revision));
+        }
+        assert!(watermarked.records.len() <= 4);
+        assert!(watermarked.watermarks.len() > watermarked.records.len());
     }
 
     #[test]
@@ -656,15 +716,15 @@ mod tests {
         assert_eq!(first.lines().filter(|line| line.starts_with("LEDGER_HEADER\t")).count(), 1);
         assert_eq!(first.lines().filter(|line| line.starts_with("ROW_HEADER\t")).count(), 1);
         assert_eq!(first.lines().filter(|line| line.starts_with("SUMMARY_HEADER\t")).count(), 1);
-        assert_eq!(first.lines().filter(|line| line.starts_with("ROW\t")).count(), 4 * 4 * 3 * 4 * usize::from(CORE_ENTITIES));
-        assert_eq!(first.lines().filter(|line| line.starts_with("SUMMARY\t")).count(), 4 * 4 * 3 * 4);
+        assert_eq!(first.lines().filter(|line| line.starts_with("ROW\t")).count(), 4 * 4 * 3 * 5 * usize::from(CORE_ENTITIES));
+        assert_eq!(first.lines().filter(|line| line.starts_with("SUMMARY\t")).count(), 4 * 4 * 3 * 5);
         for record in first.lines() {
             if record.starts_with("LEDGER_HEADER\t") || record.starts_with("LEDGER\t") {
-                assert_eq!(record.split('\t').count(), 16, "ledger schema: {record}");
+                assert_eq!(record.split('\t').count(), 17, "ledger schema: {record}");
             } else if record.starts_with("ROW_HEADER\t") || record.starts_with("ROW\t") {
-                assert_eq!(record.split('\t').count(), 20, "row schema: {record}");
+                assert_eq!(record.split('\t').count(), 22, "row schema: {record}");
             } else if record.starts_with("SUMMARY_HEADER\t") || record.starts_with("SUMMARY\t") {
-                assert_eq!(record.split('\t').count(), 17, "summary schema: {record}");
+                assert_eq!(record.split('\t').count(), 19, "summary schema: {record}");
             }
         }
     }
