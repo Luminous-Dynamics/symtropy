@@ -622,7 +622,9 @@ mod tests {
     #[test]
     fn missing_provider_edge_fails_closed() {
         let mut fixture: Fixture = serde_json::from_slice(&fixture_bytes()).unwrap();
-        fixture.dependencies.retain(|edge| edge.edge_id != "edge-heat-built-shade");
+        fixture.dependencies.retain(|edge| {
+            edge.edge_id != "edge-heat-built-shade" && edge.edge_id != "edge-heat-canopy"
+        });
         let errors = validate_fixture(&fixture).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("required group shade has no provider edges")));
     }
