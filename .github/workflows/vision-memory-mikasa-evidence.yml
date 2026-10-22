@@ -1,0 +1,87 @@
+name: VIS-MEM-017 MIKASA Native Evidence Contract
+
+on:
+  push:
+    branches: ["research/vis-mem-mikasa-evidence-v0-1"]
+    paths:
+      - "tools/verify-mikasa-long-results.sh"
+      - "tools/test-verify-mikasa-long-results.sh"
+      - "tools/vision-memory-mikasa-long-tasks.tsv"
+      - ".github/workflows/vision-memory-mikasa-evidence.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/verify-mikasa-long-results.sh"
+      - "tools/test-verify-mikasa-long-results.sh"
+      - "tools/vision-memory-mikasa-long-tasks.tsv"
+      - ".github/workflows/vision-memory-mikasa-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-017-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-evidence-verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source head and tools
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          command -v bash
+          command -v jq
+          command -v sha256sum
+          bash -n tools/verify-mikasa-long-results.sh
+          bash -n tools/test-verify-mikasa-long-results.sh
+
+      - name: Verify pinned Long roster
+        run: |
+          set -euo pipefail
+          grep -Fq '509b875f3d207c287497c0a897661062de928bb0' tools/vision-memory-mikasa-long-tasks.tsv
+          grep -Fq '613c571bc4a5e1585c995249adb31d594601822e' tools/vision-memory-mikasa-long-tasks.tsv
+          test "$(grep -vc '^#' tools/vision-memory-mikasa-long-tasks.tsv)" -eq 22
+          test "$(cut -f2 tools/vision-memory-mikasa-long-tasks.tsv | grep -v '^#' | sort -u | wc -l)" -eq 22
+
+      - name: Run positive and fail-closed negative fixtures
+        run: |
+          set -euo pipefail
+          bash tools/test-verify-mikasa-long-results.sh
+
+      - name: Create explicit contract-only receipt
+        run: |
+          set -euo pipefail
+          {
+            printf 'META\tstatus\tcontract_validated_not_performance_evaluated\n'
+            printf 'META\tbenchmark_source_commit\t509b875f3d207c287497c0a897661062de928bb0\n'
+            printf 'META\tmanifest_git_blob_sha1\t613c571bc4a5e1585c995249adb31d594601822e\n'
+            printf 'META\tcanonical_long_tasks\t22\n'
+            printf 'META\tepisodes_per_task\t50\n'
+            printf 'META\tseed_start\t4242424242\n'
+            printf 'META\tseed_end\t4242424291\n'
+            printf 'META\tpositive_and_negative_fixtures\tpassed only if this workflow step completes\n'
+          } > mikasa-evidence-contract-receipt.tsv
+          sha256sum tools/verify-mikasa-long-results.sh tools/test-verify-mikasa-long-results.sh tools/vision-memory-mikasa-long-tasks.tsv mikasa-evidence-contract-receipt.tsv > mikasa-evidence-contract.sha256
+          sha256sum -c mikasa-evidence-contract.sha256
+
+      - name: Upload verifier contract evidence (not task performance)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mikasa-native-evidence-contract
+          path: |
+            mikasa-evidence-contract-receipt.tsv
+            mikasa-evidence-contract.sha256
+            tools/vision-memory-mikasa-long-tasks.tsv
+          if-no-files-found: error
