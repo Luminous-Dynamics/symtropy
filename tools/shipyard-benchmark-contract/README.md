@@ -20,6 +20,8 @@ A high score in one class cannot substitute for evidence in another. Zero errors
 
 The schemas use JSON Schema Draft 2020-12. Implementations should validate the manifest before running and validate the report before publishing it. A schema-valid report can still contain bad science; its hashes and claims require review.
 
+The manifest's source record pins the expected case count. Report cases distinguish the solver/planner outcome from the independent reference outcome (feasible, infeasible, unknown, or not applicable); summary counts are recomputed from per-case evidence. The report manifest digest is the SHA-256 of the exact manifest bytes, and the run's source revision must match the candidate revision recorded by the manifest. Infeasibility must be reference-backed: a heuristic timeout or exhausted candidate search remains unknown.
+
 ## Minimum run protocol
 
 1. Freeze the case corpus or generator recipe, its parameters, seed, units, time semantics, and source digest. Use half-open intervals consistently where the underlying model specifies them.
