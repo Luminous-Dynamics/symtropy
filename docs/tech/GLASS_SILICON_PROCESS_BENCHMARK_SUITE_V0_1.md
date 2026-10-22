@@ -121,7 +121,7 @@ Use SCALE's published protocol as a concrete experimental-efficiency baseline, a
 
 1. Freeze train/calibration/test splits by composition families or synthesis campaign; exclude near-duplicates and source leakage.
 2. Establish a simulation-only baseline and report per-property MAE/RMSE, R², signed bias, uncertainty calibration, interval coverage, and out-of-domain abstention.
-3. Compare static simulated-data augmentation, random measurement selection, conventional design-of-experiments, and active learning under the **same physical-measurement budget**. Reproduce the published 3 × 6 measurement structure where the available data supports a fair replication.
+3. Compare static simulated-data augmentation, random measurement selection, conventional design-of-experiments, and active learning under the **same physical-measurement budget**. Reproduce the published 3 × 6 measurement structure where the available data supports a fair replication. The paper's own selector comparison is an important anti-assumption: for one reported evaluation metric, random selection reached 0.80, gradient-based selection 0.70, and maximum-deviation selection 0.64. Those values are specific to that paper's protocol, not universal selector rankings; they make random selection an obligatory baseline, not a straw man.
 4. Measure the held-out improvement after calibration, not only training or cross-validation fit. Predefine target uncertainty and bias tolerances from measurement repeatability and intended engineering use; do not infer them from the best observed score.
 5. A model with high R² but systematic external bias is not qualified for the affected property/domain. Calibration may improve it, but calibration must itself be evaluated on unseen data.
 
