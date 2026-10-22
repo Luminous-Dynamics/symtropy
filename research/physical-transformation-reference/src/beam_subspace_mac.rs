@@ -188,12 +188,12 @@ mod tests {
     const TOLERANCE: f64 = 1.0e-12;
 
     #[test]
-    fn subspace_score_is_invariant_to_orthogonal_basis_rotation() {
+    fn subspace_score_is_invariant_to_basis_rotation_and_individual_mode_scaling() {
         let angle: f64 = 0.713;
         let reference = vec![vec![1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0]];
         let candidate = vec![
-            vec![angle.cos(), angle.sin(), 0.0],
-            vec![-angle.sin(), angle.cos(), 0.0],
+            vec![10.0 * angle.cos(), 10.0 * angle.sin(), 0.0],
+            vec![-0.2 * angle.sin(), 0.2 * angle.cos(), 0.0],
         ];
         let score = subspace_mac(&reference, &candidate, TOLERANCE)
             .expect("same subspace under basis rotation");
