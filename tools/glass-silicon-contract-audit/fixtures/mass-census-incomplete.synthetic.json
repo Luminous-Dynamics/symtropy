@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "record_id": "mass-census-incomplete-synthetic-fixture-v1",
+  "evidence_status": "synthetic_test",
+  "stream_census_complete": false,
+  "mass_unit": "kg",
+  "inputs": {
+    "Si": 20.0,
+    "O": 30.0
+  },
+  "outputs": {
+    "Si": 20.0,
+    "O": 29.5
+  },
+  "inventory_change": {
+    "Si": 0.0,
+    "O": 0.5
+  },
+  "tolerance": {
+    "Si": 0.01,
+    "O": 0.01
+  },
+  "claim_ceiling": "Synthetic arithmetic fixture only; stream census intentionally incomplete."
+}
