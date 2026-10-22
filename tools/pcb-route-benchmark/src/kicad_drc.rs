@@ -209,7 +209,7 @@ pub struct KicadCoordinate {
     pub y: f64,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct KicadDrcEvidenceReceipt {
     pub schema: String,
     pub raw_report_sha256: String,
