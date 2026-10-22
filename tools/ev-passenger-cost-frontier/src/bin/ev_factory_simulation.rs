@@ -1582,6 +1582,71 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     })
 }
 
+fn summarize_flow_time_seconds(
+    values: &[f64],
+) -> Result<Option<FlowTimeObservationSummary>, String> {
+    if values.is_empty() {
+        return Ok(None);
+    }
+    if values
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("flow_time_observations_must_be_finite_and_nonnegative".into());
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    Ok(Some(FlowTimeObservationSummary {
+        sample_count: sorted.len(),
+        mean_seconds: sorted.iter().sum::<f64>() / sorted.len() as f64,
+        p50_seconds: quantile_sorted(&sorted, 0.50),
+        p90_seconds: quantile_sorted(&sorted, 0.90),
+        p95_seconds: quantile_sorted(&sorted, 0.95),
+        p99_seconds: quantile_sorted(&sorted, 0.99),
+        maximum_seconds: *sorted.last().expect("nonempty flow time sample"),
+    }))
+}
+
+fn count_right_censored_jobs(
+    state: &SimState,
+    warmup_seconds: u64,
+) -> Result<u64, String> {
+    let mut seen_ids = BTreeSet::new();
+    let mut censored_count = 0_u64;
+    let mut observe_job = |job: &Job| -> Result<(), String> {
+        if !seen_ids.insert(job.id) {
+            return Err("duplicate_job_id_in_live_system_at_horizon".into());
+        }
+        if job.released_at_seconds >= warmup_seconds {
+            censored_count += 1;
+        }
+        Ok(())
+    };
+
+    for job in &state.supplier_backlog {
+        observe_job(job)?;
+    }
+    for job in &state.source_buffer {
+        observe_job(job)?;
+    }
+    for queue in &state.buffers {
+        for job in queue {
+            observe_job(job)?;
+        }
+    }
+    for station in &state.stations {
+        for server in &station.servers {
+            match &server.state {
+                ServerState::Busy { job, .. } | ServerState::WaitingOutput { job, .. } => {
+                    observe_job(job)?;
+                }
+                ServerState::Idle | ServerState::Down => {}
+            }
+        }
+    }
+    Ok(censored_count)
+}
+
 fn safe_ratio(numerator: f64, denominator: f64) -> f64 {
     if denominator > 0.0 {
         numerator / denominator
