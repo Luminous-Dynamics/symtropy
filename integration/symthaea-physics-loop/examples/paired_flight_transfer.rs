@@ -1,10 +1,11 @@
-//! Paired transfer experiment: train Symthaea on its native simple plant,
-//! then evaluate on Symtropy PhysicsWorld against same-world PD and untrained
-//! Symthaea controls. No policy is assumed to win.
+//! Paired sim-to-sim transfer experiment: train Symthaea on its native simple
+//! plant, then measure its performance on native and Symtropy PhysicsWorld
+//! under matched seeds. Compare PD/PID, untrained, trained-no-FEP and trained
+//! plus-FEP policies; no policy is assumed to win.
 
 use serde::Serialize;
-use std::time::Instant;
 use serde_json::json;
+use std::time::Instant;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
     pd_baseline, pid_baseline, ActiveInferenceFlightAgent, FlightConfig, FlightController,
