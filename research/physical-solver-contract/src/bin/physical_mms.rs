@@ -43,7 +43,7 @@ fn run() -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: physical-mms generate --cells N --deck PATH --model-manifest PATH --source-sha SHA40 --checkout-sha SHA40\n       physical-mms audit --cells N --deck PATH --dat PATH --model-manifest PATH --build-manifest PATH --solver PATH --process-log PATH --run-manifest PATH --report PATH".to_owned()
+    "usage: physical-mms generate --cells N --deck PATH --model-manifest PATH --source-sha SHA40 --checkout-sha SHA40 --tool-sha SHA64\n       physical-mms audit --cells N --deck PATH --dat PATH --model-manifest PATH --build-manifest PATH --solver PATH --auditor PATH --process-log PATH --run-manifest PATH --report PATH".to_owned()
 }
 
 fn parse_options(args: &[String]) -> Result<BTreeMap<String, String>, String> {
@@ -57,9 +57,11 @@ fn parse_options(args: &[String]) -> Result<BTreeMap<String, String>, String> {
         "--model-manifest",
         "--source-sha",
         "--checkout-sha",
+        "--tool-sha",
         "--dat",
         "--build-manifest",
         "--solver",
+        "--auditor",
         "--process-log",
         "--run-manifest",
         "--report",
@@ -193,8 +195,10 @@ fn generate(options: &BTreeMap<String, String>) -> Result<(), String> {
     let model_manifest_path = required(options, "--model-manifest")?;
     let source_sha = required(options, "--source-sha")?;
     let checkout_sha = required(options, "--checkout-sha")?;
+    let tool_sha = required(options, "--tool-sha")?;
     validate_sha(&source_sha, "source SHA", 40)?;
     validate_sha(&checkout_sha, "checkout SHA", 40)?;
+    validate_sha(&tool_sha, "generator executable SHA", 64)?;
 
     let parameters = MmsParameters::default();
     let mesh = MmsMesh::generate(n, parameters)?;
@@ -206,6 +210,7 @@ fn generate(options: &BTreeMap<String, String>) -> Result<(), String> {
         "benchmark_id": BENCHMARK_ID,
         "source_sha": source_sha,
         "checkout_sha": checkout_sha,
+        "generator_executable_sha256": tool_sha,
         "cells_per_axis": n,
         "node_count": mesh.nodes.len(),
         "element_count": mesh.elements.len(),
@@ -253,6 +258,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let model_manifest_path = required(options, "--model-manifest")?;
     let build_manifest_path = required(options, "--build-manifest")?;
     let solver_path = required(options, "--solver")?;
+    let auditor_path = required(options, "--auditor")?;
     let process_log_path = required(options, "--process-log")?;
     let run_manifest_path = required(options, "--run-manifest")?;
     let report_path = required(options, "--report")?;
@@ -262,6 +268,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let model_manifest_bytes = read(&model_manifest_path, "model manifest")?;
     let build_manifest_bytes = read(&build_manifest_path, "build manifest")?;
     let solver_bytes = read(&solver_path, "solver executable")?;
+    let auditor_bytes = read(&auditor_path, "auditor executable")?;
     let process_log_bytes = read(&process_log_path, "process log")?;
     let run_manifest_bytes = read(&run_manifest_path, "run manifest")?;
 
@@ -296,13 +303,16 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let model_manifest_sha = sha256_hex(&model_manifest_bytes);
     let build_manifest_sha = sha256_hex(&build_manifest_bytes);
     let solver_sha = sha256_hex(&solver_bytes);
+    let auditor_sha = sha256_hex(&auditor_bytes);
     let process_log_sha = sha256_hex(&process_log_bytes);
     let run_manifest_sha = sha256_hex(&run_manifest_bytes);
 
     require_equal_string(&model_manifest, "deck_sha256", &deck_sha, "model manifest")?;
+    require_equal_string(&model_manifest, "generator_executable_sha256", &auditor_sha, "model manifest")?;
     for (key, digest, label) in [
         ("model_manifest_sha256", model_manifest_sha.as_str(), "run manifest"),
         ("deck_sha256", deck_sha.as_str(), "run manifest"),
+        ("auditor_executable_sha256", auditor_sha.as_str(), "run manifest"),
         ("dat_sha256", dat_sha.as_str(), "run manifest"),
         ("build_manifest_sha256", build_manifest_sha.as_str(), "run manifest"),
         ("solver_executable_sha256", solver_sha.as_str(), "run manifest"),
@@ -361,6 +371,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         "dat_sha256": dat_sha,
         "build_manifest_sha256": build_manifest_sha,
         "solver_executable_sha256": solver_sha,
+        "auditor_executable_sha256": auditor_sha,
         "process_log_sha256": process_log_sha,
         "run_manifest_sha256": run_manifest_sha,
         "solver_exit_code": 0,
