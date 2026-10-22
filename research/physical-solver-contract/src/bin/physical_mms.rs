@@ -335,6 +335,27 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     ] {
         require_equal_string(&build_manifest, key, expected, "build manifest")?;
     }
+    require_equal_string(
+        &build_manifest,
+        "ccx_source_url",
+        "http://www.dhondt.de/ccx_2.22.src.tar.bz2",
+        "build manifest",
+    )?;
+    if build_manifest.get("arpack_enabled").and_then(Value::as_bool) != Some(false) {
+        return Err("pinned PHYS-MMS-001 build must explicitly disable ARPACK".to_owned());
+    }
+    let build_config = build_manifest
+        .get("build_config")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "build manifest.build_config must be an object".to_owned())?;
+    if build_config.len() != 4
+        || build_config.get("with_pardiso").and_then(Value::as_bool) != Some(false)
+        || build_config.get("with_pastix").and_then(Value::as_bool) != Some(false)
+        || build_config.get("with_arpack").and_then(Value::as_bool) != Some(false)
+        || build_config.get("with_mt").and_then(Value::as_bool) != Some(true)
+    {
+        return Err("build manifest flags differ from the pinned SPOOLES-only profile".to_owned());
+    }
     if string_field(&build_manifest, "ccx_executable_sha256", "build manifest")? != solver_sha {
         return Err("build manifest executable digest differs from the audited solver bytes".to_owned());
     }
