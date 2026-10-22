@@ -504,10 +504,13 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
         points[i] = ((1.0 - z) * 0.5, weight);
         points[order - 1 - i] = ((1.0 + z) * 0.5, weight);
     }
-    if points
-        .iter()
-        .any(|(point, weight)| !point.is_finite() || !weight.is_finite() || *point < 0.0 || *point > 1.0 || *weight <= 0.0)
-    {
+    if points.iter().any(|(point, weight)| {
+        !point.is_finite()
+            || !weight.is_finite()
+            || *point < 0.0
+            || *point > 1.0
+            || *weight <= 0.0
+    }) {
         return Err(MeshError::InvalidQuadratureOrder);
     }
     Ok(points)
