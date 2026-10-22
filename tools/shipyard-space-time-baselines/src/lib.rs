@@ -844,7 +844,7 @@ pub fn first_fit_bottom_left(
                         && let Footprint::AxisAlignedRect(prior_rect) = &prior.footprint
                         && rect.overlaps(*prior_rect)
                     {
-                        continue 'candidate;
+                        continue;
                     }
                 }
 
@@ -853,7 +853,7 @@ pub fn first_fit_bottom_left(
                         && let Footprint::AxisAlignedRect(zone_rect) = &zone.footprint
                         && rect.overlaps(*zone_rect)
                     {
-                        continue 'candidate;
+                        continue;
                     }
                 }
 
