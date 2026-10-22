@@ -1241,6 +1241,22 @@ fn dispatch_pop(
     queue.pop_front()
 }
 
+fn is_in_common_cause_control_domain(
+    state: &SimState,
+    catalog: &Catalog,
+    station_index: usize,
+) -> bool {
+    state.common_cause_control_outage_active
+        && catalog
+            .common_cause_control_outage
+            .as_ref()
+            .is_some_and(|outage| {
+                outage
+                    .station_ids
+                    .contains(&catalog.stations[station_index].station_id)
+            })
+}
+
 fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
     loop {
         let mut changed = false;
@@ -1426,6 +1442,94 @@ mod tests {
             "../../fixtures/ev_factory_simulation_v0_1.json"
         ))
         .expect("fixture parses")
+    }
+
+    fn common_cause_fixture() -> Catalog {
+        let mut catalog = fixture();
+        catalog.horizon_seconds = 4_000;
+        catalog.warmup_seconds = 0;
+        catalog.replication_seeds = vec![catalog.seed];
+        catalog.common_cause_control_outage = Some(CommonCauseControlOutage {
+            domain_id: "shared-line-control".into(),
+            station_ids: vec![
+                "battery-module-install".into(),
+                "final-assembly".into(),
+            ],
+            first_start_seconds: 600,
+            recurrence_interval_seconds: 1_800,
+            duration_seconds: 300,
+        });
+        catalog
+    }
+
+    #[test]
+    fn common_cause_control_outage_is_paired_deterministic_and_blocks_domain_starts_and_transfers() {
+        let outage_catalog = common_cause_fixture();
+        validate_catalog(&outage_catalog).expect("shared control outage fixture validates");
+        let outage_report = evaluate_catalog(&outage_catalog).expect("shared control outage run");
+
+        let mut nominal_catalog = outage_catalog.clone();
+        nominal_catalog.common_cause_control_outage = None;
+        let nominal_report = evaluate_catalog(&nominal_catalog).expect("matched nominal run");
+
+        assert_eq!(outage_report, evaluate_catalog(&outage_catalog).expect("deterministic replay"));
+        assert_eq!(outage_report.replication_count, 1);
+        assert!(outage_report.scenarios.iter().all(|scenario| {
+            scenario.common_cause_control_outage_starts_after_warmup == 2
+                && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
+                && scenario.all_buffers_respected_capacity
+                && scenario.output_never_exceeds_released_input
+                && !scenario.release_ready
+        }));
+        assert_eq!(
+            outage_report.scenarios[0].scenario_id,
+            nominal_report.scenarios[0].scenario_id
+        );
+        assert!(
+            outage_report.scenarios[0].good_units_total
+                <= nominal_report.scenarios[0].good_units_total
+        );
+        let affected = &outage_report.scenarios[0].stations;
+        for station_id in ["battery-module-install", "final-assembly"] {
+            let station = affected
+                .iter()
+                .find(|station| station.station_id == station_id)
+                .expect("configured station is in report");
+            assert!(station.common_cause_control_outage_fraction > 0.0);
+        }
+        let unaffected = affected
+            .iter()
+            .find(|station| station.station_id == "end-of-line-test")
+            .expect("unconfigured station is in report");
+        assert_eq!(unaffected.common_cause_control_outage_fraction, 0.0);
+    }
+
+    #[test]
+    fn invalid_shared_control_outage_group_fails_closed() {
+        let mut catalog = common_cause_fixture();
+        catalog
+            .common_cause_control_outage
+            .as_mut()
+            .expect("outage configuration")
+            .station_ids
+            .push("battery-module-install".into());
+        assert!(
+            validate_catalog(&catalog)
+                .expect_err("duplicate domain station")
+                .contains("common_cause_control_outage_station_unknown_or_duplicate")
+        );
+
+        let mut catalog = common_cause_fixture();
+        catalog
+            .common_cause_control_outage
+            .as_mut()
+            .expect("outage configuration")
+            .duration_seconds = 1_800;
+        assert!(
+            validate_catalog(&catalog)
+                .expect_err("overlapping outages")
+                .contains("common_cause_control_outage_configuration_invalid")
+        );
     }
 
     #[test]
