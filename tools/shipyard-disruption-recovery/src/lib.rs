@@ -277,10 +277,24 @@ fn pareto_score(report: &RecoveryEnvelopeReport) -> RecoveryParetoScore {
     }
 }
 
+fn optional_no_worse(left: Option<u64>, right: Option<u64>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => left <= right,
+        (None, None) => true,
+        // Missing is "not applicable", not automatically better or worse.
+        _ => false,
+    }
+}
+
+fn optional_strictly_better(left: Option<u64>, right: Option<u64>) -> bool {
+    matches!((left, right), (Some(left), Some(right)) if left < right)
+}
+
 fn dominates(left: &RecoveryParetoScore, right: &RecoveryParetoScore) -> bool {
-    let no_worse_everywhere = left.worst_case_recovery_horizon_ticks
-        <= right.worst_case_recovery_horizon_ticks
-        && left.worst_case_makespan_tick <= right.worst_case_makespan_tick
+    let no_worse_everywhere = optional_no_worse(
+        left.worst_case_recovery_horizon_ticks,
+        right.worst_case_recovery_horizon_ticks,
+    ) && optional_no_worse(left.worst_case_makespan_tick, right.worst_case_makespan_tick)
         && left.worst_case_changed_placement_reservations
             <= right.worst_case_changed_placement_reservations
         && left.worst_case_changed_transfer_reservations
@@ -292,10 +306,13 @@ fn dominates(left: &RecoveryParetoScore, right: &RecoveryParetoScore) -> bool {
         && left.worst_case_time_shift_ticks <= right.worst_case_time_shift_ticks
         && left.worst_case_rectangle_edge_shift_units
             <= right.worst_case_rectangle_edge_shift_units;
-    let strictly_better_somewhere = left.worst_case_recovery_horizon_ticks
-        < right.worst_case_recovery_horizon_ticks
-        || left.worst_case_makespan_tick < right.worst_case_makespan_tick
-        || left.worst_case_changed_placement_reservations
+    let strictly_better_somewhere = optional_strictly_better(
+        left.worst_case_recovery_horizon_ticks,
+        right.worst_case_recovery_horizon_ticks,
+    ) || optional_strictly_better(
+        left.worst_case_makespan_tick,
+        right.worst_case_makespan_tick,
+    ) || left.worst_case_changed_placement_reservations
             < right.worst_case_changed_placement_reservations
         || left.worst_case_changed_transfer_reservations
             < right.worst_case_changed_transfer_reservations
@@ -1728,6 +1745,28 @@ mod tests {
         assert!(duplicate_report.violations.iter().any(|violation| {
             violation.code == RecoveryEnvelopeViolationCode::DuplicateScenarioId
         }));
+    }
+
+    #[test]
+    fn pareto_missing_horizon_is_not_treated_as_a_better_score() {
+        let missing = RecoveryParetoScore {
+            worst_case_recovery_horizon_ticks: None,
+            worst_case_makespan_tick: None,
+            worst_case_changed_placement_reservations: 0,
+            worst_case_changed_transfer_reservations: 0,
+            worst_case_unaffected_placement_churn: 0,
+            worst_case_unaffected_transfer_churn: 0,
+            worst_case_time_shift_ticks: 0,
+            worst_case_rectangle_edge_shift_units: 0,
+        };
+        let measured = RecoveryParetoScore {
+            worst_case_recovery_horizon_ticks: Some(1),
+            worst_case_makespan_tick: Some(1),
+            ..missing.clone()
+        };
+
+        assert!(!dominates(&missing, &measured));
+        assert!(!dominates(&measured, &missing));
     }
 
     #[test]
