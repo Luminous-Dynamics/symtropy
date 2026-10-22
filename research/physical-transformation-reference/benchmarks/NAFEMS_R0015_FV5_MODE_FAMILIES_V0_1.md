@@ -21,6 +21,8 @@ The official [Altair OS-V:0415 page](https://2024.help.altair.com/2024.1/hwsolve
 | FERS [public FV5 reproduction](https://ferscloud.com/nafems) | Secondary description reports L=10 m, circular section diameter about 2.28 m, shear coefficient kappa=5/6, and translational plus rotary-inertia model details | Discovery/triangulation only. This is close to a 2×2 m square section in area/inertias, but the shape/model identity must remain explicit |
 | Ansys [LS-DYNA VM-LSDYNA-SOLVE-064](https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-064.html) | 10 m beam, 2×2 m section, E=200 GPa, nu=0.3, density=8000 kg/m³, explicit supports, six target mode families and six LS-DYNA output values | A separately frozen vendor-published target variant. Its torsional targets (71.200 and 213.610 Hz) differ materially from the DIANA-reproduced R0015 theoretical set (77.542 and 233.100 Hz); do not merge the two into one score |
 
+The Rust reference crate represents the R0015/DIANA-theory and Ansys LS-DYNA target lists as distinct `Fv5ReferenceVariant` values in `src/nafems_fv5_manifest.rs`. Its comparison function pairs modes by stable family ID and checks family kind/multiplicity before reporting relative target discrepancies; it does not treat a sorted frequency index as a family identity. Tests explicitly preserve both target sets and require the torsional target differences to remain above 8%, while flexural mode 1 and extensional targets remain close. This is a literature-interpretation guard, not a numerical solve.
+
 The six theoretical frequency families reproduced by DIANA's FV5 page are:
 
 | Family | Multiplicity | Theoretical target (Hz) | DIANA five-element result (Hz) |
