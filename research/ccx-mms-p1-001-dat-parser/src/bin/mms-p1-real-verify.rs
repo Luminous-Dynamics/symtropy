@@ -6,17 +6,18 @@
 //! Process execution/build attestation belongs to the calling workflow receipt;
 //! this report intentionally never sets qualification_pass=true.
 
-use ccx_mms_p1_mesh::{Mesh, generate_mesh};
-use ccx_mms_p1_oracle::{
-    ManufacturedField, ManufacturedProblem, PlaneStrainMaterial, Vec2,
-};
-use ccx_mms_p1_dat_parser::{
-    NodalField, Vec3, audit_global_force_balance, parse_dat,
-};
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::process::ExitCode;
+
+use ccx_mms_p1_dat_parser::{
+    audit_global_force_balance, parse_dat, NodalField, Vec3,
+};
+use ccx_mms_p1_mesh::{generate_mesh, Mesh};
+use ccx_mms_p1_oracle::{
+    ManufacturedField, ManufacturedProblem, PlaneStrainMaterial, Vec2,
+};
 
 const DECK_QUADRATURE_ORDER: usize = 48;
 const ERROR_QUADRATURE_ORDER: usize = 24;
