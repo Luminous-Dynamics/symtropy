@@ -52,6 +52,14 @@ fn run() -> Result<String, String> {
         .count();
     let unresolved_combined_mac_count = total_pairs - defined_combined_mac_count;
     let pairing_status = if unresolved_combined_mac_count == 0 { "complete" } else { "partial" };
+    let subspace_comparison_count = report.levels.iter()
+        .filter(|level| level.pairs_from_previous.is_some())
+        .count();
+    let defined_subspace_mac_count = report.levels.iter()
+        .filter(|level| level.pairs_from_previous.is_some() && level.subspace_mac_from_previous.is_some())
+        .count();
+    let unresolved_subspace_mac_count = subspace_comparison_count - defined_subspace_mac_count;
+    let subspace_status = if unresolved_subspace_mac_count == 0 { "complete" } else { "partial" };
 
     Ok(format!(
         concat!(
@@ -69,9 +77,12 @@ fn run() -> Result<String, String> {
             "\"matching_algorithm\":{},",
             "\"mac_coordinate_policy\":{},",
             "\"pairing_status\":{},",
+            "\"subspace_status\":{},",
             "\"total_mode_pairs\":{},",
             "\"defined_combined_mac_count\":{},",
             "\"unresolved_combined_mac_count\":{},",
+            "\"defined_subspace_mac_count\":{},",
+            "\"unresolved_subspace_mac_count\":{},",
             "\"levels\":{},",
             "\"claim_ceiling\":\"common-station mode-shape tracking over 1/2/4/8 small meshes only; not the 200-element/member NAFEMS reproduction, experimental validation or structural safety\"",
             "}}"
@@ -84,9 +95,12 @@ fn run() -> Result<String, String> {
         json_quote(report.matching_algorithm),
         json_quote(report.mac_coordinate_policy),
         json_quote(pairing_status),
+        json_quote(subspace_status),
         total_pairs,
         defined_combined_mac_count,
         unresolved_combined_mac_count,
+        defined_subspace_mac_count,
+        unresolved_subspace_mac_count,
         levels_json(&report.levels),
     ))
 }
@@ -105,7 +119,9 @@ fn levels_json(levels: &[physical_transformation_reference::beam_mode_tracking::
                     "\"maximum_normalized_eigen_residual\":{},",
                     "\"maximum_mass_norm_residual\":{},",
                     "\"maximum_mass_orthogonality_residual\":{},",
-                    "\"pairs_from_previous\":{}",
+                    "\"pairs_from_previous\":{},",
+                    "\"subspace_mac_from_previous\":{},",
+                    "\"subspace_mac_unresolved_reason\":{}",
                     "}}"
                 ),
                 level.elements_per_member,
@@ -116,9 +132,43 @@ fn levels_json(levels: &[physical_transformation_reference::beam_mode_tracking::
                 number(level.maximum_mass_norm_residual),
                 number(level.maximum_mass_orthogonality_residual),
                 pairs_json(&level.pairs_from_previous),
+                optional_subspace_json(&level.subspace_mac_from_previous),
+                optional_string_json(&level.subspace_mac_unresolved_reason),
             )
         }).collect::<Vec<_>>().join(",")
     )
+}
+
+fn optional_subspace_json(value: &Option<physical_transformation_reference::beam_subspace_mac::SubspaceMacResult>) -> String {
+    let Some(value) = value else { return "null".to_owned(); };
+    format!(
+        concat!(
+            "{{",
+            "\"subspace_dimension\":{},",
+            "\"coordinate_dimension\":{},",
+            "\"principal_cosines\":{},",
+            "\"principal_angles_radians\":{},",
+            "\"mean_squared_principal_cosine\":{},",
+            "\"minimum_principal_cosine\":{},",
+            "\"maximum_principal_angle_radians\":{},",
+            "\"normalized_chordal_distance\":{},",
+            "\"rank_tolerance\":{}",
+            "}}"
+        ),
+        value.subspace_dimension,
+        value.coordinate_dimension,
+        float_array_json(&value.principal_cosines),
+        float_array_json(&value.principal_angles_radians),
+        number(value.mean_squared_principal_cosine),
+        number(value.minimum_principal_cosine),
+        number(value.maximum_principal_angle_radians),
+        number(value.normalized_chordal_distance),
+        number(value.rank_tolerance),
+    )
+}
+
+fn optional_string_json(value: &Option<String>) -> String {
+    value.as_deref().map(json_quote).unwrap_or_else(|| "null".to_owned())
 }
 
 fn pairs_json(pairs: &Option<Vec<physical_transformation_reference::beam_mode_tracking::TrackedModePair>>) -> String {
