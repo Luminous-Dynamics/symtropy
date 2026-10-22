@@ -16,7 +16,7 @@
       "reference_outcome": "feasible",
       "runtime_ms": 2.5,
       "verifier": {
-        "status": "not-applicable",
+        "status": "passed",
         "oracle_outcome": "match",
         "violation_count": 0,
         "oracle_id": "tiny-cell-set-v0"
@@ -29,7 +29,7 @@
       "reference_outcome": "infeasible",
       "runtime_ms": 3.1,
       "verifier": {
-        "status": "not-applicable",
+        "status": "passed",
         "oracle_outcome": "match",
         "violation_count": 0,
         "oracle_id": "tiny-cell-set-v0"
