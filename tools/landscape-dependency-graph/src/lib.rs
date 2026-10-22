@@ -97,6 +97,17 @@ pub struct ScenarioAssessment {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SingleFailureImpact {
+    pub failure_kind: String,
+    pub target_id: String,
+    pub baseline_supported_service_count: usize,
+    pub supported_service_count: usize,
+    pub lost_service_count: usize,
+    pub relative_service_loss_fraction: Option<f64>,
+    pub lost_service_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Report {
     pub schema_version: String,
     pub suite_id: String,
@@ -111,6 +122,8 @@ pub struct Report {
     pub scenario_count: usize,
     pub service_count: usize,
     pub cross_layer_dependency_count: usize,
+    pub baseline_supported_service_count: usize,
+    pub single_failure_audit: Vec<SingleFailureImpact>,
     pub scenarios: Vec<ScenarioAssessment>,
 }
 
@@ -478,6 +491,95 @@ fn evaluate_scenario(fixture: &Fixture, scenario: &Scenario) -> ScenarioAssessme
     }
 }
 
+fn evaluate_single_failure_audit(fixture: &Fixture) -> (usize, Vec<SingleFailureImpact>) {
+    let baseline = Scenario {
+        scenario_id: "single-failure-baseline".to_owned(),
+        label: "No injected failures".to_owned(),
+        failed_node_ids: Vec::new(),
+        disabled_edge_ids: Vec::new(),
+    };
+    let baseline_result = evaluate_scenario(fixture, &baseline);
+    let baseline_services: BTreeSet<String> = baseline_result
+        .node_assessments
+        .iter()
+        .filter(|node| node.is_service && node.operational)
+        .map(|node| node.node_id.clone())
+        .collect();
+    let baseline_supported = baseline_services.len();
+    let mut impacts = Vec::with_capacity(fixture.nodes.len() + fixture.dependencies.len());
+
+    for node in &fixture.nodes {
+        let scenario = Scenario {
+            scenario_id: format!("single-node-failure:{}", node.node_id),
+            label: format!("Single-node failure: {}", node.label),
+            failed_node_ids: vec![node.node_id.clone()],
+            disabled_edge_ids: Vec::new(),
+        };
+        let result = evaluate_scenario(fixture, &scenario);
+        let supported: BTreeSet<String> = result
+            .node_assessments
+            .iter()
+            .filter(|item| item.is_service && item.operational)
+            .map(|item| item.node_id.clone())
+            .collect();
+        let lost_service_ids: Vec<String> = baseline_services
+            .difference(&supported)
+            .cloned()
+            .collect();
+        let lost_service_count = lost_service_ids.len();
+        impacts.push(SingleFailureImpact {
+            failure_kind: "node".to_owned(),
+            target_id: node.node_id.clone(),
+            baseline_supported_service_count: baseline_supported,
+            supported_service_count: supported.len(),
+            lost_service_count,
+            relative_service_loss_fraction: (baseline_supported > 0)
+                .then_some(rounded(lost_service_count as f64 / baseline_supported as f64)),
+            lost_service_ids,
+        });
+    }
+
+    for edge in &fixture.dependencies {
+        let scenario = Scenario {
+            scenario_id: format!("single-edge-failure:{}", edge.edge_id),
+            label: format!("Single-edge failure: {}", edge.edge_id),
+            failed_node_ids: Vec::new(),
+            disabled_edge_ids: vec![edge.edge_id.clone()],
+        };
+        let result = evaluate_scenario(fixture, &scenario);
+        let supported: BTreeSet<String> = result
+            .node_assessments
+            .iter()
+            .filter(|item| item.is_service && item.operational)
+            .map(|item| item.node_id.clone())
+            .collect();
+        let lost_service_ids: Vec<String> = baseline_services
+            .difference(&supported)
+            .cloned()
+            .collect();
+        let lost_service_count = lost_service_ids.len();
+        impacts.push(SingleFailureImpact {
+            failure_kind: "edge".to_owned(),
+            target_id: edge.edge_id.clone(),
+            baseline_supported_service_count: baseline_supported,
+            supported_service_count: supported.len(),
+            lost_service_count,
+            relative_service_loss_fraction: (baseline_supported > 0)
+                .then_some(rounded(lost_service_count as f64 / baseline_supported as f64)),
+            lost_service_ids,
+        });
+    }
+
+    impacts.sort_by(|left, right| {
+        right
+            .lost_service_count
+            .cmp(&left.lost_service_count)
+            .then_with(|| left.failure_kind.cmp(&right.failure_kind))
+            .then_with(|| left.target_id.cmp(&right.target_id))
+    });
+    (baseline_supported, impacts)
+}
+
 pub fn evaluate_fixture_bytes(
     fixture_bytes: &[u8],
     semantics_bytes: &[u8],
@@ -506,6 +608,8 @@ pub fn evaluate_fixture_bytes(
         })
         .count();
     let service_count = fixture.nodes.iter().filter(|node| node.is_service).count();
+    let (baseline_supported_service_count, single_failure_audit) =
+        evaluate_single_failure_audit(&fixture);
     let scenarios = fixture
         .scenarios
         .iter()
@@ -525,6 +629,8 @@ pub fn evaluate_fixture_bytes(
         scenario_count: fixture.scenarios.len(),
         service_count,
         cross_layer_dependency_count,
+        baseline_supported_service_count,
+        single_failure_audit,
         scenarios,
     })
 }
@@ -729,6 +835,31 @@ mod tests {
                 .unwrap_err()
                 .iter()
                 .any(|error| error.contains("nodes must contain 1..=100 entries"))
+        );
+    }
+
+    #[test]
+    fn single_failure_audit_ranks_declared_critical_dependencies() {
+        let report = evaluate_fixture_bytes(&fixture_bytes(), &semantics_bytes()).unwrap();
+        assert_eq!(report.baseline_supported_service_count, 3);
+        assert_eq!(report.single_failure_audit.len(), 22);
+        let maintenance = report
+            .single_failure_audit
+            .iter()
+            .find(|impact| impact.failure_kind == "node" && impact.target_id == "maintenance_crew")
+            .expect("maintenance node included in single-failure audit");
+        assert_eq!(maintenance.lost_service_count, 2);
+        assert_eq!(
+            maintenance.lost_service_ids,
+            vec!["stormwater_service".to_owned(), "tree_ecology_service".to_owned()]
+        );
+        assert_eq!(maintenance.relative_service_loss_fraction, Some(2.0 / 3.0));
+        assert!(
+            report
+                .single_failure_audit
+                .windows(2)
+                .all(|pair| pair[0].lost_service_count >= pair[1].lost_service_count),
+            "single-failure audit must be ordered from largest to smallest service loss"
         );
     }
 
