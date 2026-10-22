@@ -557,7 +557,7 @@ fn format_report() -> String {
         let mean_memory = rows.iter().map(|r| r.logical_memory_bytes as f64).sum::<f64>() / rows.len().max(1) as f64;
 
         output.push_str(&format!(
-            "SUMMARY\t{}\t{}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\n",
+            "SUMMARY\t{}\t{}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\n",
             policy.name(),
             rows.len(),
             fraction(sensitive_pairs, resolved.len()),
