@@ -706,6 +706,76 @@ mod tests {
     }
 
     #[test]
+    fn reverify_reloads_raw_files_and_rejects_tampered_archive_flags_or_artifacts() {
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-anytime-reverify-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outputs")).unwrap();
+        fs::create_dir_all(root.join("drc")).unwrap();
+
+        let meta = metadata("checkpoint-a", 100_000, 20.0, 1);
+        let board_bytes = format!("board payload {}", meta.checkpoint_id);
+        let drc_bytes = drc_report(
+            &meta.board_filename,
+            serde_json::json!([]),
+            serde_json::json!([]),
+        );
+        fs::write(root.join(&meta.output_board_relative_path), board_bytes.as_bytes()).unwrap();
+        fs::write(root.join(&meta.drc_report_relative_path), &drc_bytes).unwrap();
+
+        let identity = ArchiveIdentity::from_pinned_sources(
+            MANIFEST.as_bytes(),
+            POLICY,
+            "coupon",
+        ).unwrap();
+        let mut archive = VerifiedIncumbentArchive::new(EVALUATOR_HEAD, identity).unwrap();
+        let evaluated = evaluate_checkpoint_from_root(
+            meta,
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+        ).unwrap();
+        assert!(evaluated.eligible_incumbent);
+        archive.record(evaluated).unwrap();
+        let saved = serde_json::to_vec_pretty(&archive).unwrap();
+
+        let reverified = VerifiedIncumbentArchive::reverify_bytes(
+            &saved,
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+            EVALUATOR_HEAD,
+        ).unwrap();
+        assert_eq!(reverified, archive);
+
+        let mut forged: serde_json::Value = serde_json::from_slice(&saved).unwrap();
+        forged["candidates"][0]["eligible_incumbent"] = serde_json::Value::Bool(false);
+        let forged_bytes = serde_json::to_vec(&forged).unwrap();
+        assert!(VerifiedIncumbentArchive::reverify_bytes(
+            &forged_bytes,
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+            EVALUATOR_HEAD,
+        ).unwrap_err().contains("receipt differs from re-derived"));
+
+        fs::write(
+            root.join(&archive.candidates[0].checkpoint.output_board_relative_path),
+            b"tampered after receipt",
+        ).unwrap();
+        assert!(VerifiedIncumbentArchive::reverify_bytes(
+            &saved,
+            MANIFEST.as_bytes(),
+            &root,
+            POLICY,
+            EVALUATOR_HEAD,
+        ).unwrap_err().contains("receipt differs from re-derived"));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn archive_rejects_mixed_board_identity_and_duplicate_checkpoint_ids() {
         let identity = ArchiveIdentity {
             board_id:"coupon".into(),
