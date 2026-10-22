@@ -1,0 +1,84 @@
+name: VIS-MEM-021 Retention Value Under Query Drift
+
+on:
+  push:
+    branches: ["research/vis-mem-retention-value-drift-v0-1"]
+    paths:
+      - "tools/vision-memory-retention-value-drift.rs"
+      - ".github/workflows/vision-memory-retention-value-drift.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-retention-value-drift.rs"
+      - ".github/workflows/vision-memory-retention-value-drift.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-021-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-retention-value:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head and pinned Rust
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Run deterministic and no-leak contract tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-retention-value-drift.rs -o /tmp/vis-mem-021-tests
+          /tmp/vis-mem-021-tests
+
+      - name: Replay paired workload matrix and validate output
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-retention-value-drift.rs -o /tmp/vis-mem-021
+          /tmp/vis-mem-021 > vis-mem-021.tsv
+          /tmp/vis-mem-021 > vis-mem-021-repeat.tsv
+          cmp vis-mem-021.tsv vis-mem-021-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-021-v0.1' vis-mem-021.tsv
+          grep -Fq $'META\tobservable_retention_signals\taccess counts, timestamps, write counts, source risk band and source reacquisition cost; no evaluator labels' vis-mem-021.tsv
+          grep -Fq $'META\tonline_query_input\tonline events carry query key only; no evaluator revision or utility label' vis-mem-021.tsv
+          grep -Fq $'META\tstale_arrival_scope\tnone by design; stale-rate is a negative control, stale-arrival interventions are VIS-MEM-016' vis-mem-021.tsv
+          grep -Fq $'META\tfuture_query_visibility\tfuture trace is evaluator-only and starts after all policy snapshots freeze' vis-mem-021.tsv
+          awk -F '\t' '
+            $1 == "ROW_HEADER" { if (NF != 18) bad=1; rh++ }
+            $1 == "ROW" {
+              if (NF != 18 || $12 > $4 || $13 > $4 * 64 || $17 < $10 || $18 != $17 - $10) bad=1
+              rows++
+            }
+            $1 == "SUMMARY_HEADER" { if (NF != 13) bad=1; sh++ }
+            $1 == "SUMMARY" { if (NF != 13) bad=1; summaries++ }
+            END { if (bad || rh != 1 || rows != 2016 || sh != 1 || summaries != 84) exit 1 }
+          ' vis-mem-021.tsv
+          sha256sum tools/vision-memory-retention-value-drift.rs .github/workflows/vision-memory-retention-value-drift.yml vis-mem-021.tsv > vis-mem-021.sha256
+          sha256sum -c vis-mem-021.sha256
+
+      - name: Upload retained-value diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-021-retention-value-drift
+          path: |
+            vis-mem-021.tsv
+            vis-mem-021.sha256
+          if-no-files-found: error
