@@ -7,7 +7,8 @@ use std::{
     path::{Component, Path},
 };
 
-pub const MANIFEST_SCHEMA: &str = "pcb-route-dataset-manifest-v0.1";
+pub const LEGACY_SYNTHETIC_MANIFEST_SCHEMA: &str = "pcb-route-dataset-manifest-v0.1";
+pub const MANIFEST_SCHEMA: &str = "pcb-route-dataset-manifest-v0.2";
 pub const RUN_SCHEMA: &str = "pcb-route-run-v0.1";
 pub const RECEIPT_SCHEMA: &str = "pcb-route-validation-receipt-v0.1";
 pub const COMPARISON_SCHEMA: &str = "pcb-route-paired-comparison-v0.1";
@@ -550,8 +551,12 @@ pub fn evaluate_report_bytes(
 }
 
 fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
-    if manifest.schema != MANIFEST_SCHEMA {
-        return Err(format!("unsupported manifest schema: {}", manifest.schema));
+    let legacy_synthetic_v1 = manifest.schema == LEGACY_SYNTHETIC_MANIFEST_SCHEMA
+        && manifest.evidence_class == "synthetic"
+        && manifest.license_audit_manifest_relative_path.is_none()
+        && manifest.license_audit_manifest_sha256.is_none();
+    if manifest.schema != MANIFEST_SCHEMA && !legacy_synthetic_v1 {
+        return Err(format!("unsupported dataset manifest schema/evidence combination: schema={}, evidence_class={}", manifest.schema, manifest.evidence_class));
     }
     for (field, value) in [
         ("benchmark_id", manifest.benchmark_id.as_str()),
@@ -636,9 +641,10 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
         )?;
     }
     if manifest.evidence_class == "external_benchmark"
-        && manifest.license_audit_manifest_relative_path.is_none()
+        && (manifest.schema != MANIFEST_SCHEMA
+            || manifest.license_audit_manifest_relative_path.is_none())
     {
-        return Err("external manifest must be bound to an immutable license-audit manifest".into());
+        return Err("external manifest v0.2 must be bound to an immutable license-audit manifest".into());
     }
     let mut ids = BTreeSet::new();
     for board in &manifest.boards {
@@ -2936,6 +2942,7 @@ mod tests {
     #[test]
     fn external_manifest_rejects_unverified_license_and_non_https_source() {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
+        manifest.schema = MANIFEST_SCHEMA.into();
         manifest.evidence_class = "external_benchmark".into();
         manifest.source_split_config_sha256 = Some("a".repeat(64));
         manifest.source_split_config_url = Some(format!(
