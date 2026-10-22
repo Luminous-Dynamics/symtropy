@@ -79,6 +79,12 @@ jobs:
           cmp /tmp/mms-p1-calibration-a.json /tmp/mms-p1-calibration-b.json
           jq -e '.postprocessor_calibration_pass == true' /tmp/mms-p1-calibration-a.json > /dev/null
           sha256sum /tmp/mms-p1-calibration-a.json > /tmp/mms-p1-calibration-a.sha256
+          cargo run --locked --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8.inp
+          cargo run --locked --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8-repeat.inp
+          cmp /tmp/mms-p1-n8.inp /tmp/mms-p1-n8-repeat.inp
+          grep -F '*ELEMENT, TYPE=CPE3, ELSET=EALL' /tmp/mms-p1-n8.inp > /dev/null
+          grep -F '*NODE PRINT, NSET=NALL' /tmp/mms-p1-n8.inp > /dev/null
+          sha256sum /tmp/mms-p1-n8.inp > /tmp/mms-p1-n8.sha256
 
       - name: Preserve deterministic probe and calibration receipts
         if: always()
@@ -90,6 +96,8 @@ jobs:
             /tmp/mms-p1-probe-a.sha256
             /tmp/mms-p1-calibration-a.json
             /tmp/mms-p1-calibration-a.sha256
+            /tmp/mms-p1-n8.inp
+            /tmp/mms-p1-n8.sha256
           if-no-files-found: ignore
           retention-days: 90
 
