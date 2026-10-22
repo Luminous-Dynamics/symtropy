@@ -71,6 +71,10 @@ impl World {
     }
 
     fn shortest_path(&self, start: u8, goal: u8) -> Option<Vec<u8>> {
+        self.shortest_path_avoiding(start, goal, &[])
+    }
+
+    fn shortest_path_avoiding(&self, start: u8, goal: u8, forbidden: &[u8]) -> Option<Vec<u8>> {
         if start as usize >= NODE_COUNT || goal as usize >= NODE_COUNT {
             return None;
         }
@@ -85,6 +89,7 @@ impl World {
 
         while let Some(node) = queue.pop_front() {
             for next in self.neighbors(node) {
+                if forbidden.contains(&next) && next != goal { continue; }
                 if seen[next as usize] { continue; }
                 seen[next as usize] = true;
                 parent[next as usize] = Some(node);
@@ -177,14 +182,15 @@ fn scenarios() -> Vec<Scenario> {
     let open = World::base();
     let edge_23 = [Edge::new(2, 3)];
     let edge_12 = [Edge::new(1, 2)];
+    let edge_01 = [Edge::new(0, 1)];
     let isolate_3 = [Edge::new(2, 3), Edge::new(3, 5), Edge::new(3, 7)];
     vec![
         Scenario { name: "matched_open", start: 0, world: open.clone(), distractor_first: false },
         Scenario { name: "shifted_start", start: 4, world: open.clone(), distractor_first: false },
-        Scenario { name: "matched_route_blocked", start: 0, world: open.clone().with_blocked(&edge_23), distractor_first: false },
-        Scenario { name: "shifted_and_blocked", start: 4, world: open.clone().with_blocked(&edge_23), distractor_first: false },
+        Scenario { name: "matched_route_blocked", start: 0, world: open.clone().with_blocked(&edge_12), distractor_first: false },
+        Scenario { name: "shifted_and_blocked", start: 4, world: open.clone().with_blocked(&edge_12), distractor_first: false },
         Scenario { name: "irrelevant_demo_first", start: 0, world: open.clone(), distractor_first: true },
-        Scenario { name: "alternate_route", start: 0, world: open.clone().with_blocked(&edge_12), distractor_first: false },
+        Scenario { name: "alternate_route", start: 0, world: open.clone().with_blocked(&edge_01), distractor_first: false },
         Scenario { name: "target_disconnected", start: 0, world: open.with_blocked(&isolate_3), distractor_first: false },
         Scenario { name: "far_start", start: 7, world: World::base(), distractor_first: false },
     ]
@@ -201,8 +207,9 @@ fn append_segment(path: &mut Vec<u8>, segment: &[u8]) {
 fn plan_through(world: &World, start: u8, ordered_waypoints: &[u8]) -> Option<Vec<u8>> {
     let mut path = vec![start];
     let mut current = start;
-    for &target in ordered_waypoints {
-        let segment = world.shortest_path(current, target)?;
+    for (index, &target) in ordered_waypoints.iter().enumerate() {
+        let future_waypoints = &ordered_waypoints[index + 1..];
+        let segment = world.shortest_path_avoiding(current, target, future_waypoints)?;
         append_segment(&mut path, &segment);
         current = target;
     }
@@ -211,9 +218,14 @@ fn plan_through(world: &World, start: u8, ordered_waypoints: &[u8]) -> Option<Ve
 
 fn has_ordered_waypoints(path: &[u8], required: &[u8]) -> bool {
     let mut next = 0;
-    for &node in path {
+    // The initial pose is not a waypoint visit. Once moving, entering a future
+    // waypoint before its required turn invalidates the route; revisiting an
+    // already completed waypoint is permitted.
+    for &node in path.iter().skip(1) {
         if next < required.len() && node == required[next] {
             next += 1;
+        } else if next < required.len() && required[next + 1..].contains(&node) {
+            return false;
         }
     }
     next == required.len()
@@ -480,6 +492,26 @@ mod tests {
         let r = execute_and_score(Policy::ConstraintPlanner, &request, &s, &memories, &waypoints);
         assert!(r.success, "{:?}", r);
         assert!(r.path.windows(2).all(|w| s.world.edge_open(w[0], w[1])));
+    }
+
+
+    #[test]
+    fn planner_never_visits_future_waypoint_early() {
+        let (request, waypoints) = setup();
+        let s = scenarios().into_iter().find(|s| s.name == "shifted_start").unwrap();
+        let memories = make_memories(&s, &waypoints);
+        let r = execute_and_score(Policy::ConstraintPlanner, &request, &s, &memories, &waypoints);
+        assert!(r.success, "{:?}", r);
+        assert!(has_ordered_waypoints(&r.path, &waypoints));
+        let first_three = r.path.iter().skip(1).position(|&n| n == 3).unwrap();
+        let first_five = r.path.iter().skip(1).position(|&n| n == 5).unwrap();
+        assert!(first_three < first_five, "path revisits future waypoint too early: {:?}", r.path);
+    }
+
+    #[test]
+    fn evaluator_rejects_future_waypoint_visited_early() {
+        assert!(!has_ordered_waypoints(&[4, 5, 3, 5, 7], &[3, 5, 7]));
+        assert!(has_ordered_waypoints(&[4, 0, 1, 2, 3, 5, 3, 7], &[3, 5, 7]));
     }
 
     #[test]
