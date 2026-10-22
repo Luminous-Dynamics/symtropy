@@ -112,6 +112,12 @@ The candidate must preserve the baseline dependency graph exactly. An optimizer 
 
 The tests include a single candidate that can survive either a workstation outage or an inspector outage by moving both future reservations, and a negative control where moving work to another workstation does not help if the required crane goes down. This catches a hidden failure in spatial-only robust planning: all geometric scenarios can pass while a resource-only scenario still breaks the plan. The envelope is finite and deterministic; there are no probabilities and no guarantees for unenumerated outages.
 
+## Independent exact oracle for resource precedence
+
+The integration test \`tests/resource_precedence_oracle.rs\` enumerates 4,096 combinations for three operations (cut → weld → inspect), two candidate unary resources per operation, start ticks 0–3, durations 1–2, and a one-tick minimum lag before inspection. A separate reference predicate uses explicit integer-tick sets to check resource exclusivity and finish-to-start timing; it does not call the production overlap or precedence checker.
+
+The frozen oracle expects 16 feasible schedules and 4,080 infeasible schedules. The acceptance criterion is zero false-feasible and zero false-infeasible results. This exhausts a tiny, deliberately discrete subproblem; it does not validate resource capacities above one, variable setup/processing durations, alternate operation routes, crane interference, or industrial scale. The exact-head workflow must pass before those counts are treated as verified.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
