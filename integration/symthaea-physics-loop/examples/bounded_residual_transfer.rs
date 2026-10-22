@@ -10,7 +10,7 @@ use std::time::Instant;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
     pid_baseline, FlightConfig, FlightController, FlightSetpoint, FlightTrainer, PdGains,
-    PidState, PhysicsSimulator, QuadrotorHdcEncoder, SimplePhysicsSimulator,
+    PidState, PhysicsSimulator, QuadrotorHdcEncoder,
 };
 use symtropy_real_symthaea_physics_loop::{
     bounded_residual::ResidualEnvelope, symtropy_flight::SymtropyFlightSimulator,
