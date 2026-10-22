@@ -115,6 +115,16 @@ impl CognitiveBrain {
     }
 }
 
+/// Explicit schedule boundary for the cognitive cycle.
+///
+/// Embodied robotics systems can order sensor ingestion before this set and
+/// actuator application after it. Without the shared set, Bevy could legally
+/// schedule the brain cycle before the current tick's sensor update.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SymthaeaBrainSet {
+    CognitiveCycle,
+}
+
 pub struct SymthaeaBrainPlugin {
     pub default_neurons: usize,
     pub telemetry: bool,
@@ -131,7 +141,11 @@ impl Default for SymthaeaBrainPlugin {
 
 impl Plugin for SymthaeaBrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, cognitive_cycle_system);
+        app.configure_sets(FixedUpdate, SymthaeaBrainSet::CognitiveCycle)
+            .add_systems(
+                FixedUpdate,
+                cognitive_cycle_system.in_set(SymthaeaBrainSet::CognitiveCycle),
+            );
         if self.telemetry {
             app.add_systems(Update, telemetry_system);
         }

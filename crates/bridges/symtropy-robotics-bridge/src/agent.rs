@@ -5,7 +5,7 @@
 use bevy::ecs::relationship::Relationship;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use symthaea_bevy_brain::CognitiveBrain;
+use symthaea_bevy_brain::{CognitiveBrain, SymthaeaBrainSet};
 use symthaea_fep::HapticSemanticBinder;
 use symtropy_bevy_core::{BevyPhysics, PhysicsBody};
 use symtropy_math::Bivector;
@@ -49,18 +49,37 @@ pub struct RoboticJoint {
     pub motor_index: usize,
 }
 
+/// Ordered phases of the embodied perception-action loop.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RoboticBrainSet {
+    Perception,
+    Actuation,
+}
+
 pub struct RoboticBrainPlugin;
 
 impl Plugin for RoboticBrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        // One fixed tick must be causally ordered:
+        // physics state -> sensors -> Symthaea cognition -> actuator commands.
+        app.configure_sets(
             FixedUpdate,
             (
-                update_proximity_sensors_system,
-                propagate_sensory_input_system,
-                apply_motor_commands_system,
+                RoboticBrainSet::Perception,
+                SymthaeaBrainSet::CognitiveCycle,
+                RoboticBrainSet::Actuation,
             )
                 .chain(),
+        )
+        .add_systems(
+            FixedUpdate,
+            (update_proximity_sensors_system, propagate_sensory_input_system)
+                .chain()
+                .in_set(RoboticBrainSet::Perception),
+        )
+        .add_systems(
+            FixedUpdate,
+            apply_motor_commands_system.in_set(RoboticBrainSet::Actuation),
         );
     }
 }
