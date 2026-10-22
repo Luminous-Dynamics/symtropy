@@ -1,0 +1,38 @@
+{
+  "artifact": {
+    "byte_authority": "sha256",
+    "byte_length": 2035480,
+    "git_blob_sha1_observation": "441dbe8a96b8f72a09fd44ea3a15666cd265bc96",
+    "logical_name": "SYMTROPY_UNIVERSAL_MATTER_V4.8_CUMULATIVE(1).patch",
+    "media_type": "text/x-diff",
+    "sha256": "23f6baf3545bace49252eee190f181fa8a88c650d2994b72b65bdaf83cc74637"
+  },
+  "artifact_id": "universal-matter-v4.8-cumulative-275",
+  "availability": {
+    "execution_gate": "REQUIRE_EXACT_BYTE_MATCH",
+    "github_blob_present": false,
+    "known_external_filename": "SYMTROPY_UNIVERSAL_MATTER_V4.8_CUMULATIVE(1).patch",
+    "status": "EXTERNAL_RETAINED_BYTES"
+  },
+  "current_replay_context": {
+    "cargo_lock_repair": "NOT_AUTHORIZED_OR_REQUIRED",
+    "preflight_head": "28f66090d29e85d002d5057d7f950956e9564c07",
+    "preflight_pr": 71,
+    "stage_a_parent_commit": "b077e90238359aedd2c7849c7f2ae1bd893dae64",
+    "stage_a_parent_tree": "dfe45bc8804f5a03bba3c67b545e4eab6a199137",
+    "stage_a_run_id": "34026582102",
+    "stage_a_terminal_status": "NOT_NEEDED"
+  },
+  "schema": "symtropy.evidence.retained-artifact.v1",
+  "shape": {
+    "copied_path_count": 0,
+    "deleted_path_count": 0,
+    "diff_path_count": 275,
+    "modified_path_count": 6,
+    "new_path_count": 269,
+    "newline_count": 51420,
+    "path_set_sha256": "ea945074073c8ee9e6e42751caaa343964987b703bb676d69afe9fa7005900a1",
+    "profile": "unified-diff-same-path-v1",
+    "renamed_path_count": 0
+  }
+}
