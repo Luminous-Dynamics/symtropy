@@ -174,6 +174,24 @@ mod tests {
     const MONOTONIC_TOLERANCE: f64 = 1.0e-8;
 
     #[test]
+    fn canonical_mesh_convergence_request_matches_frozen_fixture() {
+        let (nodes, members) = nafems_nbc05_released_joint_beam_fixture();
+        let request = canonical_beam_mesh_convergence_request(
+            &nodes,
+            &members,
+            &ELEMENT_COUNTS,
+            REQUESTED_MODES,
+            MONOTONIC_TOLERANCE,
+        )
+        .expect("canonical mesh convergence request");
+        assert_eq!(
+            request,
+            include_str!("../fixtures/beam_mesh_convergence_request_v0_1.txt")
+                .trim_end_matches('\\n')
+        );
+    }
+
+    #[test]
     fn four_level_mesh_ladder_reports_sorted_modes_residuals_and_refinement_deltas() {
         let (nodes, members) = nafems_nbc05_released_joint_beam_fixture();
         let report = run_beam_mesh_convergence(
@@ -190,6 +208,11 @@ mod tests {
         assert_eq!(report.points.iter().map(|point| point.free_dof_count).collect::<Vec<_>>(), vec![6, 12, 24, 48]);
         assert!(report.points[0].relative_frequency_delta_from_previous.is_none());
         assert!(report.points[1..].iter().all(|point| point.relative_frequency_delta_from_previous.as_ref().is_some_and(|deltas| deltas.len() == REQUESTED_MODES)));
+        for point in &report.points[1..] {
+            for delta in point.relative_frequency_delta_from_previous.as_ref().expect("refinement deltas") {
+                assert!(delta.is_finite() && (0.0..1.0).contains(delta));
+            }
+        }
         for point in &report.points {
             assert_eq!(point.frequencies_hz.len(), REQUESTED_MODES);
             assert!(point.maximum_normalized_eigen_residual < 1.0e-8);
