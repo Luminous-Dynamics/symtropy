@@ -239,9 +239,9 @@ fn verify_one_artifact(root: &Path, artifact: &ArtifactSpec) -> Value {
         }
     };
     let mut cursor = root.to_path_buf();
-    let components: Vec<_> = relative.components().collect();
+    let component_count = relative.components().count();
 
-    for (index, component) in components.iter().enumerate() {
+    for (index, component) in relative.components().enumerate() {
         let Component::Normal(name) = component else {
             return json!({
                 "artifact_id": artifact.artifact_id,
@@ -278,7 +278,7 @@ fn verify_one_artifact(root: &Path, artifact: &ArtifactSpec) -> Value {
                 "finding": "SYMLINK_NOT_ALLOWED"
             });
         }
-        if index + 1 < components.len() && !metadata.is_dir() {
+        if index + 1 < component_count && !metadata.is_dir() {
             return json!({
                 "artifact_id": artifact.artifact_id,
                 "relative_path": artifact.relative_path,
@@ -286,7 +286,7 @@ fn verify_one_artifact(root: &Path, artifact: &ArtifactSpec) -> Value {
                 "finding": "ARTIFACT_PARENT_NOT_DIRECTORY"
             });
         }
-        if index + 1 == components.len() && !metadata.is_file() {
+        if index + 1 == component_count && !metadata.is_file() {
             return json!({
                 "artifact_id": artifact.artifact_id,
                 "relative_path": artifact.relative_path,
