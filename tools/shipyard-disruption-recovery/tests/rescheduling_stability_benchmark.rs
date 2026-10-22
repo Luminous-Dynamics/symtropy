@@ -197,5 +197,5 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
     assert_eq!(total_global_unaffected_churn, 1_148);
     assert_eq!(total_local_edge_shift, 512);
     assert_eq!(total_global_edge_shift, 2_808);
-    assert!(total_temporal_right_shift_ticks > 0);
+    assert_eq!(total_temporal_right_shift_ticks, 9_964);
 }
