@@ -47,6 +47,11 @@ pub struct ErrorNorms {
     pub energy_error_absolute: f64,
     pub energy_error_relative: f64,
     pub stress_l2_relative: f64,
+    /// L2 norm of the FE volumetric strain div(u_h).
+    pub fem_volumetric_strain_l2_absolute: f64,
+    /// L2 norm of div(u_h)-div(u_exact), useful when the exact field is divergence-free.
+    pub volumetric_strain_error_l2_absolute: f64,
+    pub exact_volumetric_strain_l2_norm: f64,
     pub exact_displacement_l2_norm: f64,
     pub exact_energy_norm: f64,
     pub exact_stress_l2_norm: f64,
@@ -205,6 +210,9 @@ impl Mesh {
         let mut exact_energy_squared = 0.0;
         let mut stress_error_squared = 0.0;
         let mut exact_stress_squared = 0.0;
+        let mut fem_volumetric_strain_squared = 0.0;
+        let mut volumetric_strain_error_squared = 0.0;
+        let mut exact_volumetric_strain_squared = 0.0;
 
         for triangle in &self.triangles {
             let a = self.nodes[triangle.nodes[0] - 1];
@@ -274,6 +282,11 @@ impl Mesh {
                     exact_energy_squared += weight * energy_density(exact_strain, lambda, mu);
 
                     let fem_trace = fem_strain.xx + fem_strain.yy;
+                    let exact_trace = exact_strain.xx + exact_strain.yy;
+                    fem_volumetric_strain_squared += weight * fem_trace.powi(2);
+                    volumetric_strain_error_squared +=
+                        weight * (fem_trace - exact_trace).powi(2);
+                    exact_volumetric_strain_squared += weight * exact_trace.powi(2);
                     let fem_stress = [
                         lambda * fem_trace + 2.0 * mu * fem_strain.xx,
                         lambda * fem_trace + 2.0 * mu * fem_strain.yy,
@@ -313,8 +326,14 @@ impl Mesh {
             || !displacement_error_squared.is_finite()
             || !energy_error_squared.is_finite()
             || !stress_error_squared.is_finite()
+            || !fem_volumetric_strain_squared.is_finite()
+            || !volumetric_strain_error_squared.is_finite()
+            || !exact_volumetric_strain_squared.is_finite()
             || energy_error_squared < 0.0
             || stress_error_squared < 0.0
+            || fem_volumetric_strain_squared < 0.0
+            || volumetric_strain_error_squared < 0.0
+            || exact_volumetric_strain_squared < 0.0
         {
             return Err(MeshError::InvalidReferenceNorm);
         }
@@ -327,6 +346,9 @@ impl Mesh {
             energy_error_absolute,
             energy_error_relative: energy_error_absolute / exact_energy_norm,
             stress_l2_relative: stress_error_squared.sqrt() / exact_stress_norm,
+            fem_volumetric_strain_l2_absolute: fem_volumetric_strain_squared.sqrt(),
+            volumetric_strain_error_l2_absolute: volumetric_strain_error_squared.sqrt(),
+            exact_volumetric_strain_l2_norm: exact_volumetric_strain_squared.sqrt(),
             exact_displacement_l2_norm: exact_displacement_norm,
             exact_energy_norm,
             exact_stress_l2_norm: exact_stress_norm,
@@ -1020,6 +1042,31 @@ mod tests {
                 "interpolation energy order={energy_order:.6}"
             );
         }
+    }
+
+    #[test]
+    fn divergence_free_interpolation_reports_volumetric_strain_defect() {
+        let material = ccx_mms_p1_oracle::PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        let mut measures = Vec::new();
+        for resolution in [8, 16, 32] {
+            let mesh = generate_mesh(resolution).unwrap();
+            let exact_nodal: Vec<Vec2> = mesh
+                .nodes
+                .iter()
+                .map(|node| problem.displacement(node.x, node.y))
+                .collect();
+            let norms = mesh.compute_error_norms(problem, &exact_nodal, 16).unwrap();
+            assert_eq!(norms.exact_volumetric_strain_l2_norm, 0.0);
+            assert_eq!(
+                norms.volumetric_strain_error_l2_absolute,
+                norms.fem_volumetric_strain_l2_absolute
+            );
+            assert!(norms.fem_volumetric_strain_l2_absolute.is_finite());
+            measures.push(norms.fem_volumetric_strain_l2_absolute);
+        }
+        assert!(measures.iter().all(|value| *value > 0.0));
+        assert!(measures.windows(2).all(|pair| pair[1] < pair[0]));
     }
 
     #[test]

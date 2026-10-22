@@ -5,3 +5,18 @@ version = 4
 [[package]]
 name = "ccx-mms-p1-dat-parser"
 version = "0.1.0"
+dependencies = [
+ "ccx-mms-p1-mesh",
+ "ccx-mms-p1-oracle",
+]
+
+[[package]]
+name = "ccx-mms-p1-mesh"
+version = "0.1.0"
+dependencies = [
+ "ccx-mms-p1-oracle",
+]
+
+[[package]]
+name = "ccx-mms-p1-oracle"
+version = "0.1.0"

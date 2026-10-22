@@ -75,6 +75,13 @@ impl PlaneStrainMaterial {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ManufacturedField {
+    SmoothSine,
+    /// Divergence-free streamfunction field for near-incompressible locking probes.
+    DivergenceFree,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ManufacturedProblem {
     amplitude_x: f64,
@@ -82,6 +89,7 @@ pub struct ManufacturedProblem {
     material: PlaneStrainMaterial,
     lambda: f64,
     mu: f64,
+    field: ManufacturedField,
 }
 
 impl ManufacturedProblem {
@@ -100,6 +108,7 @@ impl ManufacturedProblem {
             material,
             lambda,
             mu,
+            field: ManufacturedField::SmoothSine,
         })
     }
 
@@ -107,6 +116,25 @@ impl ManufacturedProblem {
         let material = PlaneStrainMaterial::new(1.0, 0.3)
             .expect("reference material parameters are admissible");
         Self::new(material, 1.0, 0.7).expect("reference amplitudes are finite")
+    }
+
+    /// Divergence-free smooth displacement field derived from
+    /// psi = sin^2(pi*x) * sin^2(pi*y). Its exact divergence is zero,
+    /// and its manufactured body force is independent of Lamé lambda.
+    pub fn divergence_free(material: PlaneStrainMaterial) -> Self {
+        let (lambda, mu) = material.lame_parameters();
+        Self {
+            amplitude_x: 1.0,
+            amplitude_y: 1.0,
+            material,
+            lambda,
+            mu,
+            field: ManufacturedField::DivergenceFree,
+        }
+    }
+
+    pub fn field(self) -> ManufacturedField {
+        self.field
     }
 
     pub fn material(self) -> PlaneStrainMaterial {
@@ -120,6 +148,12 @@ impl ManufacturedProblem {
     /// Exact manufactured displacement on the unit square.
     pub fn displacement(self, x: f64, y: f64) -> Vec2 {
         let k = PI;
+        if self.field == ManufacturedField::DivergenceFree {
+            return Vec2 {
+                x: k * (k * x).sin().powi(2) * (2.0 * k * y).sin(),
+                y: -k * (2.0 * k * x).sin() * (k * y).sin().powi(2),
+            };
+        }
         Vec2 {
             x: self.amplitude_x * (k * x).sin() * (k * y).sin(),
             y: self.amplitude_y * (2.0 * k * x).sin() * (k * y).sin(),
@@ -129,6 +163,14 @@ impl ManufacturedProblem {
     /// Exact infinitesimal strain tensor in the x-y plane.
     pub fn strain(self, x: f64, y: f64) -> Strain2 {
         let k = PI;
+        if self.field == ManufacturedField::DivergenceFree {
+            let xx = k * k * (2.0 * k * x).sin() * (2.0 * k * y).sin();
+            let yy = -xx;
+            let xy = k * k
+                * ((k * x).sin().powi(2) * (2.0 * k * y).cos()
+                    - (2.0 * k * x).cos() * (k * y).sin().powi(2));
+            return Strain2 { xx, yy, xy };
+        }
         let xx = self.amplitude_x * k * (k * x).cos() * (k * y).sin();
         let yy = self.amplitude_y * k * (2.0 * k * x).sin() * (k * y).cos();
         let xy = 0.5
@@ -155,6 +197,18 @@ impl ManufacturedProblem {
     /// so tests can detect algebraic coefficient errors in that expression.
     pub fn body_force_from_operator(self, x: f64, y: f64) -> Vec2 {
         let k = PI;
+        if self.field == ManufacturedField::DivergenceFree {
+            // Navier operator -mu*Delta(u) - (lambda+mu)*grad(div(u));
+            // div(u)=0 analytically for this streamfunction field.
+            let lap_x = 2.0 * k.powi(3) * (2.0 * (2.0 * k * x).cos() - 1.0)
+                * (2.0 * k * y).sin();
+            let lap_y = 2.0 * k.powi(3) * (2.0 * k * x).sin()
+                * (1.0 - 2.0 * (2.0 * k * y).cos());
+            return Vec2 {
+                x: -self.mu * lap_x,
+                y: -self.mu * lap_y,
+            };
+        }
         let u = self.displacement(x, y);
         let lap_x = -2.0 * k * k * u.x;
         let lap_y = -5.0 * k * k * u.y;
@@ -171,6 +225,20 @@ impl ManufacturedProblem {
     /// Explicit symbolic force expression from the frozen benchmark contract.
     pub fn body_force_closed_form(self, x: f64, y: f64) -> Vec2 {
         let k = PI;
+        if self.field == ManufacturedField::DivergenceFree {
+            // Expanded symbolic form of -mu*Delta(u); no lambda term remains
+            // because the exact field is divergence-free.
+            let sin_x = (2.0 * k * x).sin();
+            let cos_x = (2.0 * k * x).cos();
+            let sin_y = (2.0 * k * y).sin();
+            let cos_y = (2.0 * k * y).cos();
+            return Vec2 {
+                x: -4.0 * self.mu * k.powi(3) * cos_x * sin_y
+                    + 2.0 * self.mu * k.powi(3) * sin_y,
+                y: -2.0 * self.mu * k.powi(3) * sin_x
+                    + 4.0 * self.mu * k.powi(3) * sin_x * cos_y,
+            };
+        }
         Vec2 {
             x: (self.lambda + 3.0 * self.mu)
                 * self.amplitude_x
@@ -202,6 +270,10 @@ impl ManufacturedProblem {
 
     /// Analytical integral of the body force over the unit square.
     pub fn integrated_body_force(self) -> Vec2 {
+        if self.field == ManufacturedField::DivergenceFree {
+            // Each force component is a sine/cosine product with zero unit-square integral.
+            return Vec2 { x: 0.0, y: 0.0 };
+        }
         Vec2 {
             x: 4.0 * self.amplitude_x * (self.lambda + 3.0 * self.mu),
             y: 0.0,
@@ -314,6 +386,62 @@ mod tests {
             assert!(stress.zz.is_finite());
             assert!(stress.xy.is_finite());
             close(stress.xy, 2.0 * mu * strain.xy, 1.0e-14);
+        }
+    }
+
+    #[test]
+    fn divergence_free_field_has_zero_trace_and_boundary_displacement() {
+        let material = PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        for index in 0..=32 {
+            let t = index as f64 / 32.0;
+            for (x, y) in [(0.0, t), (1.0, t), (t, 0.0), (t, 1.0)] {
+                let u = problem.displacement(x, y);
+                close(u.x, 0.0, 2.0e-14);
+                close(u.y, 0.0, 2.0e-14);
+            }
+            for (x, y) in [(t, 0.37), (0.29, t), (t, 1.0 - t)] {
+                let strain = problem.strain(x, y);
+                close(strain.xx + strain.yy, 0.0, 2.0e-14);
+            }
+        }
+    }
+
+    #[test]
+    fn divergence_free_force_matches_symbolic_form_and_stress_divergence() {
+        let material = PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        let h = 1.0e-5;
+        for (x, y) in [(0.071, 0.193), (0.2, 0.4), (0.333, 0.617), (0.823, 0.911)] {
+            let operator = problem.body_force_from_operator(x, y);
+            let symbolic = problem.body_force_closed_form(x, y);
+            close(operator.x, symbolic.x, 2.0e-12);
+            close(operator.y, symbolic.y, 2.0e-12);
+
+            let sx_plus = problem.stress(x + h, y);
+            let sx_minus = problem.stress(x - h, y);
+            let sy_plus = problem.stress(x, y + h);
+            let sy_minus = problem.stress(x, y - h);
+            let fx = -((sx_plus.xx - sx_minus.xx) / (2.0 * h)
+                + (sy_plus.xy - sy_minus.xy) / (2.0 * h));
+            let fy = -((sx_plus.xy - sx_minus.xy) / (2.0 * h)
+                + (sy_plus.yy - sy_minus.yy) / (2.0 * h));
+            close(operator.x, fx, 2.0e-7);
+            close(operator.y, fy, 2.0e-7);
+        }
+    }
+
+    #[test]
+    fn divergence_free_force_does_not_scale_with_lame_lambda() {
+        let low = ManufacturedProblem::divergence_free(PlaneStrainMaterial::new(1.0, 0.3).unwrap());
+        let high = ManufacturedProblem::divergence_free(
+            PlaneStrainMaterial::new(1.0, 0.49999).unwrap(),
+        );
+        for (x, y) in [(0.1, 0.2), (0.37, 0.61), (0.83, 0.92)] {
+            let a = low.body_force_closed_form(x, y);
+            let b = high.body_force_closed_form(x, y);
+            close(a.x, b.x, 2.0e-12);
+            close(a.y, b.y, 2.0e-12);
         }
     }
 
