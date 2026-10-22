@@ -1,0 +1,331 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "KITCHEN-STATION-001",
+  "status": "design_hypotheses_not_built",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2324",
+  "benchmark_specification": "https://github.com/Luminous-Dynamics/symtropy/pull/2325",
+  "industry_prior_art": [
+    {
+      "feature": "Integrated sink ledges and accessories",
+      "examples": [
+        "https://www.pelhamandwhite.com/workstation",
+        "https://la.kohler.com/en/product-detail/33664-PC"
+      ],
+      "status": "existing_commercial_feature",
+      "implication": "Do not claim the accessory bundle itself is novel."
+    }
+  ],
+  "candidate_families": [
+    {
+      "candidate_id": "REF-0",
+      "name": "Conventional reference station",
+      "type": "baseline",
+      "configuration": {
+        "basin": "measured conventional sink",
+        "faucet": "reference faucet as installed",
+        "prep_insert": "none or standard loose board as appropriate",
+        "drying": "separate conventional rack",
+        "power": "none required for drying"
+      },
+      "questions": [
+        "What are the task-complete water and hot-water energy baselines?",
+        "How much splash reaches predefined clean surfaces?",
+        "What are loaded capacity, item-specific dry time and cleaning effort?"
+      ],
+      "must_measure": [
+        "geometry",
+        "supply_pressure",
+        "flow",
+        "water_temperature",
+        "task_litres",
+        "hot_water_energy",
+        "cleaning_endpoint",
+        "splash_deposition",
+        "dryness_by_item",
+        "footprint",
+        "task_time"
+      ],
+      "exit_gate": "Reference performance is repeatable within declared measurement and operator uncertainty.",
+      "failure_modes": [
+        "reference fixture is not representative of the declared use case",
+        "meter uncertainty is larger than the candidate/reference effect",
+        "task load or procedure drifts across baseline repetitions"
+      ]
+    },
+    {
+      "candidate_id": "P1-DRAINBACK",
+      "name": "Retrofit drain-back bridge",
+      "type": "retrofit_low_capital",
+      "configuration": {
+        "basin": "existing compatible basin unchanged",
+        "interface": "removable rim/edge support selected for one measured reference sink",
+        "drying": "vertical-item rack plus removable drip rail that returns water to basin",
+        "power": "passive",
+        "repair": "replaceable supports, feet, joints and drip rail"
+      },
+      "questions": [
+        "Can the rack increase usable loaded capacity without blocking sink tasks?",
+        "Can drips return to the basin without splashing or wetting clean items?",
+        "Can it be removed quickly for cleaning and stored when not in use?"
+      ],
+      "must_measure": [
+        "fit_and_stability",
+        "loaded_capacity",
+        "drip_return_fraction_or_volume",
+        "rewetting_events",
+        "dryness_by_item",
+        "removal_time",
+        "cleaning_time",
+        "durability_cycles",
+        "repairability"
+      ],
+      "failure_modes": [
+        "sliding_or_tipping",
+        "drips_onto_counter",
+        "water_traps",
+        "rack_collides_with_faucet",
+        "accessory_blocks_sink",
+        "uninspectable_joint"
+      ],
+      "exit_gate": "Loaded stability, drainage, cleaning access and post-cycle geometry meet predeclared limits."
+    },
+    {
+      "candidate_id": "P2-INTEGRATED-RAIL",
+      "name": "Integrated ledge and task-insert station",
+      "type": "new_basin_architecture",
+      "configuration": {
+        "basin": "one measured single-bowl fixture with cleanable accessory rails",
+        "accessories": [
+          "removable wash insert",
+          "draining produce colander",
+          "over-basin prep board",
+          "pot support",
+          "drain-back drying module"
+        ],
+        "power": "passive",
+        "controls": "mechanical faucet controls"
+      },
+      "questions": [
+        "Do inserts reduce transfer distance and free counter area for the declared kitchen layout?",
+        "Can inserts be disassembled and cleaned without hidden residue traps?",
+        "Does the geometry improve completed-task water, splash and ergonomics versus references?"
+      ],
+      "must_measure": [
+        "litres_per_completed_task",
+        "hot_water_energy",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "splash_deposition_map",
+        "task_time",
+        "reach_and_posture",
+        "insert_cleaning_time",
+        "joint_wear",
+        "loaded_dryness"
+      ],
+      "failure_modes": [
+        "rail_seam_traps_residue",
+        "insert_cross_use_without_cleaning",
+        "unstable_cutting_board",
+        "reduced_basin_clearance",
+        "larger_footprint_than_value"
+      ],
+      "exit_gate": "No cleaning, stability or accessibility hard-gate failure; improvement claims require paired comparisons."
+    },
+    {
+      "candidate_id": "P3-SPLASH-GEOMETRY",
+      "name": "Adjustable splash-geometry test rig",
+      "type": "controlled_geometry_experiment",
+      "configuration": {
+        "basin": "same-size geometry variants or adjustable test basin",
+        "variables": [
+          "impact_wall_angle",
+          "basin_depth",
+          "drain_position",
+          "faucet_outlet_height",
+          "impact_point",
+          "flow_mode"
+        ],
+        "faucet": "same faucet or matched measured output across geometry variants",
+        "drying": "held constant or excluded during sink-only trials"
+      },
+      "questions": [
+        "Which geometry/flow combinations reduce deposition at predefined clean zones?",
+        "Does deposition move to the rear wall, faucet, drying rack or another sensitive surface?",
+        "Can the geometry still drain and clean easily?"
+      ],
+      "must_measure": [
+        "measured_flow",
+        "pressure",
+        "water_volume",
+        "tracer_deposition_by_receiver",
+        "drainage_time",
+        "residue_accessibility",
+        "repeatability"
+      ],
+      "failure_modes": [
+        "splash_receiver_bias",
+        "unmatched_flow",
+        "incomplete_fixture_cleaning_between_runs",
+        "geometry_changes_drainage_or_cleanability"
+      ],
+      "exit_gate": "Paired matched-flow trials show reproducible deposition map with no unmeasured relocation."
+    },
+    {
+      "candidate_id": "P4-LOW-INFRASTRUCTURE",
+      "name": "Manual, low-infrastructure station",
+      "type": "resilience_and_accessibility",
+      "configuration": {
+        "power": "not required for ordinary use or passive drying",
+        "control": "mechanical and serviceable",
+        "water_supply": "tested across declared variable/low pressure; no claim of operation without a potable supply",
+        "drying": "removable passive rack with gravity return",
+        "service": "common replaceable seals, aerator, hose and rack wear parts"
+      },
+      "questions": [
+        "Does the station remain usable when pressure varies within the declared design range?",
+        "Can the user identify and isolate common service faults?",
+        "Do common repairs preserve flow, leak-tightness and drainage?"
+      ],
+      "must_measure": [
+        "task_completion_by_pressure",
+        "task_litres",
+        "flow_variability",
+        "control_force",
+        "fault_diagnosis_time",
+        "repair_time",
+        "post_service_leak_flow_and_drain"
+      ],
+      "failure_modes": [
+        "assumed_pressure_without_measurement",
+        "repair_requires_proprietary_unavailable_part",
+        "loss_of_control_after_service"
+      ],
+      "exit_gate": "Declared minimum-use envelope and safe service method are documented and validated."
+    },
+    {
+      "candidate_id": "P5-ASSISTED-DRYING",
+      "name": "Optional low-power drying assist",
+      "type": "conditional_variant",
+      "configuration": {
+        "prerequisite": "Only test after passive rack baseline is repeatable",
+        "variants": [
+          "passive_only",
+          "fan_only",
+          "other_heat_or_dehumidification_only_after_separate_review"
+        ],
+        "air_path": "must not draw untreated drain air across clean items",
+        "electrical": "requires product-appropriate wet-zone ingress and electrical safety review"
+      },
+      "questions": [
+        "Is the reduction in time to the same dryness endpoint worth measured electricity, noise and complexity?",
+        "Does the airflow increase tracer deposition or rewetting?",
+        "Can the assist module be removed and cleaned?"
+      ],
+      "must_measure": [
+        "time_to_dry_endpoint",
+        "residual_water_mass",
+        "energy_wh",
+        "noise",
+        "airflow_direction_and_rate",
+        "tracer_deposition",
+        "cleaning_time",
+        "serviceability"
+      ],
+      "failure_modes": [
+        "energy_use_not_metered",
+        "airborne_transfer_to_clean_items",
+        "water_ingress_to_electrics",
+        "unproven_sanitization_claim"
+      ],
+      "exit_gate": "Passes safety review and demonstrates a preregistered net benefit without unreported trade-offs."
+    },
+    {
+      "candidate_id": "P6-BATCH-WASH",
+      "name": "Measured-volume batch-wash workflow",
+      "type": "workflow_and_removable_insert_variant",
+      "configuration": {
+        "wash_mode": "removable, cleanable wash tub or basin plug with visible fill reference; no powered system required",
+        "rinse_mode": "separate controlled final-rinse stage with potable water",
+        "default": "manual, user-controlled, no connectivity required",
+        "intended_initial_track": "household use; commercial food-service use requires a separate compliance determination"
+      },
+      "questions": [
+        "Does a matched batch-wash workflow use less total water than continuous-flow washing at the same cleaning endpoint?",
+        "Does visible, repeatable fill volume reduce user-to-user variability?",
+        "What are the ergonomic and spill costs of filling, lifting, draining and cleaning the tub?"
+      ],
+      "must_measure": [
+        "potable_litres_per_completed_task",
+        "hot_water_energy_wh_per_task",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "task_duration",
+        "spill_or_overflow_events",
+        "successful_task_completion"
+      ],
+      "failure_modes": [
+        "reuse dirty wash water for final rinse",
+        "soil transfer increases between items as wash water becomes loaded",
+        "batch volume not measured and candidates start with unequal water",
+        "unsafe lifting or tipping of a heavy filled tub",
+        "insert traps soil, leaks, or blocks primary drain",
+        "household workflow is assumed compliant for regulated food-service warewashing"
+      ],
+      "exit_gate": "Matched physical trials show lower task water without cleaning/rewash regression; handling, drain, cleanability and use-case compliance gates pass."
+    },
+    {
+      "candidate_id": "P7-COMMERCIAL-PRERINSE",
+      "name": "Force-qualified commercial pre-rinse sprayer",
+      "type": "commercial_food_service_only",
+      "configuration": {
+        "nozzle": "replaceable, mechanically controlled nozzle and trigger",
+        "validation_scope": "separate commercial pre-rinse fixture; do not pool household sink/rack data",
+        "control": "manual, no network or powered function required for ordinary operation",
+        "service": "replaceable nozzle/seals/trigger with post-service flow/force/coverage check"
+      },
+      "questions": [
+        "What water and trigger time achieve a matched soil-removal endpoint?",
+        "Can adequate force and coverage be maintained across the declared flowing-pressure envelope?",
+        "Does an efficiency improvement persist under realistic trigger patterns and nozzle wear?"
+      ],
+      "must_measure": [
+        "water_consumption_during_test",
+        "spray_force_n",
+        "spray_coverage_area_cm2",
+        "soil_removal_fraction",
+        "task_duration",
+        "user_effort",
+        "cleaning_endpoint",
+        "litres_per_task"
+      ],
+      "failure_modes": [
+        "lower flow causes longer trigger-on time and more total water",
+        "force passes at one pressure but fails elsewhere in the declared envelope",
+        "central force looks adequate while edge coverage misses soil",
+        "soil-removal average conceals a difficult-soil failure",
+        "spray relocates tracer deposition onto clean food-contact surfaces",
+        "nozzle wear or clogging degrades results after initial trial",
+        "household sink results are incorrectly pooled with commercial pre-rinse trials"
+      ],
+      "exit_gate": "Matched commercial task trials meet the preregistered soil-removal endpoint across the required pressure envelope; water, splash, effort, service and applicable product-compliance gates are not regressed."
+    }
+  ],
+  "staged_experiment": [
+    "Stage 0: select a common purchasable baseline and document all relevant geometry and ratings.",
+    "Stage 1: establish baseline repeatability for task litres, temperature/energy, cleaning endpoint, splash and drying.",
+    "Stage 2: screen P1 retrofit and P3 splash geometry independently before custom basin tooling.",
+    "Stage 3: combine only improvements that survived their independent hard gates into P2 integrated station.",
+    "Stage 4: evaluate P4 in a separately declared variable-pressure and accessibility profile.",
+    "Stage 5: test P5 only if passive drying leaves a clear, measured gap worth addressing.",
+    "Stage 6: compare candidates on a Pareto frontier; publish failed profiles, uncertainty and test deviations."
+  ],
+  "design_rules": {
+    "material_and_food_contact_compliance_must_be_documented_before_food_use": true,
+    "unknown_or_missing_measurements_must_not_default_to_zero": true,
+    "no_product_superiority_claim_before_matched_physical_trials": true,
+    "no_pathogen_or_sanitization_claim_from_drying_or_fluorescent_tracer_alone": true,
+    "no_electrical_or_water_reuse_design_bypass_of_local_safety_review": true,
+    "power_independent_basic_operation_is_preferred": true,
+    "repair_postchecks_required": true
+  }
+}

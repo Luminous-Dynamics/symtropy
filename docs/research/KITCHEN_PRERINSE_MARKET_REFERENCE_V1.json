@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "KITCHEN-PRERINSE-001",
+  "status": "published_specification_baseline_only",
+  "prepared_at": "2026-10-20",
+  "evidence_boundaries": {
+    "physical_product_tests_performed": false,
+    "independent_measurements_present": false,
+    "marketing_or_datasheet_values_are_physical_results": false,
+    "product_superiority_claim_allowed": false
+  },
+  "normative_and_research_context": [
+    {
+      "id": "US-DOE-PRSV-FLOW-CLASS",
+      "jurisdiction": "United States",
+      "evidence_class": "official_guidance_summarizing_regulatory_requirement",
+      "source_url": "https://www.epa.gov/watersense/pre-rinse-spray-valves",
+      "label_status": "WaterSense specification sunset effective 2019-01-01; do not claim current WaterSense label",
+      "classes": [
+        {
+          "class": 1,
+          "force_ozf": {
+            "max_inclusive": 5
+          },
+          "maximum_flow_gpm_us": 1,
+          "maximum_flow_l_min": 3.79
+        },
+        {
+          "class": 2,
+          "force_ozf": {
+            "min_exclusive": 5,
+            "max_inclusive": 8
+          },
+          "maximum_flow_gpm_us": 1.2,
+          "maximum_flow_l_min": 4.54
+        },
+        {
+          "class": 3,
+          "force_ozf": {
+            "min_exclusive": 8
+          },
+          "maximum_flow_gpm_us": 1.28,
+          "maximum_flow_l_min": 4.85
+        }
+      ],
+      "interpretation_limit": "U.S. regulatory reference only; not a South African compliance rule or a completed-task outcome."
+    },
+    {
+      "id": "ASTM-F2324-13R26",
+      "jurisdiction": "International standard method; applicability determined by user/jurisdiction",
+      "evidence_class": "active_published_standard_listing",
+      "source_url": "https://store.astm.org/f2324-13r26.html",
+      "last_updated": "2026-04-02",
+      "methods_listed": [
+        "water consumption flow rate",
+        "spray force"
+      ],
+      "stated_selection_context": [
+        "spray pattern",
+        "coverage area",
+        "usage time",
+        "flow control"
+      ],
+      "interpretation_limit": "Valve-level method is not a substitute for a matched task-level soil-removal protocol; full standard text is separately controlled."
+    },
+    {
+      "id": "EPA-WATERSENSE-AT-WORK-PRSV",
+      "jurisdiction": "United States",
+      "evidence_class": "official_technical_guidance",
+      "source_url": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1017K23.txt",
+      "published": "2023-05",
+      "recommended_operating_pressure_psi": {
+        "min": 20,
+        "max": 80
+      },
+      "interpretation_limit": "Use as a comparator test envelope, then confirm target product and market requirements."
+    }
+  ],
+  "commercial_product_references": [
+    {
+      "candidate_id": "REF-PRSV-TS-B0107",
+      "brand": "T&S Brass",
+      "model": "B-0107",
+      "role": "commercial reference spray valve",
+      "source_url": "https://www.tsbrass.com/products/parts-accessories/spray-valves/B-0107",
+      "evidence_class": "manufacturer_published_specification",
+      "published_flow_gpm_us": 1.15,
+      "published_flow_l_min": 4.35,
+      "published_spray_force_ozf": 7.5,
+      "published_force_pressure_psi": 60,
+      "published_pressure_min_psi": 20,
+      "published_pressure_max_psi": 125,
+      "published_us_regulatory_class": 2,
+      "reported_compliance": [
+        "ASME A112.18.1/CSA B125.1",
+        "NSF 61 Section 9",
+        "NSF 372"
+      ],
+      "status": "candidate_reference_to_purchase_and_measure",
+      "caveats": [
+        "Values are manufacturer-published and have not been independently measured by this programme.",
+        "Published force at 60 psi does not establish force across an installation's full operating envelope.",
+        "Certification listings must be verified against the current exact model/revision and intended installation."
+      ]
+    }
+  ],
+  "baseline_targets": {
+    "legacy_high_flow_context": {
+      "evidence_class": "EPA_published_context",
+      "pre_2005_models_reported_gpm_us_range": [
+        3,
+        4.5
+      ],
+      "post_2005_pre_2019_us_federal_max_gpm_us": 1.6,
+      "source_url": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1017K23.txt",
+      "interpretation_limit": "Context only; not a claim that every legacy product operates in this range."
+    },
+    "candidate_hypotheses": {
+      "task_water_reduction_fraction": 0.15,
+      "guardrails": [
+        "same predeclared soil/load and removal endpoint",
+        "no worse re-rinse/failure rate",
+        "spray force remains adequate and within declared target range across pressure conditions",
+        "coverage failures cannot be hidden by aggregate spray force",
+        "operator time and effort reported separately",
+        "product wear and post-service repeat tests included"
+      ],
+      "status": "stretch_hypothesis_not_result"
+    }
+  },
+  "protocol_matrix": {
+    "pressure_points_psi": [
+      20,
+      40,
+      60,
+      80
+    ],
+    "physical_specimens_per_product_target": 3,
+    "design_notes": [
+      "Three specimens is an initial engineering target, not a statistical sufficiency guarantee; increase sample size after a repeatability/power assessment.",
+      "Measure flowing pressure, flow, force, spatial coverage, total water to task completion, trigger-on time, residual soil, splash deposition and operator effort.",
+      "Use the same fixture, nozzle-to-target distance, angle, water temperature, soil recipe, substrate and endpoint for candidate/reference pairs.",
+      "Randomize or balance product order and preserve every invalid, failed and rerinse trial.",
+      "Re-test after a declared endurance/wear cycle and after every repair."
+    ]
+  },
+  "comparison_rules": [
+    "Do not compare data-sheet flow alone as task-level efficiency.",
+    "Do not treat published force at one pressure as a measured pressure-response curve.",
+    "Report both valve-level ASTM-style metrics and independent task-level outcomes.",
+    "Never pool household sink/faucet data with commercial pre-rinse results.",
+    "No certification, hygiene, microbial reduction or superiority claim from this catalogue."
+  ]
+}

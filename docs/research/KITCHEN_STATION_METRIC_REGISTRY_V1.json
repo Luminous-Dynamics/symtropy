@@ -1,0 +1,798 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "KITCHEN-STATION-001",
+  "status": "metric_contract_proposed_not_yet_used_to_score_observations",
+  "sources": {
+    "scenarios": "docs/research/KITCHEN_STATION_SCENARIOS_V1.json",
+    "record_schema": "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
+    "design_space": "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json"
+  },
+  "comparison_rules": [
+    "Every primary metric declared by a scenario must appear in the trial record, with a measured value or an explicit missing/invalid/blocked/not_applicable status.",
+    "Candidates are comparable only when scenario, task/load, candidate-independent conditions, endpoint, protocol version, metric definition and unit match.",
+    "Water-phase totals must reconcile with the total-water metric within measured uncertainty.",
+    "Convert units only with an explicit documented conversion; never infer units from field names.",
+    "For ratios or percentages, publish numerator and denominator; a fraction is in [0,1].",
+    "Report paired differences and raw distributions; never substitute one composite score for the metric vector.",
+    "Hard safety gates are non-compensatory; an unknown gate is not a pass.",
+    "No improvement claim before matched physical trials; simulation and synthetic fixtures remain separate evidence classes.",
+    "Do not compare an absolute uncertainty number across metrics with different units or uncertainty definitions.",
+    "For commercial pre-rinse trials, spray force is a target-range variable rather than an objective to maximize; compare only under a frozen applicable test method, pressure and nozzle distance.",
+    "Metric unit must be one of the machine-readable unit_options for its registry entry, unless the entry explicitly declares protocol-defined; exact record units must still match between paired candidates.",
+    "A metric with qualifying_values is a non-compensatory outcome gate: physically eligible records must have a measured/derived categorical value in that exact list; gate declarations alone cannot compensate for a contradictory endpoint value."
+  ],
+  "metrics": {
+    "accidental_high_flow_activations": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "affected_area_or_intensity_under_declared_method": {
+      "canonical_metric_id": "tracer_deposition_by_surface",
+      "unit_policy": "protocol-specific area or normalized tracer signal; state unit and method",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "report each predefined surface; no post-hoc receiver changes; retain raw images/data",
+      "interpretation": "Fluorescent tracer is not a pathogen or illness-risk measurement.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "airflow": {
+      "canonical_metric_id": "airflow_rate",
+      "unit_policy": "L/s or m³/s, fixed within protocol",
+      "value_shape": "number",
+      "direction": "descriptive",
+      "aggregation_rule": "measure direction and magnitude using a declared method",
+      "interpretation": "Airflow values are only comparable for same method and installed geometry.",
+      "unit_options": [
+        "L/s",
+        "m³/s"
+      ]
+    },
+    "assistance_required": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "between_trial_variability": {
+      "canonical_metric_id": "uncertainty_or_variability",
+      "unit_policy": "metric-specific; units/statistic must be explicit",
+      "value_shape": "number_or_object",
+      "direction": "descriptive",
+      "aggregation_rule": "report per metric with its method; never compare raw uncertainties across unlike units",
+      "interpretation": "Measurement uncertainty and natural trial variability are different and must be identified.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "cleaning_endpoint": {
+      "canonical_metric_id": "pass_fail_or_declared_endpoint",
+      "unit_policy": "predeclared categorical scale; unit '1'",
+      "value_shape": "string_or_boolean",
+      "direction": "non_compensatory",
+      "aggregation_rule": "judge against a fixed endpoint/gate; document scale and acceptance margin",
+      "interpretation": "An unknown or missing status must not be scored as pass.",
+      "unit_options": [
+        "1"
+      ],
+      "qualifying_values": [
+        "pass"
+      ]
+    },
+    "cleaning_time": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "control_force_or_grip_failure": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "deposition_by_surface": {
+      "canonical_metric_id": "tracer_deposition_by_surface",
+      "unit_policy": "protocol-specific area or normalized tracer signal; state unit and method",
+      "value_shape": "object_of_numbers",
+      "direction": "lower",
+      "aggregation_rule": "report each predefined surface; no post-hoc receiver changes; retain raw images/data",
+      "interpretation": "Fluorescent tracer is not a pathogen or illness-risk measurement.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "deposition_on_clean_staging_zone": {
+      "canonical_metric_id": "tracer_deposition_by_surface",
+      "unit_policy": "protocol-specific area or normalized tracer signal; state unit and method",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "report each predefined surface; no post-hoc receiver changes; retain raw images/data",
+      "interpretation": "Fluorescent tracer is not a pathogen or illness-risk measurement.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "destructive_damage": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "diagnosis_time": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "disassembly_time": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "drip_or_rewetting_events": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "dryness_completion_by_item_and_position": {
+      "canonical_metric_id": "dryness_completion_fraction_by_item_position",
+      "unit_policy": "fraction in [0,1] per item-position class",
+      "value_shape": "object_of_numbers",
+      "direction": "higher",
+      "aggregation_rule": "publish each item-position fraction and the minimum-performing subgroup; aggregate only with the declared item-count weighting",
+      "interpretation": "Every item/position remains visible. Do not claim full-rack success from an average when a subgroup fails the endpoint.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "energy_wh_per_load": {
+      "canonical_metric_id": "energy_wh_per_load",
+      "unit_policy": "Wh/standardized load",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum over the exact declared loaded set",
+      "interpretation": "Not interchangeable with Wh/task unless task and load definitions match.",
+      "unit_options": [
+        "Wh/load"
+      ]
+    },
+    "excluded_record_count_by_reason": {
+      "canonical_metric_id": "excluded_or_invalid_record_count",
+      "unit_policy": "count by preregistered reason",
+      "value_shape": "object_or_number",
+      "direction": "descriptive",
+      "aggregation_rule": "publish every count and reason; a higher number cannot simply be optimized away",
+      "interpretation": "Counts are integrity disclosures, not objectives to manipulate.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "explicit_status_coverage": {
+      "canonical_metric_id": "evidence_completeness_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "computed from required cells/records with a declared denominator",
+      "interpretation": "Target 1.0; incomplete evidence is not a physical performance win.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "flow_stability": {
+      "canonical_metric_id": "flow_variation_percent",
+      "unit_policy": "% coefficient of variation or other named statistic",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "compute from measured flow samples over a frozen interval",
+      "interpretation": "State exact statistic and sampling window.",
+      "unit_options": [
+        "%"
+      ]
+    },
+    "fraction_items_meeting_endpoint": {
+      "canonical_metric_id": "endpoint_success_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "successful items/tasks divided by all eligible items/tasks",
+      "interpretation": "State endpoint and preserve subgroup failures.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "hands_on_repair_time": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "hot_water_energy_wh": {
+      "canonical_metric_id": "hot_water_energy_wh_per_task",
+      "unit_policy": "Wh/task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum measured energy inside declared boundary",
+      "interpretation": "Measure energy or state calculation inputs; do not use rated power as energy.",
+      "unit_options": [
+        "Wh/task"
+      ]
+    },
+    "hot_water_energy_wh_per_task": {
+      "canonical_metric_id": "hot_water_energy_wh_per_task",
+      "unit_policy": "Wh/task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum measured energy inside declared boundary",
+      "interpretation": "Measure energy or state calculation inputs; do not use rated power as energy.",
+      "unit_options": [
+        "Wh/task"
+      ]
+    },
+    "independent_recalculation_agreement": {
+      "canonical_metric_id": "evidence_completeness_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "computed from required cells/records with a declared denominator",
+      "interpretation": "Target 1.0; incomplete evidence is not a physical performance win.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "invalid_record_count": {
+      "canonical_metric_id": "excluded_or_invalid_record_count",
+      "unit_policy": "count by preregistered reason",
+      "value_shape": "object_or_number",
+      "direction": "descriptive",
+      "aggregation_rule": "publish every count and reason; a higher number cannot simply be optimized away",
+      "interpretation": "Counts are integrity disclosures, not objectives to manipulate.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "item_contact_or_rewetting_events": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "leak_result": {
+      "canonical_metric_id": "leak_result",
+      "unit_policy": "predeclared categorical scale; unit '1'",
+      "value_shape": "string_or_boolean",
+      "direction": "non_compensatory",
+      "aggregation_rule": "judge against a fixed endpoint/gate; document scale and acceptance margin",
+      "interpretation": "An unknown or missing status must not be scored as pass.",
+      "unit_options": [
+        "1"
+      ],
+      "qualifying_values": [
+        "pass"
+      ]
+    },
+    "litres_by_prewash_wash_final_rinse_and_rewash": {
+      "canonical_metric_id": "water_l_by_stage",
+      "unit_policy": "L per declared stage",
+      "value_shape": "object_of_numbers",
+      "direction": "descriptive",
+      "aggregation_rule": "stage vector; sum must reconcile to whole-task water within declared uncertainty",
+      "interpretation": "Use fixed stage names; no stage may silently disappear.",
+      "unit_options": [
+        "L/stage"
+      ]
+    },
+    "litres_per_task": {
+      "canonical_metric_id": "water_l_per_completed_task",
+      "unit_policy": "L/task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum measured stages; retain failures and rewashes",
+      "unit_options": [
+        "L/task"
+      ]
+    },
+    "loaded_capacity": {
+      "canonical_metric_id": "standardized_loaded_capacity",
+      "unit_policy": "declared item count or canonical loaded set",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "count only the preregistered representative loaded set that meets fit/stability criteria",
+      "interpretation": "Report occupied footprint separately; item sets must be comparable.",
+      "unit_options": [
+        "items",
+        "count"
+      ]
+    },
+    "measurement_uncertainty": {
+      "canonical_metric_id": "uncertainty_or_variability",
+      "unit_policy": "metric-specific; units/statistic must be explicit",
+      "value_shape": "number_or_object",
+      "direction": "descriptive",
+      "aggregation_rule": "report per metric with its method; never compare raw uncertainties across unlike units",
+      "interpretation": "Measurement uncertainty and natural trial variability are different and must be identified.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "mode_switch_errors": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "noise_under_declared_method": {
+      "canonical_metric_id": "sound_level_dba",
+      "unit_policy": "dB(A)",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "same meter, weighting, distance and background-noise rule",
+      "interpretation": "Declare measurement protocol and background noise.",
+      "unit_options": [
+        "dB(A)"
+      ]
+    },
+    "part_wait_time": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "pooled_water_locations": {
+      "canonical_metric_id": "localized_observation_map",
+      "unit_policy": "protocol-defined categorical observations or count",
+      "value_shape": "object_or_array",
+      "direction": "descriptive",
+      "aggregation_rule": "retain location-specific observations and coding rules",
+      "interpretation": "A map/qualitative observation must include the coding rubric and raw artifact link.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "post-service_fit_and_drain": {
+      "canonical_metric_id": "post_service_fit_and_drain",
+      "unit_policy": "predeclared pass/fail/not-run categorical result; unit '1'",
+      "value_shape": "string_or_boolean",
+      "direction": "non_compensatory",
+      "aggregation_rule": "must satisfy all applicable post-service fit and drain acceptance checks",
+      "interpretation": "Successful repair requires observed post-checks; unknown is not pass.",
+      "unit_options": [
+        "1"
+      ],
+      "qualifying_values": [
+        "pass"
+      ]
+    },
+    "post_service_drainage": {
+      "canonical_metric_id": "post_service_drain_endpoint",
+      "unit_policy": "predeclared time, retained volume or pass/fail; method must choose one",
+      "value_shape": "number_or_string",
+      "direction": "target_range",
+      "aggregation_rule": "match pre-repair method and acceptance envelope",
+      "interpretation": "Do not mix seconds, volume and categorical outcomes under one unit.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "post_service_flow": {
+      "canonical_metric_id": "post_service_flow_l_min",
+      "unit_policy": "L/min at specified measured pressure",
+      "value_shape": "number",
+      "direction": "target_range",
+      "aggregation_rule": "measured post-repair against the candidate's declared operating envelope",
+      "interpretation": "Pressure and temperature conditions must match the before-repair measurement.",
+      "unit_options": [
+        "L/min"
+      ]
+    },
+    "potable_litres_per_completed_task": {
+      "canonical_metric_id": "water_l_per_completed_task",
+      "unit_policy": "L/task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum measured stages; retain failures and rewashes",
+      "unit_options": [
+        "L/task"
+      ]
+    },
+    "rack_footprint": {
+      "canonical_metric_id": "rack_footprint_m2",
+      "unit_policy": "m²",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "measured occupied footprint in installed/use state",
+      "interpretation": "Include protrusions and working clearance if in scope.",
+      "unit_options": [
+        "m²"
+      ]
+    },
+    "reach_and_posture_observations": {
+      "canonical_metric_id": "localized_observation_map",
+      "unit_policy": "protocol-defined categorical observations or count",
+      "value_shape": "object_or_array",
+      "direction": "descriptive",
+      "aggregation_rule": "retain location-specific observations and coding rules",
+      "interpretation": "A map/qualitative observation must include the coding rubric and raw artifact link.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "reassembly_errors": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "remaining_faults": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "required_field_completeness": {
+      "canonical_metric_id": "evidence_completeness_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "computed from required cells/records with a declared denominator",
+      "interpretation": "Target 1.0; incomplete evidence is not a physical performance win.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "residual_water_mass": {
+      "canonical_metric_id": "residual_water_mass_g",
+      "unit_policy": "g, with basis specified",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "weighed residual; stratify by item type and location when available",
+      "interpretation": "A dry appearance is not a substitute for mass/endpoint measurement.",
+      "unit_options": [
+        "g"
+      ]
+    },
+    "residual_water_mass_by_item_type": {
+      "canonical_metric_id": "residual_water_mass_g",
+      "unit_policy": "g, with basis specified",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "weighed residual; stratify by item type and location when available",
+      "interpretation": "A dry appearance is not a substitute for mass/endpoint measurement.",
+      "unit_options": [
+        "g"
+      ]
+    },
+    "residue_observations_by_zone": {
+      "canonical_metric_id": "localized_observation_map",
+      "unit_policy": "protocol-defined categorical observations or count",
+      "value_shape": "object_or_array",
+      "direction": "descriptive",
+      "aggregation_rule": "retain location-specific observations and coding rules",
+      "interpretation": "A map/qualitative observation must include the coding rubric and raw artifact link.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "rewash_rate": {
+      "canonical_metric_id": "task_failure_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "failures divided by all eligible attempts",
+      "interpretation": "Denominator and exclusion rules must be frozen before trials.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "spill_events": {
+      "canonical_metric_id": "spill_or_overflow_events",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "spill_or_overflow_events": {
+      "canonical_metric_id": "spill_or_overflow_events",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "successful_task_completion": {
+      "canonical_metric_id": "endpoint_success_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "successful items/tasks divided by all eligible items/tasks",
+      "interpretation": "State endpoint and preserve subgroup failures.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "task_duration": {
+      "canonical_metric_id": "task_specific_elapsed_time_s",
+      "unit_policy": "s for a named task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "per identical task boundaries; do not compare unlike task types",
+      "interpretation": "The task boundary must be named in the protocol; part wait and hands-on time are separate concepts.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "task_failure_rate": {
+      "canonical_metric_id": "task_failure_fraction",
+      "unit_policy": "fraction [0,1]",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "failures divided by all eligible attempts",
+      "interpretation": "Denominator and exclusion rules must be frozen before trials.",
+      "unit_options": [
+        "fraction"
+      ]
+    },
+    "temperature_exposure": {
+      "canonical_metric_id": "thermal_exposure_above_declared_limit",
+      "unit_policy": "°C·min relative to a declared temperature limit",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "integrate temperature above the predeclared limit over time",
+      "interpretation": "Declare threshold, sampling interval and sensor location.",
+      "unit_options": [
+        "°C·min"
+      ]
+    },
+    "time_to_declared_dryness_endpoint": {
+      "canonical_metric_id": "drying_time_to_endpoint_s",
+      "unit_policy": "s",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "time from frozen start to preregistered endpoint",
+      "interpretation": "Endpoint and ambient conditions must match.",
+      "unit_options": [
+        "s"
+      ]
+    },
+    "time_to_endpoint_by_item_type": {
+      "canonical_metric_id": "drying_time_by_item_type_s",
+      "unit_policy": "s per item class",
+      "value_shape": "object_of_numbers",
+      "direction": "descriptive",
+      "aggregation_rule": "retain per-item-class distribution; summarize slowest class separately",
+      "interpretation": "Do not replace class-level failures with an average.",
+      "unit_options": [
+        "s/item-class"
+      ]
+    },
+    "total_litres_per_completed_task": {
+      "canonical_metric_id": "water_l_per_completed_task",
+      "unit_policy": "L/task",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "sum measured stages; retain failures and rewashes",
+      "unit_options": [
+        "L/task"
+      ]
+    },
+    "tracer_deposition_on_clean_items_and_surfaces": {
+      "canonical_metric_id": "tracer_deposition_by_surface",
+      "unit_policy": "protocol-specific area or normalized tracer signal; state unit and method",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "report each predefined surface; no post-hoc receiver changes; retain raw images/data",
+      "interpretation": "Fluorescent tracer is not a pathogen or illness-risk measurement.",
+      "unit_options": [
+        "protocol-defined"
+      ]
+    },
+    "trapped_water": {
+      "canonical_metric_id": "residual_water_mass_g",
+      "unit_policy": "g, with basis specified",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "weighed residual; stratify by item type and location when available",
+      "interpretation": "A dry appearance is not a substitute for mass/endpoint measurement.",
+      "unit_options": [
+        "g"
+      ]
+    },
+    "usable_loaded_capacity": {
+      "canonical_metric_id": "standardized_loaded_capacity",
+      "unit_policy": "declared item count or canonical loaded set",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "count only the preregistered representative loaded set that meets fit/stability criteria",
+      "interpretation": "Report occupied footprint separately; item sets must be comparable.",
+      "unit_options": [
+        "items",
+        "count"
+      ]
+    },
+    "user_effort": {
+      "canonical_metric_id": "user_effort_scale",
+      "unit_policy": "predeclared score scale; unit 'score'",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "report individual distribution and cohort definition; no averaging away subgroup burden",
+      "interpretation": "State scale anchors, sampling and consent/privacy approach.",
+      "unit_options": [
+        "score"
+      ]
+    },
+    "user_rated_effort": {
+      "canonical_metric_id": "user_effort_scale",
+      "unit_policy": "predeclared score scale; unit 'score'",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "report individual distribution and cohort definition; no averaging away subgroup burden",
+      "interpretation": "State scale anchors, sampling and consent/privacy approach.",
+      "unit_options": [
+        "score"
+      ]
+    },
+    "water_consumption_during_test": {
+      "canonical_metric_id": "water_l_during_protocol",
+      "unit_policy": "L/test",
+      "value_shape": "number",
+      "direction": "lower",
+      "aggregation_rule": "measure full water consumption inside declared test boundary",
+      "interpretation": "Do not compare different protocol lengths or endpoints.",
+      "unit_options": [
+        "L/test"
+      ]
+    },
+    "wear_or_damage": {
+      "canonical_metric_id": "event_or_failure_count",
+      "unit_policy": "count over declared test scope",
+      "value_shape": "number_or_object",
+      "direction": "lower",
+      "aggregation_rule": "count across all trials; report denominator and severity where relevant",
+      "interpretation": "Keep zero distinct from not measured.",
+      "unit_options": [
+        "count"
+      ]
+    },
+    "spray_force_n": {
+      "canonical_metric_id": "spray_force_n",
+      "unit_policy": "N measured by named standard/protocol and fixture",
+      "value_shape": "number",
+      "direction": "target_range",
+      "aggregation_rule": "report across each declared pressure point and repeats; a higher force is not automatically better",
+      "interpretation": "Adequacy depends on task-specific force/coverage and limits; use the applicable test-method acceptance criteria where relevant.",
+      "unit_options": [
+        "N"
+      ]
+    },
+    "spray_coverage_area_cm2": {
+      "canonical_metric_id": "spray_coverage_area_cm2",
+      "unit_policy": "cm² under frozen distance, angle, pressure, target plane and image/collection method",
+      "value_shape": "number",
+      "direction": "target_range",
+      "aggregation_rule": "report area and spatial uniformity/coverage misses; do not collapse edge failures into mean area alone",
+      "interpretation": "A large area may be too diffuse to remove soil; coverage must be interpreted with force and endpoint.",
+      "unit_options": [
+        "cm²"
+      ]
+    },
+    "soil_removal_fraction": {
+      "canonical_metric_id": "soil_removal_fraction",
+      "unit_policy": "fraction in [0,1] under a named soil/tracer assay",
+      "value_shape": "number",
+      "direction": "higher",
+      "aggregation_rule": "report per soil/load class as well as all-load summary; retain failed classes and rerinse trials",
+      "interpretation": "Only a declared standardized assay; not a direct pathogen or sanitation result.",
+      "unit_options": [
+        "fraction"
+      ]
+    }
+  },
+  "proposed_stretch_targets": {
+    "water_l_per_completed_task": {
+      "relative_reduction": 0.2,
+      "guard": "cleaning endpoint and rewash rate must not regress"
+    },
+    "tracer_deposition_by_surface": {
+      "relative_reduction": 0.3,
+      "guard": "predeclared clean/sensitive surfaces; deposition must not merely relocate"
+    },
+    "drying_time_to_endpoint_s": {
+      "relative_reduction": 0.25,
+      "guard": "same dryness endpoint, loaded set and ambient conditions"
+    },
+    "evidence_completeness_fraction": {
+      "target": 1,
+      "guard": "all expected cells observed or explicitly statused"
+    },
+    "status": "hypotheses_not_results"
+  },
+  "known_ambiguities_to_close_before_first_physical_benchmark": [
+    "Replace method-specific splash proxies with a fixed instrument/tracer/image-analysis method and declared unit.",
+    "Select one canonical dryness endpoint and mass-stability tolerance before trials.",
+    "Choose exact reference fixture(s), target market, installation size and pressure profile.",
+    "Choose one unit/normalization for each mixed categorical/measurement field before collecting values.",
+    "Confirm applicable South African plumbing and food-premises obligations for intended product and use."
+  ]
+}
