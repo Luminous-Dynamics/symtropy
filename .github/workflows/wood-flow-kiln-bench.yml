@@ -1,0 +1,71 @@
+name: Wood Flow Kiln Schedule Benchmark
+
+on:
+  push:
+    branches: ["feat/wood-flow-kiln-schedule-bench-v0-1"]
+    paths:
+      - "docs/tech/WOOD_FLOW_KILN_SCHEDULE_BENCHMARK_V0_1.md"
+      - "docs/tech/wood-flow-kiln-corpus-v0.1.json"
+      - "tools/wood-flow-kiln-bench/**"
+      - ".github/workflows/wood-flow-kiln-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/WOOD_FLOW_KILN_SCHEDULE_BENCHMARK_V0_1.md"
+      - "docs/tech/wood-flow-kiln-corpus-v0.1.json"
+      - "tools/wood-flow-kiln-bench/**"
+      - ".github/workflows/wood-flow-kiln-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wood-flow-kiln-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wood-flow-kiln-bench/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/wood-flow-kiln-bench/Cargo.toml
+      - name: Emit exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wood-flow-kiln-bench/Cargo.toml -- \
+            docs/tech/wood-flow-kiln-corpus-v0.1.json \
+            --source-commit "$source_commit" > wood-flow-kiln-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 5
+            and .expected_controls_matched == 5
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].scenario_id] == [
+              "SEQUENTIAL_CONFORMING_BATCHES",
+              "UNSUPPORTED_PROFILE_BLOCKED",
+              "SHARED_POWER_FORCES_SERIAL",
+              "NONCONFORMING_DRYING_BATCHES_BLOCKED",
+              "GREEDY_BASELINE_REGRESSION"
+            ])
+            and ([.scenarios[].oracle_disposition] == [
+              "optimal", "optimal", "optimal", "optimal", "optimal"
+            ])
+            and ([.scenarios[].schedule_independently_validated] | all)
+          ' wood-flow-kiln-receipt.json
