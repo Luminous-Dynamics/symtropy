@@ -1959,14 +1959,24 @@ mod tests {
             .iter()
             .filter(|comparison| comparison.scenario_id != "baseline")
         {
+            let outage_effect = comparison
+                .paired_intervention_effect_vs_baseline_in_outage_model
+                .as_ref()
+                .expect("shared-outage intervention effect");
+            let nominal_effect = comparison
+                .paired_intervention_effect_vs_baseline_in_no_outage_model
+                .as_ref()
+                .expect("no-outage intervention effect");
             let delta = comparison
                 .paired_intervention_effect_delta_vs_no_outage
                 .as_ref()
                 .expect("paired intervention difference-in-differences");
             assert_eq!(comparison.seed_count, 20);
-            assert_eq!(delta.sample_count, 20);
-            assert!(delta.mean_confidence_95_lower.is_some());
-            assert!(delta.mean_confidence_95_upper.is_some());
+            for summary in [outage_effect, nominal_effect, delta] {
+                assert_eq!(summary.sample_count, 20);
+                assert!(summary.mean_confidence_95_lower.is_some());
+                assert!(summary.mean_confidence_95_upper.is_some());
+            }
         }
         let structural = outage_report
             .structural_robust_intervention_summary
