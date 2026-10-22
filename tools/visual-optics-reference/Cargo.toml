@@ -1,0 +1,19 @@
+[package]
+name = "symtropy-visual-optics-reference"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-free analytic reference models for visual-technology qualification"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dev-dependencies]
+serde_json = "1.0"
+
+# Keep this first reference crate isolated from the large Bevy workspace:
+# cargo test --manifest-path tools/visual-optics-reference/Cargo.toml
+[workspace]
+resolver = "3"

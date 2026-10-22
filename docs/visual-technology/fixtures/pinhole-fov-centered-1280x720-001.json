@@ -1,0 +1,54 @@
+{
+  "schema_version": "visual-pinhole-fov-v0",
+  "case_id": "VIS-FOV-CENTERED-1280x720-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "model": {
+    "name": "ideal_rectified_pinhole",
+    "version": "0",
+    "assumptions": [
+      "zero lens distortion",
+      "image coordinate boundaries are u=0..width and v=0..height",
+      "intrinsics and image dimensions use the same pixel convention",
+      "geometric FOV only; no eye-fit, vignetting, occlusion or manufacturer usable-FOV model"
+    ]
+  },
+  "units": {
+    "fx_px": "px",
+    "fy_px": "px",
+    "cx_px": "px",
+    "cy_px": "px",
+    "horizontal_fov": "rad",
+    "vertical_fov": "rad"
+  },
+  "intrinsics": {
+    "fx_px": 1000.0,
+    "fy_px": 1000.0,
+    "cx_px": 640.0,
+    "cy_px": 360.0
+  },
+  "image_dimensions_px": {
+    "width": 1280,
+    "height": 720
+  },
+  "expected": {
+    "horizontal_fov_radians": 1.1386263822013238,
+    "vertical_fov_radians": 0.6911111611634243,
+    "horizontal_fov_degrees": 65.23848614238565,
+    "vertical_fov_degrees": 39.597752709049864
+  },
+  "tolerance_radians": 1e-12,
+  "negative_controls_required": [
+    "zero width must reject",
+    "zero height must reject",
+    "non-finite intrinsics must reject",
+    "non-positive focal length must reject",
+    "principal-point offset must use both image boundaries",
+    "render extent must not be relabelled as measured usable field of view"
+  ],
+  "limitations": [
+    "Proposed analytic fixture, not yet consumed by a fixture verifier.",
+    "No physical display or lens was measured.",
+    "This geometry result does not establish usable AR/VR field of view."
+  ]
+}

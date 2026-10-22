@@ -1,0 +1,47 @@
+{
+  "schema_version": "visual-projector-pinhole-v0",
+  "case_id": "VIS-PROJ-PINHOLE-AXIS-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "model": {
+    "name": "rectified_pinhole_projection",
+    "version": "0",
+    "assumptions": [
+      "ideal pinhole camera/projector model",
+      "zero lens distortion",
+      "no photometric or wave-optics model",
+      "positive optical-axis depth",
+      "continuous coordinates before pixel quantization"
+    ]
+  },
+  "units": {
+    "world_position": "m",
+    "focal_length_px": "px",
+    "image_position": "px"
+  },
+  "intrinsics": {
+    "fx_px": 1000.0,
+    "fy_px": 1000.0,
+    "cx_px": 640.0,
+    "cy_px": 360.0
+  },
+  "input_world_position_m": [0.0, 0.0, 2.0],
+  "expected_image_position_px": [640.0, 360.0],
+  "equations": {
+    "u": "fx * X / Z + cx",
+    "v": "fy * Y / Z + cy"
+  },
+  "tolerance_px": 1e-9,
+  "negative_controls_required": [
+    "Z = 0 must reject",
+    "Z < 0 must reject",
+    "NaN or infinite input must reject",
+    "unknown coordinate frame must reject",
+    "meter/millimeter mismatch must reject"
+  ],
+  "limitations": [
+    "This fixture is a proposed analytic example, not an executed test.",
+    "It validates only the ideal pinhole mapping, not projector calibration or physical output.",
+    "The expected values are not a field measurement or a hardware performance claim."
+  ]
+}

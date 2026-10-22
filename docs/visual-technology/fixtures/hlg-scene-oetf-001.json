@@ -1,0 +1,53 @@
+{
+  "schema_version": "visual-hlg-scene-oetf-v0",
+  "case_id": "VIS-HLG-SCENE-OETF-REFERENCES-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "source": "https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en",
+  "profile": {
+    "name": "ITU-R BT.2100-3 Hybrid Log-Gamma scene OETF",
+    "input_semantics": "normalized scene-linear light",
+    "output_semantics": "normalized nonlinear HLG signal",
+    "scene_domain": [0.0, 1.0],
+    "signal_domain": [0.0, 1.0],
+    "branch_point_scene": 0.08333333333333333,
+    "branch_point_signal": 0.5,
+    "constants": {
+      "a": 0.17883277,
+      "b": 0.28466892,
+      "c": 0.55991073
+    }
+  },
+  "scene_to_signal_cases": [
+    { "scene_linear": 0.0, "expected_signal": 0.0 },
+    { "scene_linear": 0.001, "expected_signal": 0.05477225575051661 },
+    { "scene_linear": 0.08333333333333333, "expected_signal": 0.5 },
+    { "scene_linear": 0.18, "expected_signal": 0.6723581325980925 },
+    { "scene_linear": 0.75, "expected_signal": 0.9470986396164969 },
+    { "scene_linear": 1.0, "expected_signal": 1.0 }
+  ],
+  "signal_to_scene_cases": [
+    { "signal": 0.0, "expected_scene_linear": 0.0 },
+    { "signal": 0.1, "expected_scene_linear": 0.003333333333333334 },
+    { "signal": 0.25, "expected_scene_linear": 0.020833333333333332 },
+    { "signal": 0.5, "expected_scene_linear": 0.08333333333333333 },
+    { "signal": 0.75, "expected_scene_linear": 0.26496255978640015 },
+    { "signal": 1.0, "expected_scene_linear": 1.0 }
+  ],
+  "roundtrip_scene_linear": [0.0, 0.001, 0.08333333333333333, 0.18, 0.5, 0.75, 0.999, 1.0],
+  "tolerance": 1e-7,
+  "negative_controls_required": [
+    "NaN and infinities must reject",
+    "scene-linear inputs below zero or above one must reject",
+    "encoded signal values below zero or above one must reject",
+    "do not apply the display OOTF or assume system gamma in the scene OETF",
+    "do not label scene-linear output as cd/m2 or physical display luminance",
+    "published rounded constants must not cause endpoint drift outside the declared domain"
+  ],
+  "limitations": [
+    "UNQUALIFIED analytical fixture; the fixture contract must execute before it is considered software-qualified.",
+    "This tests only the HLG scene-referred OETF and its inverse.",
+    "Display-side OOTF/EOTF, system gamma, display peak luminance, black-level lift, viewing surround and physical panel response are not modeled.",
+    "No HDR display, camera, photometer or physical system was measured."
+  ]
+}

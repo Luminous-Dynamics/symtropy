@@ -1,0 +1,56 @@
+{
+  "schema_version": "visual-pq-st2084-v0",
+  "case_id": "VIS-PQ-ST2084-REFERENCES-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "sources": [
+    "https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en",
+    "https://pub.smpte.org/latest/st2084/st2084-2014.pdf"
+  ],
+  "profile": {
+    "name": "SMPTE ST 2084 / ITU-R BT.2100 PQ EOTF",
+    "signal_domain": [0.0, 1.0],
+    "luminance_domain_nits": [0.0, 10000.0],
+    "constants": {
+      "m1": 0.1593017578125,
+      "m2": 78.84375,
+      "c1": 0.8359375,
+      "c2": 18.8515625,
+      "c3": 18.6875
+    }
+  },
+  "signal_to_nits_cases": [
+    { "signal": 0.0, "expected_nits": 0.0 },
+    { "signal": 0.5, "expected_nits": 92.24570899406527 },
+    { "signal": 0.508078421517399, "expected_nits": 100.0 },
+    { "signal": 0.751827096247041, "expected_nits": 1000.0 },
+    { "signal": 1.0, "expected_nits": 10000.0 }
+  ],
+  "nits_to_signal_cases": [
+    { "nits": 0.0, "expected_signal": 0.0 },
+    { "nits": 1.0, "expected_signal": 0.14994573210018022 },
+    { "nits": 100.0, "expected_signal": 0.508078421517399 },
+    { "nits": 203.0, "expected_signal": 0.5806888810416109 },
+    { "nits": 1000.0, "expected_signal": 0.751827096247041 },
+    { "nits": 4000.0, "expected_signal": 0.9025723933109373 },
+    { "nits": 10000.0, "expected_signal": 1.0 }
+  ],
+  "roundtrip_nits": [0.0, 0.001, 0.01, 0.1, 1.0, 100.0, 203.0, 1000.0, 4000.0, 10000.0],
+  "tolerance": {
+    "luminance_nits": 1e-7,
+    "signal": 1e-12
+  },
+  "negative_controls_required": [
+    "NaN and infinities must reject",
+    "signals below zero or above one must reject",
+    "luminance below zero or above 10000 cd/m2 must reject",
+    "PQ luminance must be reported in cd/m2 and not confused with normalized relative luminance",
+    "PQ EOTF decoding must not be described as tone mapping or physical display measurement"
+  ],
+  "limitations": [
+    "UNQUALIFIED analytic reference fixture; software checks do not certify an HDR display.",
+    "PQ describes a nominal absolute-luminance transfer mapping, not a panel-specific tone curve or capability.",
+    "No physical display or calibrated photometer was used.",
+    "The canonical black encode selects zero signal because the EOTF's clipped numerator maps a small lower signal interval to zero luminance."
+  ]
+}
