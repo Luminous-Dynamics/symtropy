@@ -141,7 +141,7 @@ fn doubled_point_location(px2: i128, py2: i128, polygon: &[Point2]) -> PointLoca
         if (ay2 > py2) != (by2 > py2) {
             // With this cross-product orientation, a ray crossing to the right has opposite
             // signs depending on whether the segment rises or falls.
-            if (by2 > ay2 && cross_scaled < 0) || (by2 < ay2 && cross_scaled > 0) {
+            if (by2 > ay2 && cross_scaled > 0) || (by2 < ay2 && cross_scaled < 0) {
                 inside = !inside;
             }
         }
@@ -201,11 +201,6 @@ impl SimplePolygon {
             }
         }
 
-        let area2 = self.signed_area2();
-        if area2 == 0 {
-            return Err(GeometryError::ZeroArea);
-        }
-
         // Adjacent edges may continue straight but cannot reverse and overlap each other.
         for index in 0..count {
             let prior = self.vertices[(index + count - 1) % count];
@@ -237,6 +232,9 @@ impl SimplePolygon {
                     return Err(GeometryError::SelfIntersection);
                 }
             }
+        }
+        if self.signed_area2() == 0 {
+            return Err(GeometryError::ZeroArea);
         }
         Ok(())
     }
@@ -523,7 +521,7 @@ mod tests {
                 Point2 { x: 4, y: 0 },
             ],
         };
-        assert_eq!(bow_tie.validate(), Err(GeometryError::ZeroArea));
+        assert_eq!(bow_tie.validate(), Err(GeometryError::SelfIntersection));
 
         let repeated = SimplePolygon {
             vertices: vec![
