@@ -897,6 +897,141 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
     Ok(report)
 }
 
+fn summarize_structural_intervention_decisions(
+    scenario_comparisons: &[PairedOutageScenarioComparison],
+) -> Result<StructuralRobustInterventionSummary, String> {
+    if scenario_comparisons.len() < 2
+        || !scenario_comparisons.iter().any(|scenario| scenario.scenario_id == "baseline")
+    {
+        return Err("structural_decision_summary_requires_baseline_and_intervention_scenarios".into());
+    }
+
+    let mut effects_by_scenario: Vec<(String, Option<String>, f64, f64)> = Vec::new();
+    for scenario in scenario_comparisons {
+        let (no_outage_effect, outage_effect) = if scenario.scenario_id == "baseline" {
+            (0.0, 0.0)
+        } else {
+            let no_outage = scenario
+                .paired_intervention_effect_vs_baseline_in_no_outage_model
+                .as_ref()
+                .ok_or_else(|| "no_outage_intervention_effect_missing".to_string())?;
+            let outage = scenario
+                .paired_intervention_effect_vs_baseline_in_outage_model
+                .as_ref()
+                .ok_or_else(|| "outage_intervention_effect_missing".to_string())?;
+            (no_outage.mean, outage.mean)
+        };
+        if !no_outage_effect.is_finite() || !outage_effect.is_finite() {
+            return Err("structural_intervention_effects_must_be_finite".into());
+        }
+        effects_by_scenario.push((
+            scenario.scenario_id.clone(),
+            scenario.intervention_station_id.clone(),
+            no_outage_effect,
+            outage_effect,
+        ));
+    }
+    effects_by_scenario.sort_by(|left, right| left.0.cmp(&right.0));
+
+    let best_no_outage = effects_by_scenario
+        .iter()
+        .map(|row| row.2)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let best_shared_outage = effects_by_scenario
+        .iter()
+        .map(|row| row.3)
+        .fold(f64::NEG_INFINITY, f64::max);
+
+    let intervention_scores: Vec<StructuralInterventionScore> = effects_by_scenario
+        .iter()
+        .map(|(scenario_id, station_id, no_outage_effect, outage_effect)| {
+            StructuralInterventionScore {
+                scenario_id: scenario_id.clone(),
+                intervention_station_id: station_id.clone(),
+                family_effects: vec![
+                    StructuralFamilyEffect {
+                        family_id: "no_shared_control_outage".into(),
+                        mean_incremental_good_units_per_hour: *no_outage_effect,
+                    },
+                    StructuralFamilyEffect {
+                        family_id: "shared_control_outage".into(),
+                        mean_incremental_good_units_per_hour: *outage_effect,
+                    },
+                ],
+                worst_family_mean_incremental_good_units_per_hour: no_outage_effect
+                    .min(*outage_effect),
+                maximum_regret_units_per_hour: (best_no_outage - no_outage_effect)
+                    .max(best_shared_outage - outage_effect),
+            }
+        })
+        .collect();
+
+    let maximin = intervention_scores
+        .iter()
+        .min_by(|left, right| {
+            right
+                .worst_family_mean_incremental_good_units_per_hour
+                .total_cmp(&left.worst_family_mean_incremental_good_units_per_hour)
+                .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+        })
+        .ok_or_else(|| "structural_maximin_choice_missing".to_string())?;
+    let minimax_regret = intervention_scores
+        .iter()
+        .min_by(|left, right| {
+            left.maximum_regret_units_per_hour
+                .total_cmp(&right.maximum_regret_units_per_hour)
+                .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+        })
+        .ok_or_else(|| "structural_minimax_regret_choice_missing".to_string())?;
+
+    let family_winners = [
+        (
+            "no_shared_control_outage",
+            2usize,
+        ),
+        (
+            "shared_control_outage",
+            3usize,
+        ),
+    ]
+    .into_iter()
+    .map(|(family_id, effect_index)| {
+        let winner = effects_by_scenario
+            .iter()
+            .min_by(|left, right| {
+                right.0.cmp(&left.0).then_with(|| {
+                    // Compare larger effects first; use lexical scenario identity for exact ties.
+                    let left_effect = if effect_index == 2 { left.2 } else { left.3 };
+                    let right_effect = if effect_index == 2 { right.2 } else { right.3 };
+                    right_effect
+                        .total_cmp(&left_effect)
+                        .then_with(|| left.0.cmp(&right.0))
+                })
+            })
+            .ok_or_else(|| "structural_family_winner_missing".to_string())?;
+        let effect = if effect_index == 2 { winner.2 } else { winner.3 };
+        Ok(StructuralFamilyWinner {
+            family_id: family_id.into(),
+            scenario_id: winner.0.clone(),
+            mean_incremental_good_units_per_hour: effect,
+        })
+    })
+    .collect::<Result<Vec<_>, String>>()?;
+
+    Ok(StructuralRobustInterventionSummary {
+        model_family_count: 2,
+        family_probabilities_used: false,
+        model_families_treated_as_iid_replications: false,
+        maximin_scenario_id: maximin.scenario_id.clone(),
+        maximin_worst_family_mean_incremental_good_units_per_hour: maximin
+            .worst_family_mean_incremental_good_units_per_hour,
+        minimax_regret_scenario_id: minimax_regret.scenario_id.clone(),
+        minimax_regret_upper_bound_units_per_hour: minimax_regret.maximum_regret_units_per_hour,
+        family_winners,
+        intervention_scores,
+    })
+}
+
 fn summarize_distribution(values: &[f64]) -> Result<DistributionSummary, String> {
     if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
         return Err("distribution_requires_nonempty_finite_samples".into());
