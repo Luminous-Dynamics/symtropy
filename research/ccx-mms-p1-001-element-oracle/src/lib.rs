@@ -28,6 +28,8 @@ pub enum ElementError {
     NonFiniteStrain,
     NonFiniteStress,
     NonFiniteEnergyAudit,
+    InvalidStiffnessSpectrum,
+    EigenvalueIterationLimit,
     MeshConstruction,
 }
 
@@ -48,6 +50,12 @@ impl fmt::Display for ElementError {
             Self::NonFiniteStress => f.write_str("element stress is non-finite"),
             Self::NonFiniteEnergyAudit => {
                 f.write_str("element energy identity is non-finite or invalid")
+            }
+            Self::InvalidStiffnessSpectrum => {
+                f.write_str("element stiffness spectrum is not three rigid plus three positive modes")
+            }
+            Self::EigenvalueIterationLimit => {
+                f.write_str("symmetric Jacobi eigensolver did not converge")
             }
             Self::MeshConstruction => f.write_str("patch probe could not construct a valid mesh"),
         }
@@ -202,6 +210,53 @@ impl TriangleElement {
         self.thickness
     }
 
+    /// Estimate the element stiffness spectrum, separating its three rigid-body
+    /// modes from its three deformational modes. This is a local element metric,
+    /// not the condition number of a constrained global FEM system.
+    pub fn spectrum(self) -> Result<ElementSpectrum, ElementError> {
+        let mut eigenvalues = symmetric_eigenvalues(self.stiffness)?;
+        eigenvalues.sort_by(f64::total_cmp);
+        let spectral_scale = eigenvalues
+            .iter()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        if !spectral_scale.is_finite() || spectral_scale <= 0.0 {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let rigid_mode_threshold = 4096.0 * f64::EPSILON * spectral_scale;
+        let rigid_mode_count = eigenvalues
+            .iter()
+            .filter(|value| value.abs() <= rigid_mode_threshold)
+            .count();
+        let positive: Vec<f64> = eigenvalues
+            .iter()
+            .copied()
+            .filter(|value| *value > rigid_mode_threshold)
+            .collect();
+        if rigid_mode_count != 3
+            || positive.len() != 3
+            || eigenvalues.iter().any(|value| *value < -rigid_mode_threshold)
+        {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let smallest_positive_eigenvalue = positive[0];
+        let largest_positive_eigenvalue = positive[2];
+        let nonrigid_condition_number =
+            largest_positive_eigenvalue / smallest_positive_eigenvalue;
+        if !nonrigid_condition_number.is_finite() || nonrigid_condition_number < 1.0 {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        Ok(ElementSpectrum {
+            eigenvalues,
+            rigid_mode_count,
+            positive_mode_count: positive.len(),
+            smallest_positive_eigenvalue,
+            largest_positive_eigenvalue,
+            nonrigid_condition_number,
+            rigid_mode_threshold,
+        })
+    }
+
     /// Recover the constant small-strain tensor from the three nodal values.
     pub fn strain(self, displacements: [Vec2; 3]) -> Result<Strain2, ElementError> {
         if displacements
@@ -329,12 +384,116 @@ impl TriangleElement {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ElementSpectrum {
+    /// Symmetric Jacobi eigenvalues sorted in nondecreasing order.
+    pub eigenvalues: [f64; 6],
+    /// Number of eigenvalues classified as rigid-body zero modes.
+    pub rigid_mode_count: usize,
+    /// Number of positive deformational modes.
+    pub positive_mode_count: usize,
+    pub smallest_positive_eigenvalue: f64,
+    pub largest_positive_eigenvalue: f64,
+    /// Spectral condition number on the three-dimensional deformational subspace.
+    pub nonrigid_condition_number: f64,
+    /// Absolute spectral threshold used to classify the three zero modes.
+    pub rigid_mode_threshold: f64,
+}
+
+/// Symmetric Jacobi eigensolver for a small dense 6-by-6 element matrix.
+/// The input is symmetrized at the level of roundoff before rotations; callers
+/// separately test the unsymmetrized stiffness symmetry defect.
+fn symmetric_eigenvalues(
+    mut matrix: [[f64; 6]; 6],
+) -> Result<[f64; 6], ElementError> {
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(ElementError::InvalidStiffnessSpectrum);
+    }
+    for i in 0..6 {
+        for j in (i + 1)..6 {
+            let average = 0.5 * (matrix[i][j] + matrix[j][i]);
+            if !average.is_finite() {
+                return Err(ElementError::InvalidStiffnessSpectrum);
+            }
+            matrix[i][j] = average;
+            matrix[j][i] = average;
+        }
+    }
+
+    for _ in 0..(64 * 6 * 6) {
+        let mut pivot = (0_usize, 1_usize);
+        let mut largest_off_diagonal = 0.0_f64;
+        let mut scale = 0.0_f64;
+        for (i, row) in matrix.iter().enumerate() {
+            scale = scale.max(row[i].abs());
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                if value.abs() > largest_off_diagonal {
+                    largest_off_diagonal = value.abs();
+                    pivot = (i, j);
+                }
+            }
+        }
+        if !scale.is_finite() || !largest_off_diagonal.is_finite() {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        if largest_off_diagonal <= 32.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE) {
+            let mut values = [0.0_f64; 6];
+            for (i, row) in matrix.iter().enumerate() {
+                values[i] = row[i];
+            }
+            return if values.iter().all(|value| value.is_finite()) {
+                Ok(values)
+            } else {
+                Err(ElementError::InvalidStiffnessSpectrum)
+            };
+        }
+
+        let (p, q) = pivot;
+        let app = matrix[p][p];
+        let aqq = matrix[q][q];
+        let apq = matrix[p][q];
+        if apq == 0.0 {
+            continue;
+        }
+        let tau = (aqq - app) / (2.0 * apq);
+        if !tau.is_finite() {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        let t = if tau >= 0.0 {
+            1.0 / (tau + tau.hypot(1.0))
+        } else {
+            -1.0 / (-tau + tau.hypot(1.0))
+        };
+        let cosine = 1.0 / (1.0 + t * t).sqrt();
+        let sine = t * cosine;
+        matrix[p][p] = app - t * apq;
+        matrix[q][q] = aqq + t * apq;
+        matrix[p][q] = 0.0;
+        matrix[q][p] = 0.0;
+        for k in 0..6 {
+            if k == p || k == q {
+                continue;
+            }
+            let akp = matrix[k][p];
+            let akq = matrix[k][q];
+            let new_kp = cosine * akp - sine * akq;
+            let new_kq = sine * akp + cosine * akq;
+            matrix[k][p] = new_kp;
+            matrix[p][k] = new_kp;
+            matrix[k][q] = new_kq;
+            matrix[q][k] = new_kq;
+        }
+    }
+    Err(ElementError::EigenvalueIterationLimit)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GeometrySweepPoint {
     pub height: f64,
     pub mean_ratio_quality: f64,
     /// Longest edge length times the maximum shape-gradient norm. This is a
     /// dimensionless geometry-amplification proxy, not a matrix condition number.
     pub dimensionless_gradient_amplification: f64,
+    pub element_nonrigid_condition_number: f64,
 }
 
 pub fn run_geometry_conditioning_sweep() -> Result<Vec<GeometrySweepPoint>, ElementError> {
@@ -360,15 +519,19 @@ pub fn run_geometry_conditioning_sweep() -> Result<Vec<GeometrySweepPoint>, Elem
             .iter()
             .map(|gradient| gradient[0].hypot(gradient[1]))
             .fold(0.0_f64, f64::max);
+        let spectrum = element.spectrum()?;
         let point = GeometrySweepPoint {
             height,
             mean_ratio_quality: element.mean_ratio_quality,
             dimensionless_gradient_amplification: longest_edge * max_gradient_norm,
+            element_nonrigid_condition_number: spectrum.nonrigid_condition_number,
         };
         if !(point.mean_ratio_quality.is_finite()
             && point.dimensionless_gradient_amplification.is_finite()
+            && point.element_nonrigid_condition_number.is_finite()
             && point.mean_ratio_quality > 0.0
-            && point.dimensionless_gradient_amplification > 0.0)
+            && point.dimensionless_gradient_amplification > 0.0
+            && point.element_nonrigid_condition_number >= 1.0)
         {
             return Err(ElementError::NonFiniteGeometry);
         }
@@ -903,6 +1066,8 @@ mod tests {
             pair[1].mean_ratio_quality < pair[0].mean_ratio_quality
                 && pair[1].dimensionless_gradient_amplification
                     > pair[0].dimensionless_gradient_amplification
+                && pair[1].element_nonrigid_condition_number
+                    > pair[0].element_nonrigid_condition_number
         }));
         assert!(sweep.iter().all(|point| {
             point.mean_ratio_quality > 0.0
@@ -910,5 +1075,31 @@ mod tests {
                 && point.dimensionless_gradient_amplification.is_finite()
         }));
     }
+
+    #[test]
+    fn element_spectrum_resolves_three_rigid_and_three_positive_modes() {
+        let element = TriangleElement::new(points(), material(), 1.0).unwrap();
+        let spectrum = element.spectrum().unwrap();
+        assert_eq!(spectrum.rigid_mode_count, 3, "{spectrum:?}");
+        assert_eq!(spectrum.positive_mode_count, 3, "{spectrum:?}");
+        assert!(spectrum.smallest_positive_eigenvalue > 0.0);
+        assert!(spectrum.largest_positive_eigenvalue >= spectrum.smallest_positive_eigenvalue);
+        assert!(spectrum.nonrigid_condition_number >= 1.0);
+        assert!(spectrum.eigenvalues.windows(2).all(|pair| pair[0] <= pair[1]));
+    }
+
+    #[test]
+    fn element_spectral_conditioning_degrades_for_slivers() {
+        let sweep = run_geometry_conditioning_sweep().unwrap();
+        assert!(sweep.windows(2).all(|pair| {
+            pair[1].element_nonrigid_condition_number
+                > pair[0].element_nonrigid_condition_number
+        }));
+        assert!(
+            sweep.last().unwrap().element_nonrigid_condition_number > 1.0e7,
+            "{sweep:?}"
+        );
+    }
+
 
 }
