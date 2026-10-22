@@ -168,7 +168,10 @@ fn check_fixture(fixture: &Fixture) -> Result<(), String> {
         fixture.constraints.active_power_kw_limit,
         fixture.constraints.floor_area_sqm_limit,
     ];
-    if constraint_values.iter().any(|value| !finite_nonnegative(*value)) {
+    if constraint_values
+        .iter()
+        .any(|value| !finite_nonnegative(*value))
+    {
         return Err("constraints_must_be_finite_and_nonnegative".into());
     }
 
@@ -235,11 +238,7 @@ fn is_resource_feasible(action: &Action, constraints: &Constraints) -> bool {
         && action.floor_area_sqm <= constraints.floor_area_sqm_limit + EPSILON
 }
 
-fn gain(
-    outcomes: &BTreeMap<(String, String), f64>,
-    model_id: &str,
-    action_id: &str,
-) -> f64 {
+fn gain(outcomes: &BTreeMap<(String, String), f64>, model_id: &str, action_id: &str) -> f64 {
     outcomes[&(model_id.to_string(), action_id.to_string())]
 }
 
@@ -312,9 +311,7 @@ fn minimax_regret_action<'a>(
     let mut best = actions[0];
     let mut best_worst_regret = model_ids
         .iter()
-        .map(|model_id| {
-            best_gain_by_model[model_id] - gain(outcomes, model_id, &best.action_id)
-        })
+        .map(|model_id| best_gain_by_model[model_id] - gain(outcomes, model_id, &best.action_id))
         .fold(0.0, f64::max);
     for action in &actions[1..] {
         let worst_regret = model_ids
@@ -382,11 +379,8 @@ fn evaluate(fixture: &Fixture, source_bytes: &[u8]) -> Result<Report, String> {
         maximin_action(&feasible_actions, &model_ids, &outcomes);
     let (minimax_regret_action, minimax_regret_upper_bound) =
         minimax_regret_action(&feasible_actions, &model_ids, &outcomes);
-    let reference_action = family_best_action(
-        &feasible_actions,
-        &fixture.reference_model_id,
-        &outcomes,
-    );
+    let reference_action =
+        family_best_action(&feasible_actions, &fixture.reference_model_id, &outcomes);
 
     let best_gain_by_model: BTreeMap<String, f64> = family_winners
         .iter()
@@ -400,11 +394,7 @@ fn evaluate(fixture: &Fixture, source_bytes: &[u8]) -> Result<Report, String> {
                 .iter()
                 .map(|model_id| ModelGain {
                     model_id: model_id.clone(),
-                    incremental_good_units_per_hour: gain(
-                        &outcomes,
-                        model_id,
-                        &action.action_id,
-                    ),
+                    incremental_good_units_per_hour: gain(&outcomes, model_id, &action.action_id),
                 })
                 .collect();
             let minimum_gain = is_feasible.then(|| {
@@ -469,8 +459,7 @@ fn evaluate(fixture: &Fixture, source_bytes: &[u8]) -> Result<Report, String> {
             .filter(|model_id| *model_id != omitted_model_id)
             .cloned()
             .collect();
-        let (maximin, _) =
-            maximin_action(&feasible_actions, &remaining_model_ids, &outcomes);
+        let (maximin, _) = maximin_action(&feasible_actions, &remaining_model_ids, &outcomes);
         let (minimax_regret, _) =
             minimax_regret_action(&feasible_actions, &remaining_model_ids, &outcomes);
         leave_one_family_out.push(LeaveOneFamilyOut {
@@ -598,7 +587,10 @@ mod tests {
         assert_eq!(winners["bursty-repair-times"], "extend-buffer");
         assert_eq!(winners["finite-buffer-blocking"], "extend-buffer");
         assert_eq!(winners["rework-feedback"], "improve-yield-rework");
-        assert_eq!(winners["supplier-product-mix-coupling"], "improve-yield-rework");
+        assert_eq!(
+            winners["supplier-product-mix-coupling"],
+            "improve-yield-rework"
+        );
     }
 
     #[test]
@@ -608,9 +600,7 @@ mod tests {
         let pair = report
             .pairwise_rankings
             .iter()
-            .find(|pair| {
-                pair.action_a_id == "add-eol-test" && pair.action_b_id == "extend-buffer"
-            })
+            .find(|pair| pair.action_a_id == "add-eol-test" && pair.action_b_id == "extend-buffer")
             .expect("EOL and buffer comparison");
         assert!(pair.ranking_reversal);
         assert!(
@@ -632,7 +622,10 @@ mod tests {
             .as_array_mut()
             .expect("families")
             .reverse();
-        value["outcomes"].as_array_mut().expect("outcomes").reverse();
+        value["outcomes"]
+            .as_array_mut()
+            .expect("outcomes")
+            .reverse();
         let reordered_bytes = serde_json::to_vec(&value).expect("serialize reordered fixture");
         let reordered = parse_and_evaluate(&reordered_bytes).expect("reordered catalogue");
         assert_ne!(original.fixture_sha256, reordered.fixture_sha256);
@@ -653,7 +646,10 @@ mod tests {
         assert_eq!(original.action_scores, reordered.action_scores);
         assert_eq!(original.family_winners, reordered.family_winners);
         assert_eq!(original.pairwise_rankings, reordered.pairwise_rankings);
-        assert_eq!(original.leave_one_family_out, reordered.leave_one_family_out);
+        assert_eq!(
+            original.leave_one_family_out,
+            reordered.leave_one_family_out
+        );
     }
 
     #[test]
@@ -705,14 +701,17 @@ mod tests {
     fn infeasible_high_gain_action_cannot_win_or_change_regret_oracle() {
         let original = report();
         let mut value = fixture_value();
-        value["actions"].as_array_mut().expect("actions").push(json!({
-            "action_id": "over-budget-action",
-            "label": "Synthetic over-budget decoy",
-            "capex_usd": 51.0,
-            "staffed_labor_hours_per_shift": 0.0,
-            "active_power_kw": 0.0,
-            "floor_area_sqm": 0.0
-        }));
+        value["actions"]
+            .as_array_mut()
+            .expect("actions")
+            .push(json!({
+                "action_id": "over-budget-action",
+                "label": "Synthetic over-budget decoy",
+                "capex_usd": 51.0,
+                "staffed_labor_hours_per_shift": 0.0,
+                "active_power_kw": 0.0,
+                "floor_area_sqm": 0.0
+            }));
         let family_ids: Vec<Value> = value["model_families"]
             .as_array()
             .expect("families")
@@ -720,26 +719,38 @@ mod tests {
             .map(|family| family["model_id"].clone())
             .collect();
         for model_id in family_ids {
-            value["outcomes"].as_array_mut().expect("outcomes").push(json!({
-                "model_id": model_id,
-                "action_id": "over-budget-action",
-                "incremental_good_units_per_hour": 99.0
-            }));
+            value["outcomes"]
+                .as_array_mut()
+                .expect("outcomes")
+                .push(json!({
+                    "model_id": model_id,
+                    "action_id": "over-budget-action",
+                    "incremental_good_units_per_hour": 99.0
+                }));
         }
         let bytes = serde_json::to_vec(&value).expect("serialize over-budget decoy");
         let report = parse_and_evaluate(&bytes).expect("complete decoy catalogue");
         assert_eq!(report.feasible_action_count, 5);
         assert_eq!(report.infeasible_action_count, 1);
         assert_eq!(report.maximin_action_id, original.maximin_action_id);
-        assert_eq!(report.minimax_regret_action_id, original.minimax_regret_action_id);
+        assert_eq!(
+            report.minimax_regret_action_id,
+            original.minimax_regret_action_id
+        );
         let decoy = report
             .action_scores
             .iter()
             .find(|score| score.action_id == "over-budget-action")
             .expect("decoy score");
         assert!(!decoy.resource_feasible);
-        assert_eq!(decoy.minimum_gain_across_model_families_units_per_hour, None);
-        assert_eq!(decoy.maximum_regret_across_model_families_units_per_hour, None);
+        assert_eq!(
+            decoy.minimum_gain_across_model_families_units_per_hour,
+            None
+        );
+        assert_eq!(
+            decoy.maximum_regret_across_model_families_units_per_hour,
+            None
+        );
     }
 
     #[test]
