@@ -93,7 +93,7 @@ The static planar-truss solver does **not** implement free-vibration or modal an
 
 ## Beam modal parameter-envelope verification
 
-[The 64-case sweep in PR #2660](https://github.com/Luminous-Dynamics/symtropy/pull/2660) is a synthetic two-member released-joint beam robustness ladder. For fixed-seed geometry/material cases, it checks all 384 mode results for order, positivity/classification, eigen-residual, mass normalization and modal orthogonality, then tests three metamorphic laws: (f\propto\sqrt{E}), (f\propto1/\sqrt{\rho}), and (f\propto1/L) when both section radius and member dimensions are scaled geometrically. The request and test summary have their own deterministic CI receipt. This is model-specific software evidence only; it is not an external beam benchmark or physical validation. The current head still requires its exact-head run to pass.
+[The 64-case sweep in PR #2662](https://github.com/Luminous-Dynamics/symtropy/pull/2660) is a synthetic two-member released-joint beam robustness ladder. For fixed-seed geometry/material cases, it checks all 384 mode results for order, positivity/classification, eigen-residual, mass normalization and modal orthogonality, then tests three metamorphic laws: (f\propto\sqrt{E}), (f\propto1/\sqrt{\rho}), and (f\propto1/L) when both section radius and member dimensions are scaled geometrically. The request and test summary have their own deterministic CI receipt. This is model-specific software evidence only; it is not an external beam benchmark or physical validation. The current head still requires its exact-head run to pass.
 
 ## Safety and claim ceiling
 
