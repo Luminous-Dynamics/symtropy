@@ -37,6 +37,18 @@ fn run() -> Result<Vec<u8>, String> {
     })?;
     let args: Vec<String> = env::args().skip(1).collect();
     match args.as_slice() {
+        [command, manifest_path, policy_path, board_id]
+            if command == "init-incumbent-archive" =>
+        {
+            let manifest = fs::read(manifest_path)
+                .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
+            let policy = fs::read(policy_path)
+                .map_err(|error| format!("cannot read {policy_path}: {error}"))?;
+            let identity = ArchiveIdentity::from_pinned_sources(&manifest, &policy, board_id)?;
+            let archive = VerifiedIncumbentArchive::new(&evaluator_head, identity)?;
+            serde_json::to_vec_pretty(&archive)
+                .map_err(|error| format!("cannot serialize initial incumbent archive: {error}"))
+        }
         [command, identity_path] if command == "init-incumbent-archive" => {
             let identity_bytes = fs::read(identity_path)
                 .map_err(|error| format!("cannot read {identity_path}: {error}"))?;
@@ -71,14 +83,6 @@ fn run() -> Result<Vec<u8>, String> {
         {
             let archive_bytes = fs::read(archive_path)
                 .map_err(|error| format!("cannot read {archive_path}: {error}"))?;
-            let mut archive: VerifiedIncumbentArchive = serde_json::from_slice(&archive_bytes)
-                .map_err(|error| format!("incumbent archive JSON invalid: {error}"))?;
-            if archive.schema != ANYTIME_ARCHIVE_SCHEMA {
-                return Err(format!("unsupported incumbent archive schema: {}", archive.schema));
-            }
-            if archive.evaluator_git_head != evaluator_head.to_ascii_lowercase() {
-                return Err("incumbent archive evaluator Git HEAD differs from current exact head".into());
-            }
             let metadata_bytes = fs::read(metadata_path)
                 .map_err(|error| format!("cannot read {metadata_path}: {error}"))?;
             let metadata: CheckpointMetadata = serde_json::from_slice(&metadata_bytes)
@@ -87,6 +91,13 @@ fn run() -> Result<Vec<u8>, String> {
                 .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
             let policy = fs::read(policy_path)
                 .map_err(|error| format!("cannot read {policy_path}: {error}"))?;
+            let mut archive = VerifiedIncumbentArchive::reverify_bytes(
+                &archive_bytes,
+                &manifest,
+                Path::new(artifact_root),
+                &policy,
+                &evaluator_head,
+            )?;
             let evaluation = evaluate_checkpoint_from_root(
                 metadata,
                 &manifest,
@@ -97,14 +108,22 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&archive)
                 .map_err(|error| format!("cannot serialize updated incumbent archive: {error}"))
         }
-        [command, archive_path, budget] if command == "select-incumbent" => {
+        [command, archive_path, manifest_path, artifact_root, policy_path, budget]
+            if command == "select-incumbent" =>
+        {
             let archive_bytes = fs::read(archive_path)
                 .map_err(|error| format!("cannot read {archive_path}: {error}"))?;
-            let archive: VerifiedIncumbentArchive = serde_json::from_slice(&archive_bytes)
-                .map_err(|error| format!("incumbent archive JSON invalid: {error}"))?;
-            if archive.schema != ANYTIME_ARCHIVE_SCHEMA {
-                return Err(format!("unsupported incumbent archive schema: {}", archive.schema));
-            }
+            let manifest = fs::read(manifest_path)
+                .map_err(|error| format!("cannot read {manifest_path}: {error}"))?;
+            let policy = fs::read(policy_path)
+                .map_err(|error| format!("cannot read {policy_path}: {error}"))?;
+            let archive = VerifiedIncumbentArchive::reverify_bytes(
+                &archive_bytes,
+                &manifest,
+                Path::new(artifact_root),
+                &policy,
+                &evaluator_head,
+            )?;
             let budget_ms = budget.parse::<u64>()
                 .map_err(|error| format!("budget milliseconds must be a non-negative integer: {error}"))?;
             let selection = archive.select_at_budget(budget_ms);
@@ -277,7 +296,7 @@ fn run() -> Result<Vec<u8>, String> {
             serde_json::to_vec_pretty(&comparison)
                 .map_err(|error| format!("cannot serialize paired comparison: {error}"))
         }
-        _ => Err("usage: pcb-route-benchmark init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
+        _ => Err("usage: pcb-route-benchmark init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID | init-incumbent-archive IDENTITY.json | verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json | select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS | build-manifest D3.json INTAKE_SPEC.json DATASET_ROOT | verify-dataset MANIFEST.json DATASET_ROOT | verify-run-artifacts REPORT.json MANIFEST.json RUN_ROOT | verify-kicad-run-artifacts REPORT.json MANIFEST.json RUN_ROOT POLICY.json | import-pcbworld-csv PER_ROLLOUT.csv MANIFEST.json | validate REPORT.json MANIFEST.json | compare BASELINE.json TREATMENT.json MANIFEST.json (synthetic only) | compare-series BASELINE_RUN_DIR TREATMENT_RUN_DIR MANIFEST.json (synthetic only) | compare-verified BASELINE.json TREATMENT.json MANIFEST.json DATASET_ROOT BASELINE_RUN_ROOT TREATMENT_RUN_ROOT KI_CAD_DRC_POLICY.json".into()),
     }
 }
 
