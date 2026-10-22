@@ -236,6 +236,14 @@ A second current comparator is the August 2026 multi-fidelity ant colony system 
 
 The February 2026 review of shipyard production planning concludes that hybrid discrete-event simulation plus optimization has stronger operational credibility than architecture-rich digital twins without longitudinal yard-wide KPI validation, while confidential industrial datasets limit reproducibility. For this reason, the evidence ladder remains: exact tiny oracles → reproduction of a published instance family → common-budget head-to-head baselines → permissioned execution-trace replay → longitudinal yard KPIs. A synthetic rectangle benchmark is useful for correctness and algorithm ablation, but cannot establish industrial benefit by itself.
 
+## Operational acceptance is not the same as physical feasibility
+
+The public policy module evaluates the recovery candidate first, then applies a site-owned dispatch-stability policy. The raw physical report remains intact. A candidate can therefore be physically valid but operationally unacceptable because it changes a dispatch-frozen placement/transfer, exceeds the permitted unaffected-work churn, or exceeds explicit time/geometry shift budgets.
+
+The `DispatchStabilityPolicy` exposes a `freeze_before_tick` commitment boundary, an explicit `allow_affected_frozen_changes` waiver, and separate budgets for unaffected placement churn, unaffected transfer churn, time shift and rectangle-edge displacement. Reservations starting strictly before the freeze tick are frozen; a reservation starting exactly at the boundary is outside the frozen window. Affected frozen work still requires an explicit policy waiver—physical disruption does not silently waive dispatch commitments. No weighted scalar combines these limits.
+
+Five unit tests cover a physically valid but frozen-plan-changing candidate, exact boundary semantics, explicit waiver for affected frozen work, separate churn/geometry budget violations, and a frozen transfer reassignment. These are authored tests awaiting exact-head CI. The policy is a decision boundary, not a planner or a safety certification.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
