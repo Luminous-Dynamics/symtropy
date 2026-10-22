@@ -1,0 +1,46 @@
+name: PIRB v0.2 Outcome Governance Schema Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/schemas/peacebuilding-outcome-governance-v0.2.schema.json"
+      - "docs/fixtures/peacebuilding-outcome-governance-v0.2.json"
+      - "tools/pirb-outcome-governance-audit/**"
+      - ".github/workflows/pirb-v0-2-schema-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pirb-v0-2-schema-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Generate standalone dependency lock
+        run: cargo generate-lockfile --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml
+
+      - name: Check standalone crate formatting
+        run: cargo fmt --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml -- --check
+
+      - name: Run schema meta-validation, instance validation and negative controls
+        run: cargo test --locked --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/pirb-outcome-governance-audit/Cargo.toml --all-targets -- -D warnings
