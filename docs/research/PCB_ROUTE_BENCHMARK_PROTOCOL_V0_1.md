@@ -313,3 +313,23 @@ For an actual external pair, use `compare-verified`:
 This one operation (1) reopens and hashes every dataset board, license-evidence file and pinned source split config, (2) reopens each method's output-board and DRC files, (3) checks the raw DRC JSON against the version-pinned policy and normalized report, and (4) emits the paired comparison together with all three verification receipts. If one output, DRC report, source-license file, or source split is absent or tampered, no external paired score is emitted. The raw DRC report policy digest must match both the manifest-scored run report and the policy bytes used by the verifier.
 
 This avoids a dangerous two-command workflow in which a user could run a normalized-only comparison and forget the separate raw-artifact verifier. It still does not make any physical or manufacturing claim; it only ensures the benchmark score is bound to the actual source and result bytes and pinned KiCad evidence.
+
+## Competitive bar updated from public results (2026-10-22)
+
+A benchmark target must now account for public vendor-reported results published after the PCBWorld paper:
+
+- ProtoFlow's benchmark page reports **99/99 D3-A small boards clean** and **30/30 D3-B attempts clean** with three attempts per each of 10 medium boards under a 30-minute per-attempt limit. It reports **0.929 D3-A / 0.933 D3-B at three minutes**, and router-only results of 0.919 / 0.900. See [ProtoFlow's results](https://www.protoflow.ai/benchmarks).
+- DeepPCB's 28 September 2026 case study reports **92/99 D3-A and 24/30 D3-B attempts clean** on its standard model, with 95% intervals of [0.861, 0.965] and [0.627, 0.905], respectively; the small D3-B sample is too small to separate its reported 0.800 from FreeRouting's 0.64 confidently. See [DeepPCB's results and their comparison table](https://deeppcb.ai/benchmark/pcbworld-bench-deeppcb-results/).
+- The paper's reproduced one-attempt baseline table, as transcribed by DeepPCB, lists D3-A 0.81 for PPO without the finish stage and 0.75 for FreeRouting; D3-B 0.22 and 0.64, respectively. Compare only after the same official evaluator, board revision, engine, scoring flags and time budget are pinned. The vendor pages are self-published run reports, not independently audited evidence from this project.
+
+### What “beat SOTA” should mean now
+
+The ceiling on a clean-pass rate is 1.0, so the stretch goal cannot be merely “more clean boards than 99/99.” It must be **same-validity performance at a tighter time budget, better board-level generalization, or lower copper/via cost without sacrificing clean completion**. Proposed measured gates for a fair comparison:
+
+1. **3-minute D3-A**: match or exceed 99/99 clean attempts (1.000) on the exact same D3-A board bytes, with independently rerun KiCad DRC; then pursue a lower median/p90 time-to-first-clean completion and/or less wirelength/vias on paired clean boards.
+2. **3-minute D3-B**: target at least 28/30 clean attempts (0.933) across all three attempts per each of the 10 boards, with board-clustered intervals and per-board disclosure. Then target 30/30 without raising the time ceiling.
+3. **Quality frontier**: at equal clean-pass rate and identical board set, seek at least 5% lower median wirelength or 10% fewer vias without a material regression in the other metric; report the full Pareto front, not a scalar reward.
+4. **Robustness**: report all 99/30 attempts, every timeout and failure; compare one-attempt and bounded multi-attempt modes separately. Never score “best of N” as if it were one attempt.
+5. **Generalization**: keep source-board-family held-out data separate from the official D3 evaluation. Upstream's published train/test key mirroring is for its evaluation-only D3 flow and is not itself a held-out train/test partition for new policy tuning.
+
+The candidate 30-board pilot in this repository remains **unauthorized for execution** until each original source project's license and exact board bytes are ingested, pinned and reviewed. Metadata says are not enough: the source audit currently marks zero of the 30 candidates benchmark-eligible. This is an intentional gate, not a reason to silently swap in unlicensed boards.
