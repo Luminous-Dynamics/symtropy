@@ -500,11 +500,16 @@ fn line(out: &mut String, fields: &[String]) {
 }
 
 fn make_report() -> String {
-    let rows: Vec<ResultRow> = Transform::ALL.iter().copied()
-        .flat_map(|transform| Policy::ALL.iter().copied().flat_map(move |policy| {
-            BUDGETS.iter().copied().map(move |budget| transform_result(transform, policy, budget))
-        }))
-        .collect();
+    // Build rows with owned array iteration; no references into temporary
+    // associated-const arrays escape nested iterator closures.
+    let mut rows: Vec<ResultRow> = Vec::new();
+    for transform in Transform::ALL {
+        for policy in Policy::ALL {
+            for budget in BUDGETS {
+                rows.push(transform_result(transform, policy, budget));
+            }
+        }
+    }
 
     let mut out = String::new();
     line(&mut out, &["META".into(), "format".into(), "VIS-MEM-018-v0.1".into()]);
