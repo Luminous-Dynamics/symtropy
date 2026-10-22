@@ -575,8 +575,8 @@ mod tests {
     fn duplicate_event_ids_fail_closed() {
         let plan = [op("weld-a", 0, 5)];
         let events = [
-            event("same-id", "weld-a", ExecutionEventKind::Started, 1, 1),
-            event("same-id", "weld-a", ExecutionEventKind::Started, 2, 2),
+            event("same-id", "weld-a", ExecutionEventKind::Started, 1, 4),
+            event("same-id", "weld-a", ExecutionEventKind::Started, 2, 5),
         ];
         let report = replay_execution(&plan, &events, cutoff(5, 5));
         assert!(!report.evidence_valid);
