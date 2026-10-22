@@ -577,7 +577,7 @@ mod tests {
     #[test]
     fn inclined_transform_preserves_energy_and_matrix_symmetry() {
         let local = matrices();
-        let angle_rad = 0.713;
+        let angle_rad = 0.713_f64;
         let cosine = angle_rad.cos();
         let sine = angle_rad.sin();
         let dx = LENGTH_M * cosine;
@@ -627,7 +627,7 @@ mod tests {
     #[test]
     fn rigid_body_translation_and_rotation_have_zero_internal_force() {
         let local = matrices();
-        let angle_rad = 0.713;
+        let angle_rad = 0.713_f64;
         let dx = LENGTH_M * angle_rad.cos();
         let dy = LENGTH_M * angle_rad.sin();
         let global =
