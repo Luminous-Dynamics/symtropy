@@ -1,0 +1,74 @@
+name: VIS-MEM-015 Paired Memory Admission
+
+on:
+  push:
+    branches: ["research/vis-mem-causal-admission-v0-1"]
+    paths:
+      - "tools/vision-memory-causal-admission.rs"
+      - ".github/workflows/vision-memory-causal-admission.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-causal-admission.rs"
+      - ".github/workflows/vision-memory-causal-admission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-015-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-memory-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and execute contract tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-causal-admission.rs -o /tmp/vis-mem-admission-tests
+          /tmp/vis-mem-admission-tests
+
+      - name: Replay paired report and validate exact schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-causal-admission.rs -o /tmp/vis-mem-admission
+          /tmp/vis-mem-admission > vis-mem-admission.tsv
+          /tmp/vis-mem-admission > vis-mem-admission-repeat.tsv
+          cmp vis-mem-admission.tsv vis-mem-admission-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-015-v0.1' vis-mem-admission.tsv
+          grep -Fq $'CASE\tfresh_verified_hidden\ttransfer_validated_gate' vis-mem-admission.tsv
+          grep -Fq $'CASE\tstale_invariant_claim_without_transfer_validation\tscope_claim_gate' vis-mem-admission.tsv
+          awk -F '\t' '$1 == "CASE_HEADER" { if (NF != 26) exit 1; ch++ } $1 == "CASE" { if (NF != 26) exit 1; c++ } $1 == "SUMMARY_HEADER" { if (NF != 14) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 14) exit 1; s++ } END { if (ch != 1 || c != 144 || sh != 1 || s != 8) exit 1 }' vis-mem-admission.tsv
+          sha256sum vis-mem-admission.tsv > vis-mem-admission.sha256
+          sha256sum -c vis-mem-admission.sha256
+
+      - name: Upload paired memory-admission evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-015-causal-admission
+          path: |
+            vis-mem-admission.tsv
+            vis-mem-admission.sha256
+          if-no-files-found: error
