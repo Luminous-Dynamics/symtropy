@@ -1,0 +1,182 @@
+{
+  "schema_version": "ANIMAL-FLOOD-FORAGE-RISK-PILOT-V0",
+  "status": "synthetic_scenario_manifest",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
+  "scenario_id": "flood_forage_risk_corridor_v0",
+  "independent_unit": "episode_seed_pair",
+  "note": "Frozen synthetic integration fixture specification. It is not a simulation result, empirical calibration, or claim about a real animal species.",
+  "randomization": {
+    "seed_family": "flood-forage-risk-seed-family-v0",
+    "seeds": [
+      104,
+      205,
+      306,
+      407,
+      508,
+      609,
+      710,
+      811,
+      912,
+      1013
+    ],
+    "paired_exogenous_noise": true,
+    "pairing_scope": "Pair policies on the same initial-state and exogenous-noise family within a registered model/configuration. Genuinely different model structures need distributional and decision-regret comparisons; pathwise equality is not required."
+  },
+  "horizon": {
+    "ticks": 1200,
+    "tick_duration_ms": 100
+  },
+  "world": {
+    "width_cells": 12,
+    "height_cells": 8,
+    "initial_water_depth_cm": 5,
+    "initial_resource_stock_units": 1000,
+    "resource_replenishment_units_per_tick": 2,
+    "flood": {
+      "event_id": "flood_corridor",
+      "start_tick": 400,
+      "end_tick": 720,
+      "water_depth_cm": 50,
+      "current_xy": [
+        0.8,
+        0.1
+      ],
+      "closes_corridor_id": "corridor_midstream"
+    },
+    "resource_shortage": {
+      "event_id": "forage_shortage",
+      "start_tick": 420,
+      "end_tick": 900,
+      "replenishment_units_per_tick": 0
+    },
+    "held_out_combination": true
+  },
+  "refuges": [
+    {
+      "id": "west_refuge",
+      "x_cell": 1,
+      "y_cell": 4
+    },
+    {
+      "id": "east_refuge",
+      "x_cell": 10,
+      "y_cell": 4
+    }
+  ],
+  "corridors": [
+    {
+      "id": "corridor_midstream",
+      "from_refuge": "west_refuge",
+      "to_refuge": "east_refuge",
+      "traversable_before_flood": true,
+      "traversable_during_flood": false
+    }
+  ],
+  "model_registry": [
+    {
+      "id": "candidate_fast_regrowth",
+      "role": "candidate_structure",
+      "reference_history_fit": "observationally_compatible",
+      "forage_recovery_lag_ticks": 100,
+      "policy_visible_model_id": false,
+      "revealed_before_evaluation": true,
+      "parameter_source": "public_candidate_manifest",
+      "parameters_disclosed_in_public_fixture": true
+    },
+    {
+      "id": "candidate_slow_regrowth",
+      "role": "candidate_structure",
+      "reference_history_fit": "observationally_compatible",
+      "forage_recovery_lag_ticks": 300,
+      "policy_visible_model_id": false,
+      "revealed_before_evaluation": true,
+      "parameter_source": "public_candidate_manifest",
+      "parameters_disclosed_in_public_fixture": true
+    },
+    {
+      "id": "challenger_sealed_model_v0",
+      "role": "blind_challenger",
+      "reference_history_fit": "observationally_compatible",
+      "forage_recovery_lag_ticks": null,
+      "policy_visible_model_id": false,
+      "revealed_before_evaluation": false,
+      "parameter_source": "sealed_evaluator_manifest",
+      "parameters_disclosed_in_public_fixture": false
+    }
+  ],
+  "agent": {
+    "profile_id": "synthetic_prey_archetype_v0",
+    "biological_claim_scope": "synthetic_only",
+    "initial_energy_units": 100,
+    "active_sensing_actions_per_episode": 3,
+    "max_policy_actions": 1200
+  },
+  "sensory_contract": {
+    "permitted_observations": [
+      "local_flow_estimate",
+      "local_water_depth",
+      "local_resource_cue",
+      "local_predator_cue",
+      "refuge_visibility"
+    ],
+    "denied_inputs": [
+      "global_current_vector_field",
+      "future_flood_state",
+      "intervention_label",
+      "hidden_model_id",
+      "exact_global_resource_coordinates"
+    ],
+    "cue_delivery_latency_ticks": 2,
+    "renderer_independent": true
+  },
+  "budget_contract": {
+    "simulated_tick_budget": 1200,
+    "max_policy_actions": 1200,
+    "active_sensing_actions_per_episode": 3,
+    "compute_budget_units": 10000,
+    "matched_budget_required": true,
+    "failed_selected_episodes_remain_in_denominator": true
+  },
+  "policy_comparison": {
+    "qualifying_baselines": [
+      "reactive_heuristic"
+    ],
+    "candidates": [
+      "adaptive_bounded_sensing"
+    ],
+    "nonqualifying_upper_bounds": [
+      "privileged_planner_upper_bound"
+    ],
+    "exact_policy_identity_required": true,
+    "same_initial_state_required": true,
+    "paired_exogenous_noise_required_within_model": true,
+    "report_distributional_comparison_across_model_structures": true
+  },
+  "primary_metrics": [
+    "route_feasibility",
+    "normalized_decision_regret",
+    "integrated_performance_deficit",
+    "sensing_cost",
+    "calibration_or_abstention_quality",
+    "resource_accounting_residual",
+    "per_individual_outcome_distribution",
+    "receipt_completeness"
+  ],
+  "ablations": [
+    "disable_active_sensing",
+    "remove_flood_preserve_other_random_streams",
+    "remove_resource_shortage_preserve_flood",
+    "swap_observationally_compatible_model_structures",
+    "withhold_future_and_intervention_labels",
+    "change_rendering_without_changing_world_or_authorized_observations",
+    "compare_larger_compute_budget_as_cost_tradeoff"
+  ],
+  "hard_invariants": {
+    "hidden_state_access_allowed": false,
+    "resource_accounting_violation_limit": 0,
+    "selected_failures_remain_in_denominator": true,
+    "missing_metric_disposition": "incomplete_or_not_assessed",
+    "synthetic_success_claim_scope": "contract_consistency_only",
+    "renderer_is_world_authority": false
+  }
+}

@@ -1,0 +1,875 @@
+{
+  "schema_version": "ANIMAL-ECOLOGICAL-TRANSFER-ORACLE-V1",
+  "status": "synthetic_contract_fixture",
+  "research_snapshot": "2026-10-20",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2214",
+  "note": "All cases are synthetic expected-contract tests, not empirical animal observations, validated biological mechanisms, or current Symtropy performance results.",
+  "case_count": 51,
+  "independent_unit": "episode_or_individual_or_ecology_regime_as_declared",
+  "required_run_identity": [
+    "source_commit",
+    "simulator_version",
+    "policy_version",
+    "ecology_config_sha256",
+    "scenario_manifest_sha256",
+    "independent_unit_manifest_sha256",
+    "train_split_sha256",
+    "validation_split_sha256",
+    "test_split_sha256",
+    "evaluator_version",
+    "seed_family",
+    "sensor_action_contract",
+    "simulated_horizon",
+    "interaction_budget",
+    "compute_budget",
+    "hardware_runtime",
+    "uncertainty_method",
+    "preregistered_margins"
+  ],
+  "comparison_policy": [
+    "matched_budget_is_default",
+    "extra_budget_is_cost_tradeoff",
+    "missing_metric_is_not_zero",
+    "failed_selected_rollout_remains_in_accounting",
+    "synthetic_pass_is_not_empirical_validation"
+  ],
+  "cases": [
+    {
+      "id": "reference_replay_is_pinned",
+      "kind": "reproducibility",
+      "setup": "A reference ecology is run twice under the same pinned deterministic configuration and initial state.",
+      "perturbation": "replay_same_run",
+      "expected": {
+        "required_properties": [
+          "same declared deterministic outputs",
+          "receipt identity and scenario digest agree"
+        ]
+      },
+      "fail_if": [
+        "receipt or scenario digest mismatch"
+      ],
+      "reason": "reference_for_exact_replay"
+    },
+    {
+      "id": "single_resource_increase",
+      "kind": "single_factor_shift",
+      "setup": "Only the replenishment rate of one resource increases; initial state and all other world parameters are held fixed.",
+      "perturbation": "intervene_resource_regrowth",
+      "expected": {
+        "required_properties": [
+          "world change is recorded in manifest",
+          "agent sees only permitted sensor consequences",
+          "resource transfer obeys declared accounting"
+        ]
+      },
+      "fail_if": [
+        "unrecorded configuration delta",
+        "resource appears without a declared source"
+      ],
+      "reason": "isolate_one_ecological_factor"
+    },
+    {
+      "id": "resource_shortage_persists",
+      "kind": "single_factor_shift",
+      "setup": "A required resource remains below the reference level for a declared interval.",
+      "perturbation": "intervene_resource_availability",
+      "expected": {
+        "required_properties": [
+          "performance and resource use are reported separately",
+          "infeasible baseline behavior is not mislabeled as recovery",
+          "uncertainty is stratified by regime"
+        ]
+      },
+      "fail_if": [
+        "report claims baseline recovery while new regime remains infeasible"
+      ],
+      "reason": "persistent_shift_is_not_transient_noise"
+    },
+    {
+      "id": "resource_pulse_then_decay",
+      "kind": "shock_response",
+      "setup": "A temporary resource pulse returns to the reference process after a fixed duration.",
+      "perturbation": "pulse_then_restore_resource",
+      "expected": {
+        "required_properties": [
+          "pre-shift, shock, and post-shift windows remain distinct",
+          "overshoot and integrated deficit are measured"
+        ]
+      },
+      "fail_if": [
+        "only a single end-state metric is reported"
+      ],
+      "reason": "measure_response_curve_and_hysteresis"
+    },
+    {
+      "id": "resource_regrowth_lag",
+      "kind": "temporal_ecology",
+      "setup": "Resource replenishment changes only after a declared ecological delay.",
+      "perturbation": "delay_resource_recovery",
+      "expected": {
+        "required_properties": [
+          "policy is scored against observed/permitted cues",
+          "the simulator's hidden future regrowth time is not exposed"
+        ]
+      },
+      "fail_if": [
+        "controller reads future regrowth state"
+      ],
+      "reason": "test_temporal_credit_and_delay"
+    },
+    {
+      "id": "heatwave_within_declared_envelope",
+      "kind": "climate_shift",
+      "setup": "Temperature shifts within the predeclared supported range while water and resources are held fixed.",
+      "perturbation": "raise_ambient_temperature_within_support",
+      "expected": {
+        "required_properties": [
+          "thermal response and task competence are both recorded",
+          "claim stays within declared mechanism/range"
+        ]
+      },
+      "fail_if": [
+        "claim extrapolates outside evaluated range"
+      ],
+      "reason": "in_support_climate_sensitivity"
+    },
+    {
+      "id": "cold_extreme_outside_support",
+      "kind": "out_of_distribution",
+      "setup": "Temperature moves outside the declared calibration envelope.",
+      "perturbation": "temperature_beyond_support",
+      "expected": {
+        "required_properties": [
+          "OOD status or calibrated uncertainty is surfaced",
+          "no biological certainty claim is inferred from unsupported simulation settings"
+        ]
+      },
+      "fail_if": [
+        "overconfident supported-range claim"
+      ],
+      "reason": "unsupported_extrapolation_must_be_visible"
+    },
+    {
+      "id": "drought_increases_travel_cost",
+      "kind": "compositional_shift",
+      "setup": "Water becomes less available and distance to the nearest known source increases without changing the sensor model.",
+      "perturbation": "drought_and_water_distance",
+      "expected": {
+        "required_properties": [
+          "travel/energy costs are counted",
+          "success, failure, and cost are reported jointly"
+        ]
+      },
+      "fail_if": [
+        "travel cost omitted from claimed gain"
+      ],
+      "reason": "ecological_tradeoff_not_free_reward"
+    },
+    {
+      "id": "refuge_removed",
+      "kind": "habitat_intervention",
+      "setup": "One refuge is removed while the remaining habitat graph and animal initial state are fixed.",
+      "perturbation": "remove_refuge_node",
+      "expected": {
+        "required_properties": [
+          "world topology change is manifest-bound",
+          "route feasibility and exposure are measured separately"
+        ]
+      },
+      "fail_if": [
+        "agent uses removed refuge or stale path silently"
+      ],
+      "reason": "habitat_topology_affects_action_feasibility"
+    },
+    {
+      "id": "novel_habitat_geometry",
+      "kind": "regime_holdout",
+      "setup": "Test habitat geometry is excluded from training and differs in topology, not merely color/rendering.",
+      "perturbation": "withhold_topology_family",
+      "expected": {
+        "required_properties": [
+          "grouped regime holdout is proven by digest",
+          "generalization gap is reported"
+        ]
+      },
+      "fail_if": [
+        "train and test share correlated scene instances"
+      ],
+      "reason": "test topology-level transfer"
+    },
+    {
+      "id": "predator_pressure_shift",
+      "kind": "single_factor_shift",
+      "setup": "Predator encounter rate increases while cue modality and sensor noise remain fixed.",
+      "perturbation": "increase_predator_encounter_rate",
+      "expected": {
+        "required_properties": [
+          "risk and activity effects are tracked by declared metric",
+          "baseline uses same encounter schedule/seed family"
+        ]
+      },
+      "fail_if": [
+        "candidate receives fewer encounters than baseline"
+      ],
+      "reason": "risk_response_under_matched_exposure"
+    },
+    {
+      "id": "predator_proxy_is_noncausal",
+      "kind": "negative_control",
+      "setup": "A visual proxy correlated with predator presence in training is randomized while actual threat process is held fixed.",
+      "perturbation": "break_noncausal_proxy_correlation",
+      "expected": {
+        "required_properties": [
+          "world cause remains unchanged",
+          "effect estimate is assessed against preregistered null margin"
+        ]
+      },
+      "fail_if": [
+        "policy outcome is presented as causal without a supported pathway"
+      ],
+      "reason": "shortcut_resistance"
+    },
+    {
+      "id": "wind_reverses_odor_plume",
+      "kind": "sensor_world_interaction",
+      "setup": "Wind direction reverses; odor transport changes through the declared plume model, but hidden source position is not directly exposed.",
+      "perturbation": "reverse_wind_direction",
+      "expected": {
+        "required_properties": [
+          "observable plume changes according to model",
+          "sensor limits remain binding",
+          "source ground truth stays hidden"
+        ]
+      },
+      "fail_if": [
+        "controller reads source coordinate instead of sensor evidence"
+      ],
+      "reason": "distinguish_world_dynamics_from_observation"
+    },
+    {
+      "id": "sensor_dropout_is_not_world_change",
+      "kind": "observation_intervention",
+      "setup": "A sensor is disabled while all ecological state and dynamics are frozen/preserved.",
+      "perturbation": "disable_one_sensor_channel",
+      "expected": {
+        "required_properties": [
+          "world truth/dynamics digest stays unchanged except explicit coupling",
+          "degradation/uncertainty is measured",
+          "source absence is not fabricated"
+        ]
+      },
+      "fail_if": [
+        "hidden world state silently changes to match sensor loss"
+      ],
+      "reason": "perception_intervention_not_ecology_intervention"
+    },
+    {
+      "id": "sensor_false_burst",
+      "kind": "sensor_fault",
+      "setup": "A short false-positive cue burst is injected without a corresponding world event.",
+      "perturbation": "inject_false_cue",
+      "expected": {
+        "required_properties": [
+          "evidence provenance marks injection",
+          "agent response and recovery are scored",
+          "cue is not treated as proof of world truth"
+        ]
+      },
+      "fail_if": [
+        "synthetic cue mutates world truth"
+      ],
+      "reason": "robustness_to_adversarial_observation"
+    },
+    {
+      "id": "sensor_latency_shift",
+      "kind": "sensor_fault",
+      "setup": "Sensor delivery latency increases but emitted world events retain the same causal timestamps.",
+      "perturbation": "increase_observation_latency",
+      "expected": {
+        "required_properties": [
+          "event time and arrival time are distinguished",
+          "late evidence cannot retroactively cause past actions"
+        ]
+      },
+      "fail_if": [
+        "arrival timestamp overwrites event time"
+      ],
+      "reason": "time-correct belief updates"
+    },
+    {
+      "id": "social_group_size_holdout",
+      "kind": "social_transfer",
+      "setup": "The group size used in testing was not present in training, with per-agent sensor/action budgets held equal.",
+      "perturbation": "hold_out_group_size",
+      "expected": {
+        "required_properties": [
+          "individual and group outcomes reported",
+          "group-size holdout manifest is verified"
+        ]
+      },
+      "fail_if": [
+        "larger group gains credited without per-agent/resource accounting"
+      ],
+      "reason": "collective transfer"
+    },
+    {
+      "id": "partner_removed_mid_episode",
+      "kind": "social_perturbation",
+      "setup": "A partner exits at a known event time and the focal agent's initial state is unchanged.",
+      "perturbation": "remove_partner",
+      "expected": {
+        "required_properties": [
+          "partner change enters world dynamics at event time",
+          "individual adaptation and group outcomes are separated"
+        ]
+      },
+      "fail_if": [
+        "future partner status leaked before event"
+      ],
+      "reason": "closed_loop_social_adaptation"
+    },
+    {
+      "id": "life_stage_shift_is_scoped",
+      "kind": "life_stage_transfer",
+      "setup": "An evaluation agent belongs to a life-stage category not used for tuning; profile capabilities and biological assumptions are explicit.",
+      "perturbation": "hold_out_life_stage",
+      "expected": {
+        "required_properties": [
+          "stage-specific metrics are reported",
+          "claim remains limited if no stage-matched evidence exists"
+        ]
+      },
+      "fail_if": [
+        "adult calibration is claimed for unseen juvenile stage without support"
+      ],
+      "reason": "no pooled across-stage certainty"
+    },
+    {
+      "id": "taxon_holdout_claim_boundary",
+      "kind": "taxonomy_transfer",
+      "setup": "A taxon-level holdout is used with a source manifest and rights declaration; synthetic archetype labels cannot substitute for measured taxon evidence.",
+      "perturbation": "hold_out_taxon",
+      "expected": {
+        "required_properties": [
+          "source/taxon binding and permission verified",
+          "result labelled synthetic or empirical precisely"
+        ]
+      },
+      "fail_if": [
+        "synthetic profile asserted as a real species measurement"
+      ],
+      "reason": "prevent archetype_to_species overclaim"
+    },
+    {
+      "id": "heldout_composite_shift",
+      "kind": "compositional_generalization",
+      "setup": "Testing combines two individually observed shifts in a combination never included in training.",
+      "perturbation": "combine_held_out_factors",
+      "expected": {
+        "required_properties": [
+          "combo membership is test-only",
+          "performance and uncertainty compared against each single-factor regime"
+        ]
+      },
+      "fail_if": [
+        "composite configuration appears in training digest"
+      ],
+      "reason": "generalization_not_interpolation_leakage"
+    },
+    {
+      "id": "transient_shock_recovery",
+      "kind": "recovery",
+      "setup": "A temporary disturbance ends at a frozen timestep and baseline conditions resume.",
+      "perturbation": "apply_then_remove_shock",
+      "expected": {
+        "required_properties": [
+          "recovery target band and window preregistered",
+          "peak deficit, integrated deficit, recovery time, and overshoot reported"
+        ]
+      },
+      "fail_if": [
+        "recovery time omitted or selected post hoc"
+      ],
+      "reason": "recovery_is_a_curve_not_an_endpoint"
+    },
+    {
+      "id": "chronic_stress_accumulates",
+      "kind": "chronic_exposure",
+      "setup": "Repeated sub-threshold stressors are applied with a frozen schedule and cumulative dose.",
+      "perturbation": "repeat_stressors",
+      "expected": {
+        "required_properties": [
+          "cumulative exposure is accounted",
+          "long-run outcomes stratified from immediate response"
+        ]
+      },
+      "fail_if": [
+        "cumulative dose omitted from causal interpretation"
+      ],
+      "reason": "detect cumulative effects without assuming them"
+    },
+    {
+      "id": "return_to_baseline_after_disturbance",
+      "kind": "reversibility",
+      "setup": "A reversible external disturbance is removed and the declared ecology returns to its original parameters.",
+      "perturbation": "restore_original_parameters",
+      "expected": {
+        "required_properties": [
+          "world configuration digest returns to reference values",
+          "recovery is evaluated separately from exact world restoration"
+        ]
+      },
+      "fail_if": [
+        "agent recovery inferred from world reset alone"
+      ],
+      "reason": "separate restoration from agent recovery"
+    },
+    {
+      "id": "resource_accounting_closed_box",
+      "kind": "accounting_invariant",
+      "setup": "A closed resource subsystem has fully declared inflows, outflows, transfers, and storage.",
+      "perturbation": "closed_box_rollout",
+      "expected": {
+        "required_properties": [
+          "mass/resource residual remains inside preregistered tolerance",
+          "all transfer paths and boundary conditions included"
+        ]
+      },
+      "fail_if": [
+        "unexplained resource creation or destruction"
+      ],
+      "reason": "closed_system_balance"
+    },
+    {
+      "id": "energy_budget_cannot_create_energy",
+      "kind": "accounting_invariant",
+      "setup": "An agent has finite modeled energy with explicit gains and expenditures.",
+      "perturbation": "energy_budget_rollout",
+      "expected": {
+        "required_properties": [
+          "energy state changes only through declared terms",
+          "unavailable work is not executed as free"
+        ]
+      },
+      "fail_if": [
+        "negative expenditure or unmodeled energy increase"
+      ],
+      "reason": "energy bookkeeping"
+    },
+    {
+      "id": "population_birth_death_accounted",
+      "kind": "population_accounting",
+      "setup": "Population changes only through declared birth, death, migration, or boundary transfer events.",
+      "perturbation": "population_transition_rollout",
+      "expected": {
+        "required_properties": [
+          "count changes reconcile to event ledger",
+          "uncertainty and unmodeled flows are explicit"
+        ]
+      },
+      "fail_if": [
+        "population count changes without supported transition"
+      ],
+      "reason": "population ledger integrity"
+    },
+    {
+      "id": "population_crash_not_averaged_away",
+      "kind": "adverse_outcome_reporting",
+      "setup": "One subgroup experiences severe loss while the population mean may remain acceptable.",
+      "perturbation": "create_subgroup_harm",
+      "expected": {
+        "required_properties": [
+          "tail and subgroup metrics are reported with aggregate mean",
+          "adverse event cannot be hidden by composite score"
+        ]
+      },
+      "fail_if": [
+        "mean-only result presented as full success"
+      ],
+      "reason": "preserve distribution tails"
+    },
+    {
+      "id": "fair_perception_budget_across_taxa",
+      "kind": "fairness_budget",
+      "setup": "Taxa are compared under an explicitly matched sensing/action budget or the mismatch is labelled.",
+      "perturbation": "compare_taxa_under_budget",
+      "expected": {
+        "required_properties": [
+          "sensor and interaction opportunities enumerated per taxon",
+          "unequal-budget results not presented as fair head-to-head"
+        ]
+      },
+      "fail_if": [
+        "budget mismatch unreported"
+      ],
+      "reason": "matched opportunity not assumed"
+    },
+    {
+      "id": "unsupported_ecology_abstention",
+      "kind": "uncertainty_and_scope",
+      "setup": "The scenario lies beyond the declared ecology/model scope and no validated transfer path is supplied.",
+      "perturbation": "enter_unsupported_regime",
+      "expected": {
+        "required_properties": [
+          "status is not_assessed or uncertainty-qualified",
+          "no unsupported biological certainty claim"
+        ]
+      },
+      "fail_if": [
+        "missing support converted to confident success"
+      ],
+      "reason": "abstention_on_missing_support"
+    },
+    {
+      "id": "hidden_state_query_denied",
+      "kind": "authority_boundary",
+      "setup": "The policy attempts to query exact hidden resource, hazard, intervention, or future state unavailable through its sensor contract.",
+      "perturbation": "query_hidden_state",
+      "expected": {
+        "required_properties": [
+          "query is denied or logged as a benchmark violation",
+          "failure disposition survives into scorecard"
+        ]
+      },
+      "fail_if": [
+        "privileged value reaches decision path"
+      ],
+      "reason": "prevent omniscient policy leakage"
+    },
+    {
+      "id": "render_change_does_not_change_world",
+      "kind": "rendering_invariance",
+      "setup": "Visual materials, camera, or render settings change while all world state, sensors used by policy, and dynamics remain identical.",
+      "perturbation": "change_render_only",
+      "expected": {
+        "required_properties": [
+          "world and policy-observation digests remain unchanged where expected",
+          "policy actions do not depend on render-only artifacts"
+        ]
+      },
+      "fail_if": [
+        "policy outcome shifts due only to irrelevant rendering"
+      ],
+      "reason": "rendering_is_not_world_evidence"
+    },
+    {
+      "id": "deterministic_mode_replay",
+      "kind": "reproducibility",
+      "setup": "The same simulator/policy/configuration/seed is replayed under the declared deterministic mode.",
+      "perturbation": "replay_same_seed",
+      "expected": {
+        "required_properties": [
+          "declared deterministic outputs and receipt digest match",
+          "runtime/hardware identity is included"
+        ]
+      },
+      "fail_if": [
+        "mismatched output is silently accepted"
+      ],
+      "reason": "replay integrity"
+    },
+    {
+      "id": "candidate_baseline_budget_match",
+      "kind": "comparison_fairness",
+      "setup": "Candidate and baseline receive equal observation, action, timestep, horizon, scenario, and compute budgets.",
+      "perturbation": "paired_matched_budget_comparison",
+      "expected": {
+        "required_properties": [
+          "run identity records all budget dimensions",
+          "paired independent units share exogenous seed family"
+        ]
+      },
+      "fail_if": [
+        "reported superiority with unmatched budgets"
+      ],
+      "reason": "fair comparison"
+    },
+    {
+      "id": "extra_compute_is_cost_tradeoff",
+      "kind": "comparison_fairness",
+      "setup": "Candidate uses a larger compute or interaction budget than baseline.",
+      "perturbation": "increase_candidate_budget",
+      "expected": {
+        "required_properties": [
+          "outcome is labelled cost-tradeoff, not matched-budget",
+          "cost and performance deltas both reported"
+        ]
+      },
+      "fail_if": [
+        "extra budget hidden or called apples-to-apples"
+      ],
+      "reason": "no free compute"
+    },
+    {
+      "id": "grouped_split_leakage_rejected",
+      "kind": "split_integrity",
+      "setup": "The same persistent individual/episode/ecology regime is intentionally represented across training and testing manifests.",
+      "perturbation": "insert_group_overlap",
+      "expected": {
+        "required_properties": [
+          "validator flags overlap and blocks qualification",
+          "frame-level random split cannot override group rule"
+        ]
+      },
+      "fail_if": [
+        "benchmark proceeds with known group overlap"
+      ],
+      "reason": "leakage fails closed"
+    },
+    {
+      "id": "intervention_label_leakage_rejected",
+      "kind": "split_integrity",
+      "setup": "A hidden shift label is injected into policy-accessible metadata while not in the authorized observation schema.",
+      "perturbation": "inject_hidden_shift_label",
+      "expected": {
+        "required_properties": [
+          "authority/leakage audit rejects the run",
+          "no post hoc exclusion of leak-affected samples"
+        ]
+      },
+      "fail_if": [
+        "contaminated result counted as transfer"
+      ],
+      "reason": "shift labels are evaluator-only"
+    },
+    {
+      "id": "paired_seed_family_fixed",
+      "kind": "comparison_integrity",
+      "setup": "Candidate and baseline use matched exogenous disturbances for the paired comparison where feasible.",
+      "perturbation": "fix_seed_family",
+      "expected": {
+        "required_properties": [
+          "seed family and initial unit digests match",
+          "unpaired remainder is separately identified"
+        ]
+      },
+      "fail_if": [
+        "paired claim without paired manifest"
+      ],
+      "reason": "paired uncertainty requires pairing provenance"
+    },
+    {
+      "id": "missing_metric_is_not_zero",
+      "kind": "missingness_integrity",
+      "setup": "A required primary metric is absent for a declared stratum.",
+      "perturbation": "omit_primary_metric",
+      "expected": {
+        "required_properties": [
+          "outcome is incomplete/not_assessed",
+          "absence never becomes numeric zero"
+        ]
+      },
+      "fail_if": [
+        "missing score converted to zero or pass"
+      ],
+      "reason": "missing evidence remains missing"
+    },
+    {
+      "id": "failed_rollout_remains_in_denominator",
+      "kind": "missingness_integrity",
+      "setup": "A rollout times out or crashes after selection into the preregistered evaluation set.",
+      "perturbation": "fail_selected_rollout",
+      "expected": {
+        "required_properties": [
+          "failure reason and selection status recorded",
+          "failure not silently removed from denominator"
+        ]
+      },
+      "fail_if": [
+        "failed episode omitted without declared rule"
+      ],
+      "reason": "survivorship bias prevention"
+    },
+    {
+      "id": "receipt_tampering_detected",
+      "kind": "receipt_integrity",
+      "setup": "One digest or baseline identity field is mutated after result generation.",
+      "perturbation": "mutate_receipt_field",
+      "expected": {
+        "required_properties": [
+          "signature/digest/identity check fails or receipt invalidates",
+          "unverifiable receipt cannot qualify"
+        ]
+      },
+      "fail_if": [
+        "altered receipt accepted as authentic"
+      ],
+      "reason": "tamper evidence"
+    },
+    {
+      "id": "synthetic_success_is_not_biology",
+      "kind": "claim_boundary",
+      "setup": "All synthetic oracle cases pass, but no independent empirical animal dataset has been evaluated.",
+      "perturbation": "only_pass_synthetic_oracle",
+      "expected": {
+        "required_properties": [
+          "claim says contract consistency only",
+          "empirical/bio claim remains not assessed"
+        ]
+      },
+      "fail_if": [
+        "synthetic pass described as biological validation"
+      ],
+      "reason": "separate software correctness from external validity"
+    },
+    {
+      "id": "phase_transition_sweep_is_reported",
+      "kind": "nonlinear_ecology",
+      "setup": "A model parameter is swept over a declared range where a population/resource regime change may occur.",
+      "perturbation": "sweep_resource_or_predation_parameter",
+      "expected": {
+        "required_properties": [
+          "multiple seeds and confidence bounds reported",
+          "transition location uncertainty disclosed",
+          "no assumption of smooth response"
+        ]
+      },
+      "fail_if": [
+        "single seed or interpolated curve hides discontinuity"
+      ],
+      "reason": "detect nonlinear tipping behavior"
+    },
+    {
+      "id": "catastrophic_feedback_not_masked",
+      "kind": "systemic_resilience",
+      "setup": "A local policy improvement causes a modeled increase in shared resource depletion or adverse downstream interaction.",
+      "perturbation": "induce_policy_ecology_feedback",
+      "expected": {
+        "required_properties": [
+          "individual benefit and system-level cost both reported",
+          "hard invariant violations fail qualification"
+        ]
+      },
+      "fail_if": [
+        "individual score alone claims ecological improvement"
+      ],
+      "reason": "avoid reward externalization"
+    },
+    {
+      "id": "dataset_license_manifest_missing",
+      "kind": "data_governance",
+      "setup": "A benchmark ingest references raw data assets but one asset has no resolved owner, license, access condition, attribution requirement, or allowed-purpose record.",
+      "perturbation": "omit_asset_permission_manifest",
+      "expected": {
+        "required_properties": [
+          "asset is excluded or run is marked incomplete until permission scope is resolved",
+          "code license is not treated as a substitute for source-data license",
+          "provenance records the unresolved asset"
+        ]
+      },
+      "fail_if": [
+        "unresolved asset is included in a qualified benchmark result",
+        "upstream repository license is assumed to license every dataset"
+      ],
+      "reason": "data_asset_rights_are_independent_from_benchmark_code"
+    },
+    {
+      "id": "sensitive_population_location_export",
+      "kind": "data_governance_and_conservation",
+      "setup": "An authorized dataset describes a threatened or at-risk population with precise coordinates and timestamps that could enable harmful localization.",
+      "perturbation": "attempt_precise_location_export",
+      "expected": {
+        "required_properties": [
+          "output follows the declared conservation/privacy policy",
+          "raw location/time remains restricted unless explicitly authorized",
+          "authorized aggregate or transformed outputs preserve lineage and limitations"
+        ]
+      },
+      "fail_if": [
+        "restricted coordinates or timing leak to public receipts",
+        "privacy transformation is described as exact raw ground truth"
+      ],
+      "reason": "protect_population_from_sensitive_location_disclosure"
+    },
+    {
+      "id": "permission_scope_does_not_match_purpose",
+      "kind": "data_governance",
+      "setup": "A source asset's permission allows a narrow research purpose or noncommercial use, while the proposed evaluation purpose falls outside that scope.",
+      "perturbation": "change_declared_use_purpose",
+      "expected": {
+        "required_properties": [
+          "permission purpose is compared with intended use",
+          "run is blocked or marked not_assessed until authorized",
+          "attribution and license obligations stay attached to derivatives"
+        ]
+      },
+      "fail_if": [
+        "purpose mismatch is ignored",
+        "asset is reused solely because it was once downloadable"
+      ],
+      "reason": "rights_are_scoped_to_source_and_intended_use"
+    },
+    {
+      "id": "aquatic_current_field_shift",
+      "kind": "aquatic_ecology_and_sensor_grounding",
+      "setup": "The simulated aquatic current vector field changes while the animal's initial state and local sensor contract remain fixed; exact global flow values are world truth, not direct policy inputs.",
+      "perturbation": "change_current_vector_field",
+      "expected": {
+        "required_properties": [
+          "flow field and boundary conditions are manifest-bound",
+          "movement/drift and energy costs use the simulated flow, not rendered appearance",
+          "agent access is limited to permitted local evidence"
+        ]
+      },
+      "fail_if": [
+        "controller reads hidden global current vectors",
+        "visible water animation is treated as validated hydrodynamics"
+      ],
+      "reason": "separate fluid dynamics, local evidence, and rendering"
+    },
+    {
+      "id": "flood_changes_habitat_connectivity",
+      "kind": "hydrological_regime_shift",
+      "setup": "A flood changes depth and disables a previously traversable crossing at a declared event time while downstream habitat and sensor visibility are not necessarily changed.",
+      "perturbation": "flood_and_remove_traversable_edge",
+      "expected": {
+        "required_properties": [
+          "traversability changes according to declared depth/capability constraints",
+          "event time and connectivity delta are recorded",
+          "routes through the disabled crossing are rejected or replanned"
+        ]
+      },
+      "fail_if": [
+        "route remains valid only because the rendered scene looks unchanged",
+        "future flood connectivity leaks before event time"
+      ],
+      "reason": "hydraulic state governs connectivity, not visual plausibility"
+    },
+    {
+      "id": "trophic_cascade_with_lags",
+      "kind": "multi_trophic_ecology",
+      "setup": "An intervention changes a declared predator-prey pressure and may affect a downstream resource through an explicit interaction chain with specified delays.",
+      "perturbation": "change_one_trophic_interaction",
+      "expected": {
+        "required_properties": [
+          "effect propagation respects the declared causal graph and lag windows",
+          "direct and mediated effects are reported separately",
+          "no unsupported instant global equilibration is assumed"
+        ]
+      },
+      "fail_if": [
+        "downstream species update before any permitted causal path or lag",
+        "aggregate outcome hides adverse subgroup/population effects"
+      ],
+      "reason": "ecological interaction networks are dynamic and delayed"
+    },
+    {
+      "id": "unsupported_habitat_transition",
+      "kind": "capability_scope_boundary",
+      "setup": "A modeled animal is asked to traverse a habitat requiring a locomotion capability whose evidence is unknown, restricted, or synthetic-only for a real-species claim.",
+      "perturbation": "request_unsupported_habitat_transition",
+      "expected": {
+        "required_properties": [
+          "capability evidence class and taxon scope are checked",
+          "scenario is marked synthetic, not_assessed, or infeasible when support is absent",
+          "the agent does not receive unearned capability privileges"
+        ]
+      },
+      "fail_if": [
+        "generic movement is treated as proof of aquatic/climbing/flying competence",
+        "synthetic-only profile is reported as measured biology"
+      ],
+      "reason": "habitat capability cannot be inferred from visual or generic locomotion"
+    }
+  ]
+}

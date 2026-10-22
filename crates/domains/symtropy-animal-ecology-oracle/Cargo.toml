@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-animal-ecology-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Fail-closed structural validator for the Symtropy ecological-transfer oracle."
+publish = false
+
+[dependencies]
+serde_json = "1.0"

@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_FLOOD_FORAGE_RISK_PILOT_V0.schema.json",
+  "title": "Animal Flood–Forage–Risk Pilot V0",
+  "description": "Frozen synthetic integration scenario manifest. This schema is accompanied by semantic checks in the Rust validator; it does not certify an executed simulation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "tracking_issue",
+    "scenario_id",
+    "independent_unit",
+    "note",
+    "randomization",
+    "horizon",
+    "world",
+    "refuges",
+    "corridors",
+    "model_registry",
+    "agent",
+    "sensory_contract",
+    "budget_contract",
+    "policy_comparison",
+    "primary_metrics",
+    "ablations",
+    "hard_invariants"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "ANIMAL-FLOOD-FORAGE-RISK-PILOT-V0"
+    },
+    "status": {
+      "type": "string",
+      "const": "synthetic_scenario_manifest"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri",
+      "const": "https://github.com/Luminous-Dynamics/symtropy/issues/2214"
+    },
+    "scenario_id": {
+      "type": "string",
+      "const": "flood_forage_risk_corridor_v0"
+    },
+    "independent_unit": {
+      "type": "string",
+      "const": "episode_seed_pair"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "randomization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed_family",
+        "seeds",
+        "paired_exogenous_noise",
+        "pairing_scope"
+      ],
+      "properties": {
+        "seed_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seeds": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "paired_exogenous_noise": {
+          "type": "boolean",
+          "const": true
+        },
+        "pairing_scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "horizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticks",
+        "tick_duration_ms"
+      ],
+      "properties": {
+        "ticks": {
+          "type": "integer",
+          "const": 1200,
+          "minimum": 1
+        },
+        "tick_duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width_cells",
+        "height_cells",
+        "initial_water_depth_cm",
+        "initial_resource_stock_units",
+        "resource_replenishment_units_per_tick",
+        "flood",
+        "resource_shortage",
+        "held_out_combination"
+      ],
+      "properties": {
+        "width_cells": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height_cells": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initial_water_depth_cm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "initial_resource_stock_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "resource_replenishment_units_per_tick": {
+          "type": "number",
+          "minimum": 0
+        },
+        "flood": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_id",
+            "start_tick",
+            "end_tick",
+            "water_depth_cm",
+            "current_xy",
+            "closes_corridor_id"
+          ],
+          "properties": {
+            "event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "water_depth_cm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "current_xy": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              }
+            },
+            "closes_corridor_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "resource_shortage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event_id",
+            "start_tick",
+            "end_tick",
+            "replenishment_units_per_tick"
+          ],
+          "properties": {
+            "event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "replenishment_units_per_tick": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "held_out_combination": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "refuges": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "x_cell",
+          "y_cell"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "x_cell": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y_cell": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "corridors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "from_refuge",
+          "to_refuge",
+          "traversable_before_flood",
+          "traversable_during_flood"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from_refuge": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_refuge": {
+            "type": "string",
+            "minLength": 1
+          },
+          "traversable_before_flood": {
+            "type": "boolean"
+          },
+          "traversable_during_flood": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "model_registry": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "reference_history_fit",
+          "forage_recovery_lag_ticks",
+          "policy_visible_model_id",
+          "revealed_before_evaluation",
+          "parameter_source",
+          "parameters_disclosed_in_public_fixture"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "candidate_structure",
+              "blind_challenger"
+            ]
+          },
+          "reference_history_fit": {
+            "const": "observationally_compatible"
+          },
+          "forage_recovery_lag_ticks": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy_visible_model_id": {
+            "type": "boolean",
+            "const": false
+          },
+          "revealed_before_evaluation": {
+            "type": "boolean"
+          },
+          "parameter_source": {
+            "enum": [
+              "public_candidate_manifest",
+              "sealed_evaluator_manifest"
+            ]
+          },
+          "parameters_disclosed_in_public_fixture": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "biological_claim_scope",
+        "initial_energy_units",
+        "active_sensing_actions_per_episode",
+        "max_policy_actions"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "biological_claim_scope": {
+          "const": "synthetic_only"
+        },
+        "initial_energy_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "active_sensing_actions_per_episode": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_policy_actions": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "sensory_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "permitted_observations",
+        "denied_inputs",
+        "cue_delivery_latency_ticks",
+        "renderer_independent"
+      ],
+      "properties": {
+        "permitted_observations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "denied_inputs": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cue_delivery_latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "renderer_independent": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "budget_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "simulated_tick_budget",
+        "max_policy_actions",
+        "active_sensing_actions_per_episode",
+        "compute_budget_units",
+        "matched_budget_required",
+        "failed_selected_episodes_remain_in_denominator"
+      ],
+      "properties": {
+        "simulated_tick_budget": {
+          "type": "integer",
+          "const": 1200
+        },
+        "max_policy_actions": {
+          "type": "integer",
+          "const": 1200
+        },
+        "active_sensing_actions_per_episode": {
+          "type": "integer",
+          "const": 3
+        },
+        "compute_budget_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "matched_budget_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "failed_selected_episodes_remain_in_denominator": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "policy_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qualifying_baselines",
+        "candidates",
+        "nonqualifying_upper_bounds",
+        "exact_policy_identity_required",
+        "same_initial_state_required",
+        "paired_exogenous_noise_required_within_model",
+        "report_distributional_comparison_across_model_structures"
+      ],
+      "properties": {
+        "qualifying_baselines": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nonqualifying_upper_bounds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exact_policy_identity_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "same_initial_state_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "paired_exogenous_noise_required_within_model": {
+          "type": "boolean",
+          "const": true
+        },
+        "report_distributional_comparison_across_model_structures": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "primary_metrics": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ablations": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "hard_invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hidden_state_access_allowed",
+        "resource_accounting_violation_limit",
+        "selected_failures_remain_in_denominator",
+        "missing_metric_disposition",
+        "synthetic_success_claim_scope",
+        "renderer_is_world_authority"
+      ],
+      "properties": {
+        "hidden_state_access_allowed": {
+          "type": "boolean",
+          "const": false
+        },
+        "resource_accounting_violation_limit": {
+          "type": "integer",
+          "const": 0
+        },
+        "selected_failures_remain_in_denominator": {
+          "type": "boolean",
+          "const": true
+        },
+        "missing_metric_disposition": {
+          "enum": [
+            "incomplete_or_not_assessed"
+          ]
+        },
+        "synthetic_success_claim_scope": {
+          "const": "contract_consistency_only"
+        },
+        "renderer_is_world_authority": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    }
+  }
+}
