@@ -2288,4 +2288,128 @@ mod tests {
         assert!(!report.resources.accepted);
         assert!(!report.accepted);
     }
+    #[test]
+    fn joint_pareto_frontier_preserves_spatial_resource_tradeoffs() {
+        fn score(
+            spatial_horizon: u64,
+            resource_horizon: u64,
+            changed_placements: usize,
+            spatial_shift: u64,
+            rectangle_edge_shift: u64,
+            changed_resources: usize,
+            resource_shift: u64,
+        ) -> JointParetoScore {
+            JointParetoScore {
+                worst_spatial_recovery_horizon_ticks: Some(spatial_horizon),
+                worst_resource_recovery_horizon_ticks: Some(resource_horizon),
+                worst_changed_placement_reservations: changed_placements,
+                worst_changed_transfer_reservations: 0,
+                worst_unaffected_placement_churn: 0,
+                worst_unaffected_transfer_churn: 0,
+                worst_spatial_time_shift_ticks: spatial_shift,
+                worst_rectangle_edge_shift_units: rectangle_edge_shift,
+                worst_changed_resource_reservations: changed_resources,
+                worst_unaffected_resource_churn: 0,
+                worst_resource_time_shift_ticks: resource_shift,
+            }
+        }
+
+        fn alternative(
+            id: &str,
+            robustly_accepted: bool,
+            score: JointParetoScore,
+        ) -> JointRecoveryEnvelopeAlternative {
+            JointRecoveryEnvelopeAlternative {
+                candidate_id: id.to_owned(),
+                report: JointRecoveryEnvelopeReport {
+                    robustly_accepted,
+                    metrics: JointRecoveryEnvelopeMetrics {
+                        worst_spatial_recovery_horizon_ticks: score
+                            .worst_spatial_recovery_horizon_ticks,
+                        worst_resource_recovery_horizon_ticks: score
+                            .worst_resource_recovery_horizon_ticks,
+                        worst_changed_placement_reservations: score
+                            .worst_changed_placement_reservations,
+                        worst_changed_transfer_reservations: score
+                            .worst_changed_transfer_reservations,
+                        worst_unaffected_placement_churn: score
+                            .worst_unaffected_placement_churn,
+                        worst_unaffected_transfer_churn: score
+                            .worst_unaffected_transfer_churn,
+                        worst_spatial_time_shift_ticks: score.worst_spatial_time_shift_ticks,
+                        worst_rectangle_edge_shift_units: score.worst_rectangle_edge_shift_units,
+                        worst_changed_resource_reservations: score
+                            .worst_changed_resource_reservations,
+                        worst_unaffected_resource_churn: score.worst_unaffected_resource_churn,
+                        worst_resource_time_shift_ticks: score.worst_resource_time_shift_ticks,
+                        ..JointRecoveryEnvelopeMetrics::default()
+                    },
+                    violations: Vec::new(),
+                    scenarios: Vec::new(),
+                },
+            }
+        }
+
+        let alternatives = vec![
+            alternative("fast-far", true, score(5, 8, 2, 5, 10, 1, 3)),
+            alternative("slow-near", true, score(7, 6, 1, 6, 2, 1, 2)),
+            alternative(
+                "unnecessary-churn",
+                true,
+                score(6, 10, 3, 7, 12, 2, 5),
+            ),
+            alternative("fragile", false, score(3, 3, 0, 0, 0, 0, 0)),
+        ];
+
+        let report = pareto_joint_recovery_candidates(&alternatives);
+
+        assert_eq!(
+            report.frontier.iter().map(|candidate| candidate.candidate_id.as_str()).collect::<Vec<_>>(),
+            vec!["fast-far", "slow-near"]
+        );
+        assert_eq!(report.dominated_candidate_ids, vec!["unnecessary-churn"]);
+        assert_eq!(report.rejected_candidate_ids, vec!["fragile"]);
+        assert!(report.violations.is_empty());
+    }
+
+    #[test]
+    fn joint_pareto_requires_unique_candidate_ids_and_compares_missing_horizons_safely() {
+        let score = JointParetoScore {
+            worst_spatial_recovery_horizon_ticks: None,
+            worst_resource_recovery_horizon_ticks: None,
+            worst_changed_placement_reservations: 0,
+            worst_changed_transfer_reservations: 0,
+            worst_unaffected_placement_churn: 0,
+            worst_unaffected_transfer_churn: 0,
+            worst_spatial_time_shift_ticks: 0,
+            worst_rectangle_edge_shift_units: 0,
+            worst_changed_resource_reservations: 0,
+            worst_unaffected_resource_churn: 0,
+            worst_resource_time_shift_ticks: 0,
+        };
+        let measured = JointParetoScore {
+            worst_spatial_recovery_horizon_ticks: Some(1),
+            worst_resource_recovery_horizon_ticks: Some(1),
+            ..score.clone()
+        };
+        assert!(!joint_pareto_dominates(&score, &measured));
+        assert!(!joint_pareto_dominates(&measured, &score));
+
+        let envelope = |id: &str| JointRecoveryEnvelopeAlternative {
+            candidate_id: id.to_owned(),
+            report: JointRecoveryEnvelopeReport {
+                robustly_accepted: true,
+                metrics: JointRecoveryEnvelopeMetrics::default(),
+                violations: Vec::new(),
+                scenarios: Vec::new(),
+            },
+        };
+        let report = pareto_joint_recovery_candidates(&[envelope("duplicate"), envelope("duplicate")]);
+        assert!(report.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointParetoViolationCode::DuplicateCandidateId
+        }));
+    }
+
+
 }
