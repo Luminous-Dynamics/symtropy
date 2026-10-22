@@ -12,7 +12,7 @@ use std::{
 };
 
 use physical_solver_contract::{
-    calculix_mms::{MmsMesh, MmsParameters, audit_nodal_displacements, parse_mms_displacements},
+    calculix_mms::{MmsMesh, MmsParameters, audit_nodal_displacements, parse_mms_output},
     sha256_hex,
 };
 use serde_json::{Value, json};
@@ -158,6 +158,42 @@ fn require_equal_string(
     Ok(())
 }
 
+fn number_field(value: &Value, key: &str, label: &str) -> Result<f64, String> {
+    let number = value
+        .get(key)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| format!("{label}.{key} must be a number"))?;
+    if !number.is_finite() {
+        return Err(format!("{label}.{key} must be finite"));
+    }
+    Ok(number)
+}
+
+fn validate_parameters_manifest(
+    model_manifest: &Value,
+    parameters: MmsParameters,
+) -> Result<(), String> {
+    let object = model_manifest
+        .get("parameters")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "model manifest.parameters must be an object".to_owned())?;
+    if object.len() != 5 {
+        return Err("model manifest.parameters must contain exactly five fields".to_owned());
+    }
+    for (key, expected) in [
+        ("youngs_modulus_pa", parameters.youngs_modulus_pa),
+        ("poisson_ratio", parameters.poisson_ratio),
+        ("thickness_m", parameters.thickness_m),
+        ("amplitude_u_m", parameters.amplitude_u_m),
+        ("amplitude_v_m", parameters.amplitude_v_m),
+    ] {
+        if number_field(&Value::Object(object.clone()), key, "model manifest.parameters")? != expected {
+            return Err(format!("model manifest.parameters.{key} differs from the pinned fixture"));
+        }
+    }
+    Ok(())
+}
+
 fn generate(options: &BTreeMap<String, String>) -> Result<(), String> {
     let n = cells(options)?;
     let deck_path = required(options, "--deck")?;
@@ -281,19 +317,27 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     ] {
         require_equal_string(&run_manifest, key, digest, label)?;
     }
-    if integer_field(&run_manifest, "solver_exit_code", "run manifest")? != 0 {
-        return Err("run manifest does not attest a zero solver exit code".to_owned());
+    if integer_field(&run_manifest, "solver_exit_code", "run manifest")? != 0
+        || run_manifest.get("solver_completed").and_then(Value::as_bool) != Some(true)
+    {
+        return Err("run manifest does not attest a completed process with zero exit code".to_owned());
+    }
+    for (key, expected) in [
+        ("schema_version", "calculix-build-manifest-v0.1"),
+        ("builder_repository", "OmnibusCloud/CalculiX"),
+        ("builder_repository_commit", "b7977a4e90b40fd28fa149fc69f1647661d10f56"),
+        ("ccx_source_sha256", "3a94dcc775a31f570229734b341d6b06301ebdc759863df901c8b9bf1854c0bc"),
+        ("spooles_sha256", "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd"),
+        ("container_image", "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"),
+    ] {
+        require_equal_string(&build_manifest, key, expected, "build manifest")?;
     }
     if string_field(&build_manifest, "ccx_executable_sha256", "build manifest")? != solver_sha {
         return Err("build manifest executable digest differs from the audited solver bytes".to_owned());
     }
-    if string_field(&build_manifest, "container_image", "build manifest")?
-        != "ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30"
-    {
-        return Err("build manifest container does not match the pinned PHYS-MMS-001 profile".to_owned());
-    }
 
     let parameters = MmsParameters::default();
+    validate_parameters_manifest(&model_manifest, parameters)?;
     let mesh = MmsMesh::generate(n, parameters)?;
     let expected_deck = mesh.generate_input_deck(parameters)?;
     if expected_deck != deck_bytes {
@@ -305,11 +349,11 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         return Err("model manifest node/element counts differ from regenerated topology".to_owned());
     }
 
-    let displacements = parse_mms_displacements(
+    let parsed_output = parse_mms_output(
         std::str::from_utf8(&dat_bytes).map_err(|_| "solver .dat output is not UTF-8 text".to_owned())?,
         mesh.nodes.len(),
     )?;
-    let metrics = audit_nodal_displacements(&mesh, parameters, &displacements)?;
+    let metrics = audit_nodal_displacements(&mesh, parameters, &parsed_output.displacements_m)?;
 
     let report = json!({
         "schema_version": REPORT_SCHEMA,
@@ -327,14 +371,15 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         "process_log_sha256": process_log_sha,
         "run_manifest_sha256": run_manifest_sha,
         "solver_exit_code": 0,
-        "observed_terminal_time": 1.0,
+        "observed_terminal_time": parsed_output.terminal_time_s,
         "displacement_l1_error_m": metrics.displacement_l1_error_m,
         "displacement_l2_error_m": metrics.displacement_l2_error_m,
         "displacement_quadrature_linf_error_m": metrics.displacement_quadrature_linf_error_m,
         "displacement_max_nodal_error_m": metrics.displacement_max_nodal_error_m,
         "displacement_h1_seminorm_error_m": metrics.displacement_h1_seminorm_error_m,
         "stress_l2_error_pa_m": metrics.stress_l2_error_pa_m,
-        "numeric_reference_status": "PASS",
+        "numeric_reference_status": "MEASURED_UNQUALIFIED",
+        "mesh_convergence_status": "NOT_EVALUATED_SINGLE_MESH",
         "physical_result_qualified": false,
         "real_world_validation_status": "UNRESOLVED",
         "engineering_use_authorized": false,
