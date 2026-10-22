@@ -1,0 +1,691 @@
+{
+  "suite_id": "FORESTRY-ROBOTICS-MISSION-CONTRACT",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic software preflight decisions only; no safety certification, safe-to-actuate authorization, hardware control, field-performance, or harvesting claim.",
+  "scenarios": [
+    {
+      "scenario_id": "SCOUT_SURVEY_READY",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-scout_survey_ready",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "eligible_for_simulation_only",
+      "expected_reason_codes": []
+    },
+    {
+      "scenario_id": "SURVEY_STALE_TELEMETRY",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-survey_stale_telemetry",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 900,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "TELEMETRY_STALE"
+      ]
+    },
+    {
+      "scenario_id": "OBSTACLE_SENSOR_UNKNOWN",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-obstacle_sensor_unknown",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "unknown",
+        "obstacle_status": "unknown",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "OBSTACLE_SENSOR_NOT_HEALTHY",
+        "OBSTACLE_NOT_CLEARED"
+      ]
+    },
+    {
+      "scenario_id": "SAFETY_PROFILE_EXPIRED",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-safety_profile_expired",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 900,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "SAFETY_PROFILE_EXPIRED"
+      ]
+    },
+    {
+      "scenario_id": "SITE_PERMISSION_UNKNOWN",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-site_permission_unknown",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "unknown",
+        "site_permission_ref": null,
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "SITE_PERMISSION_NOT_GRANTED"
+      ]
+    },
+    {
+      "scenario_id": "SLOPE_AND_SPEED_OVER_LIMIT",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-slope_and_speed_over_limit",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 400,
+        "commanded_speed_mm_per_second": 900,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "SLOPE_OVER_ROBOT_LIMIT",
+        "SLOPE_OVER_PROFILE_LIMIT",
+        "SPEED_OVER_LIMIT"
+      ]
+    },
+    {
+      "scenario_id": "EMERGENCY_STOP_ENGAGED",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-emergency_stop_engaged",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "engaged",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "EMERGENCY_STOP_NOT_READY"
+      ]
+    },
+    {
+      "scenario_id": "BATTERY_BELOW_RESERVE",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-battery_below_reserve",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 1000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "BATTERY_BELOW_RESERVE"
+      ]
+    },
+    {
+      "scenario_id": "LOCALIZATION_ERROR_OVER_LIMIT",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-localization_error_over_limit",
+        "task": "survey",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 4000,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "LOCALIZATION_ERROR_OVER_LIMIT"
+      ]
+    },
+    {
+      "scenario_id": "AUTONOMOUS_MODE_REQUIRES_REVIEW",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-autonomous-mode-requires-review",
+        "task": "survey",
+        "autonomy_mode": "autonomous",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "AUTONOMY_MODE_REQUIRES_SEPARATE_REVIEW"
+      ]
+    },
+    {
+      "scenario_id": "CUT_OR_FELL_OUT_OF_SCOPE",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-cut_or_fell_out_of_scope",
+        "task": "cut_or_fell",
+        "autonomy_mode": "supervised",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "rejected_out_of_scope",
+      "expected_reason_codes": [
+        "TASK_OUT_OF_SCOPE_V0_1"
+      ]
+    }
+  ]
+}
