@@ -1,0 +1,36 @@
+{
+  "schema_version": "shipyard-benchmark-report/v0",
+  "benchmark_id": "tiny-yard-v0",
+  "manifest_sha256": "7945986581c4c7b07b8cdb8e970434c11a8023b19e2b05a3e059607a3bb410cd",
+  "status": "incomplete",
+  "run_metadata": {
+    "git_commit_sha": "ffffffffffffffffffffffffffffffffffffffff",
+    "executable_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "hardware_class": "ci-x86_64",
+    "rustc_version": "1.96.0"
+  },
+  "case_results": [
+    {
+      "case_id": "case-feasible-001",
+      "outcome": "unknown",
+      "runtime_ms": 1000,
+      "verifier": {
+        "status": "not-run",
+        "oracle_outcome": "unknown",
+        "reference_outcome": "unknown",
+        "violation_count": 0
+      }
+    }
+  ],
+  "summary": {
+    "case_count": 1,
+    "verified_feasible_count": 0,
+    "verified_infeasible_count": 0,
+    "unknown_count": 1,
+    "timeout_count": 0,
+    "invalid_output_count": 0,
+    "not_run_count": 0,
+    "false_feasible_count": 0,
+    "false_infeasible_count": 0
+  }
+}
