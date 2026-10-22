@@ -689,7 +689,6 @@ fn evaluate_machine_sequences(
     })
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -764,8 +763,10 @@ mod tests {
             if operation.position_in_job > 0 {
                 let predecessor = schedule
                     .iter()
-                    .find(|candidate| candidate.job_id == operation.job_id
-                        && candidate.position_in_job + 1 == operation.position_in_job)
+                    .find(|candidate| {
+                        candidate.job_id == operation.job_id
+                            && candidate.position_in_job + 1 == operation.position_in_job
+                    })
                     .expect("precedence predecessor exists");
                 assert!(operation.processing_start >= predecessor.completion_time);
             }
