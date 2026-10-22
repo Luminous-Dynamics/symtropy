@@ -639,7 +639,7 @@
         "revision": 1,
         "tool_kind": "trainer_probe",
         "intended_task": "tray_transfer",
-        "contact_class": "mannequin_only",
+        "contact_class": "object_only",
         "design_stage": "concept",
         "evidence_class": "synthetic_design_proposal",
         "mechanical": {
@@ -837,6 +837,7 @@
       },
       "expected_disposition": "BLOCKED",
       "expected_findings": [
+        "FAIL_CLOSED_RETENTION_REQUIRED",
         "MECHANICAL_ENVELOPE_INVALID"
       ]
     }
