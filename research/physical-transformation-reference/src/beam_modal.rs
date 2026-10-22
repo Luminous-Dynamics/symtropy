@@ -375,9 +375,13 @@ mod tests {
         let (nodes, members) = fixture_inputs();
         let mut assembly = assemble_released_joint_pin_truss(&nodes, &members)
             .expect("valid assembly");
+        // Preserve a nonzero stiffness scale, but create one isolated free
+        // coordinate with exactly zero stiffness so the reduced K is singular.
+        let mechanism_dof = assembly.free_dof_indices[0];
         for row in &mut assembly.stiffness_global {
-            row.fill(0.0);
+            row[mechanism_dof] = 0.0;
         }
+        assembly.stiffness_global[mechanism_dof].fill(0.0);
         let error = solve_released_joint_beam_modes(&assembly, BeamModalOptions::first_modes(2))
             .expect_err("a zero eigenvalue must fail closed");
         assert!(error.contains("mechanism floor"), "{error}");
