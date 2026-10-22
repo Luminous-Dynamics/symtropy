@@ -116,7 +116,8 @@ fn exact_case(
     let feasible_b = zone_x_b != candidate_x_b;
     let anticipative = same_information_set && candidate_x_a != candidate_x_b;
     let accepted = feasible_a && feasible_b && !anticipative;
-    let accepted_scenarios = if feasible_a { 1 } else { 0 } + if feasible_b { 1 } else { 0 };
+    let accepted_scenarios = (if feasible_a { 1 } else { 0 })
+        + (if feasible_b { 1 } else { 0 });
     (accepted, accepted_scenarios, anticipative)
 }
 
@@ -219,6 +220,9 @@ fn generated_recourse_policy_matches_independent_non_anticipativity_oracle() {
     }
 
     assert_eq!(cases, CASES);
+    assert_eq!(expected_policy_acceptances, 204);
+    assert_eq!(expected_non_anticipativity_rejections, 190);
+    assert_eq!(expected_accepted_scenarios, 810);
     assert_eq!(actual_policy_acceptances, expected_policy_acceptances);
     assert_eq!(
         actual_non_anticipativity_rejections,
