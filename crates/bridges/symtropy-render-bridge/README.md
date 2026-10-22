@@ -8,6 +8,29 @@ Project `symtropy-physics` N-dimensional physics worlds into Bevy 3D rendering.
 - **3D projection** — `PhysicsWorld<3>` to Bevy 3D meshes.
 - **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. First-class support for ND collider visualisation.
 
+## Solar-scale rendering foundations
+
+The bridge has a precision-aware large-world position primitive for scenes that
+span from local detail to planetary and interplanetary distances. Canonical
+positions use a signed integer cell address plus an f64 offset inside that cell;
+camera-relative conversion subtracts cell addresses before creating render
+coordinates. A three-part high/middle/low f32 representation is available for
+GPU paths that preserve the split through the view/projection transform.
+
+The optional apparent-scale policy computes a sphere's projected diameter for
+perspective or orthographic cameras, classifies it into configurable presentation
+bands, and applies hysteresis to avoid chattering at representation thresholds.
+These bands are not object deletion rules: selection, scientific identity, and
+task-critical geometry remain host responsibilities.
+
+This is not yet a complete solar-system renderer. Ephemerides, reference-frame
+transforms, tile streaming, shader integration, depth strategy and an end-to-end
+surface-to-system camera traversal still need separate qualification.
+
+See:
+- [Solar-scale architecture and coordinate contract](../../../docs/research/RENDER_SOLAR_SCALE_001.md)
+- [Apparent-size policy and benchmark plan](../../../docs/research/RENDER_APPARENT_SCALE_002.md)
+
 ## Licensing
 
 **Apache-2.0 OR MIT.** Zero AGPL dependencies — safe to use in proprietary projects. See the [repository LICENSING.md](https://github.com/luminous-dynamics/symtropy/blob/main/LICENSING.md) for the full dual-track breakdown.
