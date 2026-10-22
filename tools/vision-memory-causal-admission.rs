@@ -369,7 +369,7 @@ fn run_case(scenario: &Scenario, policy: Policy) -> RunResult {
         && outcome.success
         && (!baseline.success || outcome.verification_cost < baseline.verification_cost);
     let harmful_use = memory_used && !outcome.success && baseline.success;
-    let paired_lift = i8::from(outcome.success) - i8::from(baseline.success);
+    let paired_lift = (if outcome.success { 1i8 } else { 0i8 }) - (if baseline.success { 1i8 } else { 0i8 });
 
     let trusted_current_memory = scenario.memory.is_some_and(|m| {
         m.task_key == scenario.observation.task_key
@@ -609,7 +609,7 @@ mod tests {
         let r = run_case(&s, Policy::TransferValidatedGate);
         assert_eq!(r.decision, Decision::Abstain);
         assert!(!r.outcome.success);
-        assert!(r.false_abstention == false);
+        assert!(!r.false_abstention);
     }
 
     #[test]
