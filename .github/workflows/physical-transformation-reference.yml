@@ -305,9 +305,9 @@ jobs:
             and .requested_mode_count == 6
             and (.levels | length) == 4
             and .levels[0].pairs_from_previous == null
-            and .levels[1].pairs_from_previous | length == 6
-            and .levels[2].pairs_from_previous | length == 6
-            and .levels[3].pairs_from_previous | length == 6
+            and (.levels[1].pairs_from_previous | length == 6)
+            and (.levels[2].pairs_from_previous | length == 6)
+            and (.levels[3].pairs_from_previous | length == 6)
             and ([.levels[].total_element_count] == [2,4,8,16])
             and ([.levels[].free_dof_count] == [6,12,24,48])
             and (.levels | all(.[]; (.frequencies_hz | length) == 6 and (.frequencies_hz | all(.[]; . > 0)) and .maximum_normalized_eigen_residual < 1e-8 and .maximum_mass_norm_residual < 1e-8 and .maximum_mass_orthogonality_residual < 1e-8))
