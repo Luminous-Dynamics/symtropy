@@ -1,6 +1,6 @@
 {
   "protocol_id": "PHYS-CCX-MMS-P1-001",
-  "protocol_version": "0.2.0",
+  "protocol_version": "0.3.0",
   "status": "protocol_frozen_not_executed",
   "claim_class": "code_verification_only",
   "domain": {
@@ -108,5 +108,35 @@
     },
     "solver_execution": false,
     "solver_qualification": false
+  },
+  "deck_generation": {
+    "element_type": "CPE3",
+    "coordinate_dimensions": 3,
+    "out_of_plane_coordinate": 0,
+    "material_section": "plane_strain_solid_section",
+    "thickness": 1,
+    "static_step": {
+      "initial_increment": 1,
+      "total_time": 1
+    },
+    "outputs": {
+      "node_print": [
+        "U",
+        "RF"
+      ],
+      "node_file": [
+        "U"
+      ],
+      "element_file": [
+        "S"
+      ]
+    },
+    "constrained_boundary_load_policy": {
+      "solver_cload_applies_only_to_interior_nodes": true,
+      "boundary_equivalent_loads_preserved_as_deck_comments": true,
+      "boundary_load_comment_prefix": "** BOUNDARY_LOAD, node_id, fx, fy",
+      "corrected_support_reaction": "solver_reported_RF - omitted_boundary_equivalent_load",
+      "qualification_requires_real_solver_RF_sign_semantics_check": true
+    }
   }
 }
