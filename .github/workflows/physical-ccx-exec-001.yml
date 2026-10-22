@@ -349,6 +349,187 @@ jobs:
           run_ccx "n1-u-repeat" "$FIX/bar-n1-u.inp" "$FIX/request.json"
           run_ccx "n1-rf" "$FIX/bar-n1-rf.inp" "$FIX/request.json"
 
+          # A sine manufactured solution exercises nontrivial field convergence.
+          # Each case leaves its deck, raw .dat/.frd, verifier report, and process receipt.
+          MMS_FAILURES=0
+          run_mms_case() {
+            local elements="$1"
+            local name="mms-n\${elements}"
+            local R="$OUT/$name"
+            local generate_status=0
+            local ccx_status=125
+            local verify_status=0
+            local dat_present=false
+            local frd_present=false
+            local numerical_status="FAIL"
+            local passed=false
+            local started ended
+            mkdir -p "$R"
+
+            set +e
+            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml \
+              --example mms_convergence -- generate "$elements" \
+              > "$R/model.inp" 2> "$R/generate.log"
+            generate_status=$?
+            set -e
+            if [ ! -s "$R/model.inp" ]; then
+              : > "$R/model.inp"
+            fi
+
+            started="$(date +%s)"
+            if [ "$generate_status" -eq 0 ] && [ -s "$R/model.inp" ]; then
+              set +e
+              (cd "$R" && timeout 120s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+                "$CCX" model) > "$R/process.log" 2>&1
+              ccx_status=$?
+              set -e
+            else
+              printf 'manufactured deck generation failed; CCX execution skipped\n' > "$R/process.log"
+            fi
+            ended="$(date +%s)"
+            [ -s "$R/process.log" ] || : > "$R/process.log"
+            dat_present="$(test -s "$R/model.dat" && echo true || echo false)"
+            frd_present="$(test -s "$R/model.frd" && echo true || echo false)"
+            [ -f "$R/model.dat" ] || : > "$R/model.dat"
+
+            set +e
+            cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml \
+              --example mms_convergence -- verify "$elements" "$R/model.inp" "$R/model.dat" \
+              "$source_sha" "$build_sha" "$exe_sha" \
+              > "$R/mms-report.json" 2> "$R/verifier.log"
+            verify_status=$?
+            set -e
+            if [ ! -s "$R/mms-report.json" ] || ! jq -e 'type == "object"' "$R/mms-report.json" >/dev/null 2>&1; then
+              jq -n \
+                --arg source_sha "$source_sha" --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+                --arg case_id "$name" --argjson elements "$elements" \
+                '{
+                  schema_version:"ccx-mms-sine-convergence-v0.1",
+                  benchmark_id:"PHYS-MMS-001",case_id:$case_id,elements:$elements,
+                  source_sha:$source_sha,build_manifest_sha256:$build_sha,
+                  solver_executable_sha256:$exe_sha,
+                  numerical_contract_status:"FAIL",
+                  failure_reason:"verifier process did not emit a valid JSON report",
+                  physical_result_qualified:false,real_world_validation_status:"UNRESOLVED",
+                  engineering_use_authorized:false
+                }' > "$R/mms-report.json"
+            fi
+            numerical_status="$(jq -r '.numerical_contract_status // "FAIL"' "$R/mms-report.json")"
+            if [ "$generate_status" -eq 0 ] \
+              && [ "$ccx_status" -eq 0 ] \
+              && [ "$dat_present" = "true" ] \
+              && [ "$frd_present" = "true" ] \
+              && [ "$verify_status" -eq 0 ] \
+              && [ "$numerical_status" = "PASS" ]; then
+              passed=true
+            fi
+            jq -n \
+              --arg case_id "$name" --arg source_sha "$source_sha" \
+              --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+              --arg deck_sha "$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)" \
+              --arg dat_sha "$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)" \
+              --arg frd_sha "$(test -s "$R/model.frd" && sha256sum "$R/model.frd" | cut -d ' ' -f 1 || echo missing)" \
+              --arg log_sha "$(sha256sum "$R/process.log" | cut -d ' ' -f 1)" \
+              --arg report_sha "$(sha256sum "$R/mms-report.json" | cut -d ' ' -f 1)" \
+              --arg numerical_status "$numerical_status" \
+              --argjson elements "$elements" \
+              --argjson generate_status "$generate_status" \
+              --argjson ccx_status "$ccx_status" --argjson verify_status "$verify_status" \
+              --argjson dat_present "$dat_present" --argjson frd_present "$frd_present" \
+              --argjson passed "$passed" --argjson started "$started" --argjson ended "$ended" \
+              '{
+                schema_version:"calculix-mms-process-receipt-v0.1",
+                case_id:$case_id,elements:$elements,source_sha:$source_sha,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                input_deck_sha256:$deck_sha,dat_output_sha256:$dat_sha,
+                frd_output_sha256:$frd_sha,process_log_sha256:$log_sha,
+                verifier_report_sha256:$report_sha,numerical_contract_status:$numerical_status,
+                generation_exit_status:$generate_status,process_exit_status:$ccx_status,
+                verifier_exit_status:$verify_status,dat_output_present:$dat_present,
+                frd_output_present:$frd_present,started_epoch_s:$started,ended_epoch_s:$ended,
+                process_status:(if $passed then "PASS" else "FAIL" end),
+                physical_result_qualified:false,real_world_validation_status:"UNRESOLVED",
+                engineering_use_authorized:false
+              }' > "$R/process-receipt.json"
+            if [ "$passed" != "true" ]; then
+              echo "manufactured-solution case $name failed (generate=$generate_status, ccx=$ccx_status, verifier=$verify_status, numerical=$numerical_status)" >&2
+              return 1
+            fi
+            return 0
+          }
+
+          for mesh_elements in 4 8 16 32; do
+            if ! run_mms_case "$mesh_elements"; then
+              MMS_FAILURES=1
+            fi
+          done
+
+          # Aggregate independent mesh receipts; do not label a solver run PASS just because it exited zero.
+          aggregate_status=0
+          set +e
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml \
+            --example mms_convergence -- aggregate "$source_sha" "$build_sha" "$exe_sha" \
+            "$OUT/mms-n4/mms-report.json" \
+            "$OUT/mms-n8/mms-report.json" \
+            "$OUT/mms-n16/mms-report.json" \
+            "$OUT/mms-n32/mms-report.json" \
+            > "$OUT/mms-convergence-report.json" 2> "$OUT/mms-aggregate.log"
+          aggregate_status=$?
+          set -e
+          if [ ! -s "$OUT/mms-convergence-report.json" ] \
+            || ! jq -e 'type == "object"' "$OUT/mms-convergence-report.json" >/dev/null 2>&1; then
+            jq -n --arg source_sha "$source_sha" --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+              '{
+                schema_version:"ccx-mms-convergence-summary-v0.1",
+                benchmark_id:"PHYS-MMS-001",source_sha:$source_sha,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                convergence_status:"FAIL",
+                failure_reasons:["aggregate verifier failed to emit a valid JSON report"],
+                physical_result_qualified:false,real_world_validation_status:"UNRESOLVED",
+                engineering_use_authorized:false
+              }' > "$OUT/mms-convergence-report.json"
+          fi
+          mms_status="$(jq -r '.convergence_status // "FAIL"' "$OUT/mms-convergence-report.json")"
+          if [ "$aggregate_status" -ne 0 ] || [ "$mms_status" != "PASS" ]; then
+            MMS_FAILURES=1
+          fi
+
+          # Verify each process receipt against live hashes and the exact common source/build.
+          for mesh_elements in 4 8 16 32; do
+            R="$OUT/mms-n\${mesh_elements}"
+            expected_deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+            expected_dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
+            expected_report_sha="$(sha256sum "$R/mms-report.json" | cut -d ' ' -f 1)"
+            expected_log_sha="$(sha256sum "$R/process.log" | cut -d ' ' -f 1)"
+            expected_frd_sha="$(test -s "$R/model.frd" && sha256sum "$R/model.frd" | cut -d ' ' -f 1 || echo missing)"
+            if ! jq -e \
+              --arg source_sha "$source_sha" --arg build_sha "$build_sha" --arg exe_sha "$exe_sha" \
+              --arg deck_sha "$expected_deck_sha" --arg dat_sha "$expected_dat_sha" \
+              --arg frd_sha "$expected_frd_sha" --arg log_sha "$expected_log_sha" \
+              --arg report_sha "$expected_report_sha" \
+              '.source_sha == $source_sha
+               and .build_manifest_sha256 == $build_sha
+               and .solver_executable_sha256 == $exe_sha
+               and .input_deck_sha256 == $deck_sha
+               and .dat_output_sha256 == $dat_sha
+               and .frd_output_sha256 == $frd_sha
+               and .process_log_sha256 == $log_sha
+               and .verifier_report_sha256 == $report_sha
+               and .process_status == "PASS"
+               and .physical_result_qualified == false
+               and .engineering_use_authorized == false' \
+              "$R/process-receipt.json" >/dev/null; then
+              MMS_FAILURES=1
+            fi
+          done
+
+          mms_report_sha="$(sha256sum "$OUT/mms-convergence-report.json" | cut -d ' ' -f 1)"
+          cp "$OUT/mms-convergence-report.json" "$ROOT/ccx-mms-convergence-001.json"
+          for mesh_elements in 4 8 16 32; do
+            cp "$OUT/mms-n\${mesh_elements}/mms-report.json" "$ROOT/ccx-mms-convergence-001-n\${mesh_elements}.json"
+            cp "$OUT/mms-n\${mesh_elements}/process-receipt.json" "$ROOT/ccx-mms-convergence-001-n\${mesh_elements}-process-receipt.json"
+          done
+
           build="$ROOT/build-manifest.json"
           for n in 1 2 4; do
             case "$n" in
