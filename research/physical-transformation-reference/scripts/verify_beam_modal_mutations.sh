@@ -151,8 +151,7 @@ jq -n \
         id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
         expected_test: "negative_eigenvalues_are_reported_as_unstable_not_dropped",
         disposition: "detected"
-      }
-      ,
+      },
       {
         id: "PHYS-BEAM-MOD-MAC-SIGN-001",
         expected_test: "modal_assurance_criterion_is_sign_invariant_and_fail_closed",
