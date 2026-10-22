@@ -174,6 +174,21 @@ The primary 2026 comparator is Wang, Yin and Khan, “Spatial-Scheduling Strateg
 
 The present V0 has complementary but narrower guarantees: independent rectangular spatial verification, explicit retained occupancy until observed clearance, unary resource reservations/outages, finish-to-start dependencies, finite disruption coverage receipts and execution-event replay. It does not yet reproduce that paper's irregular block polygons, mixed-integer formulation, two-stage objective, or industrial input data. Therefore no direct superiority comparison is valid yet. The first fair differential experiment should reproduce the same instance/metric protocol under the study's assumptions, then toggle one added capability at a time: clearance overruns, resource outages, precedence, and late-arriving execution evidence. Report yard utilization and vehicle schedule time alongside false-feasible rate, recovery horizon, changed reservations and unaffected-plan churn; retain every objective separately.
 
+### Concrete reproduction target: Case9_50_4
+
+The July 2026 paper's Table 6 reports the following values for Case9_50_4 with disruption levels D1=2 and D2=2 (Aur = yard utilisation, Act = computing time, Vt = total vehicle travel time):
+
+| Method | Aur | Act (s) | Vt (min) |
+|---|---:|---:|---:|
+| Proposed hybrid ABC + ALNS | 0.775 | 308.0 | 2,339 |
+| Traditional ABC / IA | 0.765 | 398.7 | 2,339 |
+| Genetic algorithm / GA | 0.760 | 335.6 | 2,386 |
+| Differential evolution / DE | 0.768 | 352.1 | 2,360 |
+
+The article describes 15 independent repetitions for each sensitivity-analysis parameter setting and reports average results. Before making any runtime or quality claim, reproduce the same instance, yard-area denominator (including vehicle aisles), block geometry, disruption definitions, objective calculation, and repetition protocol. Record best/median/mean/worst, dispersion, machine/compiler/configuration, and search/evaluation budget. Runtime comparisons are invalid unless compute budgets and environment are made comparable; quality comparisons must use the same input model and objective definitions.
+
+V0 currently cannot calculate Aur or Vt for this case: it has rectangles rather than the paper's irregular block geometry and does not implement the paper's full vehicle travel-time objective. Its current benchmark results measure verifier/heuristic correctness on a different synthetic problem. This table is a future reproduction target, not a head-to-head result.
+
 A second current comparator is the August 2026 multi-fidelity ant colony system for multi-crane scheduling (Applied Soft Computing, DOI 10.1016/j.asoc.2026.115384). It explicitly models crane safety distance, interference, precedence and tandem scheduling and reports 7–13% shorter crane travel on its own real-world cases. The unary-resource layer here only prevents overlapping reservations and resource-outage conflicts; it does not reproduce crane reach envelopes, interference geometry or tandem lifts. The next crane-specific step is to add those physical/resource profiles and an independent swept-volume or conflict oracle before comparing travel-distance results.
 
 The February 2026 review of shipyard production planning concludes that hybrid discrete-event simulation plus optimization has stronger operational credibility than architecture-rich digital twins without longitudinal yard-wide KPI validation, while confidential industrial datasets limit reproducibility. For this reason, the evidence ladder remains: exact tiny oracles → reproduction of a published instance family → common-budget head-to-head baselines → permissioned execution-trace replay → longitudinal yard KPIs. A synthetic rectangle benchmark is useful for correctness and algorithm ablation, but cannot establish industrial benefit by itself.
