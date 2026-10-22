@@ -24,6 +24,19 @@ pub struct PlacementClearanceBinding {
     pub placement_reservation_id: String,
 }
 
+/// Positive observation that a known placement still occupies its footprint at a decision tick.
+///
+/// This is distinct from missing completion evidence: absence of an event does not prove occupancy.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlacementOccupancyWitness {
+    pub witness_id: String,
+    pub placement_reservation_id: String,
+    pub source_id: String,
+    pub evidence_ref: String,
+    pub occupied_at_tick: u64,
+    pub recorded_tick: u64,
+}
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ExecutionRecoveryBridgeViolationCode {
     InvalidExecutionEvidence,
@@ -38,6 +51,15 @@ pub enum ExecutionRecoveryBridgeViolationCode {
     ClearanceConfirmationMissing,
     ClearanceConfirmationAfterDecision,
     DuplicatePriorOccupancyExtension,
+    EmptyWitnessId,
+    DuplicateWitnessId,
+    EmptyWitnessReservationId,
+    UnknownWitnessReservation,
+    EmptyWitnessSourceId,
+    EmptyWitnessEvidenceReference,
+    WitnessRecordedBeforeObservation,
+    DuplicateWitnessForReservation,
+    DecisionTickOverflow,
 }
 
 impl ExecutionRecoveryBridgeViolationCode {
@@ -55,6 +77,15 @@ impl ExecutionRecoveryBridgeViolationCode {
             Self::ClearanceConfirmationMissing => "ClearanceConfirmationMissing",
             Self::ClearanceConfirmationAfterDecision => "ClearanceConfirmationAfterDecision",
             Self::DuplicatePriorOccupancyExtension => "DuplicatePriorOccupancyExtension",
+            Self::EmptyWitnessId => "EmptyWitnessId",
+            Self::DuplicateWitnessId => "DuplicateWitnessId",
+            Self::EmptyWitnessReservationId => "EmptyWitnessReservationId",
+            Self::UnknownWitnessReservation => "UnknownWitnessReservation",
+            Self::EmptyWitnessSourceId => "EmptyWitnessSourceId",
+            Self::EmptyWitnessEvidenceReference => "EmptyWitnessEvidenceReference",
+            Self::WitnessRecordedBeforeObservation => "WitnessRecordedBeforeObservation",
+            Self::DuplicateWitnessForReservation => "DuplicateWitnessForReservation",
+            Self::DecisionTickOverflow => "DecisionTickOverflow",
         }
     }
 }
@@ -90,11 +121,17 @@ fn sort_violations(violations: &mut Vec<ExecutionRecoveryBridgeViolation>) {
     violations.dedup();
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ClearanceExtensionEvidenceKind {
+    OccupancyStillPresentWitness,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClearanceExtensionReceipt {
     pub operation_id: String,
     pub placement_reservation_id: String,
-    pub source_event_id: String,
+    pub evidence_kind: ClearanceExtensionEvidenceKind,
+    pub source_evidence_id: String,
     pub source_id: String,
     pub evidence_ref: String,
     pub occurred_tick: u64,
@@ -124,6 +161,7 @@ pub fn augment_disruption_from_execution(
     baseline: &Scenario,
     planned_operations: &[PlannedOperation],
     events: &[ExecutionEvent],
+    occupancy_witnesses: &[PlacementOccupancyWitness],
     cutoff: ExecutionReplayCutoff,
     decision_tick: u64,
     prior_disruption: &Disruption,
@@ -182,6 +220,81 @@ pub fn augment_disruption_from_execution(
                 ExecutionRecoveryBridgeViolationCode::DuplicatePriorOccupancyExtension,
                 vec![extension.reservation_id.clone()],
                 "prior disruption contains multiple occupancy extensions for one reservation",
+            );
+        }
+    }
+
+    let mut visible_witnesses_by_reservation: BTreeMap<&str, &PlacementOccupancyWitness> =
+        BTreeMap::new();
+    let mut visible_witness_ids = BTreeSet::new();
+    for witness in occupancy_witnesses.iter().filter(|witness| {
+        witness.occupied_at_tick == decision_tick
+            && witness.occupied_at_tick <= cutoff.as_of_occurred_tick
+            && witness.recorded_tick <= cutoff.as_of_recorded_tick
+    }) {
+        if witness.witness_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::EmptyWitnessId,
+                vec![witness.placement_reservation_id.clone()],
+                "occupancy witness identity is required",
+            );
+        } else if !visible_witness_ids.insert(witness.witness_id.as_str()) {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::DuplicateWitnessId,
+                vec![witness.witness_id.clone()],
+                "visible occupancy witness IDs must be unique",
+            );
+        }
+        if witness.placement_reservation_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::EmptyWitnessReservationId,
+                vec![witness.witness_id.clone()],
+                "occupancy witness must identify a placement reservation",
+            );
+        } else if !placement_by_id.contains_key(witness.placement_reservation_id.as_str()) {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::UnknownWitnessReservation,
+                vec![witness.witness_id.clone(), witness.placement_reservation_id.clone()],
+                "occupancy witness references an unknown placement reservation",
+            );
+        }
+        if witness.source_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::EmptyWitnessSourceId,
+                vec![witness.witness_id.clone()],
+                "occupancy witness source identity is required",
+            );
+        }
+        if witness.evidence_ref.trim().is_empty() {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::EmptyWitnessEvidenceReference,
+                vec![witness.witness_id.clone()],
+                "occupancy witness evidence reference is required",
+            );
+        }
+        if witness.recorded_tick < witness.occupied_at_tick {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::WitnessRecordedBeforeObservation,
+                vec![witness.witness_id.clone()],
+                "recorded tick cannot precede the occupancy observation tick",
+            );
+        }
+        if visible_witnesses_by_reservation
+            .insert(witness.placement_reservation_id.as_str(), witness)
+            .is_some()
+        {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::DuplicateWitnessForReservation,
+                vec![witness.placement_reservation_id.clone()],
+                "multiple current occupancy witnesses target the same placement in V0",
             );
         }
     }
@@ -250,61 +363,31 @@ pub fn augment_disruption_from_execution(
 
         let assessment = assessments.get(binding.operation_id.as_str()).copied();
         let completion = assessment.and_then(|item| item.observed_completion_tick);
-        let completion_event = events.iter().find(|event| {
-            event.operation_id == binding.operation_id
-                && event.kind == ExecutionEventKind::Completed
-                && event.recorded_tick <= cutoff.as_of_recorded_tick
-                && event.occurred_tick <= cutoff.as_of_occurred_tick
-        });
-
-        if decision_tick >= operation.planned_end_tick && completion.is_none() {
-            push(
-                &mut violations,
-                ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationMissing,
-                vec![
-                    binding.operation_id.clone(),
-                    binding.placement_reservation_id.clone(),
-                ],
-                "bound operation reached its planned end without an observable completion/clearance event",
-            );
-            continue;
-        }
-        let Some(completion_tick) = completion else {
-            continue;
-        };
-        if completion_tick > decision_tick {
-            push(
-                &mut violations,
-                ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationAfterDecision,
-                vec![
-                    binding.operation_id.clone(),
-                    binding.placement_reservation_id.clone(),
-                ],
-                "completion event cannot clear a placement before the event occurred",
-            );
+        if let Some(completion_tick) = completion {
+            if completion_tick > decision_tick {
+                push(
+                    &mut violations,
+                    ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationAfterDecision,
+                    vec![
+                        binding.operation_id.clone(),
+                        binding.placement_reservation_id.clone(),
+                    ],
+                    "completion event cannot clear a placement before the event occurred",
+                );
+            }
+            // A completion already observed at or before this decision means the block is not
+            // asserted to remain present now. Late completion is measured in execution replay;
+            // only a current positive occupancy witness creates a forward constraint.
             continue;
         }
 
-        // A completed operation does not imply a change in physical occupancy until it exceeds
-        // the known placement end. If it does, preserve the original reservation and add a delay.
-        if completion_tick > placement.occupied.end_tick {
-            if let Some(event) = completion_event {
-                generated_extensions.push(PlacementOccupancyExtension {
-                    reservation_id: binding.placement_reservation_id.clone(),
-                    occupied_until_tick: completion_tick,
-                });
-                receipts.push(ClearanceExtensionReceipt {
-                    operation_id: binding.operation_id.clone(),
-                    placement_reservation_id: binding.placement_reservation_id.clone(),
-                    source_event_id: event.event_id.clone(),
-                    source_id: event.source_id.clone(),
-                    evidence_ref: event.evidence_ref.clone(),
-                    occurred_tick: event.occurred_tick,
-                    recorded_tick: event.recorded_tick,
-                    previous_occupied_until_tick: placement.occupied.end_tick,
-                    new_occupied_until_tick: completion_tick,
-                });
-            } else {
+        if decision_tick < placement.occupied.end_tick {
+            continue;
+        }
+        let Some(witness) =
+            visible_witnesses_by_reservation.get(binding.placement_reservation_id.as_str()).copied()
+        else {
+            if decision_tick >= operation.planned_end_tick {
                 push(
                     &mut violations,
                     ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationMissing,
@@ -312,9 +395,42 @@ pub fn augment_disruption_from_execution(
                         binding.operation_id.clone(),
                         binding.placement_reservation_id.clone(),
                     ],
-                    "replay reported a completion without a matching visible source event",
+                    "placement interval has elapsed without a visible completion event or a current positive occupancy witness",
                 );
             }
+            continue;
+        };
+
+        let Some(new_occupied_until_tick) = decision_tick.checked_add(1) else {
+            push(
+                &mut violations,
+                ExecutionRecoveryBridgeViolationCode::DecisionTickOverflow,
+                vec![
+                    binding.operation_id.clone(),
+                    binding.placement_reservation_id.clone(),
+                ],
+                "cannot construct a next-tick conservative occupancy interval",
+            );
+            continue;
+        };
+        let new_occupied_until_tick = new_occupied_until_tick.max(placement.occupied.end_tick);
+        if new_occupied_until_tick > placement.occupied.end_tick {
+            generated_extensions.push(PlacementOccupancyExtension {
+                reservation_id: binding.placement_reservation_id.clone(),
+                occupied_until_tick: new_occupied_until_tick,
+            });
+            receipts.push(ClearanceExtensionReceipt {
+                operation_id: binding.operation_id.clone(),
+                placement_reservation_id: binding.placement_reservation_id.clone(),
+                evidence_kind: ClearanceExtensionEvidenceKind::OccupancyStillPresentWitness,
+                source_evidence_id: witness.witness_id.clone(),
+                source_id: witness.source_id.clone(),
+                evidence_ref: witness.evidence_ref.clone(),
+                occurred_tick: witness.occupied_at_tick,
+                recorded_tick: witness.recorded_tick,
+                previous_occupied_until_tick: placement.occupied.end_tick,
+                new_occupied_until_tick,
+            });
         }
     }
 
