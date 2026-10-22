@@ -15,6 +15,7 @@ pub mod mechanics;
 pub mod modal_bar;
 pub mod nafems_nbc05;
 pub mod planar_truss;
+pub mod timoshenko_3d;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Component {
