@@ -27,6 +27,14 @@ u_2=0). Its public page provides a sketch and a download-page link but the preci
 
 These values are the **target/result pair published by Ansys for its LS-DYNA verification case**. They should not be silently merged with another solver's mode set. The Ansys Mechanical APDL reproduction page [VMP09-T4](https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/ans_vm/vmp09t4.html) lists its own BEAM188 and BEAM189 results, including a different first pair. Those are cross-solver comparators, not replacements for the NAFEMS targets.
 
+### Additional external variant: Altair OptiStruct OS-V 0410
+
+The [Altair FV4 page](https://2022.help.altair.com/2022/hwsolvers/os/topics/solvers/os/nafems_test_problem_fv4_r.htm) describes a five-element model using 2-node beam elements and two rigid elements connecting the two point masses. It also states this benchmark targets flexural/torsional coupling, an off-centre inertial axis, and close eigenvalues.
+
+Altair's displayed reference frequency list is **1.723, 1.727, 7.413, 9.972, 18.155, 26.957 Hz**. It also prints normalized factors **1.0054, 1.0048, 1.008, 1.0055, 1.0067, 1.0068**. The HTML table rendering does not make the exact ratio direction clear enough to reconstruct absolute solver frequencies safely, so the manifest preserves the factors separately from the frequency array. In particular, Altair's fourth reference value is 9.972 Hz versus 9.971 Hz on the Ansys LS-DYNA page. Keep that millihertz difference as source provenance, not as a discrepancy to "correct" by choosing one source.
+
+The Rust reference module `nafems_fv4_manifest` now stores five distinct records: Ansys NAFEMS targets, LS-DYNA results, Altair's reference/normalized-factor record, APDL BEAM188 results, and APDL BEAM189 results. Tests prohibit interpreting Altair's normalized factors as another frequency list. These are reference-manifest tests only; they do not validate Symtropy's beam formulation.
+
 ## Future numerical model contract
 
 ### FV4-M0 — source qualification
