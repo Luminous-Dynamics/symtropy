@@ -48,7 +48,7 @@ fn run() -> Result<String, String> {
     let private_rotation_indices = assembly
         .dof_descriptors
         .iter()
-        .filter_map(|descriptor| match descriptor.kind {
+        .filter_map(|descriptor| match &descriptor.kind {
             BeamMeshDofKind::ElementEndRotation { .. } => Some(descriptor.index.to_string()),
             _ => None,
         })
