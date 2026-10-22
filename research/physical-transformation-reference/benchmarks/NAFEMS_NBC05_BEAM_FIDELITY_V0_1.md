@@ -98,6 +98,22 @@ Every beam run must include:
 - convergence data and the explicitly approximate/published target sources;
 - claim ceiling: numerical reproduction of named beam model only, physical validation not performed.
 
+## Sensitivity and uncertainty reporting boundary
+
+The prototype in [PR #2605](https://github.com/Luminous-Dynamics/symtropy/pull/2605) adds central finite-difference sensitivities for declared elastic-mode input parameters. It uses sampled shape MAC plus relative frequency as an identity gate; it does not track a mode by frequency rank alone. It abstains on non-elastic modes, near-repeated clusters, ambiguous matches and missing candidates.
+
+Keep the following evidence classes separate:
+
+1. **Algebraic/numerical error:** generalized-eigenpair residual, modal-mass normalization and orthogonality.
+2. **Discretization error:** mesh sweep, frequency convergence, and MAC/subspace tracking as mesh changes.
+3. **Input uncertainty:** material, density, section and geometry uncertainty supplied by the analyst and propagated through a local derivative only when mode identity is stable.
+4. **Model-form uncertainty:** beam theory, joint release map, rotary-inertia treatment, mass formulation and support interpretation. These are categorical alternative models, not scalar standard deviations to hide inside one interval.
+5. **Validation uncertainty:** uncertainty and provenance of any physical experiment/reference; no such validation has been performed by the current synthetic fixture.
+
+For the homogeneous linear eigenproblem, uniform Young's-modulus scaling must yield (d\ln f/d\ln E=+1/2), and uniform density scaling must yield (d\ln f/d\ln \rho=-1/2). Thus declared relative standard uncertainties of 5% in E and 3% in density contribute 2.5% and 1.5% frequency uncertainty respectively, *before* any other contributions. These are scaling-law checks for the declared model, not measured material uncertainty.
+
+Do not add marginal contributions in quadrature or linearly unless an explicit covariance model and independence assumptions justify it. Do not report an ordinary per-mode uncertainty bar for an unresolved repeated-mode cluster; compare the modal subspace or abstain.
+
 ## Acceptance gates (proposed, not yet achieved)
 
 - Analytical low-dimensional beam element checks pass independently.
