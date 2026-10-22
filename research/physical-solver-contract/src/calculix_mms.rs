@@ -702,6 +702,7 @@ pub fn observed_order(coarse_error: f64, fine_error: f64) -> Check<f64> {
     Ok(order)
 }
 
+#[cfg(test)]
 fn gauss_legendre_weight_sum(order: usize) -> Check<f64> {
     Ok(gauss_legendre_unit(order)?.iter().map(|(_, weight)| weight).sum())
 }
