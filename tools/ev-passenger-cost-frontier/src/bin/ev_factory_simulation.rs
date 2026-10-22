@@ -117,6 +117,7 @@ struct Report {
     scenario_statistics: Vec<ScenarioStatistics>,
     replication_outcomes: Vec<ReplicationOutcome>,
     station_sequence_statistics: Vec<StationSequenceStatistics>,
+    system_wip_statistics: Vec<SystemWipStatistics>,
     flow_time_statistics: Vec<FlowTimeStatistics>,
     flow_time_cohort_accounting_valid: bool,
     paired_common_cause_control_outage_baseline_comparison: Option<PairedOutageComparison>,
@@ -167,6 +168,7 @@ struct ScenarioResult {
     supplier_backlog_average_units: f64,
     source_buffer_peak_units: usize,
     source_buffer_average_units: f64,
+    time_weighted_average_system_wip_units: f64,
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
     flow_time: FlowTimeRunSummary,
@@ -216,6 +218,12 @@ struct FlowTimeRunSummary {
     completed_good_flow_time_seconds: Option<FlowTimeObservationSummary>,
     completed_scrap_flow_time_seconds: Option<FlowTimeObservationSummary>,
     right_censored_observed_age_seconds: Option<FlowTimeObservationSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct SystemWipStatistics {
+    scenario_id: String,
+    time_weighted_average_system_wip_units: DistributionSummary,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -431,6 +439,7 @@ struct SimState {
     supplier_backlog: VecDeque<Job>,
     supplier_backlog_peak: usize,
     supplier_backlog_wip_area: f64,
+    system_wip_area: f64,
     next_job_id: u64,
     released_jobs_total: u64,
     release_cohort_jobs: u64,
@@ -1065,6 +1074,19 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
         }
     }
     report.station_sequence_statistics = station_statistics;
+    let mut system_wip_statistics = Vec::with_capacity(report.scenario_count);
+    for scenario_index in 0..report.scenario_count {
+        let first_scenario = &runs[0].scenarios[scenario_index];
+        let averages: Vec<f64> = runs
+            .iter()
+            .map(|run| run.scenarios[scenario_index].time_weighted_average_system_wip_units)
+            .collect();
+        system_wip_statistics.push(SystemWipStatistics {
+            scenario_id: first_scenario.scenario_id.clone(),
+            time_weighted_average_system_wip_units: summarize_distribution(&averages)?,
+        });
+    }
+    report.system_wip_statistics = system_wip_statistics;
     report.output_never_exceeds_released_input = runs
         .iter()
         .all(|run| run.output_never_exceeds_released_input);
@@ -1440,6 +1462,7 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         scenario_statistics: Vec::new(),
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
+        system_wip_statistics: Vec::new(),
         flow_time_statistics: Vec::new(),
         flow_time_cohort_accounting_valid: scenarios
             .iter()
@@ -1505,6 +1528,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         supplier_backlog: VecDeque::new(),
         supplier_backlog_peak: 0,
         supplier_backlog_wip_area: 0.0,
+        system_wip_area: 0.0,
         next_job_id: 0,
         released_jobs_total: 0,
         release_cohort_jobs: 0,
@@ -1745,6 +1769,10 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             state.source_buffer_wip_area,
             measured_seconds as f64,
         ),
+        time_weighted_average_system_wip_units: safe_ratio(
+            state.system_wip_area,
+            measured_seconds as f64,
+        ),
         interstation_buffers,
         stations: station_results,
         flow_time: FlowTimeRunSummary {
@@ -1841,6 +1869,31 @@ fn collect_right_censored_observed_ages_seconds(
     Ok(censored_ages_seconds)
 }
 
+fn live_job_count(state: &SimState) -> Result<usize, String> {
+    let mut count = state.supplier_backlog.len();
+    count = count
+        .checked_add(state.source_buffer.len())
+        .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+    for buffer in &state.buffers {
+        count = count
+            .checked_add(buffer.len())
+            .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+    }
+    for station in &state.stations {
+        for server in &station.servers {
+            if matches!(
+                &server.state,
+                ServerState::Busy { .. } | ServerState::WaitingOutput { .. }
+            ) {
+                count = count
+                    .checked_add(1)
+                    .ok_or_else(|| "system_wip_count_overflow".to_string())?;
+            }
+        }
+    }
+    Ok(count)
+}
+
 fn safe_ratio(numerator: f64, denominator: f64) -> f64 {
     if denominator > 0.0 {
         numerator / denominator
@@ -1865,6 +1918,7 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
     if dt <= 0.0 {
         return Ok(());
     }
+    state.system_wip_area += dt * live_job_count(state)? as f64;
     if state.common_cause_control_outage_active {
         state.measured_common_cause_control_outage_seconds += dt;
     }
@@ -2939,6 +2993,11 @@ mod tests {
         let report = evaluate_catalog(&catalog).expect("tiny known-answer DES run");
         assert_eq!(report.replication_count, 1);
         assert_eq!(report.scenario_count, 3);
+        assert_eq!(report.system_wip_statistics.len(), 3);
+        assert!(report.system_wip_statistics.iter().all(|statistic| {
+            statistic.time_weighted_average_system_wip_units.sample_count == 1
+                && (statistic.time_weighted_average_system_wip_units.mean - 0.3).abs() < 1e-12
+        }));
         assert!(report.flow_time_cohort_accounting_valid);
         for scenario in &report.scenarios {
             assert_eq!(scenario.flow_time.release_cohort_jobs, 1);
@@ -2965,7 +3024,12 @@ mod tests {
     fn flow_time_statistics_are_aggregated_across_seeds_not_pooled_as_iid_jobs() {
         let report = evaluate_catalog(&fixture()).expect("flow-time replication panel");
         assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert_eq!(report.system_wip_statistics.len(), report.scenario_count);
         assert_eq!(report.replication_count, 20);
+        assert!(report.system_wip_statistics.iter().all(|statistic| {
+            statistic.time_weighted_average_system_wip_units.sample_count == 20
+                && statistic.time_weighted_average_system_wip_units.mean >= 0.0
+        }));
         assert!(report.flow_time_cohort_accounting_valid);
         assert!(report
             .flow_time_statistics
@@ -3073,6 +3137,7 @@ mod tests {
         let report = evaluate_catalog(&catalog).expect("short-horizon censored run");
         assert_eq!(report.replication_count, 1);
         assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert_eq!(report.system_wip_statistics.len(), report.scenario_count);
         assert!(report.flow_time_cohort_accounting_valid);
         for scenario in &report.scenarios {
             assert!(scenario.flow_time.cohort_accounting_valid);
