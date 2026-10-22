@@ -5,7 +5,7 @@
   "purpose": "Temporal plan-integrity fixtures for detecting stale validation, revoked authority, changed resources, replay, and fail-open event handling.",
   "claim_ceiling": "Synthetic software-contract fixtures only. No robot-performance, physical-safety, field-readiness, or standards-conformity claim.",
   "execution_mode": "plan_eligibility_only_no_actuation",
-  "expected_episode_count": 15,
+  "expected_episode_count": 16,
   "revision_keys": [
     "world",
     "calibration",
@@ -62,17 +62,20 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "eligible_for_simulated_plan",
@@ -94,12 +97,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -111,7 +116,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -135,12 +141,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -154,7 +162,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -179,12 +188,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -198,7 +209,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -223,12 +235,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -243,7 +257,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -268,12 +283,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -287,7 +304,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -312,12 +330,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -331,7 +351,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -356,12 +377,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -375,7 +398,8 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -400,17 +424,20 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -434,12 +461,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -465,17 +494,20 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "sequence": 6,
           "kind": "plan_validated",
-          "plan_id": "P2"
+          "plan_id": "P2",
+          "plan_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "sequence": 7,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P2"
+          "plan_id": "P2",
+          "plan_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "expected_decision": "eligible_for_simulated_plan",
@@ -497,17 +529,20 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -531,22 +566,26 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
@@ -570,17 +609,20 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 4,
@@ -608,12 +650,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -642,12 +686,14 @@
             "localization": 4,
             "resources": 20,
             "permissions": 6
-          }
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 2,
           "kind": "plan_validated",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "sequence": 3,
@@ -659,13 +705,51 @@
         {
           "sequence": 4,
           "kind": "simulated_plan_accepted",
-          "plan_id": "P1"
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_decision": "blocked",
       "expected_reason_codes": [
         "REVISION_NOT_MONOTONIC",
         "PLAN_VALIDATION_STALE"
+      ],
+      "expected_physical_actuation": false
+    },
+    {
+      "episode_id": "PLAN_DIGEST_REPLAY_WITH_STABLE_PLAN_ID",
+      "events": [
+        {
+          "sequence": 1,
+          "kind": "plan_proposed",
+          "plan_id": "P1",
+          "bound_revisions": {
+            "world": 1,
+            "calibration": 7,
+            "tool_profile": 3,
+            "authorization": 11,
+            "localization": 4,
+            "resources": 20,
+            "permissions": 6
+          },
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 2,
+          "kind": "plan_validated",
+          "plan_id": "P1",
+          "plan_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 3,
+          "kind": "simulated_plan_accepted",
+          "plan_id": "P1",
+          "plan_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "PLAN_DIGEST_MISMATCH"
       ],
       "expected_physical_actuation": false
     }
