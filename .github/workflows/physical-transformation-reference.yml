@@ -247,6 +247,78 @@ jobs:
             and (.physical_comparator_status | contains("not asserted as numerical golden targets"))
           ' beam-mesh-convergence-receipt.json
 
+      - name: Verify beam mode-tracking mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mode_tracking_mutations.sh
+
+      - name: Re-verify beam mode-tracking source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mode_tracking.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify deterministic beam mode-tracking receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mode-tracking-reference -- --source-commit "$source_commit" > beam-mode-tracking-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mode-tracking-reference -- --source-commit "$source_commit" > beam-mode-tracking-raw-b.json
+          cmp --silent beam-mode-tracking-raw-a.json beam-mode-tracking-raw-b.json
+          request_canonical="$(tr -d '\\n' < research/physical-transformation-reference/fixtures/beam_mode_tracking_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-mode-tracking-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-mode-tracking-request-v0.1|elements_per_member=1,2,4,8|requested_modes=6|pairing=common-physical-station-MAC|assignment=hungarian-max-weight|rotation_scale_reference_length_m=1.41421356237309515e0|common_station_policy=intersection-of-exact-rational-member-stations|base_request=schema=beam-pin-assembly-request-v0.1|fixture=PHYS-BEAM-PIN-001|node|A|0|1|true|true|node|B|0|0|true|true|node|C|1|1|false|false|member|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|member|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "888973b4096d78cca1f2788e71a310161dc2007f18ad16fcdbbda3cb979046b2"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-mode-tracking-raw-a.json > beam-mode-tracking-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-mode-tracking-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MODE-TRACKING-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .references.challenge == "https://www.nafems.org/downloads/nbc5_challenge.pdf"
+            and .references.solution == "https://www.nafems.org/downloads/nbr5v3.pdf"
+            and .evidence_class == "deterministic-software-mode-tracking-run"
+            and .result == "pass"
+            and .elements_per_member == [1,2,4,8]
+            and .requested_mode_count == 6
+            and (.levels | length) == 4
+            and .levels[0].pairs_from_previous == null
+            and (.levels[1].pairs_from_previous | length == 6)
+            and (.levels[2].pairs_from_previous | length == 6)
+            and (.levels[3].pairs_from_previous | length == 6)
+            and ([.levels[].total_element_count] == [2,4,8,16])
+            and ([.levels[].free_dof_count] == [6,12,24,48])
+            and (.levels | all(.[]; (.frequencies_hz | length) == 6 and (.frequencies_hz | all(.[]; . > 0)) and .maximum_normalized_eigen_residual < 1e-8 and .maximum_mass_norm_residual < 1e-8 and .maximum_mass_orthogonality_residual < 1e-8))
+            and (.levels[1].pairs_from_previous | all(.[]; .mac.common_translation_dof_count == 6 and .mac.common_rotation_dof_count == 4))
+            and (.levels[2].pairs_from_previous | all(.[]; .mac.common_translation_dof_count == 10 and .mac.common_rotation_dof_count == 6))
+            and (.levels[3].pairs_from_previous | all(.[]; .mac.common_translation_dof_count == 18 and .mac.common_rotation_dof_count == 10))
+            and .total_mode_pairs == 18
+            and (.defined_combined_mac_count + .unresolved_combined_mac_count == .total_mode_pairs)
+            and (.claim_ceiling | contains("no 200-element/member NAFEMS reproduction"))
+          ' beam-mode-tracking-receipt.json
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -546,5 +618,7 @@ jobs:
             beam-mesh-assembly-mutation-receipt.json
             beam-mesh-convergence-mutation-receipt.json
             beam-mesh-convergence-receipt.json
+            beam-mode-tracking-mutation-receipt.json
+            beam-mode-tracking-receipt.json
           if-no-files-found: error
           retention-days: 90
