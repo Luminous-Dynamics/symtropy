@@ -597,6 +597,13 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
                 return Err("common_cause_control_outage_station_unknown_or_duplicate".into());
             }
         }
+        let last_start = outage.first_start_seconds
+            + ((catalog.horizon_seconds - 1 - outage.first_start_seconds)
+                / outage.recurrence_interval_seconds)
+                * outage.recurrence_interval_seconds;
+        if last_start.saturating_add(outage.duration_seconds) > catalog.horizon_seconds {
+            return Err("common_cause_control_outage_trace_would_be_truncated_by_horizon".into());
+        }
     }
 
     Ok(())
@@ -1785,6 +1792,22 @@ mod tests {
             validate_catalog(&catalog)
                 .expect_err("boundary-only outage")
                 .contains("common_cause_control_outage_configuration_invalid")
+        );
+
+        let mut catalog = common_cause_fixture();
+        {
+            let outage = catalog
+                .common_cause_control_outage
+                .as_mut()
+                .expect("outage configuration");
+            outage.first_start_seconds = 3_500;
+            outage.recurrence_interval_seconds = 1_800;
+            outage.duration_seconds = 600;
+        }
+        assert!(
+            validate_catalog(&catalog)
+                .expect_err("outage end beyond horizon")
+                .contains("common_cause_control_outage_trace_would_be_truncated_by_horizon")
         );
     }
 
