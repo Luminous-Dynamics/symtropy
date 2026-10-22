@@ -1,0 +1,50 @@
+name: CCZ Environmental Observability Benchmark
+
+on:
+  push:
+    branches: ["feat/ccz-observability-bench-v0-1"]
+    paths:
+      - "docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"
+      - "tools/ccz-observability-bench/**"
+      - ".github/workflows/ccz-observability-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json"
+      - "tools/ccz-observability-bench/**"
+      - ".github/workflows/ccz-observability-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccz-observability-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Run unit tests
+        run: cargo test -p ccz-observability-bench --locked
+      - name: Verify frozen corpus and emit receipt
+        env:
+          CCZ_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cargo run --quiet -p ccz-observability-bench --locked -- \
+            --corpus docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json \
+            --receipt "${RUNNER_TEMP}/ccz-observability-receipt.json"
+          test -s "${RUNNER_TEMP}/ccz-observability-receipt.json"

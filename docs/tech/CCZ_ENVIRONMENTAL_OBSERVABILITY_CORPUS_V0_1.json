@@ -1,0 +1,736 @@
+{
+  "schema_id": "luminous.symtropy.ccz-environmental-observability",
+  "schema_version": "0.1.0",
+  "suite_id": "CCZ-OBSERVABILITY-SYNTH-001",
+  "evidence_class": "SyntheticAdversarial",
+  "claim_ceiling": "Contract classification only; not a physical ocean model, ecological prediction, environmental approval, operational safety assessment, or extraction authorization.",
+  "note": "All source IDs, sample IDs, observations, and evidence states are synthetic. They do not represent a real seafloor site, vessel, mining operation, organism census, or approved threshold.",
+  "scenarios": [
+    {
+      "scenario_id": "track-impact-with-valid-baseline",
+      "description": "Impact signal with comparable baseline, controls, methods and current calibration",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "impact_evidence_within_scope",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "impact_signal_detected_within_scope"
+        ]
+      }
+    },
+    {
+      "scenario_id": "non-detection-bounded-to-scope",
+      "description": "Non-detection with declared limits and adequate coverage makes only a scoped non-detection claim",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "no_impact_detected_within_scope",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "no_impact_detected_within_scope"
+        ]
+      }
+    },
+    {
+      "scenario_id": "missing-baseline",
+      "description": "No impact signal but no baseline",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "missing",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "baseline_missing"
+        ]
+      }
+    },
+    {
+      "scenario_id": "incomparable-reference-control",
+      "description": "Reference control exists but is not comparable",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "incomparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "reference_control_incomparable"
+        ]
+      }
+    },
+    {
+      "scenario_id": "incomparable-sampling-methods",
+      "description": "Pre/post methods are not comparable",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "incomparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "sampling_methods_incomparable"
+        ]
+      }
+    },
+    {
+      "scenario_id": "stale-sensor-calibration",
+      "description": "Sensor calibration is stale",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "stale",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "sensor_calibration_stale"
+        ]
+      }
+    },
+    {
+      "scenario_id": "unknown-detection-limits",
+      "description": "Detection limits are unknown",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "unknown",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "detection_limits_unknown"
+        ]
+      }
+    },
+    {
+      "scenario_id": "plume-at-incomplete-boundary",
+      "description": "A plume reaches the monitoring boundary while spatial coverage is incomplete",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "incomplete",
+        "plume_at_monitoring_boundary": true,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "spatial_coverage_incomplete",
+          "plume_at_monitoring_boundary"
+        ]
+      }
+    },
+    {
+      "scenario_id": "recovery-claim-insufficient-followup",
+      "description": "Recovery is claimed without sufficient follow-up evidence",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": true,
+        "recovery_followup": "insufficient",
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "no_impact_detected_within_scope",
+        "recovery": "recovery_not_established",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "no_impact_detected_within_scope",
+          "recovery_followup_insufficient"
+        ]
+      }
+    },
+    {
+      "scenario_id": "cumulative-exposure-incomplete",
+      "description": "Local non-detection is usable, but cumulative fleet exposure is incomplete",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": true,
+        "cumulative_sound": "incomplete",
+        "cumulative_light": "unknown",
+        "cumulative_sediment": "complete"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "no_impact_detected_within_scope",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "indeterminate",
+        "reason_codes": [
+          "no_impact_detected_within_scope",
+          "cumulative_sound_incomplete",
+          "cumulative_light_unknown"
+        ]
+      }
+    },
+    {
+      "scenario_id": "source-snapshot-mismatch",
+      "description": "Observation points to a different source snapshot than the expected snapshot",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v0",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "invalid_evidence",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "source_snapshot_mismatch"
+        ]
+      }
+    },
+    {
+      "scenario_id": "duplicate-sample-identities",
+      "description": "Sample identity is reused",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-a"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "invalid_evidence",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "duplicate_sample_identity"
+        ]
+      }
+    },
+    {
+      "scenario_id": "ambiguous-impact-signal",
+      "description": "Impact signal is ambiguous despite otherwise adequate evidence",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "ambiguous",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "impact_signal_ambiguous"
+        ]
+      }
+    },
+    {
+      "scenario_id": "far-field-impact-preserves-scope",
+      "description": "Impact signal occurs in the far-field observation scope",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "detected",
+        "scope": "far_field",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "far_field",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "impact_evidence_within_scope",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "impact_signal_detected_within_scope"
+        ]
+      }
+    },
+    {
+      "scenario_id": "empty-samples-unknown-control-and-coverage",
+      "description": "No samples and unknown control and spatial coverage",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [],
+        "baseline": "available",
+        "reference_control": "unknown",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "unknown",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "sample_set_empty",
+          "reference_control_unknown",
+          "spatial_coverage_unknown"
+        ]
+      }
+    },
+    {
+      "scenario_id": "impact-and-recovery-are-separate",
+      "description": "Impact is detected while recovery remains unestablished",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "detected",
+        "scope": "direct_track",
+        "recovery_claimed": true,
+        "recovery_followup": "insufficient",
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "impact_evidence_within_scope",
+        "recovery": "recovery_not_established",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "impact_signal_detected_within_scope",
+          "recovery_followup_insufficient"
+        ]
+      }
+    },
+    {
+      "scenario_id": "cumulative-exposure-complete",
+      "description": "Cumulative sound, light and sediment exposure coverage is complete for the declared scope",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": true,
+        "cumulative_sound": "complete",
+        "cumulative_light": "complete",
+        "cumulative_sediment": "complete"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "adequate_for_declared_question",
+        "impact": "no_impact_detected_within_scope",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "complete_for_declared_channels",
+        "reason_codes": [
+          "no_impact_detected_within_scope"
+        ]
+      }
+    },
+    {
+      "scenario_id": "baseline-and-calibration-unknown",
+      "description": "Both baseline and calibration status are unknown",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          "sample-a",
+          "sample-b"
+        ],
+        "baseline": "unknown",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "unknown",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "valid",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "baseline_unknown",
+          "sensor_calibration_unknown"
+        ]
+      }
+    },
+    {
+      "scenario_id": "blank-sample-identity",
+      "description": "A non-empty sample array contains a blank sample identity",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          ""
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "invalid_evidence",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "missing_sample_identity"
+        ]
+      }
+    }
+  ]
+}
