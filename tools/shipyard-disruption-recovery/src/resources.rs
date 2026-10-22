@@ -1643,6 +1643,107 @@ pub fn audit_joint_scenario_coverage(
     report
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointAuditedSelectionViolationCode {
+    RequiredCoverageIncomplete,
+    CandidateScenarioSetMismatch,
+    InvalidCandidateIdentity,
+    NoRobustCandidate,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointAuditedSelectionViolation {
+    pub code: JointAuditedSelectionViolationCode,
+    pub candidate_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct JointAuditedSelectionReport {
+    /// True only if coverage is complete, all candidate receipts match the benchmark scenario set,
+    /// candidate IDs are valid, and at least one robustly accepted candidate exists.
+    pub decision_eligible: bool,
+    pub coverage: JointScenarioCoverageReport,
+    pub pareto: JointParetoReport,
+    pub violations: Vec<JointAuditedSelectionViolation>,
+}
+
+/// Gate the joint Pareto decision on declared scenario-family coverage and identical candidate
+/// scenario sets. This prevents ranking an easy-corpus candidate against a candidate tested against
+/// harder/more numerous scenarios.
+pub fn select_joint_recovery_frontier_with_coverage(
+    alternatives: &[JointRecoveryEnvelopeAlternative],
+    benchmark_scenarios: &[JointDisruptionScenario],
+    required_dimensions: &[JointDisruptionDimension],
+) -> JointAuditedSelectionReport {
+    let coverage = audit_joint_scenario_coverage(benchmark_scenarios, required_dimensions);
+    let mut result = JointAuditedSelectionReport {
+        coverage,
+        ..JointAuditedSelectionReport::default()
+    };
+    if !result.coverage.complete {
+        result.violations.push(JointAuditedSelectionViolation {
+            code: JointAuditedSelectionViolationCode::RequiredCoverageIncomplete,
+            candidate_id: None,
+        });
+    }
+
+    let expected_ids: BTreeSet<&str> = benchmark_scenarios
+        .iter()
+        .map(|scenario| scenario.scenario_id.as_str())
+        .collect();
+    for alternative in alternatives {
+        let actual_ids: Vec<&str> = alternative
+            .report
+            .scenarios
+            .iter()
+            .map(|scenario| scenario.scenario_id.as_str())
+            .collect();
+        let actual_set: BTreeSet<&str> = actual_ids.iter().copied().collect();
+        if actual_ids.len() != expected_ids.len()
+            || actual_set.len() != actual_ids.len()
+            || actual_set != expected_ids
+        {
+            result
+                .violations
+                .push(JointAuditedSelectionViolation {
+                    code: JointAuditedSelectionViolationCode::CandidateScenarioSetMismatch,
+                    candidate_id: Some(alternative.candidate_id.clone()),
+                });
+        }
+    }
+
+    if !result.violations.is_empty() {
+        sort_audited_selection_violations(&mut result.violations);
+        return result;
+    }
+
+    result.pareto = pareto_joint_recovery_candidates(alternatives);
+    if !result.pareto.violations.is_empty() {
+        result.violations.push(JointAuditedSelectionViolation {
+            code: JointAuditedSelectionViolationCode::InvalidCandidateIdentity,
+            candidate_id: None,
+        });
+    }
+    if result.pareto.frontier.is_empty() {
+        result.violations.push(JointAuditedSelectionViolation {
+            code: JointAuditedSelectionViolationCode::NoRobustCandidate,
+            candidate_id: None,
+        });
+    }
+    sort_audited_selection_violations(&mut result.violations);
+    result.decision_eligible = result.violations.is_empty() && !result.pareto.frontier.is_empty();
+    result
+}
+
+fn sort_audited_selection_violations(violations: &mut Vec<JointAuditedSelectionViolation>) {
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+    });
+    violations.dedup();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2801,6 +2902,112 @@ mod tests {
             &[JointDisruptionDimension::ResourceOutage],
         );
         assert_eq!(forward, reversed);
+    }
+
+
+    fn resource_coverage_fixture(id: &str) -> JointDisruptionScenario {
+        JointDisruptionScenario {
+            scenario_id: id.to_owned(),
+            spatial_disruption: no_spatial_disruption(1),
+            resource_outages: vec![outage("station-down", "station-1", 6, 8)],
+        }
+    }
+
+    fn resource_coverage_alternative(
+        candidate_id: &str,
+        scenario: JointDisruptionScenario,
+    ) -> JointRecoveryEnvelopeAlternative {
+        let spatial = spatial_control();
+        let resources = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![reservation(
+                "station-work",
+                "weld-a",
+                "station-1",
+                "workstation",
+                0,
+                5,
+            )],
+        };
+        let report = evaluate_joint_recovery_envelope(
+            &spatial,
+            &spatial,
+            &resources,
+            &resources,
+            &[],
+            &[],
+            &[scenario],
+        );
+        JointRecoveryEnvelopeAlternative {
+            candidate_id: candidate_id.to_owned(),
+            report,
+        }
+    }
+
+    #[test]
+    fn audited_selector_allows_only_candidates_evaluated_on_the_required_corpus() {
+        let scenario = resource_coverage_fixture("resource-outage-a");
+        let alternative =
+            resource_coverage_alternative("candidate-a", scenario.clone());
+        assert!(alternative.report.robustly_accepted);
+
+        let report = select_joint_recovery_frontier_with_coverage(
+            &[alternative],
+            &[scenario],
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+
+        assert!(report.decision_eligible);
+        assert!(report.coverage.complete);
+        assert_eq!(report.pareto.frontier.len(), 1);
+        assert!(report.violations.is_empty());
+    }
+
+    #[test]
+    fn audited_selector_blocks_incomplete_coverage_even_if_every_supplied_case_passes() {
+        let scenario = resource_coverage_fixture("resource-outage-a");
+        let alternative =
+            resource_coverage_alternative("candidate-a", scenario.clone());
+        assert!(alternative.report.robustly_accepted);
+
+        let report = select_joint_recovery_frontier_with_coverage(
+            &[alternative],
+            &[scenario],
+            &[
+                JointDisruptionDimension::ResourceOutage,
+                JointDisruptionDimension::ClearanceOverrun,
+            ],
+        );
+
+        assert!(!report.decision_eligible);
+        assert!(!report.coverage.complete);
+        assert!(report.pareto.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointAuditedSelectionViolationCode::RequiredCoverageIncomplete
+        }));
+    }
+
+    #[test]
+    fn audited_selector_rejects_candidate_receipt_from_an_easier_or_different_scenario_set() {
+        let benchmark_scenario = resource_coverage_fixture("required-resource-outage");
+        let easier_candidate = resource_coverage_alternative(
+            "candidate-a",
+            resource_coverage_fixture("different-resource-outage"),
+        );
+        assert!(easier_candidate.report.robustly_accepted);
+
+        let report = select_joint_recovery_frontier_with_coverage(
+            &[easier_candidate],
+            &[benchmark_scenario],
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+
+        assert!(!report.decision_eligible);
+        assert!(report.pareto.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointAuditedSelectionViolationCode::CandidateScenarioSetMismatch
+                && violation.candidate_id.as_deref() == Some("candidate-a")
+        }));
     }
 
 
