@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 45
     env:
       DEBIAN_FRONTEND: noninteractive
+      HOME: /root
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
