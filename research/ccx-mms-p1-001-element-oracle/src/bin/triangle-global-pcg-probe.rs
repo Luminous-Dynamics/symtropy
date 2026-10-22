@@ -353,6 +353,21 @@ fn conjugate_gradient(
         {
             return Err("CG iterate became non-finite".to_owned());
         }
+        if norm(&residual) / rhs_norm <= RELATIVE_RESIDUAL_TOLERANCE {
+            let product = mat_vec(matrix, &solution)?;
+            let true_residual: Vec<f64> = rhs
+                .iter()
+                .zip(product)
+                .map(|(b, ax)| b - ax)
+                .collect();
+            let true_relative = norm(&true_residual) / rhs_norm;
+            if true_relative.is_finite() && true_relative <= RELATIVE_RESIDUAL_TOLERANCE {
+                return Ok(SolveResult {
+                    iterations: iteration + 1,
+                    relative_residual: true_relative,
+                });
+            }
+        }
 
         z = (0..n)
             .map(|i| if jacobi_preconditioned { residual[i] / diagonal[i] } else { residual[i] })
