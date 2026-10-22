@@ -4,7 +4,7 @@ Standalone Rust audit for Symtropy's frozen terrain-mobility corpus. It implemen
 
 ## Run
 
-Run `cargo fmt --manifest-path tools/terrain-mobility-audit/Cargo.toml -- --check`, then `cargo test --manifest-path tools/terrain-mobility-audit/Cargo.toml`.
+To format a checkout, run `cargo fmt --manifest-path tools/terrain-mobility-audit/Cargo.toml`. Then run `cargo test --manifest-path tools/terrain-mobility-audit/Cargo.toml`.
 
 Generate a receipt with `cargo run --quiet --manifest-path tools/terrain-mobility-audit/Cargo.toml -- fixtures/terrain_mobility/terrain_mobility_scenarios_v0_1.json --source-commit $(git rev-parse HEAD) > terrain-mobility-audit-receipt.json`.
 
