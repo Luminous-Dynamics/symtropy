@@ -434,8 +434,10 @@ pub struct MmsMetrics {
     pub cells_per_axis: usize,
     pub node_count: usize,
     pub element_count: usize,
-    pub displacement_l1_error_m: f64,
-    pub displacement_l2_error_m: f64,
+    /// Area-integrated displacement magnitude; units are m^3.
+    pub displacement_l1_integral_m3: f64,
+    /// Area L2 norm of displacement error; units are m^2.
+    pub displacement_l2_norm_m2: f64,
     /// Quadrature-sampled maximum, not a proof of the true continuous L-infinity norm.
     pub displacement_quadrature_linf_error_m: f64,
     pub displacement_max_nodal_error_m: f64,
@@ -548,16 +550,16 @@ pub fn audit_nodal_displacements(
         cells_per_axis: mesh.cells_per_axis,
         node_count: mesh.nodes.len(),
         element_count: mesh.elements.len(),
-        displacement_l1_error_m: l1,
-        displacement_l2_error_m: l2_squared.sqrt(),
+        displacement_l1_integral_m3: l1,
+        displacement_l2_norm_m2: l2_squared.sqrt(),
         displacement_quadrature_linf_error_m: linf,
         displacement_max_nodal_error_m,
         displacement_h1_seminorm_error_m: h1_squared.sqrt(),
         stress_l2_error_pa_m: stress_squared.sqrt(),
     };
     let values = [
-        result.displacement_l1_error_m,
-        result.displacement_l2_error_m,
+        result.displacement_l1_integral_m3,
+        result.displacement_l2_norm_m2,
         result.displacement_quadrature_linf_error_m,
         result.displacement_max_nodal_error_m,
         result.displacement_h1_seminorm_error_m,
@@ -809,9 +811,9 @@ mod tests {
             let solution = exact_nodal_solution(&mesh, parameters);
             metrics.push(audit_nodal_displacements(&mesh, parameters, &solution).unwrap());
         }
-        assert!(metrics[1].displacement_l2_error_m < metrics[0].displacement_l2_error_m);
-        assert!(metrics[2].displacement_l2_error_m < metrics[1].displacement_l2_error_m);
-        let order = observed_order(metrics[1].displacement_l2_error_m, metrics[2].displacement_l2_error_m).unwrap();
+        assert!(metrics[1].displacement_l2_norm_m2 < metrics[0].displacement_l2_norm_m2);
+        assert!(metrics[2].displacement_l2_norm_m2 < metrics[1].displacement_l2_norm_m2);
+        let order = observed_order(metrics[1].displacement_l2_norm_m2, metrics[2].displacement_l2_norm_m2).unwrap();
         assert!((1.7..=2.4).contains(&order), "observed interpolation order={order}");
         assert!(metrics[2].displacement_h1_seminorm_error_m < metrics[1].displacement_h1_seminorm_error_m);
     }
