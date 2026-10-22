@@ -33,4 +33,8 @@ path = "src/bin/beam-pin-modal-reference.rs"
 name = "sofistik-be25-input-audit"
 path = "src/bin/sofistik-be25-input-audit.rs"
 
+[[bin]]
+name = "sofistik-be25-line-candidate"
+path = "src/bin/sofistik-be25-line-candidate.rs"
+
 [workspace]
