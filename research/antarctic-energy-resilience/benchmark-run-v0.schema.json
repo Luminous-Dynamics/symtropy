@@ -494,5 +494,332 @@
         "not_applicable"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_tier": {
+            "const": "S0_synthetic"
+          }
+        },
+        "required": [
+          "evidence_tier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "case_manifest": {
+            "properties": {
+              "physical_data": {
+                "const": false
+              }
+            },
+            "required": [
+              "physical_data"
+            ]
+          },
+          "claim_ceiling": {
+            "const": "software_accounting_only"
+          }
+        },
+        "required": [
+          "case_manifest",
+          "claim_ceiling"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "planned"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_ceiling": {
+            "const": "software_accounting_only"
+          }
+        },
+        "required": [
+          "claim_ceiling"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_ceiling": {
+            "const": "published_reference_reproduced"
+          }
+        },
+        "required": [
+          "claim_ceiling"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_tier": {
+            "enum": [
+              "S2_reproduced_reference",
+              "S3_bench_or_hardware_in_loop",
+              "S4_operational_validation"
+            ]
+          },
+          "validation": {
+            "properties": {
+              "source_validation": {
+                "const": "pass"
+              },
+              "model_validation": {
+                "const": "pass_within_declared_scope"
+              },
+              "independent_audit": {
+                "const": "pass"
+              },
+              "ci_status": {
+                "const": "pass_exact_head"
+              }
+            },
+            "required": [
+              "source_validation",
+              "model_validation",
+              "independent_audit",
+              "ci_status"
+            ]
+          }
+        },
+        "required": [
+          "evidence_tier",
+          "validation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_ceiling": {
+            "const": "bench_validated_within_scope"
+          }
+        },
+        "required": [
+          "claim_ceiling"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_tier": {
+            "enum": [
+              "S3_bench_or_hardware_in_loop",
+              "S4_operational_validation"
+            ]
+          },
+          "case_manifest": {
+            "properties": {
+              "physical_data": {
+                "const": true
+              }
+            },
+            "required": [
+              "physical_data"
+            ]
+          },
+          "hard_gates": {
+            "properties": {
+              "electric_balance": {
+                "const": "pass"
+              },
+              "thermal_balance": {
+                "const": "pass"
+              },
+              "storage_bounds": {
+                "const": "pass"
+              },
+              "critical_service": {
+                "const": "pass"
+              },
+              "process_safety": {
+                "const": "pass"
+              },
+              "environmental_constraints": {
+                "const": "pass"
+              }
+            },
+            "required": [
+              "electric_balance",
+              "thermal_balance",
+              "storage_bounds",
+              "critical_service",
+              "process_safety",
+              "environmental_constraints"
+            ]
+          },
+          "validation": {
+            "properties": {
+              "source_validation": {
+                "const": "pass"
+              },
+              "model_validation": {
+                "const": "pass_within_declared_scope"
+              },
+              "independent_audit": {
+                "const": "pass"
+              },
+              "ci_status": {
+                "const": "pass_exact_head"
+              }
+            },
+            "required": [
+              "source_validation",
+              "model_validation",
+              "independent_audit",
+              "ci_status"
+            ]
+          }
+        },
+        "required": [
+          "evidence_tier",
+          "case_manifest",
+          "hard_gates",
+          "validation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_ceiling": {
+            "const": "operationally_validated_within_scope"
+          }
+        },
+        "required": [
+          "claim_ceiling"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_tier": {
+            "const": "S4_operational_validation"
+          },
+          "case_manifest": {
+            "properties": {
+              "physical_data": {
+                "const": true
+              }
+            },
+            "required": [
+              "physical_data"
+            ]
+          },
+          "source_artifacts": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "raw_bytes_ingested": {
+                  "const": true
+                }
+              },
+              "required": [
+                "sha256",
+                "raw_bytes_ingested"
+              ]
+            }
+          },
+          "split_plan": {
+            "properties": {
+              "locked_before_tuning": {
+                "const": true
+              },
+              "locked_test_periods": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "locked_before_tuning",
+              "locked_test_periods"
+            ]
+          },
+          "hard_gates": {
+            "properties": {
+              "electric_balance": {
+                "const": "pass"
+              },
+              "thermal_balance": {
+                "const": "pass"
+              },
+              "storage_bounds": {
+                "const": "pass"
+              },
+              "critical_service": {
+                "const": "pass"
+              },
+              "process_safety": {
+                "const": "pass"
+              },
+              "environmental_constraints": {
+                "const": "pass"
+              }
+            },
+            "required": [
+              "electric_balance",
+              "thermal_balance",
+              "storage_bounds",
+              "critical_service",
+              "process_safety",
+              "environmental_constraints"
+            ]
+          },
+          "validation": {
+            "properties": {
+              "source_validation": {
+                "const": "pass"
+              },
+              "model_validation": {
+                "const": "pass_within_declared_scope"
+              },
+              "independent_audit": {
+                "const": "pass"
+              },
+              "ci_status": {
+                "const": "pass_exact_head"
+              },
+              "exact_head_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "artifact_manifest_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "source_validation",
+              "model_validation",
+              "independent_audit",
+              "ci_status",
+              "exact_head_sha",
+              "artifact_manifest_sha256"
+            ]
+          }
+        },
+        "required": [
+          "evidence_tier",
+          "case_manifest",
+          "source_artifacts",
+          "split_plan",
+          "hard_gates",
+          "validation"
+        ]
+      }
+    }
+  ]
 }
