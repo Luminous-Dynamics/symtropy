@@ -353,7 +353,7 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
+    use super::{canonical_assembly_request, BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
 
     fn nodes() -> Vec<BeamPinNode> {
         vec![
