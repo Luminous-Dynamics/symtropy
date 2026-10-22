@@ -668,7 +668,7 @@ mod tests {
             for seed in 0..SEEDS {
                 for budget in BUDGETS {
                     let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
-                        ^ ((seed as u64 + 1) * 0x9e37_79b9_7f4a_7c15)
+                        ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
                         ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
                     let (events, latest, future) = build_stream(workload, mixed_seed);
                     let oracle = hindsight_upper_bound(&latest, &future, budget);
