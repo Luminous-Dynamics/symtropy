@@ -40,14 +40,14 @@ This is a finite robustness envelope, not a probabilistic guarantee over disturb
 
 ## Pareto selection without hidden weights
 
-`pareto_recovery_candidates` compares only robustly accepted candidates. It publishes separate objectives for worst-case recovery horizon, makespan, changed placement/transfer count, unaffected placement/transfer churn, time shift and rectangle-edge displacement. One candidate dominates another only when it is no worse on every published objective and strictly better on at least one. A candidate failing any scenario is excluded from the frontier; empty or duplicate candidate IDs invalidate the comparison. Equal-scoring alternatives may both remain on the frontier.
+`pareto_recovery_candidates` compares only robustly accepted candidates. A missing recovery horizon/makespan is treated as not-applicable: when one candidate has a metric and another does not, neither is allowed to dominate solely because an `Option` sorts before the other. It publishes separate objectives for worst-case recovery horizon, makespan, changed placement/transfer count, unaffected placement/transfer churn, time shift and rectangle-edge displacement. One candidate dominates another only when it is no worse on every published objective and strictly better on at least one. A candidate failing any scenario is excluded from the frontier; empty or duplicate candidate IDs invalidate the comparison. Equal-scoring alternatives may both remain on the frontier.
 
 This intentionally avoids inventing a single weighted score. Yard managers can review the frontier and state explicit business preferences rather than letting an undocumented coefficient trade away resilience, stability or schedule time. This is not a proof that the current objective set is complete: cost, emissions, lift energy, risk and downstream vessel-delivery penalties need properly sourced models before they can be added.
 
 
 ## Tests authored in V0
 
-Seventeen unit tests cover:
+Twenty unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -62,6 +62,12 @@ Seventeen unit tests cover:
 12. robust acceptance across three clearance-time scenarios;
 13. rejection when a candidate survives the optimistic clearance time but fails a later-clearance scenario;
 14. fail-closed empty and duplicate scenario-set identities.
+15. Pareto frontier selection preserving a real recovery-time versus geometry-shift trade-off;
+16. rejection of candidates that fail any member of a robust disturbance envelope;
+17. rejection of duplicate candidate identities;
+18. prevention of moving an active block before clearance;
+19. prevention of reassigning/rerouting an active transfer mid-operation;
+20. treatment of not-applicable Pareto metrics as incomparable, not automatically better.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
