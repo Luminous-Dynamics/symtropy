@@ -37,6 +37,7 @@ fn main() -> ExitCode {
             "\"elements\":{},\"interior_nodes\":{},",
             "\"max_strain_error\":{:.17e},",
             "\"max_stiffness_symmetry_defect\":{:.17e},",
+            "\"max_energy_identity_defect\":{:.17e},",
             "\"max_interior_force_linf\":{:.17e},",
             "\"max_rigid_mode_force_linf\":{:.17e},",
             "\"element_patch_pass\":{},",
@@ -48,6 +49,7 @@ fn main() -> ExitCode {
         probe.interior_nodes,
         probe.max_strain_error,
         probe.max_stiffness_symmetry_defect,
+        probe.max_energy_identity_defect,
         probe.max_interior_force_linf,
         probe.max_rigid_mode_force_linf,
         passed
