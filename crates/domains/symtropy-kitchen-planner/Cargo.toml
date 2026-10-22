@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-kitchen-planner"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic resource-constrained cooking schedule kernel"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[lints.rust]
+unsafe_code = "forbid"
