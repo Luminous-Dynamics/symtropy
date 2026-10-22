@@ -7,8 +7,8 @@ use std::time::Instant;
 use serde_json::json;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
-    pd_baseline, ActiveInferenceFlightAgent, FlightConfig, FlightController,
-    FlightFepConfig, FlightSetpoint, FlightTrainer, PdGains, PhysicsSimulator,
+    pd_baseline, pid_baseline, ActiveInferenceFlightAgent, FlightConfig, FlightController,
+    FlightFepConfig, FlightSetpoint, FlightTrainer, PdGains, PidState, PhysicsSimulator,
     QuadrotorHdcEncoder,
 };
 use symtropy_real_symthaea_physics_loop::symtropy_flight::SymtropyFlightSimulator;
@@ -54,17 +54,19 @@ fn disturbance_for_seed(seed: u64, step: usize) -> Option<[f64; 3]> {
     }
 }
 
-fn evaluate_pd(
+fn evaluate_classical(
     seed: u64,
     steps: usize,
     setpoint: &FlightSetpoint,
     gains: &PdGains,
     force_enabled: bool,
+    use_pid: bool,
 ) -> Metrics {
     let mut sim = SymtropyFlightSimulator::new();
     sim.reset_with_perturbation(setpoint.position[2], 0.08, seed);
     let (mut squared, mut absolute, mut impulse) = (0.0, 0.0, 0.0);
     let mut controller_latencies_us = Vec::with_capacity(steps);
+    let mut pid_state = PidState::default();
     let mut max_error: f64 = 0.0;
     let mut within = 0usize;
     let dt = 1.0 / 500.0;
@@ -78,7 +80,11 @@ fn evaluate_pd(
             within += 1;
         }
         let command_started = Instant::now();
-        let command = pd_baseline(&state, setpoint, gains).clamped();
+        let command = if use_pid {
+            pid_baseline(&state, setpoint, gains, &mut pid_state, dt)
+        } else {
+            pd_baseline(&state, setpoint, gains)
+        }.clamped();
         controller_latencies_us.push(command_started.elapsed().as_secs_f64() * 1.0e6);
         impulse += command.thrust as f64 * dt;
         if force_enabled {
@@ -226,7 +232,8 @@ fn main() {
     let mut paired_rows = Vec::new();
     for index in 0..trials.max(1) {
         let seed = 0x53594d5400000000_u64.wrapping_add(index as u64 + 1);
-        let pd = evaluate_pd(seed, eval_steps, &setpoint, &gains, force_enabled);
+        let pd = evaluate_classical(seed, eval_steps, &setpoint, &gains, force_enabled, false);
+        let pid = evaluate_classical(seed, eval_steps, &setpoint, &gains, force_enabled, true);
         let untrained = evaluate_symthaea(
             seed, eval_steps, &setpoint, &config, &untrained_controller, force_enabled, false,
         );
@@ -243,6 +250,7 @@ fn main() {
             "training_backend": "Symthaea SimplePhysicsSimulator",
             "controller": {
                 "pd_baseline": pd,
+                "pid_baseline": pid,
                 "symthaea_untrained_no_fep_ablation": untrained,
                 "symthaea_trained_no_online_fep": trained_no_online_fep,
                 "symthaea_trained_with_fep": trained_with_fep
@@ -251,7 +259,9 @@ fn main() {
                 "trained_with_fep_rmse_m": trained_with_fep.rmse_m - pd.rmse_m,
                 "trained_with_fep_final_error_m": trained_with_fep.final_position_error_m - pd.final_position_error_m,
                 "trained_with_fep_within_5cm_fraction": trained_with_fep.within_5cm_fraction - pd.within_5cm_fraction,
+                "trained_with_fep_rmse_vs_pid_m": trained_with_fep.rmse_m - pid.rmse_m,
                 "trained_no_online_fep_rmse_m": trained_no_online_fep.rmse_m - pd.rmse_m,
+                "trained_no_online_fep_rmse_vs_pid_m": trained_no_online_fep.rmse_m - pid.rmse_m,
                 "untrained_rmse_m": untrained.rmse_m - pd.rmse_m
             },
             "fep_effect_vs_trained_no_fep": {
