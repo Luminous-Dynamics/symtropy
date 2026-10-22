@@ -158,16 +158,13 @@ pub fn compute_response_robustness(
     request: &ResidentPreferenceProbeRequest,
     channel: &BoundedPreferenceResponseChannel,
 ) -> Result<PreferenceResponseRobustnessReport, ResponseRobustnessError> {
-    let exact_report =
-        compute_resident_preference_probe(request).map_err(ResponseRobustnessError::InvalidProbe)?;
+    let exact_report = compute_resident_preference_probe(request)
+        .map_err(ResponseRobustnessError::InvalidProbe)?;
 
     for true_outcome in PreferenceOutcome::ALL {
         let mask = channel.allowed_observed_mask_by_true_outcome[true_outcome.index()];
         if mask == 0 || mask & !OBSERVED_ANSWER_MASK != 0 {
-            return Err(ResponseRobustnessError::InvalidResponseMask {
-                true_outcome,
-                mask,
-            });
+            return Err(ResponseRobustnessError::InvalidResponseMask { true_outcome, mask });
         }
     }
 
@@ -214,15 +211,14 @@ pub fn compute_response_robustness(
         for (scenario_index, scenario_utilities) in utilities.iter().enumerate() {
             let left_utility = scenario_utilities[left_index];
             let right_utility = scenario_utilities[right_index];
-            let true_outcome = if left_utility.abs_diff(right_utility)
-                <= request.indifference_margin_units
-            {
-                PreferenceOutcome::Indifferent
-            } else if left_utility > right_utility {
-                PreferenceOutcome::LeftPreferred
-            } else {
-                PreferenceOutcome::RightPreferred
-            };
+            let true_outcome =
+                if left_utility.abs_diff(right_utility) <= request.indifference_margin_units {
+                    PreferenceOutcome::Indifferent
+                } else if left_utility > right_utility {
+                    PreferenceOutcome::LeftPreferred
+                } else {
+                    PreferenceOutcome::RightPreferred
+                };
             let mask = channel.allowed_observed_mask_by_true_outcome[true_outcome.index()];
             for answer in ObservedPreferenceAnswer::ALL {
                 if mask & (1_u8 << answer.index()) != 0 {
@@ -236,12 +232,7 @@ pub fn compute_response_robustness(
             .map(|answer| {
                 let support = &scenario_supports[answer.index()];
                 let regret = (!support.is_empty()).then(|| {
-                    minimax_regret(
-                        support,
-                        &utilities,
-                        &scenario_best,
-                        alternatives.len(),
-                    )
+                    minimax_regret(support, &utilities, &scenario_best, alternatives.len())
                 });
                 ObservedAnswerSupport {
                     answer,
@@ -377,7 +368,9 @@ mod tests {
             revision_sha256: revision.clone(),
             verifier_receipt_sha256: format!(
                 "{:064x}",
-                revision.bytes().fold(1_u64, |value, byte| value + u64::from(byte))
+                revision
+                    .bytes()
+                    .fold(1_u64, |value, byte| value + u64::from(byte))
             ),
             verified_revision_sha256: revision,
             hard_feasibility: VerificationStatus::Verified,
@@ -427,10 +420,14 @@ mod tests {
     fn exact_channel_matches_the_exact_partition_regret() {
         let input = request();
         let exact = compute_resident_preference_probe(&input).expect("valid exact probe");
-        let robust = compute_response_robustness(&input, &BoundedPreferenceResponseChannel::exact())
-            .expect("valid exact channel");
+        let robust =
+            compute_response_robustness(&input, &BoundedPreferenceResponseChannel::exact())
+                .expect("valid exact channel");
 
-        assert_eq!(robust.baseline_minimax_regret_units, exact.baseline_minimax_regret_units);
+        assert_eq!(
+            robust.baseline_minimax_regret_units,
+            exact.baseline_minimax_regret_units
+        );
         assert_eq!(robust.baseline_minimax_regret_units, 50_000_000);
         for question in &exact.questions {
             let robust_question = robust
@@ -568,10 +565,7 @@ mod tests {
             ObservedAnswerResolution::SupportedByModels {
                 question_id: "ask-extremes".to_owned(),
                 answer: ObservedPreferenceAnswer::Unresolved,
-                compatible_scenario_ids: vec![
-                    "cost-first".to_owned(),
-                    "support-first".to_owned()
-                ],
+                compatible_scenario_ids: vec!["cost-first".to_owned(), "support-first".to_owned()],
             }
         );
     }
@@ -633,7 +627,10 @@ mod tests {
                 .map(|(score, weight)| u64::from(*score) * u64::from(weight))
                 .sum::<u64>()
         };
-        assert_eq!(utility(&left.criterion_scores_bps), utility(&right.criterion_scores_bps));
+        assert_eq!(
+            utility(&left.criterion_scores_bps),
+            utility(&right.criterion_scores_bps)
+        );
 
         // Neither supplied training scenario predicts indifference for this pair.
         let resolution = resolve_observed_answer(
