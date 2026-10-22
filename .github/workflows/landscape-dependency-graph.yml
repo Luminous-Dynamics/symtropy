@@ -71,6 +71,10 @@ jobs:
             .scenario_count == 6 and
             .service_count == 3 and
             .cross_layer_dependency_count == 8 and
+            .baseline_supported_service_count == 3 and
+            (.single_failure_audit | length) == 22 and
+            (.single_failure_audit[0].failure_kind == "node" and .single_failure_audit[0].target_id == "maintenance_crew" and .single_failure_audit[0].lost_service_count == 2 and .single_failure_audit[0].lost_service_ids == ["stormwater_service", "tree_ecology_service"]) and
+            (.single_failure_audit | all(.[]; .lost_service_count >= 0 and .lost_service_count <= .baseline_supported_service_count)) and
             (.scenarios[] | select(.scenario_id == "baseline") | .supported_service_count == 3 and .service_availability_fraction == 1) and
             (.scenarios[] | select(.scenario_id == "drought") | .supported_service_count == 2 and .unsupported_service_ids == ["tree_ecology_service"] and .cascade_amplification == 1) and
             (.scenarios[] | select(.scenario_id == "maintenance_shock") | .supported_service_count == 1 and .unsupported_service_ids == ["stormwater_service", "tree_ecology_service"] and .cascade_amplification == 2) and
