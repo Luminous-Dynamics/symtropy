@@ -192,7 +192,8 @@ fn evaluate_blockers(scenario: &Value) -> (Vec<String>, Vec<String>) {
         blocker(&mut blockers, true, "TEMPORARY_SUPPORT_MISSING");
     }
 
-    if bool_at(constraints, "require_valid_localization") == Some(true)
+    if (bool_at(constraints, "require_valid_localization") == Some(true)
+        || str_at(observations, "localization_state").is_some())
         && str_at(observations, "localization_state") != Some("valid")
     {
         blocker(&mut blockers, true, "LOCALIZATION_LOST");
