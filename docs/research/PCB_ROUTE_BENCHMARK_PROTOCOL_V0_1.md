@@ -138,6 +138,8 @@ Example intake-spec shape:
       "split_id": "d3-test-pilot30-v0.1",
       "source_url": "https://github.com/LGAI-Research/PCBWorld",
       "source_split_commit_sha": "PINNED_40_HEX_UPSTREAM_COMMIT",
+      "source_split_config_url": "https://github.com/LGAI-Research/PCBWorld/blob/PINNED_40_HEX_UPSTREAM_COMMIT/configs/datasets/d3.json",
+      "source_split_config_git_blob_sha1": "PINNED_40_HEX_GIT_BLOB_SHA1",
       "split_name": "test",
       "boards": [
         {
@@ -165,7 +167,7 @@ Then verify the actual file bytes before a run:
       /data/pcbworld/pcbench/exacad_sorted \
       > dataset-intake-receipt.json
 
-The builder proves each selected ID belongs to the explicitly named difficulty/split array in the supplied D3 configuration, derives the relative board path from D3's `board_filename`, hashes the board bytes it actually reads, and binds hashes of the raw split-config and intake-spec bytes plus the source Git commit into the resulting manifest. It rejects absent boards, unknown license placeholders, non-HTTPS provenance, unsafe paths, duplicate IDs and IDs outside the pinned split. Keep `d3.json`, PCBWorld commit, engine submodule, intake spec, manifest and intake receipt as the experiment's immutable inputs.
+The builder proves each selected ID belongs to the explicitly named difficulty/split array in the supplied D3 configuration, derives the relative board path from D3's `board_filename`, hashes the board bytes it actually reads, and binds hashes of the raw split-config and intake-spec bytes plus the source Git commit into the resulting manifest. It also requires an immutable GitHub blob URL that contains the pinned commit, requires the expected source Git blob SHA-1, and computes Git's `blob <length>\0<bytes>` identifier from the supplied split-config bytes before reading membership arrays. A modified `d3.json` cannot be relabelled with a guessed commit SHA and accepted merely because its changed bytes hash consistently. It rejects absent boards, unknown license placeholders, non-HTTPS provenance, unsafe paths, duplicate IDs and IDs outside the pinned split. Keep `d3.json`, PCBWorld commit, engine submodule, intake spec, manifest and intake receipt as the experiment's immutable inputs.
 
 **Do not treat the two identical D3 train/test lists as a train/test holdout.** An explicitly selected 30-board pilot is a pipeline qualification subset; freeze the selection before routing methods are compared, then run the entire declared split for the final score. A future source-family holdout should be a separate disclosed split, not inferred from D3's mirrored keys.
 
@@ -276,3 +278,8 @@ This is a software evidence gate against the pinned KiCad output format—not a 
 An upstream PCBench `metadata.json` record is provenance metadata, not legal clearance on its own. For every external board, the intake schema now requires a non-placeholder license label, a relative path to a non-empty copy of the source license/evidence text, its source URL, an immutable source commit SHA, and the source file's Git blob SHA-1. The license URL must contain that exact commit ID. Manifest construction calculates Git's `blob <length>\0<bytes>` SHA-1 object ID from the local evidence bytes and rejects a mismatch with the declared upstream blob ID; it also computes SHA-256 as the strong content digest. `verify-dataset` reopens the file under the dataset root and checks both digests. This binds the source-board SHA-256 separately from license evidence and records the source file's original Git blob identifier.
 
 This proves which evidence bytes were used, not that the SPDX classification is legally correct or that the license covers every board artifact. The source audit now re-fetches 14 license files at their immutable source-repository commits and verified that every observed file's Git blob SHA matches the recorded blob SHA; 16 candidates still lack verified source-license evidence. The intake schema requires the license-source commit SHA and requires the license URL to contain that exact commit. None of the 30 boards is benchmark-authorized yet because exact prepared-board bytes and required-net counts are not locally verified, and license applicability remains a separate review. Keep unlicensed or ambiguous candidates out of public benchmark execution; replace them only under a documented deterministic selection rule, never silently.
+
+
+### Split-config provenance regression
+
+The manifest builder now verifies two independent source references for the upstream split file: the exact raw-byte SHA-256 used in the run receipt, and the upstream Git blob SHA-1 plus immutable commit URL. This closes an intake flaw where a modified D3 JSON could otherwise be supplied with a caller-chosen commit ID and still pass the board-membership check. The native dataset is not authorized until both pins match the actual file bytes. The SHA-1 is only used to verify Git object identity; SHA-256 remains the content digest used in the experiment receipt.
