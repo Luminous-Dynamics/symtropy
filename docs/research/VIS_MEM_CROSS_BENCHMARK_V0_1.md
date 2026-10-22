@@ -444,3 +444,30 @@ Production EchoMemory remains FIFO-bounded at 256 episodes unless broader, real-
 The calibration example uses the actual PhysicsFrameEncoder, EpisodeMemory and PhysicsWorld. It stores four reference scenario families (left/right drift, fall, head-on), then creates disjoint calibration and evaluation queries with held-out scales and two unknown dynamics families. It emits all query-to-bank similarity pairs, current-cutoff results, a 0.00–1.00 threshold sweep, coverage, useful/harmful accepted matches, false rejections, risk among accepted matches, and weighted cost. The selector has an explicit guard refusing evaluation queries; the selected cutoff is frozen before scoring the evaluation split.
 
 The 4:1 false-match/false-rejection cost is a declared experimental preference, not a universal safety trade-off. The workflow also reports raw components so another deployment can choose a different cost. The live threshold remains 0.65 until held-out qualification and a separate review; even a qualified synthetic physical-scene encoder experiment is not a robot-task SOTA result. Next, run this calibration with real episodes collected under an instrumented simulator, add repeated-session drift and same-scene/different-task negatives, and determine whether the threshold transfers across encoder versions, scene scale, and environment changes.
+
+
+## Provenance security: prevent memory laundering across the lifecycle (VIS-MEM-018)
+
+The new [VIS-MEM-018 issue #2660 / draft PR #2661](https://github.com/Luminous-Dynamics/symtropy/pull/2661) adds an independently authored Rust security-contract diagnostic for provenance laundering. Its adversarial pattern is simple: a poisoned or revoked experience is summarized, compressed, or reflected into a new record that claims to be trusted; if lineage or revocation metadata is dropped, the new record can affect future action after the original evidence is no longer visible.
+
+The diagnostic compares always-use and trust-label-only negative controls with root-authentication-only, taint-propagating, and lineage-plus-revocation-aware policies. Ten fixtures cover false trust claims, tainted summaries, missing parent links, a revoked root, a revoked ancestor with a clean-looking child, contradictory direct observation, a valid authenticated derivative, and cases where no trustworthy verification exists. It reports action success, wrong actions, poisoned-memory use and containment, false quarantine, revoked/missing-lineage use, verification and abstention costs, and full per-case ancestry/action records.
+
+This is not a cryptographic implementation: a boolean `root_authenticated` in a synthetic fixture stands for an independent verifier boundary. Production must authenticate source identity/digests, preserve immutable parent links, derive taint through transformations, and apply revocation to descendants. An LLM-generated “trusted” or “verified” label cannot authenticate its own source. A future native benchmark needs explicit source-poisoning and revocation interventions, not just normal success evaluation.
+
+The protocol is motivated by two process-oriented evaluations:
+- [MEMOBench](https://github.com/Collab-Gen/MEMOBench) / [paper summary](https://www.max-robotics.com/en/research/publications/cmu3096f900b95qb2w5bgczrb) labels one of three memory operations (Storage, Update, Compression) at 4,200 executable checkpoints across 30 history-dependent manipulation tasks. It reports 31.9% average success for the strongest evaluated memory-module baseline, highlighting that high storage performance can coexist with weak update/compression. Dataset/code/annotations are marked CC BY-NC 4.0, so the benchmark is not automatically cleared for commercial use.
+- [WorldMemArena](https://worldmemarena-mem.github.io/) describes 400 multi-session multimodal tasks in a lifecycle that explicitly spans write, maintain, retrieve and use. Its paper/site reports that harness-based memory can help harder regimes but raises token/latency cost and stability questions; these published results are not comparable to this synthetic suite.
+
+### Security release targets (prospective)
+
+For a licensed native task suite, report at minimum:
+- **Poison action rate:** fraction of intervention cases where evidence with invalid/revoked ancestry influences the selected action.
+- **Containment rate:** fraction of poisoned cases rejected, verified, or abstained before action; report task success alongside this so “reject everything” is not rewarded.
+- **Revocation propagation:** fraction of descendants that stop influencing actions after an ancestor is revoked, stratified by lineage depth.
+- **Legitimate evidence retention:** acceptance/success on valid authenticated derivatives and on reactive controls.
+- **Provenance completeness:** fraction of decisions whose supporting memory chain is retrievable end to end.
+- **Cost:** additional bytes per lineage edge and revocation watermark, p50/p95 validation latency, verification/tool calls, model tokens and action latency.
+
+Release gates should be prospective and paired: reduce poison-action rate by at least 90% versus label-only/always-use on the declared security interventions, keep false quarantine under 2% on valid-evidence controls, avoid more than a 1 percentage-point regression on reactive tasks, and retain a positive task-success/resource trade-off. Those numbers are internal targets, not current results or universal standards. Never merge poison containment into one weighted score that can hide a safety regression.
+
+The latest work separates this security slice from the fixed-budget watermark experiment: [VIS-MEM-016 #2637](https://github.com/Luminous-Dynamics/symtropy/pull/2637) studies whether freshness metadata survives payload eviction; [VIS-MEM-017 #2646](https://github.com/Luminous-Dynamics/symtropy/pull/2646) validates the native MIKASA Long evidence contract without claiming task performance. Together they provide a staged path from mechanism semantics to controlled native intervention tests.
