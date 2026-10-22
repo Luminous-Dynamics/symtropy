@@ -9,7 +9,8 @@
     "Hold controls must remain abstained or unresolved and must never be silently accepted.",
     "Synthetic values and labels must never be promoted to measured production evidence.",
     "A valid software contract outcome is not a physical-process pass.",
-    "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient."
+    "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient.",
+    "High cross-validation fit does not qualify a model with unbounded external signed bias or absent calibration evidence."
   ],
   "research_references": [
     {
@@ -75,6 +76,22 @@
       "published_or_reviewed": "2026",
       "use": "Manufacturing digital-twin concerns including interoperability, VVUQ, cybersecurity, and supply-chain resilience.",
       "limitation": "Workshop synthesis and research priorities, not a glass- or silicon-specific process-performance standard."
+    },
+    {
+      "reference_id": "scale-glass-active-learning-2026",
+      "title": "Accelerating sustainable glass discovery: integrating molecular dynamics, machine learning, and robotic synthesis",
+      "url": "https://doi.org/10.1038/s41524-026-02249-w",
+      "published_or_reviewed": "2026",
+      "use": "SOTA baseline for simulation-calibrated active learning, model bias correction, and measurement-budget comparisons in sodium alumino-borosilicate glass.",
+      "limitation": "Property and chemistry-specific study; do not generalize the reported R-squared, bias, or experiment count to industrial container-glass furnace optimization."
+    },
+    {
+      "reference_id": "glass-futures-ai-glass-2026",
+      "title": "Glass Futures launches AI-driven digital twin to reinvent glass manufacturing",
+      "url": "https://www.glass-futures.org/news/glass-futures-launches-ai-driven-digital-twin-to-reinvent-glass-manufacturing/",
+      "published_or_reviewed": "2026",
+      "use": "Public industrial benchmark context for a pilot-furnace twin with multi-fuel operation and sensor-informed physics/AI modeling.",
+      "limitation": "Announcement reports sensor and computation scale but does not publish an externally reproducible holdout dataset, normalized accuracy, uncertainty calibration, or accepted-product performance results."
     }
   ],
   "cases": [
@@ -362,6 +379,24 @@
       ],
       "purpose": "Reject a claim that ranks a process route using only one favorable price, grid-carbon, capacity-factor, financing, or feedstock scenario.",
       "claim_ceiling": "Tests scenario robustness metadata only; it does not validate a techno-economic model."
+    },
+    {
+      "case_id": "high-r2-unseen-bias-no-calibration",
+      "route": "cross_route",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "uncalibrated_model_bias_hidden",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "held_out_campaign",
+        "signed_prediction_bias",
+        "measurement_repeatability",
+        "calibration_protocol",
+        "uncertainty_coverage"
+      ],
+      "purpose": "Abstain when a model's headline validation score hides an external-domain bias that has not been measured or corrected on a legitimate calibration set.",
+      "claim_ceiling": "Tests calibration-evidence gating only; it does not reproduce or falsify any published glass-model result."
     }
   ]
 }
