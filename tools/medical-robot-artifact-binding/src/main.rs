@@ -503,13 +503,30 @@ mod tests {
     #[test]
     fn altered_bytes_fail_digest_binding() {
         let root = temp_root("altered");
-        fs::write(root.join("preview.fixture"), b"changed bytes").expect("fixture written");
+        fs::write(root.join("preview.fixture"), b"changed! bytes").expect("fixture written");
         let (receipt, success) = run(
             &root,
-            &valid_manifest("preview.fixture", b"original bytes"),
+            &valid_manifest("preview.fixture", b"expected bytes"),
         );
+        assert_eq!(b"changed! bytes".len(), b"expected bytes".len());
         assert!(!success);
+        assert_eq!(receipt["artifacts"][0]["digest_matches"], false);
+        assert_eq!(receipt["artifacts"][0]["byte_length_matches"], true);
         assert_eq!(receipt["artifacts"][0]["finding"], "ARTIFACT_DIGEST_OR_LENGTH_MISMATCH");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn declared_byte_length_mismatch_is_rejected_even_when_digest_matches() {
+        let root = temp_root("length-mismatch");
+        let bytes = b"synthetic preview";
+        fs::write(root.join("preview.fixture"), bytes).expect("fixture written");
+        let mut manifest = valid_manifest("preview.fixture", bytes);
+        manifest["artifacts"][0]["byte_length"] = json!(bytes.len() + 1);
+        let (receipt, success) = run(&root, &manifest);
+        assert!(!success);
+        assert_eq!(receipt["artifacts"][0]["digest_matches"], true);
+        assert_eq!(receipt["artifacts"][0]["byte_length_matches"], false);
         let _ = fs::remove_dir_all(root);
     }
 
