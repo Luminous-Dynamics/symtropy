@@ -442,15 +442,15 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
         return Err(MeshError::InvalidMeshTopology);
     }
 
-    for cell in 0..(n * n) {
+    for (cell, pair) in mesh.triangles.chunks_exact(2).enumerate() {
         let i = cell % n;
         let j = cell / n;
         let lower_left = j * side + i + 1;
         let lower_right = lower_left + 1;
         let upper_left = (j + 1) * side + i + 1;
         let upper_right = upper_left + 1;
-        let first = mesh.triangles[2 * cell];
-        let second = mesh.triangles[2 * cell + 1];
+        let first = pair[0];
+        let second = pair[1];
         if first.id != 2 * cell + 1
             || first.nodes != [lower_left, lower_right, upper_right]
             || second.id != 2 * cell + 2
