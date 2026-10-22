@@ -104,7 +104,9 @@
         1.25
       ],
       "relative_32_vs_48_displacement_l2_difference_at_most": 1e-10,
-      "relative_32_vs_48_energy_difference_at_most": 1e-10
+      "relative_32_vs_48_energy_difference_at_most": 1e-10,
+      "positive_finite_error_norms": true,
+      "strict_error_decrease_each_level": true
     },
     "solver_execution": false,
     "solver_qualification": false
