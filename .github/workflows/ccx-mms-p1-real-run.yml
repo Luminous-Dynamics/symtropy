@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: ubuntu@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       DEBIAN_FRONTEND: noninteractive
       HOME: /root
@@ -61,7 +61,7 @@ jobs:
           rm -rf /var/lib/apt/lists/*
           apt-get update
           apt-get install -y --no-install-recommends \
-            build-essential gfortran make curl tar bzip2 ca-certificates \
+            build-essential gfortran make curl tar bzip2 ca-certificates time \
             diffutils file binutils jq perl python3 coreutils git patch unzip
 
       - name: Checkout exact Symtropy source head
@@ -212,7 +212,9 @@ jobs:
           run_case() {
             local label="$1"
             local n="$2"
-            local reference_dat="${3:-}"
+            local poisson_ratio="${3:-0.3}"
+            local field="${4:-smooth-sine}"
+            local reference_dat="${5:-}"
             local dir="$ROOT/cases/$label"
             mkdir -p "$dir"
             local deck="$dir/model.inp"
@@ -220,9 +222,13 @@ jobs:
             local frd="$dir/model.frd"
             local started ended exit_status
             local verifier_status=0
-            local verifier_args=()
+            local deck_args=("$n" 48 --poisson-ratio "$poisson_ratio" --field "$field")
+            local verifier_args=("$n" "$deck" "$dat" --poisson-ratio "$poisson_ratio" --field "$field")
+            local numerical_json="null"
+            local wall_seconds=""
+            local peak_rss_kb=""
 
-            if ! cargo run --quiet --locked --manifest-path "$MESH_MANIFEST" --bin mms-p1-deck -- "$n" 48 \
+            if ! cargo run --quiet --locked --manifest-path "$MESH_MANIFEST" --bin mms-p1-deck -- "${deck_args[@]}" \
               > "$deck" 2> "$dir/deck-generation.log"; then
               jq -n --arg case "$label" --arg source "$SOURCE_SHA" \
                 --arg reason "deck generation failed" \
@@ -234,16 +240,20 @@ jobs:
 
             started="$(date +%s)"
             set +e
-            (cd "$dir" && timeout 180s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 "$CCX" model) \
+            (cd "$dir" && /usr/bin/time -f 'elapsed_seconds=%e\nmax_rss_kb=%M\nuser_seconds=%U\nsystem_seconds=%S' \
+              -o "$dir/resource-time.txt" timeout 180s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 "$CCX" model) \
               > "$dir/process.log" 2>&1
             exit_status=$?
             set -e
             ended="$(date +%s)"
+            if [ -s "$dir/resource-time.txt" ]; then
+              wall_seconds="$(sed -n 's/^elapsed_seconds=//p' "$dir/resource-time.txt")"
+              peak_rss_kb="$(sed -n 's/^max_rss_kb=//p' "$dir/resource-time.txt")"
+            fi
 
             if [ "$exit_status" -eq 0 ] && [ -s "$dat" ] && [ -s "$frd" ]; then
-              verifier_args=("$n" "$deck" "$dat")
               if [ -n "$reference_dat" ]; then
-                verifier_args+=("$reference_dat")
+                verifier_args+=(--reference-dat "$reference_dat")
               fi
               if ! MMS_BENCH_SOURCE_SHA="$SOURCE_SHA" MMS_BENCH_CHECKOUT_SHA="$SOURCE_SHA" \
                 cargo run --quiet --locked --manifest-path "$PARSER_MANIFEST" --bin mms-p1-real-verify -- "${verifier_args[@]}" \
@@ -253,24 +263,36 @@ jobs:
             else
               verifier_status=1
             fi
+            if [ -s "$dir/numerical-verification.json" ]; then
+              numerical_json="$(cat "$dir/numerical-verification.json")"
+            fi
 
             jq -n \
               --arg case "$label" --arg source "$SOURCE_SHA" \
               --arg build_sha "$BUILD_SHA" --arg exe_sha "$EXE_SHA" \
+              --arg poisson_ratio "$poisson_ratio" --arg field "$field" \
               --arg deck_sha "$(sha256sum "$deck" | cut -d ' ' -f 1)" \
               --arg dat_sha "$(test -s "$dat" && sha256sum "$dat" | cut -d ' ' -f 1 || true)" \
               --arg frd_sha "$(test -s "$frd" && sha256sum "$frd" | cut -d ' ' -f 1 || true)" \
               --arg process_log_sha "$(test -f "$dir/process.log" && sha256sum "$dir/process.log" | cut -d ' ' -f 1 || true)" \
+              --arg resource_time_sha "$(test -s "$dir/resource-time.txt" && sha256sum "$dir/resource-time.txt" | cut -d ' ' -f 1 || true)" \
               --arg report_sha "$(test -s "$dir/numerical-verification.json" && sha256sum "$dir/numerical-verification.json" | cut -d ' ' -f 1 || true)" \
+              --arg wall_seconds "$wall_seconds" --arg peak_rss_kb "$peak_rss_kb" \
+              --argjson numerical "$numerical_json" \
               --argjson started "$started" --argjson ended "$ended" \
               --argjson exit_status "$exit_status" --argjson verifier_status "$verifier_status" \
               '{
                 schema:"ccx-mms-process-receipt-v1",case:$case,source_sha:$source,
                 build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                poisson_ratio:($poisson_ratio|tonumber),manufactured_field:$field,
                 input_deck_sha256:$deck_sha,dat_sha256:(if $dat_sha=="" then null else $dat_sha end),
                 frd_sha256:(if $frd_sha=="" then null else $frd_sha end),
                 process_log_sha256:(if $process_log_sha=="" then null else $process_log_sha end),
+                resource_time_sha256:(if $resource_time_sha=="" then null else $resource_time_sha end),
                 numerical_report_sha256:(if $report_sha=="" then null else $report_sha end),
+                wall_seconds:(if $wall_seconds=="" then null else ($wall_seconds|tonumber) end),
+                peak_rss_kb:(if $peak_rss_kb=="" then null else ($peak_rss_kb|tonumber) end),
+                numerical_report:$numerical,
                 process_started_epoch_s:$started,process_ended_epoch_s:$ended,
                 process_exit_status:$exit_status,verifier_exit_status:$verifier_status,
                 process_status:(if $exit_status==0 and $verifier_status==0 then "OUTPUT_PARSED" else "FAIL" end),
