@@ -2919,7 +2919,44 @@ mod tests {
                 && statistic.right_censored_jobs_at_horizon.sample_count == 20));
 
         let mut any_good_observations = false;
+        let mut any_censored_observations = false;
         for statistic in &report.flow_time_statistics {
+            if statistic.replications_with_right_censored_observations > 0 {
+                any_censored_observations = true;
+                let expected_count = statistic.replications_with_right_censored_observations;
+                let age_summaries = [
+                    statistic
+                        .right_censored_observed_age_mean_seconds_across_replications
+                        .as_ref()
+                        .expect("mean of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p50_seconds_across_replications
+                        .as_ref()
+                        .expect("p50 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p90_seconds_across_replications
+                        .as_ref()
+                        .expect("p90 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p95_seconds_across_replications
+                        .as_ref()
+                        .expect("p95 of censored observed ages"),
+                    statistic
+                        .right_censored_observed_age_p99_seconds_across_replications
+                        .as_ref()
+                        .expect("p99 of censored observed ages"),
+                ];
+                assert!(age_summaries
+                    .iter()
+                    .all(|summary| summary.sample_count == expected_count && summary.mean >= 0.0));
+            } else {
+                assert!(statistic
+                    .right_censored_observed_age_mean_seconds_across_replications
+                    .is_none());
+                assert!(statistic
+                    .right_censored_observed_age_p50_seconds_across_replications
+                    .is_none());
+            }
             if statistic.replications_with_good_flow_time_observations > 0 {
                 any_good_observations = true;
                 let mean = statistic
@@ -2966,6 +3003,7 @@ mod tests {
             }
         }
         assert!(any_good_observations);
+        assert!(any_censored_observations);
     }
 
     #[test]
