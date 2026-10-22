@@ -124,6 +124,26 @@ fn sequence_is_monotonic(events: &[Value]) -> bool {
     true
 }
 
+fn event_shape_error(event: &Value) -> Option<&'static str> {
+    let object = event.as_object()?;
+    let kind = str_at(event, "kind")?;
+    let allowed: &[&str] = match kind {
+        "plan_proposed" => &["sequence", "kind", "plan_id", "plan_digest", "bound_revisions"],
+        "plan_validated" => &["sequence", "kind", "plan_id", "plan_digest"],
+        "state_changed" => &["sequence", "kind", "revision_key", "new_revision", "gate_effects"],
+        "plan_cancelled" => &["sequence", "kind", "plan_id"],
+        "simulated_plan_accepted" => &["sequence", "kind", "plan_id", "plan_digest"],
+        "physical_actuation_attempted" => &["sequence", "kind"],
+        _ => return Some("UNKNOWN_EVENT_KIND"),
+    };
+    if object.keys().any(|key| !allowed.contains(&key.as_str()))
+        || allowed.iter().any(|key| !object.contains_key(*key))
+    {
+        return Some("EVENT_FIELDS_INVALID");
+    }
+    None
+}
+
 /// Independent JSON-value-based episode evaluator. It deliberately does not import
 /// the static platform oracle's typed scenarios or blocker routines.
 fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
@@ -141,6 +161,14 @@ fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
             decision: BLOCKED,
             reason_codes: vec!["EVENT_SEQUENCE_NOT_MONOTONIC".to_owned()],
         };
+    }
+    for event in events {
+        if let Some(reason) = event_shape_error(event) {
+            return Evaluation {
+                decision: BLOCKED,
+                reason_codes: vec![reason.to_owned()],
+            };
+        }
     }
 
     let Some(mut revisions) = initial_state
@@ -648,6 +676,26 @@ mod tests {
         let result = evaluate_episode(&episode, &root["initial_state"]);
         assert_eq!(result.decision, BLOCKED);
         assert!(result.reason_codes.iter().any(|r| r == "PLAN_DIGEST_INVALID"));
+    }
+
+    #[test]
+    fn unknown_event_members_are_rejected_before_scoring() {
+        let root = corpus();
+        let mut episode = root["episodes"][0].clone();
+        episode["events"][0]["unrecognized_authority_override"] = json!(true);
+        let result = evaluate_episode(&episode, &root["initial_state"]);
+        assert_eq!(result.decision, BLOCKED);
+        assert_eq!(result.reason_codes, vec!["EVENT_FIELDS_INVALID"]);
+    }
+
+    #[test]
+    fn missing_plan_digest_is_rejected_before_validation() {
+        let root = corpus();
+        let mut episode = root["episodes"][0].clone();
+        episode["events"][0].as_object_mut().expect("proposal object").remove("plan_digest");
+        let result = evaluate_episode(&episode, &root["initial_state"]);
+        assert_eq!(result.decision, BLOCKED);
+        assert_eq!(result.reason_codes, vec!["EVENT_FIELDS_INVALID"]);
     }
 
     #[test]
