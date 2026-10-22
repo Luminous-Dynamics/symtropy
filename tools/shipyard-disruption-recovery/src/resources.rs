@@ -1651,6 +1651,7 @@ pub enum JointAuditedSelectionViolationCode {
     RequiredCoverageIncomplete,
     CandidateScenarioSetMismatch,
     CandidateScenarioContentMismatch,
+    CandidateEnvelopeReceiptInconsistent,
     InvalidCandidateIdentity,
     NoRobustCandidate,
 }
@@ -1697,9 +1698,34 @@ pub fn select_joint_recovery_frontier_with_coverage(
         .collect();
     let expected_ids: BTreeSet<&str> = expected_by_id.keys().copied().collect();
     for alternative in alternatives {
-        let actual_ids: Vec<&str> = alternative
-            .report
-            .scenarios
+        let scenario_reports = &alternative.report.scenarios;
+        let accepted_scenario_count = scenario_reports
+            .iter()
+            .filter(|scenario| scenario.report.accepted)
+            .count();
+        let per_scenario_verdicts_consistent = scenario_reports.iter().all(|scenario| {
+            scenario.scenario_id == scenario.scenario_input.scenario_id
+                && scenario.report.accepted
+                    == (scenario.report.spatial.accepted && scenario.report.resources.accepted)
+        });
+        let expected_robustly_accepted = !scenario_reports.is_empty()
+            && accepted_scenario_count == scenario_reports.len()
+            && alternative.report.violations.is_empty();
+        let receipt_consistent = alternative.report.metrics.total_scenarios
+            == scenario_reports.len()
+            && alternative.report.metrics.accepted_scenarios == accepted_scenario_count
+            && alternative.report.robustly_accepted == expected_robustly_accepted
+            && per_scenario_verdicts_consistent;
+        if !receipt_consistent {
+            result
+                .violations
+                .push(JointAuditedSelectionViolation {
+                    code: JointAuditedSelectionViolationCode::CandidateEnvelopeReceiptInconsistent,
+                    candidate_id: Some(alternative.candidate_id.clone()),
+                });
+        }
+
+        let actual_ids: Vec<&str> = scenario_reports
             .iter()
             .map(|scenario| scenario.scenario_id.as_str())
             .collect();
@@ -3005,6 +3031,28 @@ mod tests {
         assert!(report.pareto.frontier.is_empty());
         assert!(report.violations.iter().any(|violation| {
             violation.code == JointAuditedSelectionViolationCode::RequiredCoverageIncomplete
+        }));
+    }
+
+    #[test]
+    fn audited_selector_rejects_inconsistent_robustness_boolean_or_scenario_metrics() {
+        let scenario = resource_coverage_fixture("resource-outage-a");
+        let mut alternative = resource_coverage_alternative("candidate-a", scenario.clone());
+        assert!(alternative.report.robustly_accepted);
+        alternative.report.metrics.accepted_scenarios = 0;
+
+        let report = select_joint_recovery_frontier_with_coverage(
+            &[alternative],
+            &[scenario],
+            &[JointDisruptionDimension::ResourceOutage],
+        );
+
+        assert!(!report.decision_eligible);
+        assert!(report.pareto.frontier.is_empty());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code
+                == JointAuditedSelectionViolationCode::CandidateEnvelopeReceiptInconsistent
+                && violation.candidate_id.as_deref() == Some("candidate-a")
         }));
     }
 
