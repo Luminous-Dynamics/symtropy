@@ -333,3 +333,10 @@ The ceiling on a clean-pass rate is 1.0, so the stretch goal cannot be merely �
 5. **Generalization**: keep source-board-family held-out data separate from the official D3 evaluation. Upstream's published train/test key mirroring is for its evaluation-only D3 flow and is not itself a held-out train/test partition for new policy tuning.
 
 The candidate 30-board pilot in this repository remains **unauthorized for execution** until each original source project's license and exact board bytes are ingested, pinned and reviewed. Metadata says are not enough: the source audit currently marks zero of the 30 candidates benchmark-eligible. This is an intentional gate, not a reason to silently swap in unlicensed boards.
+
+
+## Fixed-budget score curve semantics
+
+The Rust PCBWorld CSV importer now emits an explicit scorecard for 30 s, 60 s, 180 s, 300 s, and 1800 s. A row receives credit at a budget only when the source's `clean_pass` is true **and** its recorded `per_board_rollout_time` is known and at or below the cap. Missing runtime remains in the all-attempt denominator and never earns time-bounded credit; a clean label with no runtime is reported as an untimed clean row. Both the all-attempt rate and a secondary timed-row diagnostic are retained.
+
+This scorecard measures **final output completed by a recorded runtime**, not the earliest moment a route happened to become clean during an ongoing run. Reproducing a time-snapshot leaderboard such as “clean at 3 minutes” requires each method to be run under the same 3-minute cutoff (or a complete timestamped checkpoint trace); it is invalid to infer a 3-minute pass from a clean final board that took 30 minutes. The importer preserves the upstream `clean_pass` definition, which is not equivalent to the stricter raw-KiCad evidence gate in `compare-verified`.
