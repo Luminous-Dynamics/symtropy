@@ -3,7 +3,8 @@ use csv::StringRecord;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const PCBWORLD_CSV_RECEIPT_SCHEMA: &str = "pcbworld-per-rollout-import-receipt-v0.1";
+pub const PCBWORLD_CSV_RECEIPT_SCHEMA: &str = "pcbworld-per-rollout-import-receipt-v0.2";
+pub const PCBWORLD_TIME_BUDGETS_SECONDS: &[u32] = &[30, 60, 180, 300, 1800];
 const REQUIRED_COLUMNS: &[&str] = &[
     "board_id",
     "rollout_idx",
@@ -120,6 +121,22 @@ pub struct PcbWorldCsvSummary {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PcbWorldTimeBudgetScore {
+    pub time_budget_seconds: u32,
+    pub attempts_total: usize,
+    pub attempts_with_runtime: usize,
+    pub attempts_without_runtime: usize,
+    pub clean_passes_within_budget: usize,
+    pub clean_pass_attempts_over_budget: usize,
+    pub clean_pass_attempts_without_runtime: usize,
+    /// Clean attempts whose recorded final runtime is within the cap divided by all rows.
+    /// Attempts without runtime are not counted as passes.
+    pub clean_pass_rate_over_all_attempts: f64,
+    /// Diagnostic only: the same successes divided by rows with known runtime.
+    pub clean_pass_rate_over_timed_attempts: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct PcbWorldCsvImportReceipt {
     pub schema: String,
     pub evaluator_git_head: String,
@@ -130,6 +147,7 @@ pub struct PcbWorldCsvImportReceipt {
     pub source_board_count: usize,
     pub row_count: usize,
     pub summary: PcbWorldCsvSummary,
+    pub time_budget_sweep: Vec<PcbWorldTimeBudgetScore>,
     pub rows: Vec<PcbWorldRolloutRow>,
     pub authority: String,
     pub claim_ceiling: String,
@@ -287,6 +305,7 @@ pub fn import_pcbworld_per_rollout_csv(
             .then_with(|| left.seed.cmp(&right.seed))
     });
     let summary = summarize(&rows);
+    let time_budget_sweep = summarize_time_budget_sweep(&rows);
     Ok(PcbWorldCsvImportReceipt {
         schema: PCBWORLD_CSV_RECEIPT_SCHEMA.into(),
         evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
@@ -297,9 +316,10 @@ pub fn import_pcbworld_per_rollout_csv(
         source_board_count: source_board_ids.len(),
         row_count: rows.len(),
         summary,
+        time_budget_sweep,
         rows,
         authority: "pinned_pcbworld_per_rollout_metric_import_only_no_independent_router_or_physical_claim".into(),
-        claim_ceiling: "This receipt preserves published PCBWorld per-rollout fields and the source CSV byte digest. The source clean_pass is PCBWorld's success-plus-zero-error-severity definition; it is not interchangeable with this project's stricter route-validity predicate. It does not independently validate raw PCB bytes, source licenses, native DRC execution, signal/power integrity, manufacturability, physical quality or production release.".into(),
+        claim_ceiling: "This receipt preserves published PCBWorld per-rollout fields and the source CSV byte digest. Time-budget scores count only clean_pass rows with recorded rollout time at or below each budget; untimed rows remain in the denominator and are not credited. These are upstream self-reported metrics until raw board/DRC evidence is independently verified. They do not establish signal/power integrity, manufacturability, physical quality or production release.".into(),
     })
 }
 
@@ -432,6 +452,64 @@ fn parse_reference_metrics(
         drv_violations,
         potential_gain_consistent,
     })
+}
+
+fn summarize_time_budget_sweep(rows: &[PcbWorldRolloutRow]) -> Vec<PcbWorldTimeBudgetScore> {
+    PCBWORLD_TIME_BUDGETS_SECONDS
+        .iter()
+        .copied()
+        .map(|budget| {
+            let attempts_with_runtime = rows
+                .iter()
+                .filter(|row| row.reference_metrics.per_board_rollout_time_secs.is_some())
+                .count();
+            let attempts_without_runtime = rows.len() - attempts_with_runtime;
+            let clean_passes_within_budget = rows
+                .iter()
+                .filter(|row| {
+                    row.reference_metrics.clean_pass == Some(true)
+                        && row
+                            .reference_metrics
+                            .per_board_rollout_time_secs
+                            .is_some_and(|seconds| seconds <= f64::from(budget))
+                })
+                .count();
+            let clean_pass_attempts_over_budget = rows
+                .iter()
+                .filter(|row| {
+                    row.reference_metrics.clean_pass == Some(true)
+                        && row
+                            .reference_metrics
+                            .per_board_rollout_time_secs
+                            .is_some_and(|seconds| seconds > f64::from(budget))
+                })
+                .count();
+            let clean_pass_attempts_without_runtime = rows
+                .iter()
+                .filter(|row| {
+                    row.reference_metrics.clean_pass == Some(true)
+                        && row.reference_metrics.per_board_rollout_time_secs.is_none()
+                })
+                .count();
+
+            PcbWorldTimeBudgetScore {
+                time_budget_seconds: budget,
+                attempts_total: rows.len(),
+                attempts_with_runtime,
+                attempts_without_runtime,
+                clean_passes_within_budget,
+                clean_pass_attempts_over_budget,
+                clean_pass_attempts_without_runtime,
+                clean_pass_rate_over_all_attempts: clean_passes_within_budget as f64
+                    / rows.len() as f64,
+                clean_pass_rate_over_timed_attempts: if attempts_with_runtime == 0 {
+                    None
+                } else {
+                    Some(clean_passes_within_budget as f64 / attempts_with_runtime as f64)
+                },
+            }
+        })
+        .collect()
 }
 
 fn summarize(rows: &[PcbWorldRolloutRow]) -> PcbWorldCsvSummary {
@@ -783,13 +861,13 @@ mod tests {
       ]
     }"#;
 
-    const HEADER: &str = "board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations\n";
+    const HEADER: &str = "board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time_secs\n";
 
-    const CSV: &str = r#"board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations
-board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,"[{""severity_label"":""warning"",""severity"":1,""error_code"":12,""error_type"":""tracks_crossing"",""x_mm"":1.0,""y_mm"":2.0,""layer"":0,""net_names"":[""GND""],""is_error"":false,""is_promoted"":true}]"
-board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,""
-board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,"[]"
-board-b,1,19,crashed,,,,,,,,,,,,,,,
+    const CSV: &str = r#"board_id,rollout_idx,seed,status,success,clean_pass,routability,wirelength_mm,via_count,track_count,drv_errors_only_count,drv_errors_and_promoted_count,final_potential,initial_potential,potential_gain,reward_config,check_angle,eval_status,drv_violations,per_board_rollout_time_secs
+board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,"[{""severity_label"":""warning"",""severity"":1,""error_code"":12,""error_type"":""tracks_crossing"",""x_mm"":1.0,""y_mm"":2.0,""layer"":0,""net_names"":[""GND""],""is_error"":false,""is_promoted"":true}]",30
+board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,"",200
+board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,"[]",240
+board-b,1,19,crashed,,,,,,,,,,,,,,,,
 "#;
 
     const EVALUATOR_HEAD: &str = "ffffffffffffffffffffffffffffffffffffffff";
@@ -846,6 +924,44 @@ board-b,1,19,crashed,,,,,,,,,,,,,,,
             12
         );
         assert_eq!(promoted_only.potential_gain_consistent, Some(true));
+    }
+
+    #[test]
+    fn time_budget_sweep_preserves_all_attempts_and_requires_known_runtime() {
+        let receipt =
+            import_pcbworld_per_rollout_csv(CSV.as_bytes(), MANIFEST.as_bytes(), EVALUATOR_HEAD)
+                .expect("PCBWorld metrics CSV import");
+        assert_eq!(
+            receipt.time_budget_sweep.iter().map(|score| score.time_budget_seconds).collect::<Vec<_>>(),
+            vec![30, 60, 180, 300, 1800]
+        );
+        let thirty = receipt.time_budget_sweep.iter().find(|score| score.time_budget_seconds == 30).unwrap();
+        assert_eq!(thirty.attempts_total, 4);
+        assert_eq!(thirty.attempts_with_runtime, 3);
+        assert_eq!(thirty.attempts_without_runtime, 1);
+        assert_eq!(thirty.clean_passes_within_budget, 1);
+        assert_eq!(thirty.clean_pass_attempts_over_budget, 1);
+        assert_eq!(thirty.clean_pass_attempts_without_runtime, 0);
+        assert!((thirty.clean_pass_rate_over_all_attempts - 0.25).abs() < 1e-9);
+        assert!((thirty.clean_pass_rate_over_timed_attempts.unwrap() - 1.0 / 3.0).abs() < 1e-9);
+
+        let three_minutes = receipt.time_budget_sweep.iter().find(|score| score.time_budget_seconds == 180).unwrap();
+        assert_eq!(three_minutes.clean_passes_within_budget, 1);
+        let five_minutes = receipt.time_budget_sweep.iter().find(|score| score.time_budget_seconds == 300).unwrap();
+        assert_eq!(five_minutes.clean_passes_within_budget, 2);
+
+        // A source row that claims clean but has no runtime remains in every
+        // denominator and must not be credited as a time-bounded pass.
+        let untimed_clean = CSV.replace(",240\\n", ",\\n");
+        let untimed = import_pcbworld_per_rollout_csv(
+            untimed_clean.as_bytes(),
+            MANIFEST.as_bytes(),
+            EVALUATOR_HEAD,
+        )
+        .expect("untimed source row remains importable");
+        assert!(untimed.time_budget_sweep.iter().all(|score| score.attempts_total == 4));
+        assert!(untimed.time_budget_sweep.iter().all(|score| score.clean_pass_attempts_without_runtime == 1));
+        assert!(untimed.time_budget_sweep.iter().all(|score| score.clean_passes_within_budget == 1));
     }
 
     #[test]
