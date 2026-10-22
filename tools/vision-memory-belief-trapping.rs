@@ -632,7 +632,7 @@ fn format_report() -> String {
         }
     }
 
-    out.push_str("SUMMARY_HEADER\tpolicy\tcases\tsuccess_rate\ttrap_detection_recall\ttrap_class_accuracy\tfalse_positive_rate\tcorrect_handoff_on_unsolvable\tmean_actions\tmean_no_progress\n");
+    out.push_str("SUMMARY_HEADER\tpolicy\tcases\tsuccess_rate\tepistemic_gap_closure\tachievement_gap_closure\ttrap_detection_recall\ttrap_class_accuracy\tfalse_positive_rate\tcorrect_handoff_on_unsolvable\tmean_actions\tmean_no_progress\n");
     for policy in Policy::ALL {
         let rows: Vec<&RunResult> = results.iter().filter(|r| r.policy == policy).collect();
         let traps: Vec<&RunResult> = rows.iter().copied().filter(|r| r.truth_trap != TrapLabel::None).collect();
@@ -642,13 +642,23 @@ fn format_report() -> String {
         let class_correct = traps.iter().filter(|r| r.correct_classification).count();
         let false_positives = nontraps.iter().filter(|r| r.false_positive).count();
         let handoff_correct = rows.iter().filter(|r| r.handoff_correct).count();
+        let epistemic_rows: Vec<&RunResult> = rows.iter().copied()
+            .filter(|r| r.gap == GapKind::Epistemic)
+            .collect();
+        let achievement_rows: Vec<&RunResult> = rows.iter().copied()
+            .filter(|r| r.gap == GapKind::Achievement)
+            .collect();
+        let epistemic_solved = epistemic_rows.iter().filter(|r| r.solved).count();
+        let achievement_solved = achievement_rows.iter().filter(|r| r.solved).count();
         let mean_actions = rows.iter().map(|r| r.actions_used as f64).sum::<f64>() / rows.len().max(1) as f64;
         let mean_no_progress = rows.iter().map(|r| r.total_no_progress as f64).sum::<f64>() / rows.len().max(1) as f64;
         out.push_str(&format!(
-            "SUMMARY\t{}\t{}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\n",
+            "SUMMARY\t{}\t{}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\n",
             policy.label(),
             rows.len(),
             rate(solved, rows.len()),
+            rate(epistemic_solved, epistemic_rows.len()),
+            rate(achievement_solved, achievement_rows.len()),
             rate(detected, traps.len()),
             rate(class_correct, traps.len()),
             rate(false_positives, nontraps.len()),
