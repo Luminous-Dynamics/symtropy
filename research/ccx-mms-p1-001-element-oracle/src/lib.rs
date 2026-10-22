@@ -1092,6 +1092,28 @@ mod tests {
         assert!(spectrum.largest_positive_eigenvalue >= spectrum.smallest_positive_eigenvalue);
         assert!(spectrum.nonrigid_condition_number >= 1.0);
         assert!(spectrum.eigenvalues.windows(2).all(|pair| pair[0] <= pair[1]));
+
+        let stiffness_trace = element
+            .stiffness
+            .iter()
+            .enumerate()
+            .map(|(index, row)| row[index])
+            .sum::<f64>();
+        let eigenvalue_sum = spectrum.eigenvalues.iter().sum::<f64>();
+        close(eigenvalue_sum, stiffness_trace, 1.0e-12);
+
+        let stiffness_trace_square = element
+            .stiffness
+            .iter()
+            .flatten()
+            .map(|value| value * value)
+            .sum::<f64>();
+        let eigenvalue_square_sum = spectrum
+            .eigenvalues
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>();
+        close(eigenvalue_square_sum, stiffness_trace_square, 1.0e-11);
     }
 
     #[test]
