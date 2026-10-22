@@ -521,6 +521,16 @@ mod tests {
     }
 
     #[test]
+    fn contained_triangle_with_all_vertices_on_outer_edges_still_overlaps() {
+        let outer = poly(&[(0, 0), (6, 0), (0, 6)]);
+        let contained = poly(&[(3, 0), (3, 3), (0, 3)]);
+        let opposite_side_touch = poly(&[(0, 0), (6, 0), (6, -6)]);
+
+        assert!(outer.interior_overlaps(&contained).unwrap());
+        assert!(!outer.interior_overlaps(&opposite_side_touch).unwrap());
+    }
+
+    #[test]
     fn common_edges_and_corner_contact_do_not_count_as_overlap() {
         let left = poly(&[(0, 0), (2, 0), (2, 2), (0, 2)]);
         let edge_touch = poly(&[(2, 0), (4, 0), (4, 2), (2, 2)]);
