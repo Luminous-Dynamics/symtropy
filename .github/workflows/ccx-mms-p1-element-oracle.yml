@@ -1,0 +1,71 @@
+name: CCX MMS P1 triangle element oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ccx-mms-p1-element-oracle.yml"
+      - "research/ccx-mms-p1-001-element-oracle/**"
+      - "research/ccx-mms-p1-001-mesh/**"
+      - "research/ccx-mms-p1-001-oracle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccx-mms-p1-element-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  element-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        working-directory: research/ccx-mms-p1-001-element-oracle
+        run: cargo fmt --all -- --check
+
+      - name: Run element algebra and patch tests
+        working-directory: research/ccx-mms-p1-001-element-oracle
+        run: cargo test --locked --all-targets
+
+      - name: Run strict Clippy
+        working-directory: research/ccx-mms-p1-001-element-oracle
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Generate and repeat patch receipt
+        working-directory: research/ccx-mms-p1-001-element-oracle
+        env:
+          MMS_BENCH_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          MMS_BENCH_CHECKOUT_SHA: ${{ github.sha }}
+        run: |
+          checkout_sha="$(git rev-parse HEAD)"
+          export MMS_BENCH_CHECKOUT_SHA="$checkout_sha"
+          sha256sum src/lib.rs src/bin/triangle-patch-probe.rs Cargo.toml Cargo.lock ../ccx-mms-p1-001-mesh/src/lib.rs ../ccx-mms-p1-001-oracle/src/lib.rs .github/workflows/ccx-mms-p1-element-oracle.yml 2>/dev/null > /tmp/element-oracle-source-digests.sha256 || true
+          cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-a.json
+          cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-b.json
+          cmp /tmp/triangle-patch-a.json /tmp/triangle-patch-b.json
+          jq -e '.solver_executed == false and .qualification_pass == false and .element_patch_pass == true and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$"))' /tmp/triangle-patch-a.json > /dev/null
+          sha256sum /tmp/triangle-patch-a.json > /tmp/triangle-patch-a.sha256
+
+      - name: Preserve verification receipt and source digests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccx-mms-p1-element-oracle-receipt
+          path: |
+            /tmp/triangle-patch-a.json
+            /tmp/triangle-patch-a.sha256
+            /tmp/element-oracle-source-digests.sha256
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Ensure lockfile stayed unchanged
+        run: git diff --exit-code -- research/ccx-mms-p1-001-element-oracle/Cargo.lock
