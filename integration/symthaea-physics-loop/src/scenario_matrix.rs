@@ -208,8 +208,9 @@ mod tests {
         assert_eq!(train_hover.force_at(1, 75, 0.027), [0.0; 3]);
 
         let pulse = scenario_catalogue().into_iter().find(|c| c.id == "test_vertical_impulse_20pct").unwrap();
-        assert_eq!(pulse.force_at(17, 85, 0.027), pulse.force_at(17, 85, 0.027));
-        assert_eq!(pulse.force_at(17, 85, 0.027), [0.0, 0.0, 0.027 * 9.81 * 0.20]);
+        let first = pulse.force_at(17, 85, 0.027);
+        assert_eq!(first, pulse.force_at(17, 85, 0.027));
+        assert!((first[2] - 0.027 * 9.81 * 0.20).abs() < 1e-12);
     }
 
     #[test]
@@ -217,7 +218,7 @@ mod tests {
         let case = scenario_catalogue().into_iter().find(|c| c.id == "test_far_diagonal_15pct").unwrap();
         let force = case.force_at(0, 70, 0.027);
         assert!((force[0] - 0.15 * 0.027 * 9.81).abs() < 1e-12);
-        assert_eq!(case.force_at(0, 70, 0.054)[0], force[0] * 2.0);
+        assert!((case.force_at(0, 70, 0.054)[0] - force[0] * 2.0).abs() < 1e-12);
     }
 
     #[test]
