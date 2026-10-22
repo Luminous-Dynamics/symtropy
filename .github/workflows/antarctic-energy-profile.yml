@@ -6,6 +6,7 @@ on:
       - "research/antarctic-energy-resilience/**"
       - "scripts/check-antarctic-energy-profile.sh"
       - "scripts/check-antarctic-energy-data.sh"
+      - "scripts/acquire-antarctic-sources.sh"
       - ".github/workflows/antarctic-energy-profile.yml"
   push:
     branches: [main]
@@ -39,3 +40,16 @@ jobs:
 
       - name: Run source-attributed annual-data checks and mutation controls
         run: bash scripts/check-antarctic-energy-data.sh
+
+      - name: Check source-acquisition utility syntax and fail-closed stewardship gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/acquire-antarctic-sources.sh
+          bash scripts/acquire-antarctic-sources.sh --help >/dev/null
+          set +e
+          output="$(env -u AADC_ORIGINATOR_CONTACT_CONFIRMED bash scripts/acquire-antarctic-sources.sh fetch-aadc-fuel 2>&1)"
+          status=$?
+          set -e
+          test "$status" -eq 5
+          grep -q "contact the data originator" <<<"$output"
