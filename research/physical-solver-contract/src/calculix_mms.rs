@@ -650,8 +650,7 @@ pub fn parse_mms_output(dat: &str, expected_node_count: usize) -> Check<MmsDispl
         let uy = parse_finite_number(fields[2])?;
         if fields.len() == 4 {
             let uz = parse_finite_number(fields[3])?;
-            let z_tolerance = 1.0e-10
-                * parameters_amplitude_scale_from_expected_node_count(expected_node_count);
+            let z_tolerance = 1.0e-16;
             if uz.abs() > z_tolerance {
                 return Err(format!("plane-stress output has nonzero out-of-plane displacement at node {node_id}"));
             }
@@ -672,12 +671,6 @@ pub fn parse_mms_output(dat: &str, expected_node_count: usize) -> Check<MmsDispl
 
 pub fn parse_mms_displacements(dat: &str, expected_node_count: usize) -> Check<Vec<[f64; 2]>> {
     Ok(parse_mms_output(dat, expected_node_count)?.displacements_m)
-}
-
-fn parameters_amplitude_scale_from_expected_node_count(_node_count: usize) -> f64 {
-    // The exact amplitudes are O(1e-6 m) in this pinned fixture. Kept local to the
-    // parser to avoid accepting arbitrary out-of-plane motion in a plane-stress run.
-    1.0e-6
 }
 
 fn parse_finite_number(text: &str) -> Check<f64> {
