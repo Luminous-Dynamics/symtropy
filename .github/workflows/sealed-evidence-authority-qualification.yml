@@ -1,0 +1,267 @@
+name: PHYS-OBS-04A1 Sealed Evidence Authority Qualification
+
+on:
+  push:
+    branches:
+      - "ci/sealed-evidence-authority-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sealed-evidence-authority-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 453a8f37805924f69e4272f708685cb7fcc05d5a
+  PRODUCT_PARENT: bb8515f5139ae83b3b9c73a1a17b5ce9524eeaec
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-04A1 sealed authority / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/SEALED_QUALIFIED_TEMPORAL_EVIDENCE_AUTHORITY_V01.md"
+            "crates/core/symtropy-physics/src/evidence_authority.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/SEALED_QUALIFIED_TEMPORAL_EVIDENCE_AUTHORITY_V01.md \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs \
+            > "${RUNNER_TEMP}/sealed-evidence-authority-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run sealed evidence authority theorem
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run qualified live subject regression
+        run: cargo test -p symtropy-physics --locked --test qualified_live_subject_v01
+
+      - name: Run local namespace regression
+        run: cargo test -p symtropy-physics --locked --test local_authority_namespace_v01
+
+      - name: Run legacy temporal regression
+        run: cargo test -p symtropy-physics --locked --test authority_temporal_sequence_v01
+
+      - name: Run private evidence-authority unit corpus
+        run: cargo test -p symtropy-physics --locked --lib evidence_authority
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit sealed evidence claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/evidence_authority.rs
+          contract=crates/core/symtropy-physics/SEALED_QUALIFIED_TEMPORAL_EVIDENCE_AUTHORITY_V01.md
+          tests=crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs
+
+          grep -Fq 'pub struct LocalTemporalIncarnationId(u64);' "${module}"
+          grep -Fq 'pub struct LocalQualifiedAuthorityStepStamp' "${module}"
+          grep -Fq 'pub struct LocalEvidencePhysicsAuthorityWorld' "${module}"
+          grep -Fq 'pub struct LocalTaintedEvidenceAuthority' "${module}"
+          grep -Fq 'pub fn seal(' "${module}"
+          grep -Fq 'try_world_mut().map(|_| ())' "${module}"
+          grep -Fq 'pub fn step_authorized(' "${module}"
+          grep -Fq 'pub fn step_authorized_with_callback(' "${module}"
+          grep -Fq 'pub fn last_qualified_step_stamp' "${module}"
+          grep -Fq 'self.step_tainted = true;' "${module}"
+          grep -Fq 'self.temporal.commit_step(next);' "${module}"
+          grep -Fq 'Err(LocalTaintedEvidenceAuthority' "${module}"
+          grep -Fq 'pub fn into_unqualified(self) -> PhysicsAuthorityWorld<D>' "${module}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/evidence_authority.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/SEALED_QUALIFIED_TEMPORAL_EVIDENCE_AUTHORITY_V01.md').read_text()
+
+          def derive_before(name):
+              pos = text.index(f'pub struct {name}')
+              return text[max(0, pos - 250):pos]
+
+          inc = derive_before('LocalTemporalIncarnationId')
+          stamp = derive_before('LocalQualifiedAuthorityStepStamp')
+          for window in (inc, stamp):
+              assert 'Serialize' not in window
+              assert 'Deserialize' not in window
+              assert 'PartialOrd' not in window
+              assert re.search(r'\bOrd\b', window) is None
+
+          for name in ('LocalTemporalIncarnationId', 'LocalQualifiedAuthorityStepStamp'):
+              impl_start = text.index(f'impl {name}')
+              impl_end = text.index('\n}\n', impl_start) + 2
+              impl_block = text[impl_start:impl_end]
+              assert 'pub fn new' not in impl_block
+              assert 'pub const fn new' not in impl_block
+
+          stamp_start = text.index('pub struct LocalQualifiedAuthorityStepStamp')
+          stamp_end = text.index('\n}\n', stamp_start) + 2
+          stamp_block = text[stamp_start:stamp_end]
+          assert not any(line.lstrip().startswith('pub ') for line in stamp_block.splitlines()[1:])
+
+          facade_start = text.index('impl<const D: usize> LocalEvidencePhysicsAuthorityWorld')
+          facade_end = text.index('\nfn mint_temporal_incarnation', facade_start)
+          facade = text[facade_start:facade_end]
+          forbidden = (
+              'pub fn authority_world_mut',
+              'pub fn world_mut',
+              'pub fn try_world_mut',
+              'pub fn bind_net_id',
+              'pub fn add_bodies_deterministic',
+          )
+          for marker in forbidden:
+              assert marker not in facade
+          assert 'DerefMut' not in text
+          assert 'unsafe ' not in text
+
+          begin = text[text.index('fn begin_step'):text.index('fn commit_step')]
+          checked = begin.index('.checked_add(1)')
+          taint = begin.index('self.step_tainted = true;')
+          assert checked < taint
+
+          step = text[text.index('pub fn step_authorized('):text.index('pub fn step_authorized_with_callback(')]
+          assert step.index('let next = self.temporal.begin_step()?;') < step.index('.step_authorized(dt)')
+          assert step.index('.step_authorized(dt)') < step.index('self.temporal.commit_step(next);')
+
+          callback = text[text.index('pub fn step_authorized_with_callback('):text.index('pub fn into_namespace(', text.index('pub fn step_authorized_with_callback('))]
+          assert callback.index('let next = self.temporal.begin_step()?;') < callback.index('.step_authorized_with_callback(dt, callback)')
+          assert callback.index('.step_authorized_with_callback(dt, callback)') < callback.index('self.temporal.commit_step(next);')
+
+          downgrade = text[text.index('pub fn into_namespace('):text.index('fn validate_dt', text.index('pub fn into_namespace('))]
+          assert 'Result<LocalNamespacePhysicsAuthorityWorld<D>, LocalTaintedEvidenceAuthority<D>>' in downgrade
+          assert 'if self.temporal.step_tainted' in downgrade
+          assert 'Err(LocalTaintedEvidenceAuthority' in downgrade
+
+          quarantine_start = text.index('impl<const D: usize> LocalTaintedEvidenceAuthority')
+          quarantine_end = text.index('\n}\n', quarantine_start) + 2
+          quarantine = text[quarantine_start:quarantine_end]
+          assert 'into_namespace' not in quarantine
+          assert 'into_unqualified' in quarantine
+          assert 'LocalNamespacePhysicsAuthorityWorld' not in quarantine
+
+          assert 'caught_inner_panic_quarantines_namespace_instead_of_permitting_reseal' in Path('crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs').read_text()
+          assert 'No cross-process temporal identity' in contract
+          assert 'no checked recovery from partial physics execution' in contract
+          assert 'no complete-world structural integrity' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/SEALED_QUALIFIED_TEMPORAL_EVIDENCE_AUTHORITY_V01.md \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs \
+            > "${RUNNER_TEMP}/sealed-evidence-authority-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/sealed-evidence-authority-source-sha256.txt" \
+            "${RUNNER_TEMP}/sealed-evidence-authority-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-OBS-04A1 sealed qualified temporal evidence authority v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'process_local_temporal_incarnation': True,
+              'outer_step_taint_before_execution': True,
+              'nonstep_mutation_while_sealed': False,
+              'tainted_direct_reseal': False,
+              'tainted_namespace_quarantine': True,
+              'generic_stamp_total_ordering': False,
+              'cross_process_temporal_identity': False,
+              'complete_world_structural_integrity': False,
+              'checked_partial_step_recovery': False,
+              'elapsed_time_authority': False,
+              'observation_or_delivery_authority': False,
+          }
+          Path('sealed-evidence-authority-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sealed-evidence-authority-${{ env.PRODUCT_HEAD }}
+          path: |
+            sealed-evidence-authority-qualification-receipt.json
+            ${{ runner.temp }}/sealed-evidence-authority-source-sha256.txt
+            ${{ runner.temp }}/sealed-evidence-authority-source-sha256-post.txt
+          if-no-files-found: error
