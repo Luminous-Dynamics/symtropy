@@ -185,9 +185,12 @@ impl EnergyBudget {
         (self.available - self.temperature * self.entropy).max(0.0)
     }
 
-    /// Add energy (from regeneration sources). Capped at max_energy.
+    /// Add energy from a regeneration source, capped at max_energy.
+    ///
+    /// Returns the actual accepted Joules (zero for an invalid request or no headroom)
+    /// so a finite source can debit exactly the amount received by this reservoir.
     #[inline]
-    pub fn regenerate(&mut self, amount: f64) {
+    pub fn regenerate(&mut self, amount: f64) -> f64 {
         // Regeneration is an energy source, not a debit. Reject invalid public
         // inputs and invalid reservoir state without changing any counters.
         if !amount.is_finite()
@@ -200,7 +203,7 @@ impl EnergyBudget {
             || !self.regenerated_this_tick.is_finite()
             || self.regenerated_this_tick < 0.0
         {
-            return;
+            return 0.0;
         }
 
         // Subtract available headroom first, avoiding overflow in the sum
@@ -210,18 +213,19 @@ impl EnergyBudget {
         let next_available = self.available + added;
         let next_regenerated = self.regenerated_this_tick + added;
         if !next_available.is_finite() || !next_regenerated.is_finite() {
-            return;
+            return 0.0;
         }
 
         self.available = next_available;
-        // Telemetry reports actual energy accepted by the reservoir, not the
-        // requested amount that may have been truncated by max_energy.
+        // Telemetry and the returned transfer amount agree on energy actually
+        // accepted by the reservoir, not the request clipped by max_energy.
         self.regenerated_this_tick = next_regenerated;
 
         // Recover from collapse if energy is restored
         if self.collapsed && self.available > 0.0 {
             self.collapsed = false;
         }
+        added
     }
 
     /// Whether any energy is available.
@@ -408,6 +412,39 @@ mod tests {
                 budget.regenerated_this_tick, before_regenerated,
                 "amount={amount:?}"
             );
+        }
+    }
+
+    #[test]
+    fn regenerate_returns_actual_accepted_transfer() {
+        let mut full = EnergyBudget::new(100.0);
+        assert_eq!(full.regenerate(10.0), 0.0);
+        assert_eq!(full.available, 100.0);
+        assert_eq!(full.regenerated_this_tick, 0.0);
+
+        let mut partial = EnergyBudget::new(100.0);
+        partial.available = 99.0;
+        assert_eq!(partial.regenerate(10.0), 1.0);
+        assert_eq!(partial.available, 100.0);
+        assert_eq!(partial.regenerated_this_tick, 1.0);
+
+        let mut empty = EnergyBudget::new(100.0);
+        empty.available = 0.0;
+        empty.collapsed = true;
+        assert_eq!(empty.regenerate(10.0), 10.0);
+        assert_eq!(empty.available, 10.0);
+        assert_eq!(empty.regenerated_this_tick, 10.0);
+        assert!(!empty.collapsed);
+    }
+
+    #[test]
+    fn invalid_regeneration_returns_zero_for_source_accounting() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.available = 99.0;
+        for amount in [-1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(budget.regenerate(amount), 0.0, "amount={amount:?}");
+            assert_eq!(budget.available, 99.0);
+            assert_eq!(budget.regenerated_this_tick, 0.0);
         }
     }
 

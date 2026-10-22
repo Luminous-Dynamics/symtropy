@@ -16,6 +16,10 @@ use bevy::prelude::*;
 
 use crate::components::{CrewNpc, Player};
 use crate::resources::{EnergyWell, PhysicsWorldRes, SafetyTier};
+#[cfg(not(feature = "consciousness-runtime"))]
+use crate::resources::ConsciousnessEnergy;
+#[cfg(feature = "consciousness-runtime")]
+use symtropy_consciousness_physics::EnergyBudget;
 use symtropy_render_bridge::PhysicsBody;
 
 /// Marker for entities that have collapsed (zero energy).
@@ -31,6 +35,59 @@ pub struct ThermodynamicHudState {
     /// Per-second rates (updated periodically).
     pub consumed_per_sec: f64,
     pub regenerated_per_sec: f64,
+}
+
+/// Minimal accepted-energy contract shared by the real and fallback reservoir.
+trait EnergyAcceptor {
+    fn accept_energy(&mut self, offered: f64) -> f64;
+}
+
+#[cfg(feature = "consciousness-runtime")]
+impl EnergyAcceptor for EnergyBudget {
+    fn accept_energy(&mut self, offered: f64) -> f64 {
+        self.regenerate(offered)
+    }
+}
+
+#[cfg(not(feature = "consciousness-runtime"))]
+impl EnergyAcceptor for ConsciousnessEnergy {
+    fn accept_energy(&mut self, offered: f64) -> f64 {
+        self.regenerate(offered)
+    }
+}
+
+/// Transfer energy from a finite well only after the recipient reports the
+/// amount accepted. Invalid well state is inert and does not invoke the receiver.
+fn transfer_well_energy<R: EnergyAcceptor>(well: &mut EnergyWell, recipient: &mut R) -> f64 {
+    if !well.regen_rate.is_finite()
+        || well.regen_rate <= 0.0
+        || !well.remaining.is_finite()
+        || well.remaining <= 0.0
+        || !well.max_capacity.is_finite()
+        || well.max_capacity < 0.0
+        || well.remaining > well.max_capacity
+    {
+        return 0.0;
+    }
+
+    let offered = well.regen_rate.min(well.remaining);
+    if !offered.is_finite() || offered <= 0.0 {
+        return 0.0;
+    }
+
+    let accepted = recipient.accept_energy(offered);
+    if !accepted.is_finite() || accepted < 0.0 || accepted > offered {
+        // The built-in EnergyAcceptor implementations guarantee this bound;
+        // keep an impossible response from debiting the finite source.
+        return 0.0;
+    }
+
+    let remaining = well.remaining - accepted;
+    if !remaining.is_finite() || remaining < 0.0 {
+        return 0.0;
+    }
+    well.remaining = remaining;
+    accepted
 }
 
 /// Main enforcement system. Runs in FixedUpdate.
@@ -90,10 +147,9 @@ pub fn thermodynamic_enforcement_system(
                 .truncate()
                 .distance(well_tf.translation.truncate());
             if dist < well.radius {
-                let regen = well.regen_rate.min(well.remaining);
-                well.remaining -= regen;
                 if let Some(entity) = physics.consciousness.entities.get_mut(&handle) {
-                    entity.energy.regenerate(regen);
+                    // Debit the source only by the reservoir's actual accepted transfer.
+                    transfer_well_energy(&mut well, &mut entity.energy);
                 }
             }
         }
@@ -200,6 +256,158 @@ pub fn thermodynamic_enforcement_system(
         hud_state.energy_consumed_accumulator = 0.0;
         hud_state.energy_regenerated_accumulator = 0.0;
         hud_state.ticks_accumulated = 0;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "consciousness-runtime")]
+    type TestReservoir = EnergyBudget;
+    #[cfg(not(feature = "consciousness-runtime"))]
+    type TestReservoir = ConsciousnessEnergy;
+
+    #[test]
+    fn full_reservoir_does_not_debit_well() {
+        let mut well = EnergyWell::new(10.0, 10.0, 100.0);
+        let mut reservoir = TestReservoir::new(100.0);
+
+        let accepted = transfer_well_energy(&mut well, &mut reservoir);
+
+        assert_eq!(accepted, 0.0);
+        assert_eq!(well.remaining, 100.0);
+        assert_eq!(reservoir.regenerated_this_tick, 0.0);
+    }
+
+    #[test]
+    fn partial_reservoir_debits_only_accepted_energy() {
+        let mut well = EnergyWell::new(10.0, 10.0, 100.0);
+        let mut reservoir = TestReservoir::new(100.0);
+        reservoir.available = 99.0;
+
+        let accepted = transfer_well_energy(&mut well, &mut reservoir);
+
+        assert_eq!(accepted, 1.0);
+        assert_eq!(well.remaining, 99.0);
+        assert_eq!(reservoir.available, 100.0);
+        assert_eq!(reservoir.regenerated_this_tick, 1.0);
+    }
+
+    #[test]
+    fn depleted_reservoir_accepts_transfer_and_debits_same_amount() {
+        let mut well = EnergyWell::new(10.0, 10.0, 100.0);
+        let mut reservoir = TestReservoir::new(100.0);
+        reservoir.available = 0.0;
+
+        let accepted = transfer_well_energy(&mut well, &mut reservoir);
+
+        assert_eq!(accepted, 10.0);
+        assert_eq!(well.remaining, 90.0);
+        assert_eq!(reservoir.available, 10.0);
+        assert_eq!(reservoir.regenerated_this_tick, 10.0);
+    }
+
+    #[test]
+    fn deterministic_seeded_transfers_preserve_well_plus_reservoir_energy() {
+        // 100 seeds × 1,000 independently generated source/recipient states.
+        // Integer arithmetic generates repeatable f64 test values without a new dependency.
+        for seed in 0_u64..100 {
+            let mut state = seed + 1;
+            for _case in 0..1_000 {
+                let mut sample = || {
+                    state = state
+                        .wrapping_mul(6_364_136_223_846_793_005)
+                        .wrapping_add(1_442_695_040_888_963_407);
+                    ((state >> 11) as f64) / ((1_u64 << 53) as f64)
+                };
+
+                let well_capacity = 1.0 + sample() * 99.0;
+                let well_remaining = sample() * well_capacity;
+                let regen_rate = 0.01 + sample() * 20.0;
+                let reservoir_capacity = 1.0 + sample() * 99.0;
+                let reservoir_available = sample() * reservoir_capacity;
+
+                let mut well = EnergyWell::new(regen_rate, 10.0, well_capacity);
+                well.remaining = well_remaining;
+                let mut reservoir = TestReservoir::new(reservoir_capacity);
+                reservoir.available = reservoir_available;
+
+                let before = well.remaining + reservoir.available;
+                let expected = regen_rate
+                    .min(well_remaining)
+                    .min((reservoir_capacity - reservoir_available).max(0.0));
+                let accepted = transfer_well_energy(&mut well, &mut reservoir);
+                let after = well.remaining + reservoir.available;
+                let tolerance = 1e-10 * before.max(1.0);
+
+                assert!(
+                    (accepted - expected).abs() <= tolerance,
+                    "seed={seed} expected={expected} accepted={accepted}"
+                );
+                assert!(
+                    (before - after).abs() <= tolerance,
+                    "seed={seed} source/recipient energy changed: before={before}, after={after}"
+                );
+                assert!(
+                    (reservoir.regenerated_this_tick - accepted).abs() <= tolerance,
+                    "seed={seed} telemetry={} accepted={accepted}",
+                    reservoir.regenerated_this_tick
+                );
+                assert!(
+                    (well_remaining - well.remaining - accepted).abs() <= tolerance,
+                    "seed={seed} well debit does not match accepted amount"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_reservoir_state_does_not_debit_well() {
+        let mut well = EnergyWell::new(10.0, 10.0, 100.0);
+        let mut reservoir = TestReservoir::new(100.0);
+        reservoir.available = f64::NAN;
+
+        let accepted = transfer_well_energy(&mut well, &mut reservoir);
+
+        assert_eq!(accepted, 0.0);
+        assert_eq!(well.remaining, 100.0);
+        assert!(reservoir.available.is_nan());
+    }
+
+    struct CountingReservoir {
+        calls: usize,
+    }
+
+    impl EnergyAcceptor for CountingReservoir {
+        fn accept_energy(&mut self, offered: f64) -> f64 {
+            self.calls += 1;
+            offered.min(5.0)
+        }
+    }
+
+    #[test]
+    fn invalid_well_offer_does_not_debit_or_call_recipient() {
+        for (regen_rate, remaining, capacity) in [
+            (f64::NAN, 10.0, 10.0),
+            (f64::INFINITY, 10.0, 10.0),
+            (-1.0, 10.0, 10.0),
+            (1.0, f64::NAN, 10.0),
+            (1.0, 11.0, 10.0),
+        ] {
+            let mut well = EnergyWell::new(regen_rate, 10.0, capacity);
+            well.remaining = remaining;
+            let mut recipient = CountingReservoir { calls: 0 };
+            let accepted = transfer_well_energy(&mut well, &mut recipient);
+
+            assert_eq!(accepted, 0.0);
+            if remaining.is_nan() {
+                assert!(well.remaining.is_nan());
+            } else {
+                assert_eq!(well.remaining, remaining);
+            }
+            assert_eq!(recipient.calls, 0);
+        }
     }
 }
 
