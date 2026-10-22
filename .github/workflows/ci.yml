@@ -103,6 +103,7 @@ jobs:
             LICENSE
             data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs
             data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs
+            data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs
             solution_methods/cp_sat/models/FJSPSDSTmodel.py
           sparse-checkout-cone-mode: false
           persist-credentials: false
@@ -111,8 +112,10 @@ jobs:
           test "$(git -C upstream-benchmark rev-parse HEAD)" = "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
           test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs)" = "6bac8cfaf9f326f6405d5396b9cedd12941aba94"
           test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs)" = "aa051d7c71a0fc2949ce69d67bce0ec54f4a11d1"
+          test "$(git -C upstream-benchmark hash-object data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs)" = "01c1ff749cbad87206cbc4f2ba308c005dd8b1c9"
           cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_01.fjs
           cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_02.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs
+          cmp upstream-benchmark/data/fjsp_sdst/fattahi/Fattahi_setup_03.fjs tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs
           cmp upstream-benchmark/LICENSE tools/ev-external-jobshop-parity/UPSTREAM_LICENSE_MIT.txt
       - name: Format, lint and test standalone Rust crate
         run: |
@@ -193,6 +196,8 @@ jobs:
           cmp ev-external-jobshop-parity-report.json ev-external-jobshop-parity-report-repeat.json
           sha256sum \
             tools/ev-external-jobshop-parity/src/main.rs \
+            tools/ev-external-jobshop-parity/fixtures/fattahi_setup_03.fjs \
+            tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_03_v0_2.json \
             tools/ev-external-jobshop-parity/fixtures/fattahi_setup_02.fjs \
             tools/ev-external-jobshop-parity/fixtures/external_manifest_v0_1.json \
             tools/ev-external-jobshop-parity/fixtures/external_manifest_fattahi_setup_02_v0_2.json \

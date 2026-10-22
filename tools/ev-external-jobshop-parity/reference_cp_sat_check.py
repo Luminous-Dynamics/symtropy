@@ -54,13 +54,13 @@ def parse_tiny_instance(path):
     except ValueError as error:
         raise ValueError("invalid_job_shop_header") from error
     if (
-        job_count != 2
+        job_count not in (2, 3)
         or machine_count != 2
         or not math.isfinite(declared_average_machine_flexibility)
         or declared_average_machine_flexibility <= 0.0
         or declared_average_machine_flexibility > machine_count
     ):
-        raise ValueError("reference_adapter_only_supports_frozen_two_job_two_machine_cases")
+        raise ValueError("reference_adapter_only_supports_two_or_three_job_two_machine_cases")
 
     jobs = []
     choices_by_operation = []
