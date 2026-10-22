@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "artifact_type": "published-aggregate-reference",
+  "artifact_version": "v0",
+  "citation": {
+    "title": "Spatial-Scheduling Strategy for Irregularly Shaped Blocks Under Disruption in Shipbuilding",
+    "authors": [
+      "Ningfei Wang",
+      "Jingbo Yin",
+      "Rafi Ullah Khan"
+    ],
+    "year": 2026,
+    "doi": "10.1049/cim2.70066",
+    "url": "https://doi.org/10.1049/cim2.70066",
+    "table": "Table 6",
+    "accessed_on": "2026-10-22"
+  },
+  "units": {
+    "yard_utilization": "dimensionless fraction as printed",
+    "algorithm_time": "seconds as reported by paper",
+    "vehicle_time": "minutes as reported by paper",
+    "disruption_counts": "count"
+  },
+  "interpretation": {
+    "values_are": "published aggregate values, copied as reported",
+    "is_local_reproduction": false,
+    "contains_instance_geometry": false,
+    "contains_per_run_records": false,
+    "reproduction_status": "not-reproduced",
+    "notes": "15 repetitions per case are reported by the paper. These aggregate values do not disclose raw seeds or per-run samples. Use only as a publication reference, not as optimizer input or independently verified ground truth."
+  },
+  "rows": [
+    {
+      "case": "Case9_50_0",
+      "disruptions": {
+        "workstation": 0,
+        "vehicle": 0
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 119.4,
+          "vehicle_time_min": 2229
+        },
+        "IA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 232.5,
+          "vehicle_time_min": 2229
+        },
+        "GA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 185.3,
+          "vehicle_time_min": 2229
+        },
+        "DE": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 201.6,
+          "vehicle_time_min": 2229
+        }
+      }
+    },
+    {
+      "case": "Case9_50_1",
+      "disruptions": {
+        "workstation": 1,
+        "vehicle": 0
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 223.6,
+          "vehicle_time_min": 2276
+        },
+        "IA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 316.7,
+          "vehicle_time_min": 2276
+        },
+        "GA": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 268.4,
+          "vehicle_time_min": 2276
+        },
+        "DE": {
+          "yard_utilization": 0.782,
+          "algorithm_time_s": 285.2,
+          "vehicle_time_min": 2276
+        }
+      }
+    },
+    {
+      "case": "Case9_50_2",
+      "disruptions": {
+        "workstation": 1,
+        "vehicle": 1
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.777,
+          "algorithm_time_s": 248.4,
+          "vehicle_time_min": 2298
+        },
+        "IA": {
+          "yard_utilization": 0.777,
+          "algorithm_time_s": 388.01,
+          "vehicle_time_min": 2298
+        },
+        "GA": {
+          "yard_utilization": 0.777,
+          "algorithm_time_s": 295.7,
+          "vehicle_time_min": 2298
+        },
+        "DE": {
+          "yard_utilization": 0.777,
+          "algorithm_time_s": 312.6,
+          "vehicle_time_min": 2298
+        }
+      }
+    },
+    {
+      "case": "Case9_50_3",
+      "disruptions": {
+        "workstation": 1,
+        "vehicle": 2
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.768,
+          "algorithm_time_s": 271.6,
+          "vehicle_time_min": 2315
+        },
+        "IA": {
+          "yard_utilization": 0.761,
+          "algorithm_time_s": 306.2,
+          "vehicle_time_min": 2327
+        },
+        "GA": {
+          "yard_utilization": 0.758,
+          "algorithm_time_s": 284.9,
+          "vehicle_time_min": 2368
+        },
+        "DE": {
+          "yard_utilization": 0.764,
+          "algorithm_time_s": 297.3,
+          "vehicle_time_min": 2342
+        }
+      }
+    },
+    {
+      "case": "Case9_50_4",
+      "disruptions": {
+        "workstation": 2,
+        "vehicle": 2
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.775,
+          "algorithm_time_s": 308,
+          "vehicle_time_min": 2339
+        },
+        "IA": {
+          "yard_utilization": 0.765,
+          "algorithm_time_s": 398.7,
+          "vehicle_time_min": 2339
+        },
+        "GA": {
+          "yard_utilization": 0.76,
+          "algorithm_time_s": 335.6,
+          "vehicle_time_min": 2386
+        },
+        "DE": {
+          "yard_utilization": 0.768,
+          "algorithm_time_s": 352.1,
+          "vehicle_time_min": 2360
+        }
+      }
+    },
+    {
+      "case": "Case9_50_5",
+      "disruptions": {
+        "workstation": 3,
+        "vehicle": 2
+      },
+      "methods": {
+        "PA": {
+          "yard_utilization": 0.772,
+          "algorithm_time_s": 350.9,
+          "vehicle_time_min": 2375
+        },
+        "IA": {
+          "yard_utilization": 0.77,
+          "algorithm_time_s": 401.7,
+          "vehicle_time_min": 2361
+        },
+        "GA": {
+          "yard_utilization": 0.764,
+          "algorithm_time_s": 372.8,
+          "vehicle_time_min": 2412
+        },
+        "DE": {
+          "yard_utilization": 0.769,
+          "algorithm_time_s": 389.5,
+          "vehicle_time_min": 2390
+        }
+      }
+    }
+  ]
+}
