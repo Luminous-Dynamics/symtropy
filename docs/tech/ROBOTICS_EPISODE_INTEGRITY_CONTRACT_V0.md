@@ -20,7 +20,7 @@ Each episode begins with monotonically versioned evidence dimensions:
 - resource and return reserve;
 - site permissions.
 
-The episode also records safety gates for calibration, tool compatibility, human approval, localization, return reserve, authorization, site permission, and the declared environment envelope.
+The episode also records safety gates for calibration, tool compatibility, human approval, localization, return reserve, authorization, site permission, and the declared environment envelope. Every plan proposal, validation event, and acceptance event must carry the same valid lowercase SHA-256-shaped `plan_digest`. Reusing a human-readable `plan_id` with different content identity must fail closed. In a production integration, the digest must be calculated over canonical plan bytes or an immutable authenticated artifact; this synthetic v0 auditor checks format and continuity, not the truth of a caller-supplied digest.
 
 The event stream is ordered and never sorted or deduplicated. The independent evaluator must fail closed on malformed or unknown events, missing snapshots, non-monotonic sequence numbers, unknown revision keys, invalid gate fields, repeated plan acceptance, stale plans, and any physical-actuation attempt.
 
@@ -35,7 +35,7 @@ Required behaviors:
 
 ## Frozen cases and counterfactuals
 
-The v0.1 corpus includes a valid control, world/calibration/tool/authority/localization/resource/permission mutations after validation, a stale proposal snapshot, a safe cancel-and-replan recovery, non-monotonic event order, plan-acceptance replay, a forbidden physical-actuation attempt, an unknown event, and a revision rollback.
+The v0.1 corpus includes a valid control, world/calibration/tool/authority/localization/resource/permission mutations after validation, a stale proposal snapshot, a safe cancel-and-replan recovery, non-monotonic event order, plan-acceptance replay, a forbidden physical-actuation attempt, an unknown event, a revision rollback, and a stable-ID / changed-content-digest replay.
 
 Rust tests also generate 256 deterministic suffix mutations across the revision dimensions to check that changing a relevant revision between validation and acceptance invalidates the plan. The target is zero false-eligible outcomes in this synthetic suite, not a claim about real robot hazard probability.
 
@@ -56,4 +56,4 @@ References:
 - ISO, [ISO 10218-1:2025 — Industrial robot safety requirements](https://www.iso.org/standard/73933.html)
 - ISO, [ISO 18646-2:2024 — Mobile service robot navigation performance methods](https://www.iso.org/standard/82643.html)
 
-All 15 fixtures remain synthetic. Passing cannot establish physical safety, hardware reliability, navigation accuracy, compliant integration, or field readiness.
+All 16 fixtures remain synthetic. Passing cannot establish physical safety, hardware reliability, navigation accuracy, compliant integration, or field readiness.
