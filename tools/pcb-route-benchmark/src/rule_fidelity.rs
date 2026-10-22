@@ -683,8 +683,10 @@ fn validate_policy_bytes(
     }
     let severities = value.get("blocking_severities").and_then(Value::as_array)
         .ok_or_else(|| format!("{label} policy has no blocking_severities array"))?;
-    if severities.is_empty() || !severities.iter().any(|item| item.as_str() == Some("error")) {
-        return Err(format!("{label} policy must block error-severity violations"));
+    if !severities.iter().any(|item| item.as_str() == Some("error"))
+        || !severities.iter().any(|item| item.as_str() == Some("warning"))
+    {
+        return Err(format!("{label} policy must block both error- and warning-severity violations"));
     }
     if value.get("block_unconnected_items").and_then(Value::as_bool) != Some(true) {
         return Err(format!("{label} policy must block unconnected items"));
@@ -1155,7 +1157,7 @@ mod tests {
             &evidence_files_for(&plan),
             HEAD,
         ).unwrap_err();
-        assert!(error.contains("must block error-severity violations"));
+        assert!(error.contains("must block both error- and warning-severity violations"));
     }
 
     #[test]
