@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-irregular-geometry"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded exact simple-polygon geometry prototype for shipyard block outlines"
+
+[dependencies]
+shipyard-space-time = { path = "../shipyard-space-time" }
+
+[workspace]
