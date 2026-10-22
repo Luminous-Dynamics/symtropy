@@ -162,6 +162,9 @@ jobs:
                 .domain_id == "shared-line-control"
                 and .station_ids == ["battery-module-install", "final-assembly"]
               )
+              and all(.stations[] | select(.station_id == "battery-module-install" or .station_id == "final-assembly");
+                .new_job_dispatches_during_common_cause_outage_after_warmup == 0
+              )
               and .all_buffers_respected_capacity
               and .output_never_exceeds_released_input
               and .release_ready == false
