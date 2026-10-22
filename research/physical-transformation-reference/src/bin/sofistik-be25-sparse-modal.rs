@@ -137,7 +137,7 @@ fn run() -> Result<String, String> {
             "\"banded_matrix_storage_bytes\":{},",
             "\"lanczos_basis_storage_bytes\":{},",
             "\"dense_stiffness_mass_storage_estimate_bytes\":{},",
-            "\"banded_matrix_storage_fraction_of_dense\":{}",
+            "\"banded_matrix_storage_fraction_of_dense\":{},",
             "\"dense_crosscheck_max_relative_frequency_error\":{},",
             "\"dense_crosscheck_min_mac\":{},",
             "}},",
