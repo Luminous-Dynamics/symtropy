@@ -218,7 +218,7 @@ fn choose_next_question(
                     question.question_id.as_str(),
                 )
             })
-            .map(|question| (*question).clone())
+            .map(|question| (**question).clone())
             .ok_or_else(|| PolicyEvaluationError::NoReachableAnswer {
                 question_id: "<none>".to_owned(),
             }),
@@ -237,7 +237,7 @@ fn choose_next_question(
                 .collect();
             current.questions = available_questions
                 .iter()
-                .map(|question| (*question).clone())
+                .map(|question| (**question).clone())
                 .collect();
             let report = compute_response_robustness(&current, context.channel)
                 .map_err(PolicyEvaluationError::InvalidChannel)?;
@@ -257,7 +257,7 @@ fn choose_next_question(
                         .iter()
                         .find(|question| question.question_id == result.question_id)
                 })
-                .map(|question| (*question).clone())
+                .map(|question| (**question).clone())
                 .ok_or_else(|| PolicyEvaluationError::NoReachableAnswer {
                     question_id: "<adaptive>".to_owned(),
                 })
