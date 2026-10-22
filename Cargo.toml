@@ -121,6 +121,8 @@ bytemuck = { version = "1.18", features = ["derive"] }
 resolver = "2"
 exclude = [
     "crates/bridges/symtropy-robotics-bridge",
+    # Standalone dual-checkout integration against the real Symthaea repository.
+    "integration/symthaea-physics-loop",
 ]
 members = [
     ".",

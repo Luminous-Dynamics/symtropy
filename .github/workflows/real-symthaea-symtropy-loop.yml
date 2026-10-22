@@ -1,0 +1,68 @@
+name: Real Symthaea x Symtropy Closed-Loop Smoke
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "Cargo.toml"
+      - "crates/bridges/symthaea-bevy-brain/**"
+      - "crates/bridges/symtropy-robotics-bridge/**"
+      - "integration/symthaea-physics-loop/**"
+      - "scripts/test-real-symthaea-in-symtropy.sh"
+      - ".github/workflows/real-symthaea-symtropy-loop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-symthaea-symtropy-loop-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  closed-loop-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: symtropy
+          persist-credentials: false
+
+      # Pin the second repository too: a result names exactly which real
+      # cognitive implementation was exercised, not whichever main points to later.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Luminous-Dynamics/symthaea
+          ref: bf787f4d655bd85f084cf75990232f19f7d809a1
+          path: symthaea
+          persist-credentials: false
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libxkbcommon-dev
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # pinned action revision
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Record exact integration inputs
+        run: |
+          set -euo pipefail
+          git -C symtropy rev-parse HEAD
+          git -C symthaea rev-parse HEAD
+          test "$(git -C symthaea rev-parse HEAD)" = "bf787f4d655bd85f084cf75990232f19f7d809a1"
+          test -f symthaea/src/cognitive_loop/mod.rs
+
+      - name: Run real-source closed-loop test
+        env:
+          SYMTROPY_PATH: ${{ github.workspace }}/symtropy
+          SYMTHAEA_PATH: ${{ github.workspace }}/symthaea
+        run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
+
