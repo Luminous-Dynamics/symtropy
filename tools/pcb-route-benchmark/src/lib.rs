@@ -2623,6 +2623,22 @@ mod tests {
 
         let manifest = build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
             .expect("pinned split manifests build from source bytes");
+
+        let mut tampered_root_split = split_config_bytes.clone();
+        let hard_id_offset = tampered_root_split
+            .windows(b"board-hard-1".len())
+            .position(|window| window == b"board-hard-1")
+            .expect("hard board ID occurs in the pinned split JSON");
+        tampered_root_split[hard_id_offset..hard_id_offset + b"board-hard-1".len()]
+            .copy_from_slice(b"board-evil-1");
+        std::fs::write(root.join("provenance/d3.json"), &tampered_root_split).unwrap();
+        assert!(
+            build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
+                .unwrap_err()
+                .contains("dataset-root split-config bytes differ from the supplied pinned split config")
+        );
+        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
+
         let altered_split = split_config_bytes
             .windows(b"board-hard-1".len())
             .position(|window| window == b"board-hard-1")
