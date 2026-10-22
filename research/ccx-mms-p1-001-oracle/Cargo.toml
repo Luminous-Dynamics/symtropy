@@ -13,3 +13,6 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 all = "warn"
+
+[workspace]
+resolver = "2"
