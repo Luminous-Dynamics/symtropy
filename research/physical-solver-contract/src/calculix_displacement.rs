@@ -1495,7 +1495,7 @@ U
         // Empty fields are malformed input, not separators to silently discard.
         let malformed_deck_text = String::from_utf8(deck.clone())
             .unwrap()
-            .replace("1,1,2\\n", "1,,2\\n");
+            .replace("1,1,2\n", "1,,2\n");
         let malformed_deck = malformed_deck_text.into_bytes();
         let malformed_manifest = manifest_bytes(&request, &malformed_deck, &dat, &build);
         let error = compare_displacement_reference_bytes(
@@ -1510,7 +1510,7 @@ U
 
         let changed_step_text = String::from_utf8(deck.clone())
             .unwrap()
-            .replace("*STEP\\n", "*STEP,NLGEOM=YES\\n");
+            .replace("*STEP\n", "*STEP,NLGEOM=YES\n");
         let changed_step = changed_step_text.into_bytes();
         let changed_step_manifest = manifest_bytes(&request, &changed_step, &dat, &build);
         let step_error = compare_displacement_reference_bytes(
@@ -1528,7 +1528,7 @@ U
 
         let changed_time_text = String::from_utf8(deck.clone())
             .unwrap()
-            .replace("1.,1.,1.E-05,1.\\n", "1.,2.,1.E-05,1.\\n");
+            .replace("1.,1.,1.E-05,1.\n", "1.,2.,1.E-05,1.\n");
         let changed_time = changed_time_text.into_bytes();
         let changed_time_manifest = manifest_bytes(&request, &changed_time, &dat, &build);
         let time_error = compare_displacement_reference_bytes(
