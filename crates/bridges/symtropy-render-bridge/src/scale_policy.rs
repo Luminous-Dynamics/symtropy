@@ -381,7 +381,7 @@ mod tests {
 
         // Radius and centre distance are expressed in the same units. Scaling
         // both must preserve the dimensionless angular geometry at extreme
-        // magnitudes, from sub-nanoscopic units through astronomical units.
+        // magnitudes over a wide range of representable unit scales.
         for exponent in (-200..=200).step_by(20) {
             let unit_scale = 10.0_f64.powi(exponent);
             let actual = projected_sphere_diameter_px(
