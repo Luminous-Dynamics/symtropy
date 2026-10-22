@@ -387,7 +387,7 @@ fn replay(events: &[OnlineEvent], policy: Policy, budget: usize) -> Replay {
                     entries[idx] = updated;
                 } else {
                     if entries.len() == budget {
-                        comparisons += entries.len() as u64;
+                        comparisons += entries.len().saturating_sub(1) as u64;
                         let victim = select_victim(&entries, policy, now);
                         entries.remove(victim);
                         evictions += 1;
