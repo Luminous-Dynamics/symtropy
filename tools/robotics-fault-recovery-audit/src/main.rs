@@ -214,6 +214,7 @@ fn validate_response(
     episode: &Episode,
     is_control: bool,
     findings: &mut Vec<String>,
+    integrity_errors: &mut Vec<String>,
     safety_failure: &mut bool,
 ) {
     let r = &episode.response;
@@ -227,7 +228,7 @@ fn validate_response(
         ("service_restored_ms", r.service_restored_ms),
     ] {
         if value.is_some_and(|v| !v.is_finite() || v < 0.0) {
-            findings.push(format!("{prefix}: {name} must be finite and non-negative"));
+            integrity_errors.push(format!("{prefix}: {name} must be finite and non-negative"));
         }
     }
 
@@ -238,7 +239,7 @@ fn validate_response(
         ("service_restored", r.service_restored, r.service_restored_ms),
     ] {
         if !same_presence(flag, time) {
-            findings.push(format!(
+            integrity_errors.push(format!(
                 "{prefix}: {name} must agree with its timestamp presence"
             ));
         }
@@ -246,7 +247,7 @@ fn validate_response(
 
     if is_control {
         if r.physical_fault_present || r.fault_signal_present {
-            findings.push("control: no physical fault or fault signal is allowed".to_string());
+            integrity_errors.push("control: no physical fault or fault signal is allowed".to_string());
         }
         if r.fault_onset_ms.is_some()
             || r.fault_detected
@@ -255,35 +256,35 @@ fn validate_response(
             || r.service_restored
             || r.recovery_authorized
         {
-            findings.push("control: fault-response events are not allowed".to_string());
+            integrity_errors.push("control: fault-response events are not allowed".to_string());
         }
     } else {
         match pair.response_contract.as_str() {
             "safe_state_required" | "hold_until_authorized" => {
                 if !r.physical_fault_present || !r.fault_signal_present {
-                    findings.push(
+                    integrity_errors.push(
                         "challenge: this response contract requires a physical fault and signal"
                             .to_string(),
                     );
                 }
                 if r.fault_onset_ms.is_none() {
-                    findings.push("challenge: physical fault needs an onset timestamp".to_string());
+                    integrity_errors.push("challenge: physical fault needs an onset timestamp".to_string());
                 }
             }
             "continue_unless_fault_confirmed" => {
                 if r.physical_fault_present {
-                    findings.push(
+                    integrity_errors.push(
                         "challenge: sham/false-alarm contract cannot declare a physical fault"
                             .to_string(),
                     );
                 }
                 if !r.fault_signal_present {
-                    findings.push(
+                    integrity_errors.push(
                         "challenge: false-alarm contract needs a fault signal".to_string(),
                     );
                 }
                 if r.fault_onset_ms.is_some() {
-                    findings.push(
+                    integrity_errors.push(
                         "challenge: a sham alert must not invent a physical fault onset"
                             .to_string(),
                     );
@@ -294,22 +295,32 @@ fn validate_response(
     }
 
     if r.fault_detected && !r.fault_signal_present {
-        findings.push(format!("{prefix}: a fault cannot be detected without a fault signal"));
+        integrity_errors.push(format!("{prefix}: a fault cannot be detected without a fault signal"));
+    }
+    if !r.physical_fault_present
+        && (r.fault_detected || r.fault_detected_ms.is_some()
+            || r.fault_cleared || r.fault_cleared_ms.is_some()
+            || r.service_restored || r.service_restored_ms.is_some()
+            || r.recovery_authorized)
+    {
+        integrity_errors.push(format!(
+            "{prefix}: no physical fault means no detection, clearance, restoration, or recovery authorization events"
+        ));
     }
     if !time_ordered(r.fault_onset_ms, r.fault_detected_ms) {
-        findings.push(format!("{prefix}: detection precedes fault onset"));
+        integrity_errors.push(format!("{prefix}: detection precedes fault onset"));
     }
     if !time_ordered(r.fault_onset_ms, r.safe_disposition_ms) {
-        findings.push(format!("{prefix}: safe disposition precedes fault onset"));
+        integrity_errors.push(format!("{prefix}: safe disposition precedes fault onset"));
     }
     if !time_ordered(r.fault_onset_ms, r.fault_cleared_ms) {
-        findings.push(format!("{prefix}: fault clearance precedes fault onset"));
+        integrity_errors.push(format!("{prefix}: fault clearance precedes fault onset"));
     }
     if !time_ordered(r.fault_onset_ms, r.service_restored_ms) {
-        findings.push(format!("{prefix}: service restoration precedes fault onset"));
+        integrity_errors.push(format!("{prefix}: service restoration precedes fault onset"));
     }
     if !time_ordered(r.fault_cleared_ms, r.service_restored_ms) && r.fault_cleared {
-        findings.push(format!("{prefix}: service restoration precedes fault clearance"));
+        integrity_errors.push(format!("{prefix}: service restoration precedes fault clearance"));
         *safety_failure = true;
     }
 
@@ -351,7 +362,7 @@ fn validate_response(
         };
         if let Some(limit) = pair.max_detection_latency_ms {
             if !limit.is_finite() || limit < 0.0 {
-                findings.push("max_detection_latency_ms must be finite and non-negative".to_string());
+                integrity_errors.push("max_detection_latency_ms must be finite and non-negative".to_string());
             } else {
                 match detection_latency {
                     Some(latency) if latency <= limit + EPS => {}
@@ -375,7 +386,7 @@ fn validate_response(
         };
         if let Some(limit) = pair.max_safe_state_latency_ms {
             if !limit.is_finite() || limit < 0.0 {
-                findings.push("max_safe_state_latency_ms must be finite and non-negative".to_string());
+                integrity_errors.push("max_safe_state_latency_ms must be finite and non-negative".to_string());
             } else {
                 match safe_latency {
                     Some(latency) if latency <= limit + EPS => {}
@@ -436,8 +447,12 @@ fn audit_pair(pair: &Pair) -> (PairMetrics, Vec<String>, bool) {
         }
     }
 
-    validate_response(pair, &pair.control, true, &mut findings, &mut safety_failure);
-    validate_response(pair, &pair.challenge, false, &mut findings, &mut safety_failure);
+    validate_response(
+        pair, &pair.control, true, &mut findings, &mut integrity_errors, &mut safety_failure
+    );
+    validate_response(
+        pair, &pair.challenge, false, &mut findings, &mut integrity_errors, &mut safety_failure
+    );
 
     let c = &pair.challenge.response;
     let onset = c.fault_onset_ms;
@@ -489,8 +504,8 @@ fn audit_pair(pair: &Pair) -> (PairMetrics, Vec<String>, bool) {
         useful_work_retention,
         incremental_energy_wh,
         false_abstention,
-        safety_violation_count: usize::from(pair.control.safety_violation)
-            + usize::from(pair.challenge.safety_violation),
+        safety_violation_count: (if pair.control.safety_violation { 1 } else { 0 })
+            + (if pair.challenge.safety_violation { 1 } else { 0 }),
         safety_gate_pass: !safety_failure,
         findings,
     };
@@ -749,7 +764,7 @@ mod tests {
     fn useful_work_retention_uses_matched_control() {
         let r = receipt();
         let row = r.pairs.iter().find(|p| p.pair_id == "FR-SLIP-001").unwrap();
-        assert_eq!(row.useful_work_retention, Some(0.6));
+        assert!((row.useful_work_retention.unwrap() - 0.6).abs() < 1.0e-12);
         assert_eq!(row.incremental_energy_wh, Some(-18.0));
     }
 
