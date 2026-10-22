@@ -96,6 +96,12 @@ There are seven additional resource-level tests for half-open endpoint behavior,
 
 Current literature supports this next direction. An August 2026 multi-fidelity ant-colony study models multi-crane scheduling with safety distance, interference, precedence and tandem scheduling, and reports 7–13% shorter crane travel distance than its compared methods on its own real-world data ([Applied Soft Computing, DOI 10.1016/j.asoc.2026.115384](https://doi.org/10.1016/j.asoc.2026.115384)). Our unary resource module does not reproduce that model and makes no percentage-improvement claim. It adds a small, independently testable feasibility layer before attempting richer crane-coupling models.
 
+## Joint robust envelope across space and resources
+
+\`evaluate_joint_recovery_envelope\` evaluates one spatial candidate and one resource schedule under a finite set of hard joint scenarios. Each scenario may independently introduce clearance/zone/vehicle evidence and resource outages. The candidate is accepted only if **every** joint report accepts. Scenario identity must be unique and non-empty; an empty set is rejected. The summary records accepted/total cases, worst spatial and resource recovery horizons, worst unaffected-resource churn and worst resource time shift; each sorted per-scenario report retains the detailed spatial and resource checks.
+
+The tests include a single candidate that can survive either a workstation outage or an inspector outage by moving both future reservations, and a negative control where moving work to another workstation does not help if the required crane goes down. This catches a hidden failure in spatial-only robust planning: all geometric scenarios can pass while a resource-only scenario still breaks the plan. The envelope is finite and deterministic; there are no probabilities and no guarantees for unenumerated outages.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
