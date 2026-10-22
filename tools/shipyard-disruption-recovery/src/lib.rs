@@ -1491,6 +1491,52 @@ mod tests {
         }
     }
 
+    fn sequence_baseline() -> Scenario {
+        Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming-early", "block-in", rect(0, 0, 2, 2), 5, 7),
+                placement("incoming-late", "block-in", rect(2, 0, 4, 2), 8, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            transfers: vec![transfer("move-later", "block-in", 7, 8, "tug-1")],
+            ..Scenario::default()
+        }
+    }
+
+    fn sequence_stage_one_candidate() -> Scenario {
+        Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming-early", "block-in", rect(0, 2, 2, 4), 5, 7),
+                placement("incoming-late", "block-in", rect(2, 0, 4, 2), 8, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            transfers: vec![transfer("move-later", "block-in", 7, 8, "tug-1")],
+            ..Scenario::default()
+        }
+    }
+
+    fn sequence_stage_two_candidate(vehicle: &str) -> Scenario {
+        let mut move_later = transfer("move-later", "block-in", 7, 8, vehicle);
+        if vehicle != "tug-1" {
+            move_later.corridor = rect(6, 8, 7, 9);
+        }
+        Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("incoming-early", "block-in", rect(0, 2, 2, 4), 5, 7),
+                placement("incoming-late", "block-in", rect(2, 0, 4, 2), 8, 10),
+                placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
+            ],
+            transfers: vec![move_later],
+            ..Scenario::default()
+        }
+    }
+
     #[test]
     fn exclusion_disruption_recovers_only_affected_future_reservation() {
         let baseline = Scenario {
@@ -1979,6 +2025,134 @@ mod tests {
         assert!(!duplicate_report.robustly_accepted);
         assert!(duplicate_report.violations.iter().any(|violation| {
             violation.code == RecoveryEnvelopeViolationCode::DuplicateScenarioId
+        }));
+    }
+
+    #[test]
+    fn sequential_clearance_then_vehicle_and_corridor_disruption_recovers() {
+        let baseline = sequence_baseline();
+        let stages = vec![
+            RecoverySequenceStage {
+                stage_id: "clearance-delay".to_owned(),
+                candidate: sequence_stage_one_candidate(),
+                disruption: Disruption {
+                    placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                        reservation_id: "outgoing".to_owned(),
+                        occupied_until_tick: 7,
+                    }],
+                    ..empty_disruption(4)
+                },
+            },
+            RecoverySequenceStage {
+                stage_id: "vehicle-and-corridor-loss".to_owned(),
+                candidate: sequence_stage_two_candidate("tug-2"),
+                disruption: Disruption {
+                    new_exclusion_zones: vec![zone("zone-transfer", rect(8, 8, 9, 9), 7, 10)],
+                    vehicle_outages: vec![VehicleOutage {
+                        vehicle_id: "tug-1".to_owned(),
+                        unavailable: TimeRange {
+                            start_tick: 7,
+                            end_tick: 9,
+                        },
+                    }],
+                    ..empty_disruption(6)
+                },
+            },
+        ];
+
+        let report = evaluate_recovery_sequence(&baseline, &stages);
+
+        assert!(report.accepted, "{:?}", report.stages);
+        assert_eq!(report.metrics.total_stages, 2);
+        assert_eq!(report.metrics.accepted_stages, 2);
+        assert_eq!(report.stages[0].stage_id, "clearance-delay");
+        assert_eq!(report.stages[1].stage_id, "vehicle-and-corridor-loss");
+        assert_eq!(report.stages[1].report.metrics.changed_transfer_reservations, 1);
+        assert!(report.stopped_at_stage.is_none());
+    }
+
+    #[test]
+    fn sequence_carries_forward_vehicle_outages_and_stops_on_failed_stage() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 2, 2), 0, 10)],
+            transfers: vec![transfer("move-a", "block-a", 7, 8, "tug-1")],
+            ..Scenario::default()
+        };
+        let stage_one = Scenario {
+            yard_bounds: Some(yard()),
+            placements: baseline.placements.clone(),
+            transfers: vec![transfer("move-a", "block-a", 7, 8, "tug-2")],
+            ..Scenario::default()
+        };
+        let stage_two = Scenario {
+            yard_bounds: Some(yard()),
+            placements: baseline.placements.clone(),
+            transfers: vec![transfer("move-a", "block-a", 7, 8, "tug-1")],
+            ..Scenario::default()
+        };
+        let stages = vec![
+            RecoverySequenceStage {
+                stage_id: "first-outage".to_owned(),
+                candidate: stage_one,
+                disruption: Disruption {
+                    vehicle_outages: vec![VehicleOutage {
+                        vehicle_id: "tug-1".to_owned(),
+                        unavailable: TimeRange {
+                            start_tick: 7,
+                            end_tick: 10,
+                        },
+                    }],
+                    ..empty_disruption(4)
+                },
+            },
+            RecoverySequenceStage {
+                stage_id: "outage-still-active".to_owned(),
+                candidate: stage_two,
+                disruption: empty_disruption(5),
+            },
+        ];
+
+        let report = evaluate_recovery_sequence(&baseline, &stages);
+
+        assert!(!report.accepted);
+        assert_eq!(report.metrics.accepted_stages, 1);
+        assert_eq!(report.stopped_at_stage.as_deref(), Some("outage-still-active"));
+        assert!(report.stages[1].report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::VehicleUnavailable
+        }));
+    }
+
+    #[test]
+    fn sequence_rejects_empty_duplicate_or_time_reversed_stages() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 2, 2), 0, 10)],
+            ..Scenario::default()
+        };
+
+        let empty = evaluate_recovery_sequence(&baseline, &[]);
+        assert!(!empty.accepted);
+        assert!(empty.violations.iter().any(|violation| {
+            violation.code == RecoverySequenceViolationCode::EmptyStageSet
+        }));
+
+        let stage = |stage_id: &str, tick: u64| RecoverySequenceStage {
+            stage_id: stage_id.to_owned(),
+            candidate: baseline.clone(),
+            disruption: empty_disruption(tick),
+        };
+        let invalid = evaluate_recovery_sequence(
+            &baseline,
+            &[stage("same", 5), stage("same", 4)],
+        );
+        assert!(!invalid.accepted);
+        assert!(invalid.stages.is_empty());
+        assert!(invalid.violations.iter().any(|violation| {
+            violation.code == RecoverySequenceViolationCode::DuplicateStageId
+        }));
+        assert!(invalid.violations.iter().any(|violation| {
+            violation.code == RecoverySequenceViolationCode::ObservationTimeWentBackwards
         }));
     }
 
