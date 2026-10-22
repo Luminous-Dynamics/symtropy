@@ -2713,6 +2713,46 @@ mod tests {
     }
 
     #[test]
+    fn flow_time_statistics_are_aggregated_across_seeds_not_pooled_as_iid_jobs() {
+        let report = evaluate_catalog(&fixture()).expect("flow-time replication panel");
+        assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
+        assert_eq!(report.replication_count, 20);
+        assert!(report.flow_time_cohort_accounting_valid);
+        assert!(report
+            .flow_time_statistics
+            .iter()
+            .all(|statistic| statistic.cohort_accounting_valid
+                && statistic.release_cohort_jobs.sample_count == 20
+                && statistic.completed_good_jobs.sample_count == 20
+                && statistic.completed_scrap_jobs.sample_count == 20
+                && statistic.right_censored_jobs_at_horizon.sample_count == 20));
+
+        let mut any_good_observations = false;
+        for statistic in &report.flow_time_statistics {
+            if statistic.replications_with_good_flow_time_observations > 0 {
+                any_good_observations = true;
+                let mean = statistic
+                    .good_flow_time_mean_seconds_across_replications
+                    .as_ref()
+                    .expect("mean of per-replication good flow times");
+                let p95 = statistic
+                    .good_flow_time_p95_seconds_across_replications
+                    .as_ref()
+                    .expect("p95 of per-replication good flow times");
+                let p99 = statistic
+                    .good_flow_time_p99_seconds_across_replications
+                    .as_ref()
+                    .expect("p99 of per-replication good flow times");
+                assert_eq!(mean.sample_count, statistic.replications_with_good_flow_time_observations);
+                assert_eq!(p95.sample_count, statistic.replications_with_good_flow_time_observations);
+                assert_eq!(p99.sample_count, statistic.replications_with_good_flow_time_observations);
+                assert!(mean.mean >= 0.0 && p95.mean >= 0.0 && p99.mean >= 0.0);
+            }
+        }
+        assert!(any_good_observations);
+    }
+
+    #[test]
     fn finite_horizon_jobs_are_right_censored_and_release_cohort_conserves() {
         let mut catalog = fixture();
         catalog.replication_seeds.clear();
