@@ -385,7 +385,7 @@ pub fn generate_mesh(cells_per_side: usize) -> Result<Mesh, MeshError> {
 
 fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     let n = mesh.cells_per_side;
-    if n == 0 || n > MAX_RESOLUTION {
+    if !(1..=MAX_RESOLUTION).contains(&n) {
         return Err(MeshError::InvalidMeshTopology);
     }
     let side = n + 1;
@@ -470,7 +470,7 @@ fn energy_density(strain: ccx_mms_p1_oracle::Strain2, lambda: f64, mu: f64) -> f
 
 /// Gauss-Legendre points and weights mapped to [0,1], sorted by point.
 pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, MeshError> {
-    if order == 0 || order > 64 {
+    if !(1..=64).contains(&order) {
         return Err(MeshError::InvalidQuadratureOrder);
     }
     let mut points = vec![(0.0, 0.0); order];
@@ -506,8 +506,7 @@ pub fn gauss_legendre_unit_interval(order: usize) -> Result<Vec<(f64, f64)>, Mes
     if points.iter().any(|(point, weight)| {
         !point.is_finite()
             || !weight.is_finite()
-            || *point < 0.0
-            || *point > 1.0
+            || !(0.0..=1.0).contains(point)
             || *weight <= 0.0
     }) {
         return Err(MeshError::InvalidQuadratureOrder);
