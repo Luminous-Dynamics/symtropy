@@ -150,6 +150,7 @@ members = [
     "crates/distributions/symtropy",
     "crates/bridges/symtropy-render-bridge",
     "crates/bridges/symtropy-mycelix-bridge",
+    "crates/bridges/symtropy-holochain-relay",
     "crates/bridges/symtropy-foundry",
     "crates/domains/symtropy-terrain",
     "crates/domains/symtropy-lightyear",
