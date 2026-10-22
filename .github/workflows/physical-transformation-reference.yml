@@ -287,6 +287,19 @@ jobs:
             and .acceptance.energy_oracle == "strain_energy_and_external_work_match_half_load_dot_displacement"
           ' planar-truss-sweep-receipt.json
 
+      - name: Verify SOFiSTiK BE25 published-input audit mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_sofistik_be25_audit_mutations.sh
+
+      - name: Re-verify BE25 source after audit mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/sofistik_be25_audit.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Generate and verify deterministic axial-modal receipt
         shell: bash
         run: |
@@ -452,6 +465,57 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-pin-modal-receipt.json
 
+      - name: Generate and verify deterministic SOFiSTiK BE25 input-audit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-input-audit -- \
+            --source-commit "$source_commit" > sofistik-be25-input-audit-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-input-audit -- \
+            --source-commit "$source_commit" > sofistik-be25-input-audit-raw-b.json
+          cmp --silent sofistik-be25-input-audit-raw-a.json sofistik-be25-input-audit-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/sofistik_be25_input_audit_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' sofistik-be25-input-audit-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=sofistik-be25-input-audit-v0.1|benchmark=SOFiSTiK-2026-BE25|source=https://docs.sofistik.com/2026/en/verification/_static/verification/pdf/be25.pdf|E=200-MPa|gamma=25-kN-per-m3|A=1-cm2|I=0.1-cm4|L=1-m|mu_printed=0.025-tonne-per-m|g=9.80665-m-per-s2|lambdas=1.875,3.926,pi,4.73|published_reference_hz=0.457,2.003,1.283,2.907|disposition=blocked-until-source-input-resolved|claim_ceiling=unit-and-analytical-input-audit-not-BE25-reproduction"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "bc92e3980a23790b6d5bc1602317953e137ed2173a48a3e64d99ad4308f5d745"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' sofistik-be25-input-audit-raw-a.json > sofistik-be25-input-audit-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "sofistik-be25-input-audit-receipt-v0.1"
+            and .benchmark_id == "SOFiSTiK-2026-BE25"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "published-input-unit-audit"
+            and .result == "audit-complete"
+            and .audit_disposition == "blocked-until-source-input-resolved"
+            and (.inputs_si.mass_per_length_printed_kg_per_m - 25.0 | abs < 1e-12)
+            and (.inputs_si.mass_per_length_from_gamma_area_over_g_kg_per_m - 0.25492905324448206 | abs < 1e-12)
+            and (.inputs_si.printed_to_derived_mass_ratio - 98.0665 | abs < 1e-4)
+            and (.cases | length) == 4
+            and (.cases[0].prediction_using_printed_mu_hz - 0.05004580383402026 | abs < 1e-12)
+            and (.cases[0].prediction_using_gamma_area_over_g_hz - 0.4955962448521477 | abs < 1e-12)
+            and (.cases | all(.[]; .relative_error_printed_mu > 0.8))
+            and (.cases | all(.[]; .relative_error_gamma_area_over_g > 0.08))
+            and (.claim_ceiling | contains("not-BE25-reproduction"))
+          ' sofistik-be25-input-audit-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -469,5 +533,7 @@ jobs:
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
+            sofistik-be25-audit-mutation-receipt.json
+            sofistik-be25-input-audit-receipt.json
           if-no-files-found: error
           retention-days: 90
