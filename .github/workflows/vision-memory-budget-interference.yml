@@ -1,0 +1,75 @@
+name: VIS-MEM-016 Fixed-Budget Memory Interference
+
+on:
+  push:
+    branches: ["research/vis-mem-budget-interference-v0-1"]
+    paths:
+      - "tools/vision-memory-budget-interference.rs"
+      - ".github/workflows/vision-memory-budget-interference.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-budget-interference.rs"
+      - ".github/workflows/vision-memory-budget-interference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-016-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-fixed-budget-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run fixed-budget tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-budget-interference.rs -o /tmp/vis-mem-budget-tests
+          /tmp/vis-mem-budget-tests
+
+      - name: Replay ledger and validate exact schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-budget-interference.rs -o /tmp/vis-mem-budget
+          /tmp/vis-mem-budget > vis-mem-budget.tsv
+          /tmp/vis-mem-budget > vis-mem-budget-repeat.tsv
+          cmp vis-mem-budget.tsv vis-mem-budget-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-016-v0.1' vis-mem-budget.tsv
+          grep -Fq $'ROW\tarrival_reversal\t0\t12\tsource_revision_upsert_fifo\t0' vis-mem-budget.tsv
+          grep -Fq $'SUMMARY\tevidence_tier_bounded\tupdate_churn\t72\t4' vis-mem-budget.tsv
+          awk -F '\t' '$1 == "LEDGER_HEADER" { if (NF != 16) exit 1; lh++ } $1 == "LEDGER" { if (NF != 16) exit 1; l++ } $1 == "ROW_HEADER" { if (NF != 20) exit 1; rh++ } $1 == "ROW" { if (NF != 20) exit 1; r++ } $1 == "SUMMARY_HEADER" { if (NF != 17) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 17) exit 1; s++ } END { if (lh != 1 || l < 1000 || rh != 1 || r != 2304 || sh != 1 || s != 192) exit 1 }' vis-mem-budget.tsv
+          awk -F '\t' '$1 == "ROW" && ($16 > $4 || $20 != 0) { exit 1 } END { if (NR < 1000) exit 1 }' vis-mem-budget.tsv
+          sha256sum vis-mem-budget.tsv > vis-mem-budget.sha256
+          sha256sum -c vis-mem-budget.sha256
+
+      - name: Upload fixed-budget interference evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-016-budget-interference
+          path: |
+            vis-mem-budget.tsv
+            vis-mem-budget.sha256
+          if-no-files-found: error
