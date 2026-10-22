@@ -566,10 +566,7 @@ mod tests {
             global.translational_mass_global,
             local.translational_mass_local
         );
-        assert_eq!(
-            global.rotary_inertia_mass_global,
-            local.rotary_inertia_mass_local
-        );
+        assert_eq!(global.rotary_inertia_mass_global, local.rotary_inertia_mass_local);
         assert_eq!(global.direction_cosine, 1.0);
         assert_eq!(global.direction_sine, 0.0);
     }
@@ -577,7 +574,7 @@ mod tests {
     #[test]
     fn inclined_transform_preserves_energy_and_matrix_symmetry() {
         let local = matrices();
-        let angle_rad = 0.713_f64;
+        let angle_rad = 0.713;
         let cosine = angle_rad.cos();
         let sine = angle_rad.sin();
         let dx = LENGTH_M * cosine;
@@ -627,11 +624,11 @@ mod tests {
     #[test]
     fn rigid_body_translation_and_rotation_have_zero_internal_force() {
         let local = matrices();
-        let angle_rad = 0.713_f64;
+        let angle_rad = 0.713;
         let dx = LENGTH_M * angle_rad.cos();
         let dy = LENGTH_M * angle_rad.sin();
-        let global =
-            super::transform_element_to_global(&local, dx, dy).expect("inclined transform");
+        let global = super::transform_element_to_global(&local, dx, dy)
+            .expect("inclined transform");
         let translations = [[0.4, -0.7, 0.0, 0.4, -0.7, 0.0]];
         let rotation = 0.015;
         let rotations = [[0.0, 0.0, rotation, -rotation * dy, rotation * dx, rotation]];
