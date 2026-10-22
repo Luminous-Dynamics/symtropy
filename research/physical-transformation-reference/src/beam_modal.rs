@@ -293,18 +293,36 @@ mod tests {
     use super::{BeamModeClass, solve_beam_pin_assembly_modes};
 
     fn fixture() -> crate::beam_pin_assembly::BeamPinAssembly {
-        fixture_with_scales(1.0, 1.0)
+        parameterized_assembly(1.0, 1.0, 0.01, 210.0e9, 7800.0)
     }
 
     fn fixture_with_scales(
         youngs_modulus_scale: f64,
         density_scale: f64,
     ) -> crate::beam_pin_assembly::BeamPinAssembly {
+        parameterized_assembly(
+            1.0,
+            1.0,
+            0.01,
+            210.0e9 * youngs_modulus_scale,
+            7800.0 * density_scale,
+        )
+    }
+
+    fn parameterized_assembly(
+        span_m: f64,
+        height_m: f64,
+        radius_m: f64,
+        youngs_modulus_pa: f64,
+        density_kg_m3: f64,
+    ) -> crate::beam_pin_assembly::BeamPinAssembly {
+        let area_m2 = std::f64::consts::PI * radius_m.powi(2);
+        let second_moment_m4 = std::f64::consts::PI * radius_m.powi(4) / 4.0;
         let nodes = vec![
             BeamPinNode {
                 id: "A".to_owned(),
                 x_m: 0.0,
-                y_m: 1.0,
+                y_m: height_m,
                 restrain_x: true,
                 restrain_y: true,
             },
@@ -317,8 +335,8 @@ mod tests {
             },
             BeamPinNode {
                 id: "C".to_owned(),
-                x_m: 1.0,
-                y_m: 1.0,
+                x_m: span_m,
+                y_m: height_m,
                 restrain_x: false,
                 restrain_y: false,
             },
@@ -328,22 +346,198 @@ mod tests {
                 id: "AC".to_owned(),
                 start_node_id: "A".to_owned(),
                 end_node_id: "C".to_owned(),
-                area_m2: 3.141592653589793e-4,
-                youngs_modulus_pa: 210.0e9 * youngs_modulus_scale,
-                density_kg_m3: 7800.0 * density_scale,
-                second_moment_m4: 7.853981633974483e-9,
+                area_m2,
+                youngs_modulus_pa,
+                density_kg_m3,
+                second_moment_m4,
             },
             BeamPinMember {
                 id: "BC".to_owned(),
                 start_node_id: "B".to_owned(),
                 end_node_id: "C".to_owned(),
-                area_m2: 3.141592653589793e-4,
-                youngs_modulus_pa: 210.0e9 * youngs_modulus_scale,
-                density_kg_m3: 7800.0 * density_scale,
-                second_moment_m4: 7.853981633974483e-9,
+                area_m2,
+                youngs_modulus_pa,
+                density_kg_m3,
+                second_moment_m4,
             },
         ];
-        assemble_released_joint_pin_truss(&nodes, &members).expect("beam pin assembly fixture")
+        assemble_released_joint_pin_truss(&nodes, &members).expect("parameterized pin-beam fixture")
+    }
+
+    fn next_sweep_unit(state: &mut u64) -> f64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*state >> 11) as f64) / ((1_u64 << 53) as f64)
+    }
+
+    fn relative_error(actual: f64, expected: f64) -> f64 {
+        (actual - expected).abs() / expected.abs().max(f64::MIN_POSITIVE)
+    }
+
+    #[test]
+    fn fixed_seed_64_case_beam_modal_sweep_obeys_three_scaling_laws() {
+        const REQUEST: &str = concat!(
+            "schema=beam-pin-modal-sweep-request-v0.1",
+            "|benchmark=PHYS-BEAM-MODAL-SCALE-001",
+            "|seed_hex=0x4245414D4D4F4441",
+            "|lcg_multiplier=6364136223846793005",
+            "|lcg_increment=1442695040888963407",
+            "|cases=64",
+            "|span_m=0.5..3.0",
+            "|height_m=0.5..3.0",
+            "|circular_radius_m=0.003..0.015",
+            "|youngs_modulus_pa=30e9..210e9",
+            "|density_kg_m3=1000..16000",
+            "|member_count=2|global_dof_count=10|free_dof_count=6",
+            "|checks=all_modes_elastic,ordered,finite,eigen_residual_lt_1e-8,mass_norm_lt_1e-8,orthogonality_lt_1e-8",
+            "|metamorphic=f_proportional_sqrt_E,f_proportional_inverse_sqrt_density,f_proportional_inverse_length"
+        );
+        assert_eq!(
+            include_str!("../fixtures/beam_pin_modal_sweep_request_v0_1.txt")
+                .trim_end_matches('\n'),
+            REQUEST
+        );
+
+        const GEOMETRIC_SCALE: f64 = 1.7;
+        let mut seed = 0x4245_414D_4D4F_4441_u64;
+        let mut maximum_eigen_residual = 0.0_f64;
+        let mut maximum_mass_norm_residual = 0.0_f64;
+        let mut maximum_orthogonality_residual = 0.0_f64;
+        let mut maximum_modulus_scaling_error = 0.0_f64;
+        let mut maximum_density_scaling_error = 0.0_f64;
+        let mut maximum_geometric_scaling_error = 0.0_f64;
+        let mut minimum_frequency_hz = f64::INFINITY;
+        let mut maximum_frequency_hz = 0.0_f64;
+        let mut elastic_mode_count = 0_usize;
+
+        for case_index in 0..64 {
+            let span_m = 0.5 + 2.5 * next_sweep_unit(&mut seed);
+            let height_m = 0.5 + 2.5 * next_sweep_unit(&mut seed);
+            let radius_m = 0.003 + 0.012 * next_sweep_unit(&mut seed);
+            let youngs_modulus_pa = 30.0e9 + 180.0e9 * next_sweep_unit(&mut seed);
+            let density_kg_m3 = 1000.0 + 15_000.0 * next_sweep_unit(&mut seed);
+
+            let base_assembly = parameterized_assembly(
+                span_m,
+                height_m,
+                radius_m,
+                youngs_modulus_pa,
+                density_kg_m3,
+            );
+            let modulus_assembly = parameterized_assembly(
+                span_m,
+                height_m,
+                radius_m,
+                youngs_modulus_pa * 4.0,
+                density_kg_m3,
+            );
+            let density_assembly = parameterized_assembly(
+                span_m,
+                height_m,
+                radius_m,
+                youngs_modulus_pa,
+                density_kg_m3 * 4.0,
+            );
+            let similar_assembly = parameterized_assembly(
+                span_m * GEOMETRIC_SCALE,
+                height_m * GEOMETRIC_SCALE,
+                radius_m * GEOMETRIC_SCALE,
+                youngs_modulus_pa,
+                density_kg_m3,
+            );
+
+            let base = solve_beam_pin_assembly_modes(&base_assembly)
+                .expect("base modal sweep case");
+            let modulus_scaled = solve_beam_pin_assembly_modes(&modulus_assembly)
+                .expect("modulus-scaled modal sweep case");
+            let density_scaled = solve_beam_pin_assembly_modes(&density_assembly)
+                .expect("density-scaled modal sweep case");
+            let geometrically_scaled = solve_beam_pin_assembly_modes(&similar_assembly)
+                .expect("geometrically scaled modal sweep case");
+
+            assert_eq!(base.modes.len(), 6, "case {case_index}: expected six free modes");
+            assert_eq!(modulus_scaled.modes.len(), base.modes.len());
+            assert_eq!(density_scaled.modes.len(), base.modes.len());
+            assert_eq!(geometrically_scaled.modes.len(), base.modes.len());
+            assert!(
+                base.modes.iter().all(|mode| mode.class == BeamModeClass::Elastic),
+                "case {case_index}: unexplained zero or negative mode"
+            );
+            assert!(base.modes.windows(2).all(|pair| {
+                pair[0].frequency_hz.expect("elastic mode")
+                    < pair[1].frequency_hz.expect("elastic mode")
+            }));
+            assert!(base.maximum_normalized_eigen_residual < 1.0e-8);
+            assert!(base.maximum_mass_norm_residual < 1.0e-8);
+            assert!(base.maximum_off_diagonal_mass_orthogonality_residual < 1.0e-8);
+
+            maximum_eigen_residual =
+                maximum_eigen_residual.max(base.maximum_normalized_eigen_residual);
+            maximum_mass_norm_residual =
+                maximum_mass_norm_residual.max(base.maximum_mass_norm_residual);
+            maximum_orthogonality_residual = maximum_orthogonality_residual
+                .max(base.maximum_off_diagonal_mass_orthogonality_residual);
+
+            for mode_index in 0..base.modes.len() {
+                let f_base = base.modes[mode_index].frequency_hz.expect("base elastic mode");
+                let f_modulus = modulus_scaled.modes[mode_index]
+                    .frequency_hz
+                    .expect("modulus-scaled elastic mode");
+                let f_density = density_scaled.modes[mode_index]
+                    .frequency_hz
+                    .expect("density-scaled elastic mode");
+                let f_geometry = geometrically_scaled.modes[mode_index]
+                    .frequency_hz
+                    .expect("geometric-scaled elastic mode");
+
+                maximum_modulus_scaling_error =
+                    maximum_modulus_scaling_error.max(relative_error(f_modulus / f_base, 2.0));
+                maximum_density_scaling_error =
+                    maximum_density_scaling_error.max(relative_error(f_density / f_base, 0.5));
+                maximum_geometric_scaling_error = maximum_geometric_scaling_error
+                    .max(relative_error(f_geometry / f_base, 1.0 / GEOMETRIC_SCALE));
+                minimum_frequency_hz = minimum_frequency_hz.min(f_base);
+                maximum_frequency_hz = maximum_frequency_hz.max(f_base);
+            }
+
+            elastic_mode_count += base.modes.len();
+        }
+
+        assert!(maximum_eigen_residual < 1.0e-8);
+        assert!(maximum_mass_norm_residual < 1.0e-8);
+        assert!(maximum_orthogonality_residual < 1.0e-8);
+        assert!(maximum_modulus_scaling_error < 1.0e-7);
+        assert!(maximum_density_scaling_error < 1.0e-7);
+        assert!(maximum_geometric_scaling_error < 1.0e-7);
+        assert_eq!(elastic_mode_count, 64 * 6);
+
+        println!(
+            concat!(
+                "BEAM_MODAL_SWEEP_JSON {{",
+                "\"schema_version\":\"beam-modal-sweep-test-result-v0.1\",",
+                "\"benchmark_id\":\"PHYS-BEAM-MODAL-SCALE-001\",",
+                "\"case_count\":64,",
+                "\"modes_checked\":384,",
+                "\"maximum_normalized_eigen_residual\":{:.17e},",
+                "\"maximum_mass_norm_residual\":{:.17e},",
+                "\"maximum_orthogonality_residual\":{:.17e},",
+                "\"maximum_modulus_scaling_relative_error\":{:.17e},",
+                "\"maximum_density_scaling_relative_error\":{:.17e},",
+                "\"maximum_geometric_scaling_relative_error\":{:.17e},",
+                "\"minimum_frequency_hz\":{:.17e},",
+                "\"maximum_frequency_hz\":{:.17e}",
+                "}}"
+            ),
+            maximum_eigen_residual,
+            maximum_mass_norm_residual,
+            maximum_orthogonality_residual,
+            maximum_modulus_scaling_error,
+            maximum_density_scaling_error,
+            maximum_geometric_scaling_error,
+            minimum_frequency_hz,
+            maximum_frequency_hz
+        );
     }
 
     #[test]
