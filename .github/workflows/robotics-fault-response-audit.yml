@@ -1,0 +1,82 @@
+name: Robotics Fault-Response Dynamics Audit
+
+on:
+  push:
+    branches: ["research/robotics-fault-response-dynamics-v0-1"]
+    paths:
+      - "docs/research/ROBOTICS_FAULT_RESPONSE_DYNAMICS_BENCHMARK_V0_1.md"
+      - "schemas/robotics/fault_response_pairs_v0_1.schema.json"
+      - "fixtures/robotics/fault_response_pairs_v0_1.json"
+      - "tools/robotics-fault-recovery-audit/**"
+      - ".github/workflows/robotics-fault-response-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/ROBOTICS_FAULT_RESPONSE_DYNAMICS_BENCHMARK_V0_1.md"
+      - "schemas/robotics/fault_response_pairs_v0_1.schema.json"
+      - "fixtures/robotics/fault_response_pairs_v0_1.json"
+      - "tools/robotics-fault-recovery-audit/**"
+      - ".github/workflows/robotics-fault-response-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-fault-response-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fault-response-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # pinned action revision
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/robotics-fault-recovery-audit/Cargo.toml -- --check
+
+      - name: Run fault-response contract tests
+        run: cargo test --manifest-path tools/robotics-fault-recovery-audit/Cargo.toml
+
+      - name: Audit synthetic paired fixture at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/robotics-fault-recovery-audit/Cargo.toml -- \
+            fixtures/robotics/fault_response_pairs_v0_1.json \
+            --source-commit "$source_commit" > fault-response-audit-receipt.json
+          jq -e '
+            .result == "pass"
+            and .audit_integrity_pass == true
+            and .safety_gate_pass == true
+            and .pair_count == 8
+            and .summary.physical_fault_pair_count == 6
+            and .summary.false_abstention_count == 1
+            and .summary.safety_violation_count == 0
+            and .summary.safety_gate_failure_count == 0
+            and (.input_sha256 | test("^[0-9a-f]{64}$"))
+            and (.evaluator_source_commit | test("^[0-9a-f]{40}$"))
+          ' fault-response-audit-receipt.json
+
+      - name: Upload exact-input receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: robotics-fault-response-audit-receipt
+          path: fault-response-audit-receipt.json
+          if-no-files-found: error
