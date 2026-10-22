@@ -66,22 +66,28 @@ jobs:
         working-directory: research/ccx-mms-p1-001-mesh
         run: cargo clippy --locked --all-targets -- -D warnings
 
-      - name: Generate and byte-compare load probe receipts
+      - name: Generate and byte-compare deterministic receipts
         working-directory: research/ccx-mms-p1-001-mesh
         run: |
           cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
           cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
           cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
           sha256sum /tmp/mms-p1-probe-a.json > /tmp/mms-p1-probe-a.sha256
+          cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-a.json
+          cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-b.json
+          cmp /tmp/mms-p1-calibration-a.json /tmp/mms-p1-calibration-b.json
+          sha256sum /tmp/mms-p1-calibration-a.json > /tmp/mms-p1-calibration-a.sha256
 
-      - name: Preserve deterministic probe receipt
+      - name: Preserve deterministic probe and calibration receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ccx-mms-p1-load-probe
+          name: ccx-mms-p1-deterministic-receipts
           path: |
             /tmp/mms-p1-probe-a.json
             /tmp/mms-p1-probe-a.sha256
+            /tmp/mms-p1-calibration-a.json
+            /tmp/mms-p1-calibration-a.sha256
           if-no-files-found: ignore
           retention-days: 90
 
