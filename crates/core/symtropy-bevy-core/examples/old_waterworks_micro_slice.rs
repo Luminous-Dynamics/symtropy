@@ -34,8 +34,9 @@ use std::{
 };
 use symtropy_basin::{BasinIntervention, OldWaterworksScenario};
 use symtropy_bevy_core::{
-    ControlMode, ControlsState, FirstPersonController, FirstPersonInputPlugin, InputIntent,
-    IntentFrame, ScanMode,
+    ControlMode, ControlsState, FirstPersonCollision, FirstPersonController,
+    FirstPersonInputPlugin, FirstPersonMotion, FirstPersonObstacle, InputIntent, IntentFrame,
+    ScanMode,
 };
 use symtropy_bevy_scene::{SymtropyScenePlugin, fixed_camera};
 
@@ -51,6 +52,9 @@ const OLD_WATERWORKS_ROOM: RoomScaleSpec = RoomScaleSpec {
 };
 
 const INTERACTION_DISTANCE: f32 = OLD_WATERWORKS_ROOM.interaction_distance;
+
+/// Only solid prop meshes are collision obstacles; mounted pipes/signs/decals remain visual.
+const OLD_WATERWORKS_SOLID_PROP_LABELS: &[&str] = &["valve wheel crossbar", "repair crate"];
 #[cfg(test)]
 const OLD_WATERWORKS_VISIBLE_PROP_COUNT: usize = OLD_WATERWORKS_PROP_SPECS.len();
 #[cfg(test)]
@@ -890,6 +894,7 @@ fn setup(
             wall_height,
             0.2,
         )),
+        FirstPersonObstacle::new(Vec3::new(half_extent, wall_height / 2.0, 0.1)),
     ));
     // South
     commands.spawn((
@@ -900,6 +905,7 @@ fn setup(
             wall_height,
             0.2,
         )),
+        FirstPersonObstacle::new(Vec3::new(half_extent, wall_height / 2.0, 0.1)),
     ));
     // East
     commands.spawn((
@@ -910,6 +916,7 @@ fn setup(
             wall_height,
             half_extent * 2.0,
         )),
+        FirstPersonObstacle::new(Vec3::new(0.1, wall_height / 2.0, half_extent)),
     ));
     // West
     commands.spawn((
@@ -920,6 +927,7 @@ fn setup(
             wall_height,
             half_extent * 2.0,
         )),
+        FirstPersonObstacle::new(Vec3::new(0.1, wall_height / 2.0, half_extent)),
     ));
 
     // Pump
@@ -934,6 +942,7 @@ fn setup(
         Mesh3d(cube_mesh.clone()),
         MeshMaterial3d(rusted_metal_mat.clone()),
         Transform::from_xyz(-2.0, 1.0, -2.0).with_scale(Vec3::new(2.0, 2.0, 2.0)),
+        FirstPersonObstacle::new(Vec3::new(1.0, 1.0, 1.0)),
     ));
 
     // Tank / Pipe
@@ -948,6 +957,7 @@ fn setup(
         Mesh3d(cube_mesh.clone()),
         MeshMaterial3d(painted_steel_mat.clone()),
         Transform::from_xyz(-5.0, 1.5, 5.0).with_scale(Vec3::new(1.5, 3.0, 1.5)),
+        FirstPersonObstacle::new(Vec3::new(0.75, 1.5, 0.75)),
     ));
 
     // Console
@@ -963,16 +973,20 @@ fn setup(
         Mesh3d(cube_mesh.clone()),
         MeshMaterial3d(console_mat.clone()),
         Transform::from_xyz(8.0, 1.2, 0.0).with_scale(Vec3::new(0.5, 1.0, 1.5)),
+        FirstPersonObstacle::new(Vec3::new(0.25, 0.5, 0.75)),
     ));
 
     // Low-cost silhouettes and decals for the material truth pass.
     for spec in OLD_WATERWORKS_PROP_SPECS {
-        commands.spawn((
+        let mut prop = commands.spawn((
             Name::new(spec.label),
             Mesh3d(cube_mesh.clone()),
             MeshMaterial3d(material_handles.get(spec.material)),
             Transform::from_translation(vec3(spec.position)).with_scale(vec3(spec.scale)),
         ));
+        if OLD_WATERWORKS_SOLID_PROP_LABELS.contains(&spec.label) {
+            prop.insert(FirstPersonObstacle::new(vec3(spec.scale) * 0.5));
+        }
     }
 
     commands.spawn((
@@ -1060,6 +1074,8 @@ fn setup(
     commands.spawn((
         Player,
         old_waterworks_controller(),
+        FirstPersonMotion::default(),
+        FirstPersonCollision::default(),
         fixed_camera(
             Vec3::new(0.0, OLD_WATERWORKS_ROOM.player_eye_height, 7.0),
             Vec3::new(0.0, OLD_WATERWORKS_ROOM.player_eye_height, 0.0),
@@ -2532,6 +2548,25 @@ mod tests {
         assert!(OLD_WATERWORKS_ROOM.player_eye_height <= 1.5);
         assert!(OLD_WATERWORKS_ROOM.player_walk_speed <= 4.0);
         assert!(OLD_WATERWORKS_ROOM.interaction_distance >= 3.0);
+    }
+
+    #[test]
+    fn old_waterworks_collision_profile_fits_the_player_room() {
+        let collision = FirstPersonCollision::default();
+        assert!(collision.radius > 0.0 && collision.radius < 0.5);
+        assert!(collision.feet_offset >= OLD_WATERWORKS_ROOM.player_eye_height - 0.15);
+        assert!(collision.head_offset > 0.0);
+        assert!(collision.skin_width > 0.0);
+        assert!(collision.max_slide_iterations >= 2);
+        assert!(
+            OLD_WATERWORKS_PROP_SPECS
+                .iter()
+                .any(|spec| spec.label == "repair crate")
+        );
+        assert_eq!(
+            OLD_WATERWORKS_SOLID_PROP_LABELS,
+            &["valve wheel crossbar", "repair crate"]
+        );
     }
 
     #[test]
