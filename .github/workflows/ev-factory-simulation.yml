@@ -119,6 +119,14 @@ jobs:
             and (.scenario_statistics | length) == 6
             and .flow_time_cohort_accounting_valid
             and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 20
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
+            and all(.scenarios[];
+              .time_weighted_average_system_wip_units >= 0
+            )
             and all(.flow_time_statistics[];
               .cohort_accounting_valid
               and .release_cohort_jobs.sample_count == 20
@@ -182,6 +190,14 @@ jobs:
             and (.scenarios | length) == 6
             and .flow_time_cohort_accounting_valid
             and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 20
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
+            and all(.scenarios[];
+              .time_weighted_average_system_wip_units >= 0
+            )
             and all(.flow_time_statistics[];
               .cohort_accounting_valid
               and .release_cohort_jobs.sample_count == 20
@@ -238,8 +254,14 @@ jobs:
             .replication_count == 1
             and .flow_time_cohort_accounting_valid
             and (.flow_time_statistics | length) == 6
+            and (.system_wip_statistics | length) == 6
+            and all(.system_wip_statistics[];
+              .time_weighted_average_system_wip_units.sample_count == 1
+              and .time_weighted_average_system_wip_units.mean >= 0
+            )
             and all(.scenarios[];
-              .flow_time.cohort_accounting_valid
+              .time_weighted_average_system_wip_units >= 0
+              and .flow_time.cohort_accounting_valid
               and .flow_time.release_cohort_jobs > 0
               and .flow_time.right_censored_jobs_at_horizon > 0
               and .flow_time.right_censored_observed_age_seconds != null
