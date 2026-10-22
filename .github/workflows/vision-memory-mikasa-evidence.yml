@@ -5,6 +5,7 @@ on:
     branches: ["research/vis-mem-mikasa-evidence-v0-1"]
     paths:
       - "tools/verify-mikasa-long-results.sh"
+      - "tools/verify-mikasa-policy-boundary.sh"
       - "tools/test-verify-mikasa-long-results.sh"
       - "tools/vision-memory-mikasa-long-tasks.tsv"
       - ".github/workflows/vision-memory-mikasa-evidence.yml"
@@ -35,6 +36,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
+      - uses: actions/checkout@v4
+        with:
+          repository: CognitiveAISystems/MIKASA-Robo
+          ref: 509b875f3d207c287497c0a897661062de928bb0
+          path: upstream-mikasa
+          persist-credentials: false
+
       - name: Verify exact source head and tools
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -45,7 +53,13 @@ jobs:
           command -v jq
           command -v sha256sum
           bash -n tools/verify-mikasa-long-results.sh
+          bash -n tools/verify-mikasa-policy-boundary.sh
           bash -n tools/test-verify-mikasa-long-results.sh
+
+      - name: Audit pinned upstream policy-input boundary
+        run: |
+          set -euo pipefail
+          bash tools/verify-mikasa-policy-boundary.sh upstream-mikasa
 
       - name: Verify pinned Long roster
         run: |
@@ -84,5 +98,7 @@ jobs:
           path: |
             mikasa-evidence-contract-receipt.tsv
             mikasa-evidence-contract.sha256
+            mikasa-policy-boundary-receipt.tsv
+            mikasa-policy-boundary.sha256
             tools/vision-memory-mikasa-long-tasks.tsv
           if-no-files-found: error
