@@ -44,6 +44,17 @@ pub struct ParsedDat {
     pub external_forces: NodalField,
 }
 
+/// Result of the frozen global-equilibrium audit. A finite but over-tolerance
+/// residual is reported with passed=false rather than converted into a parse error.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ForceBalanceAudit {
+    pub residual: Vec3,
+    pub normalization_scale: f64,
+    pub normalized_residual_linf: f64,
+    pub tolerance: f64,
+    pub passed: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParseError {
     EmptyExpectedNodeSet,
@@ -67,6 +78,10 @@ pub enum ParseError {
     NonFiniteBoundaryLoad(usize),
     NonFiniteCorrectedReaction(usize),
     InconsistentFieldTimes,
+    InvalidForceBalanceTolerance,
+    NodalLoadInventoryMismatch { missing: Vec<usize>, unexpected: Vec<usize> },
+    NonFiniteNodalLoad(usize),
+    NonFiniteForceBalance,
 }
 
 impl fmt::Display for ParseError {
@@ -129,6 +144,19 @@ impl fmt::Display for ParseError {
                 write!(f, "non-finite corrected reaction for node {id}")
             }
             Self::InconsistentFieldTimes => f.write_str("displacement and RF output times differ"),
+            Self::InvalidForceBalanceTolerance => {
+                f.write_str("force-balance tolerance must be finite and nonnegative")
+            }
+            Self::NodalLoadInventoryMismatch { missing, unexpected } => write!(
+                f,
+                "nodal-load inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
+            Self::NonFiniteNodalLoad(id) => {
+                write!(f, "non-finite complete nodal load at node {id}")
+            }
+            Self::NonFiniteForceBalance => {
+                f.write_str("global force-balance accumulation is non-finite")
+            }
         }
     }
 }
@@ -262,6 +290,75 @@ pub fn correct_support_reactions(
         corrected.insert(node_id, reaction);
     }
     Ok(corrected)
+}
+
+/// Audit global static equilibrium using the complete independently assembled
+/// nodal load vector and support reactions corrected for omitted boundary loads.
+///
+/// The residual is sum(R_full on constrained nodes) + sum(F_i over every node).
+/// Its scale is max(1, sum(||R_full||_1) + sum(||F_i||_1)), matching the frozen
+/// PHYS-CCX-MMS-P1-001 normalization. This is an arithmetic audit only: a passing
+/// synthetic test does not qualify solver output or the load assembly.
+pub fn audit_global_force_balance(
+    parsed: &ParsedDat,
+    boundary_node_ids: &[usize],
+    omitted_boundary_loads: &BTreeMap<usize, Vec3>,
+    complete_nodal_loads: &BTreeMap<usize, Vec3>,
+    tolerance: f64,
+) -> Result<ForceBalanceAudit, ParseError> {
+    if !tolerance.is_finite() || tolerance < 0.0 {
+        return Err(ParseError::InvalidForceBalanceTolerance);
+    }
+
+    let reactions = correct_support_reactions(
+        parsed,
+        boundary_node_ids,
+        omitted_boundary_loads,
+    )?;
+    let expected_ids: BTreeSet<usize> =
+        parsed.external_forces.values.keys().copied().collect();
+    let actual_ids: BTreeSet<usize> = complete_nodal_loads.keys().copied().collect();
+    let missing = expected_ids.difference(&actual_ids).copied().collect::<Vec<_>>();
+    let unexpected = actual_ids.difference(&expected_ids).copied().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(ParseError::NodalLoadInventoryMismatch { missing, unexpected });
+    }
+
+    let mut residual = Vec3 { x: 0.0, y: 0.0, z: 0.0 };
+    let mut scale = 0.0_f64;
+    for reaction in reactions.values() {
+        residual.x += reaction.x;
+        residual.y += reaction.y;
+        residual.z += reaction.z;
+        scale += reaction.x.abs() + reaction.y.abs() + reaction.z.abs();
+    }
+    for (node_id, load) in complete_nodal_loads {
+        if !(load.x.is_finite() && load.y.is_finite() && load.z.is_finite()) {
+            return Err(ParseError::NonFiniteNodalLoad(*node_id));
+        }
+        residual.x += load.x;
+        residual.y += load.y;
+        residual.z += load.z;
+        scale += load.x.abs() + load.y.abs() + load.z.abs();
+    }
+    if !(residual.x.is_finite()
+        && residual.y.is_finite()
+        && residual.z.is_finite()
+        && scale.is_finite())
+    {
+        return Err(ParseError::NonFiniteForceBalance);
+    }
+
+    let normalization_scale = scale.max(1.0);
+    let normalized_residual_linf =
+        residual.x.abs().max(residual.y.abs()).max(residual.z.abs()) / normalization_scale;
+    Ok(ForceBalanceAudit {
+        residual,
+        normalization_scale,
+        normalized_residual_linf,
+        tolerance,
+        passed: normalized_residual_linf <= tolerance,
+    })
 }
 
 fn classify_heading(line: &str) -> Option<BlockKind> {
@@ -628,4 +725,80 @@ mod tests {
         let d_exponents = FIXTURE.replace("1.000000E-03", "1.000000D-03");
         assert!(parse_dat(&d_exponents, "NALL", &NODES, 1.0, 1.0e-8).is_ok());
     }
+
+    #[test]
+    fn global_force_balance_audit_passes_for_balanced_synthetic_inventory() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let loads = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 8.0, y: -6.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        let audit = audit_global_force_balance(&parsed, &[1, 4], &omitted, &loads, 1.0e-12)
+            .unwrap();
+        assert!(audit.passed);
+        assert_eq!(audit.residual, Vec3 { x: 0.0, y: 0.0, z: 0.0 });
+        assert_eq!(audit.normalized_residual_linf, 0.0);
+        assert_eq!(audit.normalization_scale, 32.0);
+    }
+
+    #[test]
+    fn global_force_balance_audit_reports_perturbed_load_without_hiding_failure() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let loads = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 8.01, y: -6.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        let audit = audit_global_force_balance(&parsed, &[1, 4], &omitted, &loads, 1.0e-8)
+            .unwrap();
+        assert!(!audit.passed);
+        assert!(audit.normalized_residual_linf > audit.tolerance);
+    }
+
+    #[test]
+    fn global_force_balance_audit_rejects_incomplete_or_nonfinite_loads() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let incomplete = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &incomplete, 1.0e-8),
+            Err(ParseError::NodalLoadInventoryMismatch { .. })
+        ));
+
+        let non_finite = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: f64::NAN, y: 0.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &non_finite, 1.0e-8),
+            Err(ParseError::NonFiniteNodalLoad(2))
+        ));
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &non_finite, f64::NAN),
+            Err(ParseError::InvalidForceBalanceTolerance)
+        ));
+    }
+
 }
