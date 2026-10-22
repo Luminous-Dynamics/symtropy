@@ -815,6 +815,46 @@ fn validate_relative_path(relative_path: &str, board_id: &str) -> Result<(), Str
     Ok(())
 }
 
+fn validate_license_reconciliation(
+    board_id: &str,
+    reported_licenses: &[LicenseAuditReportedLicense],
+    match_status: Option<&str>,
+    resolved_spdx_id: &str,
+) -> Result<(), String> {
+    if resolved_spdx_id.trim().is_empty() {
+        return Err(format!("{board_id}: primary-source license evidence has no resolved SPDX identity"));
+    }
+    if reported_licenses.is_empty() {
+        if match_status != Some("source_license_resolved_no_pcbench_license_metadata") {
+            return Err(format!(
+                "{board_id}: PCBench has no license metadata; the audit must use the distinct no-metadata status rather than claiming an SPDX match"
+            ));
+        }
+        return Ok(());
+    }
+
+    let declared_spdx: Vec<&str> = reported_licenses
+        .iter()
+        .filter_map(|license| license.spdx_id.as_deref())
+        .collect();
+    if declared_spdx.is_empty() {
+        return Err(format!(
+            "{board_id}: PCBench has license metadata but no SPDX declaration; this gate does not infer an exact match from a label alone"
+        ));
+    }
+    if match_status != Some("source_text_matches_pcbench_spdx_metadata") {
+        return Err(format!(
+            "{board_id}: source license is not explicitly reconciled with the PCBench SPDX declaration"
+        ));
+    }
+    if !declared_spdx.contains(&resolved_spdx_id) {
+        return Err(format!(
+            "{board_id}: resolved license does not match the audited PCBench SPDX declaration"
+        ));
+    }
+    Ok(())
+}
+
 pub fn build_dataset_manifest(
     split_config_bytes: &[u8],
     intake_spec_bytes: &[u8],
@@ -1003,15 +1043,12 @@ pub fn build_dataset_manifest(
         if evidence.blob_url != expected_license_url {
             return Err(format!("{}: source license blob URL does not match the audited repository, commit and file path", selection.board_id));
         }
-        if audited.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata") {
-            return Err(format!("{}: source license has not been reconciled with its PCBench metadata license", selection.board_id));
-        }
-        let declared_spdx: Vec<&str> = audited.pcbench_reported_licenses.iter()
-            .filter_map(|license| license.spdx_id.as_deref())
-            .collect();
-        if !declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()) {
-            return Err(format!("{}: resolved license does not match the audited PCBench SPDX declaration", selection.board_id));
-        }
+        validate_license_reconciliation(
+            &selection.board_id,
+            &audited.pcbench_reported_licenses,
+            audited.license_match_status.as_deref(),
+            &evidence.resolved_spdx_id,
+        )?;
 
         let relative_path = format!("{}/{}", selection.board_id, filename);
         validate_relative_path(&relative_path, &selection.board_id)?;
@@ -1248,14 +1285,12 @@ fn validate_audit_manifest_for_manifest(
         {
             return Err(format!("{}: immutable source-license evidence is malformed", pin.board_id));
         }
-        let declared_spdx: Vec<&str> = record.pcbench_reported_licenses.iter()
-            .filter_map(|license| license.spdx_id.as_deref())
-            .collect();
-        if record.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata")
-            || (!declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()))
-        {
-            return Err(format!("{}: license evidence is not reconciled with the PCBench metadata record", pin.board_id));
-        }
+        validate_license_reconciliation(
+            &pin.board_id,
+            &record.pcbench_reported_licenses,
+            record.license_match_status.as_deref(),
+            &evidence.resolved_spdx_id,
+        )?;
     }
     if audit.boards.iter().filter(|board| manifest.boards.iter().any(|pin| pin.board_id == board.board_id)).count() != manifest.boards.len() {
         return Err("manifest board set does not match the pinned license-audit record set".into());
