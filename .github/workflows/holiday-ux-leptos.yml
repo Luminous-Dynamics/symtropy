@@ -1,0 +1,37 @@
+name: Holiday UX Leptos prototype
+
+on:
+  pull_request:
+    paths:
+      - "tools/holiday-ux-leptos/**"
+      - ".github/workflows/holiday-ux-leptos.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/holiday-ux-leptos/**"
+      - ".github/workflows/holiday-ux-leptos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: holiday-ux-leptos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Format, model tests, and Wasm compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust and WebAssembly target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/holiday-ux-leptos/Cargo.toml -- --check
+      - name: Test deterministic trip-planning model
+        run: cargo test --manifest-path tools/holiday-ux-leptos/Cargo.toml --lib
+      - name: Compile Leptos frontend to WebAssembly
+        run: cargo check --manifest-path tools/holiday-ux-leptos/Cargo.toml --target wasm32-unknown-unknown
