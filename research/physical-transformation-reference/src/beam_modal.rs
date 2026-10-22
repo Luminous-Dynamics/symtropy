@@ -4,6 +4,8 @@
 //! This module reuses the generalized symmetric eigensolver verified by the
 //! axial-bar tests. It preserves zero/mechanism modes rather than dropping them.
 
+#![allow(clippy::needless_range_loop)] // Modal residuals and mass products couple matrix row/column indices.
+
 use crate::Check;
 use crate::beam_pin_assembly::BeamPinAssembly;
 use crate::modal_bar::{
@@ -50,6 +52,7 @@ pub struct BeamModalResult {
 /// The returned mode count equals the free-DOF count. Small/negative modes
 /// are retained and classified instead of silently filtered.
 pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamModalResult> {
+    validate_modal_assembly(assembly)?;
     let stiffness_reduced = reduce_matrix(&assembly.stiffness_global, &assembly.free_dof_indices)?;
     let mass_reduced = reduce_matrix(&assembly.mass_global, &assembly.free_dof_indices)?;
     let eigenpairs = generalized_symmetric_eigenpairs(&stiffness_reduced, &mass_reduced)?;
@@ -138,6 +141,70 @@ pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamMo
     })
 }
 
+fn validate_modal_assembly(assembly: &BeamPinAssembly) -> Check<()> {
+    let size = assembly.stiffness_global.len();
+    if size == 0 || assembly.mass_global.len() != size {
+        return Err("global stiffness/mass dimensions are empty or inconsistent".to_owned());
+    }
+    if assembly.stiffness_global.iter().any(|row| row.len() != size)
+        || assembly.mass_global.iter().any(|row| row.len() != size)
+    {
+        return Err("global stiffness and mass must be square".to_owned());
+    }
+    if assembly.dof_descriptors.len() != size
+        || assembly
+            .dof_descriptors
+            .iter()
+            .enumerate()
+            .any(|(expected, descriptor)| descriptor.index != expected)
+    {
+        return Err("global DOF descriptors are incomplete or non-canonical".to_owned());
+    }
+
+    let mut seen = vec![false; size];
+    for (kind, indices) in [
+        ("fixed", assembly.fixed_dof_indices.as_slice()),
+        ("free", assembly.free_dof_indices.as_slice()),
+    ] {
+        for index in indices {
+            if *index >= size {
+                return Err(format!("{kind} DOF index {index} is out of range"));
+            }
+            if seen[*index] {
+                return Err(format!("DOF index {index} is duplicated or both fixed/free"));
+            }
+            seen[*index] = true;
+        }
+    }
+    if seen.iter().any(|present| !present) {
+        return Err("fixed/free DOF partition does not cover all global coordinates".to_owned());
+    }
+    if assembly.free_dof_indices.is_empty() {
+        return Err("modal assembly has no free DOFs".to_owned());
+    }
+
+    for (name, matrix) in [
+        ("global stiffness", &assembly.stiffness_global),
+        ("global mass", &assembly.mass_global),
+    ] {
+        if matrix.iter().flatten().any(|value| !value.is_finite()) {
+            return Err(format!("{name} contains a non-finite entry"));
+        }
+        for row in 0..size {
+            for col in 0..size {
+                let scale = matrix[row][col]
+                    .abs()
+                    .max(matrix[col][row].abs())
+                    .max(1.0);
+                if (matrix[row][col] - matrix[col][row]).abs() > 1.0e-10 * scale {
+                    return Err(format!("{name} is not symmetric at ({row}, {col})"));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn reduce_matrix(matrix: &[Vec<f64>], free_indices: &[usize]) -> Check<Matrix> {
     if matrix.iter().any(|row| row.len() != matrix.len()) {
         return Err("global matrix must be square".to_owned());
@@ -190,6 +257,13 @@ mod tests {
     use super::{BeamModeClass, solve_beam_pin_assembly_modes};
 
     fn fixture() -> crate::beam_pin_assembly::BeamPinAssembly {
+        fixture_with_scales(1.0, 1.0)
+    }
+
+    fn fixture_with_scales(
+        youngs_modulus_scale: f64,
+        density_scale: f64,
+    ) -> crate::beam_pin_assembly::BeamPinAssembly {
         let nodes = vec![
             BeamPinNode {
                 id: "A".to_owned(),
@@ -219,8 +293,8 @@ mod tests {
                 start_node_id: "A".to_owned(),
                 end_node_id: "C".to_owned(),
                 area_m2: 3.141592653589793e-4,
-                youngs_modulus_pa: 210.0e9,
-                density_kg_m3: 7800.0,
+                youngs_modulus_pa: 210.0e9 * youngs_modulus_scale,
+                density_kg_m3: 7800.0 * density_scale,
                 second_moment_m4: 7.853981633974483e-9,
             },
             BeamPinMember {
@@ -293,6 +367,55 @@ mod tests {
                 assert_eq!(mode.shape_global_dofs[*fixed_dof], 0.0);
             }
         }
+    }
+
+    #[test]
+    fn mode_frequencies_obey_material_and_density_scaling() {
+        let baseline = solve_beam_pin_assembly_modes(&fixture()).expect("baseline modes");
+        let stiff = solve_beam_pin_assembly_modes(&fixture_with_scales(4.0, 1.0))
+            .expect("four-times modulus modes");
+        let dense = solve_beam_pin_assembly_modes(&fixture_with_scales(1.0, 4.0))
+            .expect("four-times density modes");
+        assert_eq!(baseline.modes.len(), stiff.modes.len());
+        assert_eq!(baseline.modes.len(), dense.modes.len());
+
+        for index in 0..baseline.modes.len() {
+            let base_frequency = baseline.modes[index].frequency_hz.expect("elastic baseline");
+            let stiff_frequency = stiff.modes[index].frequency_hz.expect("elastic stiff");
+            let dense_frequency = dense.modes[index].frequency_hz.expect("elastic dense");
+            assert!(((stiff_frequency / base_frequency) - 2.0).abs() < 1.0e-8);
+            assert!(((dense_frequency / base_frequency) - 0.5).abs() < 1.0e-8);
+        }
+    }
+
+    #[test]
+    fn negative_eigenvalues_are_reported_as_unstable_not_dropped() {
+        let mut assembly = fixture();
+        let negative_global = *assembly.free_dof_indices.last().expect("free DOF");
+        for row in 0..assembly.stiffness_global.len() {
+            assembly.stiffness_global[row][negative_global] = 0.0;
+            assembly.stiffness_global[negative_global][row] = 0.0;
+        }
+        assembly.stiffness_global[negative_global][negative_global] = -1.0;
+
+        let result = solve_beam_pin_assembly_modes(&assembly).expect("classified negative mode");
+        assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
+        assert!(result.modes.iter().any(|mode| {
+            mode.class == BeamModeClass::NegativeOrUnstable && mode.frequency_hz.is_none()
+        }));
+    }
+
+    #[test]
+    fn malformed_dof_partition_fails_closed() {
+        let mut assembly = fixture();
+        assembly
+            .free_dof_indices
+            .push(assembly.fixed_dof_indices[0]);
+        assert!(solve_beam_pin_assembly_modes(&assembly).is_err());
+
+        let mut assembly = fixture();
+        assembly.dof_descriptors.pop();
+        assert!(solve_beam_pin_assembly_modes(&assembly).is_err());
     }
 
     #[test]
