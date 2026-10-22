@@ -270,3 +270,26 @@ The first run exposed a waypoint-start accounting bug; the first-waypoint revisi
 Qualified head `4cea6c46996c78a5b184c2b5438764b032ae7e5a`; [focused workflow #39713733432](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39713733432) and [general CI #39713733402](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39713733402) passed. In six authored paired cases, the authority-weighted resolver reached 100% warranted choice / bidirectional reliability and zero wrong actions; it clarified equal-authority irreducible conflicts. Relevant source-time recency reached 80% warranted choice, while relevant arrival-order recency reached 60%, with the latter failing the stale-arrival control. These are expected discriminations on a hand-authored contract test, not general accuracy estimates. Artifact TSV SHA-256: `9eb251efb887be26f73e291023e2f77c72fa8236163c3c3aa1cef6bd18045904`.
 
 VIS-MEM-013 (failure-conditioned memory) is implemented in draft PR #2615 but remains awaiting exact-head qualification. Its synthetic contract deliberately tests recurrence against overgeneralization and should not be represented as passing yet.
+
+
+## Belief trapping and full-cycle execution/recovery
+
+The current research sweep adds two complementary references with a stronger focus on *goal progress* rather than simply memory quality.
+
+### PoS: explicit beliefs and recovery from loops
+
+[PoS (Progression of States)](https://github.com/luoyu100/PoS) source `main` was pinned on 2026-10-22 to `d6acb43013647b459fa524bc6a8f19586cf1d65e`. The public README describes a structured belief over entities/states/relations, task-relevant epistemic and achievement gaps, consistency validation and trapping-aware recovery. It provides Raw/ReAct baselines and ablations without consistency or trapping recovery across ALFWorld, LOCA-Bench, RCA-100 and ClinDiag. The repository says large datasets are not bundled and requires model/provider setup; LOCA also requires Node.js/npm plus MCP tooling, so a source audit is not an executed reproduction.
+
+The paper reports 88.81% ALFWorld success for PoS with Qwen3.7-Plus versus 72.39% for the strongest evaluated same-backbone baseline, and 38.83% RCA-100 joint accuracy versus 26.21%. In its cited RCA-100 token analysis, PoS total token use is 1,800.13K/episode against 355.70K for Raw Trajectory—about 5.06×—even though task-agent tokens decrease. This is a useful caution: recovery quality and total decision cost need a joint frontier, and tokens must not be mistaken for latency or energy. These are published paper values, not Symtropy scores. Paper: https://arxiv.org/abs/2610.01415.
+
+### SCOPER: evaluate execution as a closed loop
+
+[SCOPER](https://arxiv.org/abs/2610.17657), submitted 2026-10-13, tests high-level plans coupled to visual observations, a shared low-level System 1 and controlled action failures. Its reported suite has 870 tasks across BEHAVIOR and ProcTHOR plus approximately 3,500 situated questions. The paper reports 11.1–28.6% task-success improvements from its SCOPER-harness across the evaluated settings, and gains in offline next-action accuracy on observations from 200 real-robot demonstrations. These figures describe that paper's experiment and are not directly comparable to VIS-MEM synthetic task completion.
+
+### Symtropy experiment
+
+The new [VIS-MEM-014 issue #2624 / draft PR #2625](https://github.com/Luminous-Dynamics/symtropy/pull/2625) adds an independently authored Rust state-machine diagnostic for static stagnation, cycles, drift, epistemic versus achievement gaps, healthy gradual progress, visible environment revision, and unsolvable/no-probe handoff.
+
+It compares raw looping, a generic timer, a cycle monitor and a gap-aware monitor. It explicitly measures false-positive traps, trap recall/classification, steps to detection/recovery, requirement closure, no-progress transitions and correct handoff. The generic timer is an important control: it should expose the tradeoff between quick intervention and false alarms. The gap-aware policy should target evidence-seeking actions for epistemic blockage and a state-changing recovery for achievement blockage.
+
+This finite synthetic diagnostic is an executable contract, not a replacement for ALFWorld, LOCA-Bench, RCA-100, ClinDiag or SCOPER. Native follow-on should use one of the pinned open implementations with the same model backbone and equal action/tool limits; keep raw/ReAct, full harness, no-consistency and no-trapping ablations, and report success alongside total model tokens, tool calls, false trap alarms and recoveries per episode. The implementation remains pending until its exact-head workflow passes.
