@@ -56,7 +56,7 @@ fn main() -> ExitCode {
 
     println!(
         concat!(
-            "{{\"schema\":\"ccx-mms-p1-geometry-conditioning-v1\",",
+            "{{\"schema\":\"ccx-mms-p1-geometry-conditioning-v2\",",
             "\"source_sha\":\"{}\",\"checkout_sha\":\"{}\",",
             "\"solver_executed\":false,",
             "\"qualification_pass\":false,",
