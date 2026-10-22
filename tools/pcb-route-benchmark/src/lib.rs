@@ -777,79 +777,55 @@ pub fn build_dataset_manifest(
     let intake: IntakeSpec = serde_json::from_slice(intake_spec_bytes)
         .map_err(|error| format!("intake specification JSON/schema invalid: {error}"))?;
 
-    if intake.schema != "pcb-route-intake-spec-v0.1" {
-        return Err(format!(
-            "unsupported intake specification schema: {}",
-            intake.schema
-        ));
+    if intake.schema != "pcb-route-intake-spec-v0.2" {
+        return Err(format!("unsupported intake specification schema: {}", intake.schema));
     }
     if !is_commit_sha(&intake.source_split_commit_sha) {
-        return Err(
-            "source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into(),
-        );
+        return Err("source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into());
     }
-    if !intake.source_split_config_url.starts_with("https://") {
-        return Err("source_split_config_url must use HTTPS".into());
+    if !intake.source_split_config_url.starts_with("https://")
+        || !intake.source_url.starts_with("https://")
+    {
+        return Err("source split config and benchmark URLs must use HTTPS".into());
     }
     if !is_git_blob_sha1(&intake.source_split_config_git_blob_sha1) {
-        return Err(
-            "source_split_config_git_blob_sha1 must be a 40-character hexadecimal Git blob ID"
-                .into(),
-        );
+        return Err("source_split_config_git_blob_sha1 must be a 40-character hexadecimal Git blob ID".into());
     }
+    require_sha256(&intake.license_audit_manifest_sha256, "license_audit_manifest_sha256")?;
+    validate_relative_path(&intake.source_split_config_relative_path, "source split config")?;
+    validate_relative_path(&intake.license_audit_manifest_relative_path, "license audit manifest")?;
     if !intake.source_split_config_url.contains(&format!("/{}/", intake.source_split_commit_sha)) {
-        return Err(
-            "source_split_config_url must contain the pinned immutable source commit".into(),
-        );
+        return Err("source_split_config_url must contain the pinned immutable source commit".into());
     }
     if git_blob_sha1(split_config_bytes) != intake.source_split_config_git_blob_sha1 {
-        return Err(
-            "source split-config bytes do not match the pinned upstream Git blob SHA-1".into(),
-        );
+        return Err("source split-config bytes do not match the pinned upstream Git blob SHA-1".into());
     }
-    validate_relative_path(
-        &intake.source_split_config_relative_path,
-        "source split config",
-    )?;
     if intake.split_name.trim().is_empty()
         || intake.benchmark_id.trim().is_empty()
         || intake.benchmark_version.trim().is_empty()
         || intake.dataset_id.trim().is_empty()
         || intake.split_id.trim().is_empty()
-        || !intake.source_url.starts_with("https://")
     {
-        return Err("intake identity, split name and HTTPS source URL must be declared".into());
+        return Err("intake identity and split name must be declared".into());
     }
     if intake.boards.is_empty() {
         return Err("intake specification must contain at least one selected board".into());
     }
-    let filename = split_config
-        .get("board_filename")
+    let filename = split_config.get("board_filename")
         .and_then(serde_json::Value::as_str)
         .ok_or_else(|| "upstream split config is missing string board_filename".to_string())?;
     validate_relative_path(filename, "board_filename")?;
 
     let root = dataset_root.canonicalize().map_err(|error| {
-        format!(
-            "cannot canonicalize dataset root {}: {error}",
-            dataset_root.display()
-        )
+        format!("cannot canonicalize dataset root {}: {error}", dataset_root.display())
     })?;
     if !root.is_dir() {
-        return Err(format!(
-            "dataset root is not a directory: {}",
-            root.display()
-        ));
+        return Err(format!("dataset root is not a directory: {}", root.display()));
     }
 
-    let actual_split_path = root
-        .join(&intake.source_split_config_relative_path)
-        .canonicalize()
-        .map_err(|error| {
-            format!(
-                "cannot resolve source split config {}: {error}",
-                intake.source_split_config_relative_path
-            )
+    let actual_split_path = root.join(&intake.source_split_config_relative_path)
+        .canonicalize().map_err(|error| {
+            format!("cannot resolve source split config {}: {error}", intake.source_split_config_relative_path)
         })?;
     if !actual_split_path.starts_with(&root) || !actual_split_path.is_file() {
         return Err("source split config is not a regular file contained by the dataset root".into());
@@ -857,214 +833,201 @@ pub fn build_dataset_manifest(
     let actual_split_bytes = fs::read(&actual_split_path)
         .map_err(|error| format!("cannot read source split config bytes: {error}"))?;
     if actual_split_bytes != split_config_bytes {
-        return Err(
-            "dataset-root split-config bytes differ from the supplied pinned split config".into(),
-        );
+        return Err("dataset-root split-config bytes differ from the supplied pinned split config".into());
     }
     if git_blob_sha1(&actual_split_bytes) != intake.source_split_config_git_blob_sha1 {
-        return Err(
-            "dataset-root split-config bytes do not match the pinned upstream Git blob SHA-1"
-                .into(),
-        );
+        return Err("dataset-root split-config bytes do not match the pinned upstream Git blob SHA-1".into());
     }
+
+    let audit_path = root.join(&intake.license_audit_manifest_relative_path)
+        .canonicalize().map_err(|error| {
+            format!("cannot resolve license-audit manifest {}: {error}", intake.license_audit_manifest_relative_path)
+        })?;
+    if !audit_path.starts_with(&root) || !audit_path.is_file() {
+        return Err("license-audit manifest is not a regular file contained by the dataset root".into());
+    }
+    if audit_path == actual_split_path {
+        return Err("license-audit manifest aliases the source split config".into());
+    }
+    let audit_bytes = fs::read(&audit_path)
+        .map_err(|error| format!("cannot read license-audit manifest bytes: {error}"))?;
+    if sha256_hex(&audit_bytes) != intake.license_audit_manifest_sha256 {
+        return Err("license-audit manifest bytes SHA-256 does not match intake pin".into());
+    }
+    let audit: LicenseAuditManifest = serde_json::from_slice(&audit_bytes)
+        .map_err(|error| format!("license-audit manifest JSON/schema invalid: {error}"))?;
+    validate_audit_envelope(
+        &audit,
+        &intake.source_url,
+        &intake.source_split_commit_sha,
+        &intake.source_split_config_git_blob_sha1,
+        &intake.benchmark_id,
+        &intake.dataset_id,
+    )?;
 
     let mut seen = BTreeSet::new();
     let mut used_paths = BTreeSet::new();
     used_paths.insert(actual_split_path.clone());
+    used_paths.insert(audit_path.clone());
     let mut boards = Vec::with_capacity(intake.boards.len());
+
     for selection in &intake.boards {
         if !seen.insert(selection.board_id.as_str()) {
-            return Err(format!(
-                "duplicate selected board ID: {}",
-                selection.board_id
-            ));
+            return Err(format!("duplicate selected board ID: {}", selection.board_id));
         }
         if selection.required_nets == 0 {
-            return Err(format!(
-                "{}: required_nets must be positive",
-                selection.board_id
-            ));
+            return Err(format!("{}: required_nets must be positive", selection.board_id));
         }
-        if selection.license.trim().is_empty()
-            || matches!(
-                selection.license.trim().to_ascii_lowercase().as_str(),
-                "unknown" | "n/a" | "not-provided" | "noassertion" | "unverified"
-            )
-        {
-            return Err(format!(
-                "{}: license must be explicitly verified before intake",
-                selection.board_id
-            ));
-        }
-        if !selection.source_url.starts_with("https://") {
-            return Err(format!(
-                "{}: board source URL must use HTTPS",
-                selection.board_id
-            ));
-        }
-        let license_relative_path = selection
-            .license_evidence_relative_path
-            .as_deref()
-            .ok_or_else(|| {
-                format!(
-                    "{}: license-evidence file path is required",
-                    selection.board_id
-                )
-            })?;
         validate_relative_path(
-            license_relative_path,
+            &selection.license_evidence_relative_path,
             &format!("{} license evidence", selection.board_id),
         )?;
-        let license_url = selection.license_evidence_url.as_deref().ok_or_else(|| {
-            format!(
-                "{}: license-evidence source URL is required",
-                selection.board_id
-            )
-        })?;
-        if !license_url.starts_with("https://") {
+        let audited = audit.boards.iter()
+            .find(|board| board.board_id == selection.board_id)
+            .ok_or_else(|| format!("{} is not listed in the pinned license-audit manifest", selection.board_id))?;
+        if audited.difficulty != selection.difficulty {
+            return Err(format!("{}: difficulty differs from the license-audit record", selection.board_id));
+        }
+        if audited.primary_source_license_review.trim().is_empty() {
+            return Err(format!("{}: license-audit review status is missing", selection.board_id));
+        }
+        let synthetic = audit.evidence_class.as_deref() == Some("synthetic");
+        let required_eligibility = if synthetic {
+            "eligible_for_synthetic_test_only"
+        } else {
+            "approved_for_benchmark_execution"
+        };
+        if audited.benchmark_eligibility != required_eligibility {
             return Err(format!(
-                "{}: license-evidence source URL must use HTTPS",
-                selection.board_id
+                "{}: license-audit eligibility is {:?}; requires {:?}",
+                selection.board_id, audited.benchmark_eligibility, required_eligibility
             ));
         }
-        let license_source_commit = selection
-            .license_evidence_source_commit_sha
-            .as_deref()
-            .ok_or_else(|| {
-                format!(
-                    "{}: license-evidence source commit is required",
-                    selection.board_id
-                )
-            })?;
-        let expected_license_blob = selection
-            .license_evidence_git_blob_sha1
-            .as_deref()
-            .ok_or_else(|| {
-                format!(
-                    "{}: license-evidence Git blob SHA-1 is required",
-                    selection.board_id
-                )
-            })?;
-        if !is_git_blob_sha1(expected_license_blob) {
+        if !synthetic && audit.status != "approved_for_benchmark_execution" {
             return Err(format!(
-                "{}: license-evidence Git blob SHA-1 must be 40 hexadecimal characters",
-                selection.board_id
+                "license-audit manifest status {:?} does not authorize external benchmark execution",
+                audit.status
             ));
         }
-        if !is_commit_sha(license_source_commit) {
-            return Err(format!(
-                "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
-                selection.board_id
-            ));
+        if synthetic && audit.status != "synthetic_test_only_eligible_fixture" {
+            return Err("synthetic license audit must be explicitly labelled test-only".into());
         }
-        if !license_url.contains(&format!("/{license_source_commit}/")) {
-            return Err(format!(
-                "{}: license-evidence URL must contain the pinned immutable source commit",
-                selection.board_id
-            ));
+
+        let source_repo = audited.original_source_repository.trim();
+        if !source_repo.starts_with("https://") {
+            return Err(format!("{}: audited original source repository must use HTTPS", selection.board_id));
         }
-        let candidate_ids = split_config
-            .get(selection.difficulty.as_str())
-            .and_then(|difficulty| difficulty.get(intake.split_name.as_str()))
-            .and_then(serde_json::Value::as_array)
-            .ok_or_else(|| {
-                format!(
-                    "upstream split has no array for difficulty={} split={}",
-                    selection.difficulty, intake.split_name
-                )
-            })?;
-        if !candidate_ids
-            .iter()
-            .any(|id| id.as_str() == Some(selection.board_id.as_str()))
+        let source_metadata_path = audited.metadata_path.as_str();
+        validate_relative_path(source_metadata_path, &format!("{} source metadata", selection.board_id))?;
+        if !source_metadata_path.starts_with("PCBs/") || !source_metadata_path.ends_with("/metadata.json") {
+            return Err(format!("{}: audited PCBench metadata path is malformed", selection.board_id));
+        }
+        if !is_git_blob_sha1(&audited.metadata_git_blob_sha1) {
+            return Err(format!("{}: audited PCBench metadata must have a 40-character Git blob SHA-1", selection.board_id));
+        }
+
+        let evidence = audited.primary_source_license_evidence.as_ref()
+            .ok_or_else(|| format!("{}: audit has no primary-source license evidence", selection.board_id))?;
+        if !evidence.blob_hash_reverified_at_pinned_commit
+            || evidence.repository.trim() != source_repo
+            || evidence.resolved_spdx_id.trim().is_empty()
         {
-            return Err(format!(
-                "{} is not a member of the pinned {}.{} split",
-                selection.board_id, selection.difficulty, intake.split_name
-            ));
+            return Err(format!("{}: audit source-license evidence is unverified or disagrees with the audited source repository", selection.board_id));
+        }
+        if !is_commit_sha(&evidence.source_commit_sha) || !is_git_blob_sha1(&evidence.git_blob_sha1) {
+            return Err(format!("{}: invalid source license commit/blob pin", selection.board_id));
+        }
+        if !evidence.blob_url.starts_with("https://")
+            || !evidence.blob_url.contains(&format!("/{}/", evidence.source_commit_sha))
+        {
+            return Err(format!("{}: source license blob URL must bind its immutable commit", selection.board_id));
+        }
+        if audited.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata") {
+            return Err(format!("{}: source license has not been reconciled with its PCBench metadata license", selection.board_id));
+        }
+        let declared_spdx: Vec<&str> = audited.pcbench_reported_licenses.iter()
+            .filter_map(|license| license.spdx_id.as_deref())
+            .collect();
+        if !declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()) {
+            return Err(format!("{}: resolved license does not match the audited PCBench SPDX declaration", selection.board_id));
         }
 
         let relative_path = format!("{}/{}", selection.board_id, filename);
         validate_relative_path(&relative_path, &selection.board_id)?;
+        let audited_prepared_path = audited.prepared_board_relative_path.as_deref()
+            .ok_or_else(|| format!("{}: license audit has not pinned prepared board bytes", selection.board_id))?;
+        validate_relative_path(audited_prepared_path, &format!("{} audited prepared board", selection.board_id))?;
+        if audited_prepared_path != relative_path {
+            return Err(format!("{}: selected board path differs from the audit-pinned prepared board path", selection.board_id));
+        }
         let actual_path = root.join(&relative_path).canonicalize().map_err(|error| {
-            format!(
-                "{}: cannot resolve source file {}: {error}",
-                selection.board_id, relative_path
-            )
+            format!("{}: cannot resolve source file {}: {error}", selection.board_id, relative_path)
         })?;
         if !actual_path.starts_with(&root) || !actual_path.is_file() {
-            return Err(format!(
-                "{}: source file is not a regular file contained by the dataset root",
-                selection.board_id
-            ));
+            return Err(format!("{}: source file is not a regular file contained by the dataset root", selection.board_id));
         }
         if !used_paths.insert(actual_path.clone()) {
-            return Err(format!(
-                "{}: source path aliases another pinned dataset artifact",
-                selection.board_id
-            ));
+            return Err(format!("{}: source path aliases another pinned dataset artifact", selection.board_id));
         }
-        let bytes = fs::read(&actual_path).map_err(|error| {
-            format!(
-                "{}: cannot read source board bytes: {error}",
-                selection.board_id
-            )
-        })?;
-        let license_actual_path =
-            root.join(license_relative_path)
-                .canonicalize()
-                .map_err(|error| {
-                    format!(
-                        "{}: cannot resolve license-evidence file {}: {error}",
-                        selection.board_id, license_relative_path
-                    )
-                })?;
+        let bytes = fs::read(&actual_path)
+            .map_err(|error| format!("{}: cannot read source board bytes: {error}", selection.board_id))?;
+        let actual_board_sha = sha256_hex(&bytes);
+        let expected_board_sha = audited.prepared_board_sha256.as_deref()
+            .ok_or_else(|| format!("{}: audit lacks prepared-board SHA-256", selection.board_id))?;
+        require_sha256(expected_board_sha, "audit prepared_board_sha256")?;
+        if actual_board_sha != expected_board_sha {
+            return Err(format!("{}: source-board bytes SHA-256 differs from the audit-approved prepared-board digest", selection.board_id));
+        }
+
+        let license_actual_path = root.join(&selection.license_evidence_relative_path)
+            .canonicalize().map_err(|error| {
+                format!("{}: cannot resolve license-evidence file {}: {error}", selection.board_id, selection.license_evidence_relative_path)
+            })?;
         if !license_actual_path.starts_with(&root) || !license_actual_path.is_file() {
-            return Err(format!(
-                "{}: license-evidence path is not a regular file contained by the dataset root",
-                selection.board_id
-            ));
+            return Err(format!("{}: license-evidence path is not a regular file contained by the dataset root", selection.board_id));
         }
         if !used_paths.insert(license_actual_path.clone()) {
-            return Err(format!(
-                "{}: license-evidence path aliases another pinned dataset artifact",
-                selection.board_id
-            ));
+            return Err(format!("{}: license-evidence path aliases another pinned dataset artifact", selection.board_id));
         }
-        let license_bytes = fs::read(&license_actual_path).map_err(|error| {
-            format!(
-                "{}: cannot read license-evidence bytes: {error}",
-                selection.board_id
-            )
-        })?;
+        let license_bytes = fs::read(&license_actual_path)
+            .map_err(|error| format!("{}: cannot read license-evidence bytes: {error}", selection.board_id))?;
         if license_bytes.is_empty() {
-            return Err(format!(
-                "{}: license-evidence file is empty",
-                selection.board_id
-            ));
+            return Err(format!("{}: license-evidence file is empty", selection.board_id));
         }
-        let observed_license_blob = git_blob_sha1(&license_bytes);
-        if observed_license_blob != expected_license_blob {
-            return Err(format!(
-                "{}: license-evidence bytes do not match the source repository Git blob SHA-1",
-                selection.board_id
-            ));
+        if git_blob_sha1(&license_bytes) != evidence.git_blob_sha1 {
+            return Err(format!("{}: license-evidence bytes do not match audit-pinned source Git blob SHA-1", selection.board_id));
         }
 
         boards.push(BoardPin {
             board_id: selection.board_id.clone(),
-            input_board_sha256: sha256_hex(&bytes),
+            input_board_sha256: actual_board_sha,
             required_nets: selection.required_nets,
-            license: selection.license.clone(),
-            source_url: selection.source_url.clone(),
+            license: evidence.resolved_spdx_id.clone(),
+            source_url: source_repo.to_string(),
             relative_path: Some(relative_path),
-            license_evidence_relative_path: Some(license_relative_path.to_string()),
+            original_source_repository: Some(source_repo.to_string()),
+            source_metadata_path: Some(source_metadata_path.to_string()),
+            source_metadata_git_blob_sha1: Some(audited.metadata_git_blob_sha1.clone()),
+            license_evidence_relative_path: Some(selection.license_evidence_relative_path.clone()),
             license_evidence_sha256: Some(sha256_hex(&license_bytes)),
-            license_evidence_url: Some(license_url.to_string()),
-            license_evidence_source_commit_sha: Some(license_source_commit.to_ascii_lowercase()),
-            license_evidence_git_blob_sha1: Some(observed_license_blob),
+            license_evidence_url: Some(evidence.blob_url.clone()),
+            license_evidence_source_commit_sha: Some(evidence.source_commit_sha.to_ascii_lowercase()),
+            license_evidence_git_blob_sha1: Some(evidence.git_blob_sha1.clone()),
         });
     }
     boards.sort_by(|a, b| a.board_id.cmp(&b.board_id));
+
+    let evidence_class = if audit.evidence_class.as_deref() == Some("synthetic") {
+        "synthetic"
+    } else {
+        "external_benchmark"
+    };
+    if evidence_class == "synthetic"
+        && (!intake.benchmark_id.starts_with("synthetic-")
+            || !intake.dataset_id.starts_with("synthetic-"))
+    {
+        return Err("synthetic audit fixtures require synthetic-prefixed benchmark and dataset IDs".into());
+    }
 
     let manifest = DatasetManifest {
         schema: MANIFEST_SCHEMA.into(),
@@ -1072,17 +1035,17 @@ pub fn build_dataset_manifest(
         benchmark_version: intake.benchmark_version.clone(),
         dataset_id: intake.dataset_id.clone(),
         split_id: intake.split_id.clone(),
-        evidence_class: "external_benchmark".into(),
+        evidence_class: evidence_class.into(),
         source_url: intake.source_url.clone(),
         source_split_config_sha256: Some(sha256_hex(split_config_bytes)),
-        source_split_config_relative_path: Some(
-            intake.source_split_config_relative_path.clone(),
-        ),
+        source_split_config_relative_path: Some(intake.source_split_config_relative_path.clone()),
         source_split_config_url: Some(intake.source_split_config_url.clone()),
         source_split_config_git_blob_sha1: Some(git_blob_sha1(split_config_bytes)),
         source_split_commit_sha: Some(intake.source_split_commit_sha.to_ascii_lowercase()),
         source_split_name: Some(intake.split_name.clone()),
         intake_metadata_sha256: Some(sha256_hex(intake_spec_bytes)),
+        license_audit_manifest_relative_path: Some(intake.license_audit_manifest_relative_path.clone()),
+        license_audit_manifest_sha256: Some(sha256_hex(&audit_bytes)),
         boards,
     };
     validate_manifest(&manifest)?;
