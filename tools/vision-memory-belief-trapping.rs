@@ -707,10 +707,12 @@ mod tests {
     }
 
     #[test]
-    fn generic_timer_uses_wrong_recovery_for_epistemic_trap() {
+    fn generic_timer_detects_stagnation_but_uses_wrong_recovery_for_epistemic_trap() {
         let r = run(Policy::GenericTimer, "static_epistemic");
         assert!(!r.solved);
-        assert!(!r.detected);
+        assert!(r.detected);
+        assert_eq!(r.detected_class, Some(TrapSignal::Unclassified));
+        assert!(!r.correct_classification);
     }
 
     #[test]
