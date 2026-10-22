@@ -211,3 +211,22 @@ Once the synthetic lifecycle/intervention tests qualify, a focused apples-to-app
 Hold the eligible backbone and action executor fixed wherever the implementation allows. If learned memory requires retraining weights, report training compute and do not label the result a memory-only inference ablation unless all other training/evaluation factors match.
 
 The architectural research question becomes: **can a small recurrent summary serve as a fast working state while an external, provenance-rich store handles rare retrieval, contradiction resolution and transfer?** Test recurrent-only, external-only, and combination at matched inference/resource budgets. A hybrid is worthwhile only if it improves the success/cost frontier or repairs clearly identified failure slices without obscuring regressions.
+
+
+## Decision-level counterfactual audit and abstention
+
+A 2026-10-22 literature review added two distinct audit references:
+- [Counterfactual Memory Audit (CMA), arXiv:2609.27247](https://arxiv.org/abs/2609.27247): constructs histories that reconverge to an identical present, freezes the action, and scores it in matched and crossed evaluator worlds. Its report highlights that action sensitivity alone can coexist with poor paired reliability; it reports only 20/64 fully reliable audited Put Back pairs for the evaluated Mem-0 setting.
+- [TANGLE, arXiv:2608.13921](https://arxiv.org/abs/2608.13921) and [STALE, arXiv:2605.06527](https://arxiv.org/abs/2605.06527): test unresolved conflict, source/state revision, premise resistance and whether the policy adapts behavior after memories change.
+
+These preprint/benchmark reports motivate evaluation; they are not Symtropy results. Do not duplicate their assets unless use and license are separately verified.
+
+VIS-MEM-009 already tests relevant-history sensitivity and irrelevant-history invariance. The follow-on [VIS-MEM-012 #2606 / draft PR #2607](https://github.com/Luminous-Dynamics/symtropy/pull/2607) adds an independently authored finite decision audit with six paired memory cases and eight deterministic policies. Both latent worlds share the same current-observation digest. Evaluator truth is withheld from the policy and only used after action selection for:
+- matched and crossed-world utility;
+- bidirectional pair reliability;
+- wrong-action versus unnecessary-clarification rates;
+- invariance under unrelated-history injection;
+- resistance to stale late arrivals and false prompt premises;
+- a distinct underdetermined state in which clarification is the utility-optimal decision.
+
+This broadens the benchmark target from retrieval correctness to **decision correctness under uncertainty**. Across native experiments, compare on the same backbone/executor and common evaluation scenarios wherever possible. Report exact memory/write/read resource budgets and a success–utility–cost Pareto frontier. A candidate should not win just by changing more actions, clarifying everything, or hiding unsafe committed mistakes inside average task success.
