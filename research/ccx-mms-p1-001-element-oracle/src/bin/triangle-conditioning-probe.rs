@@ -32,6 +32,8 @@ fn main() -> ExitCode {
         pair[1].mean_ratio_quality < pair[0].mean_ratio_quality
             && pair[1].dimensionless_gradient_amplification
                 > pair[0].dimensionless_gradient_amplification
+            && pair[1].element_nonrigid_condition_number
+                > pair[0].element_nonrigid_condition_number
     });
     let records = sweep
         .iter()
@@ -40,11 +42,13 @@ fn main() -> ExitCode {
                 concat!(
                     "{{\"height\":{:.17e},",
                     "\"mean_ratio_quality\":{:.17e},",
-                    "\"dimensionless_gradient_amplification\":{:.17e}}}"
+                    "\"dimensionless_gradient_amplification\":{:.17e},",
+                    "\"element_nonrigid_condition_number\":{:.17e}}}"
                 ),
                 point.height,
                 point.mean_ratio_quality,
-                point.dimensionless_gradient_amplification
+                point.dimensionless_gradient_amplification,
+                point.element_nonrigid_condition_number
             )
         })
         .collect::<Vec<_>>()
@@ -52,7 +56,7 @@ fn main() -> ExitCode {
 
     println!(
         concat!(
-            "{{\"schema\":\"ccx-mms-p1-geometry-conditioning-v1\",",
+            "{{\"schema\":\"ccx-mms-p1-geometry-conditioning-v2\",",
             "\"source_sha\":\"{}\",\"checkout_sha\":\"{}\",",
             "\"solver_executed\":false,",
             "\"qualification_pass\":false,",

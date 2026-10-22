@@ -52,6 +52,8 @@ jobs:
             src/lib.rs \
             src/bin/triangle-patch-probe.rs \
             src/bin/triangle-conditioning-probe.rs \
+            src/bin/triangle-material-conditioning-probe.rs \
+            src/bin/triangle-global-condition-probe.rs \
             Cargo.toml \
             Cargo.lock \
             README.md \
@@ -73,8 +75,87 @@ jobs:
           cargo run --locked --release --quiet --bin triangle-conditioning-probe > /tmp/triangle-conditioning-a.json
           cargo run --locked --release --quiet --bin triangle-conditioning-probe > /tmp/triangle-conditioning-b.json
           cmp /tmp/triangle-conditioning-a.json /tmp/triangle-conditioning-b.json
-          jq -e '.solver_executed == false and .qualification_pass == false and .geometry_conditioning_pass == true and (.sweep | length == 5) and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$")) and .sweep[0].mean_ratio_quality > .sweep[1].mean_ratio_quality and .sweep[1].mean_ratio_quality > .sweep[2].mean_ratio_quality and .sweep[2].mean_ratio_quality > .sweep[3].mean_ratio_quality and .sweep[3].mean_ratio_quality > .sweep[4].mean_ratio_quality and .sweep[0].dimensionless_gradient_amplification < .sweep[1].dimensionless_gradient_amplification and .sweep[1].dimensionless_gradient_amplification < .sweep[2].dimensionless_gradient_amplification and .sweep[2].dimensionless_gradient_amplification < .sweep[3].dimensionless_gradient_amplification and .sweep[3].dimensionless_gradient_amplification < .sweep[4].dimensionless_gradient_amplification' /tmp/triangle-conditioning-a.json > /dev/null
+          jq -e '
+            .schema == "ccx-mms-p1-geometry-conditioning-v2"
+            and .solver_executed == false
+            and .qualification_pass == false
+            and .geometry_conditioning_pass == true
+            and (.sweep | length == 5)
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and .sweep[0].mean_ratio_quality > .sweep[1].mean_ratio_quality
+            and .sweep[1].mean_ratio_quality > .sweep[2].mean_ratio_quality
+            and .sweep[2].mean_ratio_quality > .sweep[3].mean_ratio_quality
+            and .sweep[3].mean_ratio_quality > .sweep[4].mean_ratio_quality
+            and .sweep[0].dimensionless_gradient_amplification < .sweep[1].dimensionless_gradient_amplification
+            and .sweep[1].dimensionless_gradient_amplification < .sweep[2].dimensionless_gradient_amplification
+            and .sweep[2].dimensionless_gradient_amplification < .sweep[3].dimensionless_gradient_amplification
+            and .sweep[3].dimensionless_gradient_amplification < .sweep[4].dimensionless_gradient_amplification
+            and .sweep[0].element_nonrigid_condition_number < .sweep[1].element_nonrigid_condition_number
+            and .sweep[1].element_nonrigid_condition_number < .sweep[2].element_nonrigid_condition_number
+            and .sweep[2].element_nonrigid_condition_number < .sweep[3].element_nonrigid_condition_number
+            and .sweep[3].element_nonrigid_condition_number < .sweep[4].element_nonrigid_condition_number
+            and .sweep[4].element_nonrigid_condition_number > 1e7
+          ' /tmp/triangle-conditioning-a.json > /dev/null
           sha256sum /tmp/triangle-conditioning-a.json > /tmp/triangle-conditioning-a.sha256
+          cargo run --locked --release --quiet --bin triangle-material-conditioning-probe > /tmp/triangle-material-conditioning-a.json
+          cargo run --locked --release --quiet --bin triangle-material-conditioning-probe > /tmp/triangle-material-conditioning-b.json
+          cmp /tmp/triangle-material-conditioning-a.json /tmp/triangle-material-conditioning-b.json
+          jq -e '
+            .schema == "ccx-mms-p1-material-conditioning-v1"
+            and .solver_executed == false
+            and .volumetric_locking_measured == false
+            and .qualification_pass == false
+            and .material_conditioning_pass == true
+            and (.sweep | length == 4)
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and .sweep[0].poisson_ratio < .sweep[1].poisson_ratio
+            and .sweep[1].poisson_ratio < .sweep[2].poisson_ratio
+            and .sweep[2].poisson_ratio < .sweep[3].poisson_ratio
+            and .sweep[0].lambda_over_mu < .sweep[1].lambda_over_mu
+            and .sweep[1].lambda_over_mu < .sweep[2].lambda_over_mu
+            and .sweep[2].lambda_over_mu < .sweep[3].lambda_over_mu
+            and .sweep[0].element_nonrigid_condition_number < .sweep[1].element_nonrigid_condition_number
+            and .sweep[1].element_nonrigid_condition_number < .sweep[2].element_nonrigid_condition_number
+            and .sweep[2].element_nonrigid_condition_number < .sweep[3].element_nonrigid_condition_number
+            and .sweep[3].lambda_over_mu > 1e4
+            and .sweep[3].element_nonrigid_condition_number > 1e4
+          ' /tmp/triangle-material-conditioning-a.json > /dev/null
+          sha256sum /tmp/triangle-material-conditioning-a.json > /tmp/triangle-material-conditioning-a.sha256
+          cargo run --locked --release --quiet --bin triangle-global-condition-probe > /tmp/triangle-global-condition-a.json
+          cargo run --locked --release --quiet --bin triangle-global-condition-probe > /tmp/triangle-global-condition-b.json
+          cmp /tmp/triangle-global-condition-a.json /tmp/triangle-global-condition-b.json
+          jq -e '
+            .schema == "ccx-mms-p1-global-condition-v1"
+            and .solver_executed == false
+            and .qualification_pass == false
+            and .global_conditioning_pass == true
+            and (.sweep | length == 5)
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and .sweep[0].cells_per_side == 2
+            and .sweep[1].cells_per_side == 3
+            and .sweep[2].cells_per_side == 4
+            and .sweep[3].cells_per_side == 5
+            and .sweep[4].cells_per_side == 6
+            and .sweep[0].free_dof_count == 2
+            and .sweep[1].free_dof_count == 8
+            and .sweep[2].free_dof_count == 18
+            and .sweep[3].free_dof_count == 32
+            and .sweep[4].free_dof_count == 50
+            and .sweep[0].smallest_eigenvalue > 0
+            and .sweep[1].smallest_eigenvalue > 0
+            and .sweep[2].smallest_eigenvalue > 0
+            and .sweep[3].smallest_eigenvalue > 0
+            and .sweep[4].smallest_eigenvalue > 0
+            and .sweep[0].constrained_global_condition_number < .sweep[1].constrained_global_condition_number
+            and .sweep[1].constrained_global_condition_number < .sweep[2].constrained_global_condition_number
+            and .sweep[2].constrained_global_condition_number < .sweep[3].constrained_global_condition_number
+            and .sweep[3].constrained_global_condition_number < .sweep[4].constrained_global_condition_number
+            and .sweep[4].constrained_global_condition_number > 20
+          ' /tmp/triangle-global-condition-a.json > /dev/null
+          sha256sum /tmp/triangle-global-condition-a.json > /tmp/triangle-global-condition-a.sha256
 
       - name: Preserve verification receipt and source digests
         if: always()
@@ -87,6 +168,10 @@ jobs:
             /tmp/element-oracle-source-digests.sha256
             /tmp/triangle-conditioning-a.json
             /tmp/triangle-conditioning-a.sha256
+            /tmp/triangle-material-conditioning-a.json
+            /tmp/triangle-material-conditioning-a.sha256
+            /tmp/triangle-global-condition-a.json
+            /tmp/triangle-global-condition-a.sha256
           if-no-files-found: ignore
           retention-days: 90
 
