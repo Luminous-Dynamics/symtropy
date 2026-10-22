@@ -92,6 +92,20 @@ fn incomplete_report_preserves_unknowns_without_claiming_completion() {
 }
 
 #[test]
+fn oracle_measured_false_feasibility_is_counted_not_hidden() {
+    let measured = include_str!("../fixtures/measured-false-feasible.json");
+    let errors = audit_report_json(MANIFEST, measured);
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
+fn oracle_measured_false_infeasibility_is_counted_not_hidden() {
+    let measured = include_str!("../fixtures/measured-false-infeasible.json");
+    let errors = audit_report_json(MANIFEST, measured);
+    assert!(errors.is_empty(), "{errors:#?}");
+}
+
+#[test]
 fn parser_rejects_duplicate_json_object_keys() {
     let errors = validate_manifest_json(r#"{"schema_version":"shipyard-benchmark-manifest/v0","schema_version":"shipyard-benchmark-manifest/v0"}"#);
     assert!(has_error(&errors, "duplicate object key"), "{errors:#?}");
