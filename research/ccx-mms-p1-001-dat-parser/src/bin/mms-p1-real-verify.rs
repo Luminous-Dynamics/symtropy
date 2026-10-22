@@ -7,7 +7,9 @@
 //! this report intentionally never sets qualification_pass=true.
 
 use ccx_mms_p1_mesh::{Mesh, generate_mesh};
-use ccx_mms_p1_oracle::{ManufacturedProblem, Vec2};
+use ccx_mms_p1_oracle::{
+    ManufacturedField, ManufacturedProblem, PlaneStrainMaterial, Vec2,
+};
 use ccx_mms_p1_dat_parser::{
     NodalField, Vec3, audit_global_force_balance, parse_dat,
 };
@@ -97,12 +99,38 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("invalid cells-per-side: {error}"))?;
     let deck_path = args.next().ok_or_else(|| "missing input-deck path".to_owned())?;
     let dat_path = args.next().ok_or_else(|| "missing DAT path".to_owned())?;
-    let reference_dat_path = args.next();
-    if args.next().is_some() {
-        return Err(
-            "usage: mms-p1-real-verify <cells-per-side> <input.inp> <output.dat> [reference.dat]"
-                .to_owned(),
-        );
+    let mut poisson_ratio = 0.3_f64;
+    let mut field = "smooth-sine";
+    let mut reference_dat_path: Option<String> = None;
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--poisson-ratio" => {
+                let raw = args
+                    .next()
+                    .ok_or_else(|| "--poisson-ratio requires a value".to_owned())?;
+                poisson_ratio = raw
+                    .parse::<f64>()
+                    .map_err(|error| format!("invalid Poisson ratio: {error}"))?;
+            }
+            "--field" => {
+                field = match args
+                    .next()
+                    .ok_or_else(|| "--field requires a value".to_owned())?
+                    .as_str()
+                {
+                    "smooth-sine" => "smooth-sine",
+                    "divergence-free" => "divergence-free",
+                    other => return Err(format!("unsupported manufactured field: {other}")),
+                };
+            }
+            "--reference-dat" => {
+                reference_dat_path = Some(
+                    args.next()
+                        .ok_or_else(|| "--reference-dat requires a path".to_owned())?,
+                );
+            }
+            other => return Err(format!("unknown argument: {other}")),
+        }
     }
 
     let source_sha = env::var("MMS_BENCH_SOURCE_SHA").unwrap_or_default();
@@ -116,7 +144,18 @@ fn run() -> Result<(), String> {
 
     let mesh = generate_mesh(resolution)
         .map_err(|error| format!("mesh construction failed: {error:?}"))?;
-    let problem = ManufacturedProblem::reference();
+    let material = PlaneStrainMaterial::new(1.0, poisson_ratio)
+        .map_err(|error| format!("material parameters are invalid: {error:?}"))?;
+    let problem = match field {
+        "smooth-sine" => ManufacturedProblem::new(material, 1.0, 0.7)
+            .map_err(|error| format!("manufactured problem is invalid: {error:?}"))?,
+        "divergence-free" => ManufacturedProblem::divergence_free(material),
+        _ => unreachable!("field was validated while parsing"),
+    };
+    let field_name = match problem.field() {
+        ManufacturedField::SmoothSine => "smooth-sine",
+        ManufacturedField::DivergenceFree => "divergence-free",
+    };
     let deck_text = fs::read_to_string(&deck_path)
         .map_err(|error| format!("cannot read input deck {deck_path}: {error}"))?;
     let expected_deck = mesh
@@ -234,10 +273,14 @@ fn run() -> Result<(), String> {
             "\"source_sha\":\"{}\",\"checkout_sha\":\"{}\",",
             "\"solver_output_parsed\":true,\"qualification_pass\":false,",
             "\"resolution\":{},\"node_count\":{},\"element_count\":{},",
+            "\"poisson_ratio\":{:.17e},\"field\":\"{}\",",
             "\"output_time\":{:.17e},",
             "\"displacement_l2_relative\":{:.17e},",
             "\"energy_error_relative\":{:.17e},",
             "\"stress_l2_relative\":{:.17e},",
+            "\"fem_volumetric_strain_l2_absolute\":{:.17e},",
+            "\"volumetric_strain_error_l2_absolute\":{:.17e},",
+            "\"exact_volumetric_strain_l2_norm\":{:.17e},",
             "\"load_resultant_relative_x\":{:.17e},",
             "\"load_resultant_relative_y\":{:.17e},",
             "\"load_resultant_pass\":{},",
@@ -257,10 +300,15 @@ fn run() -> Result<(), String> {
         resolution,
         mesh.nodes.len(),
         mesh.triangles.len(),
+        poisson_ratio,
+        field_name,
         parsed.displacements.output_time,
         errors.displacement_l2_relative,
         errors.energy_error_relative,
         errors.stress_l2_relative,
+        errors.fem_volumetric_strain_l2_absolute,
+        errors.volumetric_strain_error_l2_absolute,
+        errors.exact_volumetric_strain_l2_norm,
         load_resultant_relative_x,
         load_resultant_relative_y,
         load_resultant_pass,
