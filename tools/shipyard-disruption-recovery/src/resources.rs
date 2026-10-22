@@ -1646,13 +1646,11 @@ pub fn evaluate_joint_recourse_policy(
             continue;
         }
         let first = indices[0];
-        let inconsistent: Vec<String> = indices
+        let has_inconsistent_action = indices
             .iter()
             .copied()
-            .filter(|index| normalized_actions[*index] != normalized_actions[first])
-            .map(|index| policy_scenarios[index].scenario.scenario_id.clone())
-            .collect();
-        if !inconsistent.is_empty() {
+            .any(|index| normalized_actions[index] != normalized_actions[first]);
+        if has_inconsistent_action {
             let mut scenario_ids: Vec<String> = indices
                 .iter()
                 .map(|index| policy_scenarios[*index].scenario.scenario_id.clone())
