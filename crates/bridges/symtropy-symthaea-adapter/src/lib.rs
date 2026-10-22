@@ -119,12 +119,14 @@ impl SemanticObservationEncoder {
             "channel-count",
             &observation.len().to_string(),
         ))?;
+        if observation.iter().any(|value| !value.is_finite()) {
+            return Err(HdcError::NonFiniteValue);
+        }
         for (index, value) in observation.iter().copied().enumerate() {
-            let finite = if value.is_finite() { value } else { 0.0 };
             let role = self.memory.role(&format!("channel.{index}"));
             let encoded = self
                 .scalar
-                .encode(finite, -self.value_extent, self.value_extent)?;
+                .encode(value, -self.value_extent, self.value_extent)?;
             bundle.add(&role.bind(&encoded)?)?;
         }
         let bipolar = bundle.finish(&self.memory.tie_breaker("numeric-observation"))?;
@@ -212,27 +214,100 @@ impl EmbodimentPlanner {
 
 impl MotorPlanner for EmbodimentPlanner {
     fn plan(&mut self, observation: &[f64], gain: f64, num_actuators: usize) -> Vec<f64> {
+        // Invalid observations or control parameters must not be converted to
+        // ordinary numeric values and then allowed to influence actuation.
+        // In particular, NaN bypasses ordinary range comparisons/clamps.
+        if !gain.is_finite()
+            || !self.dt.is_finite()
+            || self.dt <= 0.0
+            || self.hv_dim == 0
+            // The legacy tiled encoder narrows f64 channels to f32. A finite
+            // f64 can overflow to infinity during that conversion, so validate
+            // representability before constructing the hypervector.
+            || observation
+                .iter()
+                .any(|value| !value.is_finite() || !(*value as f32).is_finite())
+        {
+            return vec![0.0; num_actuators];
+        }
+
+        // Legacy tiling stores each channel directly as f32 and the bridge
+        // may compute an f32 L2 norm. Finite individual components are not enough:
+        // their squared sum must also remain representable.
+        if matches!(&self.observation_encoder, ObservationEncoding::LegacyTiled)
+            && !legacy_tiled_norm_is_representable(observation, self.hv_dim)
+        {
+            return vec![0.0; num_actuators];
+        }
+
+        let capped_gain = gain.clamp(0.0, 1.0);
         let thought_hv = match &self.observation_encoder {
             ObservationEncoding::LegacyTiled => encode_observation(observation, self.hv_dim),
-            ObservationEncoding::SemanticHdc(encoder) => encoder.encode(observation).expect(
-                "validated semantic observation encoder cannot fail on finite-clamped input",
-            ),
+            ObservationEncoding::SemanticHdc(encoder) => match encoder.encode(observation) {
+                Ok(encoded) => encoded,
+                Err(_) => return vec![0.0; num_actuators],
+            },
         };
-        let result = self.bridge.step(&thought_hv, self.dt, gain);
+        let result = self.bridge.step(&thought_hv, self.dt, capped_gain);
 
-        // Translate the bridge's scalar response into a per-actuator vector.
-        //
-        // The effective per-joint authority is the product of:
-        //   - the bridge's post-step safety gain (its own NRC tier),
-        //   - |control_effort| (how hard the bridge believes it is pushing),
-        // then capped by `gain` (the caller's cap) so we never exceed the
-        // Symtropy-side NRC ceiling. Uniform across actuators.
-        let bridge_gain = result.safety_level.motor_gain() as f64;
+        // A failed bridge step or malformed telemetry conveys no authority.
+        // Do not let a finite-looking effort mask an explicit failure, NaN,
+        // or infinity in the rest of the result.
+        if !result.success
+            || !result.control_effort.is_finite()
+            || !result.prediction_error.is_finite()
+            || !result.observation_confidence.is_finite()
+        {
+            return vec![0.0; num_actuators];
+        }
+
+        // Translate the bridge's scalar response into a bounded per-actuator
+        // authority. This adapter exposes authority, not a signed actuator
+        // torque; platform-specific command semantics remain bridge-owned.
+        // A configured safety override is part of the bridge's live state.
+        // The per-step result may still contain an earlier safety level, so
+        // honor the more restrictive of the reported and currently enforced levels.
+        let result_gain = result.safety_level.motor_gain() as f64;
+        let live_bridge_gain = self.bridge.safety_level().motor_gain() as f64;
+        let bridge_gain = result_gain.min(live_bridge_gain);
         let effort = (result.control_effort as f64).abs();
-        let per_joint = (bridge_gain * effort).min(gain).max(0.0);
+        let raw_authority = bridge_gain * effort;
+        if !raw_authority.is_finite() {
+            return vec![0.0; num_actuators];
+        }
 
+        let per_joint = raw_authority.min(capped_gain).clamp(0.0, 1.0);
         vec![per_joint; num_actuators]
     }
+}
+
+/// Check that the legacy tiled vector's f32 L2 norm can be accumulated safely.
+///
+/// This computes the repeated-channel squared norm analytically, avoiding a
+/// loop proportional to `hv_dim` just for validation. The half-MAX bound leaves
+/// headroom for f32 multiplication and summation rounding.
+fn legacy_tiled_norm_is_representable(obs: &[f64], hv_dim: usize) -> bool {
+    if obs.is_empty() || hv_dim == 0 {
+        return true;
+    }
+
+    let repeats_each = hv_dim / obs.len();
+    let extra_repeats = hv_dim % obs.len();
+    let mut squared_norm = 0.0_f64;
+    let limit = (f32::MAX as f64) * 0.5;
+
+    for (index, value) in obs.iter().copied().enumerate() {
+        let narrowed = value as f32;
+        if !narrowed.is_finite() {
+            return false;
+        }
+        let repeats = repeats_each + usize::from(index < extra_repeats);
+        squared_norm += (narrowed as f64) * (narrowed as f64) * (repeats as f64);
+        if !squared_norm.is_finite() || squared_norm > limit {
+            return false;
+        }
+    }
+    true
 }
 
 /// Encode a short observation vector into a dim-wide [`ContinuousHV`].
@@ -281,6 +356,9 @@ mod tests {
         last_phi: f64,
         result_safety: MotorSafetyLevel,
         result_effort: f32,
+        result_success: bool,
+        result_prediction_error: f32,
+        result_observation_confidence: f32,
         num_actuators: usize,
         safety_override: Option<MotorSafetyLevel>,
     }
@@ -294,6 +372,9 @@ mod tests {
                 last_phi: 0.0,
                 result_safety: MotorSafetyLevel::Green,
                 result_effort: 1.0,
+                result_success: true,
+                result_prediction_error: 0.1,
+                result_observation_confidence: 0.9,
                 num_actuators: 21,
                 safety_override: None,
             }
@@ -309,11 +390,11 @@ mod tests {
             EmbodimentResult {
                 num_actuators: self.num_actuators,
                 control_effort: self.result_effort,
-                success: true,
-                prediction_error: 0.1,
+                success: self.result_success,
+                prediction_error: self.result_prediction_error,
                 safety_level: self.result_safety,
                 epistemic_grounding: 0,
-                observation_confidence: 0.9,
+                observation_confidence: self.result_observation_confidence,
             }
         }
 
@@ -555,6 +636,100 @@ mod tests {
         for c in &cmds {
             assert!((c - 0.3).abs() < 1e-6);
         }
+    }
+
+    #[test]
+    fn non_finite_gain_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[0.5], f64::NAN, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn non_finite_observation_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[0.5, f64::INFINITY], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn finite_f64_that_overflows_f32_fails_closed_without_stepping_bridge() {
+        let mut p = make_planner();
+        let commands = p.plan(&[f64::MAX], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn finite_f32_components_with_overflowing_norm_fail_closed() {
+        let mut p = make_planner();
+        // 1e20 is finite in f32, but its repeated squared sum is not.
+        let commands = p.plan(&[1.0e20], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn invalid_timestep_fails_closed_without_stepping_bridge() {
+        let mut p = EmbodimentPlanner::new(Box::new(MockBridge::new())).with_dt(0.0);
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 0);
+    }
+
+    #[test]
+    fn unsuccessful_bridge_result_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_success = false;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
+    }
+
+    #[test]
+    fn non_finite_bridge_telemetry_fails_closed() {
+        let mut bridge = MockBridge::new();
+        bridge.result_effort = f32::NAN;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
+    }
+
+    #[test]
+    fn authority_is_capped_at_one_even_if_effort_exceeds_one() {
+        let mut bridge = MockBridge::new();
+        bridge.result_effort = 20.0;
+        let mut p = EmbodimentPlanner::new(Box::new(bridge));
+        let commands = p.plan(&[0.5], 2.0, 4);
+        assert_eq!(commands, vec![1.0; 4]);
+    }
+
+    #[test]
+    fn bridge_safety_override_caps_authority_even_if_step_result_is_green() {
+        let mut p = make_planner();
+        p.bridge_mut().set_safety_override(MotorSafetyLevel::Red);
+
+        // The mock step reports Green, while the live bridge safety
+        // override reports Red. The override must dominate the stale result.
+        let commands = p.plan(&[0.5], 1.0, 4);
+        assert_eq!(commands, vec![0.0; 4]);
+        assert_eq!(p.bridge().total_steps(), 1);
+    }
+
+    #[test]
+    fn semantic_encoder_rejects_non_finite_observation_channels() {
+        let spec = EncoderSpec {
+            schema_version: 1,
+            dimension: 4_096,
+            seed: 17,
+            scalar_levels: 129,
+        };
+        let result = encode_observation_semantic(&[0.2, f64::NAN], spec, 2.0);
+        assert!(result.is_err());
     }
 
     #[test]
