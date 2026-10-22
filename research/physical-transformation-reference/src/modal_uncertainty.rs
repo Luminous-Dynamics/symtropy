@@ -16,6 +16,7 @@ use crate::beam_modal::{
 };
 use crate::beam_pin_assembly::{
     BeamMemberChain, BeamPinAssembly, BeamPinNode, assemble_released_joint_beam_chains,
+    canonical_beam_chain_request,
 };
 use std::collections::BTreeSet;
 
@@ -51,6 +52,38 @@ impl BeamUncertaintyParameter {
             Self::GeometryScale => "geometry_scale",
         }
     }
+}
+
+/// Canonical request bytes for one deterministic modal-sensitivity evaluation.
+/// The base beam-chain request is carried after an explicit UTF-8 byte length;
+/// this keeps its embedded separators unambiguous and binds section, geometry,
+/// supports, and mesh inputs together with the uncertainty assumptions.
+pub fn canonical_modal_uncertainty_request(
+    joints: &[BeamPinNode],
+    members: &[BeamMemberChain],
+    parameters: &[BeamInputUncertainty],
+    sampling_points_per_member: usize,
+) -> Check<String> {
+    validate_uncertainty_parameters(parameters, sampling_points_per_member)?;
+    let base_request = canonical_beam_chain_request(joints, members)?;
+    let mut ordered_parameters = parameters.to_vec();
+    ordered_parameters.sort_by_key(|spec| spec.parameter);
+    let mut fields = vec![
+        "schema=beam-modal-uncertainty-request-v0.1".to_owned(),
+        "fixture=PHYS-BEAM-MODAL-UQ-001".to_owned(),
+        format!("sampling_points_per_member={sampling_points_per_member}"),
+        format!("base_request_utf8_bytes={}", base_request.len()),
+        format!("base_request={base_request}"),
+    ];
+    for spec in ordered_parameters {
+        fields.push(format!(
+            "parameter|{}|relative_uncertainty={}|finite_difference_step={}",
+            spec.parameter.as_str(),
+            spec.assumed_relative_uncertainty,
+            spec.finite_difference_step_relative
+        ));
+    }
+    Ok(fields.join("|"))
 }
 
 /// A user-declared relative input uncertainty and a smaller numerical
@@ -122,40 +155,7 @@ pub fn evaluate_beam_modal_uncertainty(
     parameters: &[BeamInputUncertainty],
     sampling_points_per_member: usize,
 ) -> Check<BeamModalUncertaintyReport> {
-    if parameters.is_empty() {
-        return Err("at least one uncertainty parameter is required".to_owned());
-    }
-    if !(2..=257).contains(&sampling_points_per_member) {
-        return Err("sampling points per member must be between 2 and 257".to_owned());
-    }
-
-    let mut seen_parameters = BTreeSet::new();
-    for spec in parameters {
-        if !seen_parameters.insert(spec.parameter) {
-            return Err(format!(
-                "duplicate uncertainty parameter: {}",
-                spec.parameter.as_str()
-            ));
-        }
-        if !spec.assumed_relative_uncertainty.is_finite()
-            || spec.assumed_relative_uncertainty < 0.0
-            || spec.assumed_relative_uncertainty >= 1.0
-        {
-            return Err(format!(
-                "relative uncertainty for {} must be finite and in [0, 1)",
-                spec.parameter.as_str()
-            ));
-        }
-        if !spec.finite_difference_step_relative.is_finite()
-            || spec.finite_difference_step_relative <= 0.0
-            || spec.finite_difference_step_relative >= 0.25
-        {
-            return Err(format!(
-                "finite-difference step for {} must be finite and in (0, 0.25)",
-                spec.parameter.as_str()
-            ));
-        }
-    }
+    validate_uncertainty_parameters(parameters, sampling_points_per_member)?;
 
     // Stable ordering means the report bytes don't depend on the caller's list.
     let mut ordered_specs = parameters.to_vec();
@@ -321,6 +321,47 @@ pub fn evaluate_beam_modal_uncertainty(
         abstained_sensitivity_count: abstained_count,
         claim_ceiling: "deterministic local sensitivity propagation only; not a probabilistic confidence interval, experimental validation, model-form uncertainty bound or structural safety result",
     })
+}
+
+fn validate_uncertainty_parameters(
+    parameters: &[BeamInputUncertainty],
+    sampling_points_per_member: usize,
+) -> Check<()> {
+    if parameters.is_empty() {
+        return Err("at least one uncertainty parameter is required".to_owned());
+    }
+    if !(2..=257).contains(&sampling_points_per_member) {
+        return Err("sampling points per member must be between 2 and 257".to_owned());
+    }
+
+    let mut seen_parameters = BTreeSet::new();
+    for spec in parameters {
+        if !seen_parameters.insert(spec.parameter) {
+            return Err(format!(
+                "duplicate uncertainty parameter: {}",
+                spec.parameter.as_str()
+            ));
+        }
+        if !spec.assumed_relative_uncertainty.is_finite()
+            || spec.assumed_relative_uncertainty < 0.0
+            || spec.assumed_relative_uncertainty >= 1.0
+        {
+            return Err(format!(
+                "relative uncertainty for {} must be finite and in [0, 1)",
+                spec.parameter.as_str()
+            ));
+        }
+        if !spec.finite_difference_step_relative.is_finite()
+            || spec.finite_difference_step_relative <= 0.0
+            || spec.finite_difference_step_relative >= 0.25
+        {
+            return Err(format!(
+                "finite-difference step for {} must be finite and in (0, 0.25)",
+                spec.parameter.as_str()
+            ));
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -628,6 +669,29 @@ mod tests {
                 _ => panic!("unexpected parameter in exact scaling-law test"),
             }
         }
+    }
+
+    #[test]
+    fn canonical_request_binds_mesh_uncertainty_and_is_storage_order_invariant() {
+        let parameters = [
+            spec(BeamUncertaintyParameter::Density, 0.03),
+            spec(BeamUncertaintyParameter::YoungsModulus, 0.05),
+        ];
+        let first = canonical_modal_uncertainty_request(&joints(), &members(1), &parameters, 17)
+            .expect("canonical request");
+        let mut reversed_joints = joints();
+        reversed_joints.reverse();
+        let mut reversed_members = members(1);
+        reversed_members.reverse();
+        let reversed_parameters = [parameters[1], parameters[0]];
+        let second = canonical_modal_uncertainty_request(
+            &reversed_joints,
+            &reversed_members,
+            &reversed_parameters,
+            17,
+        )
+        .expect("canonical reversed request");
+        assert_eq!(first, second);
     }
 
     #[test]
