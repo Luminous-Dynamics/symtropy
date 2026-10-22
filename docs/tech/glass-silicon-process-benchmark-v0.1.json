@@ -8,7 +8,8 @@
     "All seeded negative controls must be rejected with stable reason codes.",
     "Hold controls must remain abstained or unresolved and must never be silently accepted.",
     "Synthetic values and labels must never be promoted to measured production evidence.",
-    "A valid software contract outcome is not a physical-process pass."
+    "A valid software contract outcome is not a physical-process pass.",
+    "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient."
   ],
   "research_references": [
     {
@@ -344,6 +345,23 @@
       ],
       "purpose": "Suite-level meta-check: the benchmark must not pass if the verifier rejects every candidate.",
       "claim_ceiling": "Tests benchmark-policy completeness only; it is not a physical case."
+    },
+    {
+      "case_id": "single-scenario-cost-winner",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "scenario_fragility_hidden",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "frozen_scenario_grid",
+        "energy_and_carbon_price_sensitivity",
+        "feasibility_by_scenario",
+        "worst_case_or_regret_summary"
+      ],
+      "purpose": "Reject a claim that ranks a process route using only one favorable price, grid-carbon, capacity-factor, financing, or feedstock scenario.",
+      "claim_ceiling": "Tests scenario robustness metadata only; it does not validate a techno-economic model."
     }
   ]
 }
