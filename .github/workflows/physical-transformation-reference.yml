@@ -452,6 +452,59 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-pin-modal-receipt.json
 
+      - name: Generate and verify 64-case released-joint beam modal sweep receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml --lib beam_modal::tests::fixed_seed_64_case_beam_modal_sweep_obeys_three_scaling_laws -- --exact --nocapture | tee beam-modal-scale-sweep-test.log
+          grep 'BEAM_MODAL_SWEEP_JSON ' beam-modal-scale-sweep-test.log | tail -n 1 | sed 's/^.*BEAM_MODAL_SWEEP_JSON //' > beam-modal-scale-sweep-raw.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_pin_modal_sweep_request_v0_1.txt)"
+          test "$request_canonical" = "schema=beam-pin-modal-sweep-request-v0.1|benchmark=PHYS-BEAM-MODAL-SCALE-001|seed_hex=0x4245414D4D4F4441|lcg_multiplier=6364136223846793005|lcg_increment=1442695040888963407|cases=64|span_m=0.5..3.0|height_m=0.5..3.0|circular_radius_m=0.003..0.015|youngs_modulus_pa=30e9..210e9|density_kg_m3=1000..16000|member_count=2|global_dof_count=10|free_dof_count=6|checks=all_modes_elastic,ordered,finite,eigen_residual_lt_1e-8,mass_norm_lt_1e-8,orthogonality_lt_1e-8|metamorphic=f_proportional_sqrt_E,f_proportional_inverse_sqrt_density,f_proportional_inverse_length"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "986f71606872457f1bc53227f4d629123f8e820a13d2976d2b4605726dcc0c92"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg source_commit "$source_commit" --arg request_canonical "$request_canonical" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              source_commit: $source_commit,
+              evidence_class: "software-test-run",
+              result: "pass",
+              request_canonical: $request_canonical,
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files",
+              claim_ceiling: "synthetic two-member planar Euler-Bernoulli pin-joint model; scale-law robustness only; not SOFiSTiK BE25 reproduction or physical validation"
+            }
+          ' beam-modal-scale-sweep-raw.json > beam-modal-scale-sweep-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-modal-sweep-test-result-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MODAL-SCALE-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "software-test-run"
+            and .result == "pass"
+            and .case_count == 64
+            and .modes_checked == 384
+            and .maximum_normalized_eigen_residual < 1e-8
+            and .maximum_mass_norm_residual < 1e-8
+            and .maximum_orthogonality_residual < 1e-8
+            and .maximum_modulus_scaling_relative_error < 1e-7
+            and .maximum_density_scaling_relative_error < 1e-7
+            and .maximum_geometric_scaling_relative_error < 1e-7
+            and (.minimum_frequency_hz | isfinite and . > 0)
+            and (.maximum_frequency_hz | isfinite and . > .minimum_frequency_hz)
+            and (.claim_ceiling | contains("not SOFiSTiK BE25 reproduction"))
+          ' beam-modal-scale-sweep-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -469,5 +522,6 @@ jobs:
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
+            beam-modal-scale-sweep-receipt.json
           if-no-files-found: error
           retention-days: 90
