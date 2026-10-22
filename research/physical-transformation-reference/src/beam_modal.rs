@@ -13,6 +13,7 @@ use crate::modal_bar::{
 };
 
 const ZERO_MODE_RELATIVE_TOLERANCE: f64 = 1.0e-10;
+const MAX_DENSE_MODAL_DOFS: usize = 128;
 
 /// Explicit modal classification. Near-zero values remain visible as
 /// mechanisms/rigid modes; negative values are flagged as unstable or invalid.
@@ -52,6 +53,13 @@ pub struct BeamModalResult {
 /// The returned mode count equals the free-DOF count. Small/negative modes
 /// are retained and classified instead of silently filtered.
 pub fn solve_beam_pin_assembly_modes(assembly: &BeamPinAssembly) -> Check<BeamModalResult> {
+    if assembly.stiffness_global.len() > MAX_DENSE_MODAL_DOFS
+        || assembly.mass_global.len() > MAX_DENSE_MODAL_DOFS
+    {
+        return Err(format!(
+            "dense beam modal solve is capped at {MAX_DENSE_MODAL_DOFS} total DOFs; use a sparse eigensolver for larger meshes"
+        ));
+    }
     validate_modal_assembly(assembly)?;
     let stiffness_reduced = reduce_matrix(&assembly.stiffness_global, &assembly.free_dof_indices)?;
     let mass_reduced = reduce_matrix(&assembly.mass_global, &assembly.free_dof_indices)?;
@@ -415,6 +423,13 @@ mod tests {
 
         let mut assembly = fixture();
         assembly.dof_descriptors.pop();
+        assert!(solve_beam_pin_assembly_modes(&assembly).is_err());
+    }
+
+    #[test]
+    fn dense_modal_size_cap_fails_closed_before_factorization() {
+        let mut assembly = fixture();
+        assembly.stiffness_global = vec![vec![0.0; MAX_DENSE_MODAL_DOFS + 1]; MAX_DENSE_MODAL_DOFS + 1];
         assert!(solve_beam_pin_assembly_modes(&assembly).is_err());
     }
 
