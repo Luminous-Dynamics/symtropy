@@ -20,6 +20,38 @@ pub struct ArchiveIdentity {
     pub kicad_version: String,
 }
 
+impl ArchiveIdentity {
+    /// Derive archive identity from the actual pinned manifest and policy bytes,
+    /// avoiding caller-invented digest fields.
+    pub fn from_pinned_sources(
+        manifest_bytes: &[u8],
+        policy_bytes: &[u8],
+        board_id: &str,
+    ) -> Result<Self, String> {
+        let manifest: crate::DatasetManifest = serde_json::from_slice(manifest_bytes)
+            .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+        crate::validate_manifest(&manifest)?;
+        let board = manifest
+            .boards
+            .iter()
+            .find(|board| board.board_id == board_id)
+            .ok_or_else(|| format!("board {board_id} is absent from pinned manifest"))?;
+        let policy: crate::kicad_drc::KicadDrcRoutingPolicy =
+            serde_json::from_slice(policy_bytes)
+                .map_err(|error| format!("KiCad DRC policy JSON invalid: {error}"))?;
+        if policy.kicad_version.trim().is_empty() {
+            return Err("KiCad DRC policy has empty version".into());
+        }
+        Ok(Self {
+            board_id: board.board_id.clone(),
+            input_board_sha256: board.input_board_sha256.clone(),
+            dataset_manifest_sha256: sha256_hex(manifest_bytes),
+            drc_policy_sha256: sha256_hex(policy_bytes),
+            kicad_version: policy.kicad_version,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct CheckpointMetadata {
