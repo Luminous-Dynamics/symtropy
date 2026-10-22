@@ -148,6 +148,7 @@ struct ScenarioResult {
     source_buffer_average_units: f64,
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
+    common_cause_control_outage_config: Option<CommonCauseControlOutage>,
     common_cause_control_outage_starts_after_warmup: u64,
     measured_common_cause_control_outage_seconds: f64,
     output_never_exceeds_released_input: bool,
@@ -1099,6 +1100,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         ),
         interstation_buffers,
         stations: station_results,
+        common_cause_control_outage_config: catalog.common_cause_control_outage.clone(),
         common_cause_control_outage_starts_after_warmup: state
             .common_cause_control_outage_starts_after_warmup,
         measured_common_cause_control_outage_seconds: state
@@ -1554,6 +1556,20 @@ mod tests {
             "../../fixtures/ev_factory_simulation_shared_control_outage_v0_1.json"
         ))
         .expect("shared control outage fixture parses")
+    }
+
+    #[test]
+    fn absent_shared_control_outage_preserves_baseline_semantics() {
+        let catalog = fixture();
+        let report = evaluate_catalog(&catalog).expect("baseline simulation");
+        assert!(report.scenarios.iter().all(|scenario| {
+            scenario.common_cause_control_outage_config.is_none()
+                && scenario.common_cause_control_outage_starts_after_warmup == 0
+                && scenario.measured_common_cause_control_outage_seconds == 0.0
+                && scenario.stations.iter().all(|station| {
+                    station.common_cause_control_outage_fraction == 0.0
+                })
+        }));
     }
 
     #[test]
