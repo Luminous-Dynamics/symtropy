@@ -183,6 +183,9 @@ pub struct RecoveryEnvelopeMetrics {
     pub total_scenarios: usize,
     pub accepted_scenarios: usize,
     pub worst_case_recovery_horizon_ticks: Option<u64>,
+    pub worst_case_makespan_tick: Option<u64>,
+    pub worst_case_changed_placement_reservations: usize,
+    pub worst_case_changed_transfer_reservations: usize,
     pub worst_case_unaffected_placement_churn: usize,
     pub worst_case_unaffected_transfer_churn: usize,
     pub worst_case_time_shift_ticks: u64,
@@ -196,6 +199,179 @@ pub struct RecoveryEnvelopeReport {
     pub metrics: RecoveryEnvelopeMetrics,
     pub violations: Vec<RecoveryEnvelopeViolation>,
     pub scenarios: Vec<RecoveryEnvelopeScenarioReport>,
+}
+
+/// A candidate schedule and its finite robust-envelope assessment.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEnvelopeAlternative {
+    pub candidate_id: String,
+    pub report: RecoveryEnvelopeReport,
+}
+
+/// Maximize transparency by comparing each objective independently; no hidden weights are used.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct RecoveryParetoScore {
+    pub worst_case_recovery_horizon_ticks: Option<u64>,
+    pub worst_case_makespan_tick: Option<u64>,
+    pub worst_case_changed_placement_reservations: usize,
+    pub worst_case_changed_transfer_reservations: usize,
+    pub worst_case_unaffected_placement_churn: usize,
+    pub worst_case_unaffected_transfer_churn: usize,
+    pub worst_case_time_shift_ticks: u64,
+    pub worst_case_rectangle_edge_shift_units: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryParetoCandidate {
+    pub candidate_id: String,
+    pub score: RecoveryParetoScore,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum RecoveryParetoViolationCode {
+    EmptyCandidateId,
+    DuplicateCandidateId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryParetoViolation {
+    pub code: RecoveryParetoViolationCode,
+    pub candidate_id: String,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RecoveryParetoReport {
+    /// Candidates that are not dominated on all published objectives.
+    pub frontier: Vec<RecoveryParetoCandidate>,
+    /// Robustly feasible candidates dominated by another robustly feasible candidate.
+    pub dominated_candidate_ids: Vec<String>,
+    /// Candidates that failed at least one scenario in their finite envelope.
+    pub rejected_candidate_ids: Vec<String>,
+    pub violations: Vec<RecoveryParetoViolation>,
+}
+
+fn pareto_score(report: &RecoveryEnvelopeReport) -> RecoveryParetoScore {
+    RecoveryParetoScore {
+        worst_case_recovery_horizon_ticks: report.metrics.worst_case_recovery_horizon_ticks,
+        worst_case_makespan_tick: report.metrics.worst_case_makespan_tick,
+        worst_case_changed_placement_reservations: report
+            .metrics
+            .worst_case_changed_placement_reservations,
+        worst_case_changed_transfer_reservations: report
+            .metrics
+            .worst_case_changed_transfer_reservations,
+        worst_case_unaffected_placement_churn: report
+            .metrics
+            .worst_case_unaffected_placement_churn,
+        worst_case_unaffected_transfer_churn: report
+            .metrics
+            .worst_case_unaffected_transfer_churn,
+        worst_case_time_shift_ticks: report.metrics.worst_case_time_shift_ticks,
+        worst_case_rectangle_edge_shift_units: report
+            .metrics
+            .worst_case_rectangle_edge_shift_units,
+    }
+}
+
+fn dominates(left: &RecoveryParetoScore, right: &RecoveryParetoScore) -> bool {
+    let no_worse_everywhere = left.worst_case_recovery_horizon_ticks
+        <= right.worst_case_recovery_horizon_ticks
+        && left.worst_case_makespan_tick <= right.worst_case_makespan_tick
+        && left.worst_case_changed_placement_reservations
+            <= right.worst_case_changed_placement_reservations
+        && left.worst_case_changed_transfer_reservations
+            <= right.worst_case_changed_transfer_reservations
+        && left.worst_case_unaffected_placement_churn
+            <= right.worst_case_unaffected_placement_churn
+        && left.worst_case_unaffected_transfer_churn
+            <= right.worst_case_unaffected_transfer_churn
+        && left.worst_case_time_shift_ticks <= right.worst_case_time_shift_ticks
+        && left.worst_case_rectangle_edge_shift_units
+            <= right.worst_case_rectangle_edge_shift_units;
+    let strictly_better_somewhere = left.worst_case_recovery_horizon_ticks
+        < right.worst_case_recovery_horizon_ticks
+        || left.worst_case_makespan_tick < right.worst_case_makespan_tick
+        || left.worst_case_changed_placement_reservations
+            < right.worst_case_changed_placement_reservations
+        || left.worst_case_changed_transfer_reservations
+            < right.worst_case_changed_transfer_reservations
+        || left.worst_case_unaffected_placement_churn
+            < right.worst_case_unaffected_placement_churn
+        || left.worst_case_unaffected_transfer_churn
+            < right.worst_case_unaffected_transfer_churn
+        || left.worst_case_time_shift_ticks < right.worst_case_time_shift_ticks
+        || left.worst_case_rectangle_edge_shift_units
+            < right.worst_case_rectangle_edge_shift_units;
+    no_worse_everywhere && strictly_better_somewhere
+}
+
+/// Compute a Pareto frontier over robustly accepted candidates, without a weighted scalar.
+///
+/// A candidate failing any disturbance case is placed in rejected_candidate_ids and cannot
+/// dominate a robustly feasible plan. Candidate IDs must be unique/non-empty; ambiguous identity
+/// invalidates the comparison. None for recovery horizon/makespan sorts before Some, meaning
+/// the metric is not applicable (for example, no changed/affected reservations).
+pub fn pareto_recovery_candidates(
+    alternatives: &[RecoveryEnvelopeAlternative],
+) -> RecoveryParetoReport {
+    let mut report = RecoveryParetoReport::default();
+    let mut seen = BTreeSet::new();
+
+    for alternative in alternatives {
+        if alternative.candidate_id.trim().is_empty() {
+            report.violations.push(RecoveryParetoViolation {
+                code: RecoveryParetoViolationCode::EmptyCandidateId,
+                candidate_id: alternative.candidate_id.clone(),
+            });
+        } else if !seen.insert(alternative.candidate_id.as_str()) {
+            report.violations.push(RecoveryParetoViolation {
+                code: RecoveryParetoViolationCode::DuplicateCandidateId,
+                candidate_id: alternative.candidate_id.clone(),
+            });
+        }
+    }
+
+    if !report.violations.is_empty() {
+        report.violations.sort_by(|left, right| {
+            left.code
+                .cmp(&right.code)
+                .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+        });
+        report.violations.dedup();
+        return report;
+    }
+
+    let mut eligible: Vec<RecoveryParetoCandidate> = Vec::new();
+    for alternative in alternatives {
+        if alternative.report.robustly_accepted {
+            eligible.push(RecoveryParetoCandidate {
+                candidate_id: alternative.candidate_id.clone(),
+                score: pareto_score(&alternative.report),
+            });
+        } else {
+            report
+                .rejected_candidate_ids
+                .push(alternative.candidate_id.clone());
+        }
+    }
+    eligible.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+    for candidate in &eligible {
+        let is_dominated = eligible.iter().any(|other| {
+            other.candidate_id != candidate.candidate_id
+                && dominates(&other.score, &candidate.score)
+        });
+        if is_dominated {
+            report
+                .dominated_candidate_ids
+                .push(candidate.candidate_id.clone());
+        } else {
+            report.frontier.push(candidate.clone());
+        }
+    }
+    report.dominated_candidate_ids.sort();
+    report.rejected_candidate_ids.sort();
+    report
 }
 
 /// Evaluate one candidate against every supplied plausible disturbance trajectory.
@@ -252,6 +428,20 @@ pub fn evaluate_recovery_envelope(
         .iter()
         .filter_map(|scenario| scenario.report.metrics.recovery_horizon_ticks)
         .max();
+    let worst_case_makespan_tick = scenario_reports
+        .iter()
+        .filter_map(|scenario| scenario.report.metrics.candidate_makespan_tick)
+        .max();
+    let worst_case_changed_placement_reservations = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.changed_placement_reservations)
+        .max()
+        .unwrap_or_default();
+    let worst_case_changed_transfer_reservations = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.changed_transfer_reservations)
+        .max()
+        .unwrap_or_default();
     let worst_case_unaffected_placement_churn = scenario_reports
         .iter()
         .map(|scenario| scenario.report.metrics.unaffected_placement_churn)
@@ -290,6 +480,9 @@ pub fn evaluate_recovery_envelope(
             total_scenarios: scenarios.len(),
             accepted_scenarios,
             worst_case_recovery_horizon_ticks,
+            worst_case_makespan_tick,
+            worst_case_changed_placement_reservations,
+            worst_case_changed_transfer_reservations,
             worst_case_unaffected_placement_churn,
             worst_case_unaffected_transfer_churn,
             worst_case_time_shift_ticks,
