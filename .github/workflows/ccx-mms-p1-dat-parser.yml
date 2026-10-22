@@ -1,0 +1,42 @@
+name: CCX MMS P1 strict DAT parser
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ccx-mms-p1-dat-parser.yml"
+      - "research/ccx-mms-p1-001-dat-parser/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccx-mms-p1-dat-parser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parse-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        working-directory: research/ccx-mms-p1-001-dat-parser
+        run: cargo fmt --all -- --check
+
+      - name: Run parser contract tests
+        working-directory: research/ccx-mms-p1-001-dat-parser
+        run: cargo test --locked --all-targets
+
+      - name: Run strict Clippy
+        working-directory: research/ccx-mms-p1-001-dat-parser
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Ensure lockfile remains unchanged
+        run: git diff --exit-code -- research/ccx-mms-p1-001-dat-parser/Cargo.lock

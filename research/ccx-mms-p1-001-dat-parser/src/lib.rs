@@ -1,0 +1,804 @@
+use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, BTreeSet};
+use std::error::Error;
+use std::fmt;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BlockKind {
+    Displacements,
+    ExternalForces,
+}
+
+impl fmt::Display for BlockKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Displacements => f.write_str("displacements"),
+            Self::ExternalForces => f.write_str("external forces"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Vec3 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct NodalField {
+    pub output_time: f64,
+    pub values: BTreeMap<usize, Vec3>,
+}
+
+impl NodalField {
+    pub fn get(&self, node_id: usize) -> Option<Vec3> {
+        self.values.get(&node_id).copied()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParsedDat {
+    pub displacements: NodalField,
+    /// The RF key outputs external forces; this is not universally reaction-only.
+    pub external_forces: NodalField,
+}
+
+/// Result of the frozen global-equilibrium audit. A finite but over-tolerance
+/// residual is reported with passed=false rather than converted into a parse error.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ForceBalanceAudit {
+    pub residual: Vec3,
+    pub normalization_scale: f64,
+    pub normalized_residual_linf: f64,
+    pub tolerance: f64,
+    pub passed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ParseError {
+    EmptyExpectedNodeSet,
+    EmptyExpectedSetName,
+    InvalidExpectedNodeId(usize),
+    DuplicateExpectedNodeId(usize),
+    InvalidTargetTime,
+    InvalidTimeTolerance,
+    MalformedHeader { line: usize, detail: &'static str },
+    MalformedRow { line: usize, text: String },
+    NonFiniteValue { line: usize, node_id: usize },
+    DuplicateNode { kind: BlockKind, node_id: usize },
+    MissingBlock { kind: BlockKind, set_name: String, time: f64 },
+    DuplicateBlock { kind: BlockKind, set_name: String, time: f64 },
+    TimeNotFound { kind: BlockKind, set_name: String, time: f64, observed: Vec<f64> },
+    NodeInventoryMismatch { kind: BlockKind, missing: Vec<usize>, unexpected: Vec<usize> },
+    EmptyBoundaryNodeSet,
+    DuplicateBoundaryNodeId(usize),
+    MissingBoundaryForce(usize),
+    BoundaryLoadInventoryMismatch { missing: Vec<usize>, unexpected: Vec<usize> },
+    NonFiniteBoundaryLoad(usize),
+    NonFiniteCorrectedReaction(usize),
+    InconsistentFieldTimes,
+    InvalidForceBalanceTolerance,
+    NodalLoadInventoryMismatch { missing: Vec<usize>, unexpected: Vec<usize> },
+    NonFiniteNodalLoad(usize),
+    NonFiniteForceBalance,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyExpectedNodeSet => f.write_str("expected node set is empty"),
+            Self::EmptyExpectedSetName => f.write_str("expected set name is empty"),
+            Self::InvalidExpectedNodeId(id) => write!(f, "invalid expected node ID {id}"),
+            Self::DuplicateExpectedNodeId(id) => write!(f, "duplicate expected node ID {id}"),
+            Self::InvalidTargetTime => f.write_str("target time must be finite"),
+            Self::InvalidTimeTolerance => {
+                f.write_str("time tolerance must be finite and nonnegative")
+            }
+            Self::MalformedHeader { line, detail } => {
+                write!(f, "malformed section header at line {line}: {detail}")
+            }
+            Self::MalformedRow { line, text } => {
+                write!(f, "malformed numeric row at line {line}: {text}")
+            }
+            Self::NonFiniteValue { line, node_id } => {
+                write!(f, "non-finite value at line {line}, node {node_id}")
+            }
+            Self::DuplicateNode { kind, node_id } => {
+                write!(f, "duplicate node {node_id} in {kind} block")
+            }
+            Self::MissingBlock { kind, set_name, time } => {
+                write!(f, "missing {kind} block for set {set_name} at time {time}")
+            }
+            Self::DuplicateBlock { kind, set_name, time } => {
+                write!(f, "duplicate {kind} blocks for set {set_name} at time {time}")
+            }
+            Self::TimeNotFound {
+                kind,
+                set_name,
+                time,
+                observed,
+            } => write!(
+                f,
+                "no {kind} block for set {set_name} at time {time}; observed {observed:?}"
+            ),
+            Self::NodeInventoryMismatch {
+                kind,
+                missing,
+                unexpected,
+            } => write!(
+                f,
+                "{kind} node inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
+            Self::EmptyBoundaryNodeSet => f.write_str("boundary node set is empty"),
+            Self::DuplicateBoundaryNodeId(id) => write!(f, "duplicate boundary node ID {id}"),
+            Self::MissingBoundaryForce(id) => write!(f, "RF output is missing boundary node {id}"),
+            Self::BoundaryLoadInventoryMismatch { missing, unexpected } => write!(
+                f,
+                "boundary-load inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
+            Self::NonFiniteBoundaryLoad(id) => {
+                write!(f, "non-finite omitted boundary load for node {id}")
+            }
+            Self::NonFiniteCorrectedReaction(id) => {
+                write!(f, "non-finite corrected reaction for node {id}")
+            }
+            Self::InconsistentFieldTimes => f.write_str("displacement and RF output times differ"),
+            Self::InvalidForceBalanceTolerance => {
+                f.write_str("force-balance tolerance must be finite and nonnegative")
+            }
+            Self::NodalLoadInventoryMismatch { missing, unexpected } => write!(
+                f,
+                "nodal-load inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
+            Self::NonFiniteNodalLoad(id) => {
+                write!(f, "non-finite complete nodal load at node {id}")
+            }
+            Self::NonFiniteForceBalance => {
+                f.write_str("global force-balance accumulation is non-finite")
+            }
+        }
+    }
+}
+
+impl Error for ParseError {}
+
+struct Section {
+    kind: BlockKind,
+    set_name: String,
+    time: f64,
+    values: BTreeMap<usize, Vec3>,
+}
+
+pub fn parse_dat(
+    text: &str,
+    expected_set: &str,
+    expected_node_ids: &[usize],
+    target_time: f64,
+    time_tolerance: f64,
+) -> Result<ParsedDat, ParseError> {
+    if expected_node_ids.is_empty() {
+        return Err(ParseError::EmptyExpectedNodeSet);
+    }
+    if expected_set.trim().is_empty() {
+        return Err(ParseError::EmptyExpectedSetName);
+    }
+    if !target_time.is_finite() {
+        return Err(ParseError::InvalidTargetTime);
+    }
+    if !time_tolerance.is_finite() || time_tolerance < 0.0 {
+        return Err(ParseError::InvalidTimeTolerance);
+    }
+    let mut expected = BTreeSet::new();
+    for id in expected_node_ids {
+        if *id == 0 {
+            return Err(ParseError::InvalidExpectedNodeId(*id));
+        }
+        if !expected.insert(*id) {
+            return Err(ParseError::DuplicateExpectedNodeId(*id));
+        }
+    }
+
+    let sections = parse_sections(text)?;
+    let displacements = select_section(
+        &sections,
+        BlockKind::Displacements,
+        expected_set,
+        &expected,
+        target_time,
+        time_tolerance,
+    )?;
+    let external_forces = select_section(
+        &sections,
+        BlockKind::ExternalForces,
+        expected_set,
+        &expected,
+        target_time,
+        time_tolerance,
+    )?;
+    Ok(ParsedDat {
+        displacements,
+        external_forces,
+    })
+}
+
+/// Reconstruct support reactions for the full manufactured load vector.
+///
+/// For this deck convention, constrained boundary-node equivalent loads are
+/// preserved separately and omitted from CLOAD. The RF output at those nodes
+/// is therefore the reaction for the reduced applied-load model. Correct with
+/// R_full = R_deck - F_boundary. Call this only after the real pinned CalculiX
+/// version and output semantics have been qualified; parsing alone does not
+/// establish that qualification.
+pub fn correct_support_reactions(
+    parsed: &ParsedDat,
+    boundary_node_ids: &[usize],
+    omitted_boundary_loads: &BTreeMap<usize, Vec3>,
+) -> Result<BTreeMap<usize, Vec3>, ParseError> {
+    if boundary_node_ids.is_empty() {
+        return Err(ParseError::EmptyBoundaryNodeSet);
+    }
+    if parsed.displacements.output_time.to_bits()
+        != parsed.external_forces.output_time.to_bits()
+    {
+        return Err(ParseError::InconsistentFieldTimes);
+    }
+
+    let mut boundary_ids = BTreeSet::new();
+    for node_id in boundary_node_ids {
+        if *node_id == 0 {
+            return Err(ParseError::InvalidExpectedNodeId(*node_id));
+        }
+        if !boundary_ids.insert(*node_id) {
+            return Err(ParseError::DuplicateBoundaryNodeId(*node_id));
+        }
+        if !parsed.external_forces.values.contains_key(node_id) {
+            return Err(ParseError::MissingBoundaryForce(*node_id));
+        }
+    }
+
+    let provided_ids: BTreeSet<usize> = omitted_boundary_loads.keys().copied().collect();
+    let missing = boundary_ids.difference(&provided_ids).copied().collect::<Vec<_>>();
+    let unexpected = provided_ids.difference(&boundary_ids).copied().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(ParseError::BoundaryLoadInventoryMismatch { missing, unexpected });
+    }
+
+    let mut corrected = BTreeMap::new();
+    for node_id in boundary_ids {
+        let rf = parsed
+            .external_forces
+            .get(node_id)
+            .ok_or(ParseError::MissingBoundaryForce(node_id))?;
+        let omitted = omitted_boundary_loads
+            .get(&node_id)
+            .ok_or(ParseError::BoundaryLoadInventoryMismatch {
+                missing: vec![node_id],
+                unexpected: Vec::new(),
+            })?;
+        if !(omitted.x.is_finite() && omitted.y.is_finite() && omitted.z.is_finite()) {
+            return Err(ParseError::NonFiniteBoundaryLoad(node_id));
+        }
+        let reaction = Vec3 {
+            x: rf.x - omitted.x,
+            y: rf.y - omitted.y,
+            z: rf.z - omitted.z,
+        };
+        if !(reaction.x.is_finite() && reaction.y.is_finite() && reaction.z.is_finite()) {
+            return Err(ParseError::NonFiniteCorrectedReaction(node_id));
+        }
+        corrected.insert(node_id, reaction);
+    }
+    Ok(corrected)
+}
+
+/// Audit global static equilibrium using the complete independently assembled
+/// nodal load vector and support reactions corrected for omitted boundary loads.
+///
+/// The residual is sum(R_full on constrained nodes) + sum(F_i over every node).
+/// Its scale is max(1, sum(||R_full||_1) + sum(||F_i||_1)), matching the frozen
+/// PHYS-CCX-MMS-P1-001 normalization. This is an arithmetic audit only: a passing
+/// synthetic test does not qualify solver output or the load assembly.
+pub fn audit_global_force_balance(
+    parsed: &ParsedDat,
+    boundary_node_ids: &[usize],
+    omitted_boundary_loads: &BTreeMap<usize, Vec3>,
+    complete_nodal_loads: &BTreeMap<usize, Vec3>,
+    tolerance: f64,
+) -> Result<ForceBalanceAudit, ParseError> {
+    if !tolerance.is_finite() || tolerance < 0.0 {
+        return Err(ParseError::InvalidForceBalanceTolerance);
+    }
+
+    let reactions = correct_support_reactions(
+        parsed,
+        boundary_node_ids,
+        omitted_boundary_loads,
+    )?;
+    let expected_ids: BTreeSet<usize> =
+        parsed.external_forces.values.keys().copied().collect();
+    let actual_ids: BTreeSet<usize> = complete_nodal_loads.keys().copied().collect();
+    let missing = expected_ids.difference(&actual_ids).copied().collect::<Vec<_>>();
+    let unexpected = actual_ids.difference(&expected_ids).copied().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(ParseError::NodalLoadInventoryMismatch { missing, unexpected });
+    }
+
+    let mut residual = Vec3 { x: 0.0, y: 0.0, z: 0.0 };
+    let mut scale = 0.0_f64;
+    for reaction in reactions.values() {
+        residual.x += reaction.x;
+        residual.y += reaction.y;
+        residual.z += reaction.z;
+        scale += reaction.x.abs() + reaction.y.abs() + reaction.z.abs();
+    }
+    for (node_id, load) in complete_nodal_loads {
+        if !(load.x.is_finite() && load.y.is_finite() && load.z.is_finite()) {
+            return Err(ParseError::NonFiniteNodalLoad(*node_id));
+        }
+        residual.x += load.x;
+        residual.y += load.y;
+        residual.z += load.z;
+        scale += load.x.abs() + load.y.abs() + load.z.abs();
+    }
+    if !(residual.x.is_finite()
+        && residual.y.is_finite()
+        && residual.z.is_finite()
+        && scale.is_finite())
+    {
+        return Err(ParseError::NonFiniteForceBalance);
+    }
+
+    let normalization_scale = scale.max(1.0);
+    let normalized_residual_linf =
+        residual.x.abs().max(residual.y.abs()).max(residual.z.abs()) / normalization_scale;
+    Ok(ForceBalanceAudit {
+        residual,
+        normalization_scale,
+        normalized_residual_linf,
+        tolerance,
+        passed: normalized_residual_linf <= tolerance,
+    })
+}
+
+fn classify_heading(line: &str) -> Option<BlockKind> {
+    let lower = line.trim().to_ascii_lowercase();
+    if lower.starts_with("displacements (") {
+        Some(BlockKind::Displacements)
+    } else if lower.starts_with("forces (") {
+        Some(BlockKind::ExternalForces)
+    } else {
+        None
+    }
+}
+
+fn parse_sections(text: &str) -> Result<Vec<Section>, ParseError> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut sections = Vec::new();
+    let mut index = 0;
+    while index < lines.len() {
+        let header = lines[index].trim();
+        let Some(kind) = classify_heading(header) else {
+            index += 1;
+            continue;
+        };
+        let (set_name, time) = parse_header(header, index + 1)?;
+        let mut values = BTreeMap::new();
+        let mut row_index = index + 1;
+        while row_index < lines.len() {
+            let row = lines[row_index].trim();
+            if row.is_empty() {
+                if values.is_empty() {
+                    row_index += 1;
+                    continue;
+                }
+                break;
+            }
+            if classify_heading(row).is_some() {
+                break;
+            }
+            match parse_row(row, row_index + 1)? {
+                Some((node_id, value)) => {
+                    match values.entry(node_id) {
+                        Entry::Vacant(entry) => {
+                            entry.insert(value);
+                        }
+                        Entry::Occupied(_) => {
+                            return Err(ParseError::DuplicateNode { kind, node_id });
+                        }
+                    }
+                }
+                None => break,
+            }
+            row_index += 1;
+        }
+        sections.push(Section { kind, set_name, time, values });
+        index = row_index;
+    }
+    Ok(sections)
+}
+
+fn parse_header(header: &str, line: usize) -> Result<(String, f64), ParseError> {
+    let tokens: Vec<&str> = header.split_whitespace().collect();
+    let lower: Vec<String> = tokens
+        .iter()
+        .map(|token| token.to_ascii_lowercase())
+        .collect();
+    let set_pos = lower
+        .iter()
+        .position(|token| token == "set")
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing set name",
+        })?;
+    let set_name = tokens
+        .get(set_pos + 1)
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing set name",
+        })?
+        .trim_end_matches(',')
+        .to_owned();
+    let time_pos = lower
+        .iter()
+        .position(|token| token == "time")
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing time",
+        })?;
+    let time_str = tokens
+        .get(time_pos + 1)
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing time value",
+        })?;
+    let time = parse_number(time_str).ok_or(ParseError::MalformedHeader {
+        line,
+        detail: "invalid time value",
+    })?;
+    if !time.is_finite() {
+        return Err(ParseError::MalformedHeader {
+            line,
+            detail: "non-finite time",
+        });
+    }
+    Ok((set_name, time))
+}
+
+fn parse_row(row: &str, line: usize) -> Result<Option<(usize, Vec3)>, ParseError> {
+    let fields: Vec<&str> = row.split_whitespace().collect();
+    let Some(first) = fields.first() else {
+        return Ok(None);
+    };
+    let Ok(node_id) = first.parse::<usize>() else {
+        return Ok(None);
+    };
+    if node_id == 0 || fields.len() != 4 {
+        return Err(ParseError::MalformedRow {
+            line,
+            text: row.to_owned(),
+        });
+    }
+    let (Some(x), Some(y), Some(z)) = (
+        parse_number(fields[1]),
+        parse_number(fields[2]),
+        parse_number(fields[3]),
+    ) else {
+        return Err(ParseError::MalformedRow {
+            line,
+            text: row.to_owned(),
+        });
+    };
+    if !(x.is_finite() && y.is_finite() && z.is_finite()) {
+        return Err(ParseError::NonFiniteValue { line, node_id });
+    }
+    Ok(Some((node_id, Vec3 { x, y, z })))
+}
+
+fn parse_number(field: &str) -> Option<f64> {
+    field.replace('D', "E").replace('d', "E").parse::<f64>().ok()
+}
+
+fn select_section(
+    sections: &[Section],
+    kind: BlockKind,
+    expected_set: &str,
+    expected_ids: &BTreeSet<usize>,
+    target_time: f64,
+    time_tolerance: f64,
+) -> Result<NodalField, ParseError> {
+    let matching_set: Vec<&Section> = sections
+        .iter()
+        .filter(|section| {
+            section.kind == kind && section.set_name.eq_ignore_ascii_case(expected_set)
+        })
+        .collect();
+    let matching_time: Vec<&Section> = matching_set
+        .iter()
+        .copied()
+        .filter(|section| (section.time - target_time).abs() <= time_tolerance)
+        .collect();
+    if matching_time.is_empty() {
+        if matching_set.is_empty() {
+            return Err(ParseError::MissingBlock {
+                kind,
+                set_name: expected_set.to_owned(),
+                time: target_time,
+            });
+        }
+        return Err(ParseError::TimeNotFound {
+            kind, set_name: expected_set.to_owned(), time: target_time,
+            observed: matching_set.iter().map(|s| s.time).collect(),
+        });
+    }
+    if matching_time.len() != 1 {
+        return Err(ParseError::DuplicateBlock {
+            kind,
+            set_name: expected_set.to_owned(),
+            time: target_time,
+        });
+    }
+    let section = matching_time[0];
+    let actual: BTreeSet<usize> = section.values.keys().copied().collect();
+    let missing = expected_ids.difference(&actual).copied().collect::<Vec<_>>();
+    let unexpected = actual.difference(expected_ids).copied().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(ParseError::NodeInventoryMismatch { kind, missing, unexpected });
+    }
+    Ok(NodalField { output_time: section.time, values: section.values.clone() })
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE: &str = include_str!("../tests/fixtures/ccx-2.22-synthetic-nall.dat");
+    const NODES: [usize; 4] = [1, 2, 3, 4];
+
+    #[test]
+    fn parses_displacements_and_rf_external_forces_separately() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        assert_eq!(parsed.displacements.values.len(), 4);
+        assert_eq!(parsed.external_forces.values.len(), 4);
+        assert_eq!(parsed.displacements.get(2).unwrap().x, 1.0e-3);
+        assert_eq!(parsed.external_forces.get(3).unwrap().y, 6.0);
+        assert_eq!(parsed.displacements.output_time, 1.0);
+        assert_eq!(parsed.external_forces.output_time, 1.0);
+    }
+
+    #[test]
+    fn support_reaction_correction_subtracts_omitted_boundary_loads() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let mut omitted = BTreeMap::new();
+        omitted.insert(1, Vec3 { x: 0.5, y: 0.25, z: 0.0 });
+        omitted.insert(4, Vec3 { x: -0.5, y: 0.75, z: 0.0 });
+
+        let corrected = correct_support_reactions(&parsed, &[1, 4], &omitted).unwrap();
+        assert_eq!(corrected[&1], Vec3 { x: -1.5, y: -2.25, z: 0.0 });
+        assert_eq!(corrected[&4], Vec3 { x: -6.5, y: 7.25, z: 0.0 });
+    }
+
+    #[test]
+    fn support_reaction_correction_fails_closed_on_inventory_or_numeric_errors() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let valid = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[], &valid),
+            Err(ParseError::EmptyBoundaryNodeSet)
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 1], &valid),
+            Err(ParseError::DuplicateBoundaryNodeId(1))
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 4], &BTreeMap::new()),
+            Err(ParseError::BoundaryLoadInventoryMismatch { .. })
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 5], &valid),
+            Err(ParseError::MissingBoundaryForce(5))
+        ));
+
+        let non_finite = BTreeMap::from([
+            (1, Vec3 { x: f64::NAN, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 4], &non_finite),
+            Err(ParseError::NonFiniteBoundaryLoad(1))
+        ));
+
+        let mut mismatched_times = parsed.clone();
+        mismatched_times.external_forces.output_time = 2.0;
+        assert!(matches!(
+            correct_support_reactions(&mismatched_times, &[1, 4], &valid),
+            Err(ParseError::InconsistentFieldTimes)
+        ));
+    }
+
+    #[test]
+    fn reaction_only_block_is_not_accepted_as_rf_external_forces() {
+        let only_reaction = FIXTURE
+            .lines()
+            .filter(|line| !line.trim().starts_with("forces ("))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(matches!(
+            parse_dat(&only_reaction, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MissingBlock {
+                kind: BlockKind::ExternalForces,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_missing_node_and_duplicate_node() {
+        let missing = FIXTURE.replace(
+            "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            "",
+        );
+        assert!(matches!(
+            parse_dat(&missing, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::NodeInventoryMismatch { .. })
+        ));
+
+        let duplicate = FIXTURE.replace(
+            "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            concat!(
+                "             3  0.000000E+00  2.000000E-03  0.000000E+00\n",
+                "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            ),
+        );
+        assert!(matches!(
+            parse_dat(&duplicate, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::DuplicateNode { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_nonfinite_values_and_malformed_numeric_rows() {
+        let infinite = FIXTURE.replace("1.000000E-03", "inf");
+        assert!(matches!(
+            parse_dat(&infinite, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::NonFiniteValue { .. })
+        ));
+        let malformed = FIXTURE.replace(
+            "             2  1.000000E-03  0.000000E+00  0.000000E+00\n",
+            "             2  1.000000E-03  0.000000E+00\n",
+        );
+        assert!(matches!(
+            parse_dat(&malformed, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MalformedRow { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_wrong_time_set_and_duplicate_target_section() {
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &NODES, 2.0, 1.0e-8),
+            Err(ParseError::TimeNotFound { .. })
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "UNKNOWN_SET", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MissingBlock { .. })
+        ));
+        let duplicate_section = format!(
+            "{}\n{}",
+            FIXTURE,
+            concat!(
+                "forces (fx,fy,fz) for set NALL and time 0.1000000E+01\n",
+                "1 0 0 0\n",
+                "2 0 0 0\n",
+                "3 0 0 0\n",
+                "4 0 0 0\n",
+            )
+        );
+        assert!(matches!(
+            parse_dat(&duplicate_section, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::DuplicateBlock {
+                kind: BlockKind::ExternalForces,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_invalid_requests_and_supports_d_exponents() {
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &[], 1.0, 1.0e-8),
+            Err(ParseError::EmptyExpectedNodeSet)
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &[1, 1], 1.0, 1.0e-8),
+            Err(ParseError::DuplicateExpectedNodeId(1))
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::EmptyExpectedSetName)
+        ));
+        let d_exponents = FIXTURE.replace("1.000000E-03", "1.000000D-03");
+        assert!(parse_dat(&d_exponents, "NALL", &NODES, 1.0, 1.0e-8).is_ok());
+    }
+
+    #[test]
+    fn global_force_balance_audit_passes_for_balanced_synthetic_inventory() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let loads = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 8.0, y: -6.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        let audit = audit_global_force_balance(&parsed, &[1, 4], &omitted, &loads, 1.0e-12)
+            .unwrap();
+        assert!(audit.passed);
+        assert_eq!(audit.residual, Vec3 { x: 0.0, y: 0.0, z: 0.0 });
+        assert_eq!(audit.normalized_residual_linf, 0.0);
+        assert_eq!(audit.normalization_scale, 32.0);
+    }
+
+    #[test]
+    fn global_force_balance_audit_reports_perturbed_load_without_hiding_failure() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let loads = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 8.01, y: -6.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        let audit = audit_global_force_balance(&parsed, &[1, 4], &omitted, &loads, 1.0e-8)
+            .unwrap();
+        assert!(!audit.passed);
+        assert!(audit.normalized_residual_linf > audit.tolerance);
+    }
+
+    #[test]
+    fn global_force_balance_audit_rejects_incomplete_or_nonfinite_loads() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let omitted = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        let incomplete = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &incomplete, 1.0e-8),
+            Err(ParseError::NodalLoadInventoryMismatch { .. })
+        ));
+
+        let non_finite = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (2, Vec3 { x: f64::NAN, y: 0.0, z: 0.0 }),
+            (3, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &non_finite, 1.0e-8),
+            Err(ParseError::NonFiniteNodalLoad(2))
+        ));
+        assert!(matches!(
+            audit_global_force_balance(&parsed, &[1, 4], &omitted, &non_finite, f64::NAN),
+            Err(ParseError::InvalidForceBalanceTolerance)
+        ));
+    }
+
+}
