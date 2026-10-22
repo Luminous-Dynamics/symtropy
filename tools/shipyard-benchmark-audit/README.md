@@ -14,6 +14,12 @@ Audit a report against its manifest:
       tools/shipyard-benchmark-audit/fixtures/valid-manifest.json \
       tools/shipyard-benchmark-audit/fixtures/valid-report.json
 
+Verify the SHA-256 of a source/configuration artifact after obtaining the actual file locally:
+
+    cargo run --locked --offline --manifest-path tools/shipyard-benchmark-audit/Cargo.toml -- verify-digest path/to/corpus.json EXPECTED_64_HEX_SHA256
+
+This command hashes the exact file bytes; it does not normalize JSON before hashing. It is useful to verify locally supplied source/configuration artifacts against digests pinned in the manifest.
+
 Exit codes: 0 valid; 1 structurally or semantically invalid evidence; 2 input/usage error. Diagnostics are sorted and written in a deterministic order.
 
 ## Checks performed
