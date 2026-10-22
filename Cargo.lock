@@ -8951,6 +8951,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-animal-model-set-adequacy"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-bevy-scene"
 version = "0.1.1"
 dependencies = [
