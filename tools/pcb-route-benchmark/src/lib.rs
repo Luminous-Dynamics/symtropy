@@ -623,6 +623,23 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
     {
         return Err("external manifest must bind split config SHA-256, immutable URL, source Git blob, source commit, split name and intake metadata digest".into());
     }
+    if manifest.license_audit_manifest_relative_path.is_some()
+        != manifest.license_audit_manifest_sha256.is_some()
+    {
+        return Err("license-audit manifest path and SHA-256 must be supplied together".into());
+    }
+    if let Some(path) = manifest.license_audit_manifest_relative_path.as_deref() {
+        validate_relative_path(path, "license-audit manifest")?;
+        require_sha256(
+            manifest.license_audit_manifest_sha256.as_deref().unwrap_or_default(),
+            "license_audit_manifest_sha256",
+        )?;
+    }
+    if manifest.evidence_class == "external_benchmark"
+        && manifest.license_audit_manifest_relative_path.is_none()
+    {
+        return Err("external manifest must be bound to an immutable license-audit manifest".into());
+    }
     let mut ids = BTreeSet::new();
     for board in &manifest.boards {
         if board.board_id.trim().is_empty()
@@ -731,6 +748,29 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                     "{}: license-evidence Git blob SHA-1 must be 40 hexadecimal characters",
                     board.board_id
                 ));
+            }
+        }
+        if manifest.evidence_class == "external_benchmark" {
+            let source_repo = board.original_source_repository.as_deref().unwrap_or_default();
+            if !source_repo.starts_with("https://") || board.source_url != source_repo {
+                return Err(format!(
+                    "{}: external source URL/repository must come from the license audit",
+                    board.board_id
+                ));
+            }
+            if board.source_metadata_path.as_deref().is_none_or(str::is_empty) {
+                return Err(format!("{}: immutable PCBench metadata path is missing", board.board_id));
+            }
+            if !is_git_blob_sha1(board.source_metadata_git_blob_sha1.as_deref().unwrap_or_default()) {
+                return Err(format!("{}: immutable PCBench metadata Git blob SHA-1 is missing or invalid", board.board_id));
+            }
+            if board.license_evidence_relative_path.is_none()
+                || board.license_evidence_sha256.is_none()
+                || board.license_evidence_url.is_none()
+                || board.license_evidence_source_commit_sha.is_none()
+                || board.license_evidence_git_blob_sha1.is_none()
+            {
+                return Err(format!("{}: external license evidence is incomplete", board.board_id));
             }
         }
         require_sha256(&board.input_board_sha256, "input_board_sha256")?;
@@ -1052,6 +1092,129 @@ pub fn build_dataset_manifest(
     };
     validate_manifest(&manifest)?;
     Ok(manifest)
+}
+
+fn validate_audit_envelope(
+    audit: &LicenseAuditManifest,
+    expected_pcbworld_repository: &str,
+    expected_pcbworld_commit: &str,
+    expected_split_blob: &str,
+    benchmark_id: &str,
+    dataset_id: &str,
+) -> Result<(), String> {
+    if audit.schema != "pcbworld-pilot-source-metadata-audit-v0.1" {
+        return Err(format!("unsupported license-audit schema: {}", audit.schema));
+    }
+    if !is_commit_sha(&audit.upstream.pcbworld_commit_sha)
+        || !is_commit_sha(&audit.upstream.pcbench_commit_sha)
+        || !is_git_blob_sha1(&audit.upstream.d3_split_config_git_blob_sha1)
+    {
+        return Err("license-audit upstream commit/blob pins are malformed".into());
+    }
+    if audit.upstream.pcbworld_repository != expected_pcbworld_repository
+        || audit.upstream.pcbworld_commit_sha != expected_pcbworld_commit
+        || audit.upstream.d3_split_config_git_blob_sha1 != expected_split_blob
+    {
+        return Err("license-audit upstream identity differs from the pinned PCBWorld split".into());
+    }
+    let synthetic = audit.evidence_class.as_deref() == Some("synthetic");
+    if synthetic {
+        if audit.status != "synthetic_test_only_eligible_fixture"
+            || !benchmark_id.starts_with("synthetic-")
+            || !dataset_id.starts_with("synthetic-")
+        {
+            return Err("synthetic license-audit evidence is permitted only for explicitly synthetic test-only datasets".into());
+        }
+    } else if audit.status != "approved_for_benchmark_execution" {
+        return Err(format!(
+            "license-audit status {:?} does not authorize benchmark execution",
+            audit.status
+        ));
+    }
+    let mut ids = BTreeSet::new();
+    for board in &audit.boards {
+        if board.board_id.trim().is_empty() || !ids.insert(board.board_id.as_str()) {
+            return Err(format!("empty or duplicate board ID in license audit: {}", board.board_id));
+        }
+        if board.original_source_repository.trim().is_empty()
+            || !board.original_source_repository.starts_with("https://")
+        {
+            return Err(format!("{}: audited source repository must use HTTPS", board.board_id));
+        }
+        if board.primary_source_license_review.trim().is_empty() {
+            return Err(format!("{}: primary-source license review status is empty", board.board_id));
+        }
+    }
+    Ok(())
+}
+
+fn validate_audit_manifest_for_manifest(
+    audit_bytes: &[u8],
+    manifest: &DatasetManifest,
+) -> Result<LicenseAuditManifest, String> {
+    let expected_audit_sha = manifest.license_audit_manifest_sha256.as_deref()
+        .ok_or_else(|| "dataset manifest has no license-audit manifest SHA-256".to_string())?;
+    if sha256_hex(audit_bytes) != expected_audit_sha {
+        return Err("license-audit manifest bytes SHA-256 does not match the dataset manifest".into());
+    }
+    let audit: LicenseAuditManifest = serde_json::from_slice(audit_bytes)
+        .map_err(|error| format!("license-audit manifest JSON/schema invalid: {error}"))?;
+    validate_audit_envelope(
+        &audit,
+        &manifest.source_url,
+        manifest.source_split_commit_sha.as_deref().unwrap_or_default(),
+        manifest.source_split_config_git_blob_sha1.as_deref().unwrap_or_default(),
+        &manifest.benchmark_id,
+        &manifest.dataset_id,
+    )?;
+    for pin in &manifest.boards {
+        let record = audit.boards.iter()
+            .find(|record| record.board_id == pin.board_id)
+            .ok_or_else(|| format!("{} is missing from the pinned license audit", pin.board_id))?;
+        let evidence = record.primary_source_license_evidence.as_ref()
+            .ok_or_else(|| format!("{} has no primary-source license evidence", pin.board_id))?;
+        let expected_status = if audit.evidence_class.as_deref() == Some("synthetic") {
+            "eligible_for_synthetic_test_only"
+        } else {
+            "approved_for_benchmark_execution"
+        };
+        if record.benchmark_eligibility != expected_status {
+            return Err(format!("{}: license-audit row is not eligible: {}", pin.board_id, record.benchmark_eligibility));
+        }
+        if pin.license != evidence.resolved_spdx_id
+            || pin.source_url != record.original_source_repository
+            || pin.original_source_repository.as_deref() != Some(record.original_source_repository.as_str())
+            || pin.source_metadata_path.as_deref() != Some(record.metadata_path.as_str())
+            || pin.source_metadata_git_blob_sha1.as_deref() != Some(record.metadata_git_blob_sha1.as_str())
+            || pin.license_evidence_url.as_deref() != Some(evidence.blob_url.as_str())
+            || pin.license_evidence_source_commit_sha.as_deref() != Some(evidence.source_commit_sha.as_str())
+            || pin.license_evidence_git_blob_sha1.as_deref() != Some(evidence.git_blob_sha1.as_str())
+            || pin.relative_path.as_deref() != record.prepared_board_relative_path.as_deref()
+            || pin.input_board_sha256 != record.prepared_board_sha256.as_deref().unwrap_or_default()
+        {
+            return Err(format!("{}: dataset manifest identity/license fields disagree with the immutable audit row", pin.board_id));
+        }
+        if !evidence.blob_hash_reverified_at_pinned_commit
+            || !is_commit_sha(&evidence.source_commit_sha)
+            || !is_git_blob_sha1(&evidence.git_blob_sha1)
+            || !evidence.blob_url.starts_with("https://")
+            || !evidence.blob_url.contains(&format!("/{}/", evidence.source_commit_sha))
+        {
+            return Err(format!("{}: immutable source-license evidence is malformed", pin.board_id));
+        }
+        let declared_spdx: Vec<&str> = record.pcbench_reported_licenses.iter()
+            .filter_map(|license| license.spdx_id.as_deref())
+            .collect();
+        if record.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata")
+            || (!declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()))
+        {
+            return Err(format!("{}: license evidence is not reconciled with the PCBench metadata record", pin.board_id));
+        }
+    }
+    if audit.boards.iter().filter(|board| manifest.boards.iter().any(|pin| pin.board_id == board.board_id)).count() != manifest.boards.len() {
+        return Err("manifest board set does not match the pinned license-audit record set".into());
+    }
+    Ok(audit)
 }
 
 pub fn verify_dataset_files(
