@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminous-dynamics.invalid/schemas/qual-002-capsule-policy-v1.json",
+  "title": "QUAL-002 Capsule Policy V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "profile_id",
+    "execution_class",
+    "supported_systems",
+    "nix_policy",
+    "preparation_policy",
+    "environment_policy",
+    "source_identity_required",
+    "evidence_required"
+  ],
+  "properties": {
+    "schema_id": { "const": "luminous.qual-002-capsule-policy.v1" },
+    "profile_id": { "const": "nix-pure-sandbox-qualified-v1" },
+    "execution_class": { "const": "PureDerivation" },
+    "supported_systems": { "const": ["x86_64-linux"] },
+    "nix_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sandbox",
+        "sandbox_fallback",
+        "pure_eval",
+        "restrict_eval",
+        "allow_import_from_derivation",
+        "accept_flake_config",
+        "allow_unsafe_native_code_during_evaluation",
+        "require_sigs",
+        "substitute_theorem_result",
+        "remote_builders_allowed",
+        "remote_store_allowed",
+        "plugin_files_allowed",
+        "pre_build_hook_allowed",
+        "post_build_hook_allowed",
+        "diff_hook_allowed",
+        "fixed_output_theorem_allowed",
+        "impure_theorem_allowed",
+        "no_chroot_theorem_allowed",
+        "network_theorem_allowed"
+      ],
+      "properties": {
+        "sandbox": { "const": true },
+        "sandbox_fallback": { "const": false },
+        "pure_eval": { "const": true },
+        "restrict_eval": { "const": true },
+        "allow_import_from_derivation": { "const": false },
+        "accept_flake_config": { "const": false },
+        "allow_unsafe_native_code_during_evaluation": { "const": false },
+        "require_sigs": { "const": true },
+        "substitute_theorem_result": { "const": false },
+        "remote_builders_allowed": { "const": false },
+        "remote_store_allowed": { "const": false },
+        "plugin_files_allowed": { "const": false },
+        "pre_build_hook_allowed": { "const": false },
+        "post_build_hook_allowed": { "const": false },
+        "diff_hook_allowed": { "const": false },
+        "fixed_output_theorem_allowed": { "const": false },
+        "impure_theorem_allowed": { "const": false },
+        "no_chroot_theorem_allowed": { "const": false },
+        "network_theorem_allowed": { "const": false }
+      }
+    },
+    "preparation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network_allowed_for_content_pinned_fetches",
+        "subject_code_execution_allowed",
+        "all_remote_inputs_content_pinned"
+      ],
+      "properties": {
+        "network_allowed_for_content_pinned_fetches": { "const": true },
+        "subject_code_execution_allowed": { "const": false },
+        "all_remote_inputs_content_pinned": { "const": true }
+      }
+    },
+    "environment_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "base_set", "ambient_clear", "suite_owned_keys"],
+      "properties": {
+        "mode": { "const": "deny-ambient-allow-reviewed-suite" },
+        "base_set": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "NIX_CONFIG",
+            "NIX_PATH",
+            "NIX_USER_CONF_FILES",
+            "SOURCE_DATE_EPOCH",
+            "TZ"
+          ],
+          "properties": {
+            "HOME": { "const": "/homeless-shelter" },
+            "LANG": { "const": "C.UTF-8" },
+            "LC_ALL": { "const": "C.UTF-8" },
+            "NIX_CONFIG": { "const": "" },
+            "NIX_PATH": { "const": "" },
+            "NIX_USER_CONF_FILES": { "const": "/dev/null" },
+            "SOURCE_DATE_EPOCH": { "const": "1" },
+            "TZ": { "const": "UTC" }
+          }
+        },
+        "ambient_clear": {
+          "const": [
+            "CARGO_ENCODED_RUSTFLAGS",
+            "CARGO_HOME",
+            "CC",
+            "CXX",
+            "LD_LIBRARY_PATH",
+            "NIX_CACHE_HOME",
+            "NIX_CONF_DIR",
+            "NIX_CONFIG_HOME",
+            "NIX_REMOTE",
+            "NIX_SSL_CERT_FILE",
+            "NIX_STATE_HOME",
+            "PKG_CONFIG_PATH",
+            "RUSTC_WRAPPER",
+            "RUSTFLAGS",
+            "RUSTUP_HOME",
+            "SSL_CERT_FILE"
+          ]
+        },
+        "suite_owned_keys": {
+          "const": [
+            "CARGO_HOME",
+            "CC",
+            "CXX",
+            "LD_LIBRARY_PATH",
+            "PKG_CONFIG_PATH"
+          ]
+        }
+      }
+    },
+    "source_identity_required": {
+      "const": [
+        "exact_parent",
+        "manifest_digest",
+        "owned_paths",
+        "required_commit_count",
+        "subject_commit_sha",
+        "subject_repository",
+        "subject_tree_sha"
+      ]
+    },
+    "evidence_required": {
+      "const": [
+        "builders_config",
+        "capsule_policy_digest",
+        "derivation_json_digest",
+        "derivation_path",
+        "effective_environment",
+        "effective_nix_config",
+        "hook_config",
+        "nix_version",
+        "output_path",
+        "plugin_config",
+        "sandbox_config",
+        "source_nar_hash",
+        "source_store_path",
+        "store_config",
+        "subject_identity",
+        "substituter_config",
+        "suite_id",
+        "suite_steps",
+        "system",
+        "trust_config"
+      ]
+    }
+  }
+}
