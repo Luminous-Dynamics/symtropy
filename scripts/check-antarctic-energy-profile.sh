@@ -53,7 +53,7 @@ audit_fixture() {
          + .thermal_storage.charge_input_kwh_th * .thermal_storage.charge_efficiency
          - .thermal_storage.discharge_to_service_kwh_th / .thermal_storage.discharge_efficiency
          - .thermal_storage.standing_loss_kwh_th_internal)
-         - .thermal_storage.closing_kwh_th_internal) | abs) <= $tol
+         - .thermal_storage.closing_kwh_th_internal) | abs) <= $tol)
       and (.battery_storage.capacity_kwh_internal > 0)
       and (.battery_storage.opening_kwh_internal >= 0)
       and (.battery_storage.closing_kwh_internal >= 0)
