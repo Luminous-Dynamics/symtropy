@@ -51,8 +51,13 @@ run_mutation() {
       ;;
     hardcode_element_count_in_request)
       grep -Fq 'elements_per_member={elements_per_member}' "$source"
-      perl -0pi -e 's/elements_per_member=\{elements_per_member\}/elements_per_member=1/' "$source"
+      perl -0pi -e 's/elements_per_member=\\{elements_per_member\\}/elements_per_member=1/' "$source"
       grep -Fq 'elements_per_member=1' "$source"
+      ;;
+    reverse_element_translation_map)
+      grep -Fq '            2 * start_index,' "$source"
+      perl -0pi -e 's/            2 \\* start_index,\\n            2 \\* start_index \\+ 1,\\n            rotation_base \\+ segment_index,/            2 * end_index,\\n            2 * end_index + 1,\\n            rotation_base + segment_index,/' "$source"
+      grep -Fq '            2 * end_index,' "$source"
       ;;
     *)
       printf 'Unknown beam-mesh mutation: %s\n' "$mutation" >&2
@@ -90,6 +95,11 @@ run_mutation \
   hardcode_element_count_in_request \
   mesh_request_is_frozen_and_includes_element_count
 
+run_mutation \
+  "element-translation-map-reversed" \
+  reverse_element_translation_map \
+  condensing_refined_beam_rotations_recovers_independent_axial_mesh_stiffness
+
 test "$mesh_sha256" = "$(sha256sum "$crate_dir/src/beam_mesh.rs" | awk '{print $1}')"
 
 jq -n \
@@ -125,10 +135,15 @@ jq -n \
         id: "PHYS-BEAM-MESH-MUT-REQUEST-COUNT-001",
         expected_test: "mesh_request_is_frozen_and_includes_element_count",
         disposition: "detected"
+      },
+      {
+        id: "PHYS-BEAM-MESH-MUT-TRANSLATION-MAP-001",
+        expected_test: "condensing_refined_beam_rotations_recovers_independent_axial_mesh_stiffness",
+        disposition: "detected"
       }
     ],
-    mutation_count: 4,
-    detected_count: 4,
+    mutation_count: 5,
+    detected_count: 5,
     production_source_unchanged: true,
     claim_ceiling: "small dense mesh-topology sensitivity only; no full NAFEMS beam reproduction or physical validation"
   }' > "$receipt_path"
