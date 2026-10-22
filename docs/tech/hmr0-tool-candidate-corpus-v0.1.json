@@ -3,9 +3,6 @@
   "suite_version": "0.1.0",
   "evidence_class": "synthetic",
   "purpose": "Fail-closed qualification of generated tool manifests for simulation-review eligibility in nonclinical mock hospital logistics only.",
-  "physical_actuation_enabled": false,
-  "patient_contact_enabled": false,
-  "clinical_function_enabled": false,
   "claim_ceiling": "Synthetic manifest screening only. This suite does not establish geometry correctness, force safety, cleanability, contamination control, medical-device conformity, physical performance, or authorization to fabricate or use a tool.",
   "fixture_digest_note": "Digest strings are synthetic schema fixtures, not hashes of delivered CAD or simulation files. The evaluator checks shape and binding fields only; it cannot verify an absent artifact.",
   "expected_case_count": 15,
@@ -592,5 +589,8 @@
         "STERILE_FIELD_ACCESS_OUT_OF_SCOPE"
       ]
     }
-  ]
+  ],
+  "physical_actuation_authorized": false,
+  "patient_contact_authorized": false,
+  "clinical_function_authorized": false
 }
