@@ -1,0 +1,61 @@
+name: Extreme Environment Platform Readiness Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/extreme_environment_platform_readiness_v0_1.schema.json"
+      - "fixtures/extreme_environment/**"
+      - "docs/tech/EXTREME_ENVIRONMENT_*.md"
+      - "tools/extreme-environment-audit/**"
+      - ".github/workflows/extreme-environment-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/extreme_environment_platform_readiness_v0_1.schema.json"
+      - "fixtures/extreme_environment/**"
+      - "docs/tech/EXTREME_ENVIRONMENT_*.md"
+      - "tools/extreme-environment-audit/**"
+      - ".github/workflows/extreme-environment-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extreme-environment-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/extreme-environment-audit/Cargo.toml -- --check
+      - name: Run mission-gate contract tests
+        run: cargo test --manifest-path tools/extreme-environment-audit/Cargo.toml --all-targets
+      - name: Audit synthetic extreme-environment portfolio
+        run: |
+          cargo run --manifest-path tools/extreme-environment-audit/Cargo.toml -- fixtures/extreme_environment/extreme_environment_platform_scenarios_v0_1.json > "$RUNNER_TEMP/extreme-environment-report.json"
+          jq -e '
+            .benchmark_id == "extreme-environment-platform-readiness-v0.1"
+            and .environment_count == 5
+            and .mission_scenario_count == 5
+            and .platform_assessment_count == 15
+            and .eligible_for_human_review_count == 6
+            and .blocked_hard_gate_count == 4
+            and .needs_gate_evidence_count == 5
+            and .not_assessable_incomplete_metrics_count == 0
+            and .deployment_authorized == false
+            and .autonomous_hazard_handling_authorized == false
+            and .weighted_universal_score_produced == false
+            and ([.assessment_reports[] | select(.assessment_id == "afg-route-unverified") | .readiness_disposition] == ["needs_gate_evidence"])
+            and ([.assessment_reports[] | select(.assessment_id == "amz-tracked-impact") | .readiness_disposition] == ["blocked_hard_gate"])
+          ' "$RUNNER_TEMP/extreme-environment-report.json"
+          sha256sum "$RUNNER_TEMP/extreme-environment-report.json"
