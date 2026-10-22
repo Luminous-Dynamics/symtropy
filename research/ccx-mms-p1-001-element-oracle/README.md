@@ -31,7 +31,9 @@ Tests cover:
 - rotation covariance of recovered strain and stress for isotropic plane strain;
 - a scale-invariant triangle mean-ratio quality measure and a sliver-geometry sweep;
 - explicit rejection immediately below the frozen relative floating-point degeneracy
-  floor, and acceptance of a represented triangle above that floor.
+  floor, and acceptance of a represented triangle above that floor;
+- equilateral-triangle mean-ratio normalization to one, with only few-ulp overshoot
+  clamped after a finite/upper-bound sanity check.
 
 ## Geometry conditioning receipt
 
