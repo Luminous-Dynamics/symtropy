@@ -475,6 +475,13 @@ pub fn replay_execution(
 mod tests {
     use super::*;
 
+    fn cutoff(occurred: u64, recorded: u64) -> ExecutionReplayCutoff {
+        ExecutionReplayCutoff {
+            as_of_occurred_tick: occurred,
+            as_of_recorded_tick: recorded,
+        }
+    }
+
     fn op(id: &str, start: u64, end: u64) -> PlannedOperation {
         PlannedOperation {
             operation_id: id.to_owned(),
@@ -509,7 +516,7 @@ mod tests {
             event("finish-a", "weld-a", ExecutionEventKind::Completed, 10, 12),
         ];
 
-        let before_late_event = replay_execution(&plan, &events, 10);
+        let before_late_event = replay_execution(&plan, &events, cutoff(10, 10));
         assert!(before_late_event.evidence_valid);
         assert_eq!(before_late_event.metrics.operations_started, 1);
         assert_eq!(before_late_event.metrics.operations_completed, 0);
@@ -524,7 +531,7 @@ mod tests {
             None
         );
 
-        let after_late_event = replay_execution(&plan, &events, 12);
+        let after_late_event = replay_execution(&plan, &events, cutoff(12, 12));
         assert!(after_late_event.evidence_valid);
         assert_eq!(after_late_event.metrics.operations_completed, 1);
         assert_eq!(after_late_event.metrics.total_completion_lateness_ticks, 2);
@@ -560,8 +567,8 @@ mod tests {
         shuffled.reverse();
 
         assert_eq!(
-            replay_execution(&plan, &events, 12),
-            replay_execution(&plan, &shuffled, 12)
+            replay_execution(&plan, &events, cutoff(12, 12)),
+            replay_execution(&plan, &shuffled, cutoff(12, 12))
         );
     }
 
@@ -572,7 +579,7 @@ mod tests {
             event("same-id", "weld-a", ExecutionEventKind::Started, 1, 1),
             event("same-id", "weld-a", ExecutionEventKind::Started, 2, 2),
         ];
-        let report = replay_execution(&plan, &events, 5);
+        let report = replay_execution(&plan, &events, cutoff(5, 5));
         assert!(!report.evidence_valid);
         assert!(
             report
@@ -591,8 +598,8 @@ mod tests {
         ];
         let mut reversed = events.clone();
         reversed.reverse();
-        let left = replay_execution(&plan, &events, 5);
-        let right = replay_execution(&plan, &reversed, 5);
+        let left = replay_execution(&plan, &events, cutoff(5, 5));
+        let right = replay_execution(&plan, &reversed, cutoff(5, 5));
 
         assert_eq!(left, right);
         assert!(!left.evidence_valid);
@@ -617,7 +624,7 @@ mod tests {
             ),
             event("bad-clock", "weld-a", ExecutionEventKind::Completed, 4, 3),
         ];
-        let report = replay_execution(&plan, &events, 5);
+        let report = replay_execution(&plan, &events, cutoff(5, 5));
         assert!(!report.evidence_valid);
         assert!(
             report
@@ -643,15 +650,36 @@ mod tests {
             1,
             1,
         )];
-        let report = replay_execution(&plan, &events, 2);
+        let report = replay_execution(&plan, &events, cutoff(5, 2));
 
         assert_eq!(report.metrics.planned_operations, 2);
         assert_eq!(report.metrics.operations_started, 1);
         assert_eq!(report.metrics.operations_completed, 0);
         assert_eq!(report.metrics.missing_start_events, 1);
-        assert_eq!(report.metrics.missing_completion_events, 2);
+        assert_eq!(report.metrics.missing_completion_events, 1);
+        assert_eq!(report.metrics.operations_not_yet_due_to_start, 0);
+        assert_eq!(report.metrics.operations_not_yet_due_to_complete, 1);
         assert_eq!(report.operations[0].observed_duration_ticks, None);
         assert!(report.evidence_valid);
+    }
+
+    #[test]
+    fn future_occurrence_event_does_not_satisfy_an_earlier_physical_snapshot() {
+        let plan = [op("weld-a", 2, 4)];
+        let events = [
+            event("start-future", "weld-a", ExecutionEventKind::Started, 8, 9),
+            event("finish-future", "weld-a", ExecutionEventKind::Completed, 10, 11),
+        ];
+        let report = replay_execution(&plan, &events, cutoff(5, 12));
+
+        assert!(report.evidence_valid);
+        assert_eq!(report.metrics.events_considered, 0);
+        assert_eq!(report.metrics.events_held_back_by_occurrence_time, 2);
+        assert_eq!(report.metrics.events_held_back_by_recorded_time, 0);
+        assert_eq!(report.metrics.missing_start_events, 1);
+        assert_eq!(report.metrics.missing_completion_events, 1);
+        assert_eq!(report.metrics.operations_not_yet_due_to_start, 0);
+        assert_eq!(report.metrics.operations_not_yet_due_to_complete, 0);
     }
 
     #[test]
@@ -661,7 +689,7 @@ mod tests {
             event("start", "weld-a", ExecutionEventKind::Started, 4, 4),
             event("complete", "weld-a", ExecutionEventKind::Completed, 3, 5),
         ];
-        let report = replay_execution(&plan, &events, 5);
+        let report = replay_execution(&plan, &events, cutoff(5, 5));
         assert!(!report.evidence_valid);
         assert!(
             report
