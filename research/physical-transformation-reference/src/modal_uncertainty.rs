@@ -553,7 +553,7 @@ fn empty_sensitivity(
 mod tests {
     use super::{
         BeamInputUncertainty, BeamUncertaintyParameter, SensitivityDisposition,
-        evaluate_beam_modal_uncertainty,
+        canonical_modal_uncertainty_request, evaluate_beam_modal_uncertainty,
     };
     use crate::beam_pin_assembly::{BeamMemberChain, BeamPinNode};
 
@@ -679,6 +679,11 @@ mod tests {
         ];
         let first = canonical_modal_uncertainty_request(&joints(), &members(1), &parameters, 17)
             .expect("canonical request");
+        assert_eq!(
+            first,
+            include_str!("../fixtures/modal_uncertainty_request_v0_1.txt")
+                .trim_end_matches('\n')
+        );
         let mut reversed_joints = joints();
         reversed_joints.reverse();
         let mut reversed_members = members(1);
