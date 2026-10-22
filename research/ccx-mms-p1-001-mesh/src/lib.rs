@@ -938,18 +938,28 @@ mod tests {
     fn consistent_loads_match_independent_quadrature_and_resultant() {
         let mesh = generate_mesh(8).unwrap();
         let problem = ManufacturedProblem::reference();
-        let loads_32 = mesh.assemble_body_force(problem, 32).unwrap();
-        let loads_48 = mesh.assemble_body_force(problem, 48).unwrap();
-        let difference = relative_load_difference(&loads_32, &loads_48).unwrap();
+        let assembly_32 = mesh
+            .assemble_body_force_with_diagnostics(problem, 32)
+            .unwrap();
+        let assembly_48 = mesh
+            .assemble_body_force_with_diagnostics(problem, 48)
+            .unwrap();
+        let difference = relative_load_difference(
+            &assembly_32.nodal_loads,
+            &assembly_48.nodal_loads,
+        )
+        .unwrap();
         assert!(difference <= 1.0e-12, "relative load difference={difference:e}");
 
-        let total = Mesh::resultant(&loads_48).unwrap();
+        let total = Mesh::resultant(&assembly_48.nodal_loads).unwrap();
         let exact = problem.integrated_body_force();
         let normalized_x = (total.x - exact.x).abs() / exact.x.abs().max(1.0);
         let normalized_y =
-            total.y.abs() / loads_48.iter().map(|load| load.y.abs()).sum::<f64>().max(1.0);
+            total.y.abs() / assembly_48.integrated_absolute_force.y.max(1.0);
         assert!(normalized_x <= 1.0e-10, "x resultant residual={normalized_x:e}");
         assert!(normalized_y <= 1.0e-10, "y normalized residual={normalized_y:e}");
+        assert!(assembly_48.integrated_absolute_force.x > 0.0);
+        assert!(assembly_48.integrated_absolute_force.y > 0.0);
     }
 
     #[test]
