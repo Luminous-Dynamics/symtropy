@@ -126,3 +126,13 @@ fn malformed_unicode_and_trailing_content_are_rejected() {
     assert!(validate_json_syntax(r#"{"key":"\uD800"}"#).is_err());
     assert!(validate_json_syntax(r#"{"key":true} trailing"#).is_err());
 }
+
+
+#[test]
+fn heuristic_exhaustion_is_not_an_infeasibility_proof() {
+    let report = include_str!("../fixtures/heuristic-no-solution.json");
+    let errors = audit_report_json(MANIFEST, report);
+    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(report.contains("\"no_solution_count\": 1"));
+    assert!(report.contains("\"feasible_reference_cases_missed_count\": 1"));
+}
