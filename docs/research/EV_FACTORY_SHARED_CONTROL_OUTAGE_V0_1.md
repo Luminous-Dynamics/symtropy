@@ -5,9 +5,11 @@
 The Rust discrete-event engine now accepts an optional, strict `common_cause_control_outage` catalog entry. The configuration names a shared domain, its exact member stations, first start time, recurrence interval and duration. Unknown station IDs, duplicate members, missing identifiers, nonpositive time values, overlapping recurrence windows and any final outage interval truncated by the simulation horizon fail closed. Each root report includes `catalog_config_sha256`, the SHA-256 of the validated typed catalog's canonical serialization (including the seed list and outage configuration); this is a semantic configuration digest, not a hash of raw fixture bytes.
 
 During a declared event, the affected stations:
-- do not start new processing cycles;
+- do not dispatch new jobs from their input queue;
 - do not transfer completed output to a downstream buffer or finished-goods sink;
-- allow cycles already underway to complete, with completed jobs held at the output boundary until the domain recovers.
+- allow jobs already accepted before the outage to finish their bounded processing/rework chain, with completed output held at the transfer boundary until the domain recovers.
+
+The queue-dispatch rule is instrumented and asserted: a member station must report zero new job dispatches during the outage. This does not assert zero processing attempts for jobs already accepted before the outage; any physical control contract that forbids even their quality retries needs a separate explicit rework-pausing state machine.
 
 The event is scheduled on deterministic simulation time. The report carries the exact outage configuration, a start/end causal trace, number of outage starts after warm-up, measured outage seconds and per-station outage fractions. Per-station outage fraction is an overlay on machine-state time accounting, not an additional mutually exclusive time category. With an outage configured, the runner executes a matched counterfactual catalog with the outage removed. It reports per-seed paired good-units/hour deltas for the baseline and every station-addition intervention, each intervention's marginal effect under both structures, plus the paired difference-in-differences:
 `(intervention − baseline)_outage − (intervention − baseline)_no_outage`.
@@ -34,6 +36,7 @@ Fixture:
 
 Expected controls:
 - Configured stations expose a nonzero outage fraction; nonmembers expose zero.
+- Configured stations record zero new job dispatches during the outage.
 - No-outage catalog behavior reports null config and zero outage metrics.
 - Same catalog/seed/build is deterministic; the canonical catalog digest is stable for the same typed configuration and differs when the outage mechanism is removed.
 - The test pairs no-outage and outage baseline outputs by the same 20 seed IDs and reports finite per-seed deltas. It does not require a monotonic throughput result: queueing, dispatch and finite-horizon interactions can change observed outputs, so the sign must be measured rather than assumed.
