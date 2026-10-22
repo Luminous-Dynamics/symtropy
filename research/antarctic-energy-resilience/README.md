@@ -59,6 +59,12 @@ The first source-pinned recent reporting snapshot is [DCCEEW Annual Report 2024â
 
 The exact source inventory, lineage gates and next ingestion steps are in [DATA_SOURCES.md](DATA_SOURCES.md). Do not fabricate missing hourly series or align an annual fuel total to weather as if it were an hourly observation.
 
+## Benchmark and data-acquisition protocol
+
+The preregistered method comparison is in [BENCHMARK_PROTOCOL.md](BENCHMARK_PROTOCOL.md). It fixes the locked data-split rules, matched-budget baselines, independent hard gates, metrics, target hypothesis and falsification criteria before a real-data performance claim is allowed.
+
+The source acquisition helper is `scripts/acquire-antarctic-sources.sh`. It caches candidate downloads outside the git worktree, records response metadata and SHA-256, rejects HTML/empty responses, and does not claim the bytes are scientifically valid. AADC data acquisition is blocked unless the user explicitly confirms the originator-contact step from the citation instructions; the confirmation flag documents user acknowledgement, not proof of contact or a grant of rights.
+
 ## Baseline tournament
 
 Use identical load/weather/fault information and evaluation budgets:
