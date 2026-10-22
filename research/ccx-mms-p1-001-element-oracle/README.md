@@ -106,9 +106,9 @@ The frozen sweep has two mesh families: the existing uniform structured mesh (co
 and a quadratically graded coordinate map (x\mapsto x^2,\ y\mapsto y^2). Each family
 uses 2, 3, 4, 5, and 6 cells per side. For every matrix, the probe records the unscaled
 spectral condition number, the spectrum of the **symmetric** Jacobi-scaled matrix
-(D^{-1/2} K D^{-1/2}), CG/PCG iteration counts, and the independently recomputed true
-relative residual (|b-Kx|_2 / |b|_2). Both solvers use the same deterministic,
-nonzero synthetic right-hand side and frozen (10^{-10}) true-residual tolerance.
+`D^(-1/2) K D^(-1/2)`, CG/PCG iteration counts, and the independently recomputed true
+relative residual `||b-Kx||_2 / ||b||_2`. Both solvers use the same deterministic,
+nonzero synthetic right-hand side and frozen `1e-10` true-residual tolerance.
 
 The uniform family is a control: its regular interior node pattern makes the diagonal
 scaling essentially a scalar operation, so no material condition-number improvement
