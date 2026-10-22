@@ -1,0 +1,172 @@
+{
+  "schema_version": "civ-infra-decision-impact/v0.1",
+  "world_id": "synthetic-bridge-tunnel-corridor-v0.1",
+  "candidate_ids": [
+    "surface-detour",
+    "bridge-alternative",
+    "tunnel-alternative"
+  ],
+  "state_signatures": [
+    {
+      "state_id": "stable-dry-ground",
+      "signature": {
+        "feasible_candidates": [
+          "surface-detour",
+          "bridge-alternative",
+          "tunnel-alternative"
+        ],
+        "infeasible_candidates": [],
+        "unknown_candidates": [],
+        "frontier_candidates": [
+          "surface-detour",
+          "bridge-alternative",
+          "tunnel-alternative"
+        ]
+      },
+      "upstream_case_ref": "synthetic-structure-corridor#stable-dry-ground"
+    },
+    {
+      "state_id": "bridge-scour-risk",
+      "signature": {
+        "feasible_candidates": [
+          "surface-detour",
+          "tunnel-alternative"
+        ],
+        "infeasible_candidates": [
+          "bridge-alternative"
+        ],
+        "unknown_candidates": [],
+        "frontier_candidates": [
+          "surface-detour",
+          "tunnel-alternative"
+        ]
+      },
+      "upstream_case_ref": "synthetic-structure-corridor#bridge-scour-risk"
+    },
+    {
+      "state_id": "tunnel-groundwater-risk",
+      "signature": {
+        "feasible_candidates": [
+          "surface-detour",
+          "bridge-alternative"
+        ],
+        "infeasible_candidates": [
+          "tunnel-alternative"
+        ],
+        "unknown_candidates": [],
+        "frontier_candidates": [
+          "surface-detour",
+          "bridge-alternative"
+        ]
+      },
+      "upstream_case_ref": "synthetic-structure-corridor#tunnel-groundwater-risk"
+    },
+    {
+      "state_id": "unresolved-deep-geology",
+      "signature": {
+        "feasible_candidates": [
+          "surface-detour"
+        ],
+        "infeasible_candidates": [],
+        "unknown_candidates": [
+          "bridge-alternative",
+          "tunnel-alternative"
+        ],
+        "frontier_candidates": [
+          "surface-detour"
+        ]
+      },
+      "upstream_case_ref": "synthetic-structure-corridor#unresolved-deep-geology"
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "bridge-scour-survey",
+      "description": "Synthetic outcome model isolates the seeded bridge-scour state; actual field discrimination is not established.",
+      "outcome_model_ref": "synthetic-partition-model:bridge-scour-survey-v0.1",
+      "estimated_cost": {
+        "value": 4,
+        "unit": "crew-hour",
+        "basis": "invented synthetic estimate; not a quote or measured cost"
+      },
+      "estimated_duration": {
+        "value": 1,
+        "unit": "day",
+        "basis": "invented synthetic estimate; not a field schedule"
+      },
+      "outcomes": [
+        {
+          "outcome_id": "scour-indicator-present",
+          "state_ids": [
+            "bridge-scour-risk"
+          ]
+        },
+        {
+          "outcome_id": "no-specified-scour-indicator",
+          "state_ids": [
+            "stable-dry-ground",
+            "tunnel-groundwater-risk",
+            "unresolved-deep-geology"
+          ]
+        }
+      ]
+    },
+    {
+      "action_id": "tunnel-groundwater-borehole",
+      "description": "Synthetic outcome model separates tunnel-compatible ground states from wet or unresolved ground states; not a calibrated site-investigation model.",
+      "outcome_model_ref": "synthetic-partition-model:tunnel-borehole-v0.1",
+      "estimated_cost": {
+        "value": 12,
+        "unit": "crew-hour",
+        "basis": "invented synthetic estimate; not a quote or measured cost"
+      },
+      "estimated_duration": {
+        "value": 3,
+        "unit": "day",
+        "basis": "invented synthetic estimate; not a field schedule"
+      },
+      "outcomes": [
+        {
+          "outcome_id": "competent-dry-at-investigation-scope",
+          "state_ids": [
+            "stable-dry-ground",
+            "bridge-scour-risk"
+          ]
+        },
+        {
+          "outcome_id": "weak-wet-or-unresolved-at-scope",
+          "state_ids": [
+            "tunnel-groundwater-risk",
+            "unresolved-deep-geology"
+          ]
+        }
+      ]
+    },
+    {
+      "action_id": "desktop-review-no-discrimination",
+      "description": "Negative-control action whose declared outcome cannot distinguish any current state.",
+      "outcome_model_ref": "synthetic-partition-model:non-discriminating-desktop-review-v0.1",
+      "estimated_cost": {
+        "value": 1,
+        "unit": "crew-hour",
+        "basis": "invented synthetic estimate; not a quote or measured cost"
+      },
+      "estimated_duration": {
+        "value": 1,
+        "unit": "hour",
+        "basis": "invented synthetic estimate; not a field schedule"
+      },
+      "outcomes": [
+        {
+          "outcome_id": "same-ambiguous-result",
+          "state_ids": [
+            "stable-dry-ground",
+            "bridge-scour-risk",
+            "tunnel-groundwater-risk",
+            "unresolved-deep-geology"
+          ]
+        }
+      ]
+    }
+  ]
+}
