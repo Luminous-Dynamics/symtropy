@@ -2805,9 +2805,18 @@ mod tests {
                     .good_flow_time_p99_seconds_across_replications
                     .as_ref()
                     .expect("p99 of per-replication good flow times");
-                assert_eq!(mean.sample_count, statistic.replications_with_good_flow_time_observations);
-                assert_eq!(p95.sample_count, statistic.replications_with_good_flow_time_observations);
-                assert_eq!(p99.sample_count, statistic.replications_with_good_flow_time_observations);
+                assert_eq!(
+                    mean.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p95.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
+                assert_eq!(
+                    p99.sample_count,
+                    statistic.replications_with_good_flow_time_observations
+                );
                 assert!(mean.mean >= 0.0 && p95.mean >= 0.0 && p99.mean >= 0.0);
             }
         }
