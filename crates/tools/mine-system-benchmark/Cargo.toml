@@ -1,0 +1,18 @@
+[package]
+name = "mine-system-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Dependency-free reference evaluator for MINE-SYSTEM-001 synthetic campaign contracts"
+
+# This prototype is deliberately an isolated, std-only tool crate so it can
+# be invoked directly without pulling the large Bevy workspace into scope.
+[workspace]
+resolver = "2"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "mine-system-benchmark"
+path = "src/main.rs"
