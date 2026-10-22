@@ -60,6 +60,8 @@ impl Error for ElementError {}
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TriangleElement {
     pub area: f64,
+    /// Scale-invariant triangle mean-ratio quality in (0, 1], where 1 is equilateral.
+    pub mean_ratio_quality: f64,
     /// Per-node shape-function gradients [(dN/dx), (dN/dy)].
     pub shape_gradients: [[f64; 2]; 3],
     /// Small-strain element stiffness matrix (6 × 6).
@@ -96,15 +98,18 @@ impl TriangleElement {
         let acy = c.y - a.y;
         let bcx = c.x - b.x;
         let bcy = c.y - b.y;
-        let max_edge_squared = [
+        let edge_squared = [
             abx * abx + aby * aby,
             acx * acx + acy * acy,
             bcx * bcx + bcy * bcy,
-        ]
-        .into_iter()
-        .fold(0.0_f64, f64::max);
+        ];
+        let max_edge_squared = edge_squared.into_iter().fold(0.0_f64, f64::max);
+        let edge_squared_sum = edge_squared.into_iter().sum::<f64>();
         let determinant = abx * acy - aby * acx;
-        if !max_edge_squared.is_finite() || !determinant.is_finite() {
+        if !max_edge_squared.is_finite()
+            || !edge_squared_sum.is_finite()
+            || !determinant.is_finite()
+        {
             return Err(ElementError::NonFiniteGeometry);
         }
         if max_edge_squared <= 0.0
@@ -146,6 +151,11 @@ impl TriangleElement {
             [0.0, 0.0, mu],
         ];
         let area = determinant.abs() * 0.5;
+        let mean_ratio_quality =
+            2.0 * 3.0_f64.sqrt() * determinant.abs() / edge_squared_sum;
+        if !mean_ratio_quality.is_finite() || !(0.0..=1.0).contains(&mean_ratio_quality) {
+            return Err(ElementError::NonFiniteGeometry);
+        }
         let scale = area * thickness;
         let mut constitutive_times_b = [[0.0_f64; 6]; 3];
         for (row_index, result_row) in constitutive_times_b.iter_mut().enumerate() {
@@ -175,6 +185,7 @@ impl TriangleElement {
 
         Ok(Self {
             area,
+            mean_ratio_quality,
             shape_gradients,
             stiffness,
             material,
@@ -671,4 +682,139 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn strain_is_covariant_under_rigid_coordinate_rotation() {
+        let vertices = points();
+        let displacements = vertices.map(affine_displacement);
+        let element = TriangleElement::new(vertices, material(), 1.0).unwrap();
+        let strain = element.strain(displacements).unwrap();
+
+        let angle: f64 = 0.37;
+        let cosine = angle.cos();
+        let sine = angle.sin();
+        let rotate = |x: f64, y: f64| Vec2 {
+            x: cosine * x - sine * y,
+            y: sine * x + cosine * y,
+        };
+        let rotated_vertices = vertices.map(|point| {
+            let rotated = rotate(point.x, point.y);
+            Point2 {
+                x: rotated.x,
+                y: rotated.y,
+            }
+        });
+        let rotated_displacements = displacements.map(|value| rotate(value.x, value.y));
+        let rotated =
+            TriangleElement::new(rotated_vertices, material(), 1.0).unwrap();
+        let observed = rotated.strain(rotated_displacements).unwrap();
+
+        let expected_xx = cosine * cosine * strain.xx
+            + sine * sine * strain.yy
+            - 2.0 * sine * cosine * strain.xy;
+        let expected_yy = sine * sine * strain.xx
+            + cosine * cosine * strain.yy
+            + 2.0 * sine * cosine * strain.xy;
+        let expected_xy = sine * cosine * (strain.xx - strain.yy)
+            + (cosine * cosine - sine * sine) * strain.xy;
+        close(observed.xx, expected_xx, 2.0e-14);
+        close(observed.yy, expected_yy, 2.0e-14);
+        close(observed.xy, expected_xy, 2.0e-14);
+
+        let stress = element.stress(displacements).unwrap();
+        let rotated_stress = rotated.stress(rotated_displacements).unwrap();
+        let expected_sxx = cosine * cosine * stress.xx
+            + sine * sine * stress.yy
+            - 2.0 * sine * cosine * stress.xy;
+        let expected_syy = sine * sine * stress.xx
+            + cosine * cosine * stress.yy
+            + 2.0 * sine * cosine * stress.xy;
+        let expected_sxy = sine * cosine * (stress.xx - stress.yy)
+            + (cosine * cosine - sine * sine) * stress.xy;
+        close(rotated_stress.xx, expected_sxx, 4.0e-14);
+        close(rotated_stress.yy, expected_syy, 4.0e-14);
+        close(rotated_stress.xy, expected_sxy, 4.0e-14);
+        close(rotated_stress.zz, stress.zz, 4.0e-14);
+    }
+
+    #[test]
+    fn mean_ratio_quality_is_scale_and_rotation_invariant() {
+        let vertices = points();
+        let original = TriangleElement::new(vertices, material(), 1.0).unwrap();
+        close(
+            TriangleElement::new(vertices.map(|point| Point2 {
+                x: point.x * 1.0e-6,
+                y: point.y * 1.0e-6,
+            }), material(), 1.0)
+            .unwrap()
+            .mean_ratio_quality,
+            original.mean_ratio_quality,
+            1.0e-14,
+        );
+
+        let angle: f64 = -0.61;
+        let cosine = angle.cos();
+        let sine = angle.sin();
+        let rotated_vertices = vertices.map(|point| Point2 {
+            x: cosine * point.x - sine * point.y,
+            y: sine * point.x + cosine * point.y,
+        });
+        let rotated =
+            TriangleElement::new(rotated_vertices, material(), 1.0).unwrap();
+        close(
+            rotated.mean_ratio_quality,
+            original.mean_ratio_quality,
+            1.0e-14,
+        );
+        assert!(original.mean_ratio_quality > 0.0);
+        assert!(original.mean_ratio_quality <= 1.0);
+    }
+
+    #[test]
+    fn near_degenerate_geometry_is_rejected_at_relative_floating_point_floor() {
+        let epsilon = f64::EPSILON;
+        let rejected = TriangleElement::new(
+            [
+                Point2 { x: 0.0, y: 0.0 },
+                Point2 { x: 1.0, y: 0.0 },
+                Point2 { x: 0.5, y: 16.0 * epsilon },
+            ],
+            material(),
+            1.0,
+        );
+        assert_eq!(rejected.unwrap_err(), ElementError::DegenerateTriangle);
+
+        let accepted = TriangleElement::new(
+            [
+                Point2 { x: 0.0, y: 0.0 },
+                Point2 { x: 1.0, y: 0.0 },
+                Point2 { x: 0.5, y: 256.0 * epsilon },
+            ],
+            material(),
+            1.0,
+        )
+        .unwrap();
+        assert!(accepted.mean_ratio_quality > 0.0);
+        assert!(accepted.mean_ratio_quality < 1.0e-12);
+    }
+
+    #[test]
+    fn mean_ratio_quality_degrades_monotonically_for_sliver_triangles() {
+        let heights = [1.0, 0.1, 0.01, 0.001];
+        let qualities = heights.map(|height| {
+            TriangleElement::new(
+                [
+                    Point2 { x: 0.0, y: 0.0 },
+                    Point2 { x: 1.0, y: 0.0 },
+                    Point2 { x: 0.5, y: height },
+                ],
+                material(),
+                1.0,
+            )
+            .unwrap()
+            .mean_ratio_quality
+        });
+        assert!(qualities.windows(2).all(|pair| pair[1] < pair[0]));
+    }
+
 }
