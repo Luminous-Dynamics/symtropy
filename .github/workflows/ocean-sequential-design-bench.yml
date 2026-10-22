@@ -1,0 +1,63 @@
+name: Ocean Sequential Design Benchmark
+
+on:
+  push:
+    branches: ["feat/ocean-sequential-design-001"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "tools/ocean-sequential-design-bench/**"
+      - "docs/tech/OCEAN_SEQUENTIAL_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/tech/OCEAN_SEQUENTIAL_DESIGN_CORPUS_V0_1.json"
+      - ".github/workflows/ocean-sequential-design-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "tools/ocean-sequential-design-bench/**"
+      - "docs/tech/OCEAN_SEQUENTIAL_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/tech/OCEAN_SEQUENTIAL_DESIGN_CORPUS_V0_1.json"
+      - ".github/workflows/ocean-sequential-design-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocean-sequential-design-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-synthetic-sequences:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting for focused tool
+        run: cargo fmt --manifest-path tools/ocean-sequential-design-bench/Cargo.toml --check
+      - name: Run focused tests
+        run: cargo test -p ocean-sequential-design-bench --locked
+      - name: Verify scenarios and emit receipt
+        env:
+          OCEAN_SEQUENTIAL_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cargo run --quiet -p ocean-sequential-design-bench --locked -- \
+            --corpus docs/tech/OCEAN_SEQUENTIAL_DESIGN_CORPUS_V0_1.json \
+            --receipt "${RUNNER_TEMP}/ocean-sequential-design-receipt.json"
+          test -s "${RUNNER_TEMP}/ocean-sequential-design-receipt.json"
+      - name: Upload machine-readable receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocean-sequential-design-receipt
+          path: ${{ runner.temp }}/ocean-sequential-design-receipt.json
+          if-no-files-found: error
+          retention-days: 14

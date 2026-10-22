@@ -1,0 +1,460 @@
+{
+  "schema_id": "luminous.symtropy.ocean-sequential-design",
+  "schema_version": "0.1.0",
+  "suite_id": "OCEAN-SEQUENTIAL-DESIGN-SYNTH-001",
+  "evidence_class": "SyntheticAdversarial",
+  "claim_ceiling": "Synthetic sequential observation-design benchmark only. Latent target values, signal levels, likelihoods, outcomes and policies are artificial. No species absence, abundance, ecological condition, environmental safety, field sensor calibration, contact authorization, navigation or extraction conclusion is inferred.",
+  "seed": 20261019,
+  "scenarios": [
+    {
+      "scenario_id": "imperfect-detection-and-correlation",
+      "description": "A static synthetic latent target is observed under imperfect detection. Same station/time repeats share a correlation group and cannot be double-counted; later time windows are distinct observations.",
+      "prior_presence_ppm": 250000,
+      "max_actions": 3,
+      "budget": {
+        "effort_units": 4,
+        "sound_units": 2,
+        "light_units": 2,
+        "sediment_units": 2
+      },
+      "strata": [
+        {
+          "stratum_id": "accessible_ridge",
+          "priority_ppm": 200000,
+          "historical_record_count": 1200,
+          "historical_effort_units": 80
+        },
+        {
+          "stratum_id": "slope_edge",
+          "priority_ppm": 300000,
+          "historical_record_count": 60,
+          "historical_effort_units": 8
+        },
+        {
+          "stratum_id": "deep_plain",
+          "priority_ppm": 500000,
+          "historical_record_count": 5,
+          "historical_effort_units": 1
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "reef-window1-primary",
+          "stratum_id": "accessible_ridge",
+          "time_window_id": "window-1",
+          "correlation_group": "reef-station-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 500000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 650000,
+          "false_positive_ppm": 100000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "reef-window1-correlated-repeat",
+          "stratum_id": "accessible_ridge",
+          "time_window_id": "window-1",
+          "correlation_group": "reef-station-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 500000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 650000,
+          "false_positive_ppm": 100000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "reef-window2-independent-repeat",
+          "stratum_id": "accessible_ridge",
+          "time_window_id": "window-2",
+          "correlation_group": "reef-station-window-2",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 550000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 700000,
+          "false_positive_ppm": 80000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "slope-window1-passive",
+          "stratum_id": "slope_edge",
+          "time_window_id": "window-1",
+          "correlation_group": "slope-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 650000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 700000,
+          "false_positive_ppm": 50000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 1,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "deep-window1-passive",
+          "stratum_id": "deep_plain",
+          "time_window_id": "window-1",
+          "correlation_group": "deep-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 350000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 450000,
+          "false_positive_ppm": 30000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 1
+          }
+        },
+        {
+          "candidate_id": "deep-window2-active",
+          "stratum_id": "deep_plain",
+          "time_window_id": "window-2",
+          "correlation_group": "deep-window-2",
+          "observation_mode": "active_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 750000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 850000,
+          "false_positive_ppm": 80000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 1,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "missing-likelihood-profile",
+          "stratum_id": "deep_plain",
+          "time_window_id": "window-3",
+          "correlation_group": "deep-window-3",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": null,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": null,
+          "false_positive_ppm": null,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "false-positive-control",
+      "description": "A low-prior synthetic target is tested by a noisy detector and a low-false-positive reference method. A single positive from the noisy detector must not produce certainty.",
+      "prior_presence_ppm": 50000,
+      "max_actions": 2,
+      "budget": {
+        "effort_units": 3,
+        "sound_units": 1,
+        "light_units": 1,
+        "sediment_units": 1
+      },
+      "strata": [
+        {
+          "stratum_id": "test_station",
+          "priority_ppm": 700000,
+          "historical_record_count": 90,
+          "historical_effort_units": 8
+        },
+        {
+          "stratum_id": "replicate_station",
+          "priority_ppm": 300000,
+          "historical_record_count": 4,
+          "historical_effort_units": 1
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "noisy-sensor-high-false-positive",
+          "stratum_id": "test_station",
+          "time_window_id": "window-1",
+          "correlation_group": "noisy-sensor-window-1",
+          "observation_mode": "active_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 650000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 900000,
+          "false_positive_ppm": 450000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 1,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "reference-passive-low-false-positive",
+          "stratum_id": "test_station",
+          "time_window_id": "window-1",
+          "correlation_group": "reference-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 600000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 800000,
+          "false_positive_ppm": 20000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "reference-next-window",
+          "stratum_id": "test_station",
+          "time_window_id": "window-2",
+          "correlation_group": "reference-window-2",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 600000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 800000,
+          "false_positive_ppm": 20000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "replicate-passive",
+          "stratum_id": "replicate_station",
+          "time_window_id": "window-1",
+          "correlation_group": "replicate-window-1",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 450000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 650000,
+          "false_positive_ppm": 30000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "low-sensitivity-and-rights-gates",
+      "description": "A high nominally appealing action falls below sensitivity, another is restricted despite completed review, another awaits review, and only adequately sensitive, permitted non-contact actions are eligible.",
+      "prior_presence_ppm": 400000,
+      "max_actions": 2,
+      "budget": {
+        "effort_units": 3,
+        "sound_units": 1,
+        "light_units": 1,
+        "sediment_units": 1
+      },
+      "strata": [
+        {
+          "stratum_id": "hadal_reference",
+          "priority_ppm": 600000,
+          "historical_record_count": 2,
+          "historical_effort_units": 1
+        },
+        {
+          "stratum_id": "benthic_reference",
+          "priority_ppm": 400000,
+          "historical_record_count": 20,
+          "historical_effort_units": 6
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "deep-low-signal-negative-control",
+          "stratum_id": "hadal_reference",
+          "time_window_id": "window-1",
+          "correlation_group": "low-signal-group",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 100000,
+          "minimum_detectable_signal_ppm": 300000,
+          "sensitivity_ppm": 900000,
+          "false_positive_ppm": 10000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "restricted-use",
+          "stratum_id": "hadal_reference",
+          "time_window_id": "window-1",
+          "correlation_group": "restricted-group",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "restricted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 600000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 800000,
+          "false_positive_ppm": 20000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "rights-review-pending",
+          "stratum_id": "hadal_reference",
+          "time_window_id": "window-2",
+          "correlation_group": "pending-group",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "review_required",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 600000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 800000,
+          "false_positive_ppm": 20000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "calibrated-deep-passive",
+          "stratum_id": "hadal_reference",
+          "time_window_id": "window-2",
+          "correlation_group": "calibrated-deep-window-2",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 550000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 700000,
+          "false_positive_ppm": 30000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "benthic-reference-active",
+          "stratum_id": "benthic_reference",
+          "time_window_id": "window-1",
+          "correlation_group": "benthic-active-window-1",
+          "observation_mode": "active_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 800000,
+          "minimum_detectable_signal_ppm": 200000,
+          "sensitivity_ppm": 900000,
+          "false_positive_ppm": 50000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 1,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        },
+        {
+          "candidate_id": "contact-sample-not-eligible",
+          "stratum_id": "benthic_reference",
+          "time_window_id": "window-2",
+          "correlation_group": "contact-window-2",
+          "observation_mode": "contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "known",
+          "expected_signal_ppm": 900000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 950000,
+          "false_positive_ppm": 10000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 1
+          }
+        },
+        {
+          "candidate_id": "unknown-exposure",
+          "stratum_id": "benthic_reference",
+          "time_window_id": "window-3",
+          "correlation_group": "unknown-exposure-group",
+          "observation_mode": "passive_non_contact",
+          "rights_review": "reviewed",
+          "use_permission": "permitted",
+          "exposure_knowledge": "unknown",
+          "expected_signal_ppm": 700000,
+          "minimum_detectable_signal_ppm": 100000,
+          "sensitivity_ppm": 800000,
+          "false_positive_ppm": 20000,
+          "effort_units": 1,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        }
+      ]
+    }
+  ]
+}
