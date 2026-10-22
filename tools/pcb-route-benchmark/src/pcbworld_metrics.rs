@@ -867,7 +867,7 @@ mod tests {
 board-a,0,17,completed,true,true,1.0,10.0,0,8,0,1,2.0,1.0,1.0,pcbworld_reward,45,ok,"[{""severity_label"":""warning"",""severity"":1,""error_code"":12,""error_type"":""tracks_crossing"",""x_mm"":1.0,""y_mm"":2.0,""layer"":0,""net_names"":[""GND""],""is_error"":false,""is_promoted"":true}]",30
 board-a,1,18,completed,false,false,0.5,20.0,2,15,1,2,0.0,1.0,-1.0,pcbworld_reward,45,ok,"",200
 board-b,0,17,completed,true,true,1.0,5.0,0,3,0,0,1.0,0.0,1.0,pcbworld_reward,45,ok,"[]",240
-board-b,1,19,crashed,,,,,,,,,,,,,,,,
+board-b,1,19,crashed,,,,,,,,,,,,,,,,,
 "#;
 
     const EVALUATOR_HEAD: &str = "ffffffffffffffffffffffffffffffffffffffff";
