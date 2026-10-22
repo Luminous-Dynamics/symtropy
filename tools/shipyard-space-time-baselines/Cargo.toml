@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-space-time-baselines"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic first-fit/bottom-left baseline for bounded shipyard space-time reservations"
+
+[dependencies]
+shipyard-space-time = { path = "../shipyard-space-time" }
+
+[workspace]
