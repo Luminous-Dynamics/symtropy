@@ -468,6 +468,7 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
     match assessment.classification {
         RuleClassification::SourcePreserved => {
             if !source_profile_present
+                || assessment.source_rule_json_pointer.as_deref().is_none_or(str::is_empty)
                 || assessment.source_value.as_deref().is_none_or(str::is_empty)
                 || assessment.evaluated_value.as_deref().is_none_or(str::is_empty)
                 || assessment.source_value != assessment.evaluated_value
@@ -477,6 +478,7 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
         }
         RuleClassification::VersionMigratedEquivalent => {
             if !source_profile_present
+                || assessment.source_rule_json_pointer.as_deref().is_none_or(str::is_empty)
                 || assessment.source_value.as_deref().is_none_or(str::is_empty)
                 || assessment.evaluated_value.as_deref().is_none_or(str::is_empty)
                 || assessment.mapping_evidence_relative_path.as_deref().is_none_or(str::is_empty)
@@ -488,6 +490,8 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
         }
         RuleClassification::ExplicitlyWaived => {
             if !source_profile_present
+                || assessment.source_rule_json_pointer.as_deref().is_none_or(str::is_empty)
+                || assessment.source_value.as_deref().is_none_or(str::is_empty)
                 || assessment.waiver_evidence_relative_path.as_deref().is_none_or(str::is_empty)
                 || assessment.waiver_evidence_sha256.as_deref().is_none_or(|v| !is_sha256(v))
                 || !rationale_required(&assessment.rationale)
@@ -497,6 +501,8 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
         }
         RuleClassification::Inferred => {
             if assessment.evaluated_value.as_deref().is_none_or(str::is_empty)
+                || (assessment.source_value.is_some()
+                    && assessment.source_rule_json_pointer.as_deref().is_none_or(str::is_empty))
                 || !rationale_required(&assessment.rationale)
             {
                 return Err(format!("{}: inferred requires the inferred value and rationale", assessment.rule_id));
@@ -504,6 +510,7 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
         }
         RuleClassification::Relaxed => {
             if assessment.source_value.as_deref().is_none_or(str::is_empty)
+                || assessment.source_rule_json_pointer.as_deref().is_none_or(str::is_empty)
                 || assessment.evaluated_value.as_deref().is_none_or(str::is_empty)
                 || !rationale_required(&assessment.rationale)
             {
@@ -514,6 +521,11 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
             if !rationale_required(&assessment.rationale) {
                 return Err(format!("{}: unavailable requires a rationale", assessment.rule_id));
             }
+        }
+    }
+    if let Some(pointer) = assessment.source_rule_json_pointer.as_deref() {
+        if !pointer.starts_with('/') {
+            return Err(format!("{}: source_rule_json_pointer must start with '/'", assessment.rule_id));
         }
     }
     for (path, digest, label) in [
@@ -1144,6 +1156,43 @@ mod tests {
             HEAD,
         ).unwrap_err();
         assert!(error.contains("must block error-severity violations"));
+    }
+
+    #[test]
+    fn source_value_claim_must_match_the_pinned_project_json_pointer() {
+        let mut changed_plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        changed_plan.rule_assessments[0].source_value = Some("0.19mm".into());
+        changed_plan.rule_assessments[0].evaluated_value = Some("0.19mm".into());
+        let error = evaluate_rule_fidelity(
+            &serde_json::to_vec(&changed_plan).unwrap(),
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            COMPAT_POLICY.as_bytes(),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&changed_plan),
+            HEAD,
+        ).unwrap_err();
+        assert!(error.contains("declared source_value does not match pinned source JSON pointer"));
+
+        let mut missing_pointer_plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        missing_pointer_plan.rule_assessments[0].source_rule_json_pointer =
+            Some("/board/design_settings/rules/nonexistent".into());
+        let error = evaluate_rule_fidelity(
+            &serde_json::to_vec(&missing_pointer_plan).unwrap(),
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            COMPAT_POLICY.as_bytes(),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&missing_pointer_plan),
+            HEAD,
+        ).unwrap_err();
+        assert!(error.contains("source JSON pointer does not resolve"));
     }
 
     #[test]
