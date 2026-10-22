@@ -65,11 +65,12 @@ This is a manufactured mathematical benchmark, not a model of a real structure.
 - Material: \(E=1,\nu=0.3\); no plasticity, contact, damping, geometric nonlinearity, or stabilization.
 - Domain and thickness convention: unit square, plane strain; document the solver's section/thickness convention in the deck receipt.
 - Boundary: impose the analytical displacement for each boundary node; do not infer node sets from stale node numbering.
-- Loading: create consistent nodal loads from the body force,
+- Loading: create the complete consistent nodal load vector from the body force,
   \[
   \mathbf F_i=\int_\Omega N_i(x,y)\mathbf f(x,y)\,d\Omega,
   \]
-  and record the exact force vector that is emitted into the deck. Do not approximate the spatially varying force by one constant element load.
+  and preserve that vector independently of the solver deck. Do not approximate the spatially varying force by one constant element load.
+- **Constrained-DOF load convention:** CalculiX documents concentrated loads as applied at nodes not fixed by a single- or multiple-point constraint ([CLOAD manual](https://www.feacluster.com/CalculiX/ccx_2.18/doc/ccx/node229.html)). The deterministic deck writer therefore leaves boundary-node loads out of the CLOAD section, while preserving each boundary node's full equivalent \((F_x,F_y)\) in explicit boundary-load comment records. These omitted terms do not affect the free-DOF displacement equations, but they do affect reported reactions. Under the conventional \(R=Ku-F\) sign convention, reconstruct the full-load support reaction as \(R_\mathrm{full}=R_\mathrm{deck}-F_\mathrm{boundary}\). Qualification must independently verify this correction against the pinned solver's actual RF output; if the output semantics or sign convention do not match, fail closed rather than changing the formula after looking at results.
 - Mesh levels: uniform \(n\times n\) Cartesian cells with each cell split along its lower-left to upper-right diagonal, \(n\in\{8,16,32,64\}\). Every node/element identifier, connectivity list, and boundary inventory is generated deterministically from the frozen recipe. Maximum element diameter halves between levels.
 - The source term and load-vector generator must be tested separately from the CalculiX result parser.
 
@@ -114,7 +115,7 @@ All gates are conjunctive. A failed or missing gate means qualification is false
 1. **Input and provenance:** source archive, compiler/toolchain, build features, executable, request, generated mesh, deck, log, output, and verifier source are hashed. Each level's result points to exactly one request, deck, executable and output. Reject missing, stale, cross-mesh, or mismatched evidence.
 2. **Solver process:** clean successful exit; expected nonempty result files; no timeout; all reported fields finite; exact requested step and output are present.
 3. **Boundary condition:** the maximum absolute boundary displacement error divided by \(\max(1,\max_{\partial\Omega}\|\mathbf u\|_\infty)\) is at most \(10^{-10}\). Since this field is zero on the boundary, this is an absolute \(10^{-10}\) bound for the nondimensional problem.
-4. **Force and reactions:** compare the x resultant with \(4A(\lambda+3\mu)\) using absolute error divided by \(\max(1,|F_{x,\mathrm{exact}}|)\) at most \(10^{-10}\). For the zero y resultant, require \(|F_y|/\max(1,\int_\Omega |f_y|\,d\Omega)\le10^{-10}\). The global reaction-balance residual \(\mathbf r=\sum_j\mathbf R_j+\sum_i\mathbf F_i\) must satisfy \(\|\mathbf r\|_\infty/\max(1,\sum_j\|\mathbf R_j\|_1+\sum_i\|\mathbf F_i\|_1)\le10^{-8}\). Record force components separately so cancellation cannot hide a component error.
+4. **Force and reactions:** compare the resultant of the *complete* consistent load vector (including boundary-node entries retained in deck comments) with \(4A(\lambda+3\mu)\) using absolute error divided by \(\max(1,|F_{x,\mathrm{exact}}|)\) at most \(10^{-10}\). For the zero y resultant, require \(|F_y|/\max(1,\int_\Omega |f_y|\,d\Omega)\le10^{-10}\). Correct solver RF at each constrained boundary node using the frozen convention \(R_\mathrm{full}=R_\mathrm{deck}-F_\mathrm{boundary}\), and require the global residual \(\mathbf r=\sum_j\mathbf R_{\mathrm{full},j}+\sum_i\mathbf F_i\) to satisfy \(\|\mathbf r\|_\infty/\max(1,\sum_j\|\mathbf R_{\mathrm{full},j}\|_1+\sum_i\|\mathbf F_i\|_1)\le10^{-8}\). This correction is not qualified until checked on the pinned CalculiX output format and sign convention. Record force components separately so cancellation cannot hide a component error.
 5. **Numerical errors:** \(E_{L^2}\) and \(E_E\) are finite and positive at all levels and decrease strictly at every refinement.
 6. **Observed order:** for each of the last two refinement intervals, \(0.75\le p_E\le1.25\) and \(1.5\le p_{L^2}\le2.5\). Publish every per-level error and order, including coarse levels that do not meet the asymptotic window.
 7. **Repeatability:** run the \(n=16\) case twice from identical hashed inputs. Numerical outputs and deterministic numerical receipts must agree within declared floating-point bounds. Keep nondeterministic wall-clock timings in a separate raw timing file so they do not contaminate deterministic receipt equality.
@@ -132,7 +133,7 @@ Emit a deterministic machine-readable JSON receipt containing:
 - repository commit SHA, verifier source digest, request/deck digests, mesh recipe and per-level mesh digests;
 - source archive checksum, build manifest, compiler identity, build flags, executable digest, and solver version;
 - process exit state and relevant log/output digests for each mesh;
-- analytical load resultant, load-vector digest, boundary error and force/reaction residuals;
+- analytical load resultant, full-load-vector digest, solver-applied CLOAD-vector digest, omitted-boundary-load digest, reaction-correction policy, boundary error, and force/reaction residuals;
 - per-level DOF/node/element counts, \(h\), \(E_{L^2}\), \(E_E\), stress diagnostic and all observed orders;
 - integration-rule cross-check results;
 - all negative-control outcomes and explicit failure reasons.
@@ -142,7 +143,7 @@ A separate timing record must include warm-up policy, repetitions, raw durations
 ## 7. Implementation sequence
 
 1. Add analytic unit tests for displacement, strain, stress, and both body-force components at fixed points; check force-resultant identities independently.
-2. Implement deterministic mesh/request generation and consistent nodal-force integration. Cross-check quadrature order before invoking CalculiX.
+2. Implement deterministic mesh/request generation, consistent nodal-force integration, and a canonical CPE3 input-deck writer. Preserve the full boundary-equivalent loads separately when omitting constrained DOFs from the CLOAD section; validate the reaction-correction convention using the real pinned solver before qualification. Cross-check quadrature order before invoking CalculiX.
 3. **Calibrate the error postprocessor without a solver:** sample the exact displacement at all nodes on each of the four meshes, interpolate those samples with the P1 field, and integrate L2, energy, and stress errors. Require strict L2/energy decrease, observed L2 order in the preregistered 1.5–2.5 window and energy order in 0.75–1.25 for the final two intervals. Separately compare the primary error norms with 32- and 48-point quadrature. This is a postprocessor regression test, not a solver qualification result.
 4. Add a strict output parser bound to the exact per-mesh request, deck, solver binary, and output bytes.
 5. Execute all four meshes plus the \(n=16\) repeat, preserving process receipts on both success and failure.
