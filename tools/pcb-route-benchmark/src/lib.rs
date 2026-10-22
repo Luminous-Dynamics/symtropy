@@ -1326,9 +1326,6 @@ pub fn verify_dataset_files(
         if board_sha != board.input_board_sha256 {
             return Err(format!("{}: source bytes SHA-256 does not match the pinned manifest", board.board_id));
         }
-        if let Some(audit_path) = board.relative_path.as_deref() {
-            let _ = audit_path;
-        }
         entries.push(DatasetFileVerificationEntry {
             board_id: board.board_id.clone(),
             role: "source_board".into(),
@@ -2910,10 +2907,17 @@ mod tests {
         manifest.source_split_commit_sha = Some("b".repeat(40));
         manifest.source_split_name = Some("test".into());
         manifest.intake_metadata_sha256 = Some("c".repeat(64));
+        manifest.license_audit_manifest_relative_path = Some("provenance/license-audit.json".into());
+        manifest.license_audit_manifest_sha256 = Some("d".repeat(64));
+
+        // External boards must declare a source identity and immutable PCBench metadata pin.
         for board in &mut manifest.boards {
             board.relative_path = Some(format!("boards/{}.kicad_pcb", board.board_id));
+            board.original_source_repository = Some(format!("https://example.invalid/{}", board.board_id));
+            board.source_metadata_path = Some(format!("PCBs/{}/metadata.json", board.board_id));
+            board.source_metadata_git_blob_sha1 = Some("a".repeat(40));
+            board.source_url = board.original_source_repository.clone().unwrap();
             board.license = "unknown".into();
-            board.source_url = format!("https://example.invalid/{}", board.board_id);
         }
         assert!(validate_manifest(&manifest)
             .unwrap_err()
@@ -2922,13 +2926,15 @@ mod tests {
         for board in &mut manifest.boards {
             board.license = "CC-BY-4.0".into();
             board.source_url = format!("http://example.invalid/{}", board.board_id);
+            board.original_source_repository = Some(board.source_url.clone());
         }
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("source_url must use HTTPS"));
+            .contains("external source URL/repository must come from the license audit"));
 
         for board in &mut manifest.boards {
             board.source_url = format!("https://example.invalid/{}", board.board_id);
+            board.original_source_repository = Some(board.source_url.clone());
             board.license_evidence_relative_path = None;
             board.license_evidence_url = None;
             board.license_evidence_sha256 = None;
@@ -2937,10 +2943,9 @@ mod tests {
         }
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("hash-bound license-evidence path"));
+            .contains("external license evidence is incomplete"));
 
-        // Evidence bytes and URLs must be pinned to a real commit, not a moving
-        // branch name or an unrelated SHA typed into a separate field.
+        // A moving or mismatched source-license URL must not satisfy the immutable source pin.
         for board in &mut manifest.boards {
             board.license_evidence_relative_path =
                 Some(format!("license-evidence/{}.txt", board.board_id));
@@ -2969,7 +2974,7 @@ mod tests {
         manifest.boards[0].license_evidence_source_commit_sha = None;
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("immutable license-source commit"));
+            .contains("external license evidence is incomplete"));
     }
 
     #[test]
