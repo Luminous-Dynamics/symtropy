@@ -79,11 +79,13 @@ Use a 32-by-32 Gauss–Legendre product rule under a Duffy transform for each re
 
 Parse nodal displacement from the actual CalculiX output, bind it to the precise mesh/request/deck/output digests, and evaluate the linear finite-element interpolant within each triangle. Do not compute convergence from endpoint or maximum nodal displacement alone.
 
-For each mesh, report both the absolute and normalized L2 displacement error:
+For each mesh, report the absolute and normalized displacement L2 errors:
 
 \[
-E_{L^2}=\left(\frac{\int_\Omega\|\mathbf u_h-\mathbf u\|^2\,d\Omega}
-{\int_\Omega\|\mathbf u\|^2\,d\Omega}\right)^{1/2}.
+e_{L^2,\mathrm{abs}}=\left(\int_\Omega\|\mathbf u_h-\mathbf u\|^2\,d\Omega\right)^{1/2},
+\qquad
+E_{L^2}=\frac{e_{L^2,\mathrm{abs}}}
+{\left(\int_\Omega\|\mathbf u\|^2\,d\Omega\right)^{1/2}}.
 \]
 
 Also report the relative plane-strain energy error:
