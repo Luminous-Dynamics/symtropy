@@ -29,6 +29,10 @@ pub struct DatasetManifest {
     #[serde(default)]
     pub source_split_config_sha256: Option<String>,
     #[serde(default)]
+    pub source_split_config_url: Option<String>,
+    #[serde(default)]
+    pub source_split_config_git_blob_sha1: Option<String>,
+    #[serde(default)]
     pub source_split_commit_sha: Option<String>,
     #[serde(default)]
     pub source_split_name: Option<String>,
@@ -47,6 +51,8 @@ pub struct IntakeSpec {
     pub split_id: String,
     pub source_url: String,
     pub source_split_commit_sha: String,
+    pub source_split_config_url: String,
+    pub source_split_config_git_blob_sha1: String,
     pub split_name: String,
     pub boards: Vec<IntakeBoard>,
 }
@@ -506,16 +512,40 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
             );
         }
     }
+    if let Some(url) = manifest.source_split_config_url.as_deref() {
+        if !url.starts_with("https://") {
+            return Err("source_split_config_url must use HTTPS".into());
+        }
+    }
+    if let Some(blob) = manifest.source_split_config_git_blob_sha1.as_deref() {
+        if !is_git_blob_sha1(blob) {
+            return Err(
+                "source_split_config_git_blob_sha1 must be a 40-character hexadecimal Git blob ID"
+                    .into(),
+            );
+        }
+    }
+    if manifest.evidence_class == "external_benchmark" {
+        let commit = manifest.source_split_commit_sha.as_deref().unwrap_or_default();
+        let url = manifest.source_split_config_url.as_deref().unwrap_or_default();
+        if !url.contains(&format!("/{commit}/")) {
+            return Err(
+                "external split-config URL must contain the pinned immutable source commit".into(),
+            );
+        }
+    }
     if let Some(digest) = manifest.intake_metadata_sha256.as_deref() {
         require_sha256(digest, "intake_metadata_sha256")?;
     }
     if manifest.evidence_class == "external_benchmark"
         && (manifest.source_split_config_sha256.is_none()
+            || manifest.source_split_config_url.is_none()
+            || manifest.source_split_config_git_blob_sha1.is_none()
             || manifest.source_split_commit_sha.is_none()
             || manifest.source_split_name.is_none()
             || manifest.intake_metadata_sha256.is_none())
     {
-        return Err("external manifest must bind split config, source commit, split name and intake metadata digests".into());
+        return Err("external manifest must bind split config SHA-256, immutable URL, source Git blob, source commit, split name and intake metadata digest".into());
     }
     let mut ids = BTreeSet::new();
     for board in &manifest.boards {
@@ -682,6 +712,25 @@ pub fn build_dataset_manifest(
     if !is_commit_sha(&intake.source_split_commit_sha) {
         return Err(
             "source_split_commit_sha must be a 40- or 64-character hexadecimal commit ID".into(),
+        );
+    }
+    if !intake.source_split_config_url.starts_with("https://") {
+        return Err("source_split_config_url must use HTTPS".into());
+    }
+    if !is_git_blob_sha1(&intake.source_split_config_git_blob_sha1) {
+        return Err(
+            "source_split_config_git_blob_sha1 must be a 40-character hexadecimal Git blob ID"
+                .into(),
+        );
+    }
+    if !intake.source_split_config_url.contains(&format!("/{}/", intake.source_split_commit_sha)) {
+        return Err(
+            "source_split_config_url must contain the pinned immutable source commit".into(),
+        );
+    }
+    if git_blob_sha1(split_config_bytes) != intake.source_split_config_git_blob_sha1 {
+        return Err(
+            "source split-config bytes do not match the pinned upstream Git blob SHA-1".into(),
         );
     }
     if intake.split_name.trim().is_empty()
@@ -908,6 +957,8 @@ pub fn build_dataset_manifest(
         evidence_class: "external_benchmark".into(),
         source_url: intake.source_url.clone(),
         source_split_config_sha256: Some(sha256_hex(split_config_bytes)),
+        source_split_config_url: Some(intake.source_split_config_url.clone()),
+        source_split_config_git_blob_sha1: Some(git_blob_sha1(split_config_bytes)),
         source_split_commit_sha: Some(intake.source_split_commit_sha.to_ascii_lowercase()),
         source_split_name: Some(intake.split_name.clone()),
         intake_metadata_sha256: Some(sha256_hex(intake_spec_bytes)),
@@ -2397,6 +2448,11 @@ mod tests {
             split_id: "d3-test-pilot-v0.1".into(),
             source_url: "https://github.com/LGAI-Research/PCBWorld".into(),
             source_split_commit_sha: "c".repeat(40),
+            source_split_config_url: format!(
+                "https://github.com/LGAI-Research/PCBWorld/blob/{}/configs/datasets/d3.json",
+                "c".repeat(40)
+            ),
+            source_split_config_git_blob_sha1: git_blob_sha1(&split_config_bytes),
             split_name: "test".into(),
             boards: vec![
                 IntakeBoard {
@@ -2454,6 +2510,32 @@ mod tests {
 
         let manifest = build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
             .expect("pinned split manifests build from source bytes");
+        let altered_split = split_config_bytes
+            .windows(b"board-hard-1".len())
+            .position(|window| window == b"board-hard-1")
+            .map(|index| {
+                let mut bytes = split_config_bytes.clone();
+                bytes[index..index + b"board-hard-1".len()]
+                    .copy_from_slice(b"board-evil-1");
+                bytes
+            })
+            .expect("hard board ID occurs in the pinned split JSON");
+        assert!(
+            build_dataset_manifest(&altered_split, &intake_bytes, &root)
+                .unwrap_err()
+                .contains("source split-config bytes do not match the pinned upstream Git blob")
+        );
+
+        let mut branch_url_intake = intake.clone();
+        branch_url_intake.source_split_config_url =
+            "https://github.com/LGAI-Research/PCBWorld/blob/main/configs/datasets/d3.json"
+                .into();
+        let branch_url_bytes = serde_json::to_vec(&branch_url_intake).unwrap();
+        assert!(
+            build_dataset_manifest(&split_config_bytes, &branch_url_bytes, &root)
+                .unwrap_err()
+                .contains("pinned immutable source commit")
+        );
         assert_eq!(manifest.boards.len(), 2);
         assert_eq!(manifest.evidence_class, "external_benchmark");
         assert!(manifest
@@ -2532,6 +2614,11 @@ mod tests {
         let mut manifest: DatasetManifest = serde_json::from_str(MANIFEST).unwrap();
         manifest.evidence_class = "external_benchmark".into();
         manifest.source_split_config_sha256 = Some("a".repeat(64));
+        manifest.source_split_config_url = Some(format!(
+            "https://github.com/example/PCBWorld/blob/{}/configs/datasets/d3.json",
+            "b".repeat(40)
+        ));
+        manifest.source_split_config_git_blob_sha1 = Some("e".repeat(40));
         manifest.source_split_commit_sha = Some("b".repeat(40));
         manifest.source_split_name = Some("test".into());
         manifest.intake_metadata_sha256 = Some("c".repeat(64));
