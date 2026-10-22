@@ -18,7 +18,8 @@ The official [Altair OS-V:0415 page](https://2024.help.altair.com/2024.1/hwsolve
 | NAFEMS FV5 theory table, reproduced in DIANA's [deep simply-supported beam verification page](https://manuals.dianafea.com/d1010/en/1353544-1353584-deep-simply-supported-beam.html) | Target frequency families below | Primary theoretical mode-family targets; actual model inputs still require source reconciliation |
 | DIANA FV5 page | Separate five-element FE results: 42.626, 70.768, 125.00, 148.58, 212.52, 288.75 Hz for the six frequency families | Cross-solver comparator only. Do not treat these results as the theory targets |
 | Altair [OS-V:0415 page](https://2024.help.altair.com/2024.1/hwsolvers/os/topics/solvers/os/nafems_test_problem_fv5_r.htm) | Five 2-node beam elements; support freedom description; E=200 GPa, nu=0.3, density=8000 kg/m³; target frequencies and rendered normalized values | Independent source attribution. The HTML extraction does not unambiguously associate every normalized number with a specific row; retain but do not use those numbers as a pass/fail oracle until the source table/raw input is reviewed |
-| FERS [public FV5 reproduction](https://ferscloud.com/nafems) | Secondary description reports L=10 m, circular section diameter about 2.28 m, shear coefficient kappa=5/6, and translational plus rotary-inertia model details | Discovery/triangulation only. Geometry, section and shear-coefficient values from this secondary source must not silently become normative inputs |
+| FERS [public FV5 reproduction](https://ferscloud.com/nafems) | Secondary description reports L=10 m, circular section diameter about 2.28 m, shear coefficient kappa=5/6, and translational plus rotary-inertia model details | Discovery/triangulation only. This is close to a 2×2 m square section in area/inertias, but the shape/model identity must remain explicit |
+| Ansys [LS-DYNA VM-LSDYNA-SOLVE-064](https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-064.html) | 10 m beam, 2×2 m section, E=200 GPa, nu=0.3, density=8000 kg/m³, explicit supports, six target mode families and six LS-DYNA output values | A separately frozen vendor-published target variant. Its torsional targets (71.200 and 213.610 Hz) differ materially from the DIANA-reproduced R0015 theoretical set (77.542 and 233.100 Hz); do not merge the two into one score |
 
 The six theoretical frequency families reproduced by DIANA's FV5 page are:
 
@@ -30,6 +31,25 @@ The six theoretical frequency families reproduced by DIANA's FV5 page are:
 | Flexural 2 | 2 | 148.310 | 148.580 |
 | Torsional 2 | 1 | 233.100 | 212.520 |
 | Flexural 3 | 2 | 284.550 | 288.750 |
+
+### Important: FV5 is a benchmark family with source variants
+
+The [Ansys LS-DYNA verification page](https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-064.html) explicitly gives a 10 m beam and a 2×2 m section, with E=200 GPa, nu=0.3, density=8000 kg/m³, A restraints (u_x=u_y=u_z=R_x=0), and B restraints (u_y=u_z=0). Its published NAFEMS-target/LS-DYNA pairs are:
+
+| Family | Multiplicity | LS-DYNA page target (Hz) | LS-DYNA result (Hz) | Result error published by Ansys |
+|---|---:|---:|---:|---:|
+| Flexural 1 | 2 | 42.650 | 42.642 | 0.019% |
+| Torsional 1 | 1 | 71.200 | 70.735 | 0.653% |
+| Extensional 1 | 1 | 125.000 | 124.968 | 0.026% |
+| Flexural 2 | 2 | 148.150 | 148.000 | 0.101% |
+| Torsional 2 | 1 | 213.610 | 211.769 | 0.862% |
+| Flexural 3 | 2 | 283.470 | 282.405 | 0.376% |
+
+These are *not identical* to the theoretical reference list reproduced in the DIANA FV5 page. Most notably, the first torsional target differs by roughly 8.2% and the second by roughly 8.4%. The sources may differ in variant, section/mass interpretation, beam theory or target provenance; the available public pages do not justify picking one explanation. Accordingly, the fixtures are separate:
+- `nafems_r0015_fv5_mode_manifest_v0_1.txt`: the R0015/DIANA-reproduced theoretical family;
+- `nafems_fv5_lsdyna_variant_v0_1.txt`: the Ansys LS-DYNA VM-LSDYNA-SOLVE-064 variant.
+
+The section is specified as 2×2 m in the Ansys variant, while FERS reports an approximately 2.28 m circular section, close in area and second moments but not the same geometry. A reproducible solver comparison must pin the actual (A), (I_y), (I_z), (J), shear areas and mass terms rather than substituting one shape for another. Keep solver outputs, theoretical targets, and geometric/model interpretations in separate evidence fields. Never average variant targets to create an invented “gold” answer.
 
 The 9 modes are not just nine ascending scalar frequencies. The first and second flexural families are repeated pairs; benchmark comparison must preserve pair identity and compare the associated invariant subspaces. A sorted-frequency-only score can silently misclassify mode crossing, mode swapping, or mixing within a repeated eigenspace.
 
@@ -47,9 +67,11 @@ Source-derived values documented in Altair's page:
 
 Do **not** close the input manifest until these unresolved fields have a source-quality answer:
 
-- Exact geometry, cross-section shape/dimensions, area (A), second moments (I_y,I_z), torsional constant (J), shear areas, shear coefficient and radius of gyration.
+- For the R0015/DIANA theoretical variant, the original source-authoritative cross-section and exact raw input still need reconciliation. The Ansys LS-DYNA variant documents a 2×2 m section; the FERS circular-section geometry is a third-party alternative rather than an interchangeable input.
+- For the selected model variant, record area (A), second moments (I_y,I_z), torsional constant (J), shear areas, shear coefficient and radius of gyration explicitly.
 - Element theory (Euler-Bernoulli vs Timoshenko), shear correction model, and translational/rotary terms in the mass matrix.
-- Precise interpretation of Altair's table columns and normalized factors.
+- Precise interpretation of Altair's rendered normalized factors.
+- The exact raw `fv5.fem` input remains unavailable from the linked Altair archive (404); Ansys exposes a separate LS-DYNA input-download link, which has not yet been retrieved or ingested.
 - Exact raw `fv5.fem` input, redistribution/licensing conditions, solver version and eigensolver controls.
 - Whether the comparison is theory-to-model, Altair-to-model or DIANA-to-model. These are separate evidence rows, not interchangeable labels.
 
