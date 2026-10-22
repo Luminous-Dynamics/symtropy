@@ -206,9 +206,22 @@ pub fn replay_execution(
         .filter(|event| event.recorded_tick <= as_of_recorded_tick)
         .collect();
     let held_back_events = events.len().saturating_sub(visible_events.len());
+    let mut event_id_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for event in &visible_events {
+        if !event.event_id.trim().is_empty() {
+            *event_id_counts.entry(event.event_id.as_str()).or_default() += 1;
+        }
+    }
+    let duplicate_event_ids: BTreeSet<&str> = event_id_counts
+        .iter()
+        .filter(|(_, count)| **count > 1)
+        .map(|(event_id, _)| *event_id)
+        .collect();
     let mut seen_event_ids = BTreeSet::new();
     let mut start_by_operation: BTreeMap<String, u64> = BTreeMap::new();
     let mut completion_by_operation: BTreeMap<String, u64> = BTreeMap::new();
+    let mut ambiguous_starts = BTreeSet::new();
+    let mut ambiguous_completions = BTreeSet::new();
     let mut total_event_recording_latency_ticks = 0u128;
 
     for event in &visible_events {
@@ -270,31 +283,44 @@ pub fn replay_execution(
                 .saturating_add(u128::from(event.recorded_tick - event.occurred_tick));
         }
 
+        if duplicate_event_ids.contains(event.event_id.as_str()) {
+            continue;
+        }
         match event.kind {
             ExecutionEventKind::Started => {
-                if start_by_operation
-                    .insert(event.operation_id.clone(), event.occurred_tick)
-                    .is_some()
-                {
+                if ambiguous_starts.contains(&event.operation_id) {
+                    continue;
+                }
+                if start_by_operation.contains_key(&event.operation_id) {
+                    start_by_operation.remove(&event.operation_id);
+                    ambiguous_starts.insert(event.operation_id.clone());
                     push_violation(
                         &mut violations,
                         ExecutionViolationCode::DuplicateStartEvent,
                         vec![event.operation_id.clone()],
                         "an operation cannot have two accepted start events in V0",
                     );
+                } else {
+                    start_by_operation
+                        .insert(event.operation_id.clone(), event.occurred_tick);
                 }
             }
             ExecutionEventKind::Completed => {
-                if completion_by_operation
-                    .insert(event.operation_id.clone(), event.occurred_tick)
-                    .is_some()
-                {
+                if ambiguous_completions.contains(&event.operation_id) {
+                    continue;
+                }
+                if completion_by_operation.contains_key(&event.operation_id) {
+                    completion_by_operation.remove(&event.operation_id);
+                    ambiguous_completions.insert(event.operation_id.clone());
                     push_violation(
                         &mut violations,
                         ExecutionViolationCode::DuplicateCompletionEvent,
                         vec![event.operation_id.clone()],
                         "an operation cannot have two accepted completion events in V0",
                     );
+                } else {
+                    completion_by_operation
+                        .insert(event.operation_id.clone(), event.occurred_tick);
                 }
             }
         }
@@ -495,6 +521,26 @@ mod tests {
             v.code == ExecutionViolationCode::DuplicateEventId
         }));
         assert!(report.violations.iter().any(|v| {
+            v.code == ExecutionViolationCode::DuplicateStartEvent
+        }));
+    }
+
+    #[test]
+    fn ambiguous_duplicate_event_claims_do_not_depend_on_input_order() {
+        let plan = [op("weld-a", 0, 5)];
+        let events = [
+            event("start-a", "weld-a", ExecutionEventKind::Started, 1, 1),
+            event("start-b", "weld-a", ExecutionEventKind::Started, 2, 2),
+        ];
+        let mut reversed = events.clone();
+        reversed.reverse();
+        let left = replay_execution(&plan, &events, 5);
+        let right = replay_execution(&plan, &reversed, 5);
+
+        assert_eq!(left, right);
+        assert!(!left.evidence_valid);
+        assert_eq!(left.operations[0].observed_start_tick, None);
+        assert!(left.violations.iter().any(|v| {
             v.code == ExecutionViolationCode::DuplicateStartEvent
         }));
     }
