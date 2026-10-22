@@ -103,6 +103,20 @@ These are proposed engineering gates. They are not achieved results or universal
 
 The P5 and P9 percentages are proposed stretch targets to challenge the team, not literature-derived universal acceptance limits. Revise them only before a benchmark round, with a written rationale and preserved old results—not after seeing the outcome.
 
+## 4.1 Current executable evidence ledger (22 October 2026)
+
+The table below reports individual exact-head receipts, not an aggregate claim that the whole physical workflow is verified.
+
+| Work item | Exact evidence | Interpretation / boundary |
+|---|---|---|
+| Axial truss reference | [PR #2476 energy-work consistency](https://github.com/Luminous-Dynamics/symtropy/pull/2476) and the earlier static-truss mutation/sweep receipts | Synthetic linear small-displacement, 2D pin-jointed axial-bar cases only. |
+| Axial modal sweep | [PR #2553, workflow #39640101606](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39640101606) passed its exact-head fixed-seed 128-case discrete-spectrum and scale-law tests. | Software verification of the named 1D axial-bar model, not truss beam dynamics. |
+| NBC05 axial-table reproduction | [PR #2556, workflow #39642979010](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39642979010) passed the analytic 2-DOF oracle, three NBC05-specific mutations, deterministic replay, source/request digests and receipt assertions. | Reproduces the published single-element-per-member axial-bar table only: CS1 452.091943 / 1114.580038 Hz; CS2 369.131526 / 910.050790 Hz. It is not full structural modal reproduction. |
+| Local Euler-Bernoulli element | [PR #2559, workflow #39645277167](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39645277167) passed formatting, unit tests and Clippy at its recorded exact head. | Local stiffness/mass matrices and cantilever static compliance only; not a global beam solver. |
+| Released-joint beam assembly / modes / convergence / MAC | [PR #2636](https://github.com/Luminous-Dynamics/symtropy/pull/2636), [#2638](https://github.com/Luminous-Dynamics/symtropy/pull/2638), [#2639](https://github.com/Luminous-Dynamics/symtropy/pull/2639), [#2641](https://github.com/Luminous-Dynamics/symtropy/pull/2641), and [#2644](https://github.com/Luminous-Dynamics/symtropy/pull/2644) are draft, stacked implementation tracks. | Their new exact-head gates remain unqualified until those specific runs complete. Passing the axial model must not be inherited as evidence for beam models. |
+
+The immediate external benchmark is [NAFEMS Challenge 5](https://www.nafems.org/downloads/nbc5_challenge.pdf) with its [published solution](https://www.nafems.org/downloads/nbr5v3.pdf). NAFEMS explicitly distinguishes consistent from lumped mass, discusses how constraint equations can introduce or suppress mechanisms, and warns that axial-only bar modes are only part of the dynamic response once bending is considered. The next credible claim is therefore not “we beat an industry solver”; it is “the same fully declared beam model reproduces a published reference with converged frequencies, correctly paired modes, residual/orthogonality diagnostics, and independently checked assumptions.”
+
 ## 5. Metrics that must remain separate
 
 - Exact state-transition correctness and false acceptance rate.
