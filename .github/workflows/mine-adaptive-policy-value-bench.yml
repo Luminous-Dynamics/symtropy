@@ -1,0 +1,73 @@
+name: Mine Adaptive Policy Value Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-adaptive-policy-value-bench-v0-1"]
+    paths:
+      - "docs/tech/MINE_ADAPTIVE_POLICY_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-adaptive-policy-value-corpus-v0.1.json"
+      - "tools/mine-adaptive-policy-value-bench/**"
+      - ".github/workflows/mine-adaptive-policy-value-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/MINE_ADAPTIVE_POLICY_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-adaptive-policy-value-corpus-v0.1.json"
+      - "tools/mine-adaptive-policy-value-bench/**"
+      - ".github/workflows/mine-adaptive-policy-value-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-adaptive-policy-value-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-adaptive-policy-value-bench/Cargo.toml -- --check
+      - name: Run policy and non-anticipativity tests
+        run: cargo test --manifest-path tools/mine-adaptive-policy-value-bench/Cargo.toml
+      - name: Validate exact-head policy receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-adaptive-policy-value-bench/Cargo.toml -- \
+            docs/tech/mine-adaptive-policy-value-corpus-v0.1.json \
+            --source-commit "$source_commit" > mine-adaptive-policy-value-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-ADAPTIVE-POLICY-VALUE-001"
+            and .scenario_count == 4
+            and .expected_controls_matched == 4
+            and .trace_violations == 0
+            and .nonanticipativity_violations == 0
+            and .two_stage_regret_reduction_vs_static_basis_points == 3200
+            and .rolling_regret_reduction_vs_two_stage_basis_points == 5294
+            and .rolling_regret_reduction_vs_static_basis_points == 6800
+            and ([.policy_aggregates[] | select(.policy == "static").weighted_mean_net_units][0] == 90)
+            and ([.policy_aggregates[] | select(.policy == "two_stage").weighted_mean_net_units][0] == 98)
+            and ([.policy_aggregates[] | select(.policy == "rolling_horizon").weighted_mean_net_units][0] == 107)
+            and ([.policy_aggregates[] | select(.policy == "static").weighted_mean_regret_units][0] == 25)
+            and ([.policy_aggregates[] | select(.policy == "two_stage").weighted_mean_regret_units][0] == 17)
+            and ([.policy_aggregates[] | select(.policy == "rolling_horizon").weighted_mean_regret_units][0] == 8)
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].expected_control_matched] | all)
+          ' mine-adaptive-policy-value-receipt.json
