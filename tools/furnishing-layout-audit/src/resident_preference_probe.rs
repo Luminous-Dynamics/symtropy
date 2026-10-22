@@ -324,7 +324,7 @@ fn minimax_regret(
         .map(|alternative_index| {
             scenario_indices
                 .iter()
-                .map(|scenario_index| {
+                .map(|scenario_index: usize| {
                     scenario_best[*scenario_index] - utilities[*scenario_index][alternative_index]
                 })
                 .max()
@@ -1166,7 +1166,7 @@ mod tests {
             input.alternatives = (0..5)
                 .map(|candidate_index| {
                     let scores = (0..2)
-                        .map(|criterion_index| {
+                        .map(|criterion_index: usize| {
                             (u32::from(seed) * 97
                                 + u32::from(candidate_index) * 1_339
                                 + u32::from(criterion_index) * 2_717)
@@ -1177,7 +1177,7 @@ mod tests {
                     alternative(&format!("c-{candidate_index}"), &scores)
                 })
                 .collect();
-            input.scenarios = (0..6)
+            input.scenarios = (0_usize..6)
                 .map(|scenario_index| {
                     let first =
                         (u32::from(seed) * 113 + u32::from(scenario_index) * 1_907) % 10_001;
