@@ -637,7 +637,8 @@ pub fn run_material_conditioning_sweep() -> Result<Vec<MaterialSweepPoint>, Elem
 /// Assemble the reduced global stiffness matrix for a zero-displacement
 /// Dirichlet boundary, then estimate its actual dense spectral condition number.
 /// This uses the independent CST kernel and is still not a CalculiX solver result.
-pub fn run_global_mesh_conditioning_sweep() -> Result<Vec<GlobalMeshConditioningPoint>, ElementError> {
+pub fn run_global_mesh_conditioning_sweep(
+) -> Result<Vec<GlobalMeshConditioningPoint>, ElementError> {
     let resolutions = [2, 3, 4, 5, 6];
     let material =
         PlaneStrainMaterial::new(1.0, 0.3).expect("reference material is admissible");
