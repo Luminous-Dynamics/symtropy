@@ -7,7 +7,7 @@ use std::error::Error;
 use std::fmt;
 
 use ccx_mms_p1_mesh::generate_mesh;
-use ccx_mms_p1_oracle::{PlaneStrainMaterial, Stress3, Strain2, Vec2};
+use ccx_mms_p1_oracle::{PlaneStrainMaterial, Strain2, Stress3, Vec2};
 
 const DEGENERACY_FACTOR: f64 = 64.0 * f64::EPSILON;
 
@@ -612,7 +612,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn irregular_star_patch_preserves_affine_strain_and_center_equilibrium() {
         let vertices = [
@@ -672,5 +671,4 @@ mod tests {
             }
         }
     }
-
 }
