@@ -16,6 +16,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 default = []
 inspector = ["dep:bevy_egui", "dep:bevy-inspector-egui"]
+field-observability = ["bevy/bevy_gizmos", "bevy/bevy_gizmos_render"]
 
 [dependencies]
 symtropy-math = { version = "0.2.0", path = "../../core/symtropy-math" }
