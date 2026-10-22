@@ -284,6 +284,182 @@ pub fn assemble_refined_released_joint_pin_truss(
     })
 }
 
+/// Project a global modal shape onto fixed physical-space translational
+/// samples on each source member. Five fractions (0, 1/4, 1/2, 3/4, 1) are
+/// evaluated from linear axial and cubic-Hermite transverse interpolation.
+/// This produces a stable 10-values-per-member vector across mesh densities,
+/// suitable for sign-invariant MAC comparisons even when the DOF counts differ.
+pub fn sample_member_displacement_field(
+    nodes: &[BeamPinNode],
+    members: &[BeamPinMember],
+    elements_per_member: usize,
+    assembly: &BeamPinAssembly,
+    shape_global_dofs: &[f64],
+) -> Check<Vec<f64>> {
+    validate_refinement_budget(nodes.len(), members.len(), elements_per_member)?;
+    let total_dofs = assembly.stiffness_global.len();
+    if shape_global_dofs.len() != total_dofs
+        || shape_global_dofs.iter().any(|value| !value.is_finite())
+    {
+        return Err("modal shape must be finite and match the assembly DOF count".to_owned());
+    }
+    if assembly.ordered_node_ids.len() * 2 > total_dofs {
+        return Err("assembly has fewer DOFs than its ordered node translations".to_owned());
+    }
+
+    let mut ordered_nodes = nodes.to_vec();
+    ordered_nodes.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut ordered_members = members.to_vec();
+    ordered_members.sort_by(|left, right| left.id.cmp(&right.id));
+    let mut coordinates: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for node in &ordered_nodes {
+        coordinates.insert(node.id.clone(), (node.x_m, node.y_m));
+    }
+    for member in &ordered_members {
+        let start = ordered_nodes
+            .iter()
+            .find(|node| node.id == member.start_node_id)
+            .ok_or_else(|| format!("missing sample start node {}", member.start_node_id))?;
+        let end = ordered_nodes
+            .iter()
+            .find(|node| node.id == member.end_node_id)
+            .ok_or_else(|| format!("missing sample end node {}", member.end_node_id))?;
+        for point in 1..elements_per_member {
+            let fraction = point as f64 / elements_per_member as f64;
+            coordinates.insert(
+                interior_node_id(&member.id, point),
+                (
+                    start.x_m + fraction * (end.x_m - start.x_m),
+                    start.y_m + fraction * (end.y_m - start.y_m),
+                ),
+            );
+        }
+    }
+
+    let node_index: BTreeMap<&str, usize> = assembly
+        .ordered_node_ids
+        .iter()
+        .enumerate()
+        .map(|(index, id)| (id.as_str(), index))
+        .collect();
+    let mut rotation_index: BTreeMap<(String, usize), usize> = BTreeMap::new();
+    for descriptor in &assembly.dof_descriptors {
+        let key = match &descriptor.kind {
+            BeamPinDofKind::MemberEndRotation { member_id, at_start } => (
+                member_id.clone(),
+                if *at_start { 0 } else { elements_per_member },
+            ),
+            BeamPinDofKind::MemberInteriorRotation {
+                member_id,
+                interior_node_index,
+            } => (member_id.clone(), *interior_node_index),
+            BeamPinDofKind::NodeTranslationX { .. }
+            | BeamPinDofKind::NodeTranslationY { .. } => continue,
+        };
+        if key.1 > elements_per_member {
+            return Err(format!(
+                "rotation descriptor for member {} is outside the requested mesh",
+                key.0
+            ));
+        }
+        if rotation_index.insert(key.clone(), descriptor.index).is_some() {
+            return Err(format!(
+                "duplicate member rotation descriptor for {} at point {}",
+                key.0, key.1
+            ));
+        }
+    }
+
+    let sample_fractions = [0.0_f64, 0.25, 0.5, 0.75, 1.0];
+    let mut samples = Vec::with_capacity(ordered_members.len() * sample_fractions.len() * 2);
+    for member in &ordered_members {
+        for fraction_along_member in sample_fractions {
+            let scaled_position = fraction_along_member * elements_per_member as f64;
+            let segment_index = if fraction_along_member >= 1.0 {
+                elements_per_member - 1
+            } else {
+                (scaled_position.floor() as usize).min(elements_per_member - 1)
+            };
+            let local_fraction = (scaled_position - segment_index as f64).clamp(0.0, 1.0);
+            let start_id = if segment_index == 0 {
+                member.start_node_id.clone()
+            } else {
+                interior_node_id(&member.id, segment_index)
+            };
+            let end_id = if segment_index + 1 == elements_per_member {
+                member.end_node_id.clone()
+            } else {
+                interior_node_id(&member.id, segment_index + 1)
+            };
+            let (start_x, start_y) = coordinates
+                .get(&start_id)
+                .copied()
+                .ok_or_else(|| format!("missing mesh coordinate for {start_id}"))?;
+            let (end_x, end_y) = coordinates
+                .get(&end_id)
+                .copied()
+                .ok_or_else(|| format!("missing mesh coordinate for {end_id}"))?;
+            let start_node_index = *node_index
+                .get(start_id.as_str())
+                .ok_or_else(|| format!("assembly is missing node {start_id}"))?;
+            let end_node_index = *node_index
+                .get(end_id.as_str())
+                .ok_or_else(|| format!("assembly is missing node {end_id}"))?;
+            let dx = end_x - start_x;
+            let dy = end_y - start_y;
+            let length = dx.hypot(dy);
+            if !length.is_finite() || length <= 0.0 {
+                return Err(format!("sample element {start_id}->{end_id} has invalid length"));
+            }
+            let cosine = dx / length;
+            let sine = dy / length;
+            let ux_start = shape_global_dofs[2 * start_node_index];
+            let uy_start = shape_global_dofs[2 * start_node_index + 1];
+            let ux_end = shape_global_dofs[2 * end_node_index];
+            let uy_end = shape_global_dofs[2 * end_node_index + 1];
+            let u_start = cosine * ux_start + sine * uy_start;
+            let v_start = -sine * ux_start + cosine * uy_start;
+            let u_end = cosine * ux_end + sine * uy_end;
+            let v_end = -sine * ux_end + cosine * uy_end;
+            let theta_start_index = *rotation_index
+                .get(&(member.id.clone(), segment_index))
+                .ok_or_else(|| {
+                    format!(
+                        "missing member rotation {} at point {}",
+                        member.id, segment_index
+                    )
+                })?;
+            let theta_end_index = *rotation_index
+                .get(&(member.id.clone(), segment_index + 1))
+                .ok_or_else(|| {
+                    format!(
+                        "missing member rotation {} at point {}",
+                        member.id,
+                        segment_index + 1
+                    )
+                })?;
+            let theta_start = shape_global_dofs[theta_start_index];
+            let theta_end = shape_global_dofs[theta_end_index];
+
+            let xi = local_fraction;
+            let xi2 = xi * xi;
+            let xi3 = xi2 * xi;
+            let axial = (1.0 - xi) * u_start + xi * u_end;
+            let transverse = (1.0 - 3.0 * xi2 + 2.0 * xi3) * v_start
+                + length * (xi - 2.0 * xi2 + xi3) * theta_start
+                + (3.0 * xi2 - 2.0 * xi3) * v_end
+                + length * (-xi2 + xi3) * theta_end;
+            samples.push(cosine * axial - sine * transverse);
+            samples.push(sine * axial + cosine * transverse);
+        }
+    }
+
+    if samples.iter().any(|value| !value.is_finite()) {
+        return Err("sampled modal displacement field contains a non-finite value".to_owned());
+    }
+    Ok(samples)
+}
+
 #[derive(Clone, Debug)]
 struct MeshNode {
     id: String,
@@ -385,8 +561,9 @@ mod tests {
 
     use super::{
         assemble_refined_released_joint_pin_truss, canonical_refinement_request,
-        canonical_refinement_sweep_request,
+        canonical_refinement_sweep_request, sample_member_displacement_field,
     };
+    use crate::beam_modal::{modal_assurance_criterion, solve_beam_pin_assembly_modes};
     use crate::beam_pin_assembly::{
         assemble_released_joint_pin_truss, BeamPinDofKind, BeamPinMember, BeamPinNode,
     };
@@ -546,6 +723,46 @@ mod tests {
             solution[row] = (rhs[row] - known) / matrix[row][row];
         }
         solution
+    }
+
+    #[test]
+    fn modal_shape_projection_has_mesh_invariant_dimension_and_mac() {
+        let mut sampled_shapes = Vec::new();
+        for elements_per_member in [1_usize, 2, 4, 8] {
+            let assembly = assemble_refined_released_joint_pin_truss(
+                &nodes(),
+                &members(),
+                elements_per_member,
+            )
+            .expect("refined beam assembly");
+            let solution =
+                solve_beam_pin_assembly_modes(&assembly).expect("refined beam modes");
+            let shape = &solution.modes[0].shape_global_dofs;
+            let sampled = sample_member_displacement_field(
+                &nodes(),
+                &members(),
+                elements_per_member,
+                &assembly,
+                shape,
+            )
+            .expect("shape projection");
+            assert_eq!(sampled.len(), members().len() * 5 * 2);
+            assert!(sampled.iter().all(|value| value.is_finite()));
+            sampled_shapes.push(sampled);
+        }
+
+        for pair in sampled_shapes.windows(2) {
+            let mac = modal_assurance_criterion(&pair[0], &pair[1])
+                .expect("equal-dimensional shape samples");
+            assert!((0.0..=1.0).contains(&mac));
+        }
+
+        let first = &sampled_shapes[0];
+        let sign_flipped = first.iter().map(|value| -*value).collect::<Vec<_>>();
+        assert!(
+            (modal_assurance_criterion(first, &sign_flipped).unwrap() - 1.0).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
