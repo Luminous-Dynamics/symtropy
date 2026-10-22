@@ -380,6 +380,157 @@ fn verify_case(
     })
 }
 
+fn field_f64(value: &serde_json::Value, key: &str) -> Option<f64> {
+    value.get(key).and_then(serde_json::Value::as_f64)
+}
+
+fn observed_order(coarse: f64, fine: f64) -> Option<f64> {
+    if !coarse.is_finite() || !fine.is_finite() || coarse <= 0.0 || fine <= 0.0 || fine >= coarse
+    {
+        return None;
+    }
+    Some((coarse / fine).ln() / 2.0_f64.ln())
+}
+
+fn aggregate_reports(
+    report_paths: &[String],
+    source_sha: &str,
+    build_sha: &str,
+    executable_sha: &str,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    const MESHES: [usize; 4] = [4, 8, 16, 32];
+    let mut errors = Vec::new();
+    let mut reports = Vec::new();
+    let mut report_digests = Vec::new();
+
+    if report_paths.len() != MESHES.len() {
+        return Err(format!("expected 4 report paths, observed {}", report_paths.len()).into());
+    }
+    for (index, path) in report_paths.iter().enumerate() {
+        let bytes = fs::read(path)?;
+        let report: serde_json::Value = serde_json::from_slice(&bytes)?;
+        let expected_elements = MESHES[index];
+        if report.get("elements").and_then(serde_json::Value::as_u64)
+            != Some(expected_elements as u64)
+        {
+            errors.push(format!(
+                "report {path} has unexpected mesh size; expected {expected_elements}"
+            ));
+        }
+        if report.get("numerical_contract_status").and_then(serde_json::Value::as_str)
+            != Some("PASS")
+        {
+            errors.push(format!("individual verification did not pass for mesh {expected_elements}"));
+        }
+        for (key, expected) in [
+            ("source_sha", source_sha),
+            ("build_manifest_sha256", build_sha),
+            ("solver_executable_sha256", executable_sha),
+        ] {
+            if report.get(key).and_then(serde_json::Value::as_str) != Some(expected) {
+                errors.push(format!(
+                    "mesh {expected_elements} provenance field {key} differs from the aggregate request"
+                ));
+            }
+        }
+        report_digests.push(json!({
+            "elements": expected_elements,
+            "report_path": path,
+            "report_sha256": sha256_hex(&bytes)
+        }));
+        reports.push(report);
+    }
+
+    let mut levels = Vec::new();
+    let mut all_nodal_pass = true;
+    for report in &reports {
+        let elements = report["elements"].as_u64().unwrap_or_default();
+        let nodal = field_f64(report, "nodal_max_normalized_error");
+        let l2 = field_f64(report, "l2_interpolation_error_normalized");
+        let h1 = field_f64(report, "h1_seminorm_error_normalized");
+        let nodal_pass = nodal.is_some_and(|value| {
+            value.is_finite() && value <= NODE_RELATIVE_ERROR_LIMIT
+        });
+        all_nodal_pass &= nodal_pass;
+        if !nodal_pass || l2.is_none() || h1.is_none() {
+            errors.push(format!("mesh {elements} is missing finite passing numerical metrics"));
+        }
+        levels.push(json!({
+            "elements": elements,
+            "nodes": report["nodes"],
+            "nodal_max_normalized_error": nodal,
+            "l2_interpolation_error_normalized": l2,
+            "h1_seminorm_error_normalized": h1,
+            "report_sha256": report_digests
+                .iter()
+                .find(|item| item["elements"].as_u64() == Some(elements))
+                .and_then(|item| item["report_sha256"].as_str())
+        }));
+    }
+
+    let mut l2_orders = Vec::new();
+    let mut h1_orders = Vec::new();
+    for index in 0..3 {
+        let coarse_l2 = field_f64(&reports[index], "l2_interpolation_error_normalized");
+        let fine_l2 = field_f64(&reports[index + 1], "l2_interpolation_error_normalized");
+        let coarse_h1 = field_f64(&reports[index], "h1_seminorm_error_normalized");
+        let fine_h1 = field_f64(&reports[index + 1], "h1_seminorm_error_normalized");
+        let l2_order = coarse_l2.zip(fine_l2).and_then(|(a, b)| observed_order(a, b));
+        let h1_order = coarse_h1.zip(fine_h1).and_then(|(a, b)| observed_order(a, b));
+        if !l2_order.is_some_and(|order| (1.8..=2.2).contains(&order)) {
+            errors.push(format!(
+                "L2 observed order for {}->{} elements is outside [1.8, 2.2]",
+                MESHES[index],
+                MESHES[index + 1]
+            ));
+        }
+        if !h1_order.is_some_and(|order| (0.9..=1.1).contains(&order)) {
+            errors.push(format!(
+                "H1-seminorm observed order for {}->{} elements is outside [0.9, 1.1]",
+                MESHES[index],
+                MESHES[index + 1]
+            ));
+        }
+        l2_orders.push(json!({
+            "from_elements": MESHES[index],
+            "to_elements": MESHES[index + 1],
+            "observed_order": l2_order,
+            "expected_order_range": [1.8, 2.2]
+        }));
+        h1_orders.push(json!({
+            "from_elements": MESHES[index],
+            "to_elements": MESHES[index + 1],
+            "observed_order": h1_order,
+            "expected_order_range": [0.9, 1.1]
+        }));
+    }
+
+    if !all_nodal_pass {
+        errors.push("one or more meshes failed the nodal solution check".to_owned());
+    }
+    let status = if errors.is_empty() { "PASS" } else { "FAIL" };
+    let report = json!({
+        "schema_version": "ccx-mms-convergence-summary-v0.1",
+        "benchmark_id": "PHYS-MMS-001",
+        "source_sha": source_sha,
+        "build_manifest_sha256": build_sha,
+        "solver_executable_sha256": executable_sha,
+        "levels": levels,
+        "l2_observed_orders": l2_orders,
+        "h1_seminorm_observed_orders": h1_orders,
+        "expected_l2_order_range": [1.8, 2.2],
+        "expected_h1_seminorm_order_range": [0.9, 1.1],
+        "report_sha256": report_digests,
+        "convergence_status": status,
+        "failure_reasons": errors,
+        "physical_result_qualified": false,
+        "real_world_validation_status": "UNRESOLVED",
+        "engineering_use_authorized": false,
+        "claim_ceiling": "observed numerical convergence order for this pinned 1D linear-elastic sine manufactured solution only; no experimental physical validation or engineering-use qualification"
+    });
+    Ok(report)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     match args.get(1).map(String::as_str) {
@@ -408,8 +559,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("{}", serde_json::to_string(&report)?);
             Ok(())
         }
+        Some("aggregate") if args.len() == 9 => {
+            let report = aggregate_reports(
+                &args[5..9],
+                &args[2],
+                &args[3],
+                &args[4],
+            )?;
+            println!("{}", serde_json::to_string(&report)?);
+            Ok(())
+        }
         _ => Err(
-            "usage: mms_convergence generate <4|8|16|32> | verify <4|8|16|32> <deck> <dat> <source-sha> <build-sha256> <executable-sha256>"
+            "usage: mms_convergence generate <4|8|16|32> | verify <4|8|16|32> <deck> <dat> <source-sha> <build-sha256> <executable-sha256> | aggregate <source-sha> <build-sha256> <executable-sha256> <report-n4> <report-n8> <report-n16> <report-n32>"
                 .into(),
         ),
     }
