@@ -66,5 +66,24 @@ jobs:
         working-directory: research/ccx-mms-p1-001-mesh
         run: cargo clippy --locked --all-targets -- -D warnings
 
+      - name: Generate and byte-compare load probe receipts
+        working-directory: research/ccx-mms-p1-001-mesh
+        run: |
+          cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
+          cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
+          cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
+          sha256sum /tmp/mms-p1-probe-a.json > /tmp/mms-p1-probe-a.sha256
+
+      - name: Preserve deterministic probe receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccx-mms-p1-load-probe
+          path: |
+            /tmp/mms-p1-probe-a.json
+            /tmp/mms-p1-probe-a.sha256
+          if-no-files-found: ignore
+          retention-days: 90
+
       - name: Ensure both lockfiles stayed unchanged
         run: git diff --exit-code -- research/ccx-mms-p1-001-mesh/Cargo.lock research/ccx-mms-p1-001-oracle/Cargo.lock
