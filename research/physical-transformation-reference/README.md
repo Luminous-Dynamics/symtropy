@@ -75,3 +75,19 @@ Do not reduce all of these to a single “realism” number. Do not claim state-
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
+
+
+## Planned-versus-observed recovery v0.1
+
+The `recovery_validation` module adds a separate observation lane so a valid planned mass ledger cannot be mistaken for measured recovery. Each observation records component identity, independently observed input mass, output mass by reused/recycled/contaminated/waste categories, evidence class, source locator, scale/calibration locator and an uncertainty bound.
+
+- `evidence_status` answers only what evidence supports the observation: `Measured` requires complete coverage, measured evidence class, source and calibration references, and an uncertainty bound for every recovered component. `Synthetic` and `Unresolved` remain distinct.
+- Complete synthetic observations stay `Synthetic`; derived, unknown, mixed or incomplete evidence stays `Unresolved`.
+- `plan_agreement` is independent of evidence status: `ExactMatch`, `Deviates`, or `Unresolved`. A measured observation can still deviate from the plan; conversely, a synthetic observation can exactly match it.
+- Observed unaccounted mass is calculated as observed input minus observed output categories. Residuals can be positive or negative and are never forced to zero. A nonzero residual can still be an exact plan match when that unaccounted quantity was explicitly planned; the comparator checks the residual *delta* against the plan, not whether the residual itself is zero.
+- Aggregate deltas are withheld when any planned recovery record lacks an observation. Duplicate/foreign observations, zero observed input, empty supplied locators, and arithmetic overflow fail closed.
+- Declared uncertainty bounds are summed conservatively; no Gaussian assumption or unsupported confidence interval is inferred.
+
+The deterministic synthetic receipt fixture declares a 1,000 mg input with a planned allocation of 500/300/50/100/50 mg (reuse/recycling/contamination/waste/unaccounted). The comparison observes 450/280/70/160 mg output. It reports a **+40 mg observed unaccounted residual**, with category deltas of -50/-20/+20/+60 mg and -10 mg change in the unaccounted category versus plan. These are synthetic values intended to prove accounting behavior, not measured recovery rates or an environmental-impact claim.
+
+This closes the software loop from plan to discrepancy report, but not the physical evidence loop: actual use requires traceable weighing, calibration records, material classification evidence and independent validation.

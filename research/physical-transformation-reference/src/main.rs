@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_transformation_reference::mechanics::run_reference_fixtures;
+use physical_transformation_reference::recovery_validation::run_reference_fixture as run_recovery_validation_fixture;
 use physical_transformation_reference::run_reference_fixture;
 use std::env;
 use std::process::ExitCode;
@@ -41,6 +42,47 @@ fn run() -> Result<(), String> {
     })?;
     let outcome = run_reference_fixture()?;
     let mechanics = run_reference_fixtures()?;
+    let recovery_validation = run_recovery_validation_fixture()?;
+    let recovery_evidence_status = match recovery_validation.evidence_status {
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Measured => {
+            "measured"
+        }
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Synthetic => {
+            "synthetic"
+        }
+        physical_transformation_reference::recovery_validation::EvidenceStatus::Unresolved => {
+            "unresolved"
+        }
+    };
+    let recovery_plan_agreement = match recovery_validation.plan_agreement {
+        physical_transformation_reference::recovery_validation::PlanAgreement::ExactMatch => {
+            "exact_match"
+        }
+        physical_transformation_reference::recovery_validation::PlanAgreement::Deviates => {
+            "deviates"
+        }
+        physical_transformation_reference::recovery_validation::PlanAgreement::Unresolved => {
+            "unresolved"
+        }
+    };
+    let recovery_residual = recovery_validation
+        .observed_mass_residual_mg
+        .ok_or_else(|| "recovery fixture residual unexpectedly unresolved".to_owned())?;
+    let recovery_reused_delta = recovery_validation
+        .reused_delta_mg
+        .ok_or_else(|| "recovery fixture reused delta unexpectedly unresolved".to_owned())?;
+    let recovery_recycled_delta = recovery_validation
+        .recycled_delta_mg
+        .ok_or_else(|| "recovery fixture recycled delta unexpectedly unresolved".to_owned())?;
+    let recovery_contaminated_delta = recovery_validation
+        .contaminated_delta_mg
+        .ok_or_else(|| "recovery fixture contaminated delta unexpectedly unresolved".to_owned())?;
+    let recovery_waste_delta = recovery_validation
+        .waste_delta_mg
+        .ok_or_else(|| "recovery fixture waste delta unexpectedly unresolved".to_owned())?;
+    let recovery_unaccounted_delta = recovery_validation
+        .unaccounted_delta_mg
+        .ok_or_else(|| "recovery fixture unaccounted delta unexpectedly unresolved".to_owned())?;
 
     println!(
         concat!(
@@ -50,13 +92,14 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",",
             "\"evidence_class\":\"synthetic\",",
             "\"result\":\"pass\",",
-            "\"scope\":\"topology_mass_accounting_and_analytical_mechanics\",",
+            "\"scope\":\"topology_mass_accounting_analytical_mechanics_deconstruction_recovery_comparison\",",
             "\"fixtures\":{{",
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
             "\"balanced_mass_ledger\":\"{}\",",
             "\"imbalanced_mass_negative_control\":\"{}\",",
-            "\"analytical_mechanics\":\"pass\"",
+            "\"analytical_mechanics\":\"pass\",",
+            "\"planned_vs_observed_recovery\":\"pass\"",
             "}},",
             "\"summary\":{{",
             "\"component_count\":{},",
@@ -75,9 +118,17 @@ fn run() -> Result<(), String> {
             "\"recovered_mass_mg\":{},",
             "\"deconstruction_step_count\":{},",
             "\"deconstruction_recovered_component_count\":{},",
-            "\"deconstruction_recovered_mass_mg\":{}",
+            "\"deconstruction_recovered_mass_mg\":{},",
+            "\"recovery_evidence_status\":\"{}\",",
+            "\"recovery_plan_agreement\":\"{}\",",
+            "\"recovery_observed_mass_residual_mg\":{},",
+            "\"recovery_reused_delta_mg\":{},",
+            "\"recovery_recycled_delta_mg\":{},",
+            "\"recovery_contaminated_delta_mg\":{},",
+            "\"recovery_waste_delta_mg\":{},",
+            "\"recovery_unaccounted_delta_mg\":{}",
             "}},",
-            "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
+            "\"claim_ceiling\":\"software_invariants_closed_form_mechanics_and_recovery_accounting_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
@@ -112,7 +163,15 @@ fn run() -> Result<(), String> {
         outcome.recovered_mass_mg,
         outcome.deconstruction_step_count,
         outcome.deconstruction_recovered_component_count,
-        outcome.deconstruction_recovered_mass_mg
+        outcome.deconstruction_recovered_mass_mg,
+        recovery_evidence_status,
+        recovery_plan_agreement,
+        recovery_residual,
+        recovery_reused_delta,
+        recovery_recycled_delta,
+        recovery_contaminated_delta,
+        recovery_waste_delta,
+        recovery_unaccounted_delta
     );
     Ok(())
 }

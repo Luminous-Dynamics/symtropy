@@ -81,6 +81,7 @@ jobs:
             and .fixtures.balanced_mass_ledger == "pass"
             and .fixtures.imbalanced_mass_negative_control == "pass"
             and .fixtures.analytical_mechanics == "pass"
+            and .fixtures.planned_vs_observed_recovery == "pass"
             and .summary.component_count == 3
             and .summary.connection_count == 2
             and .summary.recovered_component_count == 1
@@ -88,6 +89,14 @@ jobs:
             and .summary.deconstruction_step_count == 3
             and .summary.deconstruction_recovered_component_count == 2
             and .summary.deconstruction_recovered_mass_mg == 3000
+            and .summary.recovery_evidence_status == "synthetic"
+            and .summary.recovery_plan_agreement == "deviates"
+            and .summary.recovery_observed_mass_residual_mg == 40
+            and .summary.recovery_reused_delta_mg == -50
+            and .summary.recovery_recycled_delta_mg == -20
+            and .summary.recovery_contaminated_delta_mg == 20
+            and .summary.recovery_waste_delta_mg == 60
+            and .summary.recovery_unaccounted_delta_mg == -10
             and .summary.axial_bar_stress_pa > 99999
             and .summary.axial_bar_stress_pa < 100001
             and .summary.axial_bar_extension_m > 0
