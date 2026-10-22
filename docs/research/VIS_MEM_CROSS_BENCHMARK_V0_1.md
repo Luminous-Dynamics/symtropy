@@ -155,3 +155,27 @@ Keep the simplest policy if the adaptive router:
 ## Licenses and data governance
 
 The inspected Embodied-Omni code repository declares MulanPSL-2.0; the MeMoREval code repository declares Apache-2.0. Dataset, scene, robot-model, checkpoint, and third-party simulator licenses are separate. Verify their terms before redistribution or commercial use; do not infer dataset permission from the code repository license.
+
+
+## New transfer-mismatch comparator: MemTransfer
+
+The research sweep on 2026-10-22 found [MemTransfer](https://arxiv.org/abs/2609.32313), submitted 2026-09-26. It compares six memory representations and a working-memory baseline under a shared frozen VLM on 100 warehouse-navigation cases across ten task types. It tests starting-pose changes, route blocking, and history quantity/task relevance.
+
+Paper-reported numbers indicate an important limitation:
+- With one demonstration/task, Full-context scores 95.3% and Episodic 100.0% at the demonstrated start, but each loses roughly 48–49 percentage points at a new test start.
+- After route blocking, reported success retention relative to the unblocked setting varies: Summary 39.3%, Working memory 44.8%, Episodic 56.1%, and Full-context 58.3%.
+- Replacing half of the relevant histories with experience from other tasks reduces success for both trajectory-memory variants.
+
+This is a preprint result on a small warehouse benchmark, not a general SOTA ranking, and not a Symtropy result. During this research pass an official runnable MemTransfer implementation/checkpoint was not verified, so the paper currently acts as a research comparator rather than a native reproduction target.
+
+### Design implication: store constraints, not only routes
+
+A stored trajectory is evidence of what worked from one start state and one route configuration. It is not a certificate that the same motion path remains executable from a new pose or after a route becomes unavailable. A reusable memory should separate:
+- task constraints and required waypoint/goal order;
+- the trajectory observed during the demonstration;
+- current map/start/route availability;
+- evidence about whether the old trajectory is applicable.
+
+The new [VIS-MEM-011 task #2593](https://github.com/Luminous-Dynamics/symtropy/issues/2593) and [PR #2594](https://github.com/Luminous-Dynamics/symtropy/pull/2594) introduce an independently authored Rust graph diagnostic. It compares trajectory replay, nearest-demo replay, constraint-aware replanning, and a guarded hybrid under matched/shifted starts, route changes, distractor demonstrations, and disconnected goals.
+
+A successful synthetic run will only validate the graph/memory semantics. Native MemTransfer claims require the official model, assets, environment and grader to be pinned and executed; otherwise use an eligible public navigation benchmark and label it separately.
