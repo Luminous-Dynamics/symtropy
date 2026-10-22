@@ -1,0 +1,41 @@
+name: BUILT-INTEROP-007 Paired Semantic Delta
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-007/**"
+      - ".github/workflows/built-interop-007.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-007/**"
+      - ".github/workflows/built-interop-007.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-007-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-delta:
+    name: Build, test and lint paired semantic-delta gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify committed dependency lock
+        run: echo "556f1603457ac0296843833ec5f05ab6e3a5c68b4eac8cbb14e78ac5cda67357  tools/built-interop-007/Cargo.lock" | sha256sum -c -
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-interop-007/Cargo.toml -- --check
+      - name: Run paired preservation adversarial tests
+        run: cargo test --locked --manifest-path tools/built-interop-007/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-007/Cargo.toml --all-targets -- -D warnings
