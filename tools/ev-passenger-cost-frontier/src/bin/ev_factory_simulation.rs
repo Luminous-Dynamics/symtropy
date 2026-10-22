@@ -793,48 +793,105 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             .iter()
             .map(|run| &run.scenarios[scenario_index].flow_time)
             .collect();
-        let good_mean: Vec<f64> = flow_summaries.iter()
-            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.mean_seconds))
+        let good_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
             .collect();
-        let good_p95: Vec<f64> = flow_summaries.iter()
-            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.p95_seconds))
+        let good_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
             .collect();
-        let good_p99: Vec<f64> = flow_summaries.iter()
-            .filter_map(|summary| summary.completed_good_flow_time_seconds.as_ref().map(|value| value.p99_seconds))
+        let good_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_good_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
+            })
             .collect();
-        let scrap_mean: Vec<f64> = flow_summaries.iter()
-            .filter_map(|summary| summary.completed_scrap_flow_time_seconds.as_ref().map(|value| value.mean_seconds))
+        let scrap_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
             .collect();
-        let scrap_p95: Vec<f64> = flow_summaries.iter()
-            .filter_map(|summary| summary.completed_scrap_flow_time_seconds.as_ref().map(|value| value.p95_seconds))
+        let scrap_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .completed_scrap_flow_time_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
             .collect();
-        let release_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.release_cohort_jobs as f64).collect();
-        let good_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.completed_good_jobs as f64).collect();
-        let scrap_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.completed_scrap_jobs as f64).collect();
-        let censored_counts: Vec<f64> = flow_summaries.iter().map(|summary| summary.right_censored_jobs_at_horizon as f64).collect();
+        let release_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.release_cohort_jobs as f64)
+            .collect();
+        let good_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.completed_good_jobs as f64)
+            .collect();
+        let scrap_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.completed_scrap_jobs as f64)
+            .collect();
+        let censored_counts: Vec<f64> = flow_summaries
+            .iter()
+            .map(|summary| summary.right_censored_jobs_at_horizon as f64)
+            .collect();
         let censor_fractions: Vec<f64> = flow_summaries.iter()
             .filter(|summary| summary.release_cohort_jobs > 0)
-            .map(|summary| summary.right_censored_jobs_at_horizon as f64 / summary.release_cohort_jobs as f64)
+            .map(|summary| {
+                summary.right_censored_jobs_at_horizon as f64
+                    / summary.release_cohort_jobs as f64
+            })
             .collect();
         flow_time_statistics.push(FlowTimeStatistics {
             scenario_id: first_scenario.scenario_id.clone(),
             replications_with_good_flow_time_observations: good_mean.len(),
-            good_flow_time_mean_seconds_across_replications: optional_distribution_summary(&good_mean)?,
-            good_flow_time_p95_seconds_across_replications: optional_distribution_summary(&good_p95)?,
-            good_flow_time_p99_seconds_across_replications: optional_distribution_summary(&good_p99)?,
+            good_flow_time_mean_seconds_across_replications:
+                optional_distribution_summary(&good_mean)?,
+            good_flow_time_p95_seconds_across_replications:
+                optional_distribution_summary(&good_p95)?,
+            good_flow_time_p99_seconds_across_replications:
+                optional_distribution_summary(&good_p99)?,
             replications_with_scrap_flow_time_observations: scrap_mean.len(),
-            scrap_flow_time_mean_seconds_across_replications: optional_distribution_summary(&scrap_mean)?,
-            scrap_flow_time_p95_seconds_across_replications: optional_distribution_summary(&scrap_p95)?,
+            scrap_flow_time_mean_seconds_across_replications:
+                optional_distribution_summary(&scrap_mean)?,
+            scrap_flow_time_p95_seconds_across_replications:
+                optional_distribution_summary(&scrap_p95)?,
             release_cohort_jobs: summarize_distribution(&release_counts)?,
             completed_good_jobs: summarize_distribution(&good_counts)?,
             completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
             right_censored_jobs_at_horizon: summarize_distribution(&censored_counts)?,
-            right_censored_fraction_of_release_cohort: optional_distribution_summary(&censor_fractions)?,
-            cohort_accounting_valid: flow_summaries.iter().all(|summary| summary.cohort_accounting_valid),
+            right_censored_fraction_of_release_cohort:
+                optional_distribution_summary(&censor_fractions)?,
+            cohort_accounting_valid: flow_summaries
+                .iter()
+                .all(|summary| summary.cohort_accounting_valid),
         });
     }
     report.flow_time_statistics = flow_time_statistics;
-    report.flow_time_cohort_accounting_valid = runs.iter().all(|run| run.scenarios.iter().all(|scenario| scenario.flow_time.cohort_accounting_valid));
+    report.flow_time_cohort_accounting_valid = runs.iter().all(|run| {
+        run.scenarios
+            .iter()
+            .all(|scenario| scenario.flow_time.cohort_accounting_valid)
+    });
     let mut replication_outcomes = Vec::with_capacity(runs.len() * report.scenario_count);
     for run in &runs {
         let baseline = run
@@ -1261,7 +1318,9 @@ fn evaluate_single_seed(catalog: &Catalog) -> Result<Report, String> {
         replication_outcomes: Vec::new(),
         station_sequence_statistics: Vec::new(),
         flow_time_statistics: Vec::new(),
-        flow_time_cohort_accounting_valid: scenarios.iter().all(|scenario| scenario.flow_time.cohort_accounting_valid),
+        flow_time_cohort_accounting_valid: scenarios
+            .iter()
+            .all(|scenario| scenario.flow_time.cohort_accounting_valid),
         paired_common_cause_control_outage_baseline_comparison: None,
         structural_robust_intervention_summary: None,
         measured_horizon_seconds: catalog.horizon_seconds - catalog.warmup_seconds,
@@ -2462,7 +2521,10 @@ mod tests {
         assert!(report.station_time_accounting_within_horizon);
         assert!(report.flow_time_cohort_accounting_valid);
         assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
-        assert!(report.flow_time_statistics.iter().all(|statistic| statistic.cohort_accounting_valid));
+        assert!(report
+            .flow_time_statistics
+            .iter()
+            .all(|statistic| statistic.cohort_accounting_valid));
         assert!(!report.release_ready);
     }
 
@@ -2766,9 +2828,12 @@ mod tests {
             assert!(scenario.flow_time.cohort_accounting_valid);
             assert!(scenario.flow_time.release_cohort_jobs > 0);
             assert!(scenario.flow_time.right_censored_jobs_at_horizon > 0);
-            assert_eq!(scenario.flow_time.completed_good_jobs + scenario.flow_time.completed_scrap_jobs
-                + scenario.flow_time.right_censored_jobs_at_horizon,
-                scenario.flow_time.release_cohort_jobs);
+            assert_eq!(
+                scenario.flow_time.completed_good_jobs
+                    + scenario.flow_time.completed_scrap_jobs
+                    + scenario.flow_time.right_censored_jobs_at_horizon,
+                scenario.flow_time.release_cohort_jobs
+            );
             assert!(scenario.flow_time.completed_good_flow_time_seconds.is_none());
         }
         assert!(report.flow_time_statistics.iter().all(|statistic| {
