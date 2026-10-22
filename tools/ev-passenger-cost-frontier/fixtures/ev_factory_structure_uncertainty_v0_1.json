@@ -1,0 +1,240 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-STRUCTURE-UNCERTAINTY-001",
+  "evidence_class": "synthetic",
+  "reference_model_id": "independent-equipment-faults",
+  "constraints": {
+    "capex_budget_usd": 50,
+    "staffed_labor_hours_per_shift_limit": 1.5,
+    "active_power_kw_limit": 4,
+    "floor_area_sqm_limit": 35
+  },
+  "actions": [
+    {
+      "action_id": "hold-capital",
+      "label": "Hold capital and current layout",
+      "capex_usd": 0,
+      "staffed_labor_hours_per_shift": 0,
+      "active_power_kw": 0,
+      "floor_area_sqm": 0
+    },
+    {
+      "action_id": "add-eol-test",
+      "label": "Add one end-of-line test server",
+      "capex_usd": 50,
+      "staffed_labor_hours_per_shift": 0.5,
+      "active_power_kw": 3.5,
+      "floor_area_sqm": 32
+    },
+    {
+      "action_id": "add-body-prep",
+      "label": "Add one body-preparation server",
+      "capex_usd": 18,
+      "staffed_labor_hours_per_shift": 1,
+      "active_power_kw": 0.9,
+      "floor_area_sqm": 25
+    },
+    {
+      "action_id": "extend-buffer",
+      "label": "Extend one constrained inter-station buffer",
+      "capex_usd": 6,
+      "staffed_labor_hours_per_shift": 0,
+      "active_power_kw": 0.1,
+      "floor_area_sqm": 6
+    },
+    {
+      "action_id": "improve-yield-rework",
+      "label": "Improve yield and rework routing",
+      "capex_usd": 8,
+      "staffed_labor_hours_per_shift": 0.5,
+      "active_power_kw": 0.2,
+      "floor_area_sqm": 4
+    }
+  ],
+  "model_families": [
+    {
+      "model_id": "independent-equipment-faults",
+      "mechanism": "Independent equipment downtimes",
+      "structural_change": "Reference mechanism: machine outages are independent and rework feedback is represented by a calibrated-free fixed response."
+    },
+    {
+      "model_id": "common-cause-outages",
+      "mechanism": "Common-cause equipment outages",
+      "structural_change": "Multiple stations can fail together due to shared utilities or control dependencies; independent-fault simplification is removed."
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "mechanism": "Bursty and heavy-tailed repair duration",
+      "structural_change": "Repair durations have a long-tailed regime rather than a low-variance approximation."
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "mechanism": "Finite-buffer blocking propagation",
+      "structural_change": "Downstream blocking and upstream starvation are explicit, so spare station capacity may be blocked."
+    },
+    {
+      "model_id": "rework-feedback",
+      "mechanism": "Rework re-enters constrained upstream process",
+      "structural_change": "Failed quality checks re-enter an upstream queue and can amplify congestion rather than incurring only a fixed scrap penalty."
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "mechanism": "Supplier disruption correlated with product mix",
+      "structural_change": "Supplier starvation is coupled to variants/product mix rather than modelled as independent of line demand."
+    }
+  ],
+  "outcomes": [
+    {
+      "model_id": "independent-equipment-faults",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "independent-equipment-faults",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 2.2
+    },
+    {
+      "model_id": "independent-equipment-faults",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 1.2
+    },
+    {
+      "model_id": "independent-equipment-faults",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 0.9
+    },
+    {
+      "model_id": "independent-equipment-faults",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 1.4
+    },
+    {
+      "model_id": "common-cause-outages",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "common-cause-outages",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 0.7
+    },
+    {
+      "model_id": "common-cause-outages",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "common-cause-outages",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 1.2
+    },
+    {
+      "model_id": "common-cause-outages",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 0.6
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 1
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 0.7
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 1.5
+    },
+    {
+      "model_id": "bursty-repair-times",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 1.2
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 2
+    },
+    {
+      "model_id": "finite-buffer-blocking",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 1.2
+    },
+    {
+      "model_id": "rework-feedback",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "rework-feedback",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "rework-feedback",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 0.9
+    },
+    {
+      "model_id": "rework-feedback",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "rework-feedback",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 2.2
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "action_id": "hold-capital",
+      "incremental_good_units_per_hour": 0
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "action_id": "add-eol-test",
+      "incremental_good_units_per_hour": 1.4
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "action_id": "add-body-prep",
+      "incremental_good_units_per_hour": 0.6
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "action_id": "extend-buffer",
+      "incremental_good_units_per_hour": 0.8
+    },
+    {
+      "model_id": "supplier-product-mix-coupling",
+      "action_id": "improve-yield-rework",
+      "incremental_good_units_per_hour": 1.5
+    }
+  ],
+  "uncertainty_contract": "The enumerated model families are structural stress cases, not IID replications, a posterior sample, or a probability distribution. No family weights are assumed. Gains are deliberately designed synthetic outcomes for testing ranking reversals and decision logic, not DES outputs or plant measurements.",
+  "claim_ceiling": "Synthetic structural-model decision-oracle harness only. It does not establish calibrated robustness, model-set completeness, field accuracy, industry SOTA, ROI, safety compliance, purchase approval or production release."
+}

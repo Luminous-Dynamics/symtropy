@@ -1,0 +1,100 @@
+name: EV Factory Structural Model Uncertainty
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_structure_uncertainty.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json"
+      - "docs/research/EV_FACTORY_STRUCTURE_UNCERTAINTY_V0_1.md"
+      - ".github/workflows/ev-factory-structure-uncertainty.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_structure_uncertainty.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json"
+      - "docs/research/EV_FACTORY_STRUCTURE_UNCERTAINTY_V0_1.md"
+      - ".github/workflows/ev-factory-structure-uncertainty.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structural-model-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Parse strict synthetic fixture
+        run: |
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json
+          jq empty "$FIXTURE"
+          jq -e '
+            (.schema_version == "0.1.0")
+            and (.benchmark_id == "EV-FACTORY-STRUCTURE-UNCERTAINTY-001")
+            and (.evidence_class == "synthetic")
+            and (.actions | length == 5)
+            and (.model_families | length == 6)
+            and (.outcomes | length == 30)
+          ' "$FIXTURE"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Dedicated Rust tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_structure_uncertainty
+      - name: Run exact oracle and verify reference results
+        run: |
+          set -euo pipefail
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json
+          mkdir -p ev-factory-structure-evidence
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_structure_uncertainty -- "$FIXTURE" > /tmp/structure-report-1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_structure_uncertainty -- "$FIXTURE" > /tmp/structure-report-2.json
+          cmp /tmp/structure-report-1.json /tmp/structure-report-2.json
+          jq -e '
+            (.benchmark_id == "EV-FACTORY-STRUCTURE-UNCERTAINTY-001")
+            and (.evidence_class == "synthetic")
+            and (.action_count == 5)
+            and (.model_family_count == 6)
+            and (.outcome_cell_count == 30)
+            and (.feasible_action_count == 5)
+            and (.infeasible_action_count == 0)
+            and (.reference_model_best_action_id == "add-eol-test")
+            and (.maximin_action_id == "extend-buffer")
+            and (.maximin_minimum_gain_units_per_hour > 0.799999)
+            and (.maximin_minimum_gain_units_per_hour < 0.800001)
+            and (.minimax_regret_action_id == "improve-yield-rework")
+            and (.minimax_regret_upper_bound_units_per_hour > 0.799999)
+            and (.minimax_regret_upper_bound_units_per_hour < 0.800001)
+            and (.family_probabilities_used == false)
+            and (.model_families_treated_as_iid_replications == false)
+            and (.deployment_authorized == false)
+            and (.ranking_reversal_pair_count > 0)
+            and ((.leave_one_family_out | length) == 6)
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+          ' /tmp/structure-report-1.json
+          cp /tmp/structure-report-1.json ev-factory-structure-evidence/report.json
+      - name: Invalid fixtures fail closed
+        run: |
+          set -euo pipefail
+          FIXTURE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json
+          jq '.outcomes |= .[:-1]' "$FIXTURE" > /tmp/missing-cell.json
+          jq '.unexpected_root_field = true' "$FIXTURE" > /tmp/unknown-field.json
+          jq '.outcomes[0].model_id = "unregistered-model"' "$FIXTURE" > /tmp/unknown-model.json
+          for invalid in /tmp/missing-cell.json /tmp/unknown-field.json /tmp/unknown-model.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_structure_uncertainty -- "$invalid" > /dev/null 2>&1; then
+              echo "invalid fixture unexpectedly accepted: $invalid" >&2
+              exit 1
+            fi
+          done
+      - name: Hash source, fixture, and report evidence
+        run: |
+          set -euo pipefail
+          cp tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json ev-factory-structure-evidence/
+          cp tools/ev-passenger-cost-frontier/src/bin/ev_factory_structure_uncertainty.rs ev-factory-structure-evidence/
+          sha256sum tools/ev-passenger-cost-frontier/fixtures/ev_factory_structure_uncertainty_v0_1.json tools/ev-passenger-cost-frontier/src/bin/ev_factory_structure_uncertainty.rs ev-factory-structure-evidence/report.json > ev-factory-structure-evidence/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-structure-uncertainty-evidence
+          path: ev-factory-structure-evidence/
+          if-no-files-found: error
