@@ -106,7 +106,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         report.fail("RESEARCH_REFERENCES", "at least three research references are required");
     } else {
         let mut seen = BTreeSet::new();
-        for (index, item) in refs.unwrap_or(&Vec::new()).iter().enumerate() {
+        for (index, item) in refs.iter().flat_map(|items| items.iter()).enumerate() {
             let rid = nonempty_string(item, "reference_id");
             if rid.is_none() {
                 report.fail("REFERENCE_ID", format!("reference index {index} has no ID"));
@@ -139,7 +139,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     let mut negative_count = 0usize;
     let mut hold_count = 0usize;
 
-    for (index, case) in cases.unwrap_or(&Vec::new()).iter().enumerate() {
+    for (index, case) in cases.iter().flat_map(|items| items.iter()).enumerate() {
         let case_id = nonempty_string(case, "case_id");
         if case_id.is_none() {
             report.fail("CASE_ID", format!("case index {index} has no non-empty ID"));
@@ -184,7 +184,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
             }
             "negative_control" => {
                 negative_count += 1;
-                if expected != "reject" || fault_str.is_none() || !fault_classes.contains(fault_str.unwrap_or("").to_string().as_str()) {
+                if expected != "reject" || fault_str.is_none() || !fault_classes.contains(fault_str.unwrap_or("")) {
                     report.fail("NEGATIVE_CONTROL_DISPOSITION", format!("case index {index} must reject with a schema-defined fault class"));
                 }
             }
