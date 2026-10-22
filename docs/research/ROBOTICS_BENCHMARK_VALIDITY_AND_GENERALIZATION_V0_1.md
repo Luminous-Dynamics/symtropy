@@ -37,7 +37,7 @@ Baseline implementation, version, resource budget, and available inputs must be 
 
 ### 2. Freeze splits and training provenance
 
-Each scenario manifest entry has one split: train, validation, in-distribution test, out-of-distribution test, or adversarial test. All runs for one scenario retain the same split. Test scenarios bind to a source identifier and are marked held out; a policy's declared training sources must not include those source identifiers. Development tuning may use train/validation only. The digest of the scenario manifest is the subject of the audit receipt.
+Each scenario manifest entry has one split: train, validation, in-distribution test, out-of-distribution test, or adversarial test. All runs for one scenario retain the same split. Test scenarios bind to a source identifier and are marked held out; a policy's declared training sources must not include those source identifiers. Development tuning may use train/validation only. The digest of the scenario manifest is the subject of the audit receipt. Its canonical form is the scenario array serialized with the schema's field order after sorting by scenario_id; input array order therefore cannot alter the digest.
 
 Use at least three deliberately distinct test strata:
 
