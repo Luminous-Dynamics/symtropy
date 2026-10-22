@@ -39,13 +39,15 @@ The numerical audit also evaluates all four boundary-condition cases, so the dis
 
 The candidates are contradictory. The implementation therefore emits `audit-complete` with disposition `blocked-until-source-input-resolved`; **this is not a benchmark pass**. The analysis does not tell us whether the PDF has a typo, the input-deck convention changes a quantity, or a different value is used in the shipped run.
 
+A follow-on candidate implementation is being developed in [PR #2664](https://github.com/Luminous-Dynamics/symtropy/pull/2664). It assembles a 1D continuous Euler-Bernoulli beam with shared displacement/rotation DOFs, runs a ten-element consistent-translational-mass model for all four end conditions under both mass candidates, and records a 32-element convergence comparison. This isolates element/mesh effects from the published-input conflict. The candidate is not a BE25 pass, and does not resolve the input deck ambiguity.
+
 Required next evidence:
 
 1. Retrieve and independently inspect the officially attached ZIP/input file `eigenvalue analysis.dat`.
 2. Record the actual input values and unit conventions, with the archive/input file digest and source attribution.
 3. Keep three separate manifests until resolved: printed mu, gamma*A/g-derived mu, and the actual input-deck mass.
 4. Recompute the four analytical references from the source-consistent input deck.
-5. Compare against a ten-element consistent-mass Euler-Bernoulli beam implementation with mode pairing, frequency convergence and residual checks.
+5. Compare the verified candidate against the source-consistent 10-element model, including mode pairing, frequency convergence and residual checks.
 
 Until that is done, do not label the BE25 baseline reproducible or use it to calibrate solver accuracy.
 
