@@ -1455,6 +1455,154 @@ pub fn pareto_joint_recovery_candidates(
     result
 }
 
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointDisruptionDimension {
+    ClearanceOverrun,
+    VehicleOutage,
+    ExclusionZoneClosure,
+    ResourceOutage,
+    CrossLayerCombination,
+    MultiDimensionCombination,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointDimensionReceipt {
+    pub dimension: JointDisruptionDimension,
+    pub scenario_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointCoverageViolationCode {
+    EmptyRequiredDimensionSet,
+    DuplicateRequiredDimension,
+    MissingRequiredDimension,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointCoverageViolation {
+    pub code: JointCoverageViolationCode,
+    pub dimension: Option<JointDisruptionDimension>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct JointScenarioCoverageReport {
+    pub complete: bool,
+    pub scenario_count: usize,
+    pub receipts: Vec<JointDimensionReceipt>,
+    pub missing_required_dimensions: Vec<JointDisruptionDimension>,
+    pub violations: Vec<JointCoverageViolation>,
+}
+
+fn scenario_dimensions(scenario: &JointDisruptionScenario) -> BTreeSet<JointDisruptionDimension> {
+    let mut dimensions = BTreeSet::new();
+    let disruption = &scenario.spatial_disruption;
+    let has_clearance = !disruption.placement_occupancy_extensions.is_empty();
+    let has_vehicle_outage = !disruption.vehicle_outages.is_empty();
+    let has_zone_closure = !disruption.new_exclusion_zones.is_empty();
+    let has_resource_outage = !scenario.resource_outages.is_empty();
+    let spatial_dimensions = usize::from(has_clearance)
+        + usize::from(has_vehicle_outage)
+        + usize::from(has_zone_closure);
+
+    if has_clearance {
+        dimensions.insert(JointDisruptionDimension::ClearanceOverrun);
+    }
+    if has_vehicle_outage {
+        dimensions.insert(JointDisruptionDimension::VehicleOutage);
+    }
+    if has_zone_closure {
+        dimensions.insert(JointDisruptionDimension::ExclusionZoneClosure);
+    }
+    if has_resource_outage {
+        dimensions.insert(JointDisruptionDimension::ResourceOutage);
+    }
+    if has_resource_outage && spatial_dimensions > 0 {
+        dimensions.insert(JointDisruptionDimension::CrossLayerCombination);
+    }
+    if spatial_dimensions + usize::from(has_resource_outage) > 1 {
+        dimensions.insert(JointDisruptionDimension::MultiDimensionCombination);
+    }
+    dimensions
+}
+
+/// Audit whether a finite scenario set covers the disruption dimensions declared by a benchmark.
+///
+/// This is deliberately separate from robust feasibility: coverage can be complete while a plan
+/// fails a case, and every case can pass while the declared coverage is incomplete. It does not
+/// assign probabilities or claim coverage of disturbance types not declared in required.
+pub fn audit_joint_scenario_coverage(
+    scenarios: &[JointDisruptionScenario],
+    required: &[JointDisruptionDimension],
+) -> JointScenarioCoverageReport {
+    let mut report = JointScenarioCoverageReport {
+        scenario_count: scenarios.len(),
+        ..JointScenarioCoverageReport::default()
+    };
+    if required.is_empty() {
+        report.violations.push(JointCoverageViolation {
+            code: JointCoverageViolationCode::EmptyRequiredDimensionSet,
+            dimension: None,
+        });
+    }
+
+    let mut seen_required = BTreeSet::new();
+    for dimension in required {
+        if !seen_required.insert(*dimension) {
+            report.violations.push(JointCoverageViolation {
+                code: JointCoverageViolationCode::DuplicateRequiredDimension,
+                dimension: Some(*dimension),
+            });
+        }
+    }
+
+    let mut scenario_ids_by_dimension: BTreeMap<JointDisruptionDimension, Vec<String>> =
+        BTreeMap::new();
+    for scenario in scenarios {
+        for dimension in scenario_dimensions(scenario) {
+            scenario_ids_by_dimension
+                .entry(dimension)
+                .or_default()
+                .push(scenario.scenario_id.clone());
+        }
+    }
+    report.receipts = scenario_ids_by_dimension
+        .into_iter()
+        .map(|(dimension, mut scenario_ids)| {
+            scenario_ids.sort();
+            scenario_ids.dedup();
+            JointDimensionReceipt {
+                dimension,
+                scenario_ids,
+            }
+        })
+        .collect();
+
+    let observed: BTreeSet<JointDisruptionDimension> =
+        report.receipts.iter().map(|receipt| receipt.dimension).collect();
+    for dimension in &seen_required {
+        if !observed.contains(dimension) {
+            report.missing_required_dimensions.push(*dimension);
+            report.violations.push(JointCoverageViolation {
+                code: JointCoverageViolationCode::MissingRequiredDimension,
+                dimension: Some(*dimension),
+            });
+        }
+    }
+
+    report.missing_required_dimensions.sort();
+    report.violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.dimension.cmp(&right.dimension))
+    });
+    report.violations.dedup();
+    report.complete = !scenarios.is_empty()
+        && !required.is_empty()
+        && report.violations.is_empty()
+        && report.missing_required_dimensions.is_empty();
+    report
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
