@@ -90,7 +90,7 @@ pub fn fingerprint_board_bytes(board_bytes: &[u8]) -> Result<DesignSkeletonFinge
         Sexp::List(items) => items,
         Sexp::Atom(_) => return Err("KiCad board root must be an S-expression list".into()),
     };
-    if root.first().and_then(|node| node.head()) != Some("kicad_pcb") {
+    if !matches!(root.first(), Some(Sexp::Atom(value)) if value == "kicad_pcb") {
         return Err("KiCad board root must be kicad_pcb".into());
     }
 
