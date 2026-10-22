@@ -1,0 +1,386 @@
+name: PHYS-EVID-02C Canonical Endpoint Sample Qualification
+
+on:
+  push:
+    branches:
+      - "ci/canonical-endpoint-sample-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-endpoint-sample-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: e8753451e522ec343dc9669685ddc404f1cdade6
+  CONVERGENCE_HEAD: c7519f080c373fcfe712aa9a6b6bf9d63c297949
+  SESSION_BINDING_HEAD: 7f28d09d09a8654f113cd5e2b8cd6f495e5c0a75
+  ENDPOINT_HEAD: 28383cfa1e8d3464f0b59b54bc0f0202413bf24e
+
+jobs:
+  qualify:
+    name: Frozen PHYS-EVID-02C endpoint sample / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact semantic child and two-parent convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${CONVERGENCE_HEAD}"
+          test "$(git rev-list --count "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}")" = "1"
+
+          test "$(git rev-parse "${CONVERGENCE_HEAD}^1")" = "${SESSION_BINDING_HEAD}"
+          test "$(git rev-parse "${CONVERGENCE_HEAD}^2")" = "${ENDPOINT_HEAD}"
+          test "$(git rev-list --parents -n 1 "${CONVERGENCE_HEAD}" | wc -w)" = "3"
+          git merge-base --is-ancestor "${SESSION_BINDING_HEAD}" "${CONVERGENCE_HEAD}"
+          git merge-base --is-ancestor "${ENDPOINT_HEAD}" "${CONVERGENCE_HEAD}"
+
+          mapfile -t changed < <(git diff --name-only "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}" | sort)
+          mapfile -t expected < <(printf '%s\n' \
+            docs/release/evidence/CANONICAL_PERSISTENT_ENDPOINT_SAMPLE_V01.md \
+            src/endpoint_sample_codec.rs \
+            src/lib.rs \
+            tests/fixtures/endpoint_sample_v1_vector.json \
+            tests/verify_endpoint_sample_v1.py | sort)
+          test "${#changed[@]}" = "5"
+          test "${changed[*]}" = "${expected[*]}"
+
+          # Frozen #1113 PHYS-EVID-02B/session/framing lineage blobs.
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:src/evidence_session.rs")" = \
+            68f54475fe4c19908f42e6b18866fdd0e60b5fcb
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:src/evidence_session_binding_codec.rs")" = \
+            f46f0fd1bb27a6a9d5b916e43329453b604c8229
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md")" = \
+            c6c2a7a339c0f0413a5b790c552aebae08ff4732
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/src/evidence_frame.rs")" = \
+            2be4a389d3a511852fd5b456f51485a46e657deb
+
+          # Frozen #1088 PHYS-OBS-05 endpoint lineage blobs.
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md")" = \
+            57374015c5ce5ebdfa2db1a29ed5212beed64d70
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/src/qualified_endpoint.rs")" = \
+            47c96d4760f685d5726e31c59a503fefceabe25f
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs")" = \
+            2a001bf5ce1cdc88860cd86c1f40ba8a222cd602
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/src/lib.rs")" = \
+            da44d0565684face2100abb7841587111fc5b9cf
+
+          # Exact PHYS-EVID-02C product blobs.
+          test "$(git rev-parse "${PRODUCT_HEAD}:docs/release/evidence/CANONICAL_PERSISTENT_ENDPOINT_SAMPLE_V01.md")" = \
+            fc7c32137215caa8bbac5c94900cba0a55bbdb9e
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/endpoint_sample_codec.rs")" = \
+            3d00108424f48cea946cfc5db0abb3c9d0414586
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/lib.rs")" = \
+            029e81eca52fb3d8a237f481207a9c95584d8e29
+          test "$(git rev-parse "${PRODUCT_HEAD}:tests/fixtures/endpoint_sample_v1_vector.json")" = \
+            dcb6d3b74f3d06b30dcb336131e594c4353005ca
+          test "$(git rev-parse "${PRODUCT_HEAD}:tests/verify_endpoint_sample_v1.py")" = \
+            fdc5a7b3b97f5408e59927522a9fc86c4ad2bfc7
+
+          # Semantic child may not rewrite predecessor-owned theorem bytes.
+          git diff --quiet "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}" -- \
+            src/evidence_session.rs \
+            src/evidence_session_binding_codec.rs \
+            docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs
+
+      - name: Run independent Python endpoint oracle
+        run: python3 tests/verify_endpoint_sample_v1.py
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            docs/release/evidence/CANONICAL_PERSISTENT_ENDPOINT_SAMPLE_V01.md \
+            src/endpoint_sample_codec.rs \
+            src/lib.rs \
+            tests/fixtures/endpoint_sample_v1_vector.json \
+            tests/verify_endpoint_sample_v1.py \
+            src/evidence_session.rs \
+            src/evidence_session_binding_codec.rs \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            > "${RUNNER_TEMP}/canonical-endpoint-sample-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check integration library
+        run: cargo check -p symtropy-launcher --locked --lib
+
+      - name: Run PHYS-EVID-02C semantic corpus
+        run: cargo test -p symtropy-launcher --locked --lib endpoint_sample_codec::tests
+
+      - name: Run PHYS-EVID-02B session-binding regression
+        run: cargo test -p symtropy-launcher --locked --lib evidence_session_binding_codec::tests
+
+      - name: Run PHYS-EVID-05 session regression
+        run: cargo test -p symtropy-launcher --locked --lib evidence_session::tests
+
+      - name: Run PHYS-OBS-05 stamped-endpoint regression
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run PHYS-OBS-03 endpoint regression
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_box_v01
+
+      - name: Run PHYS-EVID-02A framing regression
+        run: cargo test -p symtropy-physics --locked --test physics_evidence_frame_v1
+
+      - name: Run sealed live-evidence regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run strict integration Clippy
+        run: cargo clippy -p symtropy-launcher --locked --lib -- -D warnings
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit persistent-capture and canonical geometry boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          module = Path('src/endpoint_sample_codec.rs').read_text()
+          contract = Path('docs/release/evidence/CANONICAL_PERSISTENT_ENDPOINT_SAMPLE_V01.md').read_text()
+          fixture = json.loads(Path('tests/fixtures/endpoint_sample_v1_vector.json').read_text())
+          oracle = Path('tests/verify_endpoint_sample_v1.py').read_text()
+
+          # Exact canonical profile constants.
+          assert 'ENDPOINT_SAMPLE_PAYLOAD_V1_VERSION: u32 = 1' in module
+          assert 'ENDPOINT_SAMPLE_SESSION_BINDING_FRAME_V1_LEN: usize = 143' in module
+          assert 'ENDPOINT_SAMPLE_FIXED_PREFIX_V1_LEN: usize = 176' in module
+          assert 'ENDPOINT_SAMPLE_PER_AXIS_V1_LEN: usize = 48' in module
+          for marker in [
+              'const SESSION_FRAME_START: usize = 8;',
+              'const STEP_INDEX_START: usize = 151;',
+              'const TARGET_NET_ID_START: usize = 159;',
+              'const ANCHOR_NET_ID_START: usize = 167;',
+              'const MEMBERSHIP_START: usize = 175;',
+              'const ARRAYS_START: usize = 176;',
+          ]:
+              assert marker in module
+
+          # Public persistent production path must capture inside an established
+          # PersistentEvidenceSession. No detached token/binding promotion API.
+          public_start = module.index('pub fn capture_and_encode_current_endpoint_sample_v1')
+          private_start = module.index('\nfn encode_qualified_endpoint_token_v1', public_start)
+          public_capture = module[public_start:private_start]
+          assert 'session: &PersistentEvidenceSession<D>' in public_capture
+          assert 'subject: PhysicsBodySubject' in public_capture
+          assert 'region: AuthorityEndpointBoxSpec<D>' in public_capture
+          assert 'LocalQualifiedStampedEndpointBoxObservation::capture(' in public_capture
+          assert 'session.evidence_authority()' in public_capture
+          assert 'encode_qualified_endpoint_token_v1(session.binding(), &token)' in public_capture
+          assert public_capture.index('LocalQualifiedStampedEndpointBoxObservation::capture(') < \
+              public_capture.index('encode_qualified_endpoint_token_v1(session.binding(), &token)')
+          assert 'pub fn encode_qualified_endpoint_token_v1' not in module
+
+          public_signatures = re.findall(r'pub fn\s+\w+(?:<[^>]+>)?\s*\([^)]*\)', module, re.S)
+          for signature in public_signatures:
+              if 'capture_and_encode_current_endpoint_sample_v1' in signature:
+                  continue
+              assert 'LocalQualifiedStampedEndpointBoxObservation' not in signature
+              assert 'QualifiedEvidenceSessionBinding' not in signature
+              assert 'AuthorityEndpointBoxObservation' not in signature
+              assert 'LocalQualifiedAuthorityStepStamp' not in signature
+
+          # Session serialization/validation must be single-source through 02B.
+          private_encoder_end = module.index('\npub fn decode_endpoint_sample_v1', private_start)
+          private_encoder = module[private_start:private_encoder_end]
+          assert 'encode_qualified_evidence_session_binding_v1(binding)' in private_encoder
+          assert 'session_frame.len() != ENDPOINT_SAMPLE_SESSION_BINDING_FRAME_V1_LEN' in private_encoder
+          assert 'decode_endpoint_sample_v1(&frame)?;' in private_encoder
+
+          decoder_start = module.index('pub fn decode_endpoint_sample_v1')
+          decoder_end = module.index('\nfn endpoint_payload_len_v1', decoder_start)
+          decoder = module[decoder_start:decoder_end]
+          assert 'decode_evidence_session_binding_v1(session_frame)' in decoder
+          assert 'PhysicsEvidenceFrameKindV1::EndpointSample' in decoder
+          assert 'Vec<' not in decoder
+          assert 'Vec::' not in decoder
+          assert '.to_vec()' not in decoder
+          assert '.collect' not in decoder
+
+          # Checked dimension/resource theorem precedes producer allocation.
+          length_fn_start = module.index('fn endpoint_payload_len_v1')
+          payload_encoder_start = module.index('fn encode_endpoint_payload_fields_v1')
+          length_fn = module[length_fn_start:payload_encoder_start]
+          assert 'dimension == 0' in length_fn
+          assert 'dimension > u16::MAX as usize' in length_fn
+          assert '.checked_mul(dimension)' in length_fn
+          assert '.checked_add(variable)' in length_fn
+          assert 'PHYSICS_EVIDENCE_FRAME_V1_MAX_PAYLOAD_LEN' in length_fn
+          payload_encoder = module[payload_encoder_start:module.index('\nfn payload_array_bits', payload_encoder_start)]
+          assert 'Vec::with_capacity(expected_len)' in payload_encoder
+
+          # Self-verifying exact geometry/result semantics.
+          assert 'if center_offset == 0.0 && center_offset_bits != 0' in decoder
+          assert 'half_extent <= 0.0' in decoder
+          assert 'let recomputed_center = anchor_translation + center_offset;' in decoder
+          assert 'recomputed_center.to_bits() != region_center_bits' in decoder
+          assert 'let recomputed_offset = target_translation - region_center;' in decoder
+          assert 'recomputed_offset.to_bits() != offset_bits' in decoder
+          assert 'offset.abs() <= half_extent' in decoder
+          assert 'MembershipMismatch' in decoder
+          assert 'StepIndexZero' in decoder
+          assert 'SameTargetAnchorNetId' in decoder
+
+          # Canonical endpoint semantics deliberately omit unrelated body state.
+          for forbidden in [
+              'BodyHandle',
+              'AuthorityEndpointBoxObservation',
+              'LocalQualifiedAuthorityStepStamp',
+              'linear_velocity',
+              'angular_velocity',
+              'sleeping',
+              'sleep_counter',
+              'body_type',
+          ]:
+              assert forbidden not in module
+          assert 'Serialize' not in module
+          assert 'Deserialize' not in module
+
+          # Decoded representation has private fields and no authority conversion.
+          decoded_start = module.index("pub struct DecodedEndpointSampleV1<'a>")
+          decoded_end = module.index('\n}\n', decoded_start) + 2
+          decoded_block = module[decoded_start:decoded_end]
+          for line in decoded_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+          for promotion in [
+              'impl From<DecodedEndpointSampleV1',
+              'impl TryFrom<DecodedEndpointSampleV1',
+              '-> PersistentEvidenceSession',
+              '-> QualifiedEvidenceSessionBinding',
+              '-> PhysicsBodySubject',
+              '-> LocalQualifiedStampedEndpointBoxObservation',
+          ]:
+              assert promotion not in module
+
+          # Independent vector dimensions and exact bytes.
+          assert fixture['dimension'] == 3
+          assert fixture['session_binding_frame_len'] == 143
+          assert fixture['expected_payload_len'] == 320
+          assert fixture['expected_frame_len'] == 374
+          assert len(bytes.fromhex(fixture['expected_payload_hex'])) == 320
+          assert len(bytes.fromhex(fixture['expected_frame_hex'])) == 374
+          assert fixture['session_binding_frame_hex'] in module
+          assert fixture['expected_payload_hex'] in module
+          assert fixture['expected_frame_hex'] in module
+
+          assert 'json.loads' in oracle
+          assert 'struct.unpack' in oracle
+          assert 'struct.pack' in oracle
+          assert 'recomputed_center' in oracle
+          assert 'recomputed_offset' in oracle
+          assert 'abs(offsets[i]) <= half_extents[i]' in oracle
+          assert 'subprocess' not in oracle
+          assert 'rust' not in oracle.lower()
+
+          for phrase in [
+              'Retrospective-session-attribution boundary',
+              'Self-verifying geometry theorem',
+              'No attacker-sized semantic allocation',
+              'does **not** yet define the final replay-safe semantic claim key',
+          ]:
+              assert phrase in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            docs/release/evidence/CANONICAL_PERSISTENT_ENDPOINT_SAMPLE_V01.md \
+            src/endpoint_sample_codec.rs \
+            src/lib.rs \
+            tests/fixtures/endpoint_sample_v1_vector.json \
+            tests/verify_endpoint_sample_v1.py \
+            src/evidence_session.rs \
+            src/evidence_session_binding_codec.rs \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            > "${RUNNER_TEMP}/canonical-endpoint-sample-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/canonical-endpoint-sample-source-sha256.txt" \
+            "${RUNNER_TEMP}/canonical-endpoint-sample-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-02C canonical persistent endpoint sample v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'convergence_head': os.environ['CONVERGENCE_HEAD'],
+              'convergence_first_parent': os.environ['SESSION_BINDING_HEAD'],
+              'convergence_second_parent': os.environ['ENDPOINT_HEAD'],
+              'semantic_child_commits': 1,
+              'endpoint_payload_version': 1,
+              'nested_session_frame_len': 143,
+              'payload_fixed_prefix_len': 176,
+              'payload_per_axis_len': 48,
+              'public_persistent_encoder_requires_established_session': True,
+              'public_detached_endpoint_token_encoder': False,
+              'public_detached_session_binding_encoder': False,
+              'capture_occurs_after_session_establishment_on_public_path': True,
+              'nested_session_codec_single_source': True,
+              'decoder_rechecks_region_center': True,
+              'decoder_rechecks_offset_from_center': True,
+              'decoder_rechecks_closed_box_membership': True,
+              'negative_zero_center_offset_admitted': False,
+              'attacker_sized_semantic_decoder_allocation': False,
+              'runtime_body_handle_in_semantics': False,
+              'irrelevant_rotation_velocity_sleep_in_semantics': False,
+              'decoded_bytes_recreate_live_authority': False,
+              'independent_python_golden_oracle': True,
+              'predecessor_1113_qualification_pass_claimed_here': False,
+              'predecessor_1088_qualification_pass_claimed_here': False,
+              'final_replay_safe_claim_key_authority': False,
+              'cryptographic_authentication_authority': False,
+              'continuous_occupancy_dwell_arrival_delivery_settlement_authority': False,
+          }
+          Path('canonical-endpoint-sample-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-endpoint-sample-${{ env.PRODUCT_HEAD }}
+          path: |
+            canonical-endpoint-sample-qualification-receipt.json
+            ${{ runner.temp }}/canonical-endpoint-sample-source-sha256.txt
+            ${{ runner.temp }}/canonical-endpoint-sample-source-sha256-post.txt
+          if-no-files-found: error
