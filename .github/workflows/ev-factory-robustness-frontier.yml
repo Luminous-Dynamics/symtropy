@@ -1,0 +1,172 @@
+name: EV Factory Scenario-Family Robustness Frontier
+on:
+  pull_request:
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_robustness_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_SCENARIO_FAMILY_ROBUSTNESS_V0_1.md"
+      - ".github/workflows/ev-factory-robustness-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs"
+      - "tools/ev-passenger-cost-frontier/src/bin/ev_factory_robustness_frontier.rs"
+      - "tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json"
+      - "tools/ev-passenger-cost-frontier/Cargo.toml"
+      - "docs/research/EV_FACTORY_SCENARIO_FAMILY_ROBUSTNESS_V0_1.md"
+      - ".github/workflows/ev-factory-robustness-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  robustness-frontier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Validate shared-seed synthetic base fixture
+        run: |
+          jq empty tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-SIM-001"
+            and .input_evidence_class == "synthetic"
+            and .dispatch_policy == "fifo"
+            and (.replication_seeds | length) == 20
+            and (.stations | length) == 5
+          ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+      - name: Build five named scenario-family fixtures
+        run: |
+          BASE=tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json
+          cp "$BASE" ev-family-nominal.json
+          jq '.mean_supply_interarrival_seconds = 650
+              | .supply_interarrival_variability_fraction = 0.8
+              | .source_buffer_capacity = 3' "$BASE" > ev-family-supplier-starvation.json
+          jq '.variant_count = 5
+              | .variant_batch_size = 5
+              | .stations |= map(.changeover_seconds *= 3)' "$BASE" > ev-family-variant-setup.json
+          jq '.stations |= map(.mean_time_between_failures_seconds *= 0.25
+                               | .mean_time_to_repair_seconds *= 2.5)' "$BASE" > ev-family-reliability-disruption.json
+          jq '.source_buffer_capacity = 2
+              | .buffer_capacities = [1,1,1,1]' "$BASE" > ev-family-finite-buffer-stress.json
+          for profile in ev-family-*.json; do
+            jq -e '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .input_evidence_class == "synthetic"
+              and (.replication_seeds | length) == 20
+              and (.stations | length) == 5
+            ' "$profile" >/dev/null
+          done
+      - name: Format check
+        run: cargo fmt --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml -- --check
+      - name: Full Rust package tests
+        run: cargo test --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml
+      - name: Generate paired report for each operating regime
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- ev-family-nominal.json > ev-report-nominal.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- ev-family-supplier-starvation.json > ev-report-supplier-starvation.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- ev-family-variant-setup.json > ev-report-variant-setup.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- ev-family-reliability-disruption.json > ev-report-reliability-disruption.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- ev-family-finite-buffer-stress.json > ev-report-finite-buffer-stress.json
+          for report in ev-report-*.json; do
+            jq -e '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .replication_count == 20
+              and (.replication_seeds | length) == 20
+              and (.replication_outcomes | length) == 120
+              and .release_ready == false
+              and .output_never_exceeds_released_input
+              and .all_buffers_respected_capacity
+              and .station_time_accounting_within_horizon
+            ' "$report" >/dev/null
+          done
+      - name: Evaluate cross-family robustness and Pareto frontier
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_robustness_frontier -- \
+            nominal=ev-report-nominal.json \
+            supplier-starvation=ev-report-supplier-starvation.json \
+            variant-setup=ev-report-variant-setup.json \
+            reliability-disruption=ev-report-reliability-disruption.json \
+            finite-buffer-stress=ev-report-finite-buffer-stress.json \
+            > ev-factory-robustness-report.json
+          jq -e '
+            .benchmark_id == "EV-FACTORY-ROBUST-001"
+            and .family_count == 5
+            and (.shared_replication_seeds | length) == 20
+            and .shared_replication_count == 20
+            and (.input_family_digests | length) == 5
+            and (.family_baseline_results | length) == 5
+            and (.family_station_results | length) == 25
+            and (.family_pair_comparisons | length) == 50
+            and (.station_scores | length) == 5
+            and (.pareto_frontier_station_ids | length) >= 1
+            and all(.family_station_results[]; .paired_gain.sample_count == 20)
+            and all(.family_pair_comparisons[]; .paired_effect_a_minus_b.sample_count == 20 and .practical_equivalence_margin_units_per_hour == 0.05)
+            and all(.station_scores[]; .family_count == 5)
+            and .results_are_synthetic_model_conditional
+            and (.production_release_authorized == false)
+            and (.robust_best_station_id == null or (.robust_best_station_id | type == "string"))
+          ' ev-factory-robustness-report.json
+      - name: Verify byte-identical frontier report
+        run: |
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_robustness_frontier -- \
+            nominal=ev-report-nominal.json \
+            supplier-starvation=ev-report-supplier-starvation.json \
+            variant-setup=ev-report-variant-setup.json \
+            reliability-disruption=ev-report-reliability-disruption.json \
+            finite-buffer-stress=ev-report-finite-buffer-stress.json \
+            > ev-factory-robustness-repeat.json
+          cmp ev-factory-robustness-report.json ev-factory-robustness-repeat.json
+      - name: Negative controls - seed mismatch, paired-delta tamper and duplicate family ID
+        run: |
+          jq '.replication_seeds[1] = .replication_seeds[0]' ev-report-supplier-starvation.json > invalid-family-seeds.json
+          jq '.replication_outcomes[1].paired_good_units_per_hour_delta_vs_baseline = 999' ev-report-supplier-starvation.json > invalid-family-delta.json
+          for invalid in invalid-family-seeds.json invalid-family-delta.json; do
+            if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_robustness_frontier -- \
+              nominal=ev-report-nominal.json \
+              supplier-starvation="$invalid" \
+              variant-setup=ev-report-variant-setup.json \
+              reliability-disruption=ev-report-reliability-disruption.json \
+              finite-buffer-stress=ev-report-finite-buffer-stress.json >/dev/null 2>&1; then
+              echo "invalid scenario-family report unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+          if cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_robustness_frontier -- \
+            nominal=ev-report-nominal.json \
+            nominal=ev-report-supplier-starvation.json \
+            variant-setup=ev-report-variant-setup.json \
+            reliability-disruption=ev-report-reliability-disruption.json \
+            finite-buffer-stress=ev-report-finite-buffer-stress.json >/dev/null 2>&1; then
+            echo "duplicate scenario-family ID unexpectedly accepted"
+            exit 1
+          fi
+      - name: Hash profiles, source reports and frontier
+        run: |
+          sha256sum \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_robustness_frontier.rs \
+            tools/ev-passenger-cost-frontier/src/bin/ev_factory_simulation.rs \
+            tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+            docs/research/EV_FACTORY_SCENARIO_FAMILY_ROBUSTNESS_V0_1.md \
+            ev-family-nominal.json ev-family-supplier-starvation.json ev-family-variant-setup.json \
+            ev-family-reliability-disruption.json ev-family-finite-buffer-stress.json \
+            ev-report-nominal.json ev-report-supplier-starvation.json ev-report-variant-setup.json \
+            ev-report-reliability-disruption.json ev-report-finite-buffer-stress.json \
+            ev-factory-robustness-report.json > ev-factory-robustness.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-factory-scenario-family-robustness
+          path: |
+            ev-factory-robustness-report.json
+            ev-factory-robustness.sha256
+            ev-report-nominal.json
+            ev-report-supplier-starvation.json
+            ev-report-variant-setup.json
+            ev-report-reliability-disruption.json
+            ev-report-finite-buffer-stress.json
+          if-no-files-found: error
