@@ -1,0 +1,83 @@
+name: Echo Memory Capacity Contracts
+
+on:
+  push:
+    branches: ["research/vis-mem-bounded-episodes-v0-1"]
+    paths:
+      - "crates/domains/symtropy-hdc-physics/src/memory.rs"
+      - "src/systems/echo_memory.rs"
+      - ".github/workflows/echo-memory-capacity.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "crates/domains/symtropy-hdc-physics/src/memory.rs"
+      - "src/systems/echo_memory.rs"
+      - ".github/workflows/echo-memory-capacity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: echo-memory-capacity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-hdc-capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact head and toolchain
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+          cargo --version
+
+      - name: Test HDC physics episode memory
+        run: |
+          set -euo pipefail
+          cargo test --locked --package symtropy-hdc-physics
+
+      - name: Compile the live EchoMemory feature
+        run: |
+          set -euo pipefail
+          cargo check --locked --package symtropy-launcher --features echo-memory
+
+      - name: Record exact-head qualification manifest
+        run: |
+          set -euo pipefail
+          {
+            printf 'META\tstatus\tpassed_only_if_all_steps_complete\n'
+            printf 'META\thead\t%s\n' "$(git rev-parse HEAD)"
+            printf 'META\ttoolchain\t%s\n' "$(rustc --version)"
+            printf 'META\thdc_memory_source_sha256\t%s\n' "$(sha256sum crates/domains/symtropy-hdc-physics/src/memory.rs | awk '{print $1}')"
+            printf 'META\techo_memory_source_sha256\t%s\n' "$(sha256sum src/systems/echo_memory.rs | awk '{print $1}')"
+            printf 'META\tretention_policy\tfifo_oldest_first_after_write_validation\n'
+            printf 'META\tlive_episode_capacity\t256\n'
+            printf 'META\tperformance_scope\tdata-structure and feature compile only; no robot or SOTA claim\n'
+          } > echo-memory-capacity-receipt.tsv
+          sha256sum echo-memory-capacity-receipt.tsv > echo-memory-capacity-receipt.sha256
+          sha256sum -c echo-memory-capacity-receipt.sha256
+
+      - name: Upload exact-head receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo-memory-capacity-receipt
+          path: |
+            echo-memory-capacity-receipt.tsv
+            echo-memory-capacity-receipt.sha256
+          if-no-files-found: error
