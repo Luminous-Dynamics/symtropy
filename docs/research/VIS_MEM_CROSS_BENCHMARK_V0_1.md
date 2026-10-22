@@ -327,3 +327,37 @@ Metrics remain disaggregated: task success, wrong-action rate, memory-use rate, 
 At last check, [focused qualification run #39739584641](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39739584641) and general CI #39739584528 were queued for exact head `2b269f775dab6caac4daff132d3e3e2f2ccd183d`; no result is claimed yet. The implementation is a mechanism diagnostic, not a native benchmark or SOTA result.
 
 This direction follows directly from the external evaluation gap: MemTransfer reports sensitivity to changed start poses and irrelevant histories (https://arxiv.org/abs/2609.32313); MeMoREval jointly measures embodied memory utility and construction/use cost (https://arxiv.org/abs/2610.12561); SCOPER emphasizes evidence retention and progress verification over complete closed-loop task execution (https://arxiv.org/abs/2610.17657). Symtropy's longer-term test should apply these paired interventions to a licensed native benchmark, freeze the model/simulator/evaluator revisions, and report task/seed-block confidence intervals with memory and runtime cost. Synthetic rates must never be pooled with these external results.
+
+
+## Fixed-size learned memory is a required comparator
+
+A relevant recent method is [MemBodied](https://arxiv.org/abs/2609.28256), with its [official implementation and reported results](https://github.com/declare-lab/MemBodied). It uses a fixed-size associative state updated from action chunks and observed outcomes, plus an episode-start anchor. Storage stays constant in episode length at a fixed architecture/rank/camera configuration. This is a different design point from a vector store or text RAG pipeline: it learns how to read/write a bounded latent state inside the action policy.
+
+The project reports:
+- **RMBench, five memory tasks:** 50.0% mean success for MemBodied vs 16.8% for vanilla recurrent memory and 6.4% for stateless pi0.
+- **LIBERO-Long:** 90.6% success vs 85.2% for stateless pi0.
+- **Physical robot setting:** 16 successful trials out of 60 vs 2/60 for its pi0 baseline across three task categories.
+- **Latency within the reported NativeMEM comparison:** about 129 ms per policy cycle vs 1.6 s, with lower peak GPU memory.
+
+These figures are reported by the authors, not independently reproduced here, and they are **not comparable to MIKASA or to our synthetic Rust fixtures** without matching the benchmark, task set, policy backbone, training data, seeds, and success definition. The source repo states that benchmark assets, datasets, and trained checkpoints are not bundled. It uses separate Python/JAX policy environments; plan for that only at the external benchmark boundary, not in Symtropy's production implementation.
+
+## Native benchmark priority and comparator matrix
+
+For a first native memory experiment, prioritize **MIKASA-Robo-VLA Long** after environment and asset license review. Its public benchmark code repository is MIT, and the Hugging Face LeRobot dataset is also marked MIT; this is a better initial candidate for commercial-adjacent research than MEMOBench and EmbodiedMemory-Bench, whose datasets are marked CC BY-NC 4.0. An MIT dataset/repository marker does not grant rights to every simulator, submodule, model checkpoint, or dependency, so audit those terms separately. Keep the noncommercial benchmarks research-only unless additional rights are obtained.
+
+Compare under identical MIKASA task IDs and seeds, and report the standard official 22-task Long result using 50 episodes/task and seeds `4242424242…4242424291`:
+1. Reactive/current-observation policy (negative control).
+2. Stateless or no-persistent-memory baseline.
+3. Fixed frame/context window.
+4. External episodic memory / retrieval baseline.
+5. Learned fixed-state recurrent/associative baseline (MemBodied-like).
+6. Explicit evidence ledger with revision-aware update and admission gate.
+7. Fixed-budget hybrid: learned compact state plus a bounded evidence ledger for auditable exceptions and freshness.
+
+For memory-only claims, freeze backbone/checkpoint, observation preprocessing, action executor, demonstration/training budget, precision, action chunk size and simulator; use paired task/seed analysis. Report training compute separately when learned recurrent memory adds parameters. Keep task-level and memory-type results, and run reactive controls to ensure memory does not regress tasks where the needed information remains visible.
+
+Before training/evaluation, write down the evaluation split, held-out policy-selection method, dataset revisions and hashes, simulator/checkpoint provenance, licenses, and oracle-access audit. The published official seed protocol uses the same stream for every task, so confidence intervals should preserve task strata and seed blocks rather than treating all 1,100 episodes as independent samples.
+
+This changes the comparative question from “does a bigger external store beat a small buffer?” to “which memory architecture gives the best task-success / reliability / latency / resource frontier under the same evidence and action budget?” The likely differentiator for Symtropy is not claiming one store architecture wins everywhere, but demonstrating that a hybrid can retain recurrent efficiency while exposing auditable provenance, stale-revision rejection, verification, and safe abstention when the latent state is insufficient.
+
+**Prospective go/no-go gates (not measured results):** at least +5 absolute points of paired native macro success over the strongest eligible baseline with a paired 95% interval above zero; at least 50% relative reduction in harmful-memory actions compared with always-recall on labelled intervention cases; at most 1-point regression on reactive controls; false abstention below 2% when an independently established correct path exists; and no worse measured success/resource Pareto position. Publish both passes and regressions.
