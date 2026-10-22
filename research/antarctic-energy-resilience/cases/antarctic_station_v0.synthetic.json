@@ -1,0 +1,253 @@
+{
+  "schema_version": "antarctic-station-profile-v0.1",
+  "case_id": "antarctic-station-synthetic-four-regime",
+  "evidence_class": "synthetic_software_fixture_only",
+  "physical_data": false,
+  "purpose": "Exercise typed electric, useful-heat and storage-ledger contracts. Values are fabricated arithmetic inputs and are not calibrated or representative of any Antarctic station.",
+  "boundary": {
+    "site": "unspecified_synthetic_station",
+    "interval_basis": "one synthetic operating interval per scenario",
+    "electric_energy_unit": "kWh_e",
+    "thermal_energy_unit": "kWh_th",
+    "battery_storage_unit": "kWh_e_internal",
+    "thermal_storage_unit": "kWh_th_internal",
+    "fuel_use": "not modeled in this fixture; do not infer diesel litres or emissions",
+    "note": "Cogeneration heat is an independent ledger input in this fixture and is not linked to fuel input. A real case must link electricity, useful heat and primary fuel through a source-pinned CHP model to prevent double counting."
+  },
+  "required_service_floors": {
+    "critical_electricity_must_be_fully_supplied": true,
+    "critical_useful_heat_must_be_fully_supplied": true,
+    "water_and_communications": "not numerically modeled in this fixture; must be added before operational interpretation",
+    "shed_priority": [
+      "deferrable_research_load"
+    ]
+  },
+  "tolerance": {
+    "absolute_kwh": 0.001,
+    "relative_fraction": 0.000001
+  },
+  "periods": [
+    {
+      "id": "P1-summer-renewable",
+      "description": "Synthetic austral-summer interval with wind and solar contribution",
+      "electric": {
+        "sources_kwh": {
+          "wind": 400,
+          "solar": 350,
+          "diesel_generator": 250,
+          "battery_to_bus": 0
+        },
+        "sinks_kwh": {
+          "critical_load": 600,
+          "deferrable_load": 250,
+          "battery_charge_input": 100,
+          "electrical_loss": 50,
+          "curtailed_generation": 0
+        }
+      },
+      "battery_storage": {
+        "opening_kwh_internal": 500,
+        "charge_input_kwh_e": 100,
+        "charge_efficiency": 0.9,
+        "discharge_to_bus_kwh_e": 0,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_internal": 20,
+        "closing_kwh_internal": 570
+      },
+      "heat": {
+        "sources_kwh_th": {
+          "cogeneration_useful_heat": 450,
+          "heat_pump_output": 300,
+          "thermal_store_to_service": 0,
+          "backup_heater": 200
+        },
+        "sinks_kwh_th": {
+          "critical_useful_heat": 700,
+          "deferrable_useful_heat": 150,
+          "thermal_store_charge_input": 50,
+          "thermal_loss": 50,
+          "thermal_dump": 0
+        }
+      },
+      "thermal_storage": {
+        "opening_kwh_th_internal": 1000,
+        "charge_input_kwh_th": 50,
+        "charge_efficiency": 0.9,
+        "discharge_to_service_kwh_th": 0,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_th_internal": 10,
+        "closing_kwh_th_internal": 1035
+      }
+    },
+    {
+      "id": "P2-polar-night",
+      "description": "Synthetic polar-night interval with zero solar generation",
+      "electric": {
+        "sources_kwh": {
+          "wind": 500,
+          "solar": 0,
+          "diesel_generator": 300,
+          "battery_to_bus": 100
+        },
+        "sinks_kwh": {
+          "critical_load": 650,
+          "deferrable_load": 150,
+          "battery_charge_input": 0,
+          "electrical_loss": 100,
+          "curtailed_generation": 0
+        }
+      },
+      "battery_storage": {
+        "opening_kwh_internal": 570,
+        "charge_input_kwh_e": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_bus_kwh_e": 100,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_internal": 10,
+        "closing_kwh_internal": 448.8888888889
+      },
+      "heat": {
+        "sources_kwh_th": {
+          "cogeneration_useful_heat": 350,
+          "heat_pump_output": 250,
+          "thermal_store_to_service": 200,
+          "backup_heater": 300
+        },
+        "sinks_kwh_th": {
+          "critical_useful_heat": 900,
+          "deferrable_useful_heat": 100,
+          "thermal_store_charge_input": 0,
+          "thermal_loss": 100,
+          "thermal_dump": 0
+        }
+      },
+      "thermal_storage": {
+        "opening_kwh_th_internal": 1035,
+        "charge_input_kwh_th": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_service_kwh_th": 200,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_th_internal": 20,
+        "closing_kwh_th_internal": 792.7777777778
+      }
+    },
+    {
+      "id": "P3-storm-wind-outage",
+      "description": "Synthetic high-demand storm interval with wind and solar unavailable",
+      "electric": {
+        "sources_kwh": {
+          "wind": 0,
+          "solar": 0,
+          "diesel_generator": 800,
+          "battery_to_bus": 100
+        },
+        "sinks_kwh": {
+          "critical_load": 700,
+          "deferrable_load": 100,
+          "battery_charge_input": 0,
+          "electrical_loss": 100,
+          "curtailed_generation": 0
+        }
+      },
+      "battery_storage": {
+        "opening_kwh_internal": 448.8888888889,
+        "charge_input_kwh_e": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_bus_kwh_e": 100,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_internal": 20,
+        "closing_kwh_internal": 317.7777777778
+      },
+      "heat": {
+        "sources_kwh_th": {
+          "cogeneration_useful_heat": 450,
+          "heat_pump_output": 200,
+          "thermal_store_to_service": 300,
+          "backup_heater": 550
+        },
+        "sinks_kwh_th": {
+          "critical_useful_heat": 1300,
+          "deferrable_useful_heat": 100,
+          "thermal_store_charge_input": 0,
+          "thermal_loss": 100,
+          "thermal_dump": 0
+        }
+      },
+      "thermal_storage": {
+        "opening_kwh_th_internal": 792.7777777778,
+        "charge_input_kwh_th": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_service_kwh_th": 300,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_th_internal": 30,
+        "closing_kwh_th_internal": 429.4444444445
+      }
+    },
+    {
+      "id": "P4-maintenance-resupply-delay",
+      "description": "Synthetic generator/maintenance and resupply stress interval; model is not a real outage study",
+      "electric": {
+        "sources_kwh": {
+          "wind": 200,
+          "solar": 0,
+          "diesel_generator": 300,
+          "battery_to_bus": 200
+        },
+        "sinks_kwh": {
+          "critical_load": 650,
+          "deferrable_load": 0,
+          "battery_charge_input": 0,
+          "electrical_loss": 50,
+          "curtailed_generation": 0
+        }
+      },
+      "battery_storage": {
+        "opening_kwh_internal": 317.7777777778,
+        "charge_input_kwh_e": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_bus_kwh_e": 200,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_internal": 20,
+        "closing_kwh_internal": 75.5555555556
+      },
+      "heat": {
+        "sources_kwh_th": {
+          "cogeneration_useful_heat": 200,
+          "heat_pump_output": 0,
+          "thermal_store_to_service": 100,
+          "backup_heater": 1000
+        },
+        "sinks_kwh_th": {
+          "critical_useful_heat": 1200,
+          "deferrable_useful_heat": 0,
+          "thermal_store_charge_input": 0,
+          "thermal_loss": 100,
+          "thermal_dump": 0
+        }
+      },
+      "thermal_storage": {
+        "opening_kwh_th_internal": 429.4444444445,
+        "charge_input_kwh_th": 0,
+        "charge_efficiency": 0.9,
+        "discharge_to_service_kwh_th": 100,
+        "discharge_efficiency": 0.9,
+        "standing_loss_kwh_th_internal": 20,
+        "closing_kwh_th_internal": 298.3333333334
+      }
+    }
+  ],
+  "invalid_cases_to_add_for_oracle": [
+    "electric_source_sink_imbalance",
+    "thermal_source_sink_imbalance",
+    "storage_state_below_zero",
+    "storage_state_above_capacity",
+    "efficiency_outside_0_to_1",
+    "polar_night_with_unjustified_solar_input",
+    "missing_critical_service",
+    "duplicate_period_id",
+    "unit_mix_kwh_e_and_kwh_th",
+    "double_count_cogeneration_energy",
+    "unknown_operating_limit_promoted_to_pass",
+    "non_finite_or_negative_flow"
+  ]
+}
