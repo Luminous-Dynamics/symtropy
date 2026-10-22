@@ -40,11 +40,13 @@ fn main() -> ExitCode {
                 concat!(
                     "{{\"height\":{:.17e},",
                     "\"mean_ratio_quality\":{:.17e},",
-                    "\"dimensionless_gradient_amplification\":{:.17e}}}"
+                    "\"dimensionless_gradient_amplification\":{:.17e},",
+                    "\"element_nonrigid_condition_number\":{:.17e}}}"
                 ),
                 point.height,
                 point.mean_ratio_quality,
-                point.dimensionless_gradient_amplification
+                point.dimensionless_gradient_amplification,
+                point.element_nonrigid_condition_number
             )
         })
         .collect::<Vec<_>>()
