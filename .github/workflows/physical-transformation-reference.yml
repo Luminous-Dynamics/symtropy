@@ -659,6 +659,8 @@ jobs:
             and .diagnostics.first_frequency_relative_error < 1e-2
             and .diagnostics.maximum_normalized_eigen_residual < 1e-5
             and .diagnostics.banded_matrix_storage_bytes * 100 < .diagnostics.dense_stiffness_mass_storage_estimate_bytes * 5
+            and .diagnostics.dense_crosscheck_max_relative_frequency_error < 1e-7
+            and .diagnostics.dense_crosscheck_min_mac > 0.9999999
             and (.modes | length) == 6
             and (.modes | all(.[]; .frequency_hz > 0 and .normalized_eigen_residual < 1e-5))
             and (.modes | .[0].frequency_hz < .[1].frequency_hz and .[1].frequency_hz < .[2].frequency_hz and .[2].frequency_hz < .[3].frequency_hz and .[3].frequency_hz < .[4].frequency_hz and .[4].frequency_hz < .[5].frequency_hz)
