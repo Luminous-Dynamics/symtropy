@@ -60,7 +60,10 @@ pub fn beam_modal_participation_properties(
     let dof_count = assembly.stiffness_global.len();
     if dof_count == 0
         || assembly.mass_global.len() != dof_count
-        || assembly.mass_global.iter().any(|row| row.len() != dof_count)
+        || assembly
+            .mass_global
+            .iter()
+            .any(|row| row.len() != dof_count)
     {
         return Err("global mass matrix must be non-empty and square".to_owned());
     }
@@ -71,9 +74,7 @@ pub fn beam_modal_participation_properties(
         return Err("at least one modal solution is required".to_owned());
     }
     if modal_result.modes.len() != assembly.free_dof_indices.len() {
-        return Err(
-            "modal participation requires the complete free-DOF eigenspectrum".to_owned(),
-        );
+        return Err("modal participation requires the complete free-DOF eigenspectrum".to_owned());
     }
     if modal_result.modes.iter().any(|mode| {
         mode.shape_global_dofs.len() != dof_count
@@ -95,7 +96,12 @@ pub fn beam_modal_participation_properties(
     {
         return Err("modal modes must be ordered by nondecreasing eigenvalue".to_owned());
     }
-    if assembly.mass_global.iter().flatten().any(|value| !value.is_finite()) {
+    if assembly
+        .mass_global
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return Err("global mass matrix contains a non-finite entry".to_owned());
     }
 
@@ -155,7 +161,9 @@ pub fn beam_modal_participation_properties(
             || ratio_x < 0.0
             || ratio_y < 0.0
         {
-            return Err(format!("modal participation output is invalid for mode {mode_index}"));
+            return Err(format!(
+                "modal participation output is invalid for mode {mode_index}"
+            ));
         }
 
         modes.push(BeamModeParticipation {
@@ -187,7 +195,12 @@ fn matrix_vector_product(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
     }
     let product = matrix
         .iter()
-        .map(|row| row.iter().zip(vector).map(|(left, right)| left * right).sum::<f64>())
+        .map(|row| {
+            row.iter()
+                .zip(vector)
+                .map(|(left, right)| left * right)
+                .sum::<f64>()
+        })
         .collect::<Vec<_>>();
     if product.iter().all(|value| value.is_finite()) {
         Ok(product)
@@ -212,9 +225,7 @@ fn dot(left: &[f64], right: &[f64]) -> Check<f64> {
 mod tests {
     use super::beam_modal_participation_properties;
     use crate::beam_modal::{BeamModalMode, BeamModalResult, BeamModeClass};
-    use crate::beam_pin_assembly::{
-        BeamPinAssembly, BeamPinDofDescriptor, BeamPinDofKind,
-    };
+    use crate::beam_pin_assembly::{BeamPinAssembly, BeamPinDofDescriptor, BeamPinDofKind};
 
     fn descriptor(index: usize, kind: BeamPinDofKind) -> BeamPinDofDescriptor {
         BeamPinDofDescriptor { index, kind }
@@ -313,8 +324,8 @@ mod tests {
             .shape_global_dofs
             .iter_mut()
             .for_each(|value| *value *= 5.0);
-        let scaled = beam_modal_participation_properties(&assembly, &scaled_modes)
-            .expect("rescaled modes");
+        let scaled =
+            beam_modal_participation_properties(&assembly, &scaled_modes).expect("rescaled modes");
         for index in 0..baseline.modes.len() {
             assert!(
                 (baseline.modes[index].effective_modal_mass_x_kg
