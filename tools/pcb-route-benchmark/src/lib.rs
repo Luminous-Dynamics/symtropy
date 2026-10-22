@@ -2930,7 +2930,7 @@ mod tests {
         }
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("external source URL/repository must come from the license audit"));
+            .contains("source_url must use HTTPS"));
 
         for board in &mut manifest.boards {
             board.source_url = format!("https://example.invalid/{}", board.board_id);
@@ -2943,7 +2943,7 @@ mod tests {
         }
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("external license evidence is incomplete"));
+            .contains("hash-bound license-evidence path"));
 
         // A moving or mismatched source-license URL must not satisfy the immutable source pin.
         for board in &mut manifest.boards {
@@ -2974,7 +2974,7 @@ mod tests {
         manifest.boards[0].license_evidence_source_commit_sha = None;
         assert!(validate_manifest(&manifest)
             .unwrap_err()
-            .contains("external license evidence is incomplete"));
+            .contains("immutable license-source commit"));
     }
 
     #[test]
