@@ -965,37 +965,47 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     .map(|value| value.p99_seconds)
             })
             .collect();
-        let censor_fractions: Vec<f64> = flow_summaries.iter()
+        let censor_fractions: Vec<f64> = flow_summaries
+            .iter()
             .filter(|summary| summary.release_cohort_jobs > 0)
             .map(|summary| {
-                summary.right_censored_jobs_at_horizon as f64
-                    / summary.release_cohort_jobs as f64
+                summary.right_censored_jobs_at_horizon as f64 / summary.release_cohort_jobs as f64
             })
             .collect();
         flow_time_statistics.push(FlowTimeStatistics {
             scenario_id: first_scenario.scenario_id.clone(),
             replications_with_good_flow_time_observations: good_mean.len(),
-            good_flow_time_mean_seconds_across_replications:
-                optional_distribution_summary(&good_mean)?,
-            good_flow_time_p50_seconds_across_replications:
-                optional_distribution_summary(&good_p50)?,
-            good_flow_time_p90_seconds_across_replications:
-                optional_distribution_summary(&good_p90)?,
-            good_flow_time_p95_seconds_across_replications:
-                optional_distribution_summary(&good_p95)?,
-            good_flow_time_p99_seconds_across_replications:
-                optional_distribution_summary(&good_p99)?,
+            good_flow_time_mean_seconds_across_replications: optional_distribution_summary(
+                &good_mean,
+            )?,
+            good_flow_time_p50_seconds_across_replications: optional_distribution_summary(
+                &good_p50,
+            )?,
+            good_flow_time_p90_seconds_across_replications: optional_distribution_summary(
+                &good_p90,
+            )?,
+            good_flow_time_p95_seconds_across_replications: optional_distribution_summary(
+                &good_p95,
+            )?,
+            good_flow_time_p99_seconds_across_replications: optional_distribution_summary(
+                &good_p99,
+            )?,
             replications_with_scrap_flow_time_observations: scrap_mean.len(),
-            scrap_flow_time_mean_seconds_across_replications:
-                optional_distribution_summary(&scrap_mean)?,
-            scrap_flow_time_p50_seconds_across_replications:
-                optional_distribution_summary(&scrap_p50)?,
-            scrap_flow_time_p90_seconds_across_replications:
-                optional_distribution_summary(&scrap_p90)?,
-            scrap_flow_time_p95_seconds_across_replications:
-                optional_distribution_summary(&scrap_p95)?,
-            scrap_flow_time_p99_seconds_across_replications:
-                optional_distribution_summary(&scrap_p99)?,
+            scrap_flow_time_mean_seconds_across_replications: optional_distribution_summary(
+                &scrap_mean,
+            )?,
+            scrap_flow_time_p50_seconds_across_replications: optional_distribution_summary(
+                &scrap_p50,
+            )?,
+            scrap_flow_time_p90_seconds_across_replications: optional_distribution_summary(
+                &scrap_p90,
+            )?,
+            scrap_flow_time_p95_seconds_across_replications: optional_distribution_summary(
+                &scrap_p95,
+            )?,
+            scrap_flow_time_p99_seconds_across_replications: optional_distribution_summary(
+                &scrap_p99,
+            )?,
             release_cohort_jobs: summarize_distribution(&release_counts)?,
             completed_good_jobs: summarize_distribution(&good_counts)?,
             completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
@@ -1011,8 +1021,9 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                 optional_distribution_summary(&censored_age_p95)?,
             right_censored_observed_age_p99_seconds_across_replications:
                 optional_distribution_summary(&censored_age_p99)?,
-            right_censored_fraction_of_release_cohort:
-                optional_distribution_summary(&censor_fractions)?,
+            right_censored_fraction_of_release_cohort: optional_distribution_summary(
+                &censor_fractions,
+            )?,
             cohort_accounting_valid: flow_summaries
                 .iter()
                 .all(|summary| summary.cohort_accounting_valid),
@@ -1140,9 +1151,7 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
                     let nominal_baseline = no_outage_report
                         .replication_outcomes
                         .iter()
-                        .find(|outcome| {
-                            outcome.seed == *seed && outcome.scenario_id == "baseline"
-                        })
+                        .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
                         .ok_or_else(|| {
                             "paired_no_outage_baseline_seed_outcome_missing".to_string()
                         })?;
@@ -1841,12 +1850,9 @@ fn collect_right_censored_observed_ages_seconds(
         if !seen_ids.insert(job.id) {
             return Err("duplicate_job_id_in_live_system_at_horizon".into());
         }
-        if job.released_at_seconds >= warmup_seconds
-            && job.released_at_seconds < horizon_seconds
-        {
-            censored_ages_seconds.push(
-                horizon_seconds.saturating_sub(job.released_at_seconds) as f64,
-            );
+        if job.released_at_seconds >= warmup_seconds && job.released_at_seconds < horizon_seconds {
+            censored_ages_seconds
+                .push(horizon_seconds.saturating_sub(job.released_at_seconds) as f64);
         }
         Ok(())
     };
@@ -2090,9 +2096,9 @@ fn complete_operation(
         if job.released_at_seconds >= catalog.warmup_seconds
             && job.released_at_seconds < catalog.horizon_seconds
         {
-            state.completed_scrap_flow_times_seconds.push(
-                state.now.saturating_sub(job.released_at_seconds) as f64,
-            );
+            state
+                .completed_scrap_flow_times_seconds
+                .push(state.now.saturating_sub(job.released_at_seconds) as f64);
         }
         if state.now >= catalog.warmup_seconds {
             state.stations[station_index]
@@ -2213,9 +2219,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
                     if job.released_at_seconds >= catalog.warmup_seconds
                         && job.released_at_seconds < catalog.horizon_seconds
                     {
-                        state.completed_good_flow_times_seconds.push(
-                            state.now.saturating_sub(job.released_at_seconds) as f64,
-                        );
+                        state
+                            .completed_good_flow_times_seconds
+                            .push(state.now.saturating_sub(job.released_at_seconds) as f64);
                     }
                 } else {
                     let mut queued_job = job;
@@ -2745,10 +2751,12 @@ mod tests {
         assert!(report.station_time_accounting_within_horizon);
         assert!(report.flow_time_cohort_accounting_valid);
         assert_eq!(report.flow_time_statistics.len(), report.scenario_count);
-        assert!(report
-            .flow_time_statistics
-            .iter()
-            .all(|statistic| statistic.cohort_accounting_valid));
+        assert!(
+            report
+                .flow_time_statistics
+                .iter()
+                .all(|statistic| statistic.cohort_accounting_valid)
+        );
         assert!(!report.release_ready);
     }
 
@@ -2993,7 +3001,11 @@ mod tests {
         assert!((summary.p95_seconds - 3.85).abs() < 1e-12);
         assert!((summary.p99_seconds - 3.97).abs() < 1e-12);
         assert!((summary.maximum_seconds - 4.0).abs() < 1e-12);
-        assert!(summarize_flow_time_seconds(&[]).expect("empty result").is_none());
+        assert!(
+            summarize_flow_time_seconds(&[])
+                .expect("empty result")
+                .is_none()
+        );
         assert!(summarize_flow_time_seconds(&[-1.0]).is_err());
         assert!(summarize_flow_time_seconds(&[f64::INFINITY]).is_err());
     }
@@ -3010,11 +3022,7 @@ mod tests {
         catalog.source_buffer_capacity = 1;
         catalog.buffer_capacities = vec![1];
         catalog.stations.truncate(2);
-        for (station, cycle_seconds) in catalog
-            .stations
-            .iter_mut()
-            .zip([10.0_f64, 20.0_f64])
-        {
+        for (station, cycle_seconds) in catalog.stations.iter_mut().zip([10.0_f64, 20.0_f64]) {
             station.servers = 1;
             station.mean_cycle_seconds = cycle_seconds;
             station.cycle_time_variability_fraction = 0.0;
@@ -3036,7 +3044,10 @@ mod tests {
         assert_eq!(report.scenario_count, 3);
         assert_eq!(report.system_wip_statistics.len(), 3);
         assert!(report.system_wip_statistics.iter().all(|statistic| {
-            statistic.time_weighted_average_system_wip_units.sample_count == 1
+            statistic
+                .time_weighted_average_system_wip_units
+                .sample_count
+                == 1
                 && (statistic.time_weighted_average_system_wip_units.mean - 0.3).abs() < 1e-12
         }));
         assert!(report.flow_time_cohort_accounting_valid);
@@ -3068,18 +3079,20 @@ mod tests {
         assert_eq!(report.system_wip_statistics.len(), report.scenario_count);
         assert_eq!(report.replication_count, 20);
         assert!(report.system_wip_statistics.iter().all(|statistic| {
-            statistic.time_weighted_average_system_wip_units.sample_count == 20
+            statistic
+                .time_weighted_average_system_wip_units
+                .sample_count
+                == 20
                 && statistic.time_weighted_average_system_wip_units.mean >= 0.0
         }));
         assert!(report.flow_time_cohort_accounting_valid);
-        assert!(report
-            .flow_time_statistics
-            .iter()
-            .all(|statistic| statistic.cohort_accounting_valid
+        assert!(report.flow_time_statistics.iter().all(
+            |statistic| statistic.cohort_accounting_valid
                 && statistic.release_cohort_jobs.sample_count == 20
                 && statistic.completed_good_jobs.sample_count == 20
                 && statistic.completed_scrap_jobs.sample_count == 20
-                && statistic.right_censored_jobs_at_horizon.sample_count == 20));
+                && statistic.right_censored_jobs_at_horizon.sample_count == 20
+        ));
 
         let mut any_good_observations = false;
         let mut any_censored_observations = false;
@@ -3109,16 +3122,22 @@ mod tests {
                         .as_ref()
                         .expect("p99 of censored observed ages"),
                 ];
-                assert!(age_summaries
-                    .iter()
-                    .all(|summary| summary.sample_count == expected_count && summary.mean >= 0.0));
+                assert!(
+                    age_summaries.iter().all(
+                        |summary| summary.sample_count == expected_count && summary.mean >= 0.0
+                    )
+                );
             } else {
-                assert!(statistic
-                    .right_censored_observed_age_mean_seconds_across_replications
-                    .is_none());
-                assert!(statistic
-                    .right_censored_observed_age_p50_seconds_across_replications
-                    .is_none());
+                assert!(
+                    statistic
+                        .right_censored_observed_age_mean_seconds_across_replications
+                        .is_none()
+                );
+                assert!(
+                    statistic
+                        .right_censored_observed_age_p50_seconds_across_replications
+                        .is_none()
+                );
             }
             if statistic.replications_with_good_flow_time_observations > 0 {
                 any_good_observations = true;
@@ -3199,7 +3218,12 @@ mod tests {
                     + scenario.flow_time.right_censored_jobs_at_horizon,
                 scenario.flow_time.release_cohort_jobs
             );
-            assert!(scenario.flow_time.completed_good_flow_time_seconds.is_none());
+            assert!(
+                scenario
+                    .flow_time
+                    .completed_good_flow_time_seconds
+                    .is_none()
+            );
         }
         assert!(report.flow_time_statistics.iter().all(|statistic| {
             statistic.cohort_accounting_valid
