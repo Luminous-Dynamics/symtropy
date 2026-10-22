@@ -815,6 +815,46 @@ fn validate_relative_path(relative_path: &str, board_id: &str) -> Result<(), Str
     Ok(())
 }
 
+fn validate_license_reconciliation(
+    board_id: &str,
+    reported_licenses: &[LicenseAuditReportedLicense],
+    match_status: Option<&str>,
+    resolved_spdx_id: &str,
+) -> Result<(), String> {
+    if resolved_spdx_id.trim().is_empty() {
+        return Err(format!("{board_id}: primary-source license evidence has no resolved SPDX identity"));
+    }
+    if reported_licenses.is_empty() {
+        if match_status != Some("source_license_resolved_no_pcbench_license_metadata") {
+            return Err(format!(
+                "{board_id}: PCBench has no license metadata; the audit must use the distinct no-metadata status rather than claiming an SPDX match"
+            ));
+        }
+        return Ok(());
+    }
+
+    let declared_spdx: Vec<&str> = reported_licenses
+        .iter()
+        .filter_map(|license| license.spdx_id.as_deref())
+        .collect();
+    if declared_spdx.is_empty() {
+        return Err(format!(
+            "{board_id}: PCBench has license metadata but no SPDX declaration; this gate does not infer an exact match from a label alone"
+        ));
+    }
+    if match_status != Some("source_text_matches_pcbench_spdx_metadata") {
+        return Err(format!(
+            "{board_id}: source license is not explicitly reconciled with the PCBench SPDX declaration"
+        ));
+    }
+    if !declared_spdx.contains(&resolved_spdx_id) {
+        return Err(format!(
+            "{board_id}: resolved license does not match the audited PCBench SPDX declaration"
+        ));
+    }
+    Ok(())
+}
+
 pub fn build_dataset_manifest(
     split_config_bytes: &[u8],
     intake_spec_bytes: &[u8],
@@ -1003,15 +1043,12 @@ pub fn build_dataset_manifest(
         if evidence.blob_url != expected_license_url {
             return Err(format!("{}: source license blob URL does not match the audited repository, commit and file path", selection.board_id));
         }
-        if audited.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata") {
-            return Err(format!("{}: source license has not been reconciled with its PCBench metadata license", selection.board_id));
-        }
-        let declared_spdx: Vec<&str> = audited.pcbench_reported_licenses.iter()
-            .filter_map(|license| license.spdx_id.as_deref())
-            .collect();
-        if !declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()) {
-            return Err(format!("{}: resolved license does not match the audited PCBench SPDX declaration", selection.board_id));
-        }
+        validate_license_reconciliation(
+            &selection.board_id,
+            &audited.pcbench_reported_licenses,
+            audited.license_match_status.as_deref(),
+            &evidence.resolved_spdx_id,
+        )?;
 
         let relative_path = format!("{}/{}", selection.board_id, filename);
         validate_relative_path(&relative_path, &selection.board_id)?;
@@ -1248,14 +1285,12 @@ fn validate_audit_manifest_for_manifest(
         {
             return Err(format!("{}: immutable source-license evidence is malformed", pin.board_id));
         }
-        let declared_spdx: Vec<&str> = record.pcbench_reported_licenses.iter()
-            .filter_map(|license| license.spdx_id.as_deref())
-            .collect();
-        if record.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata")
-            || (!declared_spdx.is_empty() && !declared_spdx.contains(&evidence.resolved_spdx_id.as_str()))
-        {
-            return Err(format!("{}: license evidence is not reconciled with the PCBench metadata record", pin.board_id));
-        }
+        validate_license_reconciliation(
+            &pin.board_id,
+            &record.pcbench_reported_licenses,
+            record.license_match_status.as_deref(),
+            &evidence.resolved_spdx_id,
+        )?;
     }
     if audit.boards.iter().filter(|board| manifest.boards.iter().any(|pin| pin.board_id == board.board_id)).count() != manifest.boards.len() {
         return Err("manifest board set does not match the pinned license-audit record set".into());
@@ -2668,6 +2703,91 @@ mod tests {
     const BASELINE: &str = include_str!("../fixtures/synthetic-baseline-run-v0_1.json");
     const TREATMENT: &str = include_str!("../fixtures/synthetic-treatment-run-v0_1.json");
     const EVALUATOR_HEAD: &str = "abababababababababababababababababababab";
+
+    #[test]
+    fn pinned_chickadee_license_evidence_does_not_authorize_benchmark_execution() {
+        let raw = include_str!("../fixtures/pcbworld-d3-pilot-source-metadata-audit-v0_1.json");
+        let audit: LicenseAuditManifest =
+            serde_json::from_str(raw).expect("pinned source-license audit fixture parses");
+        assert_eq!(audit.status, "metadata_inventory_only_not_benchmark_manifest");
+        let board = audit
+            .boards
+            .iter()
+            .find(|board| board.board_id == "0400_laptimer58_Chickadee")
+            .expect("candidate is pinned in the audit");
+        assert!(board.pcbench_reported_licenses.is_empty());
+        assert_eq!(
+            board.license_match_status.as_deref(),
+            Some("source_license_resolved_no_pcbench_license_metadata")
+        );
+        let evidence = board
+            .primary_source_license_evidence
+            .as_ref()
+            .expect("immutable source license evidence is recorded");
+        assert_eq!(evidence.resolved_spdx_id, "CC-BY-SA-4.0");
+        assert_eq!(
+            evidence.git_blob_sha1,
+            "bd5c070f6aba4a89aa8b734c01301f4fe1387411"
+        );
+        assert_eq!(
+            evidence.source_commit_sha,
+            "9156b36226a3adf92bc7e62562795ec622693bfb"
+        );
+        assert_eq!(
+            board.benchmark_eligibility,
+            "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+        );
+        let summary = serde_json::from_str::<serde_json::Value>(raw).unwrap();
+        assert_eq!(summary["license_summary"]["benchmark_eligible"], 0);
+    }
+
+    #[test]
+    fn absent_pcbench_license_metadata_cannot_be_labelled_as_an_spdx_match() {
+        let no_metadata: Vec<LicenseAuditReportedLicense> = Vec::new();
+        assert!(
+            validate_license_reconciliation(
+                "license-metadata-missing",
+                &no_metadata,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .unwrap_err()
+            .contains("distinct no-metadata status")
+        );
+        assert!(
+            validate_license_reconciliation(
+                "license-metadata-missing",
+                &no_metadata,
+                Some("source_license_resolved_no_pcbench_license_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .is_ok()
+        );
+
+        let declared = vec![LicenseAuditReportedLicense {
+            spdx_id: Some("GPL-3.0".into()),
+            name: Some("GNU General Public License v3.0".into()),
+        }];
+        assert!(
+            validate_license_reconciliation(
+                "license-declared",
+                &declared,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "GPL-3.0",
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_license_reconciliation(
+                "license-declared",
+                &declared,
+                Some("source_text_matches_pcbench_spdx_metadata"),
+                "CC-BY-SA-4.0",
+            )
+            .unwrap_err()
+            .contains("does not match")
+        );
+    }
 
     fn valid_run(raw: &str) -> ValidatedRun {
         let mut value: serde_json::Value = serde_json::from_str(raw).expect("fixture JSON");

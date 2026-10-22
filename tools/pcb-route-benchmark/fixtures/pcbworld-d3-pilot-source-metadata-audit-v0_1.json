@@ -31,10 +31,10 @@
     "explicit_spdx_in_pcbench_metadata": 10,
     "metadata_license_link_without_spdx": 4,
     "missing_or_null_pcbench_license": 16,
-    "primary_source_license_blob_checked": 14,
-    "primary_source_license_commit_sha_pinned": 14,
+    "primary_source_license_blob_checked": 15,
+    "primary_source_license_commit_sha_pinned": 15,
     "benchmark_eligible": 0,
-    "primary_source_license_blob_checked_at_immutable_commit": 14
+    "primary_source_license_blob_checked_at_immutable_commit": 15
   },
   "boards": [
     {
@@ -466,8 +466,18 @@
       "original_source_repository": "https://github.com/chickadee-tech/laptimer58",
       "pcbench_reported_licenses": [],
       "pcbench_license_status": "missing_or_null_in_pcbench_metadata_primary_license_check_required",
-      "primary_source_license_review": "not_performed",
-      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake"
+      "primary_source_license_review": "source LICENSE blob reverified at immutable source commit; PCBench license metadata is absent; formal legal applicability review remains separate",
+      "benchmark_eligibility": "not_authorized_pending_primary_source_license_review_and_source_board_byte_intake",
+      "primary_source_license_evidence": {
+        "repository": "https://github.com/chickadee-tech/laptimer58",
+        "file_path": "pcb/LICENSE",
+        "git_blob_sha1": "bd5c070f6aba4a89aa8b734c01301f4fe1387411",
+        "resolved_spdx_id": "CC-BY-SA-4.0",
+        "blob_url": "https://github.com/chickadee-tech/laptimer58/blob/9156b36226a3adf92bc7e62562795ec622693bfb/pcb/LICENSE",
+        "source_commit_sha": "9156b36226a3adf92bc7e62562795ec622693bfb",
+        "blob_hash_reverified_at_pinned_commit": true
+      },
+      "license_match_status": "source_license_resolved_no_pcbench_license_metadata"
     },
     {
       "board_id": "0423_induction-hob_temperature-sender",
@@ -654,7 +664,7 @@
     "For all 14 candidates with an observed source license file, the current branch's license file was independently re-fetched by immutable source commit SHA; each observed Git blob SHA exactly matched the recorded license file blob SHA.",
     "The source license evidence URL points at the pinned commit and file path. The benchmark intake validator requires both that immutable commit SHA and a byte-hashed copy of the license evidence under the dataset root.",
     "A matching file digest identifies the exact evidence text; it does not determine legal applicability to the board/layout or resolve whether transformed benchmark files preserve all obligations.",
-    "The other 16 candidates remain unresolved from this audit because metadata was absent/null or no license file was located. They must stay out of the public benchmark until individually resolved.",
+    "The other 15 candidates remain unresolved because metadata was absent/null or no license file was located. One missing-metadata candidate now has a pinned primary-source license file, but remains unauthorized until formal license applicability review and exact prepared-board byte intake are completed.",
     "No board is benchmark-eligible yet: source/prepared board bytes must still be obtained, verified against a pinned PCBWorld/PCBench pipeline and hashed; required-net counts and exact native engine/version must be measured and pinned."
   ]
 }
