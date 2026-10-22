@@ -374,7 +374,7 @@ fn run_benchmark(root: &Value) -> Result<BenchmarkReport, Vec<String>> {
 
         let actual = evaluate_episode(episode, initial_state);
         if Some(actual.decision) == expected_decision
-            && Some(actual.reason_codes.clone()) == expected_reasons
+            && expected_reasons.as_ref() == Some(&actual.reason_codes)
         {
             passed += 1;
         } else {
@@ -383,7 +383,7 @@ fn run_benchmark(root: &Value) -> Result<BenchmarkReport, Vec<String>> {
                 actual.decision,
                 actual.reason_codes,
                 expected_decision.unwrap_or("<missing>"),
-                expected_reasons.unwrap_or_default()
+                expected_reasons.as_deref().unwrap_or(&[])
             ));
         }
     }
@@ -393,11 +393,6 @@ fn run_benchmark(root: &Value) -> Result<BenchmarkReport, Vec<String>> {
         passed_episode_count: passed,
         failures: errors,
     })
-}
-
-fn load_corpus(path: &str) -> Result<Value, String> {
-    let bytes = fs::read(path).map_err(|error| format!("corpus read failed: {error}"))?;
-    serde_json::from_slice(&bytes).map_err(|error| format!("corpus JSON rejected: {error}"))
 }
 
 fn main() {
@@ -427,6 +422,7 @@ fn main() {
             process::exit(2);
         }
     };
+    let failed = !report.failures.is_empty();
     let receipt = json!({
         "receipt_schema": "robotics-episode-integrity-receipt-v0",
         "suite_id": str_at(&corpus, "suite_id").unwrap_or("unknown"),
@@ -446,7 +442,7 @@ fn main() {
         "{}",
         serde_json::to_string_pretty(&receipt).expect("receipt serialization cannot fail")
     );
-    if report.failures.len() > 0 {
+    if failed {
         process::exit(1);
     }
 }
@@ -471,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn 256_revision_suffix_mutations_invalidate_a_previously_validated_plan() {
+    fn deterministic_revision_suffix_mutations_invalidate_validated_plans() {
         let root = corpus();
         let initial = &root["initial_state"];
         let baseline = root["episodes"][0].clone();
