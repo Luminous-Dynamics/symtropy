@@ -138,6 +138,12 @@ The separate integration test execution_replay_oracle.rs runs 512 deterministic 
 
 The integration test resource_transfer_binding_oracle.rs exercises 512 generated joint schedules with one spatial transfer and a unary tug reservation. Its reference accepts only when the resource interval fully contains the transfer interval and the resource ID matches the transfer's declared vehicle ID. Frozen targets: 197/512 intervals cover the transfer, 96/512 cases also have the correct tug identity, and the joint evaluator should accept exactly those 96 with zero false-feasible and zero false-infeasible cases. This is a synthetic cross-layer semantic oracle; it does not represent lift physics or yard-scale performance.
 
+### Frozen bitemporal replay oracle totals
+
+The 512-case generated execution replay uses seed 0x0e71_2026 and three planned operations per case. The reference implementation pins 1,536 operation assessments; 866 visible events; 1,045 events held back by recorded time; and 464 events held back by occurrence time. The independently computed KPI totals are: 546 observed starts, 320 observed completions, 261 fully observed operations, 504 due-but-missing starts, 580 due-but-missing completions, 486 not-yet-due starts, and 636 not-yet-due completions.
+
+The same corpus pins 277 late starts / 206 late completions; 699 aggregate start-lateness ticks / 553 completion-lateness ticks; 962 absolute start-deviation ticks / 663 absolute completion-deviation ticks; 268 operation-duration-overrun ticks; and 1,266 total event-recording-latency ticks. These frozen aggregates complement the per-case independent predicate assertions. They are test targets, not production observations.
+
 ## Benchmark protocol and targets
 
 Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
