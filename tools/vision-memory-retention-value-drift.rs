@@ -489,7 +489,7 @@ struct Row {
 
 fn run_row(workload: Workload, seed: usize, budget: usize, policy: Policy) -> Row {
     let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
-        ^ ((seed as u64 + 1) * 0x9e37_79b9_7f4a_7c15)
+        ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
         ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
     let (events, latest_revisions, future) = build_stream(workload, mixed_seed);
     let replayed = replay(&events, policy, budget);
@@ -630,10 +630,18 @@ mod tests {
             Event::Query { key: 11, truth_revision: 1 },
             Event::Write { key: 2, revision: 1 },
         ];
+        let future_a = [Query { key: 0, truth_revision: 1 }];
+        let future_b = [Query { key: 11, truth_revision: 1 }];
         for policy in Policy::ALL {
+            // Retention sees only events. Changing the held-out workload can
+            // change the evaluation score, but cannot change the frozen store.
             let snapshot_a = replay(&events, policy, 2).entries;
             let snapshot_b = replay(&events, policy, 2).entries;
             assert_eq!(snapshot_a, snapshot_b);
+            assert_ne!(
+                score_future(&snapshot_a, &future_a).utility,
+                score_future(&snapshot_b, &future_b).utility
+            );
         }
     }
 
