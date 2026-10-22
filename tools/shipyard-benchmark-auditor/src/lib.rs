@@ -89,7 +89,7 @@ pub fn validate_embedded_schemas() -> Result<(), Vec<String>> {
         };
         let required: BTreeSet<&str> = required.iter().filter_map(Value::as_str).collect();
         for field in required_fields {
-            if !properties.contains_key(*field) || !required.contains(*field) {
+            if !properties.contains_key(*field) || !required.contains(field) {
                 errors.push(format!("{name}: required field {field} lacks a property or requirement"));
             }
         }
