@@ -1,0 +1,16 @@
+[package]
+name = "thermo-allocation-certificate"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Independent feasibility checker for shared-capacity allocation certificates"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "thermo-allocation-certificate"
+path = "src/main.rs"
+
+[workspace]
