@@ -12,6 +12,9 @@ fn fixture(name: &str) -> &'static [u8] {
         "invalid-report-timeout-as-infeasible.json" => include_bytes!("fixtures/invalid-report-timeout-as-infeasible.json"),
         "invalid-report-duplicate-case.json" => include_bytes!("fixtures/invalid-report-duplicate-case.json"),
         "incomplete-report-with-unknown.json" => include_bytes!("fixtures/incomplete-report-with-unknown.json"),
+        "invalid-manifest-source-digest.json" => include_bytes!("fixtures/invalid-manifest-source-digest.json"),
+        "invalid-report-wrong-revision.json" => include_bytes!("fixtures/invalid-report-wrong-revision.json"),
+        "invalid-report-missing-case.json" => include_bytes!("fixtures/invalid-report-missing-case.json"),
         _ => panic!("unknown fixture {name}"),
     }
 }
@@ -90,6 +93,24 @@ fn incomplete_report_preserves_unknowns_without_claiming_completion() {
     let summary = audit_bytes(manifest, &report).expect("well-labelled incomplete report should pass");
     assert_eq!(summary.unknown_count, 1);
     assert_eq!(summary.case_count, 2);
+}
+
+#[test]
+fn malformed_source_digest_is_rejected() {
+    assert_invalid("invalid-manifest-source-digest.json", "valid-report.json",
+        "manifest.source.sha256: expected hexadecimal digest/revision");
+}
+
+#[test]
+fn unknown_report_commit_is_rejected() {
+    assert_invalid("valid-manifest.json", "invalid-report-wrong-revision.json",
+        "report.run_metadata.git_commit_sha: does not match manifest candidate revision");
+}
+
+#[test]
+fn complete_report_must_include_every_declared_case() {
+    assert_invalid("valid-manifest.json", "invalid-report-missing-case.json",
+        "report.status: complete requires exactly protocol.expected_case_count case records");
 }
 
 #[test]
