@@ -1,0 +1,30 @@
+name: CRASH-BOOT resource-flow reference corpus
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/crash-boot-resource-flow-reference.yml"
+      - "docs/settlement-bootstrap/**"
+      - "scripts/verify_crash_boot_resource_flow_v0_1.py"
+  push:
+    branches:
+      - "feat/crash-boot-resource-flow-v0-1"
+    paths:
+      - ".github/workflows/crash-boot-resource-flow-reference.yml"
+      - "docs/settlement-bootstrap/**"
+      - "scripts/verify_crash_boot_resource_flow_v0_1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-oracle:
+    name: Synthetic reference contract only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact workflow subject
+        uses: actions/checkout@v4
+      - name: Validate reference corpus and arithmetic
+        run: python3 scripts/verify_crash_boot_resource_flow_v0_1.py
