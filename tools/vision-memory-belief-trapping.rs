@@ -229,6 +229,7 @@ enum TrapSignal {
     Static,
     Cycle,
     Drift,
+    Unclassified,
 }
 
 impl TrapSignal {
@@ -237,6 +238,7 @@ impl TrapSignal {
             Self::Static => "static",
             Self::Cycle => "cycle",
             Self::Drift => "drift",
+            Self::Unclassified => "unclassified",
         }
     }
 }
@@ -375,7 +377,10 @@ fn choose_action(
         Policy::RawLoop => (raw_action(gap), None),
         Policy::GenericTimer => {
             if no_progress_streak(history) >= 2 {
-                (if current.replan_available { Action::Replan } else { Action::Abstain }, None)
+                (
+                    if current.replan_available { Action::Replan } else { Action::Abstain },
+                    Some(TrapSignal::Unclassified),
+                )
             } else {
                 (raw_action(gap), None)
             }
@@ -386,7 +391,9 @@ fn choose_action(
                 let action = recovery_for_gap(gap, current);
                 (action, signal)
             } else {
-                (raw_action(gap), signal)
+                // This policy is intentionally not a drift detector; do not
+                // count an unhandled signal as a detected-and-managed trap.
+                (raw_action(gap), None)
             }
         }
         Policy::GapAwareMonitor => {
@@ -707,11 +714,13 @@ mod tests {
     }
 
     #[test]
-    fn generic_timer_resolves_static_achievement_but_not_cycle_semantics() {
+    fn generic_timer_recovers_by_timeout_without_classifying_cycle() {
         let static_r = run(Policy::GenericTimer, "static_achievement");
         assert!(static_r.solved);
         let cycle_r = run(Policy::GenericTimer, "cycle_achievement");
         assert!(cycle_r.solved);
+        assert_eq!(cycle_r.detected_class, Some(TrapSignal::Unclassified));
+        assert!(!cycle_r.correct_classification);
     }
 
     #[test]
