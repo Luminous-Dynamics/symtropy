@@ -228,7 +228,10 @@ fn validate_precedence(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
             push(
                 &mut violations,
                 ResourceViolationCode::SelfPrecedence,
-                vec![constraint.constraint_id.clone(), constraint.predecessor_operation_id.clone()],
+                vec![
+                    constraint.constraint_id.clone(),
+                    constraint.predecessor_operation_id.clone(),
+                ],
                 "an operation cannot precede itself",
             );
         }
@@ -239,7 +242,10 @@ fn validate_precedence(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
             push(
                 &mut violations,
                 ResourceViolationCode::UnknownPredecessorOperation,
-                vec![constraint.constraint_id.clone(), constraint.predecessor_operation_id.clone()],
+                vec![
+                    constraint.constraint_id.clone(),
+                    constraint.predecessor_operation_id.clone(),
+                ],
                 "precedence predecessor is absent from the resource schedule",
             );
         }
@@ -247,15 +253,17 @@ fn validate_precedence(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
             push(
                 &mut violations,
                 ResourceViolationCode::UnknownSuccessorOperation,
-                vec![constraint.constraint_id.clone(), constraint.successor_operation_id.clone()],
+                vec![
+                    constraint.constraint_id.clone(),
+                    constraint.successor_operation_id.clone(),
+                ],
                 "precedence successor is absent from the resource schedule",
             );
         }
 
-        if let (Some((_, predecessor_end)), Some((successor_start, _))) =
-            (predecessor, successor)
-        {
-            let earliest_successor_start = predecessor_end.checked_add(constraint.minimum_lag_ticks);
+        if let (Some((_, predecessor_end)), Some((successor_start, _))) = (predecessor, successor) {
+            let earliest_successor_start =
+                predecessor_end.checked_add(constraint.minimum_lag_ticks);
             if earliest_successor_start.is_none_or(|earliest| *successor_start < earliest) {
                 push(
                     &mut violations,
@@ -287,7 +295,10 @@ fn validate_precedence(schedule: &ResourceSchedule) -> Vec<ResourceViolation> {
                     "operation dependency edge is duplicated",
                 );
             } else if edge.0 != edge.1 {
-                edges.entry(edge.0.clone()).or_default().insert(edge.1.clone());
+                edges
+                    .entry(edge.0.clone())
+                    .or_default()
+                    .insert(edge.1.clone());
                 *indegree.entry(edge.1).or_default() += 1;
             }
         }
@@ -673,8 +684,7 @@ pub fn evaluate_resource_recovery(
     let resource_kind_violations = validate_cross_schedule_resource_kinds(baseline, candidate);
     let resource_kinds_consistent = resource_kind_violations.is_empty();
     violations.extend(resource_kind_violations);
-    let precedence_unchanged =
-        normalized_precedence(baseline) == normalized_precedence(candidate);
+    let precedence_unchanged = normalized_precedence(baseline) == normalized_precedence(candidate);
     if !precedence_unchanged {
         push(
             &mut violations,
@@ -705,8 +715,9 @@ pub fn evaluate_resource_recovery(
 
     let baseline_outage_conflicts = resource_outage_conflicts(baseline, outages);
     let candidate_outage_conflicts = resource_outage_conflicts(candidate, outages);
-    let baseline_feasible_after_disruption =
-        baseline_feasible_before_disruption && outages_valid && baseline_outage_conflicts.is_empty();
+    let baseline_feasible_after_disruption = baseline_feasible_before_disruption
+        && outages_valid
+        && baseline_outage_conflicts.is_empty();
     let mut candidate_feasible_after_disruption = resource_kinds_consistent
         && precedence_unchanged
         && outages_valid
@@ -760,15 +771,14 @@ pub fn evaluate_resource_recovery(
             || affected.contains(&reservation.reservation_id)
         {
             recovery_completion_tick = Some(
-                recovery_completion_tick
-                    .map_or(reservation.interval.end_tick, |prior: u64| {
-                        prior.max(reservation.interval.end_tick)
-                    }),
+                recovery_completion_tick.map_or(reservation.interval.end_tick, |prior: u64| {
+                    prior.max(reservation.interval.end_tick)
+                }),
             );
         }
     }
-    let recovery_horizon_ticks = recovery_completion_tick
-        .map(|tick| tick.saturating_sub(observed_at_tick));
+    let recovery_horizon_ticks =
+        recovery_completion_tick.map(|tick| tick.saturating_sub(observed_at_tick));
 
     sort_dedup(&mut violations);
     let accepted = baseline_feasible_before_disruption
@@ -958,7 +968,13 @@ pub fn evaluate_joint_recovery_envelope(
         .max();
     let worst_unaffected_resource_churn = reports
         .iter()
-        .map(|scenario| scenario.report.resources.metrics.unaffected_reservation_churn)
+        .map(|scenario| {
+            scenario
+                .report
+                .resources
+                .metrics
+                .unaffected_reservation_churn
+        })
         .max()
         .unwrap_or_default();
     let worst_resource_time_shift_ticks = reports
@@ -985,8 +1001,8 @@ pub fn evaluate_joint_recovery_envelope(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange};
     use crate::Disruption;
+    use shipyard_space_time::{Footprint, Placement, Rect, Scenario, TimeRange};
 
     fn reservation(
         id: &str,
@@ -1001,7 +1017,10 @@ mod tests {
             operation_id: operation.to_owned(),
             resource_id: resource.to_owned(),
             resource_kind: kind.to_owned(),
-            interval: TimeRange { start_tick: start, end_tick: end },
+            interval: TimeRange {
+                start_tick: start,
+                end_tick: end,
+            },
         }
     }
 
@@ -1009,7 +1028,10 @@ mod tests {
         ResourceOutage {
             outage_id: id.to_owned(),
             resource_id: resource.to_owned(),
-            unavailable: TimeRange { start_tick: start, end_tick: end },
+            unavailable: TimeRange {
+                start_tick: start,
+                end_tick: end,
+            },
         }
     }
 
@@ -1054,9 +1076,11 @@ mod tests {
         let empty = ResourceSchedule::default();
         let report = evaluate_resource_recovery(&empty, &empty, 0, &[]);
         assert!(!report.accepted);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == ResourceViolationCode::EmptyResourceSchedule
-        }));
+        assert!(
+            report.violations.iter().any(|violation| {
+                violation.code == ResourceViolationCode::EmptyResourceSchedule
+            })
+        );
     }
 
     #[test]
@@ -1120,11 +1144,25 @@ mod tests {
     fn active_resource_operation_cannot_be_reassigned_mid_operation() {
         let baseline = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("move-a", "move-a", "crane-1", "gantry-crane", 2, 8)],
+            reservations: vec![reservation(
+                "move-a",
+                "move-a",
+                "crane-1",
+                "gantry-crane",
+                2,
+                8,
+            )],
         };
         let candidate = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("move-a", "move-a", "crane-2", "gantry-crane", 2, 8)],
+            reservations: vec![reservation(
+                "move-a",
+                "move-a",
+                "crane-2",
+                "gantry-crane",
+                2,
+                8,
+            )],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
         assert!(!report.accepted);
@@ -1137,11 +1175,25 @@ mod tests {
     fn completed_resource_history_cannot_be_rewritten() {
         let baseline = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("weld-a", "weld-a", "station-1", "workstation", 0, 4)],
+            reservations: vec![reservation(
+                "weld-a",
+                "weld-a",
+                "station-1",
+                "workstation",
+                0,
+                4,
+            )],
         };
         let candidate = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("weld-a", "weld-a", "station-2", "workstation", 0, 4)],
+            reservations: vec![reservation(
+                "weld-a",
+                "weld-a",
+                "station-2",
+                "workstation",
+                0,
+                4,
+            )],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
         assert!(!report.accepted);
@@ -1194,7 +1246,11 @@ mod tests {
         assert_eq!(report.metrics.total_scenarios, 2);
         assert_eq!(report.metrics.accepted_scenarios, 2);
         assert_eq!(
-            report.scenarios.iter().map(|item| item.scenario_id.as_str()).collect::<Vec<_>>(),
+            report
+                .scenarios
+                .iter()
+                .map(|item| item.scenario_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["inspector-outage", "station-outage"]
         );
     }
@@ -1245,9 +1301,14 @@ mod tests {
             .find(|item| item.scenario_id == "crane-down")
             .unwrap();
         assert!(!failed.report.accepted);
-        assert!(failed.report.resources.violations.iter().any(|violation| {
-            violation.code == ResourceViolationCode::ResourceUnavailable
-        }));
+        assert!(
+            failed
+                .report
+                .resources
+                .violations
+                .iter()
+                .any(|violation| { violation.code == ResourceViolationCode::ResourceUnavailable })
+        );
     }
 
     #[test]
@@ -1257,17 +1318,14 @@ mod tests {
             precedence_constraints: Vec::new(),
             reservations: vec![reservation("r1", "op-a", "station-1", "workstation", 0, 5)],
         };
-        let empty = evaluate_joint_recovery_envelope(
-            &spatial,
-            &spatial,
-            &resources,
-            &resources,
-            &[],
-        );
+        let empty =
+            evaluate_joint_recovery_envelope(&spatial, &spatial, &resources, &resources, &[]);
         assert!(!empty.robustly_accepted);
-        assert!(empty.violations.iter().any(|violation| {
-            violation.code == JointEnvelopeViolationCode::EmptyScenarioSet
-        }));
+        assert!(
+            empty.violations.iter().any(|violation| {
+                violation.code == JointEnvelopeViolationCode::EmptyScenarioSet
+            })
+        );
 
         let duplicate = JointDisruptionScenario {
             scenario_id: "same".to_owned(),
@@ -1299,7 +1357,14 @@ mod tests {
         };
         let candidate = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
+            reservations: vec![reservation(
+                "stay",
+                "inspect-b",
+                "inspector-1",
+                "inspector",
+                0,
+                10,
+            )],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
 
@@ -1335,9 +1400,11 @@ mod tests {
 
         assert!(!report.accepted);
         assert!(!report.metrics.candidate_feasible_after_disruption);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == ResourceViolationCode::PrecedenceTimeConflict
-        }));
+        assert!(
+            report.violations.iter().any(|violation| {
+                violation.code == ResourceViolationCode::PrecedenceTimeConflict
+            })
+        );
     }
 
     #[test]
@@ -1371,9 +1438,11 @@ mod tests {
         };
 
         let violations = validate_schedule(&schedule);
-        assert!(violations.iter().any(|violation| {
-            violation.code == ResourceViolationCode::PrecedenceCycle
-        }));
+        assert!(
+            violations
+                .iter()
+                .any(|violation| { violation.code == ResourceViolationCode::PrecedenceCycle })
+        );
         assert!(violations.iter().any(|violation| {
             violation.code == ResourceViolationCode::UnknownSuccessorOperation
         }));
@@ -1383,15 +1452,25 @@ mod tests {
     fn candidate_cannot_reclassify_a_known_physical_resource() {
         let baseline = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![
-                reservation("inspect", "inspect", "resource-1", "inspector", 5, 8),
-            ],
+            reservations: vec![reservation(
+                "inspect",
+                "inspect",
+                "resource-1",
+                "inspector",
+                5,
+                8,
+            )],
         };
         let candidate = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![
-                reservation("inspect", "inspect", "resource-1", "gantry-crane", 5, 8),
-            ],
+            reservations: vec![reservation(
+                "inspect",
+                "inspect",
+                "resource-1",
+                "gantry-crane",
+                5,
+                8,
+            )],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
 
@@ -1441,7 +1520,14 @@ mod tests {
         };
         let candidate = ResourceSchedule {
             precedence_constraints: Vec::new(),
-            reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
+            reservations: vec![reservation(
+                "stay",
+                "inspect-b",
+                "inspector-1",
+                "inspector",
+                0,
+                10,
+            )],
         };
         let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
 
@@ -1464,9 +1550,11 @@ mod tests {
             &[outage("bad-outage", "station-missing", 1, 2)],
         );
         assert!(!report.accepted);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == ResourceViolationCode::UnknownOutageResource
-        }));
+        assert!(
+            report.violations.iter().any(|violation| {
+                violation.code == ResourceViolationCode::UnknownOutageResource
+            })
+        );
     }
 
     #[test]
