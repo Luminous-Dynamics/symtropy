@@ -150,7 +150,7 @@ A finite robustness result needs two different statements: (1) did the candidate
 
 The coverage receipt fails closed when the required-dimension list is empty, duplicated, or missing any required dimension. Receipts and scenario IDs are deterministically sorted, and scenario input order does not change the result. This audit is independent of schedule feasibility: a complete corpus can demonstrate that a candidate fails a hard scenario, while a candidate that passes all cases may still have an incomplete corpus. Neither result assigns probabilities to unenumerated disruptions.
 
-The coverage receipt also refuses empty or duplicate scenario IDs. Invalid-ID scenarios do not contribute to dimension receipts, so duplicated rows cannot inflate the apparent breadth of evidence.
+The coverage receipt also refuses empty or duplicate scenario IDs and records the offending IDs in its violations. Invalid-ID scenarios do not contribute to dimension receipts, so duplicated rows cannot inflate the apparent breadth of evidence.
 
 Four new unit tests check complete multi-family coverage, missing-family detection even when scenarios exist, empty/duplicate required dimensions, input-order invariance, and empty/duplicate scenario identities. These are authored tests awaiting exact-head CI.
 
