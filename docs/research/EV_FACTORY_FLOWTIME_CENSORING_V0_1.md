@@ -25,7 +25,7 @@ A duplicate job ID in the live system fails closed. Live-job enumeration include
 
 Each scenario has a per-replication `flow_time` record containing cohort counts, completed-good and completed-scrap summaries, censored count and the cohort-accounting result. Completed observations expose sample count, mean and P50/P90/P95/P99/max in seconds.
 
-The root `flow_time_statistics` aggregates **per-replication statistics across the declared seed panel**. It does not pool every job and act as if jobs from one line and time series are IID. It reports seed-level means and completed-job P95/P99 (plus scrap-time summaries when available), release/completion/censor counts, censor fraction, and number of replications with usable observations.
+The root `flow_time_statistics` aggregates **per-replication statistics across the declared seed panel**. It does not pool every job and act as if jobs from one line and time series are IID. It reports seed-level completed-good P50/P90/P95/P99, mean, completed-scrap mean and P50/P90/P95/P99 where available, release/completion/censor counts, censor fraction, and number of replications with usable observations.
 
 When a replication has no completed good output, its good-flow summary is `null`, not zero. With few observations, P99 is still shown descriptively but is not evidence of a well-resolved tail. The current implementation is **not** a Kaplan–Meier/survival estimator; right-censoring is explicit, not silently imputed.
 
