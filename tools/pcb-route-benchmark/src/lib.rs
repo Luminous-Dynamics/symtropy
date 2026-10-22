@@ -906,6 +906,14 @@ pub fn build_dataset_manifest(
         &intake.benchmark_id,
         &intake.dataset_id,
     )?;
+    let expected_split_url_suffix = format!(
+        "/{}/{}",
+        intake.source_split_commit_sha,
+        audit.upstream.d3_split_config_path
+    );
+    if !intake.source_split_config_url.ends_with(&expected_split_url_suffix) {
+        return Err("source split-config URL path differs from the pinned license-audit path".into());
+    }
 
     let mut seen = BTreeSet::new();
     let mut used_paths = BTreeSet::new();
@@ -979,10 +987,15 @@ pub fn build_dataset_manifest(
         if !is_commit_sha(&evidence.source_commit_sha) || !is_git_blob_sha1(&evidence.git_blob_sha1) {
             return Err(format!("{}: invalid source license commit/blob pin", selection.board_id));
         }
-        if !evidence.blob_url.starts_with("https://")
-            || !evidence.blob_url.contains(&format!("/{}/", evidence.source_commit_sha))
-        {
-            return Err(format!("{}: source license blob URL must bind its immutable commit", selection.board_id));
+        validate_relative_path(&evidence.file_path, &format!("{} audited license file", selection.board_id))?;
+        let expected_license_url = format!(
+            "{}/blob/{}/{}",
+            source_repo.trim_end_matches('/'),
+            evidence.source_commit_sha,
+            evidence.file_path
+        );
+        if evidence.blob_url != expected_license_url {
+            return Err(format!("{}: source license blob URL does not match the audited repository, commit and file path", selection.board_id));
         }
         if audited.license_match_status.as_deref() != Some("source_text_matches_pcbench_spdx_metadata") {
             return Err(format!("{}: source license has not been reconciled with its PCBench metadata license", selection.board_id));
@@ -1111,6 +1124,12 @@ fn validate_audit_envelope(
     {
         return Err("license-audit upstream commit/blob pins are malformed".into());
     }
+    validate_relative_path(&audit.upstream.d3_split_config_path, "audit D3 split-config path")?;
+    if !audit.upstream.pcbworld_repository.starts_with("https://")
+        || !audit.upstream.pcbench_repository.starts_with("https://")
+    {
+        return Err("license-audit upstream repositories must use HTTPS".into());
+    }
     if audit.upstream.pcbworld_repository != expected_pcbworld_repository
         || audit.upstream.pcbworld_commit_sha != expected_pcbworld_commit
         || audit.upstream.d3_split_config_git_blob_sha1 != expected_split_blob
@@ -1194,11 +1213,17 @@ fn validate_audit_manifest_for_manifest(
         {
             return Err(format!("{}: dataset manifest identity/license fields disagree with the immutable audit row", pin.board_id));
         }
+        validate_relative_path(&evidence.file_path, &format!("{} audited license file", pin.board_id))?;
+        let expected_license_url = format!(
+            "{}/blob/{}/{}",
+            record.original_source_repository.trim_end_matches('/'),
+            evidence.source_commit_sha,
+            evidence.file_path
+        );
         if !evidence.blob_hash_reverified_at_pinned_commit
             || !is_commit_sha(&evidence.source_commit_sha)
             || !is_git_blob_sha1(&evidence.git_blob_sha1)
-            || !evidence.blob_url.starts_with("https://")
-            || !evidence.blob_url.contains(&format!("/{}/", evidence.source_commit_sha))
+            || evidence.blob_url != expected_license_url
         {
             return Err(format!("{}: immutable source-license evidence is malformed", pin.board_id));
         }
