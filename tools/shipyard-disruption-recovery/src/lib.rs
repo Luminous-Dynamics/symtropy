@@ -8,6 +8,7 @@
 //! affected work, churn imposed on unaffected work, and recovery horizon are separate metrics.
 
 pub mod execution;
+pub mod execution_bridge;
 pub mod resources;
 
 use std::collections::{BTreeMap, BTreeSet};
