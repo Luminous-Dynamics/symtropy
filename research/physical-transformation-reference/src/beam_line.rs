@@ -53,6 +53,30 @@ pub enum BeamLineMassModel {
     ConsistentTranslational,
 }
 
+/// Frozen canonical request for the source-literal BE25 candidate runs.
+pub const fn canonical_request() -> &'static str {
+    concat!(
+        "schema=sofistik-be25-line-candidate-v0.1",
+        "|benchmark=SOFiSTiK-2026-BE25",
+        "|model=uniform_1d_continuous_euler_bernoulli_beam",
+        "|elements=10|mass_model=consistent_translational_only",
+        "|length_m=1|youngs_modulus_pa=200000000|second_moment_m4=1e-9",
+        "|mass_candidate_printed_mu_kg_per_m=25",
+        "|mass_candidate_gamma_area_over_g_kg_per_m=0.25492905324448206",
+        "|boundary_cases=simple-cantilever,cantilever-with-simply-supported-end,simply-supported,both-ends-fixed",
+        "|claim_ceiling=numerical_candidate_analysis_not_BE25_reproduction"
+    )
+}
+
+fn published_reference_frequency_hz(case: BeamLineBoundaryCase) -> f64 {
+    match case {
+        BeamLineBoundaryCase::SimpleCantilever => 0.457,
+        BeamLineBoundaryCase::CantileverWithSimplySupportedEnd => 2.003,
+        BeamLineBoundaryCase::SimplySupported => 1.283,
+        BeamLineBoundaryCase::BothEndsFixed => 2.907,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct BeamLineMode {
     pub eigenvalue_rad_s_squared: f64,
@@ -74,6 +98,8 @@ pub struct BeamLineModalSolution {
     pub modes: Vec<BeamLineMode>,
     pub analytical_first_frequency_hz: f64,
     pub first_frequency_relative_error: f64,
+    pub published_reference_frequency_hz: f64,
+    pub first_frequency_relative_error_to_published_reference: f64,
     pub maximum_normalized_eigen_residual: f64,
 }
 
@@ -193,6 +219,9 @@ pub fn solve_beam_line_modes(
         .frequency_hz;
     let first_frequency_relative_error =
         relative_error(first_frequency, analytical_first_frequency_hz);
+    let published_reference_frequency_hz = published_reference_frequency_hz(boundary_case);
+    let first_frequency_relative_error_to_published_reference =
+        relative_error(first_frequency, published_reference_frequency_hz);
     let maximum_normalized_eigen_residual = modes
         .iter()
         .map(|mode| mode.normalized_eigen_residual)
@@ -209,6 +238,8 @@ pub fn solve_beam_line_modes(
         modes,
         analytical_first_frequency_hz,
         first_frequency_relative_error,
+        published_reference_frequency_hz,
+        first_frequency_relative_error_to_published_reference,
         maximum_normalized_eigen_residual,
     })
 }
@@ -312,6 +343,15 @@ mod tests {
             BeamLineMassModel::ConsistentTranslational,
         )
         .expect("valid BE25 candidate beam-line solve")
+    }
+
+    #[test]
+    fn canonical_request_matches_the_frozen_candidate_fixture() {
+        assert_eq!(
+            super::canonical_request(),
+            include_str!("../fixtures/sofistik_be25_line_candidate_request_v0_1.txt")
+                .trim_end_matches('\n')
+        );
     }
 
     #[test]
