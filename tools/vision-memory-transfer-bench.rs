@@ -275,12 +275,37 @@ fn append_segment(path: &mut Vec<u8>, segment: &[u8]) {
     }
 }
 
+fn shortest_cycle_to_revisit(world: &World, node: u8, forbidden: &[u8]) -> Option<Vec<u8>> {
+    let mut best: Option<Vec<u8>> = None;
+    for neighbor in world.neighbors(node) {
+        if forbidden.contains(&neighbor) {
+            continue;
+        }
+        let Some(back) = world.shortest_path_avoiding(neighbor, node, forbidden) else {
+            continue;
+        };
+        let mut cycle = vec![node, neighbor];
+        append_segment(&mut cycle, &back);
+        if best.as_ref().is_none_or(|current| cycle.len() < current.len()) {
+            best = Some(cycle);
+        }
+    }
+    best
+}
+
 fn plan_through(world: &World, start: u8, ordered_waypoints: &[u8]) -> Option<Vec<u8>> {
     let mut path = vec![start];
     let mut current = start;
     for (index, &target) in ordered_waypoints.iter().enumerate() {
         let future_waypoints = &ordered_waypoints[index + 1..];
-        let segment = world.shortest_path_avoiding(current, target, future_waypoints)?;
+        // The initial pose is not itself counted as visiting a waypoint. If
+        // the route begins on the next required waypoint, leave and return by
+        // a legal cycle that does not cross a future waypoint out of order.
+        let segment = if current == target {
+            shortest_cycle_to_revisit(world, target, future_waypoints)?
+        } else {
+            world.shortest_path_avoiding(current, target, future_waypoints)?
+        };
         append_segment(&mut path, &segment);
         current = target;
     }
@@ -636,6 +661,50 @@ mod tests {
         assert!(r.path.windows(2).all(|w| s.world.edge_open(w[0], w[1])));
     }
 
+
+    #[test]
+    fn planner_visits_first_waypoint_when_starting_on_it() {
+        let (request, waypoints) = setup();
+        let scenario = Scenario {
+            name: "start_on_first_waypoint".to_owned(),
+            start: 3,
+            world: World::base(),
+            distractor_first: false,
+        };
+        let memories = make_memories(&scenario, &waypoints);
+        let result = execute_and_score(
+            Policy::ConstraintPlanner,
+            &request,
+            &scenario,
+            &memories,
+            &waypoints,
+        );
+        assert!(result.success, "{:?}", result);
+        assert_eq!(&result.path[..3], &[3, 2, 3]);
+        assert!(has_ordered_waypoints(&result.path, &waypoints));
+    }
+
+    #[test]
+    fn planner_fails_closed_if_start_waypoint_has_no_order_preserving_return() {
+        let (request, waypoints) = setup();
+        let blocked = [Edge::new(2, 3)];
+        let scenario = Scenario {
+            name: "start_on_first_waypoint_return_blocked".to_owned(),
+            start: 3,
+            world: World::base().with_blocked(&blocked),
+            distractor_first: false,
+        };
+        let memories = make_memories(&scenario, &waypoints);
+        let result = execute_and_score(
+            Policy::ConstraintPlanner,
+            &request,
+            &scenario,
+            &memories,
+            &waypoints,
+        );
+        assert!(!result.success);
+        assert_eq!(result.reason, "no_path_or_no_applicable_memory");
+    }
 
     #[test]
     fn planner_never_visits_future_waypoint_early() {
