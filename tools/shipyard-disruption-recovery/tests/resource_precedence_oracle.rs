@@ -50,7 +50,11 @@ fn exact_resource_schedule_valid(ops: [Operation; 3]) -> bool {
 
 fn make_schedule(ops: [Operation; 3]) -> ResourceSchedule {
     let operation_ids = ["cut", "weld", "inspect"];
-    let reservation_ids = ["cut-reservation", "weld-reservation", "inspection-reservation"];
+    let reservation_ids = [
+        "cut-reservation",
+        "weld-reservation",
+        "inspection-reservation",
+    ];
 
     ResourceSchedule {
         precedence_constraints: vec![
@@ -119,8 +123,7 @@ fn exhaustive_three_operation_oracle_matches_resource_and_precedence_verifier() 
                                                 resource_index: inspect_resource,
                                             },
                                         ];
-                                        let expected =
-                                            exact_resource_schedule_valid(operations);
+                                        let expected = exact_resource_schedule_valid(operations);
                                         let schedule = make_schedule(operations);
                                         let report = evaluate_resource_recovery(
                                             &schedule,
@@ -152,8 +155,7 @@ fn exhaustive_three_operation_oracle_matches_resource_and_precedence_verifier() 
                                             report.violations
                                         );
                                         assert_eq!(
-                                            report.accepted,
-                                            expected,
+                                            report.accepted, expected,
                                             "resource/precedence oracle mismatch for {operations:?}: {:?}",
                                             report.violations
                                         );
@@ -169,8 +171,17 @@ fn exhaustive_three_operation_oracle_matches_resource_and_precedence_verifier() 
 
     assert_eq!(cases, CASES, "frozen operation schedule count changed");
     assert_eq!(exact_feasible, 16, "tiny exact feasible count changed");
-    assert_eq!(exact_infeasible, 4_080, "tiny exact infeasible count changed");
+    assert_eq!(
+        exact_infeasible, 4_080,
+        "tiny exact infeasible count changed"
+    );
     assert_eq!(verifier_accepted, exact_feasible);
-    assert_eq!(false_feasible, 0, "resource checker produced a false-feasible case");
-    assert_eq!(false_infeasible, 0, "resource checker missed a feasible case");
+    assert_eq!(
+        false_feasible, 0,
+        "resource checker produced a false-feasible case"
+    );
+    assert_eq!(
+        false_infeasible, 0,
+        "resource checker missed a feasible case"
+    );
 }
