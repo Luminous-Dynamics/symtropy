@@ -340,18 +340,17 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
     let mut query_entity = 1;
     let mut before = Lookup::Missing;
     let mut after = Lookup::Missing;
+    let mut final_store = Store::new(policy, budget);
 
     match transform {
         Transform::DuplicateDelivery => {
             let events = base_events();
-            let mut store = Store::new(policy, budget);
-            store.insert_all(&events);
-            before = store.lookup(query_entity);
+            final_store.insert_all(&events);
+            before = final_store.lookup(query_entity);
             let duplicate = *events.last().expect("base events nonempty");
-            store.insert(duplicate);
-            after = store.lookup(query_entity);
+            final_store.insert(duplicate);
+            after = final_store.lookup(query_entity);
             if budget >= 2 {
-                // Exact duplicate delivery must not change the visible answer.
                 expectation = "duplicate_idempotence";
             } else {
                 required = false;
@@ -369,18 +368,18 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
                 event(2, 1, 201, EvidenceKind::Outcome),
                 event(1, 1, 101, EvidenceKind::Observation),
             ];
-            let mut left = Store::new(policy, 8);
-            let mut right = Store::new(policy, 8);
+            let mut left = Store::new(policy, budget);
+            let mut right = Store::new(policy, budget);
             left.insert_all(&forward);
             right.insert_all(&reverse);
             before = left.lookup(query_entity);
             after = right.lookup(query_entity);
+            final_store = right;
             expectation = if policy == Policy::LatestArrival {
                 "arrival_order_counterexample_expected"
             } else {
                 "source_revision_order_invariant"
             };
-            required = true;
         }
         Transform::StaleAfterPayloadEviction => {
             query_entity = 1;
@@ -389,32 +388,29 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
                 event(2, 1, 201, EvidenceKind::Outcome),
                 event(3, 1, 301, EvidenceKind::Inference),
             ];
-            let stale = event(1, 1, 101, EvidenceKind::Observation);
-            let mut store = Store::new(policy, 2);
-            store.insert_all(&events);
-            before = store.lookup(query_entity);
-            store.insert(stale);
-            after = store.lookup(query_entity);
+            final_store = Store::new(policy, 2);
+            final_store.insert_all(&events);
+            before = final_store.lookup(query_entity);
+            final_store.insert(event(1, 1, 101, EvidenceKind::Observation));
+            after = final_store.lookup(query_entity);
             expectation = if policy.has_watermark() {
                 "stale_revival_rejected"
             } else {
                 "stale_revival_counterexample_expected"
             };
-            required = true;
         }
         Transform::UnrelatedEntityInsertion => {
             query_entity = 2;
             let events = base_events();
-            let mut baseline = Store::new(policy, 8);
-            let mut distracted = Store::new(policy, budget.max(4));
+            let mut baseline = Store::new(policy, budget);
+            final_store = Store::new(policy, budget);
             baseline.insert_all(&events);
-            distracted.insert_all(&events);
+            final_store.insert_all(&events);
             before = baseline.lookup(query_entity);
-            distracted.insert(event(99, 1, 9901, EvidenceKind::Inference));
-            after = distracted.lookup(query_entity);
+            final_store.insert(event(99, 1, 9901, EvidenceKind::Inference));
+            after = final_store.lookup(query_entity);
             if budget >= 4 {
                 expectation = "unrelated_history_noninterference";
-                required = true;
             } else {
                 expectation = "capacity_pressure_exemption";
                 required = false;
@@ -433,8 +429,8 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
             chunked.insert_chunked(&events, &[1, 2]);
             before = ordinary.lookup(1);
             after = chunked.lookup(1);
+            final_store = chunked;
             expectation = "stream_chunking_invariant";
-            required = true;
         }
         Transform::EqualRevisionConflict => {
             query_entity = 1;
@@ -442,30 +438,27 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
                 event(1, 2, 102, EvidenceKind::Observation),
                 event(2, 1, 201, EvidenceKind::Outcome),
             ];
-            let conflicting = event(1, 2, 777, EvidenceKind::Observation);
-            let mut store = Store::new(policy, 4);
-            store.insert_all(&events);
-            before = store.lookup(query_entity);
-            store.insert(conflicting);
-            after = store.lookup(query_entity);
+            final_store = Store::new(policy, budget);
+            final_store.insert_all(&events);
+            before = final_store.lookup(query_entity);
+            final_store.insert(event(1, 2, 777, EvidenceKind::Observation));
+            after = final_store.lookup(query_entity);
             expectation = if policy.detects_equal_revision_conflict() {
                 "conflict_must_be_visible"
             } else {
                 "silent_resolution_control"
             };
-            required = true;
         }
         Transform::DistractorPressure => {
             let stream: Vec<Event> = (0..MAX_DISTRACTORS)
                 .map(|entity| event(100 + entity, 1, u32::from(entity) * 17, EvidenceKind::Inference))
                 .collect();
-            let mut store = Store::new(policy, budget);
-            store.insert_all(&stream);
+            final_store = Store::new(policy, budget);
+            final_store.insert_all(&stream);
             query_entity = 100;
-            after = store.lookup(query_entity);
+            after = final_store.lookup(query_entity);
             before = Lookup::Missing;
             expectation = "capacity_bound_under_distractors";
-            required = true;
         }
     }
 
@@ -475,26 +468,10 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
         "stale_revival_counterexample_expected" => matches!(after, Lookup::Value { source_revision: 1, .. }),
         "conflict_must_be_visible" => matches!(after, Lookup::Conflict { .. }),
         "silent_resolution_control" => matches!(after, Lookup::Value { .. }),
-        "capacity_bound_under_distractors" => after != Lookup::Missing || MAX_DISTRACTORS as usize > budget,
+        "capacity_bound_under_distractors" => final_store.records.len() <= budget,
         _ if !required => true,
         _ => before == after,
     };
-
-    let mut final_store = Store::new(policy, budget);
-    let events = base_events();
-    final_store.insert_all(&events);
-    if transform == Transform::StaleAfterPayloadEviction {
-        final_store = Store::new(policy, 2);
-        final_store.insert_all(&[
-            event(1, 2, 102, EvidenceKind::Observation),
-            event(2, 1, 201, EvidenceKind::Outcome),
-            event(3, 1, 301, EvidenceKind::Inference),
-            event(1, 1, 101, EvidenceKind::Observation),
-        ]);
-    } else if transform == Transform::DistractorPressure {
-        final_store = Store::new(policy, budget);
-        final_store.insert_all(&(0..MAX_DISTRACTORS).map(|e| event(100 + e, 1, u32::from(e) * 17, EvidenceKind::Inference)).collect::<Vec<_>>());
-    }
 
     ResultRow {
         transform,
