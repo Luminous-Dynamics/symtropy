@@ -158,17 +158,6 @@ fn require_equal_string(
     Ok(())
 }
 
-fn number_field(value: &Value, key: &str, label: &str) -> Result<f64, String> {
-    let number = value
-        .get(key)
-        .and_then(Value::as_f64)
-        .ok_or_else(|| format!("{label}.{key} must be a number"))?;
-    if !number.is_finite() {
-        return Err(format!("{label}.{key} must be finite"));
-    }
-    Ok(number)
-}
-
 fn validate_parameters_manifest(
     model_manifest: &Value,
     parameters: MmsParameters,
@@ -187,7 +176,11 @@ fn validate_parameters_manifest(
         ("amplitude_u_m", parameters.amplitude_u_m),
         ("amplitude_v_m", parameters.amplitude_v_m),
     ] {
-        if number_field(&Value::Object(object.clone()), key, "model manifest.parameters")? != expected {
+        let observed = object
+            .get(key)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| format!("model manifest.parameters.{key} must be numeric"))?;
+        if !observed.is_finite() || observed != expected {
             return Err(format!("model manifest.parameters.{key} differs from the pinned fixture"));
         }
     }
@@ -389,7 +382,7 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         .map_err(|error| format!("serialize audit report failed: {error}"))?;
     write(&report_path, &report_bytes, "audit report")?;
     println!(
-        "{{\"benchmark_id\":\"{BENCHMARK_ID}\",\"cells_per_axis\":{n},\"numeric_reference_status\":\"PASS\",\"physical_result_qualified\":false,\"report_sha256\":\"{}\"}}",
+        "{{\"benchmark_id\":\"{BENCHMARK_ID}\",\"cells_per_axis\":{n},\"numeric_reference_status\":\"MEASURED_UNQUALIFIED\",\"mesh_convergence_status\":\"NOT_EVALUATED_SINGLE_MESH\",\"physical_result_qualified\":false,\"report_sha256\":\"{}\"}}",
         sha256_hex(&report_bytes)
     );
     Ok(())
