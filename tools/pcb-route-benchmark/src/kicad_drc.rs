@@ -778,8 +778,12 @@ mod tests {
             || {
                 fs::write(race_root.join("drc/easy-001.json"), b"changed after first hash").unwrap();
             },
-        ).unwrap_err();
-        assert!(error.contains("DRC report changed after run-artifact verification"), "{error}");
+        )
+        .unwrap_err();
+        assert!(
+            error.contains("DRC report changed after run-artifact verification"),
+            "{error}"
+        );
         let _ = fs::remove_dir_all(&root);
     }
 
