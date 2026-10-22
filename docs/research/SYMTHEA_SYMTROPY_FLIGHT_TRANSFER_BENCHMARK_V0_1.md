@@ -11,13 +11,14 @@ The public Symthaea multirotor crate abstracts plant dynamics behind its Physics
 Every trial shares initial perturbation seed, target, physics backend and force-disturbance schedule for:
 1. PD baseline from Symthaea's flight domain.
 2. Untrained Symthaea ablation with the same deterministic genesis and architecture, but no learned weights and no online FEP modulation.
-3. Trained Symthaea plus online FEP adaptation.
+3. Trained Symthaea without online FEP modulation.
+4. The same trained Symthaea weights with online FEP modulation.
 
-The controller is cloned/reset between trials so hidden temporal state does not leak across paired trials. The benchmark reports per-policy metrics and paired deltas without assuming the learned policy wins.
+The trained/no-online-FEP versus trained/FEP pair isolates the incremental contribution of the FEP adaptation path more cleanly than comparing a trained controller only with an untrained one. Every controller is cloned/reset between trials so hidden temporal state does not leak across paired trials. The benchmark reports per-policy metrics and paired deltas without assuming the learned policy wins.
 
 ## Metrics
 
-Position RMSE, mean/final/maximum position error, fraction of time inside 5 cm of the target, thrust impulse in N·s (not electrical energy), hard-ground-clamp count, and invalid-input count. Results include paired deltas against PD and the untrained ablation.
+Position RMSE, mean/final/maximum position error, fraction of time inside 5 cm of the target, thrust impulse in N·s (not electrical energy), hard-ground-clamp count, invalid-input count, and in-process controller/FEP update latency p50/p95 in microseconds. Latency is load- and machine-dependent: compare policies within the same run, not as absolute cross-machine claims. Disturbance onset, axis and amplitude are deterministically varied by trial seed and held identical across every policy in that pair. Results include paired deltas against PD, untrained Symthaea, and trained Symthaea without online FEP.
 
 ## Simplified backend limitations
 
@@ -27,7 +28,7 @@ It is useful for testing controller/physics integration and diagnosing sim-to-si
 
 ## Reproduction
 
-The dual-checkout workflow runs a small paired benchmark and uploads machine-readable JSON evidence. The full trial budget is configurable through STFB_TRAIN_EPISODES, STFB_TRAIN_STEPS, STFB_EVAL_STEPS and STFB_TRIALS. The force pulses can be disabled with STFB_FORCE_DISTURBANCE=0.
+The dual-checkout workflow runs a small, two-trial integration smoke and uploads machine-readable JSON evidence; these smoke results are for plumbing/contract checks, not performance claims. The research default is 30 matched seeds; training and evaluation budget can be changed through STFB_TRAIN_EPISODES, STFB_TRAIN_STEPS, STFB_EVAL_STEPS and STFB_TRIALS. STFB_FORCE_DISTURBANCE=0 disables the pulses for a diagnostic run. Use more independent seeds and held-out disturbance families before drawing conclusions.
 
 ## Claim ceiling
 
