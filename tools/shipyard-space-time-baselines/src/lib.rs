@@ -1044,7 +1044,11 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             &scenario.placements[0].footprint,
-            Footprint::AxisAlignedRect(Rect { min_x: 5, .. })
+            Footprint::AxisAlignedRect(Rect {
+                min_x: 5,
+                min_y: 0,
+                ..
+            })
         ));
         assert!(verify(&scenario).is_feasible());
     }
