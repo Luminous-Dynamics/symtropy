@@ -1,0 +1,24 @@
+[package]
+name = "symtropy-bevy-020-graphics-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Isolated Bevy 0.20 rendering compatibility probe for Symtropy"
+
+# This is intentionally a separate workspace. Do not add it to the production
+# Bevy 0.19 workspace or depend on 0.19 Symtropy crates from this package.
+[workspace]
+resolver = "3"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = [
+    "3d",
+    "ui",
+    "pan_orbit_camera",
+    "x11",
+] }
+
+[lints.clippy]
+all = "warn"
