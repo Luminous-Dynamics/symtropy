@@ -267,7 +267,10 @@ fn dominates(left: &CheckpointEvaluation, right: &CheckpointEvaluation) -> bool 
         && left.checkpoint.via_count <= right.checkpoint.via_count;
     let strictly_better = left.checkpoint.wirelength_mm < right.checkpoint.wirelength_mm
         || left.checkpoint.via_count < right.checkpoint.via_count;
-    no_worse || (!strictly_better && equal_quality_tiebreak(left, right) == Ordering::Less)
+    let equal_quality = left.checkpoint.wirelength_mm == right.checkpoint.wirelength_mm
+        && left.checkpoint.via_count == right.checkpoint.via_count;
+    (no_worse && strictly_better)
+        || (equal_quality && equal_quality_tiebreak(left, right) == Ordering::Less)
 }
 
 fn equal_quality_tiebreak(left: &CheckpointEvaluation, right: &CheckpointEvaluation) -> Ordering {
