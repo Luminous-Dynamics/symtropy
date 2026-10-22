@@ -37,6 +37,15 @@ fn main() -> Result<(), String> {
         levels.push((n, mesh, errors));
     }
 
+    let positive_finite_errors = levels.iter().all(|(_, _, error)| {
+        error.displacement_l2_relative.is_finite()
+            && error.displacement_l2_relative > 0.0
+            && error.energy_error_relative.is_finite()
+            && error.energy_error_relative > 0.0
+            && error.stress_l2_relative.is_finite()
+            && error.stress_l2_relative > 0.0
+    });
+
     let mut strict_decrease = true;
     for pair in levels.windows(2) {
         strict_decrease &= pair[1].2.displacement_l2_relative < pair[0].2.displacement_l2_relative;
@@ -87,7 +96,7 @@ fn main() -> Result<(), String> {
     );
     let quadrature_pass =
         l2_quadrature_difference <= 1.0e-10 && energy_quadrature_difference <= 1.0e-10;
-    let calibration_pass = strict_decrease && final_orders_pass && quadrature_pass;
+    let calibration_pass = positive_finite_errors && strict_decrease && final_orders_pass && quadrature_pass;
 
     println!("{{");
     println!("  \"protocol_id\": \"PHYS-CCX-MMS-P1-001\",");
@@ -141,6 +150,7 @@ fn main() -> Result<(), String> {
     println!("    \"pass\": {}", quadrature_pass);
     println!("  }},");
     println!("  \"gates\": {{");
+    println!("    \"positive_finite_error_norms\": {},", positive_finite_errors);
     println!("    \"strict_l2_and_energy_decrease\": {},", strict_decrease);
     println!("    \"last_two_order_intervals_pass\": {},", final_orders_pass);
     println!("    \"quadrature_independence_pass\": {}", quadrature_pass);
