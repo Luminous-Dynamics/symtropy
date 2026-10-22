@@ -1,0 +1,76 @@
+name: EV Depot NLR Reference-Profile Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-profile-audit/**"
+      - ".github/workflows/ev-depot-profile-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-profile-audit/**"
+      - ".github/workflows/ev-depot-profile-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-depot-profile-audit/Cargo.toml --all -- --check
+      - name: Run tests and negative controls
+        run: cargo test --manifest-path tools/ev-depot-profile-audit/Cargo.toml --all-targets
+      - name: Download official NLR profile archive without committing it
+        run: |
+          curl --fail --show-error --silent --location \
+            https://data.nlr.gov/system/files/162/15min-depot-charging-profiles.zip \
+            -o "${RUNNER_TEMP}/15min-depot-charging-profiles.zip"
+          sha256sum "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" > nlr-profile-archive.sha256
+          unzip -Z1 "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" > nlr-profile-archive-file-list.txt
+      - name: Audit the exact 81-profile public reference set
+        run: |
+          set +e
+          cargo run --quiet --manifest-path tools/ev-depot-profile-audit/Cargo.toml -- \
+            "${RUNNER_TEMP}/15min-depot-charging-profiles.zip" \
+            https://data.nlr.gov/submissions/162 \
+            nlr-162-resource-version-2-2021-06-08 > nlr-profile-audit-report.json
+          audit_exit=$?
+          set -e
+          jq '{valid, source_zip_bytes, zip_entry_count, csv_entry_count, expected_profile_count, valid_profile_count, invalid_profile_count, unique_profile_key_count, ignored_macos_sidecar_count, missing_profile_keys, duplicate_profile_keys, findings: .findings[0:20], profile_examples: .profiles[0:3]}' nlr-profile-audit-report.json
+          test "$audit_exit" -eq 0
+          jq -e '.valid == true and .expected_profile_count == 81 and .valid_profile_count == 81 and .csv_entry_count == 81 and .ignored_macos_sidecar_count == 30 and .unique_profile_key_count == 81 and (.missing_profile_keys | length == 0) and (.duplicate_profile_keys | length == 0) and (.findings | length == 0) and all(.profiles[]; .interval_count == 96 and .resolution_minutes == 15 and .total_energy_kwh >= 0 and .peak_power_kw >= 0 and (.internal_csv_sha256 | length == 64)) and (.source_zip_sha256 | length == 64)' nlr-profile-audit-report.json
+          jq -r '.profiles[] | [.fleet_id, .fleet_size, .strategy, .profile_class, .total_energy_kwh, .peak_power_kw, .mean_power_kw, .zero_interval_count] | @tsv' nlr-profile-audit-report.json > nlr-profile-comparison-table.tsv
+      - name: Hash code, report and external archive identity
+        run: |
+          sha256sum tools/ev-depot-profile-audit/Cargo.toml tools/ev-depot-profile-audit/src/main.rs tools/ev-depot-profile-audit/README.md nlr-profile-audit-report.json nlr-profile-comparison-table.tsv nlr-profile-archive-file-list.txt >> nlr-profile-archive.sha256
+      - name: Preserve diagnostic report for failed reference audits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-nlr-profile-diagnostics-${{ github.sha }}
+          path: |
+            nlr-profile-audit-report.json
+            nlr-profile-archive.sha256
+            nlr-profile-archive-file-list.txt
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload reference summary and hashes (raw archive excluded)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-nlr-profile-audit-${{ github.sha }}
+          path: |
+            nlr-profile-audit-report.json
+            nlr-profile-comparison-table.tsv
+            nlr-profile-archive.sha256
+            nlr-profile-archive-file-list.txt
+          if-no-files-found: error
+          retention-days: 14
