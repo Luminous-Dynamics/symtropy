@@ -262,3 +262,119 @@ fn select_section(
     }
     Ok(NodalField { output_time: section.time, values: section.values.clone() })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE: &str = include_str!("../tests/fixtures/ccx-2.22-synthetic-nall.dat");
+    const NODES: [usize; 4] = [1, 2, 3, 4];
+
+    #[test]
+    fn parses_displacements_and_rf_external_forces_separately() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        assert_eq!(parsed.displacements.values.len(), 4);
+        assert_eq!(parsed.external_forces.values.len(), 4);
+        assert_eq!(parsed.displacements.get(2).unwrap().x, 1.0e-3);
+        assert_eq!(parsed.external_forces.get(3).unwrap().y, 6.0);
+        assert_eq!(parsed.displacements.output_time, 1.0);
+        assert_eq!(parsed.external_forces.output_time, 1.0);
+    }
+
+    #[test]
+    fn reaction_only_block_is_not_accepted_as_rf_external_forces() {
+        let only_reaction = FIXTURE
+            .lines()
+            .filter(|line| !line.trim().starts_with("forces ("))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(matches!(
+            parse_dat(&only_reaction, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MissingBlock {
+                kind: BlockKind::ExternalForces,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_missing_node_and_duplicate_node() {
+        let missing = FIXTURE.replace(
+            "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            "",
+        );
+        assert!(matches!(
+            parse_dat(&missing, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::NodeInventoryMismatch { .. })
+        ));
+
+        let duplicate = FIXTURE.replace(
+            "             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+            "             3  0.000000E+00  2.000000E-03  0.000000E+00\n             4  0.000000E+00  2.000000E-03  0.000000E+00\n",
+        );
+        assert!(matches!(
+            parse_dat(&duplicate, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::DuplicateNode { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_nonfinite_values_and_malformed_numeric_rows() {
+        let infinite = FIXTURE.replace("1.000000E-03", "inf");
+        assert!(matches!(
+            parse_dat(&infinite, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::NonFiniteValue { .. })
+        ));
+        let malformed = FIXTURE.replace(
+            "             2  1.000000E-03  0.000000E+00  0.000000E+00\n",
+            "             2  1.000000E-03  0.000000E+00\n",
+        );
+        assert!(matches!(
+            parse_dat(&malformed, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MalformedRow { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_wrong_time_set_and_duplicate_target_section() {
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &NODES, 2.0, 1.0e-8),
+            Err(ParseError::TimeNotFound { .. })
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "UNKNOWN_SET", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::MissingBlock { .. })
+        ));
+        let duplicate_section = format!(
+            "{}\n{}",
+            FIXTURE,
+            "forces (fx,fy,fz) for set NALL and time 0.1000000E+01\n1 0 0 0\n2 0 0 0\n3 0 0 0\n4 0 0 0\n"
+        );
+        assert!(matches!(
+            parse_dat(&duplicate_section, "NALL", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::DuplicateBlock {
+                kind: BlockKind::ExternalForces,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_invalid_requests_and_supports_d_exponents() {
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &[], 1.0, 1.0e-8),
+            Err(ParseError::EmptyExpectedNodeSet)
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "NALL", &[1, 1], 1.0, 1.0e-8),
+            Err(ParseError::DuplicateExpectedNodeId(1))
+        ));
+        assert!(matches!(
+            parse_dat(FIXTURE, "", &NODES, 1.0, 1.0e-8),
+            Err(ParseError::EmptyExpectedSetName)
+        ));
+        let d_exponents = FIXTURE.replace("1.000000E-03", "1.000000D-03");
+        assert!(parse_dat(&d_exponents, "NALL", &NODES, 1.0, 1.0e-8).is_ok());
+    }
+}
