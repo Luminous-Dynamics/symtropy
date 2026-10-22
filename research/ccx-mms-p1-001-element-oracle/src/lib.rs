@@ -829,6 +829,25 @@ mod tests {
     }
 
     #[test]
+    fn equilateral_triangle_quality_is_one_with_roundoff_clamped() {
+        let equilateral = TriangleElement::new(
+            [
+                Point2 { x: 0.0, y: 0.0 },
+                Point2 { x: 1.0, y: 0.0 },
+                Point2 {
+                    x: 0.5,
+                    y: 3.0_f64.sqrt() * 0.5,
+                },
+            ],
+            material(),
+            1.0,
+        )
+        .unwrap();
+        close(equilateral.mean_ratio_quality, 1.0, 1.0e-15);
+        assert!(equilateral.mean_ratio_quality <= 1.0);
+    }
+
+    #[test]
     fn near_degenerate_geometry_is_rejected_at_relative_floating_point_floor() {
         let epsilon = f64::EPSILON;
         let rejected = TriangleElement::new(
