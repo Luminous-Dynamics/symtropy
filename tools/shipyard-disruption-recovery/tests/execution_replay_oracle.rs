@@ -65,9 +65,10 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             });
 
             let signed_start_shift = i64::from(pick(&mut state, 7)) - 2;
-            let actual_start = (i64::try_from(planned_start).unwrap() + signed_start_shift)
-                .try_into()
-                .unwrap();
+            let actual_start: u64 =
+                (i64::try_from(planned_start).unwrap() + signed_start_shift)
+                    .try_into()
+                    .unwrap();
             let signed_duration_shift = i64::from(pick(&mut state, 5)) - 1;
             let actual_duration = (i64::try_from(planned_duration).unwrap()
                 + signed_duration_shift)
@@ -128,6 +129,22 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
             .filter(|operation| {
                 starts.contains_key(operation.operation_id.as_str())
                     && completions.contains_key(operation.operation_id.as_str())
+            })
+            .count();
+        let expected_late_start_operations = plan
+            .iter()
+            .filter(|operation| {
+                starts
+                    .get(operation.operation_id.as_str())
+                    .is_some_and(|actual| *actual > operation.planned_start_tick)
+            })
+            .count();
+        let expected_late_completion_operations = plan
+            .iter()
+            .filter(|operation| {
+                completions
+                    .get(operation.operation_id.as_str())
+                    .is_some_and(|actual| *actual > operation.planned_end_tick)
             })
             .count();
         let expected_total_start_lateness = plan
@@ -191,6 +208,14 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         assert_eq!(report.metrics.operations_fully_observed, expected_fully_observed);
         assert_eq!(report.metrics.missing_start_events, expected_missing_starts);
         assert_eq!(
+            report.metrics.late_start_operations,
+            expected_late_start_operations
+        );
+        assert_eq!(
+            report.metrics.late_completion_operations,
+            expected_late_completion_operations
+        );
+        assert_eq!(
             report.metrics.missing_completion_events,
             expected_missing_completions
         );
@@ -227,8 +252,8 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         cases += 1;
         observed_start_events += starts.len();
         observed_completion_events += completions.len();
-        cases_with_held_back_evidence += usize::from(held_back_count > 0);
-        late_completion_cases += usize::from(expected_total_completion_lateness > 0);
+        if held_back_count > 0 { cases_with_held_back_evidence += 1; }
+        if expected_total_completion_lateness > 0 { late_completion_cases += 1; }
     }
 
     assert_eq!(cases, CASES);
