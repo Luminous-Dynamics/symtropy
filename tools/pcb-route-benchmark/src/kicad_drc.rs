@@ -97,12 +97,67 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
             .drc_report_relative_path
             .as_deref()
             .ok_or_else(|| format!("{}: DRC-report path is missing", case.board_id))?;
-        let drc_bytes = fs::read(canonical_root.join(drc_relative_path)).map_err(|error| {
+        let expected_output_sha = case
+            .output_board_sha256
+            .as_deref()
+            .ok_or_else(|| format!("{}: output-board SHA-256 is missing", case.board_id))?;
+        let output_path = canonical_root
+            .join(output_relative_path)
+            .canonicalize()
+            .map_err(|error| {
+                format!(
+                    "{}: cannot re-resolve output board {}: {error}",
+                    case.board_id, output_relative_path
+                )
+            })?;
+        if !output_path.starts_with(&canonical_root) || !output_path.is_file() {
+            return Err(format!(
+                "{}: output board escaped the verified artifact root or is not a regular file",
+                case.board_id
+            ));
+        }
+        let output_bytes = fs::read(&output_path).map_err(|error| {
+            format!("{}: cannot re-read output board bytes: {error}", case.board_id)
+        })?;
+        if sha256_hex(&output_bytes) != expected_output_sha {
+            return Err(format!(
+                "{}: output board changed after run-artifact verification",
+                case.board_id
+            ));
+        }
+
+        let expected_drc_sha = case
+            .drc_report_sha256
+            .as_deref()
+            .ok_or_else(|| format!("{}: DRC-report SHA-256 is missing", case.board_id))?;
+        let drc_path = canonical_root
+            .join(drc_relative_path)
+            .canonicalize()
+            .map_err(|error| {
+                format!(
+                    "{}: cannot re-resolve DRC report {}: {error}",
+                    case.board_id, drc_relative_path
+                )
+            })?;
+        if !drc_path.starts_with(&canonical_root) || !drc_path.is_file() {
+            return Err(format!(
+                "{}: DRC report escaped the verified artifact root or is not a regular file",
+                case.board_id
+            ));
+        }
+        let drc_bytes = fs::read(&drc_path).map_err(|error| {
             format!(
-                "{}: cannot read verified DRC report {}: {error}",
+                "{}: cannot re-read DRC report {}: {error}",
                 case.board_id, drc_relative_path
             )
         })?;
+        if sha256_hex(&drc_bytes) != expected_drc_sha {
+            return Err(format!(
+                "{}: DRC report changed after run-artifact verification",
+                case.board_id
+            ));
+        }
+
         let evidence = evaluate_kicad_drc_report_bytes(
             &drc_bytes,
             policy_bytes,
