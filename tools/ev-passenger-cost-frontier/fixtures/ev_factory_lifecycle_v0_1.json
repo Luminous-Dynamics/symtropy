@@ -1,0 +1,126 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-LIFECYCLE-001",
+  "evidence_class": "synthetic",
+  "cost_unit": "synthetic_cost_unit",
+  "time_unit": "year",
+  "discount_rate_per_year": 0.08,
+  "families": [
+    {
+      "family_id": "stable-product",
+      "planning_horizon_years": 8,
+      "active_fraction": 0.97,
+      "product_change_events_per_year": 0.15,
+      "reuse_success_fraction": 0.98,
+      "redeployability_fraction": 0.9,
+      "salvage_realization_fraction": 0.8
+    },
+    {
+      "family_id": "new-variant-tooling",
+      "planning_horizon_years": 8,
+      "active_fraction": 0.92,
+      "product_change_events_per_year": 0.9,
+      "reuse_success_fraction": 0.88,
+      "redeployability_fraction": 0.85,
+      "salvage_realization_fraction": 0.65
+    },
+    {
+      "family_id": "volume-step-down",
+      "planning_horizon_years": 8,
+      "active_fraction": 0.45,
+      "product_change_events_per_year": 0.25,
+      "reuse_success_fraction": 0.94,
+      "redeployability_fraction": 0.45,
+      "salvage_realization_fraction": 0.5
+    },
+    {
+      "family_id": "volume-step-up",
+      "planning_horizon_years": 8,
+      "active_fraction": 0.95,
+      "product_change_events_per_year": 0.4,
+      "reuse_success_fraction": 0.86,
+      "redeployability_fraction": 0.9,
+      "salvage_realization_fraction": 0.85
+    },
+    {
+      "family_id": "product-retirement-redeploy",
+      "planning_horizon_years": 8,
+      "active_fraction": 0.25,
+      "product_change_events_per_year": 0.15,
+      "reuse_success_fraction": 0.98,
+      "redeployability_fraction": 0.95,
+      "salvage_realization_fraction": 0.95
+    }
+  ],
+  "strategies": [
+    {
+      "strategy_id": "purchase-new",
+      "kind": "purchase_new",
+      "owns_asset": true,
+      "acquisition_cost": 120000,
+      "refurbishment_cost": 0,
+      "installation_cost": 15000,
+      "annual_contract_cost": 0,
+      "contract_payment_basis": "fixed_horizon",
+      "annual_maintenance_cost": 6000,
+      "annual_idle_carry_cost": 1800,
+      "retooling_cost_per_product_change": 4500,
+      "fallback_replacement_cost_if_reuse_fails": 0,
+      "terminal_salvage_value": 30000,
+      "terminal_disposal_cost": 3000,
+      "note": "Synthetic capital purchase; all costs and residual value are assumptions."
+    },
+    {
+      "strategy_id": "long-lease",
+      "kind": "lease",
+      "owns_asset": false,
+      "acquisition_cost": 0,
+      "refurbishment_cost": 0,
+      "installation_cost": 4500,
+      "annual_contract_cost": 28000,
+      "contract_payment_basis": "fixed_horizon",
+      "annual_maintenance_cost": 1800,
+      "annual_idle_carry_cost": 0,
+      "retooling_cost_per_product_change": 3800,
+      "fallback_replacement_cost_if_reuse_fails": 0,
+      "terminal_salvage_value": 0,
+      "terminal_disposal_cost": 1500,
+      "note": "Synthetic fixed-horizon lease payment, not a market quote or lease offer."
+    },
+    {
+      "strategy_id": "short-term-rent",
+      "kind": "short_term_rent",
+      "owns_asset": false,
+      "acquisition_cost": 0,
+      "refurbishment_cost": 0,
+      "installation_cost": 7000,
+      "annual_contract_cost": 47000,
+      "contract_payment_basis": "active_fraction",
+      "annual_maintenance_cost": 0,
+      "annual_idle_carry_cost": 0,
+      "retooling_cost_per_product_change": 5000,
+      "fallback_replacement_cost_if_reuse_fails": 0,
+      "terminal_salvage_value": 0,
+      "terminal_disposal_cost": 2500,
+      "note": "Synthetic pay-for-active-fraction rental; not a vendor rate."
+    },
+    {
+      "strategy_id": "refurbish-redeploy",
+      "kind": "refurbish_redeploy",
+      "owns_asset": true,
+      "acquisition_cost": 32000,
+      "refurbishment_cost": 24000,
+      "installation_cost": 12500,
+      "annual_contract_cost": 0,
+      "contract_payment_basis": "fixed_horizon",
+      "annual_maintenance_cost": 8500,
+      "annual_idle_carry_cost": 2100,
+      "retooling_cost_per_product_change": 3500,
+      "fallback_replacement_cost_if_reuse_fails": 70000,
+      "terminal_salvage_value": 12000,
+      "terminal_disposal_cost": 4500,
+      "note": "Synthetic second-life equipment strategy with explicit reuse success and fallback replacement cost."
+    }
+  ],
+  "claim_ceiling": "All cost, discount, duration, product-change, reuse-success and salvage inputs are synthetic sensitivity assumptions in synthetic_cost_unit. No supplier quote, local market price, plant cost, ROI, bankable feasibility, SOTA, safety or release conclusion is implied."
+}
