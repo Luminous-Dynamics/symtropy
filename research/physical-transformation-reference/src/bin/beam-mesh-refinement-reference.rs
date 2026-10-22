@@ -5,9 +5,10 @@
 
 use physical_transformation_reference::beam_mesh::{
     assemble_refined_released_joint_pin_truss, canonical_refinement_sweep_request,
+    sample_member_displacement_field,
 };
 use physical_transformation_reference::beam_modal::{
-    BeamModeClass, solve_beam_pin_assembly_modes,
+    BeamModeClass, modal_assurance_criterion, solve_beam_pin_assembly_modes,
 };
 use physical_transformation_reference::beam_pin_assembly::{BeamPinMember, BeamPinNode};
 use std::env;
@@ -42,6 +43,7 @@ fn run() -> Result<String, String> {
     let mut meshes_json = Vec::with_capacity(ELEMENT_COUNTS.len());
     let mut previous_fundamental: Option<f64> = None;
     let mut first_fundamental: Option<f64> = None;
+    let mut previous_sampled_shape: Option<Vec<f64>> = None;
     for elements_per_member in ELEMENT_COUNTS {
         let assembly =
             assemble_refined_released_joint_pin_truss(&nodes, &members, elements_per_member)?;
@@ -72,6 +74,26 @@ fn run() -> Result<String, String> {
             .map(|previous| number((fundamental / previous - 1.0) * 100.0))
             .unwrap_or_else(|| "null".to_owned());
         previous_fundamental = Some(fundamental);
+
+        let fundamental_shape_samples = sample_member_displacement_field(
+            &nodes,
+            &members,
+            elements_per_member,
+            &assembly,
+            &solution.modes[0].shape_global_dofs,
+        )?;
+        let mac_to_previous_mesh = match previous_sampled_shape.as_ref() {
+            Some(previous) => Some(modal_assurance_criterion(previous, &fundamental_shape_samples)?),
+            None => None,
+        };
+        previous_sampled_shape = Some(fundamental_shape_samples.clone());
+        let samples_json = fundamental_shape_samples
+            .iter()
+            .copied()
+            .map(number)
+            .collect::<Vec<_>>()
+            .join(",");
+        let mac_json = mac_to_previous_mesh.map(number).unwrap_or_else(|| "null".to_owned());
 
         let modes_json = solution
             .modes
@@ -124,6 +146,9 @@ fn run() -> Result<String, String> {
                 "\"maximum_normalized_eigen_residual\":{},",
                 "\"maximum_mass_norm_residual\":{},",
                 "\"maximum_mass_orthogonality_residual\":{},",
+                "\"fundamental_shape_sample_count\":{},",
+                "\"fundamental_shape_samples\":[{}],",
+                "\"fundamental_mode_mac_to_previous_mesh\":{},",
                 "\"modes\":[{}]",
                 "}}"
             ),
@@ -136,6 +161,9 @@ fn run() -> Result<String, String> {
             number(solution.maximum_normalized_eigen_residual),
             number(solution.maximum_mass_norm_residual),
             number(solution.maximum_off_diagonal_mass_orthogonality_residual),
+            fundamental_shape_samples.len(),
+            samples_json,
+            mac_json,
             modes_json
         ));
     }
