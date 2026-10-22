@@ -551,6 +551,27 @@ fn euclidean_norm(vector: &[f64]) -> f64 {
     dot(vector, vector).sqrt()
 }
 
+fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
+    if left.len() != right.len() || left.is_empty() {
+        return Err("MAC vectors must have the same non-zero length".to_owned());
+    }
+    let left_norm = dot(left, left);
+    let right_norm = dot(right, right);
+    if !left_norm.is_finite()
+        || !right_norm.is_finite()
+        || left_norm <= 0.0
+        || right_norm <= 0.0
+    {
+        return Err("MAC vector norms must be finite and positive".to_owned());
+    }
+    let value = dot(left, right).powi(2) / (left_norm * right_norm);
+    if value.is_finite() && (-1.0e-12..=1.0 + 1.0e-12).contains(&value) {
+        Ok(value.clamp(0.0, 1.0))
+    } else {
+        Err("MAC result is outside the numerical [0, 1] range".to_owned())
+    }
+}
+
 fn mass_norm(mass: &SymmetricBandedMatrix, vector: &[f64]) -> Check<f64> {
     let product = mass.mul(vector)?;
     let value = dot(vector, &product);
@@ -615,6 +636,17 @@ mod tests {
                     boundary.name(),
                     mode_index + 1
                 );
+                let mac = super::modal_assurance_criterion(
+                    &dense.modes[mode_index].shape,
+                    &sparse.modes[mode_index].shape,
+                )
+                .expect("mode-shape MAC");
+                assert!(
+                    mac > 1.0 - 1.0e-7,
+                    "{} mode {} dense/sparse MAC {mac:.17e}",
+                    boundary.name(),
+                    mode_index + 1
+                );
             }
             assert!(sparse.maximum_normalized_eigen_residual < 1.0e-8);
         }
@@ -641,6 +673,16 @@ mod tests {
         assert!(solution.matrix_storage_bytes * 100 < solution.dense_stiffness_mass_storage_bytes * 5);
         assert!(solution.lanczos_basis_storage_bytes < 400 * 120 * 8 + 8);
         assert!(solution.modes.windows(2).all(|pair| pair[0].frequency_hz < pair[1].frequency_hz));
+    }
+
+    #[test]
+    fn mode_assurance_criterion_is_sign_invariant_and_rejects_bad_shapes() {
+        let left = [1.0, -2.0, 3.0, -4.0];
+        let right = [-1.0, 2.0, -3.0, 4.0];
+        let mac = super::modal_assurance_criterion(&left, &right).expect("MAC");
+        assert!((mac - 1.0).abs() < 1.0e-14);
+        assert!(super::modal_assurance_criterion(&left, &[1.0, 2.0]).is_err());
+        assert!(super::modal_assurance_criterion(&left, &[0.0; 4]).is_err());
     }
 
     #[test]
