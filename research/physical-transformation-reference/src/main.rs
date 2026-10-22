@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use physical_transformation_reference::design_for_disassembly::run_reference_fixture as run_dfd_reference_fixture;
 use physical_transformation_reference::mechanics::run_reference_fixtures;
 use physical_transformation_reference::run_reference_fixture;
 use std::env;
@@ -41,6 +42,10 @@ fn run() -> Result<(), String> {
     })?;
     let outcome = run_reference_fixture()?;
     let mechanics = run_reference_fixtures()?;
+    let dfd = run_dfd_reference_fixture()?;
+    let dfd_effort = dfd
+        .declared_effort_total_person_minutes
+        .ok_or_else(|| "DfD fixture effort total unexpectedly unresolved".to_owned())?;
 
     println!(
         concat!(
@@ -50,13 +55,14 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",",
             "\"evidence_class\":\"synthetic\",",
             "\"result\":\"pass\",",
-            "\"scope\":\"topology_mass_accounting_and_analytical_mechanics\",",
+            "\"scope\":\"topology_mass_accounting_analytical_mechanics_deconstruction_and_dfd\",",
             "\"fixtures\":{{",
             "\"topology_replay\":\"pass\",",
             "\"transactional_rejection\":\"{}\",",
             "\"balanced_mass_ledger\":\"{}\",",
             "\"imbalanced_mass_negative_control\":\"{}\",",
-            "\"analytical_mechanics\":\"pass\"",
+            "\"analytical_mechanics\":\"pass\",",
+            "\"design_for_disassembly\":\"pass\"",
             "}},",
             "\"summary\":{{",
             "\"component_count\":{},",
@@ -75,9 +81,14 @@ fn run() -> Result<(), String> {
             "\"recovered_mass_mg\":{},",
             "\"deconstruction_step_count\":{},",
             "\"deconstruction_recovered_component_count\":{},",
-            "\"deconstruction_recovered_mass_mg\":{}",
+            "\"deconstruction_recovered_mass_mg\":{},",
+            "\"dfd_connection_count\":{},",
+            "\"dfd_reversible_fastener_count\":{},",
+            "\"dfd_cut_required_count\":{},",
+            "\"dfd_declared_effort_total_person_minutes\":{},",
+            "\"dfd_metadata_incomplete_count\":{}",
             "}},",
-            "\"claim_ceiling\":\"software_invariants_and_closed_form_analytical_cases_only_not_structural_or_collapse_prediction\"",
+            "\"claim_ceiling\":\"software_invariants_closed_form_mechanics_and_declared_dfd_metadata_only_not_structural_or_collapse_prediction\"",
             "}}"
         ),
         source_commit.to_ascii_lowercase(),
@@ -112,7 +123,12 @@ fn run() -> Result<(), String> {
         outcome.recovered_mass_mg,
         outcome.deconstruction_step_count,
         outcome.deconstruction_recovered_component_count,
-        outcome.deconstruction_recovered_mass_mg
+        outcome.deconstruction_recovered_mass_mg,
+        dfd.connection_count,
+        dfd.reversible_fastener_count,
+        dfd.cut_required_count,
+        dfd_effort,
+        dfd.metadata_incomplete_count
     );
     Ok(())
 }

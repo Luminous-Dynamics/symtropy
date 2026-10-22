@@ -75,3 +75,27 @@ Do not reduce all of these to a single “realism” number. Do not claim state-
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
+
+
+## Design-for-disassembly assessment v0.1
+
+The optional `design_for_disassembly` module adds a **vector-valued** connector metadata assessment:
+
+- connection type: reversible fastener, cut-required, bonded/monolithic, or unknown;
+- required tool class (tool-free, standard hand tool, powered hand tool, thermal cutting, specialized rig, or unknown);
+- declared disassembly effort (person-minutes), retaining `None` if the total is not complete;
+- tool access and inspection access: accessible, constrained, blocked, or unknown;
+- declared component-damage risk: low, moderate, high, or unknown;
+- connector reuse: reusable, not reusable, or unknown;
+- metadata completeness counts and a sorted list of connections that remain unresolved.
+
+The assessment binds itself to the world's numeric revision and canonical source-state snapshot. The CLI now emits a frozen DfD known-answer vector (2 connections, 1 reversible fastener, 1 cut-required connector, 17 declared person-minutes, zero incomplete profiles) into the deterministic reference receipt. Duplicate connector profiles and profiles referring to foreign connection IDs are rejected. A missing profile is represented as unknown, not silently ignored; once any effort is missing, the total remains unresolved even if later profiles have effort estimates. Checked arithmetic rejects total-effort overflow.
+
+There is deliberately no scalar "DfD score": the vector makes trade-offs and missing dimensions visible rather than allowing arbitrary weights to mask unknown connection behavior. `Complete` means only that the declared metadata vector is complete for the graph. It is not a structural stability result or a qualified safe-removal sequence.
+
+The [PHYS-REVERSIBILITY-001 issue #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268) tracks adding an open, measured DfD comparison set and later comparing against published indicators such as DEI, once permitted source data and metric definitions are available.
+
+
+## Measured DfD validation protocol
+
+A proposed field/bench protocol is in [PHYSICAL_DFD_MEASUREMENT_PROTOCOL_V0_1.md](../../docs/research/PHYSICAL_DFD_MEASUREMENT_PROTOCOL_V0_1.md), tracked by [PHYS-DISASSEMBLY-OBS-001 #2282](https://github.com/Luminous-Dynamics/symtropy/issues/2282). It freezes predictions before task start, uses grouped blind holdouts, preserves all incomplete/safety-stopped tasks, and compares effort/tool/outcome predictions against naive baselines. It starts with non-load-bearing bench coupons; it is not a real demolition trial. No measured corpus or performance claim is included.

@@ -81,6 +81,7 @@ jobs:
             and .fixtures.balanced_mass_ledger == "pass"
             and .fixtures.imbalanced_mass_negative_control == "pass"
             and .fixtures.analytical_mechanics == "pass"
+            and .fixtures.design_for_disassembly == "pass"
             and .summary.component_count == 3
             and .summary.connection_count == 2
             and .summary.recovered_component_count == 1
@@ -88,6 +89,11 @@ jobs:
             and .summary.deconstruction_step_count == 3
             and .summary.deconstruction_recovered_component_count == 2
             and .summary.deconstruction_recovered_mass_mg == 3000
+            and .summary.dfd_connection_count == 2
+            and .summary.dfd_reversible_fastener_count == 1
+            and .summary.dfd_cut_required_count == 1
+            and .summary.dfd_declared_effort_total_person_minutes == 17
+            and .summary.dfd_metadata_incomplete_count == 0
             and .summary.axial_bar_stress_pa > 99999
             and .summary.axial_bar_stress_pa < 100001
             and .summary.axial_bar_extension_m > 0

@@ -10,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub type Check<T> = Result<T, String>;
 
 pub mod deconstruction;
+pub mod design_for_disassembly;
 pub mod mechanics;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
