@@ -257,6 +257,9 @@ fn audit_series(series: &MissionSeries) -> (SeriesMetrics, Vec<String>) {
         ] {
             finite_nonnegative(&format!("{label}: {name}"), value, &mut errors);
         }
+        if mission.elapsed_minutes <= 0.0 {
+            errors.push(format!("{label}: elapsed_minutes must be positive"));
+        }
         if !close_enough(
             mission.battery_start_wh,
             expected_energy,
@@ -367,24 +370,31 @@ fn audit_series(series: &MissionSeries) -> (SeriesMetrics, Vec<String>) {
 }
 
 fn pairs_match(baseline: &MissionSeries, candidate: &MissionSeries) -> Result<(), String> {
+    let pair_tolerance = baseline.energy_tolerance_wh.min(candidate.energy_tolerance_wh);
     if baseline.scenario_family != candidate.scenario_family
         || baseline.seed != candidate.seed
+        || baseline.evidence_class != candidate.evidence_class
+        || !close_enough(
+            baseline.energy_tolerance_wh,
+            candidate.energy_tolerance_wh,
+            f64::EPSILON,
+        )
         || !close_enough(
             baseline.battery_capacity_wh,
             candidate.battery_capacity_wh,
-            f64::EPSILON,
+            pair_tolerance,
         )
         || !close_enough(
             baseline.initial_energy_wh,
             candidate.initial_energy_wh,
-            f64::EPSILON,
+            pair_tolerance,
         )
         || baseline.initial_state_epoch != candidate.initial_state_epoch
         || baseline.initial_state_token != candidate.initial_state_token
         || baseline.missions.len() != candidate.missions.len()
     {
         return Err(format!(
-            "{}: baseline and candidate do not share matched initial conditions",
+            "{}: baseline and candidate do not share matched initial conditions/evidence class",
             baseline.comparison_group_id
         ));
     }
@@ -680,6 +690,15 @@ mod tests {
     fn candidate_baseline_pair_mismatch_fails_integrity() {
         let mut data: Dataset = serde_json::from_str(FIXTURE).unwrap();
         data.series[1].missions[1].mission_id = "wrong-mission".to_string();
+        let raw = serde_json::to_string(&data).unwrap();
+        let report = build_receipt(&raw, COMMIT).unwrap();
+        assert!(!report.audit_integrity_pass);
+    }
+
+    #[test]
+    fn comparison_evidence_class_mismatch_fails_integrity() {
+        let mut data: Dataset = serde_json::from_str(FIXTURE).unwrap();
+        data.series[1].evidence_class = "simulator".to_string();
         let raw = serde_json::to_string(&data).unwrap();
         let report = build_receipt(&raw, COMMIT).unwrap();
         assert!(!report.audit_integrity_pass);
