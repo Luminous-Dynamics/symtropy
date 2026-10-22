@@ -48,4 +48,26 @@ grep -q 'path = "../../../../symthaea/crates/core/symthaea-fep"' "$robot_manifes
 grep -q 'path = "../../../../symthaea/crates/core/symthaea-core"' "$robot_manifest"
 grep -q 'path = "../../../../symthaea/crates/domains/symthaea-consciousness-equation"' "$robot_manifest"
 
-cargo test --manifest-path "$integration_manifest" --test closed_loop -- --nocapture
+cargo test --manifest-path "$integration_manifest" --tests -- --nocapture
+if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
+  out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
+  cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
+  jq -e '
+    .benchmark_id == "symthaea-symtropy-flight-transfer-v0.1"
+    and .evaluation.matched_seeds == true
+    and .paired_summary.paired_trial_count == .evaluation.trials
+    and (.trials | length) == .evaluation.trials
+    and (.trials | length) >= 1
+    and .trials[0].controller.pid_baseline != null
+    and .trials[0].controller.symthaea_trained_no_online_fep_native_backend != null
+    and .paired_summary.sim_to_sim_transfer_gap_no_online_fep.bootstrap_95_ci_rmse_gap_m != null
+    and all(.trials[];
+      .controller.pd_baseline.invalid_inputs == 0
+      and .controller.pid_baseline.invalid_inputs == 0
+      and .controller.symthaea_untrained_no_fep_ablation.invalid_inputs == 0
+      and .controller.symthaea_trained_no_online_fep.invalid_inputs == 0
+      and .controller.symthaea_trained_with_fep.invalid_inputs == 0
+      and .controller.symthaea_trained_no_online_fep_native_backend.invalid_inputs == null
+    )
+  ' "$out"
+fi
