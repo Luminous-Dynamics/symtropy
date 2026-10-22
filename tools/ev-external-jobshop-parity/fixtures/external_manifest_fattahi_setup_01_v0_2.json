@@ -1,0 +1,35 @@
+{
+  "schema_version": "external-jobshop-parity-manifest/0.2",
+  "benchmark_id": "FJSP-SDST-FATTAHI-001",
+  "source": {
+    "repository_url": "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances",
+    "commit": "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb",
+    "license": "MIT",
+    "paper_doi": "10.1007/s10472-026-10007-3",
+    "instance_path": "data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs",
+    "instance_git_blob_sha1": "6bac8cfaf9f326f6405d5396b9cedd12941aba94"
+  },
+  "expected_structure": {
+    "jobs": 2,
+    "machines": 2,
+    "max_operations_per_job": 2,
+    "operations": 4,
+    "operation_alternative_counts": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "declared_average_machine_flexibility": 2,
+    "setup_matrix_dimensions": [
+      2,
+      4,
+      4
+    ],
+    "setup_values_min": 3,
+    "setup_values_max": 8,
+    "primary_objective": "makespan",
+    "supports_due_dates": false
+  },
+  "claim_ceiling": "Pinned public benchmark input structures and exhaustive tiny-instance makespan oracles for named cases are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established."
+}
