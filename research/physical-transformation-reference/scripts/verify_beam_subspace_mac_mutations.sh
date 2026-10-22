@@ -70,7 +70,7 @@ run_mutation() {
 run_mutation \
   "basis-normalization-removed" \
   omit_basis_normalization \
-  subspace_score_is_invariant_to_orthogonal_basis_rotation
+  subspace_score_is_invariant_to_basis_rotation_and_individual_mode_scaling
 run_mutation \
   "principal-cosines-returned-ascending" \
   reverse_principal_cosine_order \
