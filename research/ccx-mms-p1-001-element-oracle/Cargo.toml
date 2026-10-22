@@ -21,6 +21,10 @@ path = "src/bin/triangle-conditioning-probe.rs"
 name = "triangle-material-conditioning-probe"
 path = "src/bin/triangle-material-conditioning-probe.rs"
 
+[[bin]]
+name = "triangle-global-condition-probe"
+path = "src/bin/triangle-global-condition-probe.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 
