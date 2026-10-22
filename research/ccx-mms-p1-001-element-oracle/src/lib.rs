@@ -406,9 +406,7 @@ pub struct ElementSpectrum {
 /// separately test the unsymmetrized stiffness symmetry defect.
 // Indexed access is necessary for coupled row/column rotations of this fixed-size matrix.
 #[allow(clippy::needless_range_loop)]
-fn symmetric_eigenvalues(
-    mut matrix: [[f64; 6]; 6],
-) -> Result<[f64; 6], ElementError> {
+fn symmetric_eigenvalues(mut matrix: [[f64; 6]; 6]) -> Result<[f64; 6], ElementError> {
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return Err(ElementError::InvalidStiffnessSpectrum);
     }
@@ -639,8 +637,7 @@ pub fn run_material_conditioning_sweep() -> Result<Vec<MaterialSweepPoint>, Elem
 /// Assemble the reduced global stiffness matrix for a zero-displacement
 /// Dirichlet boundary, then estimate its actual dense spectral condition number.
 /// This uses the independent CST kernel and is still not a CalculiX solver result.
-pub fn run_global_mesh_conditioning_sweep(
-) -> Result<Vec<GlobalMeshConditioningPoint>, ElementError> {
+pub fn run_global_mesh_conditioning_sweep() -> Result<Vec<GlobalMeshConditioningPoint>, ElementError> {
     let resolutions = [2, 3, 4, 5, 6];
     let material =
         PlaneStrainMaterial::new(1.0, 0.3).expect("reference material is admissible");
@@ -721,9 +718,7 @@ pub fn run_global_mesh_conditioning_sweep(
 /// Dense symmetric Jacobi eigensolver for the small reduced global matrices used
 /// in the fixed mesh-resolution sweep. The matrices are at most 50-by-50.
 #[allow(clippy::needless_range_loop)]
-fn symmetric_eigenvalues_dynamic(
-    mut matrix: Vec<Vec<f64>>,
-) -> Result<Vec<f64>, ElementError> {
+fn symmetric_eigenvalues_dynamic(mut matrix: Vec<Vec<f64>>) -> Result<Vec<f64>, ElementError> {
     let n = matrix.len();
     if n == 0
         || matrix.iter().any(|row| row.len() != n)
@@ -1295,7 +1290,6 @@ mod tests {
         assert!(qualities.windows(2).all(|pair| pair[1] < pair[0]));
     }
 
-
     #[test]
     fn conditioning_sweep_separates_quality_from_gradient_amplification() {
         let sweep = run_geometry_conditioning_sweep().unwrap();
@@ -1398,7 +1392,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn near_incompressibility_increases_lame_ratio_and_local_conditioning() {
         let sweep = run_material_conditioning_sweep().unwrap();
@@ -1414,7 +1407,6 @@ mod tests {
             sweep.last().unwrap().element_nonrigid_condition_number > 1.0e4
         );
     }
-
 
     #[test]
     fn constrained_global_condition_number_grows_under_uniform_refinement() {
@@ -1441,6 +1433,5 @@ mod tests {
             "{sweep:?}"
         );
     }
-
 
 }
