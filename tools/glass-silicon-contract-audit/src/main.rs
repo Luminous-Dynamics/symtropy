@@ -1,0 +1,79 @@
+use glass_silicon_contract_audit::{audit_corpus, audit_mass_balance};
+use serde_json::Value;
+use std::env;
+use std::fs;
+use std::process::ExitCode;
+
+fn read_json(path: &str) -> Result<Value, String> {
+    let content = fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?;
+    serde_json::from_str(&content).map_err(|error| format!("invalid JSON in {path}: {error}"))
+}
+
+fn usage() {
+    eprintln!(
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit check-mass <ledger.json>"
+    );
+}
+
+fn main() -> ExitCode {
+    let args: Vec<String> = env::args().collect();
+    match args.get(1).map(String::as_str) {
+        Some("audit-corpus") if args.len() == 4 => {
+            let schema = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "benchmark_corpus",
+                        "record_id": null,
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no physical or manufacturing claim is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let corpus = match read_json(&args[3]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "benchmark_corpus",
+                        "record_id": null,
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no physical or manufacturing claim is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = audit_corpus(&schema, &corpus);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("check-mass") if args.len() == 3 => {
+            let ledger = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "elemental_mass_balance",
+                        "record_id": null,
+                        "mass_unit": null,
+                        "residuals": {},
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no physical or manufacturing claim is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = audit_mass_balance(&ledger);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        _ => {
+            usage();
+            ExitCode::from(64)
+        }
+    }
+}
