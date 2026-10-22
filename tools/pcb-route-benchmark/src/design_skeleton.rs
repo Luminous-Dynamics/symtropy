@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn placement_net_rule_and_outline_changes_are_not_routing() {
         let placement = BOARD.replace("(at 10 10)", "(at 10.25 10)");
-        let net_assignment = BOARD.replace("(net 1 \\"VCC\\")", "(net 2 \\"VCC\\")");
+        let net_assignment = BOARD.replace("(net 1 \"VCC\")", "(net 2 \"VCC\")");
         let clearance = BOARD.replace("(clearance 0.2)", "(clearance 0.25)");
         let outline = BOARD.replace("(end 20 10)", "(end 21 10)");
         for changed in [placement, net_assignment, clearance, outline] {
@@ -346,7 +346,7 @@ mod tests {
     fn malformed_route_primitives_fail_closed_instead_of_being_stripped() {
         let malformed = BOARD.replace(
             "(zone (net 2)",
-            "(segment (start 10 10) (end 12 10) (layer \\"F.Cu\\") (net 1)) (zone (net 2)",
+            "(segment (start 10 10) (end 12 10) (layer \"F.Cu\") (net 1)) (zone (net 2)",
         );
         assert!(fingerprint_board_bytes(malformed.as_bytes())
             .unwrap_err()
@@ -360,7 +360,7 @@ mod tests {
             "(not_a_board)",
             "(kicad_pcb) garbage",
             "(kicad_pcb ) )",
-            "(kicad_pcb (comment \\"unterminated))",
+            "(kicad_pcb (comment \"unterminated))",
         ] {
             assert!(fingerprint_board_bytes(value.as_bytes()).is_err(), "{value}");
         }
