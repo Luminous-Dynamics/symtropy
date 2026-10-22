@@ -16,6 +16,7 @@ pub mod deconstruction;
 pub mod mechanics;
 pub mod modal_bar;
 pub mod modal_properties;
+pub mod modal_uncertainty;
 pub mod nafems_nbc05;
 pub mod planar_truss;
 

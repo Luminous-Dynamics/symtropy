@@ -31,6 +31,8 @@ For either dataset: pin the exact version and metadata snapshot; record file has
 | Project Chrono DEM | GPU discrete-element simulation for granular contact. Its current documentation describes scale claims up to hundreds of millions of elements for some workloads, hardware- and model-dependent. | Do not compete on raw maximum particle count with this state-transition kernel. Use as a specialist debris/granular baseline where the model assumptions match; record GPU, contact law, integration and convergence settings. |
 | MOOSE solid mechanics / phase field | Continuum solid mechanics, multiphysics coupling, and phase-field fracture models. | Candidate scientific-solver reference for qualified damage cases. An adapter must expose constitutive law, mesh, boundary conditions, convergence and solver diagnostics. |
 | ASME V&V 10 | Guidance for verification, validation and uncertainty quantification in computational solid mechanics. | Use as the credibility process: code verification, solution verification, validation against observations and uncertainty evaluation are separate gates. |
+| OpenSees `elasticBeamColumn` | Official 2D frame element exposes explicit end moment-release codes and optional consistent mass (`-cMass`). | Use for model-matched cross-checks after the local beam element, release map, DOFs and mass formulation are pinned; these features are not unique innovations. |
+| Altair OptiStruct / NAFEMS FV5 | Deep simply-supported beam benchmark tests repeated eigenvalues, shear deformation, rotary inertia and missing extensional modes, with closed-form normalized frequency targets. | Treat as a later extension target. Current Symtropy model is 2D Euler-Bernoulli and lacks 3D torsion plus shear-deformable Timoshenko behavior, so do not claim FV5 reproduction yet. |
 | buildingSMART IFC 4.3.2.0 | Open exchange schema for buildings and infrastructure, associated with ISO 16739-1:2024. | Use for element identity and information exchange, with explicit import/export loss reports. IFC conformance is not a mechanics or structural-safety result. |
 | NIST AM-Bench | A model for controlled, measured challenge problems and open comparison of simulation results. Its current benchmark domain is additive manufacturing, not demolition. | Borrow the methodology—predeclared challenge, measured ground truth, uncertainty, blind holdouts and persistent data—not its domain-specific data as a building-collapse benchmark. |
 
@@ -40,6 +42,8 @@ Sources:
 - Project Chrono DEM: https://api.projectchrono.org/module_dem_installation.html
 - MOOSE phase field: https://mooseframework.inl.gov/modules/phase_field/
 - ASME V&V 10: https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-solid-mechanics/2019/pdf
+- OpenSees 2D elastic beam-column releases / consistent mass: https://opensees.github.io/OpenSeesDocumentation/user/manual/model/elements/elasticBeamColumn.html
+- Altair OptiStruct NAFEMS FV5 deep simply-supported beam: https://2025.help.altair.com/2025/hwsolvers/ja_jp/os/topics/solvers/os/nafems_test_problem_fv5_r.htm
 - IFC 4.3.2.0: https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/index.html
 - NIST AM-Bench: https://www.nist.gov/ambench
 
@@ -98,6 +102,7 @@ These are proposed engineering gates. They are not achieved results or universal
 | P3: analytical mechanics | Bar, beam and cantilever closed-form cases, plus invalid-domain controls | Relative error at or below 1e-10 for well-conditioned double-precision cases, using an independently implemented oracle and a declared absolute floor near zero. |
 | P4: solver verification | Mesh/time-step refinement and solver outputs for the same benchmark | Demonstrate convergence trend, residuals, tolerances and sensitivity; do not compare only one mesh result. |
 | P4-M: modal mesh qualification | Released-joint Euler-Bernoulli member-chain meshes with explicitly shared interior rotations and private physical-pin end rotations | Exact free-DOF/mode count at each mesh; every generalized eigenpair residual, mass norm and mass orthogonality checked; preserve/classify every near-zero mode; publish same-index low-frequency shifts and fixed-grid MAC matrices; predeclare a one-to-one mode assignment and MAC/convergence thresholds before claiming convergence. |
+| P4-UQ: modal sensitivity and uncertainty | Frozen material/section/geometry input perturbations with mode identity preserved by sampled-shape MAC | Exact analytic scaling-law sensitivities for uniform E and density changes; report parameter uncertainty separately from eigenpair residual and mesh error; abstain on clustered/ambiguous modes; never combine marginal contributions without a declared covariance model. |
 | P5: experimental mechanics | Blind holdout specimens with measured geometry, loads and deflections | Report normalized force-displacement error, failure-load error, uncertainty intervals and baseline deltas. A provisional stretch target for simple in-domain cases is median displacement error <=5% and P95 <=10%, only when the measurement uncertainty supports those thresholds. |
 | P6: fracture/contact | Controlled fracture or fragmentation measurements | Compare fracture initiation/load, energy balance, fragment-size distribution and contact trajectories; report a defined distribution distance and uncertainty. No generic target should be claimed before selecting a compatible dataset and baseline. |
 | P7: construction sequence | Installation/removal plans, temporary support, tool access and inspected state changes | Zero violated hard prerequisites in the qualified fixture set; report infeasibility and unresolved evidence separately from planner rank. |
@@ -133,12 +138,15 @@ No single weighted “realism score” can compensate for failed conservation, i
 ## 7. Immediate next steps
 
 1. Qualify the current Rust state/accounting and analytical-reference kernel on exact head.
-2. Continue the released-joint modal ladder: the beam element, local/global transformation, canonical pin assembly, generalized-eigenproblem and continuity-preserving member-chain mesh sweep are now separate draft increments; require exact-head CI plus mutation controls at every layer.
-3. Add unit-conversion metamorphic tests and additional closed-form beam cases.
-3. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
-4. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
-5. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
-6. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
+2. Continue the released-joint modal ladder with exact-head CI and mutation controls at each layer; do not treat element verification, modal verification, mesh convergence and physical validation as interchangeable evidence.
+3. Extend the modal chain with mode-assignment and repeated-mode subspace gates, then qualify mesh convergence before comparing against the NAFEMS beam family.
+4. Add input-uncertainty propagation only for modes with stable identity; preserve abstentions, and report solver residual, mesh error, input uncertainty and model-form alternatives separately.
+5. Add independent, closed-form 2D beam tests, then compare a declared model-matched case against OpenSees with identical release and mass settings. FV5 should follow only when shear-deformable/3D model capabilities and the exact benchmark DOF contract are available.
+6. Add unit-conversion metamorphic tests and additional closed-form beam cases.
+7. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
+8. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
+9. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
+10. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
 
 ## Claim ceiling
 

@@ -780,7 +780,8 @@ mod tests {
     use super::{
         BeamMemberChain, BeamPinDofKind, BeamPinMember, BeamPinNode,
         assemble_released_joint_beam_chains, assemble_released_joint_pin_truss,
-        canonical_beam_chain_request,
+        canonical_assembly_request, canonical_beam_chain_request,
+        canonical_beam_chain_sweep_request,
     };
 
     fn nodes() -> Vec<BeamPinNode> {
