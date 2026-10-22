@@ -18,6 +18,49 @@ use crate::components::{CrewNpc, Player};
 use crate::resources::{EnergyWell, PhysicsWorldRes, SafetyTier};
 use symtropy_render_bridge::PhysicsBody;
 
+/// Exactly-once admission guard for the monolithic fixed-tick thermodynamic system.
+///
+/// Fixed-time elapsed duration is the tick identity because the current system is
+/// one begin/effects/finalize operation. Duplicate invocations for the same Bevy
+/// Fixed clock value are rejected before reservoir, ledger, or HUD mutation.
+/// This does not replace the explicit transaction state machine described in #824.
+#[derive(Resource, Debug, Default)]
+pub struct ThermodynamicTickGuard {
+    last_admitted_elapsed: Option<std::time::Duration>,
+    /// Number of fixed-tick invocations admitted since initialization.
+    pub admitted_ticks: u64,
+    /// Duplicate invocations for an already admitted fixed clock value.
+    pub duplicate_invocations: u64,
+    /// Out-of-order clock values rejected without changing the watermark.
+    pub regressed_invocations: u64,
+}
+
+impl ThermodynamicTickGuard {
+    /// Admit each strictly increasing Fixed-time identity at most once.
+    fn admit(&mut self, elapsed: std::time::Duration) -> bool {
+        match self.last_admitted_elapsed {
+            None => {
+                self.last_admitted_elapsed = Some(elapsed);
+                self.admitted_ticks = self.admitted_ticks.saturating_add(1);
+                true
+            }
+            Some(last) if elapsed > last => {
+                self.last_admitted_elapsed = Some(elapsed);
+                self.admitted_ticks = self.admitted_ticks.saturating_add(1);
+                true
+            }
+            Some(last) if elapsed == last => {
+                self.duplicate_invocations = self.duplicate_invocations.saturating_add(1);
+                false
+            }
+            Some(_) => {
+                self.regressed_invocations = self.regressed_invocations.saturating_add(1);
+                false
+            }
+        }
+    }
+}
+
 /// Marker for entities that have collapsed (zero energy).
 #[derive(Component)]
 pub struct EnergyCollapsed;
@@ -38,11 +81,18 @@ pub struct ThermodynamicHudState {
 /// Debits consciousness maintenance, applies ambient regeneration,
 /// checks for collapse, and handles harmony resonance energy transfer.
 pub fn thermodynamic_enforcement_system(
+    fixed_time: Res<Time<Fixed>>,
+    mut tick_guard: ResMut<ThermodynamicTickGuard>,
     mut physics: ResMut<PhysicsWorldRes>,
     mut hud_state: ResMut<ThermodynamicHudState>,
     entities_query: Query<(&PhysicsBody, &Transform), Or<(With<Player>, With<CrewNpc>)>>,
     mut wells: Query<(&Transform, &mut EnergyWell, &mut Sprite), Without<Player>>,
 ) {
+    // Reject duplicate or out-of-order calls before any reservoir, ledger, or HUD side effects.
+    if !tick_guard.admit(fixed_time.elapsed()) {
+        return;
+    }
+
     let constants = physics.consciousness.constants.clone();
 
     // Collect handles and positions for iteration
@@ -256,5 +306,87 @@ pub fn collapse_visual_system(
             }
             commands.entity(entity).remove::<EnergyCollapsed>();
         }
+    }
+}
+
+#[cfg(test)]
+mod tick_guard_tests {
+    use super::*;
+
+    #[test]
+    fn fixed_tick_guard_admits_same_identity_once() {
+        let mut guard = ThermodynamicTickGuard::default();
+        let tick = std::time::Duration::from_millis(16);
+        assert!(guard.admit(tick));
+        assert!(!guard.admit(tick));
+        assert!(!guard.admit(tick));
+        assert_eq!(guard.admitted_ticks, 1);
+        assert_eq!(guard.duplicate_invocations, 2);
+        assert_eq!(guard.regressed_invocations, 0);
+    }
+
+    #[test]
+    fn fixed_tick_guard_admits_monotonic_identities_once() {
+        let mut guard = ThermodynamicTickGuard::default();
+        for millis in [16, 32, 48, 64] {
+            assert!(guard.admit(std::time::Duration::from_millis(millis)));
+            assert!(!guard.admit(std::time::Duration::from_millis(millis)));
+        }
+        assert_eq!(guard.admitted_ticks, 4);
+        assert_eq!(guard.duplicate_invocations, 4);
+    }
+
+    #[test]
+    fn fixed_tick_guard_rejects_regressed_identity_without_rolling_back_watermark() {
+        let mut guard = ThermodynamicTickGuard::default();
+        assert!(guard.admit(std::time::Duration::from_millis(32)));
+        assert!(!guard.admit(std::time::Duration::from_millis(16)));
+        assert!(!guard.admit(std::time::Duration::from_millis(32)));
+        assert!(guard.admit(std::time::Duration::from_millis(48)));
+        assert_eq!(guard.admitted_ticks, 2);
+        assert_eq!(guard.duplicate_invocations, 1);
+        assert_eq!(guard.regressed_invocations, 1);
+        assert_eq!(
+            guard.last_admitted_elapsed,
+            Some(std::time::Duration::from_millis(48))
+        );
+    }
+
+    #[test]
+    fn seeded_million_tick_tape_admits_each_unique_tick_once() {
+        const UNIQUE_TICKS: u64 = 1_000_000;
+        let mut guard = ThermodynamicTickGuard::default();
+        let mut state = 0x7f4a_7c15_d1ce_4e5b_u64;
+        let mut expected_duplicates = 0_u64;
+
+        for tick in 1..=UNIQUE_TICKS {
+            let identity = std::time::Duration::from_nanos(tick);
+            assert!(guard.admit(identity), "unique tick {tick} was rejected");
+
+            // Deterministically choose 1-5 duplicate invocations per unique tick.
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let duplicates = (state % 5) + 1;
+            expected_duplicates += duplicates;
+
+            for _ in 0..duplicates {
+                assert!(!guard.admit(identity), "duplicate tick {tick} was admitted");
+            }
+        }
+
+        assert_eq!(guard.admitted_ticks, UNIQUE_TICKS);
+        assert_eq!(guard.duplicate_invocations, expected_duplicates);
+        assert_eq!(guard.regressed_invocations, 0);
+    }
+
+    #[test]
+    fn zero_elapsed_identity_is_not_a_sentinel() {
+        let mut guard = ThermodynamicTickGuard::default();
+        let zero = std::time::Duration::ZERO;
+        assert!(guard.admit(zero));
+        assert!(!guard.admit(zero));
+        assert_eq!(guard.admitted_ticks, 1);
+        assert_eq!(guard.duplicate_invocations, 1);
     }
 }
