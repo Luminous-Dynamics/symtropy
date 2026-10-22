@@ -13,6 +13,7 @@
 //! a console line ("déjà vu").
 
 use bevy::prelude::*;
+use std::time::{SystemTime, UNIX_EPOCH};
 use symtropy_hdc_physics::{
     EpisodeBuilder, EpisodeMemory, EpisodeMetadata, PhysicsEncoderConfig, PhysicsFrameEncoder,
 };
@@ -38,6 +39,7 @@ const MAX_STORED_EPISODES: usize = 256;
 #[derive(Resource)]
 pub struct EchoMemoryRes {
     encoder: PhysicsFrameEncoder,
+    session_id: String,
     memory: EpisodeMemory,
     builder: Option<EpisodeBuilder>,
     frames_in_episode: usize,
@@ -51,10 +53,16 @@ impl Default for EchoMemoryRes {
         let config = PhysicsEncoderConfig::default();
         let encoder =
             PhysicsFrameEncoder::new(config).expect("default PhysicsEncoderConfig is valid");
+        let session_nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let session_id = format!("echo-session-{}-{session_nonce}", std::process::id());
         let memory = EpisodeMemory::from_encoder_with_capacity(&encoder, MAX_STORED_EPISODES)
             .expect("EchoMemory capacity is a positive compile-time constant");
         Self {
             encoder,
+            session_id,
             memory,
             builder: None,
             frames_in_episode: 0,
@@ -97,10 +105,10 @@ pub fn echo_memory_system(
     };
 
     if echo.builder.is_none() {
-        let episode_id = format!("episode-{}", echo.episode_index);
+        let episode_id = format!("{}-episode-{}", echo.session_id, echo.episode_index);
         let metadata = EpisodeMetadata {
             label: "live-play".to_owned(),
-            run_id: episode_id.clone(),
+            run_id: echo.session_id.clone(),
             ..EpisodeMetadata::default()
         };
         echo.builder = Some(
