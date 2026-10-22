@@ -2120,6 +2120,38 @@ mod tests {
     }
 
     #[test]
+    fn retroactive_occupancy_extension_is_accepted_with_current_positive_presence_evidence() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            candidate: baseline.clone(),
+            baseline,
+            disruption: Disruption {
+                observed_at_tick: 8,
+                placement_occupancy_extensions: vec![PlacementOccupancyExtension {
+                    reservation_id: "outgoing".to_owned(),
+                    occupied_until_tick: 9,
+                    evidence: Some(OccupancyExtensionEvidence {
+                        evidence_id: "yard-scan-8".to_owned(),
+                        source_id: "yard-scanner-1".to_owned(),
+                        evidence_ref: "scan://outgoing/8".to_owned(),
+                        observed_present_at_tick: 8,
+                        recorded_tick: 8,
+                    }),
+                }],
+                ..empty_disruption(8)
+            },
+        });
+
+        assert!(report.accepted, "{:?}", report.violations);
+        assert_eq!(report.metrics.candidate_makespan_tick, Some(9));
+        assert_eq!(report.metrics.recovery_horizon_ticks, Some(1));
+    }
+
+    #[test]
     fn candidate_cannot_remove_or_move_block_whose_old_footprint_is_not_clear() {
         let baseline = Scenario {
             yard_bounds: Some(yard()),
