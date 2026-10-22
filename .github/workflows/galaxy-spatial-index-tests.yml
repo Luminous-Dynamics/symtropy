@@ -1,0 +1,40 @@
+name: Galaxy Spatial Index Tests
+
+on:
+  pull_request:
+    branches: ["feat/solar-system-hierarchy-selection-004", "feat/milky-way-spatial-index-006"]
+    paths:
+      - "crates/bridges/symtropy-render-bridge/src/galaxy_spatial.rs"
+      - "crates/bridges/symtropy-render-bridge/src/lib.rs"
+      - "docs/research/RENDER_GALAXY_SPATIAL_006.md"
+      - "benchmarks/render/GALAXY-SCALE-01.json"
+      - ".github/workflows/galaxy-spatial-index-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  galaxy-spatial-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Validate galaxy benchmark contract
+        run: |
+          jq -e '(.schema_version == "1.0.0") and (.fixture_id == "GALAXY-SCALE-01") and (.coordinate_domain.maximum_octree_depth == 36) and (.coordinate_domain.morton_bits_at_max_depth == 108) and ((.correctness_invariants | length) >= 10)' benchmarks/render/GALAXY-SCALE-01.json
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run focused render bridge tests
+        run: cargo test -p symtropy-render-bridge --lib galaxy_spatial
+      - name: Run all render bridge tests
+        run: cargo test -p symtropy-render-bridge --lib
+      - name: Run strict render bridge Clippy
+        run: cargo clippy -p symtropy-render-bridge --all-targets -- -D warnings

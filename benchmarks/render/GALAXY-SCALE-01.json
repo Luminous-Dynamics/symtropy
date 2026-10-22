@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "GALAXY-SCALE-01",
+  "status": "proposed_unmeasured",
+  "purpose": "Frozen validation contract for deterministic spatial partitioning and bounded streaming admission toward a Milky-Way-scale catalog.",
+  "coordinate_domain": {
+    "frame_requirement": "one declared galactocentric Cartesian frame per catalog snapshot",
+    "epoch_requirement": "one explicit epoch and time-scale policy per snapshot",
+    "half_width_pc": 50000,
+    "coordinate_quantum_microparsec": 1,
+    "maximum_octree_depth": 36,
+    "morton_bits_at_max_depth": 108,
+    "leaf_width_pc_approx": 0.0000014551915228366852,
+    "source_provenance_requirement": "frame, epoch, transform receipt, source id, uncertainty/covariance, selection, license, and ingest revision live outside geometric cell identity"
+  },
+  "reference_scales": {
+    "gaia_dr3_sources": 1811709771,
+    "note": "Catalogue size reference only; Gaia DR3 is not a complete census of all Milky Way objects.",
+    "source": "ESA Gaia DR3 summary",
+    "source_url": "https://www.cosmos.esa.int/web/gaia/dr3"
+  },
+  "correctness_invariants": [
+    "non-finite coordinates reject",
+    "out-of-domain coordinates reject rather than wrap or clamp",
+    "same coordinate and depth produce the same cell identity",
+    "ancestor/descendant relation is determined only from depth and Morton prefix",
+    "duplicate candidate tile identities reject",
+    "selected tile count never exceeds the configured maximum",
+    "admitted records never exceed the configured maximum",
+    "admitted resident bytes never exceed the configured maximum",
+    "pinned content that cannot fit causes an explicit error",
+    "input permutation does not change the selected tile plan",
+    "geometric key does not imply scientific certainty, source completeness, or currentness"
+  ],
+  "benchmark_cases": [
+    {
+      "case_id": "CELL-BOUNDARIES",
+      "workload": "domain minima, maxima, axis planes and adjacent coordinate values",
+      "status": "authored_not_yet_executed"
+    },
+    {
+      "case_id": "CELL-DETERMINISM",
+      "workload": "same fixed-point coordinates across depths 0..36",
+      "status": "authored_not_yet_executed"
+    },
+    {
+      "case_id": "BUDGET-MIXED",
+      "workload": "prioritized optional tiles plus pinned target tiles under three simultaneous hard limits",
+      "status": "authored_not_yet_executed"
+    },
+    {
+      "case_id": "BUDGET-PERMUTATION",
+      "workload": "identical candidate set in several input orders",
+      "status": "authored_not_yet_executed"
+    },
+    {
+      "case_id": "SYNTHETIC-1M",
+      "workload": "generate 1,000,000 seeded positions and cell keys in release mode",
+      "status": "planned"
+    },
+    {
+      "case_id": "SYNTHETIC-10M",
+      "workload": "generate 10,000,000 seeded positions; include RSS and output digest",
+      "status": "planned"
+    },
+    {
+      "case_id": "CATALOG-1B-REFERENCE",
+      "workload": "project storage, build throughput and cold/warm regional traversal at billion-row scale",
+      "status": "design_target_not_measured"
+    }
+  ],
+  "performance_reporting": {
+    "required": [
+      "key_generation_rows_per_second",
+      "p50_p95_key_latency_ns",
+      "catalog_bytes_per_source",
+      "index_bytes_per_source",
+      "resident_bytes",
+      "candidate_tiles",
+      "admitted_tiles",
+      "deferred_tiles",
+      "budget_overshoot_bytes",
+      "budget_overshoot_records",
+      "plan_digest",
+      "source_sha",
+      "fixture_sha",
+      "compiler_profile",
+      "cpu_model",
+      "os"
+    ],
+    "hard_targets": {
+      "budget_overshoot_bytes": 0,
+      "budget_overshoot_records": 0,
+      "determinism_mismatch_count": 0,
+      "invalid_coordinate_acceptance_count": 0
+    },
+    "proposed_performance_target": "Establish a checked-in CPU baseline first; set throughput and latency gates only after reproducible measurements on a documented reference machine."
+  },
+  "external_comparison_baselines": [
+    {
+      "system": "Gaia DR3",
+      "capability": "astronomical source catalog; approx. 1.81B sources",
+      "url": "https://www.cosmos.esa.int/web/gaia/dr3"
+    },
+    {
+      "system": "IVOA HiPS 2.0",
+      "capability": "working-draft hierarchical progressive survey tiling across spatial and potential time/frequency dimensions",
+      "url": "https://ivoa.net/Documents/HiPS/20260501/index.html",
+      "status": "working_draft"
+    },
+    {
+      "system": "OGC 3D Tiles 1.1",
+      "capability": "hierarchical spatial content delivery and screen-space-error based refinement",
+      "url": "https://docs.ogc.org/cs/22-025r4/22-025r4.html"
+    },
+    {
+      "system": "Gaia Sky",
+      "capability": "catalog rendering with octree-based catalog groups and residency controls",
+      "url": "https://gaia.ari.uni-heidelberg.de/gaiasky/docs/master/Star-rendering.html"
+    }
+  ],
+  "claim_ceiling": [
+    "This is a cell-key and budget-planning primitive, not a complete galaxy renderer.",
+    "The fixture is a workload contract, not a benchmark result.",
+    "No claim that Gaia measured sources equal all objects in the Milky Way.",
+    "No comparison win is claimed until equivalent inputs, resolutions, camera traces, visibility criteria and hardware are independently measured."
+  ]
+}
