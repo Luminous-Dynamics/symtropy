@@ -54,6 +54,27 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
     policy_bytes: &[u8],
     evaluator_git_head: &str,
 ) -> Result<KicadRunArtifactVerificationReceipt, String> {
+    verify_run_artifacts_with_kicad_drc_policy_inner(
+        report_bytes,
+        manifest_bytes,
+        run_root,
+        policy_bytes,
+        evaluator_git_head,
+        || {},
+    )
+}
+
+fn verify_run_artifacts_with_kicad_drc_policy_inner<F>(
+    report_bytes: &[u8],
+    manifest_bytes: &[u8],
+    run_root: &Path,
+    policy_bytes: &[u8],
+    evaluator_git_head: &str,
+    after_initial_hash_verification: F,
+) -> Result<KicadRunArtifactVerificationReceipt, String>
+where
+    F: FnOnce(),
+{
     let validated = crate::evaluate_report_bytes(report_bytes, manifest_bytes, evaluator_git_head)?;
     let policy_sha256 = sha256_hex(policy_bytes);
     if validated.report.drc_policy_sha256 != policy_sha256 {
@@ -67,6 +88,10 @@ pub fn verify_run_artifacts_with_kicad_drc_policy(
     let canonical_root = run_root
         .canonicalize()
         .map_err(|error| format!("cannot canonicalize run-artifact root: {error}"))?;
+    // Test seam: deliberately model the filesystem changing after the first
+    // hash verification but before the policy parser re-reads each artifact.
+    // Production always calls the public wrapper with a no-op callback.
+    after_initial_hash_verification();
     let mut boards = Vec::new();
 
     for case in &validated.report.cases {
@@ -738,6 +763,25 @@ mod tests {
         )
         .unwrap_err()
         .contains("disagree with raw KiCad DRC types"));
+
+        // Re-run the valid report, mutate a verified DRC file exactly after the
+        // initial source/output/DRC hash pass, then ensure the parse-boundary
+        // re-hash rejects the changed bytes before any DRC result is issued.
+        let report_for_race = serde_json::to_vec(&value_for_clean_report(&report_bytes)).unwrap_or_else(|_| report_bytes.clone());
+        let race_report = report_bytes.clone();
+        let race_root = root.clone();
+        let error = verify_run_artifacts_with_kicad_drc_policy_inner(
+            &race_report,
+            include_bytes!("../fixtures/synthetic-dataset-manifest-v0_1.json"),
+            &race_root,
+            policy_bytes,
+            EVALUATOR_HEAD,
+            || {
+                fs::write(race_root.join("drc/easy-001.json"), b"changed after first hash").unwrap();
+            },
+        ).unwrap_err();
+        assert!(error.contains("DRC report changed after run-artifact verification"), "{error}");
+        let _ = report_for_race;
         let _ = fs::remove_dir_all(&root);
     }
 
