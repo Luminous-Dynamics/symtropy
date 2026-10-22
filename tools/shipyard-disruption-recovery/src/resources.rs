@@ -547,6 +547,159 @@ pub fn evaluate_joint_recovery(input: &JointRecoveryInput) -> JointRecoveryRepor
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointDisruptionScenario {
+    pub scenario_id: String,
+    pub spatial_disruption: super::Disruption,
+    pub resource_outages: Vec<ResourceOutage>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointEnvelopeViolationCode {
+    EmptyScenarioSet,
+    EmptyScenarioId,
+    DuplicateScenarioId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointEnvelopeViolation {
+    pub code: JointEnvelopeViolationCode,
+    pub scenario_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointScenarioReport {
+    pub scenario_id: String,
+    pub report: JointRecoveryReport,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct JointRecoveryEnvelopeMetrics {
+    pub total_scenarios: usize,
+    pub accepted_scenarios: usize,
+    pub worst_spatial_recovery_horizon_ticks: Option<u64>,
+    pub worst_resource_recovery_horizon_ticks: Option<u64>,
+    pub worst_unaffected_resource_churn: usize,
+    pub worst_resource_time_shift_ticks: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecoveryEnvelopeReport {
+    pub robustly_accepted: bool,
+    pub metrics: JointRecoveryEnvelopeMetrics,
+    pub violations: Vec<JointEnvelopeViolation>,
+    pub scenarios: Vec<JointScenarioReport>,
+}
+
+/// Evaluate the same spatial and resource candidate under every listed joint disturbance.
+///
+/// Every scenario is a hard case. V0 assigns no probabilities and does not claim coverage of
+/// unenumerated disturbances. A single spatial or resource failure rejects the whole envelope.
+pub fn evaluate_joint_recovery_envelope(
+    baseline_spatial: &super::Scenario,
+    candidate_spatial: &super::Scenario,
+    baseline_resources: &ResourceSchedule,
+    candidate_resources: &ResourceSchedule,
+    scenarios: &[JointDisruptionScenario],
+) -> JointRecoveryEnvelopeReport {
+    let mut violations = Vec::new();
+    if scenarios.is_empty() {
+        violations.push(JointEnvelopeViolation {
+            code: JointEnvelopeViolationCode::EmptyScenarioSet,
+            scenario_id: String::new(),
+        });
+    }
+
+    let mut seen = BTreeSet::new();
+    for scenario in scenarios {
+        if scenario.scenario_id.trim().is_empty() {
+            violations.push(JointEnvelopeViolation {
+                code: JointEnvelopeViolationCode::EmptyScenarioId,
+                scenario_id: scenario.scenario_id.clone(),
+            });
+        } else if !seen.insert(scenario.scenario_id.as_str()) {
+            violations.push(JointEnvelopeViolation {
+                code: JointEnvelopeViolationCode::DuplicateScenarioId,
+                scenario_id: scenario.scenario_id.clone(),
+            });
+        }
+    }
+
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+    });
+    violations.dedup();
+    if !violations.is_empty() {
+        return JointRecoveryEnvelopeReport {
+            robustly_accepted: false,
+            metrics: JointRecoveryEnvelopeMetrics {
+                total_scenarios: scenarios.len(),
+                ..JointRecoveryEnvelopeMetrics::default()
+            },
+            violations,
+            scenarios: Vec::new(),
+        };
+    }
+
+    let mut reports = Vec::with_capacity(scenarios.len());
+    for scenario in scenarios {
+        let joint = evaluate_joint_recovery(&JointRecoveryInput {
+            spatial: RecoveryInput {
+                baseline: baseline_spatial.clone(),
+                candidate: candidate_spatial.clone(),
+                disruption: scenario.spatial_disruption.clone(),
+            },
+            baseline_resources: baseline_resources.clone(),
+            candidate_resources: candidate_resources.clone(),
+            resource_outages: scenario.resource_outages.clone(),
+        });
+        reports.push(JointScenarioReport {
+            scenario_id: scenario.scenario_id.clone(),
+            report: joint,
+        });
+    }
+    reports.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+
+    let accepted_scenarios = reports
+        .iter()
+        .filter(|scenario| scenario.report.accepted)
+        .count();
+    let worst_spatial_recovery_horizon_ticks = reports
+        .iter()
+        .filter_map(|scenario| scenario.report.spatial.metrics.recovery_horizon_ticks)
+        .max();
+    let worst_resource_recovery_horizon_ticks = reports
+        .iter()
+        .filter_map(|scenario| scenario.report.resources.metrics.recovery_horizon_ticks)
+        .max();
+    let worst_unaffected_resource_churn = reports
+        .iter()
+        .map(|scenario| scenario.report.resources.metrics.unaffected_reservation_churn)
+        .max()
+        .unwrap_or_default();
+    let worst_resource_time_shift_ticks = reports
+        .iter()
+        .map(|scenario| scenario.report.resources.metrics.total_time_shift_ticks)
+        .max()
+        .unwrap_or_default();
+
+    JointRecoveryEnvelopeReport {
+        robustly_accepted: !scenarios.is_empty() && accepted_scenarios == scenarios.len(),
+        metrics: JointRecoveryEnvelopeMetrics {
+            total_scenarios: scenarios.len(),
+            accepted_scenarios,
+            worst_spatial_recovery_horizon_ticks,
+            worst_resource_recovery_horizon_ticks,
+            worst_unaffected_resource_churn,
+            worst_resource_time_shift_ticks,
+        },
+        violations,
+        scenarios: reports,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
