@@ -133,6 +133,7 @@ pub fn evaluate_rule_fidelity(
     compatibility_drc_report_bytes: &[u8],
     strict_source_policy_bytes: Option<&[u8]>,
     strict_source_drc_report_bytes: Option<&[u8]>,
+    rule_evidence_files: &BTreeMap<String, Vec<u8>>,
     evaluator_git_head: &str,
 ) -> Result<RuleFidelityReceipt, String> {
     if !is_commit_sha(evaluator_git_head) {
@@ -190,25 +191,36 @@ pub fn evaluate_rule_fidelity(
         plan.strict_source_policy_sha256.as_deref(),
         plan.strict_source_kicad_version.as_deref(),
         plan.strict_source_drc_report_relative_path.as_deref(),
+        plan.strict_source_policy_derivation_evidence_relative_path.as_deref(),
+        plan.strict_source_policy_derivation_evidence_sha256.as_deref(),
         strict_source_policy_bytes,
         strict_source_drc_report_bytes,
     ) {
-        (Some(policy_path), Some(policy_sha), Some(version), Some(report_path), Some(policy_bytes), Some(report_bytes)) => {
+        (Some(policy_path), Some(policy_sha), Some(version), Some(report_path), Some(derivation_path), Some(derivation_sha), Some(policy_bytes), Some(report_bytes)) => {
             validate_report_path(policy_path, "strict source policy path")?;
             validate_report_path(report_path, "strict source DRC report path")?;
+            validate_relative_path(derivation_path, "strict-source policy derivation evidence path")?;
             require_sha256(policy_sha, "strict_source_policy_sha256")?;
+            require_sha256(derivation_sha, "strict_source_policy_derivation_evidence_sha256")?;
             validate_policy_bytes(policy_bytes, policy_sha, version, "strict source")?;
             let _ = parse_drc_report(report_bytes)?;
         }
-        (None, None, None, None, None, None) => {}
+        (None, None, None, None, None, None, None, None) => {}
         _ => {
             return Err(
-                "strict-source policy path/digest/version and DRC report path/bytes must be present together or all absent"
+                "strict-source policy, report, derivation evidence path/digest and supplied bytes must be present together or all absent"
                     .into(),
             )
         }
     }
 
+    let verified_rule_evidence = verify_rule_evidence(&plan, rule_evidence_files)?;
+    let strict_derivation_verified = plan
+        .strict_source_policy_derivation_evidence_relative_path
+        .as_deref()
+        .is_some_and(|path| verified_rule_evidence.iter().any(|evidence| {
+            evidence.purpose == "strict_source_policy_derivation" && evidence.relative_path == path
+        }));
     let source_rule_profile_present = source_rule_profile_bytes.is_some();
     let source_authoritative = source_rule_profile_present
         && plan.rule_assessments.iter().all(|assessment| {
@@ -230,12 +242,17 @@ pub fn evaluate_rule_fidelity(
     };
     let strict_source_policy_evaluated = strict_source_drc.is_some();
     let strict_source_clean_pass = source_authoritative
+        && strict_derivation_verified
+        && plan.strict_source_policy_sha256.is_some()
         && strict_source_policy_evaluated
         && strict_source_drc.as_ref().is_some_and(|report| report.clean_pass);
 
     let mut reason_codes = Vec::new();
     if !source_rule_profile_present {
         reason_codes.push("SOURCE_RULE_PROFILE_UNAVAILABLE".to_string());
+    }
+    if plan.strict_source_policy_sha256.is_some() && !strict_derivation_verified {
+        reason_codes.push("STRICT_SOURCE_POLICY_DERIVATION_EVIDENCE_MISSING".to_string());
     }
     for assessment in &plan.rule_assessments {
         match assessment.classification {
@@ -295,6 +312,7 @@ pub fn evaluate_rule_fidelity(
         source_rule_status: source_rule_status.to_string(),
         source_authoritative,
         rule_classification_counts: class_counts,
+        verified_rule_evidence,
         compatibility_policy_clean_pass: compatibility_drc.clean_pass,
         compatibility_drc,
         strict_source_drc,
