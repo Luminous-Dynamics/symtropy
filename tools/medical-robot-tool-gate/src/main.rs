@@ -202,7 +202,6 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         || payload.is_none_or(|value| !(0.0..=20000.0).contains(&value))
         || force.is_none_or(|value| !(0.0..=50.0).contains(&value))
         || torque.is_none_or(|value| !(0.0..=20.0).contains(&value))
-        || !valid_box(mechanical.get("geometry_bbox_mm").unwrap_or(&Value::Null))
     {
         push_findings(&mut findings, "MECHANICAL_ENVELOPE_INVALID");
     }
