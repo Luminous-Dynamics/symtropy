@@ -891,12 +891,12 @@ mod tests {
         assert!(evaluate_rule_fidelity(
             &bytes, b"tampered source", OUTPUT_A, Some(SOURCE_RULES),
             COMPAT_POLICY.as_bytes(), COMPAT_CLEAN.as_bytes(),
-            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), HEAD
+            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
         ).unwrap_err().contains("source-board bytes SHA-256"));
         assert!(evaluate_rule_fidelity(
             &bytes, SOURCE_BOARD, b"tampered output", Some(SOURCE_RULES),
             COMPAT_POLICY.as_bytes(), COMPAT_CLEAN.as_bytes(),
-            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), HEAD
+            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
         ).unwrap_err().contains("output-board bytes SHA-256"));
     }
 
@@ -906,12 +906,12 @@ mod tests {
         assert!(evaluate_rule_fidelity(
             &serde_json::to_vec(&plan).unwrap(), SOURCE_BOARD, OUTPUT_A, Some(SOURCE_RULES),
             br#"{"schema":"kicad-drc-routing-policy-v0.1","kicad_version":"9.0.8","routing_violation_types":["clearance"]}"#,
-            COMPAT_CLEAN.as_bytes(), Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), HEAD
+            COMPAT_CLEAN.as_bytes(), Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
         ).unwrap_err().contains("policy bytes SHA-256"));
         assert!(evaluate_rule_fidelity(
             &serde_json::to_vec(&plan).unwrap(), SOURCE_BOARD, OUTPUT_A, Some(SOURCE_RULES),
             COMPAT_POLICY.as_bytes(), br#"{"violations":[]}"#,
-            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), HEAD
+            Some(STRICT_POLICY.as_bytes()), Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
         ).unwrap_err().contains("unconnected_items array"));
     }
 
@@ -944,8 +944,8 @@ mod tests {
         assert!(evaluate_rule_fidelity(
             &serde_json::to_vec(&bad).unwrap(), SOURCE_BOARD, OUTPUT_A, Some(SOURCE_RULES),
             COMPAT_POLICY.as_bytes(), COMPAT_CLEAN.as_bytes(), Some(STRICT_POLICY.as_bytes()),
-            Some(STRICT_CLEAN.as_bytes()), HEAD
-        ).unwrap_err().contains("mapping evidence digest"));
+            Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
+        ).unwrap_err().contains("mapping evidence path/digest"));
     }
 
     #[test]
