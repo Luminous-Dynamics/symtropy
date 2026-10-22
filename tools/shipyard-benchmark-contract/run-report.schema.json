@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard benchmark run report v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "manifest_sha256",
+    "status",
+    "run_metadata",
+    "case_results",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "shipyard-benchmark-report/v0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "incomplete",
+        "invalid"
+      ]
+    },
+    "run_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit_sha",
+        "executable_sha256",
+        "hardware_class",
+        "rustc_version"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "git_commit_sha": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40,64}$"
+        },
+        "executable_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "hardware_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rustc_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os": {
+          "type": "string"
+        },
+        "kernel": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "case_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "outcome",
+          "runtime_ms",
+          "verifier"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "enum": [
+              "verified-feasible",
+              "verified-infeasible",
+              "unknown",
+              "timeout",
+              "invalid-output",
+              "not-run"
+            ]
+          },
+          "runtime_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "peak_memory_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "number",
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "verifier": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "oracle_outcome",
+              "violation_count"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "passed",
+                  "failed",
+                  "not-run",
+                  "not-applicable"
+                ]
+              },
+              "oracle_outcome": {
+                "enum": [
+                  "match",
+                  "mismatch",
+                  "unknown",
+                  "not-applicable"
+                ]
+              },
+              "violation_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oracle_id": {
+                "type": "string"
+              },
+              "evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "verified_feasible_count",
+        "verified_infeasible_count",
+        "unknown_count",
+        "timeout_count",
+        "false_feasible_count",
+        "false_infeasible_count"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verified_feasible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verified_infeasible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_feasible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_infeasible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aggregate_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "artifact_uri": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
