@@ -831,7 +831,7 @@ pub fn first_fit_bottom_left(
         let mut selected = None;
 
         'candidate: for y in &ys {
-            for x in &xs {
+            'point: for x in &xs {
                 let Some(rect) = request_rect(request, *x, *y) else {
                     continue;
                 };
@@ -844,7 +844,7 @@ pub fn first_fit_bottom_left(
                         && let Footprint::AxisAlignedRect(prior_rect) = &prior.footprint
                         && rect.overlaps(*prior_rect)
                     {
-                        continue;
+                        continue 'point;
                     }
                 }
 
@@ -853,7 +853,7 @@ pub fn first_fit_bottom_left(
                         && let Footprint::AxisAlignedRect(zone_rect) = &zone.footprint
                         && rect.overlaps(*zone_rect)
                     {
-                        continue;
+                        continue 'point;
                     }
                 }
 
