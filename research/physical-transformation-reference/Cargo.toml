@@ -33,4 +33,8 @@ path = "src/bin/beam-pin-assembly-reference.rs"
 name = "beam-modal-reference"
 path = "src/bin/beam-modal-reference.rs"
 
+[[bin]]
+name = "beam-mesh-convergence-reference"
+path = "src/bin/beam-mesh-convergence-reference.rs"
+
 [workspace]

@@ -181,6 +181,72 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify beam mesh convergence mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mesh_convergence_mutations.sh
+
+      - name: Re-verify beam mesh convergence source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mesh_convergence.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify deterministic beam mesh convergence receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mesh-convergence-reference -- --source-commit "$source_commit" > beam-mesh-convergence-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mesh-convergence-reference -- --source-commit "$source_commit" > beam-mesh-convergence-raw-b.json
+          cmp --silent beam-mesh-convergence-raw-a.json beam-mesh-convergence-raw-b.json
+          request_canonical="$(tr -d '\\n' < research/physical-transformation-reference/fixtures/beam_mesh_convergence_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-mesh-convergence-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-mesh-convergence-request-v0.1|elements_per_member=1,2,4,8|requested_modes=6|monotonic_relative_tolerance=0.00000001|mode_pairing=frequency_ordinal_only_MAC_not_claimed|base_request=schema=beam-pin-assembly-request-v0.1|fixture=PHYS-BEAM-PIN-001|node|A|0|1|true|true|node|B|0|0|true|true|node|C|1|1|false|false|member|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|member|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "bfdef412f1852b28eaa0951d9d8c63f0e7e445765fcc75a063df22064a8893a9"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-mesh-convergence-raw-a.json > beam-mesh-convergence-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-mesh-convergence-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MESH-CONVERGENCE-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .references.challenge == "https://www.nafems.org/downloads/nbc5_challenge.pdf"
+            and .references.solution == "https://www.nafems.org/downloads/nbr5v3.pdf"
+            and .evidence_class == "deterministic-software-mesh-convergence-run"
+            and .result == "pass"
+            and .elements_per_member == [1,2,4,8]
+            and .requested_mode_count == 6
+            and (.points | length) == 4
+            and ([.points[].total_element_count] == [2,4,8,16])
+            and .points[0].relative_frequency_delta_from_previous == null
+            and (.points | all(.[]; (.frequencies_hz | length) == 6 and (.frequencies_hz | all(.[]; . > 0)) and ([.frequencies_hz[]] == ([.frequencies_hz[]] | sort))))
+            and (.points | all(.[]; .maximum_mass_orthogonality_residual < 1e-8 and .maximum_normalized_eigen_residual < 1e-8 and .maximum_mass_norm_residual < 1e-8))
+            and (.points[1:] | all(.[]; (.relative_frequency_delta_from_previous | length) == 6 and (.relative_frequency_delta_from_previous | all(.[]; . >= 0 and . < 1))))
+            and (.claim_ceiling | contains("no MAC mode-shape tracking"))
+            and (.physical_comparator_status | contains("not asserted as numerical golden targets"))
+          ' beam-mesh-convergence-receipt.json
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -478,5 +544,7 @@ jobs:
             beam-modal-mutation-receipt.json
             beam-modal-reference-receipt.json
             beam-mesh-assembly-mutation-receipt.json
+            beam-mesh-convergence-mutation-receipt.json
+            beam-mesh-convergence-receipt.json
           if-no-files-found: error
           retention-days: 90
