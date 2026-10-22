@@ -23,7 +23,11 @@ Tests cover:
 - fail-closed rejection of degenerate geometry, non-finite coordinates/displacements,
   and invalid thickness;
 - global assembly of a 4-by-4 structured patch: the affine strain is exact element by
-  element and interior assembled forces cancel to roundoff.
+  element and interior assembled forces cancel to roundoff;
+- an irregular four-triangle star patch, checking constant strain and cancellation at
+  its interior node;
+- metamorphic checks that uniform geometry scaling preserves CST stiffness and that
+  stiffness scales linearly with thickness.
 
 ## Frozen probe gates
 
