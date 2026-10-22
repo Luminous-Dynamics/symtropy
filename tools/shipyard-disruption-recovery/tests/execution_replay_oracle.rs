@@ -45,9 +45,25 @@ fn event(
 fn generated_execution_replay_matches_independent_as_of_oracle() {
     let mut state = 0x0e71_2026_u32;
     let mut cases = 0usize;
+    let mut total_planned_operations = 0usize;
     let mut observed_start_events = 0usize;
     let mut observed_completion_events = 0usize;
-    let mut cases_with_held_back_evidence = 0usize;
+    let mut fully_observed_operations = 0usize;
+    let mut missing_start_events = 0usize;
+    let mut missing_completion_events = 0usize;
+    let mut not_due_start_operations = 0usize;
+    let mut not_due_completion_operations = 0usize;
+    let mut late_start_operations = 0usize;
+    let mut late_completion_operations = 0usize;
+    let mut total_start_lateness = 0u128;
+    let mut total_completion_lateness = 0u128;
+    let mut total_absolute_start_deviation = 0u128;
+    let mut total_absolute_completion_deviation = 0u128;
+    let mut total_duration_overrun = 0u128;
+    let mut total_recording_latency = 0u128;
+    let mut visible_events = 0usize;
+    let mut held_by_recorded_cutoff = 0usize;
+    let mut held_by_occurrence_cutoff = 0usize;
     let mut late_completion_cases = 0usize;
 
     for _case in 0..CASES {
@@ -317,19 +333,49 @@ fn generated_execution_replay_matches_independent_as_of_oracle() {
         );
 
         cases += 1;
+        total_planned_operations += plan.len();
         observed_start_events += starts.len();
         observed_completion_events += completions.len();
-        if held_back_count > 0 {
-            cases_with_held_back_evidence += 1;
-        }
+        fully_observed_operations += expected_fully_observed;
+        missing_start_events += expected_missing_starts;
+        missing_completion_events += expected_missing_completions;
+        not_due_start_operations += expected_not_yet_due_to_start;
+        not_due_completion_operations += expected_not_yet_due_to_complete;
+        late_start_operations += expected_late_start_operations;
+        late_completion_operations += expected_late_completion_operations;
+        total_start_lateness += expected_total_start_lateness;
+        total_completion_lateness += expected_total_completion_lateness;
+        total_absolute_start_deviation += expected_total_absolute_start_deviation;
+        total_absolute_completion_deviation += expected_total_absolute_completion_deviation;
+        total_duration_overrun += expected_duration_overrun;
+        total_recording_latency += recording_latency;
+        visible_events += visible_count;
+        held_by_recorded_cutoff += held_back_by_recorded_count;
+        held_by_occurrence_cutoff += held_back_by_occurrence_count;
         if expected_total_completion_lateness > 0 {
             late_completion_cases += 1;
         }
     }
 
     assert_eq!(cases, CASES);
-    assert!(observed_start_events > 0);
-    assert!(observed_completion_events > 0);
-    assert!(cases_with_held_back_evidence > 0);
-    assert!(late_completion_cases > 0);
+    assert_eq!(total_planned_operations, 1_536);
+    assert_eq!(observed_start_events, 546);
+    assert_eq!(observed_completion_events, 320);
+    assert_eq!(fully_observed_operations, 261);
+    assert_eq!(missing_start_events, 504);
+    assert_eq!(missing_completion_events, 580);
+    assert_eq!(not_due_start_operations, 486);
+    assert_eq!(not_due_completion_operations, 636);
+    assert_eq!(late_start_operations, 277);
+    assert_eq!(late_completion_operations, 206);
+    assert_eq!(total_start_lateness, 699);
+    assert_eq!(total_completion_lateness, 553);
+    assert_eq!(total_absolute_start_deviation, 962);
+    assert_eq!(total_absolute_completion_deviation, 663);
+    assert_eq!(total_duration_overrun, 268);
+    assert_eq!(total_recording_latency, 1_266);
+    assert_eq!(visible_events, 866);
+    assert_eq!(held_by_recorded_cutoff, 1_045);
+    assert_eq!(held_by_occurrence_cutoff, 464);
+    assert_eq!(late_completion_cases, 140);
 }
