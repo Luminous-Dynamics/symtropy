@@ -188,6 +188,9 @@ The integration test \`tests/nonanticipative_recourse_oracle.rs\` generates 512 
 
 Frozen expected aggregates: 512 policy cases; 810 independently feasible scenario-actions across the 1,024 scenario slots; 204 policy pairs accepted robustly; and 190 same-information-set action mismatches explicitly rejected. The per-case assertions require exact agreement with the reference on scenario feasibility, policy acceptance, non-anticipativity violations, and input-order invariance. These are synthetic correctness targets, not a scheduling-quality claim; the candidate actions are generated rather than optimized.
 
+A second explicit counterexample uses a four-cell row with two possible closure patterns. In one future, only the leftmost cell remains available; in the other, only the rightmost remains available. Exhaustive enumeration confirms that all four static placements fail at least one scenario (0/4 robustly accepted), while an evidence-triggered policy selects left or right only after the corresponding closure evidence is observed and passes both scenarios (2/2). This is a tiny exact demonstration of adaptive recourse, not a yard-scale improvement claim.
+
+
 ## Audited decision eligibility: do not rank against an easier corpus
 
 The public entry point select_joint_recovery_frontier_with_coverage connects scenario coverage to candidate selection. It only permits a decision when the declared required disruption dimensions are all represented and each candidate's receipt contains exactly the same scenario IDs and full structured disturbance inputs as the benchmark corpus. Empty or duplicated scenario IDs, a missing required dimension, a candidate evaluated against a different scenario set, or a reused scenario ID with a different outage/zone/clearance payload blocks the frontier from being decision-eligible.
