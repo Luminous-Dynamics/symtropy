@@ -354,7 +354,7 @@ jobs:
           MMS_FAILURES=0
           run_mms_case() {
             local elements="$1"
-            local name="mms-n\${elements}"
+            local name="mms-n${elements}"
             local R="$OUT/$name"
             local generate_status=0
             local ccx_status=125
@@ -496,7 +496,7 @@ jobs:
 
           # Verify each process receipt against live hashes and the exact common source/build.
           for mesh_elements in 4 8 16 32; do
-            R="$OUT/mms-n\${mesh_elements}"
+            R="$OUT/mms-n${mesh_elements}"
             expected_deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
             expected_dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
             expected_report_sha="$(sha256sum "$R/mms-report.json" | cut -d ' ' -f 1)"
@@ -526,8 +526,8 @@ jobs:
           mms_report_sha="$(sha256sum "$OUT/mms-convergence-report.json" | cut -d ' ' -f 1)"
           cp "$OUT/mms-convergence-report.json" "$ROOT/ccx-mms-convergence-001.json"
           for mesh_elements in 4 8 16 32; do
-            cp "$OUT/mms-n\${mesh_elements}/mms-report.json" "$ROOT/ccx-mms-convergence-001-n\${mesh_elements}.json"
-            cp "$OUT/mms-n\${mesh_elements}/process-receipt.json" "$ROOT/ccx-mms-convergence-001-n\${mesh_elements}-process-receipt.json"
+            cp "$OUT/mms-n${mesh_elements}/mms-report.json" "$ROOT/ccx-mms-convergence-001-n${mesh_elements}.json"
+            cp "$OUT/mms-n${mesh_elements}/process-receipt.json" "$ROOT/ccx-mms-convergence-001-n${mesh_elements}-process-receipt.json"
           done
 
           build="$ROOT/build-manifest.json"
@@ -817,6 +817,14 @@ jobs:
           repeat_process_receipt_sha="$(sha256sum "$OUT/n1-u-repeat/process-receipt.json" | cut -d ' ' -f 1)"
           rf_process_receipt_sha="$(sha256sum "$OUT/n1-rf/process-receipt.json" | cut -d ' ' -f 1)"
 
+          mms_n4_report_sha="$(sha256sum "$OUT/mms-n4/mms-report.json" | cut -d ' ' -f 1)"
+          mms_n8_report_sha="$(sha256sum "$OUT/mms-n8/mms-report.json" | cut -d ' ' -f 1)"
+          mms_n16_report_sha="$(sha256sum "$OUT/mms-n16/mms-report.json" | cut -d ' ' -f 1)"
+          mms_n32_report_sha="$(sha256sum "$OUT/mms-n32/mms-report.json" | cut -d ' ' -f 1)"
+          mms_n4_receipt_sha="$(sha256sum "$OUT/mms-n4/process-receipt.json" | cut -d ' ' -f 1)"
+          mms_n8_receipt_sha="$(sha256sum "$OUT/mms-n8/process-receipt.json" | cut -d ' ' -f 1)"
+          mms_n16_receipt_sha="$(sha256sum "$OUT/mms-n16/process-receipt.json" | cut -d ' ' -f 1)"
+          mms_n32_receipt_sha="$(sha256sum "$OUT/mms-n32/process-receipt.json" | cut -d ' ' -f 1)"
           # Write one summary retaining independent U, RF, repeated-run, and tamper statuses.
           jq -n \
             --arg source_sha "$source_sha" --arg request_sha "$request_sha" \
@@ -824,6 +832,12 @@ jobs:
             --arg u1_report_sha "$u1_report_sha" --arg u2_report_sha "$u2_report_sha" \
             --arg u4_report_sha "$u4_report_sha" --arg repeat_report_sha "$repeat_report_sha" \
             --arg rf_report_sha "$rf_report_sha" --arg mesh_report_sha "$mesh_report_sha" \
+            --arg mms_report_sha "$mms_report_sha" \
+            --arg mms_n4_report_sha "$mms_n4_report_sha" --arg mms_n8_report_sha "$mms_n8_report_sha" \
+            --arg mms_n16_report_sha "$mms_n16_report_sha" --arg mms_n32_report_sha "$mms_n32_report_sha" \
+            --arg mms_n4_receipt_sha "$mms_n4_receipt_sha" --arg mms_n8_receipt_sha "$mms_n8_receipt_sha" \
+            --arg mms_n16_receipt_sha "$mms_n16_receipt_sha" --arg mms_n32_receipt_sha "$mms_n32_receipt_sha" \
+            --argjson mms_failed "$MMS_FAILURES" --argjson mms_report "$(cat "$OUT/mms-convergence-report.json")" \
             --arg n1_receipt_sha "$n1_process_receipt_sha" --arg n2_receipt_sha "$n2_process_receipt_sha" \
             --arg n4_receipt_sha "$n4_process_receipt_sha" --arg repeat_receipt_sha "$repeat_process_receipt_sha" \
             --arg rf_receipt_sha "$rf_process_receipt_sha" \
@@ -841,8 +855,16 @@ jobs:
               numerical_report_sha256:{
                 n1_displacement:$u1_report_sha,n2_displacement:$u2_report_sha,
                 n4_displacement:$u4_report_sha,n1_repeat_displacement:$repeat_report_sha,
-                support_reaction:$rf_report_sha,mesh_trend:$mesh_report_sha
+                support_reaction:$rf_report_sha,mesh_trend:$mesh_report_sha,
+                mms_convergence:$mms_report_sha
               },
+              manufactured_solution_reports_sha256:{
+                n4:$mms_n4_report_sha,n8:$mms_n8_report_sha,n16:$mms_n16_report_sha,n32:$mms_n32_report_sha
+              },
+              manufactured_solution_process_receipts_sha256:{
+                n4:$mms_n4_receipt_sha,n8:$mms_n8_receipt_sha,n16:$mms_n16_receipt_sha,n32:$mms_n32_receipt_sha
+              },
+              manufactured_solution_convergence:$mms_report,
               process_receipt_sha256:{
                 n1_u:$n1_receipt_sha,n2_u:$n2_receipt_sha,n4_u:$n4_receipt_sha,
                 n1_u_repeat:$repeat_receipt_sha,n1_rf:$rf_receipt_sha
@@ -850,7 +872,7 @@ jobs:
               support_reaction_force_x_n:$rf_x,
               support_force_balance_residual_n:($rf_x + 1000),
               repeat_max_abs_delta_m:((($u1 - $u1repeat) | if . < 0 then -. else . end)),
-              numerical_result_status:"PASS",
+              numerical_result_status:(if $mms_failed == 0 and $mms_report.convergence_status == "PASS" then "PASS" else "FAIL" end),
               process_receipts_verified_by_workflow:true,
               process_receipt_count:5,
               restricted_rf_interpretation:"PASS",
@@ -868,6 +890,7 @@ jobs:
             cp "$OUT/n${n}-u/displacement-report.json" "$ROOT/ccx-exec-001-n${n}-displacement-report.json"
           done
           cp -a "$OUT" "$ROOT/ccx-exec-001-raw-cases"
+          test "$MMS_FAILURES" -eq 0
 
       - name: Collect failure-preserving evidence files
         if: always()
@@ -917,6 +940,11 @@ jobs:
             and .restricted_rf_interpretation == "PASS"
             and .artifact_tamper_control == "PASS"
             and .mesh_trend_status == "PASS"
+            and .manufactured_solution_convergence.convergence_status == "PASS"
+            and (.manufactured_solution_convergence.levels | length == 4)
+            and (.manufactured_solution_convergence.l2_observed_orders | length == 3)
+            and (.manufactured_solution_convergence.h1_seminorm_observed_orders | length == 3)
+            and (.numerical_report_sha256.mms_convergence | test("^[0-9a-f]{64}$"))
             and .physical_result_qualified == false
             and .real_world_validation_status == "UNRESOLVED"
             and .engineering_use_authorized == false
