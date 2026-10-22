@@ -4,7 +4,7 @@
 
 The previous real-source smoke checks only that a real cognitive loop can feed a probe actuator in Symtropy PhysicsWorld. This tranche tests an actual Symthaea robotics-domain controller against a baseline inside Symtropy dynamics.
 
-The public Symthaea multirotor crate abstracts plant dynamics behind its PhysicsSimulator trait. This change implements that trait using Symtropy PhysicsWorld. It first trains the Symthaea HDC-LTC controller with the existing FlightTrainer and SimplePhysicsSimulator, then transfers the learned controller into the Symtropy backend without further policy training.
+The public Symthaea multirotor crate abstracts plant dynamics behind its PhysicsSimulator trait. This change implements that trait using Symtropy PhysicsWorld. It first trains the Symthaea HDC-LTC controller with the existing FlightTrainer and SimplePhysicsSimulator, then transfers the learned controller into the Symtropy backend without further policy training. It also evaluates the same trained weights, with online FEP disabled, on both native and Symtropy backends under matched seeds and disturbance schedules. That produces an explicit simulator-to-simulator transfer gap rather than inferring transfer quality only from whether the controller can execute in the target backend.
 
 ## Matched policy comparison
 
@@ -19,7 +19,7 @@ The trained/no-online-FEP versus trained/FEP pair isolates the incremental contr
 
 ## Metrics
 
-Position RMSE, mean/final/maximum position error, fraction of time inside 5 cm of the target, thrust impulse in N·s (not electrical energy), hard-ground-clamp count, invalid-input count, and in-process controller/FEP update latency p50/p95 in microseconds. Latency is load- and machine-dependent: compare policies within the same run, not as absolute cross-machine claims. Disturbance onset, axis and amplitude are deterministically varied by trial seed and held identical across every policy in that pair. Results include paired deltas against PD, PID, untrained Symthaea, and trained Symthaea without online FEP. The JSON receipt also gives deterministic seed-level bootstrap intervals for paired RMSE and within-5-cm differences. These intervals only describe the sampled seed set; the two-trial CI smoke is explicitly not statistical evidence, and model/task-family uncertainty still requires held-out families and more independent trials.
+Position RMSE, mean/final/maximum position error, fraction of time inside 5 cm of the target, thrust impulse in N·s (not electrical energy), hard-ground-clamp count, invalid-input count, and in-process controller/FEP update latency p50/p95 in microseconds. Latency is load- and machine-dependent: compare policies within the same run, not as absolute cross-machine claims. Disturbance onset, axis and amplitude are deterministically varied by trial seed and held identical across every policy in that pair. Results include paired deltas against PD, PID, untrained Symthaea, and trained Symthaea without online FEP. The JSON receipt also reports the *same trained policy without online FEP* on both its native SimplePhysicsSimulator and Symtropy, including the RMSE and within-5-cm transfer gap. Deterministic seed-level bootstrap intervals are provided for paired RMSE and within-5-cm differences. These intervals only describe the sampled seed set; the two-trial CI smoke is explicitly not statistical evidence, and model/task-family uncertainty still requires held-out families and more independent trials.
 
 ## Simplified backend limitations
 
