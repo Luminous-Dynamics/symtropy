@@ -264,6 +264,19 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_beam_mode_tracking_mutations.sh
 
+      - name: Verify beam mass-formulation sensitivity mutation
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mass_sensitivity_mutations.sh
+
+      - name: Re-verify beam mass-sensitivity source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mass_sensitivity.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify beam mode-tracking source after mutation audit
         shell: bash
         run: |
@@ -615,6 +628,57 @@ jobs:
             and (.claim_ceiling | contains("not_member_bending"))
           ' nafems-nbc05-modal-reference-receipt.json
 
+      - name: Generate and verify beam mass-formulation sensitivity receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mass-formulation-sensitivity-reference -- --source-commit "$source_commit" > beam-mass-sensitivity-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mass-formulation-sensitivity-reference -- --source-commit "$source_commit" > beam-mass-sensitivity-raw-b.json
+          cmp --silent beam-mass-sensitivity-raw-a.json beam-mass-sensitivity-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_mass_sensitivity_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-mass-sensitivity-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-mass-formulation-sensitivity-v0.1|fixture=PHYS-BEAM-MASS-SENS-001|elements_per_member=1,2,4,8|requested_modes=6|rotation_scale_policy=max_member_length|rotation_scale_length_m=1.4142135623730951|consistent_mass_model=translational_plus_rotary_inertia|sensitivity_counterfactual=consistent_translational_mass_only|pairing=maximum_weight_scaled_combined_mac|confident_pair_threshold=0.9|mass_order_tolerance=0.00000001|base_request=schema=beam-pin-assembly-request-v0.1|fixture=PHYS-BEAM-PIN-001|node|A|0|1|true|true|node|B|0|0|true|true|node|C|1|1|false|false|member|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|member|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "ba993e46ee1d2d793fcb166c4bc722b19729c25a26f00400c17ab1aa0f1671fc"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-mass-sensitivity-raw-a.json > beam-mass-sensitivity-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-mass-formulation-sensitivity-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MASS-SENS-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .references.nafems_challenge == "https://www.nafems.org/downloads/nbc5_challenge.pdf"
+            and .references.nafems_solution == "https://www.nafems.org/downloads/nbr5v3.pdf"
+            and .evidence_class == "software-model-sensitivity-run"
+            and .result == "pass"
+            and .elements_per_member == [1,2,4,8]
+            and .requested_mode_count == 6
+            and (.points | length == 4)
+            and (.points | all(.[]; .modes | length == 6))
+            and (.points | all(.[]; .maximum_consistent_eigen_residual < 1e-8 and .maximum_no_rotary_eigen_residual < 1e-8 and .confident_shape_pair_count + .ambiguous_shape_pair_count == 6))
+            and (.points | all(.[]; .modes | all(.[]; .consistent_frequency_hz > 0 and .no_rotary_frequency_at_same_ordinal_hz > 0 and .mac.scaled_combined_mac >= 0 and .mac.scaled_combined_mac <= 1 and .relative_frequency_shift_by_ordinal >= -1e-8)))
+            and (.points | any(.[]; .maximum_ordinal_relative_frequency_shift > 1e-6))
+            and (.claim_ceiling | contains("not full NAFEMS"))
+          ' beam-mass-sensitivity-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -638,5 +702,7 @@ jobs:
             beam-mode-tracking-mutation-receipt.json
             beam-subspace-mac-mutation-receipt.json
             beam-mode-tracking-receipt.json
+            beam-mass-sensitivity-mutation-receipt.json
+            beam-mass-sensitivity-receipt.json
           if-no-files-found: error
           retention-days: 90

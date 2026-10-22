@@ -71,8 +71,9 @@ Add negative controls proving that:
 
 Expose the mass formulation as part of the canonical request. For a consistent beam mass matrix, include translational mass and the selected beam theory's rotary-inertia terms; for a lumped mass variant, document exactly which rotary-inertia terms are retained or omitted. Do not transfer the axial-only sqrt(2/3) frequency ratio to a beam model: the matrices are different.
 
-Verify mass-matrix symmetry and positivity on the constrained subspace; emit modal-mass normalization, generalized-eigenpair residual, orthogonality and a mode-shape comparison metric such as MAC. Confirm whether the solver models shear deformation and geometric rotary effects.
+The [mass-formulation sensitivity prototype](../../../../pull/2648) contrasts two deliberately distinct cases: (1) full consistent translational plus cross-sectional rotary-inertia mass, and (2) the same stiffness with consistent translational mass only. Case 2 is a controlled counterfactual for quantifying the effect of the omitted inertia; it is **not** a synonym for any one commercial code's lumped mass. The report records ordinal frequency shifts, maximum-weight mode pairing by scaled-combined MAC, and translation/rotation MAC separately.
 
+Verify mass-matrix symmetry and positive definiteness on the constrained subspace; emit modal-mass normalization, generalized-eigenpair residual, orthogonality and a mode-shape comparison metric such as MAC. Confirm whether the solver models shear deformation and geometric rotary effects. Benchmark mass-lumping methods separately only after their exact diagonalization/HRZ policy is frozen and independently tested.
 ### B3 — Mesh and modal convergence
 
 Start with small meshes and build an explicit convergence matrix (1, 2, 4, 8, 16, 32, 64, 100, 200 elements/member as feasible). Report mode count, frequency change, MAC-based mode correspondence and mechanism count at each level. Avoid computing a dense eigenspectrum at 400 elements if a sparse eigen-solver is needed; declare the backend and exact version.
