@@ -90,11 +90,7 @@ pub fn canonical_assembly_request(
     for node in ordered_nodes {
         fields.push(format!(
             "node|{}|{}|{}|{}|{}",
-            node.id,
-            node.x_m,
-            node.y_m,
-            node.restrain_x,
-            node.restrain_y
+            node.id, node.x_m, node.y_m, node.restrain_x, node.restrain_y
         ));
     }
     for member in ordered_members {
@@ -357,7 +353,10 @@ fn ensure_symmetric(matrix: &[Vec<f64>], tolerance: f64) -> Check<()> {
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss};
+    use super::{
+        BeamPinDofKind, BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss,
+        canonical_assembly_request,
+    };
 
     fn nodes() -> Vec<BeamPinNode> {
         vec![
@@ -452,7 +451,14 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(rotation_indices.len(), 4);
-        assert_eq!(rotation_indices.iter().copied().collect::<BTreeSet<_>>().len(), 4);
+        assert_eq!(
+            rotation_indices
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len(),
+            4
+        );
         for index in rotation_indices {
             assert!(result.stiffness_global[index][index] > 0.0);
             assert!(result.mass_global[index][index] > 0.0);
@@ -511,12 +517,11 @@ mod tests {
 
     #[test]
     fn canonical_request_matches_frozen_fixture_and_input_permutation() {
-        let first = canonical_assembly_request(&nodes(), &members())
-            .expect("canonical valid request");
+        let first =
+            canonical_assembly_request(&nodes(), &members()).expect("canonical valid request");
         assert_eq!(
             first,
-            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt")
-                .trim_end_matches('\n')
+            include_str!("../fixtures/beam_pin_assembly_request_v0_1.txt").trim_end_matches('\n')
         );
 
         let mut reversed_nodes = nodes();
@@ -527,6 +532,324 @@ mod tests {
             canonical_assembly_request(&reversed_nodes, &reversed_members)
                 .expect("canonical reversed request"),
             first
+        );
+    }
+
+    fn solve_small_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Vec<f64> {
+        let n = rhs.len();
+        assert_eq!(matrix.len(), n);
+        let matrix_scale = matrix
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        assert!(matrix_scale > 0.0);
+
+        for pivot_col in 0..n {
+            let pivot_row = (pivot_col..n)
+                .max_by(|left, right| {
+                    matrix[*left][pivot_col]
+                        .abs()
+                        .total_cmp(&matrix[*right][pivot_col].abs())
+                })
+                .expect("pivot row exists");
+            assert!(
+                matrix[pivot_row][pivot_col].abs() > 1.0e-13 * matrix_scale,
+                "test oracle encountered a singular rotational block"
+            );
+            matrix.swap(pivot_col, pivot_row);
+            rhs.swap(pivot_col, pivot_row);
+
+            let pivot = matrix[pivot_col][pivot_col];
+            for row in (pivot_col + 1)..n {
+                let factor = matrix[row][pivot_col] / pivot;
+                matrix[row][pivot_col] = 0.0;
+                for col in (pivot_col + 1)..n {
+                    matrix[row][col] -= factor * matrix[pivot_col][col];
+                }
+                rhs[row] -= factor * rhs[pivot_col];
+            }
+        }
+
+        let mut solution = vec![0.0; n];
+        for row in (0..n).rev() {
+            let known = ((row + 1)..n)
+                .map(|col| matrix[row][col] * solution[col])
+                .sum::<f64>();
+            solution[row] = (rhs[row] - known) / matrix[row][row];
+        }
+        solution
+    }
+
+    #[test]
+    fn condensing_private_pin_rotations_recovers_independent_axial_truss_stiffness() {
+        let input_nodes = nodes();
+        let input_members = members();
+        let assembly = assemble_released_joint_pin_truss(&input_nodes, &input_members)
+            .expect("valid released-joint assembly");
+        let translation_dofs = assembly.ordered_node_ids.len() * 2;
+        let rotation_dofs = assembly.stiffness_global.len() - translation_dofs;
+        assert_eq!(translation_dofs, 6);
+        assert_eq!(rotation_dofs, 4);
+
+        // Independent Schur complement: K_condensed = K_tt - K_tr K_rr^-1 K_rt.
+        // The private member-end rotations are free, so zero end moments must
+        // leave only each bar's EA/L axial centreline response.
+        let k_tt = (0..translation_dofs)
+            .map(|row| {
+                (0..translation_dofs)
+                    .map(|col| assembly.stiffness_global[row][col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let k_rr = (0..rotation_dofs)
+            .map(|row| {
+                (0..rotation_dofs)
+                    .map(|col| {
+                        assembly.stiffness_global[translation_dofs + row][translation_dofs + col]
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut condensed = k_tt;
+
+        for column in 0..translation_dofs {
+            let rhs = (0..rotation_dofs)
+                .map(|row| assembly.stiffness_global[translation_dofs + row][column])
+                .collect::<Vec<_>>();
+            let rotation_response = solve_small_dense(k_rr.clone(), rhs);
+            for row in 0..translation_dofs {
+                let correction = (0..rotation_dofs)
+                    .map(|rotation| {
+                        assembly.stiffness_global[row][translation_dofs + rotation]
+                            * rotation_response[rotation]
+                    })
+                    .sum::<f64>();
+                condensed[row][column] -= correction;
+            }
+        }
+
+        // Independent direct axial-bar stiffness assembly; no beam matrices or
+        // assembled beam translational blocks are reused for this oracle.
+        let mut axial_oracle = vec![vec![0.0; translation_dofs]; translation_dofs];
+        for member in &input_members {
+            let start = input_nodes
+                .iter()
+                .find(|node| node.id == member.start_node_id)
+                .expect("oracle start node");
+            let end = input_nodes
+                .iter()
+                .find(|node| node.id == member.end_node_id)
+                .expect("oracle end node");
+            let length = (end.x_m - start.x_m).hypot(end.y_m - start.y_m);
+            let cosine = (end.x_m - start.x_m) / length;
+            let sine = (end.y_m - start.y_m) / length;
+            let factor = member.youngs_modulus_pa * member.area_m2 / length;
+            let c2 = cosine * cosine;
+            let s2 = sine * sine;
+            let cs = cosine * sine;
+            let block = [
+                [c2, cs, -c2, -cs],
+                [cs, s2, -cs, -s2],
+                [-c2, -cs, c2, cs],
+                [-cs, -s2, cs, s2],
+            ];
+            let start_index = assembly
+                .ordered_node_ids
+                .iter()
+                .position(|id| id == &member.start_node_id)
+                .expect("ordered oracle start node");
+            let end_index = assembly
+                .ordered_node_ids
+                .iter()
+                .position(|id| id == &member.end_node_id)
+                .expect("ordered oracle end node");
+            let dof_map = [
+                2 * start_index,
+                2 * start_index + 1,
+                2 * end_index,
+                2 * end_index + 1,
+            ];
+            for row in 0..4 {
+                for col in 0..4 {
+                    axial_oracle[dof_map[row]][dof_map[col]] += factor * block[row][col];
+                }
+            }
+        }
+
+        let scale = axial_oracle
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        let maximum_relative_matrix_error = condensed
+            .iter()
+            .flatten()
+            .zip(axial_oracle.iter().flatten())
+            .map(|(actual, expected)| (actual - expected).abs() / scale)
+            .fold(0.0_f64, f64::max);
+        assert!(
+            maximum_relative_matrix_error < 1.0e-8,
+            "released-joint Schur complement differs from independent axial-truss oracle: {maximum_relative_matrix_error:.17e}"
+        );
+    }
+
+    fn solve_small_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Vec<f64> {
+        let n = rhs.len();
+        assert_eq!(matrix.len(), n);
+        let matrix_scale = matrix
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        assert!(matrix_scale > 0.0);
+
+        for pivot_col in 0..n {
+            let pivot_row = (pivot_col..n)
+                .max_by(|left, right| {
+                    matrix[*left][pivot_col]
+                        .abs()
+                        .total_cmp(&matrix[*right][pivot_col].abs())
+                })
+                .expect("pivot row exists");
+            assert!(
+                matrix[pivot_row][pivot_col].abs() > 1.0e-13 * matrix_scale,
+                "test oracle encountered a singular rotational block"
+            );
+            matrix.swap(pivot_col, pivot_row);
+            rhs.swap(pivot_col, pivot_row);
+
+            let pivot = matrix[pivot_col][pivot_col];
+            for row in (pivot_col + 1)..n {
+                let factor = matrix[row][pivot_col] / pivot;
+                matrix[row][pivot_col] = 0.0;
+                for col in (pivot_col + 1)..n {
+                    matrix[row][col] -= factor * matrix[pivot_col][col];
+                }
+                rhs[row] -= factor * rhs[pivot_col];
+            }
+        }
+
+        let mut solution = vec![0.0; n];
+        for row in (0..n).rev() {
+            let known = ((row + 1)..n)
+                .map(|col| matrix[row][col] * solution[col])
+                .sum::<f64>();
+            solution[row] = (rhs[row] - known) / matrix[row][row];
+        }
+        solution
+    }
+
+    #[test]
+    fn condensing_private_pin_rotations_recovers_independent_axial_truss_stiffness() {
+        let input_nodes = nodes();
+        let input_members = members();
+        let assembly = assemble_released_joint_pin_truss(&input_nodes, &input_members)
+            .expect("valid released-joint assembly");
+        let translation_dofs = assembly.ordered_node_ids.len() * 2;
+        let rotation_dofs = assembly.stiffness_global.len() - translation_dofs;
+        assert_eq!(translation_dofs, 6);
+        assert_eq!(rotation_dofs, 4);
+
+        // Independent Schur complement: K_condensed = K_tt - K_tr K_rr^-1 K_rt.
+        // With zero end moments, each pin-ended beam's translational stiffness
+        // must reduce to its EA/L axial-centreline contribution.
+        let k_tt = (0..translation_dofs)
+            .map(|row| {
+                (0..translation_dofs)
+                    .map(|col| assembly.stiffness_global[row][col])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let k_rr = (0..rotation_dofs)
+            .map(|row| {
+                (0..rotation_dofs)
+                    .map(|col| {
+                        assembly.stiffness_global[translation_dofs + row][translation_dofs + col]
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut condensed = k_tt;
+
+        for column in 0..translation_dofs {
+            let rhs = (0..rotation_dofs)
+                .map(|row| assembly.stiffness_global[translation_dofs + row][column])
+                .collect::<Vec<_>>();
+            let rotation_response = solve_small_dense(k_rr.clone(), rhs);
+            for row in 0..translation_dofs {
+                let correction = (0..rotation_dofs)
+                    .map(|rotation| {
+                        assembly.stiffness_global[row][translation_dofs + rotation]
+                            * rotation_response[rotation]
+                    })
+                    .sum::<f64>();
+                condensed[row][column] -= correction;
+            }
+        }
+
+        // Independent direct axial-truss oracle; it does not reuse the beam
+        // stiffness matrices or any production matrix-assembly block.
+        let mut axial_oracle = vec![vec![0.0; translation_dofs]; translation_dofs];
+        for member in &input_members {
+            let start = input_nodes
+                .iter()
+                .find(|node| node.id == member.start_node_id)
+                .expect("oracle start node");
+            let end = input_nodes
+                .iter()
+                .find(|node| node.id == member.end_node_id)
+                .expect("oracle end node");
+            let length = (end.x_m - start.x_m).hypot(end.y_m - start.y_m);
+            let cosine = (end.x_m - start.x_m) / length;
+            let sine = (end.y_m - start.y_m) / length;
+            let factor = member.youngs_modulus_pa * member.area_m2 / length;
+            let c2 = cosine * cosine;
+            let s2 = sine * sine;
+            let cs = cosine * sine;
+            let block = [
+                [c2, cs, -c2, -cs],
+                [cs, s2, -cs, -s2],
+                [-c2, -cs, c2, cs],
+                [-cs, -s2, cs, s2],
+            ];
+            let start_index = assembly
+                .ordered_node_ids
+                .iter()
+                .position(|id| id == &member.start_node_id)
+                .expect("ordered oracle start node");
+            let end_index = assembly
+                .ordered_node_ids
+                .iter()
+                .position(|id| id == &member.end_node_id)
+                .expect("ordered oracle end node");
+            let dof_map = [
+                2 * start_index,
+                2 * start_index + 1,
+                2 * end_index,
+                2 * end_index + 1,
+            ];
+            for row in 0..4 {
+                for col in 0..4 {
+                    axial_oracle[dof_map[row]][dof_map[col]] += factor * block[row][col];
+                }
+            }
+        }
+
+        let scale = axial_oracle
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        let maximum_scaled_error = condensed
+            .iter()
+            .flatten()
+            .zip(axial_oracle.iter().flatten())
+            .map(|(actual, expected)| (actual - expected).abs() / scale)
+            .fold(0.0_f64, f64::max);
+        assert!(
+            maximum_scaled_error < 1.0e-8,
+            "released-joint Schur complement differs from independent axial-truss oracle: {maximum_scaled_error:.17e}"
         );
     }
 
