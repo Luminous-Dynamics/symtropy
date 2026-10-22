@@ -541,6 +541,7 @@ fn report() -> String {
     out.push_str("META\tscope\tfinite synthetic online-retention value diagnostic; not native robot performance\n");
     out.push_str("META\tobservable_retention_signals\taccess counts, timestamps, write counts, source risk band and source reacquisition cost; no evaluator labels\n");
     out.push_str("META\tonline_query_input\tonline events carry query key only; no evaluator revision or utility label\n");
+    out.push_str("META\tstale_arrival_scope\tnone by design; stale-rate is a negative control, stale-arrival interventions are VIS-MEM-016\n");
     out.push_str("META\tfuture_query_visibility\tfuture trace is evaluator-only and starts after all policy snapshots freeze\n");
     out.push_str("META\toracle\tclairvoyant fixed-budget upper bound; diagnostic only; never passed to selectors\n");
     out.push_str(&format!("META\tseeds\t{SEEDS}\n"));
