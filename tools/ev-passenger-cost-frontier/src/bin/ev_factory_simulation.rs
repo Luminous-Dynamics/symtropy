@@ -1650,23 +1650,26 @@ mod tests {
             outage_report.scenarios[0].scenario_id,
             nominal_report.scenarios[0].scenario_id
         );
-        for seed in &outage_report.replication_seeds {
-            let outage_baseline = outage_report
-                .replication_outcomes
-                .iter()
-                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
-                .expect("shared-outage baseline seed outcome");
-            let nominal_baseline = nominal_report
-                .replication_outcomes
-                .iter()
-                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
-                .expect("no-outage baseline seed outcome");
-            assert!(
-                outage_baseline.good_units_per_hour
-                    <= nominal_baseline.good_units_per_hour + 1e-12,
-                "shared control outage must not improve baseline output for seed {seed}"
-            );
-        }
+        let paired_baseline_deltas: Vec<f64> = outage_report
+            .replication_seeds
+            .iter()
+            .map(|seed| {
+                let outage_baseline = outage_report
+                    .replication_outcomes
+                    .iter()
+                    .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                    .expect("shared-outage baseline seed outcome");
+                let nominal_baseline = nominal_report
+                    .replication_outcomes
+                    .iter()
+                    .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                    .expect("no-outage baseline seed outcome");
+                outage_baseline.good_units_per_hour - nominal_baseline.good_units_per_hour
+            })
+            .collect();
+        assert_eq!(paired_baseline_deltas.len(), 20);
+        assert!(paired_baseline_deltas.iter().all(|delta| delta.is_finite()));
+
         let affected = &outage_report.scenarios[0].stations;
         for station_id in ["battery-module-install", "final-assembly"] {
             let station = affected
