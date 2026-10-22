@@ -48,6 +48,8 @@ impl ArchiveIdentity {
         if policy.kicad_version.trim().is_empty() {
             return Err("KiCad DRC policy has empty version".into());
         }
+        validate_router_pin(&router)?;
+        validate_environment_pin(&environment)?;
         Ok(Self {
             board_id: board.board_id.clone(),
             input_board_sha256: board.input_board_sha256.clone(),
@@ -509,6 +511,7 @@ fn validate_metadata(metadata: &CheckpointMetadata) -> Result<(), String> {
         return Err("checkpoint ID, board ID, board filename, method ID and KiCad version are required".into());
     }
     validate_sha256(&metadata.router_config_sha256, "router config SHA-256")?;
+    validate_environment_pin(&metadata.environment)?;
     validate_sha256(&metadata.input_board_sha256, "input board SHA-256")?;
     validate_sha256(&metadata.dataset_manifest_sha256, "dataset manifest SHA-256")?;
     validate_relative_path(&metadata.output_board_relative_path, "output board")?;
