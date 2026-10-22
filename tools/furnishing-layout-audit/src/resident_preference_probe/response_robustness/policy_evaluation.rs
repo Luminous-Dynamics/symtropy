@@ -314,7 +314,7 @@ fn push_terminal_leaf(
         realized_regret_units: Some(realized_regret_units),
         final_training_minimax_regret_units: Some(minimax_regret_units),
         unresolved_out_of_channel: false,
-        questions_used: history.len(),
+        questions_used,
         total_query_cost_units,
         total_query_duration_units,
     });
