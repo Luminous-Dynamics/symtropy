@@ -368,13 +368,13 @@ mod tests {
         assert_eq!(mesh.assembly.free_dof_indices.len(), 12);
 
         let member_end_rotation_count = mesh.assembly.dof_descriptors.iter()
-            .filter(|descriptor| matches!(descriptor.kind, BeamPinDofKind::MemberEndRotation { .. }))
+            .filter(|descriptor| matches!(&descriptor.kind, BeamPinDofKind::MemberEndRotation { .. }))
             .count();
         let interior_rotation_count = mesh.assembly.dof_descriptors.iter()
-            .filter(|descriptor| matches!(descriptor.kind, BeamPinDofKind::MemberInteriorRotation { .. }))
+            .filter(|descriptor| matches!(&descriptor.kind, BeamPinDofKind::MemberInteriorRotation { .. }))
             .count();
         let interior_translation_count = mesh.assembly.dof_descriptors.iter()
-            .filter(|descriptor| matches!(descriptor.kind,
+            .filter(|descriptor| matches!(&descriptor.kind,
                 BeamPinDofKind::MemberInteriorTranslationX { .. } |
                 BeamPinDofKind::MemberInteriorTranslationY { .. }))
             .count();
