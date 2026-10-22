@@ -1,0 +1,319 @@
+{
+  "schema_version": "robotics-qualification-mutation-matrix-v0.1",
+  "status": "synthetic_adversarial_contract_cases",
+  "evidence_class": "synthetic",
+  "physical_actuation_authorized": false,
+  "claim_ceiling": "Synthetic robotics qualification gates only; no robot performance, physical safety, field readiness, or standards conformity claim.",
+  "source_corpus_path": "docs/tech/wood-robot-platform-corpus-v0.1.json",
+  "expected_scenario_count": 29,
+  "case_count": 39,
+  "cases": [
+    {
+      "case_id": "RQA-001-calibration-expired",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "calibration_state",
+      "value": "expired",
+      "expected_finding": "CALIBRATION_EXPIRED"
+    },
+    {
+      "case_id": "RQA-002-fixture-mismatch",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "fixture_state",
+      "value": "mismatch",
+      "expected_finding": "FIXTURE_PART_MISMATCH"
+    },
+    {
+      "case_id": "RQA-003-human-declines",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "human_approval",
+      "value": "declined",
+      "expected_finding": "HUMAN_APPROVAL_DECLINED"
+    },
+    {
+      "case_id": "RQA-004-return-reserve",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "remaining_energy_wh",
+      "value": 20,
+      "expected_finding": "RETURN_RESERVE_INFEASIBLE"
+    },
+    {
+      "case_id": "RQA-005-surface-occluded",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "required_surface_visible",
+      "value": false,
+      "expected_finding": "REQUIRED_SURFACE_OCCLUDED"
+    },
+    {
+      "case_id": "RQA-006-interlock-unavailable",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "interlock_state",
+      "value": "unavailable",
+      "expected_finding": "INTERLOCK_UNAVAILABLE"
+    },
+    {
+      "case_id": "RQA-007-support-missing",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "temporary_support_state",
+      "value": "missing",
+      "expected_finding": "TEMPORARY_SUPPORT_MISSING"
+    },
+    {
+      "case_id": "RQA-008-localization-lost",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "localization_state",
+      "value": "lost",
+      "expected_finding": "LOCALIZATION_LOST"
+    },
+    {
+      "case_id": "RQA-009-tool-incompatible",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "operator": "set_observation",
+      "field": "tool_state",
+      "value": "incompatible",
+      "expected_finding": "TOOL_PROFILE_MISMATCH"
+    },
+    {
+      "case_id": "RQA-010-extraction-bypass",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_003_EXTRACTION_UNAVAILABLE",
+      "operator": "set_expected_decision",
+      "value": "eligible_for_simulated_plan",
+      "expected_finding": "REQUIRED_EXTRACTION_UNAVAILABLE"
+    },
+    {
+      "case_id": "RQA-011-energy-bypass",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_007_MOBILE_MISSION_CANNOT_RETURN",
+      "operator": "set_expected_decision",
+      "value": "eligible_for_simulated_plan",
+      "expected_finding": "RETURN_RESERVE_INFEASIBLE"
+    },
+    {
+      "case_id": "RQA-012-support-bypass",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_008_ASSEMBLY_MISSING_TEMPORARY_SUPPORT",
+      "operator": "set_expected_decision",
+      "value": "eligible_for_simulated_plan",
+      "expected_finding": "TEMPORARY_SUPPORT_MISSING"
+    },
+    {
+      "case_id": "RQA-013-consent-bypass",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_009_HUMAN_DECLINES_PROPOSAL",
+      "operator": "set_expected_decision",
+      "value": "eligible_for_simulated_plan",
+      "expected_finding": "HUMAN_APPROVAL_DECLINED"
+    },
+    {
+      "case_id": "RQA-014-localization-bypass",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_010_LOCALIZATION_LOSS_DURING_MOBILE_TASK",
+      "operator": "set_expected_decision",
+      "value": "eligible_for_simulated_plan",
+      "expected_finding": "LOCALIZATION_LOST"
+    },
+    {
+      "case_id": "RQA-015-site-permission",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "site_permission_state",
+      "value": "unknown",
+      "expected_finding": "SITE_PERMISSION_NOT_VERIFIED"
+    },
+    {
+      "case_id": "RQA-016-airspace-geofence",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "airspace_state",
+      "value": "restricted_unapproved",
+      "expected_finding": "AIRSPACE_OR_GEOFENCE_UNCLEARED"
+    },
+    {
+      "case_id": "RQA-017-weather-envelope",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "weather_state",
+      "value": "outside_declared_envelope",
+      "expected_finding": "WEATHER_OUTSIDE_DECLARED_ENVELOPE"
+    },
+    {
+      "case_id": "RQA-018-wildlife-disturbance",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "wildlife_disturbance_state",
+      "value": "disturbance_detected",
+      "expected_finding": "WILDLIFE_DISTURBANCE_DETECTED"
+    },
+    {
+      "case_id": "RQA-019-privacy-config",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "privacy_handling_state",
+      "value": "not_configured",
+      "expected_finding": "PRIVACY_HANDLING_NOT_CONFIGURED"
+    },
+    {
+      "case_id": "RQA-020-recovery-plan",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "recovery_plan_state",
+      "value": "unverified",
+      "expected_finding": "SAFE_RECOVERY_PLAN_UNRESOLVED"
+    },
+    {
+      "case_id": "RQA-021-under-canopy",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "flight_profile",
+      "value": "under_canopy_autonomous",
+      "expected_finding": "UNDER_CANOPY_NOT_ALLOWED_IN_DEFAULT_PROFILE"
+    },
+    {
+      "case_id": "RQA-022-standoff-altitude",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "altitude_m",
+      "value": 10,
+      "expected_finding": "SITE_STANDOFF_POLICY_VIOLATED"
+    },
+    {
+      "case_id": "RQA-023-physical-contact",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "contact_detected",
+      "value": true,
+      "expected_finding": "PHYSICAL_CONTACT_DETECTED"
+    },
+    {
+      "case_id": "RQA-024-payload-release",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "payload_release_state",
+      "value": "requested_drop",
+      "expected_finding": "PAYLOAD_RELEASE_PROHIBITED"
+    },
+    {
+      "case_id": "RQA-025-link-loss",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "link_state",
+      "value": "lost",
+      "expected_finding": "LINK_LOST"
+    },
+    {
+      "case_id": "RQA-026-flight-permission",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "flight_permission_state",
+      "value": "unknown",
+      "expected_finding": "FLIGHT_PERMISSION_NOT_VERIFIED"
+    },
+    {
+      "case_id": "RQA-027-required-feature",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "required_surface_visible",
+      "value": false,
+      "expected_finding": "REQUIRED_FEATURE_OCCLUDED"
+    },
+    {
+      "case_id": "RQA-028-pose-uncertainty",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "pose_uncertainty_mm",
+      "value": 99,
+      "expected_finding": "POSE_UNCERTAINTY_EXCEEDS_LIMIT"
+    },
+    {
+      "case_id": "RQA-029-return-reserve-aerial",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_011_AERIAL_NOMINAL_STANDOFF_SURVEY",
+      "operator": "set_observation",
+      "field": "remaining_energy_wh",
+      "value": 0,
+      "expected_finding": "RETURN_RESERVE_INFEASIBLE"
+    },
+    {
+      "case_id": "RQA-030-harvest-permission",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "harvest_permission_state",
+      "value": "unknown",
+      "expected_finding": "HARVEST_PERMISSION_UNVERIFIED"
+    },
+    {
+      "case_id": "RQA-031-retention-habitat",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "deadwood_retention_disposition",
+      "value": "retain_habitat",
+      "expected_finding": "DEADWOOD_RETENTION_REQUIRED"
+    },
+    {
+      "case_id": "RQA-032-protected-species",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "protected_species_status",
+      "value": "unknown",
+      "expected_finding": "PROTECTED_SPECIES_STATUS_UNKNOWN"
+    },
+    {
+      "case_id": "RQA-033-biodiversity-review",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "biodiversity_review_state",
+      "value": "missing",
+      "expected_finding": "ECOLOGICAL_REVIEW_INCOMPLETE"
+    },
+    {
+      "case_id": "RQA-034-hazard-review",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "hazard_review_state",
+      "value": "incomplete",
+      "expected_finding": "HAZARD_REVIEW_INCOMPLETE"
+    },
+    {
+      "case_id": "RQA-035-biosecurity",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "pest_quarantine_state",
+      "value": "suspected_pest_or_pathogen",
+      "expected_finding": "BIOSECURITY_HOLD"
+    },
+    {
+      "case_id": "RQA-036-live-tree-policy",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "tree_condition",
+      "value": "declining_live",
+      "expected_finding": "LIVE_TREE_REMOVAL_REQUIRES_SEPARATE_APPROVAL"
+    },
+    {
+      "case_id": "RQA-037-landholder-consent",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "operator": "set_observation",
+      "field": "landholder_consent_state",
+      "value": "unknown",
+      "expected_finding": "LANDHOLDER_CONSENT_UNVERIFIED"
+    },
+    {
+      "case_id": "RQA-038-cable-cost-dominance",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_027_AIRLIFT_DOMINATED_BY_CABLE",
+      "operator": "set_observation",
+      "field": "mode_selected",
+      "value": "helicopter_candidate_for_operator_review",
+      "expected_finding": "CHEAPER_FEASIBLE_CABLE_NOT_SELECTED"
+    },
+    {
+      "case_id": "RQA-039-helicopter-authority",
+      "source_scenario_id": "SYNTHETIC_WOODROBOT_028_REMOTE_HIGH_VALUE_AIRLIFT_CANDIDATE",
+      "operator": "set_observation",
+      "field": "mode_selected",
+      "value": "helicopter_autonomous",
+      "expected_finding": "UNAUTHORIZED_HELICOPTER_DECISION"
+    }
+  ]
+}

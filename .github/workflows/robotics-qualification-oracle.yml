@@ -1,0 +1,135 @@
+name: Robotics Qualification Oracle (Synthetic Only)
+
+on:
+  push:
+    branches:
+      - research/robotics-qualification-oracle-v0
+    paths:
+      - ".github/workflows/robotics-qualification-oracle.yml"
+      - "docs/tech/wood-robot-platform-corpus-v0.1.json"
+      - "docs/tech/robotics-qualification-mutation-matrix-v0.1.json"
+      - "tools/robotics-qualification-oracle/**"
+  pull_request:
+    branches:
+      - docs/wood-robot-platform-portfolio-v0-1
+    paths:
+      - ".github/workflows/robotics-qualification-oracle.yml"
+      - "docs/tech/wood-robot-platform-corpus-v0.1.json"
+      - "docs/tech/robotics-qualification-mutation-matrix-v0.1.json"
+      - "tools/robotics-qualification-oracle/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-qualification-oracle-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  qualification-oracle:
+    name: Independent synthetic platform qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify tested source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          printf 'expected_head=%s\nactual_head=%s\n' "$expected" "$actual"
+          test "$actual" = "$expected"
+
+      - name: Install pinned Rust toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.96.0
+          echo "rustc_version=$(rustc --version)" >> "$GITHUB_OUTPUT"
+          echo "cargo_version=$(cargo --version)" >> "$GITHUB_OUTPUT"
+
+      - name: Check standalone oracle formatting
+        run: cargo fmt --manifest-path tools/robotics-qualification-oracle/Cargo.toml -- --check
+
+      - name: Validate corpus and mutation matrix inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .suite_id == "WOOD_ROBOT_PLATFORM" and
+            .suite_version == "0.1.0" and
+            .evidence_class == "synthetic" and
+            .execution_mode == "plan_only_no_actuation" and
+            .expected_scenario_count == 29 and
+            (.scenarios | length) == 29 and
+            ([.scenarios[].scenario_id] | length) == ([.scenarios[].scenario_id] | unique | length) and
+            all(.scenarios[]; .expected_actuation == false)
+          ' docs/tech/wood-robot-platform-corpus-v0.1.json > /dev/null
+          jq -e '
+            .schema_version == "robotics-qualification-mutation-matrix-v0.1" and
+            .status == "synthetic_adversarial_contract_cases" and
+            .physical_actuation_authorized == false and
+            .expected_scenario_count == 29 and
+            .case_count == 39 and
+            (.cases | length) == 39 and
+            ([.cases[].case_id] | length) == ([.cases[].case_id] | unique | length) and
+            all(.cases[]; (.source_scenario_id | type == "string" and length > 0)) and
+            all(.cases[]; (.expected_finding | type == "string" and length > 0))
+          ' docs/tech/robotics-qualification-mutation-matrix-v0.1.json > /dev/null
+
+      - name: Run standalone reference and mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/robotics-qualification
+          cargo test --manifest-path tools/robotics-qualification-oracle/Cargo.toml -- --nocapture 2>&1 | tee target/robotics-qualification/tests.log
+          grep -Fq 'robotics_oracle_frozen_scenarios=29' target/robotics-qualification/tests.log
+          grep -Fq 'robotics_oracle_mutation_cases=39' target/robotics-qualification/tests.log
+
+      - name: Lint standalone oracle with warnings denied
+        run: cargo clippy --manifest-path tools/robotics-qualification-oracle/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run evaluator against exact frozen inputs
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/robotics-qualification
+          cargo run --manifest-path tools/robotics-qualification-oracle/Cargo.toml --             docs/tech/wood-robot-platform-corpus-v0.1.json             docs/tech/robotics-qualification-mutation-matrix-v0.1.json             --source-commit "$EXPECTED_HEAD"             > target/robotics-qualification/receipt-base.json
+          jq -e --arg head "$EXPECTED_HEAD" '
+            .result == "pass" and
+            .source_commit == $head and
+            .scenario_count == 29 and
+            .mutation_count == 39 and
+            (.scenario_violations | length) == 0 and
+            (.mutation_failures | length) == 0 and
+            .claim_ceiling == "Synthetic robotics qualification gates only; no robot performance, physical safety, field readiness, or standards conformity claim."
+          ' target/robotics-qualification/receipt-base.json > /dev/null
+          jq             --arg rustc_version "${{ steps.toolchain.outputs.rustc_version }}"             --arg cargo_version "${{ steps.toolchain.outputs.cargo_version }}"             --arg source_sha256 "$(sha256sum tools/robotics-qualification-oracle/src/main.rs | awk '{print $1}')"             --arg manifest_sha256 "$(sha256sum tools/robotics-qualification-oracle/Cargo.toml | awk '{print $1}')"             --arg lock_sha256 "$(sha256sum tools/robotics-qualification-oracle/Cargo.lock | awk '{print $1}')"             --arg workflow_sha256 "$(sha256sum .github/workflows/robotics-qualification-oracle.yml | awk '{print $1}')"             --arg test_log_sha256 "$(sha256sum target/robotics-qualification/tests.log | awk '{print $1}')"             '. + {
+              toolchain: { rustc: $rustc_version, cargo: $cargo_version },
+              evaluator_source_sha256: $source_sha256,
+              cargo_manifest_sha256: $manifest_sha256,
+              cargo_lock_sha256: $lock_sha256,
+              workflow_sha256: $workflow_sha256,
+              test_log_sha256: $test_log_sha256,
+              external_domain_adjudication: false,
+              blind_holdout: false
+            }' target/robotics-qualification/receipt-base.json             > target/robotics-qualification/receipt.json
+          jq . target/robotics-qualification/receipt.json
+
+      - name: Publish exact-head synthetic receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: robotics-qualification-oracle-${{ github.event.pull_request.head.sha || github.sha }}
+          path: target/robotics-qualification/receipt.json
+          if-no-files-found: error
+          retention-days: 30
