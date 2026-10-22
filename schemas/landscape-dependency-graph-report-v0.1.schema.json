@@ -18,6 +18,8 @@
     "scenario_count",
     "service_count",
     "cross_layer_dependency_count",
+    "baseline_supported_service_count",
+    "single_failure_audit",
     "scenarios"
   ],
   "properties": {
@@ -215,6 +217,71 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "baseline_supported_service_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "single_failure_audit": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 600,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_kind",
+          "target_id",
+          "baseline_supported_service_count",
+          "supported_service_count",
+          "lost_service_count",
+          "relative_service_loss_fraction",
+          "lost_service_ids"
+        ],
+        "properties": {
+          "failure_kind": {
+            "enum": [
+              "node",
+              "edge"
+            ]
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_supported_service_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "supported_service_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lost_service_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "relative_service_loss_fraction": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lost_service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
           }
         }
       }
