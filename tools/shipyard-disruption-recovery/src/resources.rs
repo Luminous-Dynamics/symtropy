@@ -1484,6 +1484,8 @@ pub enum JointCoverageViolationCode {
 pub struct JointCoverageViolation {
     pub code: JointCoverageViolationCode,
     pub dimension: Option<JointDisruptionDimension>,
+    /// Concrete invalid or duplicated scenario identities when the violation is scenario-specific.
+    pub scenario_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -1544,6 +1546,7 @@ pub fn audit_joint_scenario_coverage(
         report.violations.push(JointCoverageViolation {
             code: JointCoverageViolationCode::EmptyRequiredDimensionSet,
             dimension: None,
+            scenario_ids: Vec::new(),
         });
     }
 
@@ -1553,6 +1556,7 @@ pub fn audit_joint_scenario_coverage(
             report.violations.push(JointCoverageViolation {
                 code: JointCoverageViolationCode::DuplicateRequiredDimension,
                 dimension: Some(*dimension),
+                scenario_ids: Vec::new(),
             });
         }
     }
@@ -1563,6 +1567,7 @@ pub fn audit_joint_scenario_coverage(
             report.violations.push(JointCoverageViolation {
                 code: JointCoverageViolationCode::EmptyScenarioId,
                 dimension: None,
+                scenario_ids: vec![scenario.scenario_id.clone()],
             });
         } else {
             *scenario_id_counts
@@ -1575,10 +1580,11 @@ pub fn audit_joint_scenario_coverage(
         .filter(|(_, count)| **count > 1)
         .map(|(scenario_id, _)| *scenario_id)
         .collect();
-    for _ in &duplicate_scenario_ids {
+    for scenario_id in &duplicate_scenario_ids {
         report.violations.push(JointCoverageViolation {
             code: JointCoverageViolationCode::DuplicateScenarioId,
             dimension: None,
+            scenario_ids: vec![scenario_id.to_string()],
         });
     }
 
@@ -1617,6 +1623,7 @@ pub fn audit_joint_scenario_coverage(
             report.violations.push(JointCoverageViolation {
                 code: JointCoverageViolationCode::MissingRequiredDimension,
                 dimension: Some(*dimension),
+                scenario_ids: Vec::new(),
             });
         }
     }
@@ -1626,6 +1633,7 @@ pub fn audit_joint_scenario_coverage(
         left.code
             .cmp(&right.code)
             .then_with(|| left.dimension.cmp(&right.dimension))
+            .then_with(|| left.scenario_ids.cmp(&right.scenario_ids))
     });
     report.violations.dedup();
     report.complete = !scenarios.is_empty()
@@ -2744,6 +2752,7 @@ mod tests {
         }));
         assert!(report.violations.iter().any(|violation| {
             violation.code == JointCoverageViolationCode::DuplicateScenarioId
+                && violation.scenario_ids == vec!["duplicate".to_owned()]
         }));
         assert!(report.receipts.iter().all(|receipt| {
             !receipt.scenario_ids.iter().any(|scenario_id| scenario_id.trim().is_empty())
