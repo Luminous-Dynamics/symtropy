@@ -1,0 +1,197 @@
+{
+  "schema_version": "0.1.0",
+  "id": "fictional-jurisdiction-rulebook-v1",
+  "description": "An original fictional rule set for software benchmarking only. It is not a representation of any real jurisdiction or legal system.",
+  "max_forward_chaining_steps": 16,
+  "fact_mappings": [
+    {
+      "scenario_field": "source_permission",
+      "value": "allowed",
+      "facts": [
+        "source_use_allowed"
+      ]
+    },
+    {
+      "scenario_field": "source_permission",
+      "value": "denied",
+      "facts": [
+        "source_use_denied"
+      ]
+    },
+    {
+      "scenario_field": "source_permission",
+      "value": "unknown",
+      "facts": [
+        "source_use_unknown"
+      ]
+    },
+    {
+      "scenario_field": "competence_confirmed",
+      "value": "true",
+      "facts": [
+        "competence_confirmed"
+      ]
+    },
+    {
+      "scenario_field": "competence_confirmed",
+      "value": "false",
+      "facts": [
+        "competence_unconfirmed"
+      ]
+    },
+    {
+      "scenario_field": "current_authority_available",
+      "value": "true",
+      "facts": [
+        "current_authority_available"
+      ]
+    },
+    {
+      "scenario_field": "current_authority_available",
+      "value": "false",
+      "facts": [
+        "authority_currentness_unverified"
+      ]
+    },
+    {
+      "scenario_field": "required_fact_present",
+      "value": "true",
+      "facts": [
+        "required_fact_present"
+      ]
+    },
+    {
+      "scenario_field": "required_fact_present",
+      "value": "false",
+      "facts": [
+        "required_fact_missing"
+      ]
+    },
+    {
+      "scenario_field": "authority_conflict",
+      "value": "true",
+      "facts": [
+        "authority_conflict_unresolved"
+      ]
+    },
+    {
+      "scenario_field": "authority_conflict",
+      "value": "false",
+      "facts": [
+        "no_authority_conflict"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "SYN-RULE-PREREQUISITES-001",
+      "requires": [
+        "competence_confirmed",
+        "required_fact_present"
+      ],
+      "produces": [
+        "procedural_prerequisites_satisfied"
+      ],
+      "rationale": "Both competence and the specified material fact must be established before the fictional task can proceed."
+    },
+    {
+      "id": "SYN-RULE-ANSWER-SUPPORTED-001",
+      "requires": [
+        "reasoning_chain_complete",
+        "current_authority_available",
+        "source_use_allowed",
+        "no_authority_conflict"
+      ],
+      "produces": [
+        "answer_supported"
+      ],
+      "rationale": "A supported answer requires a completed synthetic inference chain, a current authority, permitted source use, and no unresolved conflict."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "SYN-DECISION-SOURCE-DENIED-001",
+      "when_fact": "source_use_denied",
+      "priority": 100,
+      "action": "reject_source",
+      "reason_code": "source_use_denied",
+      "rationale": "A denied operation must be rejected regardless of the other scenario facts."
+    },
+    {
+      "id": "SYN-DECISION-SOURCE-UNKNOWN-001",
+      "when_fact": "source_use_unknown",
+      "priority": 95,
+      "action": "abstain",
+      "reason_code": "source_permission_unknown",
+      "rationale": "Unknown permission is not an implicit grant."
+    },
+    {
+      "id": "SYN-DECISION-CONFLICT-001",
+      "when_fact": "authority_conflict_unresolved",
+      "priority": 90,
+      "action": "abstain",
+      "reason_code": "authority_conflict_unresolved",
+      "rationale": "Do not silently prefer one of the conflicting synthetic authorities."
+    },
+    {
+      "id": "SYN-DECISION-FACT-MISSING-001",
+      "when_fact": "required_fact_missing",
+      "priority": 80,
+      "action": "clarify",
+      "reason_code": "required_fact_missing",
+      "rationale": "A material missing fact requires clarification."
+    },
+    {
+      "id": "SYN-DECISION-COMPETENCE-UNKNOWN-001",
+      "when_fact": "competence_unconfirmed",
+      "priority": 80,
+      "action": "clarify",
+      "reason_code": "competence_unconfirmed",
+      "rationale": "Geography or assertion alone cannot substitute for authenticated competence in this synthetic rule set."
+    },
+    {
+      "id": "SYN-DECISION-CURRENTNESS-UNKNOWN-001",
+      "when_fact": "authority_currentness_unverified",
+      "priority": 70,
+      "action": "abstain",
+      "reason_code": "authority_currentness_unverified",
+      "rationale": "Do not assert a conclusion when the fictional applicable authority cannot be established as current."
+    },
+    {
+      "id": "SYN-DECISION-ANSWER-001",
+      "when_fact": "answer_supported",
+      "priority": 10,
+      "action": "answer",
+      "reason_code": "answer_supported",
+      "claim_code": "SYNTHETIC_RULES_SUPPORT_ANSWER",
+      "citations": [
+        {
+          "authority_id": "fictional-rulebook-v1",
+          "role": "binding_in_scope",
+          "span_id": "SYN-RULE-ANSWER-SUPPORTED-001"
+        }
+      ],
+      "rationale": "All required synthetic prerequisites and support conditions are satisfied."
+    }
+  ],
+  "authorities": [
+    {
+      "id": "fictional-rulebook-v1",
+      "kind": "fictional_rule_set",
+      "jurisdiction": "fictional:compilerland",
+      "validity": "synthetic_only",
+      "permitted_use": "synthetic_benchmark_only",
+      "span_ids": [
+        "SYN-RULE-PREREQUISITES-001",
+        "SYN-RULE-ANSWER-SUPPORTED-001",
+        "SYN-DECISION-SOURCE-DENIED-001",
+        "SYN-DECISION-SOURCE-UNKNOWN-001",
+        "SYN-DECISION-CONFLICT-001",
+        "SYN-DECISION-FACT-MISSING-001",
+        "SYN-DECISION-COMPETENCE-UNKNOWN-001",
+        "SYN-DECISION-CURRENTNESS-UNKNOWN-001",
+        "SYN-DECISION-ANSWER-001"
+      ]
+    }
+  ]
+}
