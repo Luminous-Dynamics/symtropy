@@ -1164,7 +1164,7 @@ mod tests {
         for seed in 0..80_u16 {
             let mut input = request();
             input.alternatives = (0..5)
-                .map(|candidate_index| {
+                .map(|candidate_index: usize| {
                     let scores = (0..2)
                         .map(|criterion_index: usize| {
                             (u32::from(seed) * 97
