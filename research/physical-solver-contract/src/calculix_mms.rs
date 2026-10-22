@@ -565,9 +565,15 @@ pub fn audit_nodal_displacements(
     Ok(result)
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct MmsDisplacementOutput {
+    pub terminal_time_s: f64,
+    pub displacements_m: Vec<[f64; 2]>,
+}
+
 /// Parse one exact *NODE PRINT U section produced for NSET=ALLNODES at time 1.
 /// Duplicate/missing node IDs, non-finite values, wrong sets, or wrong time fail closed.
-pub fn parse_mms_displacements(dat: &str, expected_node_count: usize) -> Check<Vec<[f64; 2]>> {
+pub fn parse_mms_output(dat: &str, expected_node_count: usize) -> Check<MmsDisplacementOutput> {
     if expected_node_count == 0 || expected_node_count > 100_000 {
         return Err("expected node count must be in [1,100000]".to_owned());
     }
@@ -654,7 +660,14 @@ pub fn parse_mms_displacements(dat: &str, expected_node_count: usize) -> Check<V
     if values.iter().any(Option::is_none) {
         return Err("U output section is missing one or more mesh nodes".to_owned());
     }
-    Ok(values.into_iter().map(Option::unwrap).collect())
+    Ok(MmsDisplacementOutput {
+        terminal_time_s: observed_time,
+        displacements_m: values.into_iter().map(Option::unwrap).collect(),
+    })
+}
+
+pub fn parse_mms_displacements(dat: &str, expected_node_count: usize) -> Check<Vec<[f64; 2]>> {
+    Ok(parse_mms_output(dat, expected_node_count)?.displacements_m)
 }
 
 fn parameters_amplitude_scale_from_expected_node_count(_node_count: usize) -> f64 {
