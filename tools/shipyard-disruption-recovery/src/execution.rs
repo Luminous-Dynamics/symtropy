@@ -308,8 +308,7 @@ pub fn replay_execution(
                         "an operation cannot have two accepted start events in V0",
                     );
                 } else {
-                    start_by_operation
-                        .insert(event.operation_id.clone(), event.occurred_tick);
+                    start_by_operation.insert(event.operation_id.clone(), event.occurred_tick);
                 }
             }
             ExecutionEventKind::Completed => {
@@ -326,8 +325,7 @@ pub fn replay_execution(
                         "an operation cannot have two accepted completion events in V0",
                     );
                 } else {
-                    completion_by_operation
-                        .insert(event.operation_id.clone(), event.occurred_tick);
+                    completion_by_operation.insert(event.operation_id.clone(), event.occurred_tick);
                 }
             }
         }
@@ -344,7 +342,9 @@ pub fn replay_execution(
 
     for operation in plan {
         let observed_start = start_by_operation.get(&operation.operation_id).copied();
-        let observed_completion = completion_by_operation.get(&operation.operation_id).copied();
+        let observed_completion = completion_by_operation
+            .get(&operation.operation_id)
+            .copied();
         if observed_start.is_some() {
             metrics.operations_started += 1;
         } else {
@@ -369,8 +369,8 @@ pub fn replay_execution(
             }
         }
 
-        let start_delta = observed_start
-            .map(|tick| i128::from(tick) - i128::from(operation.planned_start_tick));
+        let start_delta =
+            observed_start.map(|tick| i128::from(tick) - i128::from(operation.planned_start_tick));
         let completion_delta = observed_completion
             .map(|tick| i128::from(tick) - i128::from(operation.planned_end_tick));
         let planned_duration = operation
@@ -380,20 +380,19 @@ pub fn replay_execution(
             (Some(start), Some(completion)) if completion >= start => Some(completion - start),
             _ => None,
         };
-        let start_lateness = start_delta.map_or(0, |delta| {
-            if delta > 0 { delta as u128 } else { 0 }
-        });
-        let completion_lateness = completion_delta.map_or(0, |delta| {
-            if delta > 0 { delta as u128 } else { 0 }
-        });
+        let start_lateness =
+            start_delta.map_or(0, |delta| if delta > 0 { delta as u128 } else { 0 });
+        let completion_lateness =
+            completion_delta.map_or(0, |delta| if delta > 0 { delta as u128 } else { 0 });
         let duration_overrun = observed_duration.map_or(0, |duration| {
             u128::from(duration.saturating_sub(planned_duration))
         });
 
         if start_lateness > 0 {
             metrics.late_start_operations += 1;
-            metrics.total_start_lateness_ticks =
-                metrics.total_start_lateness_ticks.saturating_add(start_lateness);
+            metrics.total_start_lateness_ticks = metrics
+                .total_start_lateness_ticks
+                .saturating_add(start_lateness);
         }
         if completion_lateness > 0 {
             metrics.late_completion_operations += 1;
@@ -485,26 +484,47 @@ mod tests {
         assert_eq!(before_late_event.metrics.operations_started, 1);
         assert_eq!(before_late_event.metrics.operations_completed, 0);
         assert_eq!(before_late_event.metrics.missing_completion_events, 1);
-        assert_eq!(before_late_event.metrics.events_held_back_by_recorded_time, 1);
+        assert_eq!(
+            before_late_event.metrics.events_held_back_by_recorded_time,
+            1
+        );
         assert_eq!(before_late_event.operations[0].start_delta_ticks, Some(2));
-        assert_eq!(before_late_event.operations[0].observed_completion_tick, None);
+        assert_eq!(
+            before_late_event.operations[0].observed_completion_tick,
+            None
+        );
 
         let after_late_event = replay_execution(&plan, &events, 12);
         assert!(after_late_event.evidence_valid);
         assert_eq!(after_late_event.metrics.operations_completed, 1);
         assert_eq!(after_late_event.metrics.total_completion_lateness_ticks, 2);
         assert_eq!(after_late_event.metrics.total_duration_overrun_ticks, 0);
-        assert_eq!(after_late_event.metrics.total_event_recording_latency_ticks, 3);
+        assert_eq!(
+            after_late_event.metrics.total_event_recording_latency_ticks,
+            3
+        );
     }
 
     #[test]
     fn event_input_order_does_not_change_replay_output() {
         let plan = [op("weld-a", 0, 5), op("inspect-a", 6, 8)];
         let events = [
-            event("finish-inspect", "inspect-a", ExecutionEventKind::Completed, 10, 10),
+            event(
+                "finish-inspect",
+                "inspect-a",
+                ExecutionEventKind::Completed,
+                10,
+                10,
+            ),
             event("start-weld", "weld-a", ExecutionEventKind::Started, 1, 2),
             event("finish-weld", "weld-a", ExecutionEventKind::Completed, 7, 8),
-            event("start-inspect", "inspect-a", ExecutionEventKind::Started, 8, 9),
+            event(
+                "start-inspect",
+                "inspect-a",
+                ExecutionEventKind::Started,
+                8,
+                9,
+            ),
         ];
         let mut shuffled = events.clone();
         shuffled.reverse();
@@ -524,9 +544,12 @@ mod tests {
         ];
         let report = replay_execution(&plan, &events, 5);
         assert!(!report.evidence_valid);
-        assert!(report.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::DuplicateEventId
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|v| { v.code == ExecutionViolationCode::DuplicateEventId })
+        );
     }
 
     #[test]
@@ -544,32 +567,52 @@ mod tests {
         assert_eq!(left, right);
         assert!(!left.evidence_valid);
         assert_eq!(left.operations[0].observed_start_tick, None);
-        assert!(left.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::DuplicateStartEvent
-        }));
+        assert!(
+            left.violations
+                .iter()
+                .any(|v| { v.code == ExecutionViolationCode::DuplicateStartEvent })
+        );
     }
 
     #[test]
     fn unknown_operations_and_recorded_time_before_occurrence_fail_closed() {
         let plan = [op("weld-a", 0, 5)];
         let events = [
-            event("bad-operation", "missing-op", ExecutionEventKind::Started, 1, 2),
+            event(
+                "bad-operation",
+                "missing-op",
+                ExecutionEventKind::Started,
+                1,
+                2,
+            ),
             event("bad-clock", "weld-a", ExecutionEventKind::Completed, 4, 3),
         ];
         let report = replay_execution(&plan, &events, 5);
         assert!(!report.evidence_valid);
-        assert!(report.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::UnknownOperation
-        }));
-        assert!(report.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::RecordBeforeOccurrence
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|v| { v.code == ExecutionViolationCode::UnknownOperation })
+        );
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|v| { v.code == ExecutionViolationCode::RecordBeforeOccurrence })
+        );
     }
 
     #[test]
     fn missing_events_are_reported_as_observability_gaps_not_zero_duration() {
         let plan = [op("cut-a", 0, 3), op("weld-a", 4, 8)];
-        let events = [event("start-cut", "cut-a", ExecutionEventKind::Started, 1, 1)];
+        let events = [event(
+            "start-cut",
+            "cut-a",
+            ExecutionEventKind::Started,
+            1,
+            1,
+        )];
         let report = replay_execution(&plan, &events, 2);
 
         assert_eq!(report.metrics.planned_operations, 2);
@@ -590,8 +633,11 @@ mod tests {
         ];
         let report = replay_execution(&plan, &events, 5);
         assert!(!report.evidence_valid);
-        assert!(report.violations.iter().any(|v| {
-            v.code == ExecutionViolationCode::CompletionBeforeStart
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|v| { v.code == ExecutionViolationCode::CompletionBeforeStart })
+        );
     }
 }
