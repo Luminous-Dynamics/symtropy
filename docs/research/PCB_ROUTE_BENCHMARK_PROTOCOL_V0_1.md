@@ -386,3 +386,27 @@ Use PCB-Bench's official splits and task labels as published. Any adapted prompt
 **Never add PCB-Bench QA accuracy to PCBWorld route completion into a single blended score.** The first measures parts of understanding and reasoning; the second measures whether a saved board actually satisfies the pinned geometric/DRC contract. Keep separate denominators, confidence intervals and failure taxonomies, then report whether better reasoning transfers to improved held-out route completion in an actual paired experiment.
 
 This enables a useful agent architecture: a calibrated reasoning layer proposes a verifiable constraint explanation or route priority; a closed-loop planner chooses engine actions; KiCad decides geometric legality; the independent evaluator checks outputs and receipts; physical electrical/manufacturing claims require separate measurements. Every layer can fail independently and needs its own benchmark.
+
+
+## Exact published result rows and split comparability
+
+The KDD paper's Table 3 reports the following **published, protocol-specific @5 clean-pass (CP)** results. These are reference values for reconstructing the same setup, not results from our implementation:
+
+| Method | D3-A CP (99 boards) | D3-A time (s) | D3-B CP (10-board subset) | D3-B time (s) |
+|---|---:|---:|---:|---:|
+| FreeRouting | 0.80 | 7.09 | 0.78 | 9.94 |
+| OrthoRoute | 0.02 | 2.20 | 0.00 | 9.30 |
+| KiCadRoutingTools (KRT) | 0.74 | 0.65 | 0.20 | 3.27 |
+| PCBWorld PPO | 0.86 | 1.83 | 0.45 | 10.77 |
+| PCBWorld PPO without engine finish action | 0.94 | 3.05 | 0.42 | 14.44 |
+| GPT-5.4 interactive | 0.65 | 231.15 | 0.00 | 865.83 |
+
+Source: [PCBWorld paper, Table 3](https://arxiv.org/abs/2607.05915), results at the paper's pinned environment and @5 protocol. CP requires full connectivity and zero design-rule violations; it is not equivalent to the normalized one-row-per-board, one-attempt rate unless our aggregation replicates the @5 procedure exactly. The paper reports four-seed means for FreeRouting and RL agents. Its D3-B subset is ten two-layer boards selected by a deterministic difficulty-quantile procedure.
+
+**Current-release versus paper split warning.** The pinned v1.1.1 upstream README says its shipped defaults use a newer potential function than the KDD paper and points to experiments/kdd/ for paper reproduction. Its newer split config also exposes D3-C. The paper describes D3-A/B/C as 100/287/292 curated boards, evaluates 99 D3-A boards plus a ten-board D3-B subset, and reserves D3-C as a challenge split rather than reporting D3-C results. Meanwhile, a local pilot proposal that selects ten easy, ten medium and ten hard boards from the newer quickstart mapping is a **custom 30-board screening pilot**, not the published 99+10 SOTA comparison. Keep both in separate manifests and receipts. Never compare the custom 30-board score directly with the published D3-A/B table.
+
+For a defensible reproduction, maintain two stages:
+1. **Reproduction stage:** the exact KDD split, paper reward/configuration, official @5 aggregate policy and baseline router/tool versions, reporting CP, potential, routability, time, DRV counts, wirelength/vias, parse failures and all rollout denominators.
+2. **Extension stage:** v1.1.1 current defaults, the predeclared 30-board three-stratum pilot, then D3-C/large-board stress testing. Report it as a new experiment and use new per-board paired runs/uncertainty.
+
+The paper's results imply a useful research target: match or exceed rule-based CP on the identical D3-A/B rows while reducing runtime without increasing violations; then improve the D3-C large-board stratum where the paper does not report a direct result. That last result would be new evidence, not a “beat SOTA” comparison against an absent baseline.
