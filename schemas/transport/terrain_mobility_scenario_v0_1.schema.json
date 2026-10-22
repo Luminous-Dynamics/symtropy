@@ -255,6 +255,7 @@
             "distance_m",
             "return_required",
             "energy_budget_wh",
+            "estimated_return_energy_wh",
             "return_margin_requirement_pct",
             "deadline_s"
           ],
@@ -310,6 +311,14 @@
               ],
               "minimum": 0
             },
+            "estimated_return_energy_wh": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "description": "Synthetic scenario estimate of the energy needed to return from the mission state; not a physical platform specification."
+            },
             "return_margin_requirement_pct": {
               "type": [
                 "number",
@@ -325,7 +334,62 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "return_required": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "return_required"
+                ]
+              },
+              "then": {
+                "required": [
+                  "energy_budget_wh",
+                  "estimated_return_energy_wh",
+                  "return_margin_requirement_pct"
+                ],
+                "properties": {
+                  "energy_budget_wh": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "estimated_return_energy_wh": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "return_margin_requirement_pct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "return_required": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "return_required"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "estimated_return_energy_wh": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         },
         "platform_classes_in_scope": {
           "type": "array",
