@@ -24,6 +24,8 @@ This increment adds a fixed scenario catalogue with immutable train/validation/t
 
 The catalogue declares the training cases as target curriculum only because the current FlightTrainer consumes setpoints but does not inject these scenario disturbance profiles into its training simulator. Disturbances are applied in the evaluation harness only. This is an explicit zero-shot disturbance-family test, not domain-randomized training. The separate labels prevent evaluation cases from silently becoming training episodes.
 
+The learned controller is **not yet trained as a residual policy**. The existing FlightTrainer is a command-imitation trainer: with `FlightConfig.use_pid=false`, its default teacher is PD, though the FEP result can request PID targets when it detects sustained offset. The experiment uses this existing learned controller as a command source and blends its difference from PID into the nominal action. It therefore tests whether that particular imitation-policy residual helps—not whether direct residual learning, online reinforcement learning, or a learned dynamics correction has been demonstrated. A follow-up must compare this imitation baseline with a genuinely residual-target-trained policy and a direct closed-loop objective before crediting the cognitive architecture with an improvement.
+
 The evaluation applies each same trial seed to all residual-authority arms inside a scenario. Each scenario has its own paired summary and bootstrap interval so its errors cannot be hidden by pooling all scenarios into one mean.
 
 ## Disturbance scale
@@ -44,6 +46,8 @@ Still missing by design: an independently tuned LQR/MPC baseline; randomized mas
 
 - All scenario IDs unique and split membership stable.
 - Zero-authority arm produces exactly zero delta versus its PID baseline by construction; this is a wiring check, not scientific evidence that the cognitive arm helps.
+- Record which teacher target was active during training (PD default vs FEP-requested PID); keep this distinction in every receipt.
+- Do not call the model a trained residual policy until a residual-specific training objective and an ablation against the current imitation teacher are implemented.
 - No non-finite command, rejected command or silently missing metric in a declared valid run.
 - Before performance claims: compare against separately tuned PID, LQR and constrained/robust MPC, with gains selected without peeking at the test split.
 - A prospective target is at least 10% lower *held-out* RMSE than tuned PID with a paired uncertainty interval below zero, without worse max/p95 error, ground-contact rate or safety-filter intervention count. Treat this as a goal, not an achieved result.
