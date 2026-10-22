@@ -81,7 +81,7 @@ enum Regime {
 }
 
 impl Regime {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 4] = [
         Self::Stable,
         Self::MonotonicUpdates,
         Self::UpdateChurn,
@@ -163,7 +163,7 @@ enum Policy {
 }
 
 impl Policy {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::FifoRecords,
         Self::ArrivalUpsertFifo,
         Self::SourceRevisionUpsertFifo,
