@@ -36,9 +36,11 @@ The scaling benchmark uses four feasible synthetic alternatives, four training m
 2. The first query selected by an adaptive policy must be independent of held-out truth.
 3. Exact single-question behavior must agree with the lower-level bounded response model.
 4. Unsupported observations stop without choosing a candidate.
-5. Every reachable answer under the declared channel is enumerated on small fixtures, subject to the explicit expansion cap.
-6. Fixed seeds and frozen request/model/channel produce identical reports and traces.
-7. Compare adaptive, fixed, seeded and exhaustive policies on identical hidden cases and budgets; do not report expected values without a separately specified probability model.
+5. Fully ambiguous two-question fixtures enumerate every reachable four-way answer history (16 leaves) without probability weights.
+6. The exhaustive-pairwise baseline continues within its declared budget even after the training-model minimax choice is identified.
+7. Every reachable answer under the declared channel is enumerated on small fixtures, subject to the explicit expansion cap.
+8. Fixed seeds and frozen request/model/channel produce identical reports and traces.
+9. Compare adaptive, fixed, seeded and exhaustive policies on identical hidden cases and budgets; do not report expected values without a separately specified probability model.
 
 ## Research and industry comparison
 
