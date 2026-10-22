@@ -1,0 +1,49 @@
+name: Solar-Scale Viewer Checks
+
+on:
+  pull_request:
+    branches:
+      - "main"
+      - "feat/solar-system-hierarchy-selection-004"
+      - "feat/solar-system-viewer-005"
+    paths:
+      - "crates/apps/symtropy-solar-system-viewer/**"
+      - "docs/research/RENDER_SOLAR_VIEWER_005.md"
+      - "docs/research/RENDER_SOLAR_SCALE_STRESS_V0_1.md"
+      - "crates/bridges/symtropy-render-bridge/README.md"
+      - "crates/bridges/symtropy-render-bridge/src/large_world.rs"
+      - "crates/bridges/symtropy-render-bridge/src/scale_policy.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/solar-system-viewer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  solar-scale-viewer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test solar-scale viewer
+        run: cargo test --locked -p symtropy-solar-system-viewer
+      - name: Strict Clippy for solar-scale viewer
+        run: cargo clippy --locked -p symtropy-solar-system-viewer --all-targets -- -D warnings
+      - name: Check solar-scale viewer build
+        run: cargo check --locked -p symtropy-solar-system-viewer

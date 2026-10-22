@@ -45,6 +45,19 @@ compute camera error, cull, or modify simulation state. See
 [the hierarchy qualification note](../../../docs/research/RENDER_HIERARCHY_004.md)
 and the frozen [solar-scale traversal fixture](../../../benchmarks/render/SOLAR-SCALE-01.json).
 
+## Solar-scale viewer prototype
+
+The stacked app `symtropy-solar-system-viewer` is a navigable Bevy prototype
+for stress-testing cell/local coordinates and apparent-size transitions from
+local detail to a solar-system overview. It draws static illustrative bodies
+and circular guide paths, reports marker exaggeration and precision-budget
+rejections, and explicitly labels the orbital layout as illustrative rather
+than ephemeris-backed. It is not a scientific model, and its current camera
+uses budget-checked camera-relative f32 transforms rather than the high/middle/
+low shader path.
+
+See [the viewer qualification note](../../../docs/research/RENDER_SOLAR_VIEWER_005.md).
+
 ## Licensing
 
 **Apache-2.0 OR MIT.** Zero AGPL dependencies — safe to use in proprietary projects. See the [repository LICENSING.md](https://github.com/luminous-dynamics/symtropy/blob/main/LICENSING.md) for the full dual-track breakdown.
