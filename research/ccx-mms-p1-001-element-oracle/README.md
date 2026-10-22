@@ -27,7 +27,30 @@ Tests cover:
 - an irregular four-triangle star patch, checking constant strain and cancellation at
   its interior node;
 - metamorphic checks that uniform geometry scaling preserves CST stiffness and that
-  stiffness scales linearly with thickness.
+  stiffness scales linearly with thickness;
+- rotation covariance of recovered strain and stress for isotropic plane strain;
+- a scale-invariant triangle mean-ratio quality measure and a sliver-geometry sweep;
+- explicit rejection immediately below the frozen relative floating-point degeneracy
+  floor, and acceptance of a represented triangle above that floor.
+
+## Geometry conditioning receipt
+
+`triangle-conditioning-probe` emits a second deterministic JSON receipt over triangles
+whose height decreases from 1 to 1e-4. It reports the mean-ratio quality
+
+`q = 2 * sqrt(3) * abs(det) / sum(edge_length_squared)`
+
+and the dimensionless geometry-gradient amplification proxy
+
+`a = longest_edge * max_i(norm(grad(N_i)))`.
+
+The proxy is not a global stiffness-matrix condition number and must not be marketed as
+one. The frozen sweep checks that quality decreases strictly and gradient amplification
+increases strictly as the triangle becomes a sliver. Quality is invariant under rigid
+rotation and uniform scaling. The element constructor rejects a triangle when
+`abs(det) <= 64 * f64::EPSILON * longest_edge_squared`; that is a floating-point
+degeneracy floor, not a general mesh-quality recommendation. Sliver elements above the
+floor are measured rather than automatically declared adequate for engineering analysis.
 
 ## Frozen probe gates
 
@@ -60,5 +83,9 @@ the MMS test checks observed asymptotic error rates from a known smooth solution
   3 March 2026): https://www.nafems.org/publications/resource_center/r0135/
 - Sandia Sierra/SM theory manual, element patch test and completeness condition:
   https://www.sandia.gov/files/sierra/SM_Theory_5_30/main/element_basics.html
+- Sorgente et al., *A Survey of Indicators for Mesh Quality Assessment* (2023):
+  https://doi.org/10.1111/cgf.14779
+- Sandia CUBIT, triangular element quality metrics:
+  https://cubit.sandia.gov/files/cubit/15.8/help_manual/WebHelp/mesh_generation/mesh_quality_assessment/triangular_metrics.htm
 - Abaqus Verification Guide, element verification tests and rigid-body modes:
   https://ceae-server.colorado.edu/v2016/books/ver/ch01s01abo01.html
