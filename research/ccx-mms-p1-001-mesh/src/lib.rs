@@ -112,7 +112,7 @@ impl Mesh {
 
                     for (node_id, shape_value) in triangle.nodes.iter().zip(shape) {
                         let contribution = shape_value * weight;
-                        let load = &mut loads[node_id - 1];
+                        let load = &mut loads[*node_id - 1];
                         load.x += contribution * force.x;
                         load.y += contribution * force.y;
                     }
