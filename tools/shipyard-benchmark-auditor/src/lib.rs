@@ -558,8 +558,13 @@ fn validate_report(
                 if verifier.get("oracle_outcome").and_then(Value::as_str) != Some(expected_oracle) {
                     errors.push(format!("{path}.verifier.oracle_outcome: inconsistent with outcome and reference_outcome"));
                 }
-                if outcome == "verified-feasible" && verifier.get("status").and_then(Value::as_str) != Some("passed") {
-                    errors.push(format!("{path}: verified-feasible requires verifier.status=passed"));
+                if matches!(outcome, "verified-feasible" | "verified-infeasible")
+                    && verifier.get("status").and_then(Value::as_str) != Some("passed")
+                {
+                    errors.push(format!("{path}: verified outcomes require verifier.status=passed"));
+                }
+                if outcome == "verified-infeasible" && reference != "infeasible" {
+                    errors.push(format!("{path}: verified-infeasible requires an exact reference outcome of infeasible"));
                 }
                 if verifier.get("status").and_then(Value::as_str) == Some("passed")
                     && verifier.get("violation_count").and_then(Value::as_i64) != Some(0) {
