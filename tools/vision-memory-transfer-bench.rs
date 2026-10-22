@@ -263,6 +263,12 @@ fn has_ordered_waypoints(path: &[u8], required: &[u8]) -> bool {
     next == required.len()
 }
 
+fn demonstration_logical_bytes(demo: &Demonstration) -> usize {
+    // Fixed logical accounting for this synthetic diagnostic, not allocator/RAM
+    // usage: record header + task/start + each waypoint and trajectory node.
+    8 + demo.waypoints.len() + demo.trajectory.len()
+}
+
 fn make_memories(scenario: &Scenario, required_waypoints: &[u8]) -> Vec<Demonstration> {
     let base = World::base();
     let relevant = Demonstration::build(&base, TASK_ID, 0, required_waypoints)
@@ -285,6 +291,9 @@ struct PolicyRun {
     constraint_fidelity: bool,
     illegal_edges: usize,
     replanned: bool,
+    path_steps: usize,
+    logical_memory_bytes: usize,
+    retrieved_records: usize,
     reason: &'static str,
 }
 
@@ -309,6 +318,12 @@ fn execute_and_score(
     };
 
     let mut replanned = false;
+    let logical_memory_bytes = if policy == Policy::NoMemory {
+        0
+    } else {
+        memories.iter().map(demonstration_logical_bytes).sum()
+    };
+    let retrieved_records = usize::from(selected.is_some());
     let planned: Option<Vec<u8>> = match policy {
         Policy::NoMemory => scenario.world.shortest_path(scenario.start, request.goal),
         Policy::ReplayFirst => selected.and_then(|m| {
@@ -382,7 +397,19 @@ fn execute_and_score(
         "wrong_start_or_goal"
     };
 
-    PolicyRun { policy, path, success, constraint_fidelity, illegal_edges, replanned, reason }
+    let path_steps = path.len().saturating_sub(1);
+    PolicyRun {
+        policy,
+        path,
+        success,
+        constraint_fidelity,
+        illegal_edges,
+        replanned,
+        path_steps,
+        logical_memory_bytes,
+        retrieved_records,
+        reason,
+    }
 }
 
 fn format_report() -> String {
@@ -393,7 +420,7 @@ fn format_report() -> String {
     output.push_str("META\tscope\tsynthetic transfer/replanning mechanism test, not native robotics success\n");
     output.push_str("META\tpolicy_request\ttask_id and final goal only\n");
     output.push_str("META\tevaluator_only\tordered waypoint truth\n");
-    output.push_str("HEADER\tscenario\tpolicy\tstart\tblocked_edges\tsuccess\tconstraint_fidelity\tillegal_edges\treplanned\tpath\treason\n");
+    output.push_str("HEADER\tscenario\tpolicy\tstart\tblocked_edges\tsuccess\tconstraint_fidelity\tillegal_edges\treplanned\tpath_steps\tlogical_memory_bytes\tretrieved_records\tpath\treason\n");
 
     for scenario in scenarios() {
         let memories = make_memories(&scenario, &required_waypoints);
@@ -410,7 +437,7 @@ fn format_report() -> String {
                 .map(|e| format!("{}-{}", e.0, e.1))
                 .collect::<Vec<_>>().join(",");
             output.push_str(&format!(
-                "METRIC\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+                "METRIC\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
                 scenario.name,
                 result.policy.name(),
                 scenario.start,
@@ -419,6 +446,9 @@ fn format_report() -> String {
                 u8::from(result.constraint_fidelity),
                 result.illegal_edges,
                 u8::from(result.replanned),
+                result.path_steps,
+                result.logical_memory_bytes,
+                result.retrieved_records,
                 if path.is_empty() { "none".to_owned() } else { path },
                 result.reason
             ));
