@@ -1069,7 +1069,7 @@ mod tests {
     fn plan(output: &[u8], assessments: Vec<RuleAssessment>, strict: bool) -> RuleFidelityPlan {
         let compat = COMPAT_POLICY.as_bytes();
         let strict_bytes = STRICT_POLICY.as_bytes();
-        RuleFidelityPlan {
+        let mut plan = RuleFidelityPlan {
             schema: PLAN_SCHEMA.into(),
             benchmark_id: "synthetic-rule-fidelity".into(),
             dataset_id: "synthetic-route-fixtures".into(),
@@ -1096,6 +1096,17 @@ mod tests {
             strict_source_policy_derivation_evidence_sha256: strict.then(|| String::new()),
             rule_assessments: assessments,
         };
+        for index in 0..plan.rule_assessments.len() {
+            let assessment = plan.rule_assessments[index].clone();
+            if assessment.mapping_evidence_relative_path.is_some() {
+                let evidence = build_mapping_evidence(&plan, &assessment).expect("serialize synthetic migration evidence");
+                plan.rule_assessments[index].mapping_evidence_sha256 = Some(sha256_hex(&evidence));
+            }
+            if assessment.waiver_evidence_relative_path.is_some() {
+                let evidence = build_waiver_evidence(&plan, &assessment).expect("serialize synthetic waiver evidence");
+                plan.rule_assessments[index].waiver_evidence_sha256 = Some(sha256_hex(&evidence));
+            }
+        }
         if strict {
             let evidence = build_strict_derivation_evidence(&plan).expect("serialize synthetic derivation evidence");
             plan.strict_source_policy_derivation_evidence_sha256 = Some(sha256_hex(&evidence));
@@ -1245,7 +1256,7 @@ mod tests {
             source_value: Some("0.25mm".into()),
             evaluated_value: Some("0.25mm effective".into()),
             mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
-            mapping_evidence_sha256: Some(sha256_hex(MAPPING_EVIDENCE)),
+            mapping_evidence_sha256: Some("0".repeat(64)),
             waiver_evidence_relative_path: None,
             waiver_evidence_sha256: None,
             rationale: "pinned migration mapping says equivalent".into(),
@@ -1280,7 +1291,7 @@ mod tests {
             source_value: Some("0.25mm".into()),
             evaluated_value: Some("0.25mm effective".into()),
             mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
-            mapping_evidence_sha256: Some(sha256_hex(MAPPING_EVIDENCE)),
+            mapping_evidence_sha256: Some("0".repeat(64)),
             waiver_evidence_relative_path: None,
             waiver_evidence_sha256: None,
             rationale: "synthetic pinned migration evidence".into(),
