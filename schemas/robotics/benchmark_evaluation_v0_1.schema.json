@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/robotics/benchmark_evaluation_v0_1.schema.json",
+  "title": "Robotics Benchmark Evaluation Record v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "scenario_manifest_sha256",
+    "evaluator_source_commit",
+    "policies",
+    "scenarios",
+    "trials"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "terrain-robotics-validity-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "benchmark_audit_does_not_establish_physical_safety_or_general_capability"
+    },
+    "scenario_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the canonical JSON serialization of the scenarios array after sorting by scenario_id; each scenario uses schema field order."
+    },
+    "evaluator_source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Exact 40-character lowercase hexadecimal commit of the evaluator source."
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/policy"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "trials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/trial"
+      }
+    }
+  },
+  "$defs": {
+    "split": {
+      "enum": [
+        "train",
+        "validation",
+        "test_id",
+        "test_ood",
+        "test_adversarial"
+      ]
+    },
+    "policyClass": {
+      "enum": [
+        "conservative_baseline",
+        "reactive_baseline",
+        "metadata_only_baseline",
+        "candidate"
+      ]
+    },
+    "disposition": {
+      "enum": [
+        "run_within_declared_envelope",
+        "abort_or_retreat_safely",
+        "reject_as_out_of_domain",
+        "require_explicit_human_choice",
+        "keep_unknown_unresolved"
+      ]
+    },
+    "evidenceClass": {
+      "enum": [
+        "synthetic_contract_fixture",
+        "simulator",
+        "hardware_in_loop",
+        "physical_field",
+        "independently_reviewed"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "policy_class",
+        "source_commit",
+        "training_manifest_sha256",
+        "training_source_ids",
+        "development_tuning_splits"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_class": {
+          "$ref": "#/$defs/policyClass"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "training_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "training_source_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Immutable source identifiers available to policy development; must not include any source_id from held-out test scenarios."
+        },
+        "development_tuning_splits": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "train",
+              "validation",
+              "test_id",
+              "test_ood",
+              "test_adversarial"
+            ]
+          },
+          "description": "Only train and validation are permitted for tuning. Listing any test split causes the audit to fail."
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "scenario_family",
+        "source_id",
+        "split",
+        "held_out",
+        "expected_disposition",
+        "novelty_axes"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]{2,99}$"
+        },
+        "scenario_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Immutable data/source identity; held-out test source IDs must be disjoint from every policy training_source_ids list."
+        },
+        "split": {
+          "$ref": "#/$defs/split"
+        },
+        "held_out": {
+          "type": "boolean"
+        },
+        "expected_disposition": {
+          "$ref": "#/$defs/disposition"
+        },
+        "novelty_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "terrain_geometry",
+              "surface_physics",
+              "sensing",
+              "localization",
+              "energy_model",
+              "payload",
+              "weather",
+              "communications",
+              "fault_composition",
+              "task_composition",
+              "data_source",
+              "other"
+            ]
+          }
+        }
+      }
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trial_id",
+        "scenario_id",
+        "seed",
+        "policy_id",
+        "evidence_class",
+        "observed_disposition",
+        "task_success",
+        "safe_degradation",
+        "safety_violation",
+        "predicted_success_probability",
+        "energy_used_wh",
+        "useful_work_units",
+        "intervention_count"
+      ],
+      "properties": {
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "observed_disposition": {
+          "$ref": "#/$defs/disposition"
+        },
+        "task_success": {
+          "type": "boolean"
+        },
+        "safe_degradation": {
+          "type": "boolean"
+        },
+        "safety_violation": {
+          "type": "boolean",
+          "description": "Must remain false for a passing qualification run; any true value fails closed."
+        },
+        "predicted_success_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Policy-estimated probability of task_success for this exact episode; scored with Brier loss."
+        },
+        "energy_used_wh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "useful_work_units": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "intervention_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsed_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

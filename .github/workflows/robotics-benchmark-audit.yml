@@ -1,0 +1,64 @@
+name: Robotics Benchmark Validity Audit
+
+on:
+  push:
+    branches: ["research/robotics-benchmark-validity-audit-v0-1"]
+    paths:
+      - "docs/research/ROBOTICS_BENCHMARK_VALIDITY_AND_GENERALIZATION_V0_1.md"
+      - "schemas/robotics/benchmark_evaluation_v0_1.schema.json"
+      - "tools/robotics-benchmark-audit/**"
+      - ".github/workflows/robotics-benchmark-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/ROBOTICS_BENCHMARK_VALIDITY_AND_GENERALIZATION_V0_1.md"
+      - "schemas/robotics/benchmark_evaluation_v0_1.schema.json"
+      - "tools/robotics-benchmark-audit/**"
+      - ".github/workflows/robotics-benchmark-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-benchmark-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validity-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # pinned action revision
+        with:
+          toolchain: 1.96.0
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Generate isolated dependency lock
+        run: cargo generate-lockfile --manifest-path tools/robotics-benchmark-audit/Cargo.toml
+
+      - name: Assert resolved dependency graph
+        run: cargo metadata --manifest-path tools/robotics-benchmark-audit/Cargo.toml --locked --no-deps --format-version 1 > /dev/null
+
+      - name: Run contract and adversarial smoke tests
+        run: cargo test --manifest-path tools/robotics-benchmark-audit/Cargo.toml --locked
+
+      - name: Validate benchmark evaluation schema JSON
+        run: python3 -c 'import json; json.load(open("schemas/robotics/benchmark_evaluation_v0_1.schema.json"))'
+
+      - name: Validate source manifests parse
+        run: |
+          set -euo pipefail
+          test -s docs/research/ROBOTICS_BENCHMARK_VALIDITY_AND_GENERALIZATION_V0_1.md
+          test -s tools/robotics-benchmark-audit/README.md
