@@ -37,6 +37,16 @@ fn report_digest_binds_the_exact_manifest_bytes() {
 }
 
 #[test]
+fn run_revision_must_match_the_manifest_candidate() {
+    let wrong_revision = REPORT.replace(
+        &format!("\"git_commit_sha\": \"{}\"", "a".repeat(40)),
+        &format!("\"git_commit_sha\": \"{}\"", "b".repeat(40)),
+    );
+    let errors = audit_report_json(MANIFEST, &wrong_revision);
+    assert!(has_error(&errors, "does not match manifest candidate revision"), "{errors:#?}");
+}
+
+#[test]
 fn generated_corpus_without_generator_recipe_is_rejected() {
     let invalid = include_str!("../fixtures/invalid-missing-generator.json");
     let errors = validate_manifest_json(invalid);
