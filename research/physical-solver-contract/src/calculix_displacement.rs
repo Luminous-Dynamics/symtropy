@@ -314,7 +314,7 @@ pub fn compare_displacement_reference_bytes(
         deck_text,
         support_node_id,
         load_node_id,
-        &node_set,
+        node_set,
         expected_time,
     )?;
     if deck.nodes.len() != deck.elements.len() + 1 {
@@ -382,7 +382,7 @@ pub fn compare_displacement_reference_bytes(
     let dat_text = std::str::from_utf8(dat_bytes)
         .map_err(|_| "CalculiX .dat output must be UTF-8/ASCII text".to_owned())?;
     let (observed_set, observed_time, row) =
-        parse_displacement_section(dat_text, &node_set, load_node_id)?;
+        parse_displacement_section(dat_text, node_set, load_node_id)?;
     let time_tolerance = 1.0e-8 * expected_time.abs().max(1.0);
     let time_matches = (observed_time - expected_time).abs() <= time_tolerance;
 
@@ -878,7 +878,7 @@ fn parse_and_validate_deck(
         .get("NSET")
         .ok_or_else(|| "NODE PRINT is missing NSET=".to_owned())?
         .to_ascii_uppercase();
-    if node_print.rows.len() != 1 || node_print.rows[0].1.trim().to_ascii_uppercase() != "U" {
+    if node_print.rows.len() != 1 || !node_print.rows[0].1.trim().eq_ignore_ascii_case("U") {
         return Err(
             "displacement deck must request exactly U from a single NODE PRINT set".to_owned(),
         );
@@ -944,11 +944,11 @@ fn parse_cards(text: &str) -> Check<Vec<DeckCard>> {
         if line.is_empty() || line.starts_with("**") {
             continue;
         }
-        if line.starts_with('*') {
+        if let Some(stripped) = line.strip_prefix('*') {
             if let Some(card) = current.take() {
                 cards.push(card);
             }
-            let parts: Vec<&str> = line[1..].split(',').collect();
+            let parts: Vec<&str> = stripped.split(',').collect();
             let name = parts
                 .first()
                 .copied()
@@ -1255,7 +1255,7 @@ fn parse_u64(text: &str, line: usize, label: &str) -> Check<u64> {
 }
 
 fn parse_finite(text: &str, line: usize) -> Check<f64> {
-    let normalized = text.trim().replace('D', "E").replace('d', "E");
+    let normalized = text.trim().replace(['D', 'd'], "E");
     let value = normalized
         .parse::<f64>()
         .map_err(|_| format!("invalid numeric value at line {line}"))?;
@@ -1477,7 +1477,6 @@ U
         let deck = deck();
         let dat = dat_output(U);
         let build = build_manifest();
-        let manifest = manifest_bytes(&request, &deck, &dat, &build);
         let mut unsupported_deck = deck.clone();
         unsupported_deck.extend_from_slice(b"*DLOAD\nBAR,P,1.0\n");
         let unsupported_manifest = manifest_bytes(&request, &unsupported_deck, &dat, &build);
