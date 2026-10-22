@@ -434,7 +434,9 @@ mod tests {
     #[test]
     fn divergence_free_force_does_not_scale_with_lame_lambda() {
         let low = ManufacturedProblem::divergence_free(PlaneStrainMaterial::new(1.0, 0.3).unwrap());
-        let high = ManufacturedProblem::divergence_free(PlaneStrainMaterial::new(1.0, 0.49999).unwrap());
+        let high = ManufacturedProblem::divergence_free(
+            PlaneStrainMaterial::new(1.0, 0.49999).unwrap(),
+        );
         for (x, y) in [(0.1, 0.2), (0.37, 0.61), (0.83, 0.92)] {
             let a = low.body_force_closed_form(x, y);
             let b = high.body_force_closed_form(x, y);
