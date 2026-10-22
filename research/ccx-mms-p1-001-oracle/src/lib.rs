@@ -390,6 +390,60 @@ mod tests {
     }
 
     #[test]
+    fn divergence_free_field_has_zero_trace_and_boundary_displacement() {
+        let material = PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        for index in 0..=32 {
+            let t = index as f64 / 32.0;
+            for (x, y) in [(0.0, t), (1.0, t), (t, 0.0), (t, 1.0)] {
+                let u = problem.displacement(x, y);
+                close(u.x, 0.0, 2.0e-14);
+                close(u.y, 0.0, 2.0e-14);
+            }
+            for (x, y) in [(t, 0.37), (0.29, t), (t, 1.0 - t)] {
+                let strain = problem.strain(x, y);
+                close(strain.xx + strain.yy, 0.0, 2.0e-14);
+            }
+        }
+    }
+
+    #[test]
+    fn divergence_free_force_matches_symbolic_form_and_stress_divergence() {
+        let material = PlaneStrainMaterial::new(1.0, 0.49999).unwrap();
+        let problem = ManufacturedProblem::divergence_free(material);
+        let h = 1.0e-5;
+        for (x, y) in [(0.071, 0.193), (0.2, 0.4), (0.333, 0.617), (0.823, 0.911)] {
+            let operator = problem.body_force_from_operator(x, y);
+            let symbolic = problem.body_force_closed_form(x, y);
+            close(operator.x, symbolic.x, 2.0e-12);
+            close(operator.y, symbolic.y, 2.0e-12);
+
+            let sx_plus = problem.stress(x + h, y);
+            let sx_minus = problem.stress(x - h, y);
+            let sy_plus = problem.stress(x, y + h);
+            let sy_minus = problem.stress(x, y - h);
+            let fx = -((sx_plus.xx - sx_minus.xx) / (2.0 * h)
+                + (sy_plus.xy - sy_minus.xy) / (2.0 * h));
+            let fy = -((sx_plus.xy - sx_minus.xy) / (2.0 * h)
+                + (sy_plus.yy - sy_minus.yy) / (2.0 * h));
+            close(operator.x, fx, 2.0e-7);
+            close(operator.y, fy, 2.0e-7);
+        }
+    }
+
+    #[test]
+    fn divergence_free_force_does_not_scale_with_lame_lambda() {
+        let low = ManufacturedProblem::divergence_free(PlaneStrainMaterial::new(1.0, 0.3).unwrap());
+        let high = ManufacturedProblem::divergence_free(PlaneStrainMaterial::new(1.0, 0.49999).unwrap());
+        for (x, y) in [(0.1, 0.2), (0.37, 0.61), (0.83, 0.92)] {
+            let a = low.body_force_closed_form(x, y);
+            let b = high.body_force_closed_form(x, y);
+            close(a.x, b.x, 2.0e-12);
+            close(a.y, b.y, 2.0e-12);
+        }
+    }
+
+    #[test]
     fn invalid_materials_and_nonfinite_amplitudes_are_rejected() {
         assert_eq!(
             PlaneStrainMaterial::new(0.0, 0.3).unwrap_err(),
