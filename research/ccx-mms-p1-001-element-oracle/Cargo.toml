@@ -13,6 +13,10 @@ ccx-mms-p1-mesh = { path = "../ccx-mms-p1-001-mesh" }
 name = "triangle-patch-probe"
 path = "src/bin/triangle-patch-probe.rs"
 
+[[bin]]
+name = "triangle-conditioning-probe"
+path = "src/bin/triangle-conditioning-probe.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 
