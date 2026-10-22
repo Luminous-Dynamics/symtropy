@@ -150,8 +150,16 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
             &disruption,
         );
 
-        assert!(local.accepted, "localized repair failed on case {case_index}: {:?}", local.violations);
-        assert!(global.accepted, "global right-shift failed on case {case_index}: {:?}", global.violations);
+        assert!(
+            local.accepted,
+            "localized repair failed on case {case_index}: {:?}",
+            local.violations
+        );
+        assert!(
+            global.accepted,
+            "global spatial shift failed on case {case_index}: {:?}",
+            global.violations
+        );
         assert_eq!(local.metrics.changed_placement_reservations, 1);
         assert_eq!(local.metrics.unaffected_placement_churn, 0);
         assert_eq!(global.metrics.changed_placement_reservations, placement_count);
@@ -169,13 +177,20 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
             candidate_for(&baseline, CandidatePolicy::GlobalTemporalRightShift),
             &disruption,
         );
-        assert!(temporal.accepted, "temporal right-shift failed on case {case_index}: {:?}", temporal.violations);
+        assert!(
+            temporal.accepted,
+            "temporal right-shift failed on case {case_index}: {:?}",
+            temporal.violations
+        );
         assert_eq!(temporal.metrics.changed_placement_reservations, placement_count);
         assert_eq!(temporal.metrics.unaffected_placement_churn, placement_count - 1);
         assert_eq!(temporal.metrics.rectangle_edge_shift_units, 0);
         assert_eq!(
             temporal.metrics.time_shift_ticks,
-            (placement_count as u64) * 2 * (disruption.new_exclusion_zones[0].active.end_tick - disruption.new_exclusion_zones[0].active.start_tick)
+            (placement_count as u64)
+                * 2
+                * (disruption.new_exclusion_zones[0].active.end_tick
+                    - disruption.new_exclusion_zones[0].active.start_tick)
         );
         assert_eq!(local.metrics.time_shift_ticks, 0);
         total_temporal_right_shift_ticks += temporal.metrics.time_shift_ticks;
