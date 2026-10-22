@@ -131,6 +131,12 @@ jobs:
                   and .good_flow_time_p90_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
                   and .good_flow_time_p95_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
                   and .good_flow_time_p99_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations))
+              and ((.replications_with_right_censored_observations == 0)
+                or (.right_censored_observed_age_mean_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p50_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p90_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p95_seconds_across_replications.sample_count == .replications_with_right_censored_observations
+                  and .right_censored_observed_age_p99_seconds_across_replications.sample_count == .replications_with_right_censored_observations))
             )
             and all(.scenarios[];
               .flow_time.cohort_accounting_valid
@@ -236,6 +242,8 @@ jobs:
               .flow_time.cohort_accounting_valid
               and .flow_time.release_cohort_jobs > 0
               and .flow_time.right_censored_jobs_at_horizon > 0
+              and .flow_time.right_censored_observed_age_seconds != null
+              and .flow_time.right_censored_observed_age_seconds.sample_count == .flow_time.right_censored_jobs_at_horizon
               and .flow_time.completed_good_jobs + .flow_time.completed_scrap_jobs + .flow_time.right_censored_jobs_at_horizon == .flow_time.release_cohort_jobs
               and .flow_time.completed_good_flow_time_seconds == null
             )
@@ -243,6 +251,12 @@ jobs:
               .cohort_accounting_valid
               and .release_cohort_jobs.sample_count == 1
               and .right_censored_jobs_at_horizon.sample_count == 1
+              and .replications_with_right_censored_observations == 1
+              and .right_censored_observed_age_mean_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p50_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p90_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p95_seconds_across_replications.sample_count == 1
+              and .right_censored_observed_age_p99_seconds_across_replications.sample_count == 1
             )
           ' "$REPORT"
       - name: Run PCB cell routes and assert fail-closed invariants
