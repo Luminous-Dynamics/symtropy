@@ -84,5 +84,5 @@ jobs:
           name: symthaea-symtropy-flight-transfer-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
-            ${{ runner.temp }}/symthaea-symtropy-bounded-residual.json
+            ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           if-no-files-found: error
