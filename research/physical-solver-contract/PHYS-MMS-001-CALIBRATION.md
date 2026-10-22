@@ -11,7 +11,7 @@ The prototype assembled linear CPS3 plane-stress stiffness matrices, integrated 
 
 ## Results
 
-| Cells per axis | Nodes | Triangles | Displacement L2 error (m) | H1 seminorm error | Stress tensor L2 error (Pa·m) |
+| Cells per axis | Nodes | Triangles | Displacement L2 norm (m²) | H1 seminorm error | Stress tensor L2 error (Pa·m) |
 |---:|---:|---:|---:|---:|---:|
 | 4 | 25 | 32 | 1.4650992e-7 | 1.5796499e-6 | 257138.43 |
 | 8 | 81 | 128 | 4.3297110e-8 | 8.2742004e-7 | 136824.13 |
@@ -32,7 +32,7 @@ The final two intervals satisfy the proposed broad ranges: displacement L2 order
 
 ## Interpretation and caveats
 
-1. The model's exact formula and sign of the body force were exercised by solving the corresponding weak-form linear elasticity problem, and the rates approached the expected P1-element asymptotic values (2 for displacement L2; 1 for H1 and stress L2).
+1. The model's exact formula and sign of the body force were exercised by solving the corresponding weak-form linear elasticity problem, and the rates approached the expected P1-element asymptotic values (2 for displacement L2 norm; 1 for H1 and stress L2 norms).
 2. The prototype is an independent local numerical check of the mathematics. It did not invoke CalculiX, did not execute the Rust code, and did not audit any solver-build/process manifest.
 3. No conclusion is drawn about the installed or pinned CalculiX solver until the actual generated deck is executed and its raw output is audited against the exact input/build/process manifests.
 4. The per-mesh audit labels results MEASURED_UNQUALIFIED; only the entire frozen five-level convergence sequence may pass the defined code-verification gate.
