@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/built-environment/accessible-home-evidence-lifecycle-v0.1.schema.json",
+  "title": "Synthetic accessible-home evidence lifecycle fixture",
+  "description": "Versioned, scope-bound synthetic evidence with configuration changes. Semantic replay and reference checks require a separate validator. Not real-home qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_kind",
+    "lifecycle_id",
+    "claim_boundary",
+    "evaluation_time",
+    "facets",
+    "claims",
+    "change_events",
+    "paths"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "fixture_kind": {
+      "const": "synthetic_evidence_lifecycle"
+    },
+    "lifecycle_id": {
+      "$ref": "#/$defs/id"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 20
+    },
+    "evaluation_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "facets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/facet"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "change_events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/changeEvent"
+      }
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+    },
+    "evidenceState": {
+      "type": "string",
+      "enum": [
+        "verified_for_declared_scope",
+        "known_barrier",
+        "unknown",
+        "proposed",
+        "needs_site_measurement",
+        "needs_professional_review"
+      ]
+    },
+    "currentness": {
+      "type": "string",
+      "enum": [
+        "current",
+        "needs_revalidation",
+        "expired",
+        "superseded",
+        "conflict"
+      ]
+    },
+    "assessment": {
+      "type": "string",
+      "enum": [
+        "blocked_by_declared_barrier",
+        "not_evaluable",
+        "evidence_complete_for_fixture"
+      ]
+    },
+    "facet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facet_id",
+        "initial_revision_id",
+        "scope_ref",
+        "description"
+      ],
+      "properties": {
+        "facet_id": {
+          "$ref": "#/$defs/id"
+        },
+        "initial_revision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope_ref": {
+          "type": "string",
+          "pattern": "^synthetic://[a-z0-9/_-]+$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facet_id",
+        "revision_id"
+      ],
+      "properties": {
+        "facet_id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "assertion_key",
+        "scope_ref",
+        "bindings",
+        "evidence_state",
+        "source_ref",
+        "review_role",
+        "observed_at",
+        "review_due",
+        "supersedes_claim_id",
+        "expected_currentness",
+        "note"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope_ref": {
+          "type": "string",
+          "pattern": "^synthetic://[a-z0-9/_-]+$"
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "evidence_state": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^synthetic://[a-z0-9/_-]+$"
+        },
+        "review_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "review_due": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "supersedes_claim_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_currentness": {
+          "$ref": "#/$defs/currentness"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertion_key": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facet_id",
+        "from_revision_id",
+        "to_revision_id"
+      ],
+      "properties": {
+        "facet_id": {
+          "$ref": "#/$defs/id"
+        },
+        "from_revision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "to_revision_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "changeEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "occurred_at",
+        "source_ref",
+        "changes",
+        "note"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/id"
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_ref": {
+          "type": "string",
+          "pattern": "^synthetic://[a-z0-9/_-]+$"
+        },
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/change"
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "required_claim_ids",
+        "expected_assessment",
+        "note"
+      ],
+      "properties": {
+        "path_id": {
+          "$ref": "#/$defs/id"
+        },
+        "required_claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "expected_assessment": {
+          "$ref": "#/$defs/assessment"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

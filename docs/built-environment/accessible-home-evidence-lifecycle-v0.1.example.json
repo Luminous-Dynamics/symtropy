@@ -1,0 +1,137 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_kind": "synthetic_evidence_lifecycle",
+  "lifecycle_id": "synthetic-evidence-change-replay-v01",
+  "claim_boundary": "Synthetic lifecycle fixture only. No real resident, building, device or accessibility outcome is represented. The receipt must not qualify any real home or safety system.",
+  "evaluation_time": "2026-10-16T00:00:00Z",
+  "facets": [
+    {
+      "facet_id": "furniture-position",
+      "initial_revision_id": "furniture-r1",
+      "scope_ref": "synthetic://lifecycle-demo/night-route",
+      "description": "Invented furniture-placement revision for a hypothetical night route."
+    },
+    {
+      "facet_id": "alert-device-config",
+      "initial_revision_id": "device-r4",
+      "scope_ref": "synthetic://lifecycle-demo/visitor-alert",
+      "description": "Invented notification device configuration revision."
+    },
+    {
+      "facet_id": "alert-power-config",
+      "initial_revision_id": "power-r1",
+      "scope_ref": "synthetic://lifecycle-demo/visitor-alert",
+      "description": "Invented notification power configuration revision."
+    },
+    {
+      "facet_id": "kitchen-control-config",
+      "initial_revision_id": "kitchen-r7",
+      "scope_ref": "synthetic://lifecycle-demo/kitchen-control",
+      "description": "Invented kitchen control configuration revision."
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "night-route-clearance",
+      "scope_ref": "synthetic://lifecycle-demo/night-route",
+      "bindings": [
+        {
+          "facet_id": "furniture-position",
+          "revision_id": "furniture-r1"
+        }
+      ],
+      "evidence_state": "verified_for_declared_scope",
+      "source_ref": "synthetic://lifecycle-demo/evidence/route-clearance",
+      "review_role": "synthetic reviewer role",
+      "observed_at": "2026-09-01T10:00:00Z",
+      "review_due": "2027-03-01T00:00:00Z",
+      "supersedes_claim_id": null,
+      "expected_currentness": "needs_revalidation",
+      "note": "The claim describes furniture-r1; the synthetic event changes that facet to furniture-r2.",
+      "assertion_key": "night-route-clearance"
+    },
+    {
+      "claim_id": "visitor-alert-path",
+      "scope_ref": "synthetic://lifecycle-demo/visitor-alert",
+      "bindings": [
+        {
+          "facet_id": "alert-device-config",
+          "revision_id": "device-r4"
+        },
+        {
+          "facet_id": "alert-power-config",
+          "revision_id": "power-r1"
+        }
+      ],
+      "evidence_state": "verified_for_declared_scope",
+      "source_ref": "synthetic://lifecycle-demo/evidence/visitor-alert",
+      "review_role": "synthetic reviewer role",
+      "observed_at": "2026-09-02T11:00:00Z",
+      "review_due": "2027-04-01T00:00:00Z",
+      "supersedes_claim_id": null,
+      "expected_currentness": "current",
+      "note": "The fixture event changes furniture only; these bound revisions remain current.",
+      "assertion_key": "visitor-alert-delivery"
+    },
+    {
+      "claim_id": "kitchen-control-review",
+      "scope_ref": "synthetic://lifecycle-demo/kitchen-control",
+      "bindings": [
+        {
+          "facet_id": "kitchen-control-config",
+          "revision_id": "kitchen-r7"
+        }
+      ],
+      "evidence_state": "verified_for_declared_scope",
+      "source_ref": "synthetic://lifecycle-demo/evidence/kitchen-control",
+      "review_role": "synthetic reviewer role",
+      "observed_at": "2026-08-01T12:00:00Z",
+      "review_due": "2026-10-01T00:00:00Z",
+      "supersedes_claim_id": null,
+      "expected_currentness": "expired",
+      "note": "This synthetic claim is past review_due at evaluation_time; past verification does not imply currentness.",
+      "assertion_key": "kitchen-control-operation"
+    }
+  ],
+  "change_events": [
+    {
+      "event_id": "move-furniture",
+      "occurred_at": "2026-10-10T14:00:00Z",
+      "source_ref": "synthetic://lifecycle-demo/event/furniture-change",
+      "changes": [
+        {
+          "facet_id": "furniture-position",
+          "from_revision_id": "furniture-r1",
+          "to_revision_id": "furniture-r2"
+        }
+      ],
+      "note": "Invented event: furniture moves, so the earlier route-clearance claim must be reviewed."
+    }
+  ],
+  "paths": [
+    {
+      "path_id": "night-bathroom-route",
+      "required_claim_ids": [
+        "night-route-clearance"
+      ],
+      "expected_assessment": "not_evaluable",
+      "note": "The clearance claim is still verified for its old revision but needs revalidation against furniture-r2."
+    },
+    {
+      "path_id": "visitor-notification",
+      "required_claim_ids": [
+        "visitor-alert-path"
+      ],
+      "expected_assessment": "evidence_complete_for_fixture",
+      "note": "The required synthetic claim's bound facets remain current and within its review window."
+    },
+    {
+      "path_id": "kitchen-control",
+      "required_claim_ids": [
+        "kitchen-control-review"
+      ],
+      "expected_assessment": "not_evaluable",
+      "note": "The claim's scope revision is unchanged, but its review deadline has passed."
+    }
+  ]
+}
