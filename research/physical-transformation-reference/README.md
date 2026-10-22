@@ -101,6 +101,8 @@ The released-joint beam path is intentionally staged:
 
 The [beam-fidelity contract](benchmarks/NAFEMS_NBC05_BEAM_FIDELITY_V0_1.md) records the next acceptance target: shape-interpolated/subspace MAC for closely spaced or repeated modes, sparse generalized eigensolving at higher mesh density, convergence against the source's beam model, and eventually an independent solver or eligible experiment. The official NAFEMS solution shows why this matters: axial-only modes omit bending behaviour, and its reported 200-elements-per-member beam model recovered 22 modes below 1600 Hz versus only two axial-bar modes. No full NAFEMS reproduction, experimental validation, structural-safety assessment or code-compliance claim is implied.
 
+A separate [beam-theory applicability screen](benchmarks/BEAM_THEORY_APPLICABILITY_V0_1.md) now encodes two dimensionless gates: cross-section size relative to member / shortest relevant modal wavelength, and the reference shear-slenderness indicator G*A*L_eff^2/(E*I). It has explicit candidate / compare / outside-screen / missing-wavelength statuses, five frozen request cases, deterministic receipt generation, and mutation gates for wavelength selection and the thresholds. The result only recommends an analysis model; it does not quantify actual solver error. The 3/S cantilever metric is labelled an uncorrected proxy that omits section shear-correction factors.
+
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
