@@ -6,7 +6,7 @@
 use std::error::Error;
 use std::fmt;
 
-use ccx_mms_p1_mesh::{MeshError, generate_mesh};
+use ccx_mms_p1_mesh::generate_mesh;
 use ccx_mms_p1_oracle::{PlaneStrainMaterial, Stress3, Strain2, Vec2};
 
 const DEGENERACY_FACTOR: f64 = 64.0 * f64::EPSILON;
@@ -149,7 +149,7 @@ impl TriangleElement {
                 constitutive[row_index].iter().zip(b_matrix.iter())
             {
                 for (result, b_value) in result_row.iter_mut().zip(b_row.iter()) {
-                    *result += constitutive_value * b_value;
+                    *result += *constitutive_value * *b_value;
                 }
             }
         }
@@ -291,7 +291,7 @@ fn affine_displacement(point: Point2) -> Vec2 {
 /// The report tests element strain, stiffness symmetry, rigid modes, and
 /// cancellation of internal nodal forces at interior mesh nodes.
 pub fn run_patch_probe() -> Result<PatchProbe, ElementError> {
-    let mesh = generate_mesh(4).map_err(|_error: MeshError| ElementError::MeshConstruction)?;
+    let mesh = generate_mesh(4).map_err(|_| ElementError::MeshConstruction)?;
     let material =
         PlaneStrainMaterial::new(1.0, 0.3).expect("reference material is admissible");
     let expected_strain = Strain2 {
