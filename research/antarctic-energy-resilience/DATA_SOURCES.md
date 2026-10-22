@@ -98,3 +98,9 @@ The first defensible real-data benchmark is not to promise a fuel-saving percent
 - a robust dispatch tournament against rule-based, deterministic MPC and published robust-optimization baselines under matched data and evaluation budgets.
 
 Only after those gates can a percentage fuel-saving target be preregistered. A synthetic fixture cannot prove operational performance.
+
+## Data-stewardship requirement
+
+The AADC citation instructions state that it is expected practice for intended users to contact the data originator to discuss intended use before applying Australian Antarctic Program data. The metadata describes the relevant historical electricity/fuel series as CC BY 4.0, but the project should preserve both the licence and this explicit stewardship instruction. Contact should be confirmed and documented before the historical observations are used for analysis. A retrieval attempt or publicly reachable URL is not equivalent to permission/consultation completion. See https://data.aad.gov.au/metadata/records/SOE_generator_boiler_fuel_usage/citation and https://data.aad.gov.au/metadata/records/SOE_SFU.
+
+The fail-closed local acquisition utility is `scripts/acquire-antarctic-sources.sh`. Raw files default to a user cache outside the git worktree, must not be committed automatically, are checked for accidental HTML responses, and receive an acquisition record plus SHA-256. `list-usgs` retrieves USGS ScienceBase release metadata so the actual files can be listed before selection. Raw release data are still not ingested by this repository until the local manifest proves the bytes and subsequent schema/licence validation succeeds.
