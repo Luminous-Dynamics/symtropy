@@ -9,6 +9,7 @@
 
 pub mod execution;
 pub mod execution_bridge;
+pub mod policy;
 pub mod resources;
 
 use std::collections::{BTreeMap, BTreeSet};
