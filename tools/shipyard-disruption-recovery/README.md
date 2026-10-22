@@ -28,7 +28,7 @@ The report separates:
 - candidate makespan and a declared recovery horizon (latest end of affected/changed reservations minus disruption observation tick);
 - immutable-history violations.
 
-Already-completed reservations (end tick at or before the disruption observation tick) may not be rewritten. An infeasible candidate is rejected; a deterministic report or a lower churn count alone does not make it accepted.
+Already-completed reservations (end tick at or before the disruption observation tick) may not be rewritten. An infeasible candidate is rejected; a deterministic report or a lower churn count alone does not make it accepted. Previously known exclusion-zone evidence is carried into the candidate's effective scenario even when omitted from the submitted candidate; reusing the same zone ID with changed geometry/timing is a hard violation.
 
 ## Robust envelope across plausible disruptions
 
@@ -55,7 +55,7 @@ This intentionally avoids inventing a single weighted score. Yard managers can r
 
 ## Tests authored in V0
 
-Twenty-five core recovery tests cover:
+Twenty-seven core recovery tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -80,7 +80,9 @@ Twenty-five core recovery tests cover:
 22. persistence of an earlier vehicle outage across later planning stages, with fail-closed stop on an invalid recovery;
 23. rejection of empty, duplicate-ID and time-reversed disruption sequences;
 24. rejection when an incoming placement silently disappears from a recovery plan;
-25. rejection when a future transfer reservation silently disappears.
+25. rejection when a future transfer reservation silently disappears;
+26. carrying forward known exclusion-zone geometry when a candidate omits it;
+27. rejection when a candidate redefines a known exclusion-zone ID.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
