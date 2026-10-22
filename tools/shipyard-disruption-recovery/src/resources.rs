@@ -1523,7 +1523,7 @@ fn scenario_dimensions(scenario: &JointDisruptionScenario) -> BTreeSet<JointDisr
     if has_resource_outage && spatial_dimensions > 0 {
         dimensions.insert(JointDisruptionDimension::CrossLayerCombination);
     }
-    if spatial_dimensions + usize::from(has_resource_outage) > 1 {
+    if spatial_dimensions + (if has_resource_outage { 1 } else { 0 }) > 1 {
         dimensions.insert(JointDisruptionDimension::MultiDimensionCombination);
     }
     dimensions
