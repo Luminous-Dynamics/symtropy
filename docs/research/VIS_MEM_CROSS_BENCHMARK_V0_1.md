@@ -32,7 +32,7 @@ These are code provenance pins, not guarantees that data, dependencies, weights,
 
 ### 1. EmbodiedMemory-Bench: cross-task memory and feedback
 
-The public project describes 2,554 executable episodes across passive observation, dynamic tracking, interaction-derived state, and experience generalization. Its reference system keeps scene, spatial, and event memories, updates them during interaction, then uses them for later action. This makes it the best *first integration target* in this set because both code and an evaluation runner are currently present.
+The public project describes 2,554 executable episodes across passive observation, dynamic tracking, interaction-derived state, and experience generalization. Its reference system keeps scene, spatial, and event memories, updates them during interaction, then uses them for later action. This makes it the best *first research-only integration target* in this set because both code and an evaluation runner are currently present. The dataset card specifies CC BY-NC 4.0, however, and explicitly leaves upstream AI2-THOR/ProcTHOR assets subject to their own terms. Therefore a commercial Luminous deployment or commercially directed evaluation must not assume this data is available: obtain appropriate permission or use a separately cleared dataset. The public code repository carries a Mulan Permissive Software License v2 notice, which is distinct from the dataset license.
 
 The project page's paper-results table reports Gemini-3-Flash full-context at 64.2 average success. For the GPT-5.4-mini backbone, the table reports full context at 35.3 and EMem at 58.9 (+23.6 absolute points). These are external project-reported results, not Symtropy results and not a matched comparison to MIKASA or RoboMME. Closed-model availability, prompts, runtime settings, and evaluator versions must be checked before attempting exact reproduction.
 
@@ -86,7 +86,7 @@ A pass qualifies the synthetic semantics only. It does not qualify a robot polic
 
 ### Stage B — EmbodiedMemory-Bench native baseline
 
-1. Pin the exact repository commit and dataset revision, download manifests/assets, and record hashes.
+1. Apply a license gate before fetching data: the dataset card is CC BY-NC 4.0 (noncommercial), while the public code repository carries a Mulan PSL v2 notice and the underlying simulator/assets retain their own terms. Use the dataset only within permissions confirmed for the specific study; obtain additional permission or choose another dataset for commercial use. This is a research workflow note, not legal advice.\n2. Pin the exact repository commit and dataset revision, download manifests/assets only after approval, and record hashes.
 2. Run the dependency-free demo and save the stdout/exit receipt.
 3. Run one real simulator-backed smoke episode per available family and verify reset, legal action sequence, terminal predicate, failure labels, and artifact schema.
 4. Reproduce an eligible reference configuration from the official runner. If a reference model requires a proprietary API that is unavailable, record this blocker and use the strongest eligible open baseline; do not claim reproducing a closed system.
