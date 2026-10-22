@@ -279,6 +279,85 @@ mod tests {
     }
 
     #[test]
+    fn two_free_beam_rotations_match_independent_closed_form_generalized_eigenvalues() {
+        use crate::beam_pin_assembly::{BeamPinMember, BeamPinNode};
+
+        let length_m = 2.0_f64;
+        let area_m2 = 0.004_f64;
+        let youngs_modulus_pa = 70.0e9_f64;
+        let density_kg_m3 = 2700.0_f64;
+        let second_moment_m4 = 2.0e-6_f64;
+        let nodes = vec![
+            BeamPinNode {
+                id: "A".to_owned(),
+                x_m: 0.0,
+                y_m: 0.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+            BeamPinNode {
+                id: "B".to_owned(),
+                x_m: length_m,
+                y_m: 0.0,
+                restrain_x: true,
+                restrain_y: true,
+            },
+        ];
+        let members = vec![BeamPinMember {
+            id: "AB".to_owned(),
+            start_node_id: "A".to_owned(),
+            end_node_id: "B".to_owned(),
+            area_m2,
+            youngs_modulus_pa,
+            density_kg_m3,
+            second_moment_m4,
+        }];
+        let assembly = assemble_released_joint_pin_truss(&nodes, &members)
+            .expect("simply-supported beam assembly");
+        let spectrum = solve_released_joint_beam_modes(&assembly, BeamModalOptions::first_modes(2))
+            .expect("two rotational modes");
+
+        // Independent closed-form 2x2 generalized eigenproblem for the two
+        // end rotations with both endpoint translations restrained. This
+        // bypasses the production eigen-solver entirely.
+        let k11 = 4.0 * youngs_modulus_pa * second_moment_m4 / length_m;
+        let k12 = 2.0 * youngs_modulus_pa * second_moment_m4 / length_m;
+        let translational_factor = density_kg_m3 * area_m2 * length_m / 420.0;
+        let rotary_factor = density_kg_m3 * second_moment_m4 * length_m / 30.0;
+        let m11 = translational_factor * 4.0 * length_m.powi(2) + rotary_factor * 4.0;
+        let m12 = translational_factor * -3.0 * length_m.powi(2) - rotary_factor;
+        let quadratic_a = m11 * m11 - m12 * m12;
+        let quadratic_b = -2.0 * k11 * m11 + 2.0 * k12 * m12;
+        let quadratic_c = k11 * k11 - k12 * k12;
+        let discriminant = quadratic_b * quadratic_b
+            - 4.0 * quadratic_a * quadratic_c;
+        assert!(discriminant.is_finite() && discriminant > 0.0);
+        let root = discriminant.sqrt();
+        let expected = [
+            (-quadratic_b - root) / (2.0 * quadratic_a),
+            (-quadratic_b + root) / (2.0 * quadratic_a),
+        ];
+
+        for (mode, expected_eigenvalue) in spectrum.modes.iter().zip(expected) {
+            let relative_error =
+                (mode.eigenvalue_rad_s_squared - expected_eigenvalue).abs() / expected_eigenvalue;
+            assert!(
+                relative_error < 2.0e-9,
+                "mode {} eigenvalue relative error={relative_error:.17e}",
+                mode.ordinal
+            );
+            let expected_frequency = expected_eigenvalue.sqrt() / (2.0 * std::f64::consts::PI);
+            let frequency_error =
+                (mode.frequency_hz - expected_frequency).abs() / expected_frequency;
+            assert!(
+                frequency_error < 2.0e-9,
+                "mode {} frequency relative error={frequency_error:.17e}",
+                mode.ordinal
+            );
+        }
+    }
+
+    #[test]
     fn modal_spectrum_obeys_material_and_uniform_section_scaling() {
         let base = frequencies(1.0, 1.0, 1.0);
         let four_x_modulus = frequencies(1.0, 4.0, 1.0);
