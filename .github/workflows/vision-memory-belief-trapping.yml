@@ -61,7 +61,7 @@ jobs:
           grep -Fq $'CASE\tstatic_epistemic\tgap_aware_monitor' vis-mem-trap.tsv
           grep -Fq $'CASE\tcycle_achievement\tgap_aware_monitor' vis-mem-trap.tsv
           grep -Fq $'CASE\tunsolvable_no_probe\tgap_aware_monitor' vis-mem-trap.tsv
-          awk -F '\t' '$1 == "CASE_HEADER" { if (NF != 17) exit 1; ch++ } $1 == "CASE" { if (NF != 17) exit 1; c++ } $1 == "TRACE_HEADER" { if (NF != 12) exit 1; th++ } $1 == "TRACE" { if (NF != 12) exit 1; t++ } $1 == "SUMMARY_HEADER" { if (NF != 9) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 9) exit 1; s++ } END { if (ch != 1 || c != 28 || th != 1 || t < 28 || sh != 1 || s != 4) exit 1 }' vis-mem-trap.tsv
+          awk -F '\t' '$1 == "CASE_HEADER" { if (NF != 17) exit 1; ch++ } $1 == "CASE" { if (NF != 17) exit 1; c++ } $1 == "TRACE_HEADER" { if (NF != 12) exit 1; th++ } $1 == "TRACE" { if (NF != 12) exit 1; t++ } $1 == "SUMMARY_HEADER" { if (NF != 12) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 12) exit 1; s++ } END { if (ch != 1 || c != 28 || th != 1 || t < 28 || sh != 1 || s != 4) exit 1 }' vis-mem-trap.tsv
           sha256sum vis-mem-trap.tsv > vis-mem-trap.sha256
           sha256sum -c vis-mem-trap.sha256
 
