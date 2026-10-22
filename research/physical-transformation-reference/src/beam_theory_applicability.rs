@@ -203,6 +203,38 @@ pub fn assess_beam_theory_applicability(
     })
 }
 
+/// Fixed benchmark cases used by the receipt-producing CLI and tests.
+/// Inputs use explicit abstract section values so each dimensionless gate can
+/// be exercised independently; these are not the NAFEMS physical section.
+pub fn reference_beam_theory_screen_cases() -> Vec<(&'static str, BeamTheoryApplicabilityInput)> {
+    let candidate = BeamTheoryApplicabilityInput {
+        purpose: BeamAnalysisPurpose::StaticOrQuasiStatic,
+        member_length_m: 1.0,
+        shortest_relevant_wavelength_m: None,
+        max_cross_section_dimension_m: 0.01,
+        area_m2: 1.0,
+        second_moment_m4: 1.0 / 1500.0,
+        youngs_modulus_pa: 100.0,
+        shear_modulus_pa: 10.0,
+    };
+    let mut short_wavelength = candidate;
+    short_wavelength.purpose = BeamAnalysisPurpose::Modal;
+    short_wavelength.shortest_relevant_wavelength_m = Some(0.04);
+    let mut missing_wavelength = candidate;
+    missing_wavelength.purpose = BeamAnalysisPurpose::Modal;
+    let mut intermediate = candidate;
+    intermediate.second_moment_m4 = 0.002;
+    let mut low_shear = candidate;
+    low_shear.second_moment_m4 = 0.004;
+    vec![
+        ("static-slender", candidate),
+        ("modal-short-wavelength", short_wavelength),
+        ("modal-wavelength-missing", missing_wavelength),
+        ("intermediate-shear", intermediate),
+        ("low-shear-slenderness", low_shear),
+    ]
+}
+
 fn validate_positive(name: &str, value: f64) -> Check<()> {
     if value.is_finite() && value > 0.0 {
         Ok(())
@@ -215,41 +247,12 @@ fn validate_positive(name: &str, value: f64) -> Check<()> {
 mod tests {
     use super::{
         BeamAnalysisPurpose, BeamTheoryApplicabilityInput, BeamTheoryScreenStatus,
-        assess_beam_theory_applicability,
+        assess_beam_theory_applicability, reference_beam_theory_screen_cases,
     };
-
-    fn reference_cases() -> Vec<(&'static str, BeamTheoryApplicabilityInput)> {
-        let candidate = BeamTheoryApplicabilityInput {
-            purpose: BeamAnalysisPurpose::StaticOrQuasiStatic,
-            member_length_m: 1.0,
-            shortest_relevant_wavelength_m: None,
-            max_cross_section_dimension_m: 0.01,
-            area_m2: 1.0,
-            second_moment_m4: 1.0 / 1500.0,
-            youngs_modulus_pa: 100.0,
-            shear_modulus_pa: 10.0,
-        };
-        let mut short_wavelength = candidate;
-        short_wavelength.purpose = BeamAnalysisPurpose::Modal;
-        short_wavelength.shortest_relevant_wavelength_m = Some(0.04);
-        let mut missing_wavelength = candidate;
-        missing_wavelength.purpose = BeamAnalysisPurpose::Modal;
-        let mut intermediate = candidate;
-        intermediate.second_moment_m4 = 0.002;
-        let mut low_shear = candidate;
-        low_shear.second_moment_m4 = 0.004;
-        vec![
-            ("static-slender", candidate),
-            ("modal-short-wavelength", short_wavelength),
-            ("modal-wavelength-missing", missing_wavelength),
-            ("intermediate-shear", intermediate),
-            ("low-shear-slenderness", low_shear),
-        ]
-    }
 
     #[test]
     fn canonical_request_matches_frozen_five_case_fixture() {
-        let cases = reference_cases();
+        let cases = reference_beam_theory_screen_cases();
         let actual = super::canonical_beam_theory_screen_request(&cases)
             .expect("canonical applicability request");
         assert_eq!(
