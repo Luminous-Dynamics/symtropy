@@ -3397,4 +3397,162 @@ mod tests {
     }
 
 
+    fn recourse_spatial_control() -> Scenario {
+        let mut scenario = spatial_control();
+        scenario.placements[0].occupied = TimeRange {
+            start_tick: 5,
+            end_tick: 10,
+        };
+        scenario
+    }
+
+    fn recourse_candidate_at(x: i64) -> Scenario {
+        let mut scenario = recourse_spatial_control();
+        scenario.placements[0].footprint = Footprint::AxisAlignedRect(Rect {
+            min_x: x,
+            min_y: 0,
+            max_x: x + 2,
+            max_y: 2,
+        });
+        scenario
+    }
+
+    fn recourse_resource_schedule() -> ResourceSchedule {
+        ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![reservation(
+                "required-operation",
+                "block-op",
+                "station-1",
+                "workstation",
+                5,
+                10,
+            )],
+        }
+    }
+
+    fn recourse_scenario(
+        id: &str,
+        zone_id: &str,
+        zone_x: i64,
+        evidence_ids: &[&str],
+        candidate_x: i64,
+    ) -> JointRecourseScenario {
+        JointRecourseScenario {
+            scenario: JointDisruptionScenario {
+                scenario_id: id.to_owned(),
+                spatial_disruption: Disruption {
+                    observed_at_tick: 4,
+                    new_exclusion_zones: vec![ExclusionZone {
+                        id: zone_id.to_owned(),
+                        footprint: Footprint::AxisAlignedRect(Rect {
+                            min_x: zone_x,
+                            min_y: 0,
+                            max_x: zone_x + 2,
+                            max_y: 2,
+                        }),
+                        active: TimeRange {
+                            start_tick: 5,
+                            end_tick: 10,
+                        },
+                    }],
+                    vehicle_outages: Vec::new(),
+                    placement_occupancy_extensions: Vec::new(),
+                    explicitly_affected_reservation_ids: Vec::new(),
+                    occupancy_evidence: Vec::new(),
+                },
+                resource_outages: Vec::new(),
+            },
+            observed_evidence_ids: evidence_ids.iter().map(|id| (*id).to_owned()).collect(),
+            candidate_spatial: recourse_candidate_at(candidate_x),
+            candidate_resources: recourse_resource_schedule(),
+            candidate_bindings: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn same_observation_set_cannot_choose_different_future_actions() {
+        let baseline_spatial = recourse_spatial_control();
+        let baseline_resources = recourse_resource_schedule();
+        let scenarios = [
+            recourse_scenario("future-a", "zone-a", 0, &["same-observation"], 2),
+            recourse_scenario("future-b", "zone-b", 4, &["same-observation"], 6),
+        ];
+
+        let report = evaluate_joint_recourse_policy(
+            &baseline_spatial,
+            &baseline_resources,
+            &[],
+            &scenarios,
+        );
+
+        assert!(report.scenarios.iter().all(|scenario| scenario.report.accepted));
+        assert!(!report.robustly_accepted);
+        assert_eq!(report.metrics.observation_information_sets, 1);
+        assert_eq!(report.metrics.distinct_actions, 2);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == JointRecourseViolationCode::NonAnticipativeActionMismatch
+                && violation.scenario_ids == vec!["future-a", "future-b"]
+                && violation.evidence_ids == vec!["same-observation"]
+        }));
+    }
+
+    #[test]
+    fn adaptive_recourse_can_choose_different_actions_after_distinct_evidence() {
+        let baseline_spatial = recourse_spatial_control();
+        let baseline_resources = recourse_resource_schedule();
+        let scenarios = [
+            recourse_scenario("zone-a-known", "zone-a", 0, &["event-zone-a"], 2),
+            recourse_scenario("zone-b-known", "zone-b", 4, &["event-zone-b"], 6),
+        ];
+
+        let report = evaluate_joint_recourse_policy(
+            &baseline_spatial,
+            &baseline_resources,
+            &[],
+            &scenarios,
+        );
+
+        assert!(report.robustly_accepted, "{:?}", report.violations);
+        assert_eq!(report.metrics.total_scenarios, 2);
+        assert_eq!(report.metrics.accepted_scenarios, 2);
+        assert_eq!(report.metrics.observation_information_sets, 2);
+        assert_eq!(report.metrics.distinct_actions, 2);
+    }
+
+    #[test]
+    fn recourse_policy_normalizes_evidence_and_action_order() {
+        let baseline_spatial = recourse_spatial_control();
+        let baseline_resources = recourse_resource_schedule();
+        let mut first =
+            recourse_scenario("future-a", "zone-a", 0, &["event-a", "event-b"], 2);
+        let mut second =
+            recourse_scenario("future-b", "zone-b", 4, &["event-b", "event-a"], 2);
+        second.candidate_spatial.placements.reverse();
+        second.candidate_resources.reservations.reverse();
+
+        let report = evaluate_joint_recourse_policy(
+            &baseline_spatial,
+            &baseline_resources,
+            &[],
+            &[first.clone(), second.clone()],
+        );
+        assert!(report.robustly_accepted, "{:?}", report.violations);
+        assert_eq!(report.metrics.observation_information_sets, 1);
+        assert_eq!(report.metrics.distinct_actions, 1);
+
+        first.observed_evidence_ids.push("event-a".to_owned());
+        let invalid = evaluate_joint_recourse_policy(
+            &baseline_spatial,
+            &baseline_resources,
+            &[],
+            &[first, second],
+        );
+        assert!(!invalid.robustly_accepted);
+        assert!(invalid.violations.iter().any(|violation| {
+            violation.code == JointRecourseViolationCode::DuplicateObservedEvidenceId
+        }));
+    }
+
+
 }
