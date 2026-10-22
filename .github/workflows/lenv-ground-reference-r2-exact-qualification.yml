@@ -1,0 +1,96 @@
+name: LENV Ground reference r2 exact qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lenv-ground-r2-q-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event.pull_request.head.ref == 'ci/lenv-ground-reference-r2-qual-560411d'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PRODUCT_SHA: 560411d3c4cb44cb7d2ffaf9c6e85ec5ab33073b
+      PRODUCT_PARENT: e20aadfabfbc774f3c8adff3dbcd56af63c78473
+      PRODUCT_TREE: 1503730e1faf46ea911b52b709e816674b20c0f5
+      OWNED_FILE: crates/domains/symtropy-lifesim-core/tests/ground_that_remembers_reference.rs
+      OWNED_BLOB: a2ef926ae1083a245015c0cc4105bf7e0de9cc64
+
+    steps:
+      - name: Checkout exact immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact subject and immutable baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_PARENT"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-list --count "$PRODUCT_PARENT"..HEAD)" = 1
+          test "$(git diff --name-only "$PRODUCT_PARENT" HEAD)" = "$OWNED_FILE"
+          test "$(git rev-parse HEAD:$OWNED_FILE)" = "$OWNED_BLOB"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "EXPECTED_LOCK_BLOB=$(git rev-parse HEAD:Cargo.lock)" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/lenv-ground-r2-target" >> "$GITHUB_ENV"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Prove exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version | grep -F 'rustc 1.96.0'
+          cargo --version | grep -F 'cargo 1.96.0'
+
+      - name: Check exact owned-file formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt +1.96.0 --edition 2024 --check "$OWNED_FILE"
+
+      - name: Execute focused Ground reference theorem
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p symtropy-lifesim-core --test ground_that_remembers_reference -- --nocapture
+
+      - name: Strict focused Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy --locked -p symtropy-lifesim-core --test ground_that_remembers_reference -- -D warnings
+
+      - name: Locked focused check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p symtropy-lifesim-core --test ground_that_remembers_reference
+
+      - name: Immutable exact-product postflight
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE"
+          test "$(git rev-parse HEAD:$OWNED_FILE)" = "$OWNED_BLOB"
+          test "$(git rev-parse HEAD:Cargo.lock)" = "$EXPECTED_LOCK_BLOB"
+          git diff --quiet
+          git diff --cached --quiet
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
