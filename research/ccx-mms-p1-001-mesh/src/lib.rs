@@ -801,7 +801,6 @@ mod tests {
         let problem = ManufacturedProblem::reference();
         let deck = mesh.to_calculix_input_deck(problem, 16).unwrap();
         let mut total = Vec2 { x: 0.0, y: 0.0 };
-        let mut total_abs_y = 0.0;
 
         for row in deck_rows(&deck, "*CLOAD") {
             let fields: Vec<&str> = row.split(',').map(str::trim).collect();
@@ -812,7 +811,6 @@ mod tests {
                 1 => total.x += value,
                 2 => {
                     total.y += value;
-                    total_abs_y += value.abs();
                 }
                 _ => panic!("unexpected CLOAD degree in {row}"),
             }
@@ -830,14 +828,19 @@ mod tests {
             assert!(fx.is_finite() && fy.is_finite());
             total.x += fx;
             total.y += fy;
-            total_abs_y += fy.abs();
             boundary_records += 1;
         }
         assert_eq!(boundary_records, 16);
 
         let exact = problem.integrated_body_force();
         let full_load_x_residual = (total.x - exact.x).abs() / exact.x.abs().max(1.0);
-        let full_load_y_residual = total.y.abs() / total_abs_y.max(1.0);
+        let absolute_force_y_scale = mesh
+            .assemble_body_force_with_diagnostics(problem, 16)
+            .unwrap()
+            .integrated_absolute_force
+            .y
+            .max(1.0);
+        let full_load_y_residual = total.y.abs() / absolute_force_y_scale;
         assert!(
             full_load_x_residual <= 1.0e-10,
             "reconstructed x-load residual={full_load_x_residual:e}"
