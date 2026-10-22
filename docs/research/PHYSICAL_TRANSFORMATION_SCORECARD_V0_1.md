@@ -143,10 +143,10 @@ No single weighted “realism score” can compensate for failed conservation, i
 4. Add input-uncertainty propagation only for modes with stable identity; preserve abstentions, and report solver residual, mesh error, input uncertainty and model-form alternatives separately.
 5. Add independent, closed-form 2D beam tests, then compare a declared model-matched case against OpenSees with identical release and mass settings. FV5 should follow only when shear-deformable/3D model capabilities and the exact benchmark DOF contract are available.
 6. Add unit-conversion metamorphic tests and additional closed-form beam cases.
-6. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
-7. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
-8. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
-9. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
+7. Select one open, rights-cleared measured mechanical benchmark with sufficient boundary-condition and uncertainty metadata.
+8. Choose one solver adapter and qualify a minimal known-answer case before adding dynamic fracture.
+9. Prototype a state-to-solver handoff receipt, including an explicit unresolved status if model fidelity or inputs are insufficient.
+10. Add construction-sequence feasibility, typed connection disassembly profiles and a vector-valued design-for-disassembly benchmark under [PHYS-REVERSIBILITY-001 #2268](https://github.com/Luminous-Dynamics/symtropy/issues/2268), then reconcile planned and measured material-lot recovery.
 
 ## Claim ceiling
 
