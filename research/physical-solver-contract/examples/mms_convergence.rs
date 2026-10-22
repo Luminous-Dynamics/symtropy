@@ -575,3 +575,147 @@ fn main() -> Result<(), Box<dyn Error>> {
         ),
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn exact_dat(elements: usize) -> String {
+        let mut dat = String::from(
+            "displacements (vx,vy,vz) for set ALL and time 0.1000000E+01\n",
+        );
+        for node in 0..=elements {
+            let x = LENGTH_M * node as f64 / elements as f64;
+            let ux = AMPLITUDE_M * (PI * x / LENGTH_M).sin();
+            dat.push_str(&format!(
+                "{} {:.15e} 0.000000000000000e0 0.000000000000000e0\n",
+                node + 1,
+                ux
+            ));
+        }
+        dat.push('\n');
+        dat
+    }
+
+    #[test]
+    fn generated_decks_are_deterministic_and_have_the_requested_mesh() {
+        for elements in [4, 8, 16, 32] {
+            let first = expected_deck(elements).unwrap();
+            let second = expected_deck(elements).unwrap();
+            assert_eq!(first.as_bytes(), second.as_bytes());
+            assert!(first.contains("*NODE PRINT,NSET=ALL\nU\n*END STEP\n"));
+            assert_eq!(
+                first.lines().filter(|line| line.starts_with("*ELEMENT")).count(),
+                1
+            );
+            let element_rows = first
+                .lines()
+                .skip_while(|line| *line != "*ELEMENT,TYPE=T3D2,ELSET=BAR")
+                .skip(1)
+                .take_while(|line| !line.starts_with('*'))
+                .count();
+            assert_eq!(element_rows, elements);
+        }
+        assert!(expected_deck(3).is_err());
+    }
+
+    #[test]
+    fn exact_sine_field_passes_each_frozen_mesh_contract() {
+        let source = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let build = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        let executable = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        for elements in [4, 8, 16, 32] {
+            let deck = expected_deck(elements).unwrap();
+            let dat = exact_dat(elements);
+            let report = verify_case(
+                elements,
+                deck.as_bytes(),
+                dat.as_bytes(),
+                source,
+                build,
+                executable,
+            );
+            assert_eq!(
+                report["numerical_contract_status"],
+                "PASS",
+                "elements={elements}, report={report}"
+            );
+            assert!(
+                report["l2_interpolation_error_normalized"].as_f64().unwrap() > 0.0
+            );
+            assert!(
+                report["h1_seminorm_error_normalized"].as_f64().unwrap() > 0.0
+            );
+        }
+    }
+
+    #[test]
+    fn malformed_or_stale_solver_outputs_fail_closed() {
+        let elements = 4;
+        let deck = expected_deck(elements).unwrap();
+        let valid = exact_dat(elements);
+        let wrong_time = valid.replace("0.1000000E+01", "0.2000000E+01");
+        let wrong_set = valid.replace("set ALL", "set TIP");
+        let nan_state = valid.replace("1.000000000000000e-6", "NaN");
+        let duplicated_header = format!("{valid}displacements (vx,vy,vz) for set ALL and time 1.0\n");
+        let missing_node = valid
+            .lines()
+            .filter(|line| !line.starts_with("3 "))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let stale_deck = deck.replace("1.000000000000000e-2", "2.000000000000000e-2");
+
+        let invalid_cases = [
+            (deck.as_bytes().to_vec(), wrong_time),
+            (deck.as_bytes().to_vec(), wrong_set),
+            (deck.as_bytes().to_vec(), nan_state),
+            (deck.as_bytes().to_vec(), duplicated_header),
+            (deck.as_bytes().to_vec(), missing_node),
+            (stale_deck.into_bytes(), valid),
+        ];
+        for (bad_deck, bad_dat) in invalid_cases {
+            let report = verify_case(
+                elements,
+                &bad_deck,
+                bad_dat.as_bytes(),
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            );
+            assert_eq!(report["numerical_contract_status"], "FAIL");
+            assert_eq!(report["physical_result_qualified"], false);
+            assert_eq!(report["engineering_use_authorized"], false);
+        }
+    }
+
+    #[test]
+    fn exact_interpolation_errors_have_the_expected_asymptotic_order() {
+        let mut l2 = Vec::new();
+        let mut h1 = Vec::new();
+        for elements in [4, 8, 16, 32] {
+            let rows: Vec<NodeDisplacement> = (0..=elements)
+                .map(|index| {
+                    let x = LENGTH_M * index as f64 / elements as f64;
+                    NodeDisplacement {
+                        id: index + 1,
+                        ux_m: AMPLITUDE_M * (PI * x / LENGTH_M).sin(),
+                        uy_m: 0.0,
+                        uz_m: 0.0,
+                    }
+                })
+                .collect();
+            let (_, l2_error, h1_error) = normalized_errors(elements, &rows).unwrap();
+            l2.push(l2_error);
+            h1.push(h1_error);
+        }
+        for index in 0..3 {
+            assert!(
+                (1.8..=2.2).contains(&observed_order(l2[index], l2[index + 1]).unwrap())
+            );
+            assert!(
+                (0.9..=1.1).contains(&observed_order(h1[index], h1[index + 1]).unwrap())
+            );
+        }
+    }
+}
