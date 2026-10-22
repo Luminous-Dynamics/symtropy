@@ -122,8 +122,12 @@ impl fmt::Display for ParseError {
                 f,
                 "boundary-load inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
             ),
-            Self::NonFiniteBoundaryLoad(id) => write!(f, "non-finite omitted boundary load for node {id}"),
-            Self::NonFiniteCorrectedReaction(id) => write!(f, "non-finite corrected reaction for node {id}"),
+            Self::NonFiniteBoundaryLoad(id) => {
+                write!(f, "non-finite omitted boundary load for node {id}")
+            }
+            Self::NonFiniteCorrectedReaction(id) => {
+                write!(f, "non-finite corrected reaction for node {id}")
+            }
             Self::InconsistentFieldTimes => f.write_str("displacement and RF output times differ"),
         }
     }
@@ -184,7 +188,10 @@ pub fn parse_dat(
         target_time,
         time_tolerance,
     )?;
-    Ok(ParsedDat { displacements, external_forces })
+    Ok(ParsedDat {
+        displacements,
+        external_forces,
+    })
 }
 
 /// Reconstruct support reactions for the full manufactured load vector.
@@ -203,7 +210,9 @@ pub fn correct_support_reactions(
     if boundary_node_ids.is_empty() {
         return Err(ParseError::EmptyBoundaryNodeSet);
     }
-    if parsed.displacements.output_time.to_bits() != parsed.external_forces.output_time.to_bits() {
+    if parsed.displacements.output_time.to_bits()
+        != parsed.external_forces.output_time.to_bits()
+    {
         return Err(ParseError::InconsistentFieldTimes);
     }
 
@@ -505,6 +514,13 @@ mod tests {
         assert!(matches!(
             correct_support_reactions(&parsed, &[1, 4], &non_finite),
             Err(ParseError::NonFiniteBoundaryLoad(1))
+        ));
+
+        let mut mismatched_times = parsed.clone();
+        mismatched_times.external_forces.output_time = 2.0;
+        assert!(matches!(
+            correct_support_reactions(&mismatched_times, &[1, 4], &valid),
+            Err(ParseError::InconsistentFieldTimes)
         ));
     }
 
