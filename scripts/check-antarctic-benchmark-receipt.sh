@@ -14,16 +14,17 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 2; }
 test -f "$schema" && test -f "$example" || { echo "ERROR: missing schema/example file" >&2; exit 2; }
 
 jq -e '
-  ."$schema" == "https://json-schema.org/draft/2020-12/schema"
-  and .title == "ANTARCTIC-ENERGY-001 Benchmark Run Receipt v0"
-  and .type == "object"
-  and .additionalProperties == false
-  and all(.required[]; type == "string")
+  . as $root
+  | $root["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+  and $root.title == "ANTARCTIC-ENERGY-001 Benchmark Run Receipt v0"
+  and $root.type == "object"
+  and $root.additionalProperties == false
+  and all($root.required[]; type == "string")
   and all(["schema_version","run_id","status","evidence_tier","case_manifest",
            "source_artifacts","split_plan","methods","budget","hard_gates",
-           "metrics","validation","claim_ceiling"][]; . as $k | (.properties | has($k)))
-  and ."$defs".gate.enum == ["pass","fail","unknown","not_applicable"]
-  and .properties.validation.properties.ci_status.enum
+           "metrics","validation","claim_ceiling"][]; . as $k | ($root.properties | has($k)))
+  and $root["$defs"].gate.enum == ["pass","fail","unknown","not_applicable"]
+  and $root.properties.validation.properties.ci_status.enum
       == ["not_run","queued","skipped","pass_exact_head","fail","stale_or_unknown"]
 ' "$schema" >/dev/null
 
