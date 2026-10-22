@@ -276,7 +276,7 @@ fn main() {
             "episodes_reported_by_trainer": training_metrics.len(),
             "steps_per_episode_configured": train_steps,
             "training_scenario_ids": training_ids,
-            "training_target_policy": "FlightTrainer PD command imitation (FlightConfig.use_pid=false)",
+            "configured_training_target_policy": "PD baseline unless FlightFepResult.use_pid_target requests PID; FlightConfig.use_pid=false",
             "policy_genesis": config.genesis_phrase
         },
         "evaluation": {
