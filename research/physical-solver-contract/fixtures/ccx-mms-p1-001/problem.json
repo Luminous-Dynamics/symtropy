@@ -1,0 +1,150 @@
+{
+  "protocol_id": "PHYS-CCX-MMS-P1-001",
+  "protocol_version": "0.3.0",
+  "status": "protocol_frozen_not_executed",
+  "claim_class": "code_verification_only",
+  "domain": {
+    "x": [
+      0,
+      1
+    ],
+    "y": [
+      0,
+      1
+    ],
+    "kinematics": "small_strain",
+    "formulation": "linear_isotropic_elasticity_plane_strain",
+    "element": "CPE3",
+    "youngs_modulus": 1,
+    "poisson_ratio": 0.3,
+    "amplitude_x": 1,
+    "amplitude_y": 0.7,
+    "wavenumber": "pi"
+  },
+  "exact_solution": {
+    "u_x": "A*sin(pi*x)*sin(pi*y)",
+    "u_y": "B*sin(2*pi*x)*sin(pi*y)",
+    "body_force_convention": "f = -mu*laplacian(u) - (lambda+mu)*grad(div(u))",
+    "body_force_x": "(lambda+3*mu)*A*pi^2*sin(pi*x)*sin(pi*y) - 2*(lambda+mu)*B*pi^2*cos(pi*y)*cos(2*pi*x)",
+    "body_force_y": "(lambda+6*mu)*B*pi^2*sin(2*pi*x)*sin(pi*y) - (lambda+mu)*A*pi^2*cos(pi*x)*cos(pi*y)",
+    "integrated_body_force_x": "4*A*(lambda+3*mu)",
+    "integrated_body_force_y": 0,
+    "boundary_condition": "analytical_displacement_on_all_boundary_nodes"
+  },
+  "mesh_family": {
+    "cells_per_side": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "triangles_per_cell": 2,
+    "diagonal": "lower_left_to_upper_right",
+    "refinement_ratio": 2
+  },
+  "quadrature": {
+    "primary_gauss_legendre_points_per_axis": 32,
+    "independent_check_points_per_axis": 48,
+    "mapping": "duffy_transform",
+    "max_relative_global_load_vector_difference": 1e-12,
+    "max_relative_primary_error_norm_difference": 1e-10,
+    "check_every_mesh_resolution": true
+  },
+  "primary_metrics": {
+    "displacement_l2_relative_order_range": [
+      1.5,
+      2.5
+    ],
+    "energy_error_relative_order_range": [
+      0.75,
+      1.25
+    ],
+    "strict_error_decrease_each_level": true,
+    "order_gate_on_last_two_intervals": true
+  },
+  "gates": {
+    "source_build_executable_and_output_digest_binding": true,
+    "boundary_mixed_tolerance": 1e-10,
+    "body_force_resultant_relative_tolerance": 1e-10,
+    "force_reaction_balance_relative_tolerance": 1e-8,
+    "repeat_mesh_cells_per_side": 16,
+    "negative_controls_required": [
+      "perturbed_interior_load",
+      "cross_mesh_request_binding",
+      "tampered_output",
+      "missing_output_field",
+      "wrong_material_parameter_binding",
+      "wrong_executable_digest"
+    ],
+    "failed_runs_retained": true,
+    "performance_claim_requires_pinned_hardware_repetitions": true,
+    "force_resultant_normalization": {
+      "x_component": "absolute difference normalized by max(1, abs(exact analytic x-resultant))",
+      "y_component": "absolute y-resultant normalized by max(1, integral over domain of abs(f_y))"
+    }
+  },
+  "postprocessor_calibration": {
+    "purpose": "validate error integration independently of solver output",
+    "source_field": "exact_displacement_sampled_at_mesh_nodes",
+    "mesh_cells_per_side": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "primary_quadrature_order": 12,
+    "independent_quadrature_orders": [
+      32,
+      48
+    ],
+    "required_observations": {
+      "displacement_l2_error_decreases_each_refinement": true,
+      "energy_error_decreases_each_refinement": true,
+      "final_two_displacement_l2_observed_order_range": [
+        1.5,
+        2.5
+      ],
+      "final_two_energy_observed_order_range": [
+        0.75,
+        1.25
+      ],
+      "relative_32_vs_48_displacement_l2_difference_at_most": 1e-10,
+      "relative_32_vs_48_energy_difference_at_most": 1e-10,
+      "positive_finite_error_norms": true,
+      "strict_error_decrease_each_level": true
+    },
+    "solver_execution": false,
+    "solver_qualification": false
+  },
+  "deck_generation": {
+    "element_type": "CPE3",
+    "coordinate_dimensions": 3,
+    "out_of_plane_coordinate": 0,
+    "material_section": "plane_strain_solid_section",
+    "thickness": 1,
+    "static_step": {
+      "initial_increment": 1,
+      "total_time": 1
+    },
+    "outputs": {
+      "node_print": [
+        "U",
+        "RF"
+      ],
+      "node_file": [
+        "U"
+      ],
+      "element_file": [
+        "S"
+      ]
+    },
+    "constrained_boundary_load_policy": {
+      "solver_cload_applies_only_to_interior_nodes": true,
+      "boundary_equivalent_loads_preserved_as_deck_comments": true,
+      "boundary_load_comment_prefix": "** BOUNDARY_LOAD, node_id, fx, fy",
+      "corrected_support_reaction": "solver_reported_RF - omitted_boundary_equivalent_load",
+      "qualification_requires_real_solver_RF_sign_semantics_check": true
+    },
+    "protocol_version": "0.3.0"
+  }
+}
