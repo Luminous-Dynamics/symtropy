@@ -5,8 +5,8 @@
 
 use shipyard_space_time::{Rect, TimeRange, verify};
 use shipyard_space_time_baselines::{
-    BaselineErrorCode, PlacementRequest, first_fit_bottom_left,
-    first_fit_decreasing_bottom_left, first_fit_heuristic_portfolio, first_fit_portfolio,
+    BaselineErrorCode, PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left,
+    first_fit_heuristic_portfolio, first_fit_portfolio,
 };
 
 const YARD_WIDTH: i64 = 5;
@@ -181,10 +181,7 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
                 }
                 if result.exact_fallback_used {
                     exact_fallback_recovered += 1;
-                    assert_eq!(
-                        result.selected_policy.as_str(),
-                        "exact-tiny-search"
-                    );
+                    assert_eq!(result.selected_policy.as_str(), "exact-tiny-search");
                     assert!(result.exact_nodes_examined <= 100_000);
                 } else {
                     assert!(result.feasible_candidates > 0);
@@ -211,11 +208,26 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
     assert_eq!(CASES, 512, "generated case family size changed");
     assert_eq!(exact_feasible, 205, "exact generated feasibility changed");
     assert_eq!(caller_solved, 179, "caller-order baseline coverage changed");
-    assert_eq!(caller_missed, 26, "caller-order missed-feasible count changed");
-    assert_eq!(caller_rejected_infeasible, 307, "caller-order infeasibility count changed");
-    assert_eq!(caller_false_feasible, 0, "caller-order false-feasible plans detected");
-    assert_eq!(decreasing_solved, 197, "decreasing-area baseline coverage changed");
-    assert_eq!(decreasing_missed, 8, "decreasing-area missed-feasible count changed");
+    assert_eq!(
+        caller_missed, 26,
+        "caller-order missed-feasible count changed"
+    );
+    assert_eq!(
+        caller_rejected_infeasible, 307,
+        "caller-order infeasibility count changed"
+    );
+    assert_eq!(
+        caller_false_feasible, 0,
+        "caller-order false-feasible plans detected"
+    );
+    assert_eq!(
+        decreasing_solved, 197,
+        "decreasing-area baseline coverage changed"
+    );
+    assert_eq!(
+        decreasing_missed, 8,
+        "decreasing-area missed-feasible count changed"
+    );
     assert_eq!(
         decreasing_rejected_infeasible, 307,
         "decreasing-area infeasibility count changed"
@@ -225,7 +237,10 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
         "decreasing-area false-feasible plans detected"
     );
     assert_eq!(portfolio_solved, 203, "portfolio coverage changed");
-    assert_eq!(portfolio_missed, 2, "portfolio missed-feasible count changed");
+    assert_eq!(
+        portfolio_missed, 2,
+        "portfolio missed-feasible count changed"
+    );
     assert_eq!(
         portfolio_rejected_infeasible, 307,
         "portfolio infeasibility rejection count changed"
@@ -234,9 +249,18 @@ fn generated_four_block_family_pins_exact_feasibility_and_policy_coverage() {
         portfolio_false_feasible, 0,
         "portfolio false-feasible plans detected"
     );
-    assert_eq!(exact_combined_solved, 205, "exact-repaired coverage changed");
-    assert_eq!(exact_fallback_recovered, 2, "exact fallback recovery count changed");
-    assert_eq!(exact_proven_infeasible, 307, "proven-infeasible count changed");
+    assert_eq!(
+        exact_combined_solved, 205,
+        "exact-repaired coverage changed"
+    );
+    assert_eq!(
+        exact_fallback_recovered, 2,
+        "exact fallback recovery count changed"
+    );
+    assert_eq!(
+        exact_proven_infeasible, 307,
+        "proven-infeasible count changed"
+    );
     assert_eq!(exact_budget_exhausted, 0, "exact search budget changed");
     assert_eq!(
         exact_combined_false_feasible, 0,
