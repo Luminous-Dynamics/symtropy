@@ -43,7 +43,9 @@ fn validate_deck_identity(actual: &str, expected: &str) -> Result<(), String> {
     if actual.as_bytes() == expected.as_bytes() {
         Ok(())
     } else {
-        Err("input deck differs byte-for-byte from the deterministic frozen MMS generator".to_owned())
+        Err(
+            "input deck differs byte-for-byte from the deterministic frozen MMS generator".to_owned(),
+        )
     }
 }
 
