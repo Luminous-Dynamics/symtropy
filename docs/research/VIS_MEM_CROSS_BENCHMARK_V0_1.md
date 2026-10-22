@@ -293,3 +293,24 @@ The new [VIS-MEM-014 issue #2624 / draft PR #2625](https://github.com/Luminous-D
 It compares raw looping, a generic timer, a cycle monitor and a gap-aware monitor. It explicitly measures false-positive traps, trap recall/classification, steps to detection/recovery, requirement closure, no-progress transitions and correct handoff. The generic timer is an important control: it should expose the tradeoff between quick intervention and false alarms. The gap-aware policy should target evidence-seeking actions for epistemic blockage and a state-changing recovery for achievement blockage.
 
 This finite synthetic diagnostic is an executable contract, not a replacement for ALFWorld, LOCA-Bench, RCA-100, ClinDiag or SCOPER. Native follow-on should use one of the pinned open implementations with the same model backbone and equal action/tool limits; keep raw/ReAct, full harness, no-consistency and no-trapping ablations, and report success alongside total model tokens, tool calls, false trap alarms and recoveries per episode. The implementation remains pending until its exact-head workflow passes.
+
+
+## First exact-head failure-memory result (2026-10-22)
+
+VIS-MEM-013's exact-head focused workflow and general CI passed at `dcbf53e9a844e4e931a7db6170814066a5249fe1`; see [focused run #39732567921](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39732567921). Its report is an exhaustive record of eight hand-authored contract fixtures across five policies:
+
+| Strategy | Fixture success | Repeat-failure rate | False-suppression rate | Collateral suppression |
+|---|---:|---:|---:|---:|
+| Always retry | 87.5% | 12.5% | 0% | 0% |
+| Global action taboo | 25.0% | 0% | 75.0% | 25.0% |
+| Context-keyed suppression | 87.5% | 0% | 12.5% | 0% |
+| Conditional repair | 100% | 0% | 0% | 0% |
+| Replay-gated repair | 100% | 0% | 0% | 0% |
+
+Artifact TSV SHA-256: `06f5061a1a7d5bb7f24764360be46b6f0337884d2488385b6fed5035fae0e1e0`.
+
+The global taboo eliminates repeat failure by preventing the action even after the blocker resolves, on another task/object, or when a later validated success supersedes the prior failure. The exact task/object/context conditional repair respects that source-revision change in the registered fixtures. The 100% values are expected-contract results on an authored finite suite; this is not a general accuracy estimate, external benchmark result, or native robotics improvement.
+
+This is a useful falsification result: recurrence alone rewards over-suppression. Symtropy should report recurrence jointly with valid-action retention and false suppression.
+
+VIS-MEM-014 (belief trapping / progress recovery) is now implemented in draft PR #2625, with its exact-head Rust workflow still queued at last check. It adds a separate question: can the agent detect that it is stuck despite no explicit action failure, distinguish epistemic from achievement gaps, and recover without mislabeling healthy gradual progress or visible exogenous changes as traps?
