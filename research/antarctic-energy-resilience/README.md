@@ -49,6 +49,16 @@ For each discrete interval, the independent verifier must calculate, rather than
 - **Mission floors:** critical load / heat / water / communications services are hard constraints. Deferrable research loads may be shed according to declared priority, never by hiding an essential load.
 - **Evidence status:** measured, published, inferred, simulated and synthetic quantities remain distinct. A simulated available generator is not proof that it starts in a blizzard.
 
+## Public operational observations now inventoried
+
+The [AADC historical monthly electricity indicator](https://data.aad.gov.au/aadc/soe/display_indicator.cfm?soe_id=59) records gauge readings from Casey, Davis, Mawson and Macquarie Island from January 1986 to February 2016 (1,432 points per the landing page); the [monthly generator/boiler fuel indicator](https://data.aad.gov.au/aadc/soe/display_indicator.cfm?soe_id=56) describes direct gauge readings over January 1993–February 2016 (916 points). The records are historical, monthly and combined by their declared metric; access and licence must be confirmed before ingestion.
+
+The first source-pinned recent reporting snapshot is [DCCEEW Annual Report 2024–25, Table 73](https://www.dcceew.gov.au/sites/default/files/documents/annual-report-2024-25.pdf), extracted into `data/aad_2024_25_annual_observations.json`. It separates diesel-generated electricity (5,612,426 kWh), listed renewable electricity from Mawson wind and Casey solar (1,004,020 kWh), combined operational station diesel (2,500,150 L), shipping DMA (8,264,800 L) and aviation ATK (1,391,142 L, with 150,350 L separately listed for MYIC). These are Australian-program values, not Antarctic-wide data. The ~15.2% ratio is only renewable generation divided by the sum of the two listed electricity-generation rows.
+
+**Important boundary:** the annual report's operational diesel includes generation, vehicles, plant, incinerators and boilers; it cannot calibrate a generator-only fuel curve. Shipping, aviation and station fuels are different operational boundaries and fuel types. The dataset's water value is through 1 April 2025, so it is partial-year. A yearly aggregate is not evidence of hourly service reliability or polar-night dispatch.
+
+The exact source inventory, lineage gates and next ingestion steps are in [DATA_SOURCES.md](DATA_SOURCES.md). Do not fabricate missing hourly series or align an annual fuel total to weather as if it were an hourly observation.
+
 ## Baseline tournament
 
 Use identical load/weather/fault information and evaluation budgets:
