@@ -1,0 +1,52 @@
+name: Industrial telemetry adapter
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/industrial-telemetry-adapter.yml"
+      - "crates/tools/industrial-telemetry-adapter/**"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/industrial-telemetry-adapter.yml"
+      - "crates/tools/industrial-telemetry-adapter/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: industrial-telemetry-adapter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adapter:
+    name: Standalone telemetry adapter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- --check
+
+      - name: Run offline unit tests
+        run: cargo test --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml --all-targets -- -D warnings
+
+      - name: Smoke-test CLI against pinned excerpt
+        shell: bash
+        run: |
+          output="$(cargo run --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- summarize crates/tools/industrial-telemetry-adapter/fixtures/nist_mtc_operation_excerpt.txt)"
+          printf '%s\n' "$output"
+          grep -Fq 'record_count=6' <<< "$output"
+          grep -Fq 'distinct_field_count=4' <<< "$output"
+          grep -Fq 'maximum_gap_ns=5369937500000' <<< "$output"
+          grep -Fq 'claim_ceiling=event chronology and sampling gaps only' <<< "$output"
