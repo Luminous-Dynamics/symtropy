@@ -116,6 +116,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify beam mesh-refinement mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mesh_mutations.sh
+
+      - name: Re-verify beam mesh-refinement production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mesh.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -469,5 +482,6 @@ jobs:
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
+            beam-mesh-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
