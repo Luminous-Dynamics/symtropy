@@ -542,6 +542,20 @@ jobs:
           grep -Fq 'claim_ceiling=vendor_published_variant_only' "$variant_fixture"
           printf 'PASS frozen LS-DYNA FV5 variant; variant targets remain separate from R0015/DIANA theory\n'
 
+      - name: Verify frozen NAFEMS FV4 close-mode manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="research/physical-transformation-reference/fixtures/nafems_fv4_close_modes_manifest_v0_1.txt"
+          canonical="$(tr -d '\n' < "$fixture")"
+          test "$canonical" = "schema=nafems-fv4-close-modes-manifest-v0.1|fixture=PHYS-NAFEMS-FV4-CLOSE-MODES-001|source_url=https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/lsdyna_vm/vm-lsdyna-solve-062.html|cross_solver_source_url=https://ansyshelp.ansys.com/public/views/secured/corp/v261/en/ans_vm/vmp09t4.html|reference=NAFEMS_1987_as_published_by_Ansys_LSDYNA_VM_062|analysis=undamped_free_vibration|model=off_centre_point_mass_cantilever|main_beam_length_m=10|secondary_beam_or_offset_m=4|mass_M1_kg=10000|mass_M2_kg=1000|material1_E_Pa=200000000000|material1_density_kg_m3=8000|material1_poisson_ratio=0.3|material2_E_Pa=1e16|material2_density_kg_m3=0|material2_poisson_ratio=0|root=all_dofs_fixed|target_hz=1.723,1.727,7.413,9.971,18.155,26.957|lsdyna_hz=1.722,1.725,7.410,9.960,18.079,26.843|published_error_percent=0.058,0.116,0.040,0.110,0.419,0.423|closest_pair_gap_hz=0.004|closest_pair_relative_gap=0.0023215322112594|raw_deck_status=linked_download_not_ingested|mass_attachment_coordinates_status=unresolved_primary_input|section_and_mass_matrix_status=unresolved_primary_input|claim_ceiling=manifest_only_no_FV4_solve_or_physical_validation"
+          request_sha256="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "75e8ebf92be00ef01aaa8b58e062cca23e9544e6d64c6e3a2a224d10fe258c2b"
+          grep -Fq 'closest_pair_gap_hz=0.004' "$fixture"
+          grep -Fq 'mass_attachment_coordinates_status=unresolved_primary_input' "$fixture"
+          grep -Fq 'section_and_mass_matrix_status=unresolved_primary_input' "$fixture"
+          printf 'PASS frozen FV4 close-mode manifest; no numerical FV4 solve is claimed\n'
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -558,6 +572,7 @@ jobs:
             beam-element-mutation-receipt.json
             research/physical-transformation-reference/fixtures/nafems_r0015_fv5_mode_manifest_v0_1.txt
             research/physical-transformation-reference/fixtures/nafems_fv5_lsdyna_variant_v0_1.txt
+            research/physical-transformation-reference/fixtures/nafems_fv4_close_modes_manifest_v0_1.txt
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-pin-modal-receipt.json
