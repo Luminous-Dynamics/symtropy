@@ -1,0 +1,14 @@
+[package]
+name = "accessible-home-leptos"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Resident-led, evidence-aware accessible home planning prototype"
+
+# Keep browser dependencies out of Symtropy's simulation workspace.
+[workspace]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+leptos = { version = "=0.8.22", features = ["csr"] }
+console_error_panic_hook = "0.1"

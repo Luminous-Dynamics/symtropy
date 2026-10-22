@@ -1,0 +1,206 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "ACCESS-HOME-QUALIFICATION-001",
+  "status": "draft_targets_not_evidence",
+  "purpose": "Resident-led, evidence-aware home design prompts. This contract does not certify a house, building plan, product, legal compliance, or life safety.",
+  "source_project": "tools/accessible-home-leptos",
+  "related_work": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/1687",
+    "existing_housing_evidence_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/1596"
+  },
+  "supported_design_dimensions": [
+    "vision",
+    "hearing",
+    "mobility",
+    "dexterity",
+    "fatigue",
+    "sensory",
+    "cognitive",
+    "deafblind",
+    "support"
+  ],
+  "evidence_states": [
+    "resident_preference",
+    "proposed",
+    "needs_site_measurement",
+    "needs_professional_review",
+    "verified_for_declared_scope",
+    "unknown"
+  ],
+  "non_negotiable_rules": [
+    "No item is verified by selecting one or more functional design dimensions.",
+    "Unknown, proposed, resident preference and professional review are distinct states.",
+    "Life-safety, egress, fire, structure, electrical work and regulated requirements need applicable qualified review.",
+    "A smartphone or cloud-connected service is not assumed to substitute for an approved life-safety system.",
+    "The resident is the authority on their own preferences and consent.",
+    "No universal dimensions are inserted without a pinned jurisdiction/standard/use-case basis."
+  ],
+  "proposed_gates": [
+    {
+      "id": "AH-G0",
+      "name": "Requirement traceability",
+      "status": "proposed",
+      "checks": [
+        {
+          "id": "AH-G0-01",
+          "metric": "prompt_traceability",
+          "target": "100% of displayed prompts carry room/task, rationale, evidence question and reviewer role"
+        },
+        {
+          "id": "AH-G0-02",
+          "metric": "profile_additivity",
+          "target": "overlapping selections preserve all applicable prompts and do not remove the universal baseline"
+        }
+      ]
+    },
+    {
+      "id": "AH-G1",
+      "name": "Truthful verification states",
+      "status": "proposed",
+      "checks": [
+        {
+          "id": "AH-G1-01",
+          "metric": "false_verified",
+          "target": "zero unverified items presented as verified"
+        },
+        {
+          "id": "AH-G1-02",
+          "metric": "profile_to_compliance",
+          "target": "zero paths where selecting design dimensions creates compliance or construction readiness"
+        },
+        {
+          "id": "AH-G1-03",
+          "metric": "unknown_retention",
+          "target": "100% of missing site, dimension, device or jurisdiction evidence remains visibly unresolved"
+        }
+      ]
+    },
+    {
+      "id": "AH-G2",
+      "name": "Resident agency and brief integrity",
+      "status": "proposed",
+      "checks": [
+        {
+          "id": "AH-G2-01",
+          "metric": "priority_retention",
+          "target": "100% of selected mandatory resident priorities are retained or shown in an explicit unresolved conflict with a next action"
+        },
+        {
+          "id": "AH-G2-02",
+          "metric": "resident_control",
+          "target": "all generated prompts are optional to include, edit or remove in the planning brief"
+        },
+        {
+          "id": "AH-G2-03",
+          "metric": "data_minimization",
+          "target": "prototype stores no diagnosis, identity, location, or personal profile outside transient UI state"
+        }
+      ]
+    },
+    {
+      "id": "AH-G3",
+      "name": "Safety and failure-mode review",
+      "status": "proposed",
+      "checks": [
+        {
+          "id": "AH-G3-01",
+          "metric": "life_safety_gate",
+          "target": "unresolved life-safety/egress questions block any future ready-for-construction state"
+        },
+        {
+          "id": "AH-G3-02",
+          "metric": "automation_fallback",
+          "target": "100% of relevant connected or automated proposals include manual fallback, power/network failure, privacy and maintenance review"
+        },
+        {
+          "id": "AH-G3-03",
+          "metric": "multichannel_alert_review",
+          "target": "alerts are reviewed by type, resident and applicable qualified professional; no phone-only life-safety assumption"
+        }
+      ]
+    },
+    {
+      "id": "AH-G4",
+      "name": "Digital accessibility",
+      "status": "proposed",
+      "target_standard": "WCAG 2.2 AA for the planner UI",
+      "checks": [
+        {
+          "id": "AH-G4-01",
+          "metric": "manual_assistive_technology",
+          "target": "manual keyboard and screen-reader passes for all critical planner tasks"
+        },
+        {
+          "id": "AH-G4-02",
+          "metric": "responsive_access",
+          "target": "review zoom/reflow, focus, contrast, touch targets and reduced motion"
+        },
+        {
+          "id": "AH-G4-03",
+          "metric": "automated_only",
+          "target": "automated scan alone cannot pass this gate"
+        }
+      ]
+    },
+    {
+      "id": "AH-G5",
+      "name": "Human and built-outcome validation",
+      "status": "proposed",
+      "checks": [
+        {
+          "id": "AH-G5-01",
+          "metric": "co_design",
+          "target": "paid co-design and observed task walkthroughs with disabled residents before usability claims"
+        },
+        {
+          "id": "AH-G5-02",
+          "metric": "cohort_reporting",
+          "target": "report critical task blockers separately by relevant cohort; aggregate pass cannot hide a blocked user group"
+        },
+        {
+          "id": "AH-G5-03",
+          "metric": "professional_review",
+          "target": "site measurements, applicable regulations, structure, electrical, alarms and egress reviewed by qualified people before construction claims"
+        },
+        {
+          "id": "AH-G5-04",
+          "metric": "post_occupancy",
+          "target": "later real-home studies retain unresolved barriers and adverse results; no claim of safety/accessibility without corresponding evidence"
+        }
+      ]
+    }
+  ],
+  "research_sources": [
+    {
+      "title": "ISO 21542:2021",
+      "url": "https://www.iso.org/standard/71860.html",
+      "use": "Built-environment accessibility and usability scope; confirm current standard status before project use"
+    },
+    {
+      "title": "South African National Strategic Framework on Universal Design and Access",
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202110/45328gen606.pdf",
+      "use": "South African policy context; not a building-specific approval"
+    },
+    {
+      "title": "RNIB adapting your home",
+      "url": "https://www.rnib.org.uk/living-with-sight-loss/independent-living/adapting-your-home/",
+      "use": "Blind/low-vision adaptations and individual task needs"
+    },
+    {
+      "title": "RNID smoke alarm systems",
+      "url": "https://rnid.org.uk/information-and-support/technology-and-products/smoke-alarm-systems/",
+      "use": "Deaf/hard-of-hearing sensory alert considerations; device fit and jurisdiction still need qualification"
+    },
+    {
+      "title": "Deafblind UK",
+      "url": "https://deafblind.org.uk/get_support/living-with-deafblindness/",
+      "use": "Individual variation in deafblind experience and supports"
+    }
+  ],
+  "evidence_policy": {
+    "target_state": "proposed",
+    "implementation_state": "not_evaluated",
+    "measured_result": null,
+    "rule": "Evidence receipts are separate from this target contract. A successful schema parse, Rust test, rendered UI or profile selection does not qualify a home."
+  }
+}
