@@ -1,0 +1,350 @@
+{
+  "schema_version": "0.1",
+  "ledger_id": "SPACE-CAPABILITY-LEDGER-001",
+  "ledger_date": "2026-10-18",
+  "purpose": "Traceable starter catalog from historical spaceflight capabilities to reproducible engineering references and staged lunar-base requirements.",
+  "semantics": {
+    "evidence_states": [
+      "historically_demonstrated",
+      "technology_demonstration",
+      "architecture_defined",
+      "synthetic_benchmark",
+      "symtropy_model_exists",
+      "numerically_reproduced_from_external_reference",
+      "hardware_or_flight_qualified"
+    ],
+    "non_implication_rule": "An evidence state does not imply any later state. Historical success is not proof of Symtropy model fidelity; a simulation is not hardware qualification; a reference label is not a reproduced result.",
+    "statuses_are_separate": [
+      "historical_reference_state",
+      "symtropy_implementation_state",
+      "external_data_replay_state",
+      "flight_qualification_state"
+    ]
+  },
+  "sources": [
+    {
+      "id": "NASA_MOON_TO_MARS_COMPONENTS",
+      "title": "Moon to Mars Architecture — Components",
+      "url": "https://www.nasa.gov/moontomarsarchitecture-components/",
+      "source_class": "architecture",
+      "supports": "NASA’s 12 sub-architectures, including autonomy/robotics, communications/PNT, habitation, ISRU, logistics, mobility, power, transportation and infrastructure."
+    },
+    {
+      "id": "NASA_MOON_BASE_SYSTEMS",
+      "title": "Moon Base Systems",
+      "url": "https://www.nasa.gov/moonbase-systems/",
+      "source_class": "architecture",
+      "supports": "Phased lunar-base capability development, environmental challenges, power, mobility, habitation, communications and logistics."
+    },
+    {
+      "id": "NASA_LUNAR_SURFACE_TECH",
+      "title": "Lunar Surface Technology",
+      "url": "https://www.nasa.gov/lunar-surface-technology/",
+      "source_class": "technology_program",
+      "supports": "Surface power/storage, ISRU, autonomous robotics, construction/landing pads, and dust/thermal constraints; distinguishes technology development from operational base capability."
+    },
+    {
+      "id": "NASA_LUNAR_HISTORY",
+      "title": "History of Lunar Exploration",
+      "url": "https://science.nasa.gov/solar-system/moon/history-of-lunar-exploration/",
+      "source_class": "mission_history",
+      "supports": "Lunar orbital, landing, crewed exploration and sample-handling history."
+    },
+    {
+      "id": "NASA_SHUTTLE",
+      "title": "The Space Shuttle",
+      "url": "https://www.nasa.gov/reference/the-space-shuttle/",
+      "source_class": "mission_history",
+      "supports": "Repeated reusable orbital transportation, satellite deployment/recovery/repair, and station assembly."
+    },
+    {
+      "id": "NASA_HISTORIES",
+      "title": "Explore NASA’s History",
+      "url": "https://www.nasa.gov/history/explore-nasas-history/",
+      "source_class": "mission_history",
+      "supports": "Apollo-Soyuz docking, Shuttle-Mir cooperation, and ISS assembly history."
+    },
+    {
+      "id": "NASA_ECLSS",
+      "title": "Environmental Control and Life Support Systems",
+      "url": "https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/",
+      "source_class": "technical_reference",
+      "supports": "Atmosphere, oxygen, ventilation, fire protection, water recovery, air revitalization and oxygen generation."
+    },
+    {
+      "id": "NASA_HUBBLE_SERVICE",
+      "title": "The History of Hubble",
+      "url": "https://science.nasa.gov/mission/hubble/overview/the-history-of-hubble/",
+      "source_class": "mission_history",
+      "supports": "Designed-for-serviceability, five on-orbit servicing missions and instrument/component replacement."
+    },
+    {
+      "id": "NASA_VOYAGER",
+      "title": "Voyager Mission",
+      "url": "https://science.nasa.gov/mission/voyager/",
+      "source_class": "mission_reference",
+      "supports": "Long-duration deep-space operations, autonomy, power constraints and long-delay communications."
+    },
+    {
+      "id": "NASA_PERSEVERANCE",
+      "title": "Mars 2020: Perseverance Rover",
+      "url": "https://science.nasa.gov/mission/mars-2020-perseverance/",
+      "source_class": "mission_reference",
+      "supports": "Robotic planetary landing, surface mobility, perception, sample caching and remote/autonomous rover operations."
+    },
+    {
+      "id": "NASA_INGENUITY",
+      "title": "Ingenuity Mars Helicopter",
+      "url": "https://science.nasa.gov/mission/mars-2020-perseverance/ingenuity-mars-helicopter/",
+      "source_class": "technology_demonstration",
+      "supports": "First powered, controlled flight on another planet; 72 flights and operational lessons for aerial exploration."
+    },
+    {
+      "id": "NASA_OSIRIS_REX",
+      "title": "OSIRIS-REx Mission",
+      "url": "https://science.nasa.gov/mission/osiris-rex/",
+      "source_class": "mission_reference",
+      "supports": "Asteroid navigation/rendezvous, sample acquisition and return to Earth; sample delivered in September 2023."
+    },
+    {
+      "id": "NASA_DART",
+      "title": "Planetary Defense: DART",
+      "url": "https://science.nasa.gov/planetary-defense-dart/",
+      "source_class": "technology_demonstration",
+      "supports": "Kinetic-impact spacecraft navigation and demonstrated change to an asteroid moonlet’s orbit."
+    },
+    {
+      "id": "NASA_MMPACT",
+      "title": "Moon-to-Mars Planetary Autonomous Construction Technology",
+      "url": "https://techport.nasa.gov/projects/116319",
+      "source_class": "technology_project",
+      "supports": "Technology development for using lunar materials to make construction elements; not proof of an operational lunar construction plant."
+    },
+    {
+      "id": "NASA_ISRU",
+      "title": "In-Situ Resource Utilization Overview",
+      "url": "https://www.nasa.gov/overview-in-situ-resource-utilization/",
+      "source_class": "technology_reference",
+      "supports": "Resource characterization, accessibility, acquisition, processing and product-quality distinctions."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability_id": "SPACE-TRAJ-001",
+      "name": "Launch, orbital insertion, trajectory and reentry",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_LUNAR_HISTORY",
+        "NASA_SHUTTLE"
+      ],
+      "what_was_demonstrated": "Vehicles have launched, inserted payloads into orbit, performed lunar/deep-space transfers, and returned crew or cargo to Earth in specific mission architectures.",
+      "reproduction_target": "Versioned trajectory cases with frames, epochs, propulsion assumptions and independent reference states; report position/velocity error, delta-v budget error and event timing error.",
+      "symtropy_implementation_state": "existing_substrate_not_mission_reproduced",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Select a documented low-risk historical trajectory with published initial conditions and ephemerides; freeze frame/time standards before comparing integrators.",
+      "claim_ceiling": "No historical trajectory reproduction is claimed until inputs and reference outputs are frozen and independent numeric tolerances pass."
+    },
+    {
+      "capability_id": "SPACE-HUMAN-LUNAR-001",
+      "name": "Crewed lunar landing, EVA and surface sample handling",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_LUNAR_HISTORY"
+      ],
+      "what_was_demonstrated": "Apollo missions performed crewed lunar landings, extravehicular activities and sample collection/handling.",
+      "reproduction_target": "Mission-profile and resource-accounting cases for descent/ascent, EVA timelines, consumables and sample custody, with historical missions as documented requirements—not a claim to reproduce unprovided telemetry.",
+      "symtropy_implementation_state": "specification_and_related_subsystems_only",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Build a separate historical mission profile/consumables fixture; keep actual guidance/control qualification outside the digital twin until reference-grade data and safety review exist.",
+      "claim_ceiling": "Historical success does not prove a new lander or autonomous lunar vehicle safe."
+    },
+    {
+      "capability_id": "SPACE-RENDEZVOUS-001",
+      "name": "Rendezvous, proximity operations, docking and berthing",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_HISTORIES",
+        "NASA_SHUTTLE",
+        "NASA_HUBBLE_SERVICE"
+      ],
+      "what_was_demonstrated": "Crewed vehicles docked in orbit, modules were assembled into stations, and a servicing vehicle captured and worked on Hubble.",
+      "reproduction_target": "Relative-state estimation, approach corridors, closing-rate limits, keep-out zones, contact dynamics and abort cases with independent geometry and dynamics oracles.",
+      "symtropy_implementation_state": "robotics_physics_substrate_exists_mission_contract_missing",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Define one 6-DoF synthetic approach/abort known-answer case and a separate Hubble-style servicing kinematics fixture.",
+      "claim_ceiling": "A contact simulation is not a flight docking or capture qualification."
+    },
+    {
+      "capability_id": "SPACE-REUSABLE-TRANSPORT-001",
+      "name": "Reusable orbital transportation and recovery",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_SHUTTLE"
+      ],
+      "what_was_demonstrated": "The Space Shuttle fleet repeatedly launched, operated in orbit and landed its orbiter on a runway across 135 missions.",
+      "reproduction_target": "Turnaround lifecycle and repeated mission reliability accounting across refurbishments, inspections, damage, consumables and launch/landing constraints.",
+      "symtropy_implementation_state": "vehicle_runtime_specification_exists_not_benchmarked",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Create a lifecycle baseline whose denominator includes all flown missions and whose maintenance/refurbishment evidence is distinct from nominal flight simulation.",
+      "claim_ceiling": "Repeated historical flights do not imply that every possible reusable launch architecture is economically superior or safe."
+    },
+    {
+      "capability_id": "SPACE-HABITAT-ECLSS-001",
+      "name": "Long-duration habitation and environmental control/life support",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_ECLSS",
+        "NASA_HISTORIES"
+      ],
+      "what_was_demonstrated": "The ISS has supported long-duration crews with atmosphere management, water recovery, air revitalization, oxygen generation, ventilation and waste systems.",
+      "reproduction_target": "Subsystem mass/energy/material balances, service availability and fault/recovery campaigns with each resource flow conserved and subsystem boundaries explicit.",
+      "symtropy_implementation_state": "cross_domain_work_exists_not_integrated_or_qualified",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Define the smallest headless habitat service contract and a separate water/air/waste mass-balance fixture; do not average ECLSS service into one score.",
+      "claim_ceiling": "A simulated closed loop does not establish human-rated life support, microbiological safety or long-duration reliability."
+    },
+    {
+      "capability_id": "SPACE-ORBITAL-SERVICING-001",
+      "name": "On-orbit repair, upgrade and maintainability",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_HUBBLE_SERVICE"
+      ],
+      "what_was_demonstrated": "Hubble was designed for serviceability and received five crewed servicing missions that installed instruments and replaced/repaired components.",
+      "reproduction_target": "Repair task graphs, access envelope, tool/resource constraints, fault isolation, replacement compatibility, post-repair validation and lifecycle benefit versus replacement.",
+      "symtropy_implementation_state": "robotic_manipulation_substrate_exists_service_campaign_missing",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Represent one bounded replaceable-unit task as a deterministic manipulation and maintenance campaign, including failed-tool and unavailable-part negative cases.",
+      "claim_ceiling": "Manipulation success in simulation is not evidence of EVA or autonomous servicing safety."
+    },
+    {
+      "capability_id": "SPACE-DEEP-SPACE-OPS-001",
+      "name": "Long-duration deep-space autonomy and delayed communication",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_VOYAGER"
+      ],
+      "what_was_demonstrated": "Deep-space spacecraft have operated over decades with constrained power and long communication delays, requiring onboard autonomy and ground/spacecraft coordination.",
+      "reproduction_target": "Delayed/lost/duplicated commands, clock drift, telemetry gaps, mode transitions, power decline, recovery and stale-state rejection under a versioned network/time model.",
+      "symtropy_implementation_state": "communication_and_fault_subsystems_partial_not_mission_reproduced",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Compose a delayed-command replay fixture with an independent event oracle and fail-closed command-state semantics.",
+      "claim_ceiling": "A synthetic link-delay scenario does not reproduce any Voyager flight segment or prove radiation-hardened onboard operation."
+    },
+    {
+      "capability_id": "SPACE-ROBOTIC-SURFACE-001",
+      "name": "Robotic planetary landing, surface mobility and sample operations",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_PERSEVERANCE"
+      ],
+      "what_was_demonstrated": "Mars missions have landed robotic vehicles, conducted surface mobility, used perception and collected/cached samples for further investigation/return planning.",
+      "reproduction_target": "Terrain/deformation, wheel/traction, localization drift, energy, hazard detection, sampling/actuation envelope, slip and recovery using logged reference runs where available.",
+      "symtropy_implementation_state": "terrain_and_robotics_substrate_exists_benchmark_reuse_audit_needed",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Select one publicly documented rover traverse or controlled terrain benchmark; freeze terrain, pose, odometry and intervention labels.",
+      "claim_ceiling": "A Bevy terrain twin or synthetic rover drive is not validated Mars rover physics or autonomous flight behavior."
+    },
+    {
+      "capability_id": "SPACE-PLANETARY-AIRCRAFT-001",
+      "name": "Powered flight in another planet's atmosphere",
+      "historical_reference_state": "technology_demonstration",
+      "exemplar_references": [
+        "NASA_INGENUITY"
+      ],
+      "what_was_demonstrated": "Ingenuity demonstrated powered, controlled flight on Mars and completed 72 flights before the mission concluded in 2024.",
+      "reproduction_target": "Atmospheric density/rotor scaling, navigation, flight envelopes, energy, gust/terrain hazard cases and landing/recovery contracts with independently sourced environment inputs.",
+      "symtropy_implementation_state": "flight_demo_substrate_exists_reference_reproduction_not_started",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Use published Ingenuity flight/engineering datasets only after units, environment assumptions and data rights are reviewed.",
+      "claim_ceiling": "A rotorcraft simulation at Earth settings is not a Mars-flight reproduction."
+    },
+    {
+      "capability_id": "SPACE-SAMPLE-RETURN-001",
+      "name": "Small-body rendezvous, sample acquisition and return",
+      "historical_reference_state": "historically_demonstrated",
+      "exemplar_references": [
+        "NASA_OSIRIS_REX"
+      ],
+      "what_was_demonstrated": "OSIRIS-REx rendezvoused with Bennu, acquired a surface sample and delivered it to Earth in September 2023.",
+      "reproduction_target": "Navigation, proximity approach, sampling-contact envelope, sample containment/custody, contamination controls, return trajectory and recovery timeline.",
+      "symtropy_implementation_state": "orbital_and_manipulation_subsystems_partial_not_reproduced",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Construct a reference/data registry for a single publicly available OSIRIS-REx sequence; do not infer sample capture from arm pose alone.",
+      "claim_ceiling": "A synthetic sampling event does not reproduce Bennu contact physics, sample integrity, or planetary-protection qualification."
+    },
+    {
+      "capability_id": "SPACE-PLANETARY-DEFENSE-001",
+      "name": "Kinetic-impact change to an asteroid orbit",
+      "historical_reference_state": "technology_demonstration",
+      "exemplar_references": [
+        "NASA_DART"
+      ],
+      "what_was_demonstrated": "DART’s intentional impact measurably changed the orbit of Dimorphos around Didymos.",
+      "reproduction_target": "Impact geometry, momentum-transfer uncertainty, ejecta sensitivity and orbit-fitting against published before/after observations using an independent propagator.",
+      "symtropy_implementation_state": "physics_substrate_exists_but_no_dart_reproduction",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_applicable_to_software_model",
+      "next_action": "Use published post-impact orbit change as an external check only after input ephemerides, mass/impact assumptions and uncertainty are frozen.",
+      "claim_ceiling": "A basic impulse in a simulator is not a validated asteroid-impact model."
+    },
+    {
+      "capability_id": "SPACE-LUNAR-ISRU-001",
+      "name": "Lunar resource characterization and in-situ resource utilization",
+      "historical_reference_state": "technology_demonstration",
+      "exemplar_references": [
+        "NASA_LUNAR_SURFACE_TECH",
+        "NASA_ISRU"
+      ],
+      "what_was_demonstrated": "Lunar resource investigations and technology tests have advanced prospecting and oxygen-extraction concepts, including testing regolith simulants; sustained site-qualified water/oxygen production is not established by this ledger.",
+      "reproduction_target": "Evidence-bounded prospect-to-product process graph: location/form/concentration/accessibility, acquisition losses, process energy, yield, purity, residue, equipment/spares and downstream qualification.",
+      "symtropy_implementation_state": "synthetic_mass_energy_bench_started",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_qualified_for_operational_lunar_production",
+      "next_action": "Extend PR #1971 only after its synthetic control/accounting semantics and exact-head Rust tests qualify; keep site evidence and simulated process yield distinct.",
+      "claim_ceiling": "Resource occurrence or a simulant test does not prove a recoverable reserve or dependable operational supply."
+    },
+    {
+      "capability_id": "SPACE-LUNAR-CONSTRUCTION-001",
+      "name": "Autonomous or remotely operated lunar-site construction",
+      "historical_reference_state": "technology_demonstration",
+      "exemplar_references": [
+        "NASA_LUNAR_SURFACE_TECH",
+        "NASA_MMPACT"
+      ],
+      "what_was_demonstrated": "NASA has run technology-development work for using lunar simulants/materials to manufacture construction elements; this is not a completed autonomous lunar construction plant.",
+      "reproduction_target": "Geology/site envelope, machine capability limits, excavation/spoil/berm/landing-pad mass, power, dust, wear, terrain stability, inspection and repair work packages.",
+      "symtropy_implementation_state": "terrain_excavation_substrate_exists_reference_campaign_missing",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_qualified_for_lunar_construction",
+      "next_action": "Connect #1803 resource chains to #1834 robot capability envelopes and the terrain model via a fixed synthetic worksite before planning a physical pilot.",
+      "claim_ceiling": "Voxel excavation or printed berm geometry alone does not establish bearing capacity, landing safety or lunar durability."
+    },
+    {
+      "capability_id": "SPACE-LUNAR-BASE-001",
+      "name": "Integrated sustained lunar base",
+      "historical_reference_state": "architecture_defined",
+      "exemplar_references": [
+        "NASA_MOON_TO_MARS_COMPONENTS",
+        "NASA_MOON_BASE_SYSTEMS"
+      ],
+      "what_was_demonstrated": "NASA has published a phased Moon Base architecture; integrated long-duration human lunar settlement is a target, not an achieved operational capability.",
+      "reproduction_target": "Capability dependencies across power/storage, communications/PNT, robotics/mobility, logistics, habitation/ECLSS, thermal, dust/radiation, resource production, maintenance, fault recovery and crew safety.",
+      "symtropy_implementation_state": "program_specifications_and_first_utility_slice_started",
+      "external_data_replay_state": "not_started",
+      "flight_qualification_state": "not_qualified",
+      "next_action": "Use phase gates: uncrewed site survey and power demonstration; sustained robotic operation; qualified local products; redundant utilities and recovery; only then human-rated habitat integration.",
+      "claim_ceiling": "A digital twin or set of subsystem simulations is not an autonomous Moon base."
+    }
+  ]
+}
