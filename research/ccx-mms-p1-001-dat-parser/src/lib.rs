@@ -60,6 +60,13 @@ pub enum ParseError {
     DuplicateBlock { kind: BlockKind, set_name: String, time: f64 },
     TimeNotFound { kind: BlockKind, set_name: String, time: f64, observed: Vec<f64> },
     NodeInventoryMismatch { kind: BlockKind, missing: Vec<usize>, unexpected: Vec<usize> },
+    EmptyBoundaryNodeSet,
+    DuplicateBoundaryNodeId(usize),
+    MissingBoundaryForce(usize),
+    BoundaryLoadInventoryMismatch { missing: Vec<usize>, unexpected: Vec<usize> },
+    NonFiniteBoundaryLoad(usize),
+    NonFiniteCorrectedReaction(usize),
+    InconsistentFieldTimes,
 }
 
 impl fmt::Display for ParseError {
@@ -108,6 +115,16 @@ impl fmt::Display for ParseError {
                 f,
                 "{kind} node inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
             ),
+            Self::EmptyBoundaryNodeSet => f.write_str("boundary node set is empty"),
+            Self::DuplicateBoundaryNodeId(id) => write!(f, "duplicate boundary node ID {id}"),
+            Self::MissingBoundaryForce(id) => write!(f, "RF output is missing boundary node {id}"),
+            Self::BoundaryLoadInventoryMismatch { missing, unexpected } => write!(
+                f,
+                "boundary-load inventory mismatch; missing {missing:?}, unexpected {unexpected:?}"
+            ),
+            Self::NonFiniteBoundaryLoad(id) => write!(f, "non-finite omitted boundary load for node {id}"),
+            Self::NonFiniteCorrectedReaction(id) => write!(f, "non-finite corrected reaction for node {id}"),
+            Self::InconsistentFieldTimes => f.write_str("displacement and RF output times differ"),
         }
     }
 }
@@ -168,6 +185,74 @@ pub fn parse_dat(
         time_tolerance,
     )?;
     Ok(ParsedDat { displacements, external_forces })
+}
+
+/// Reconstruct support reactions for the full manufactured load vector.
+///
+/// For this deck convention, constrained boundary-node equivalent loads are
+/// preserved separately and omitted from CLOAD. The RF output at those nodes
+/// is therefore the reaction for the reduced applied-load model. Correct with
+/// R_full = R_deck - F_boundary. Call this only after the real pinned CalculiX
+/// version and output semantics have been qualified; parsing alone does not
+/// establish that qualification.
+pub fn correct_support_reactions(
+    parsed: &ParsedDat,
+    boundary_node_ids: &[usize],
+    omitted_boundary_loads: &BTreeMap<usize, Vec3>,
+) -> Result<BTreeMap<usize, Vec3>, ParseError> {
+    if boundary_node_ids.is_empty() {
+        return Err(ParseError::EmptyBoundaryNodeSet);
+    }
+    if parsed.displacements.output_time.to_bits() != parsed.external_forces.output_time.to_bits() {
+        return Err(ParseError::InconsistentFieldTimes);
+    }
+
+    let mut boundary_ids = BTreeSet::new();
+    for node_id in boundary_node_ids {
+        if *node_id == 0 {
+            return Err(ParseError::InvalidExpectedNodeId(*node_id));
+        }
+        if !boundary_ids.insert(*node_id) {
+            return Err(ParseError::DuplicateBoundaryNodeId(*node_id));
+        }
+        if !parsed.external_forces.values.contains_key(node_id) {
+            return Err(ParseError::MissingBoundaryForce(*node_id));
+        }
+    }
+
+    let provided_ids: BTreeSet<usize> = omitted_boundary_loads.keys().copied().collect();
+    let missing = boundary_ids.difference(&provided_ids).copied().collect::<Vec<_>>();
+    let unexpected = provided_ids.difference(&boundary_ids).copied().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(ParseError::BoundaryLoadInventoryMismatch { missing, unexpected });
+    }
+
+    let mut corrected = BTreeMap::new();
+    for node_id in boundary_ids {
+        let rf = parsed
+            .external_forces
+            .get(node_id)
+            .ok_or(ParseError::MissingBoundaryForce(node_id))?;
+        let omitted = omitted_boundary_loads
+            .get(&node_id)
+            .ok_or(ParseError::BoundaryLoadInventoryMismatch {
+                missing: vec![node_id],
+                unexpected: Vec::new(),
+            })?;
+        if !(omitted.x.is_finite() && omitted.y.is_finite() && omitted.z.is_finite()) {
+            return Err(ParseError::NonFiniteBoundaryLoad(node_id));
+        }
+        let reaction = Vec3 {
+            x: rf.x - omitted.x,
+            y: rf.y - omitted.y,
+            z: rf.z - omitted.z,
+        };
+        if !(reaction.x.is_finite() && reaction.y.is_finite() && reaction.z.is_finite()) {
+            return Err(ParseError::NonFiniteCorrectedReaction(node_id));
+        }
+        corrected.insert(node_id, reaction);
+    }
+    Ok(corrected)
 }
 
 fn classify_heading(line: &str) -> Option<BlockKind> {
@@ -374,6 +459,53 @@ mod tests {
         assert_eq!(parsed.external_forces.get(3).unwrap().y, 6.0);
         assert_eq!(parsed.displacements.output_time, 1.0);
         assert_eq!(parsed.external_forces.output_time, 1.0);
+    }
+
+    #[test]
+    fn support_reaction_correction_subtracts_omitted_boundary_loads() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let mut omitted = BTreeMap::new();
+        omitted.insert(1, Vec3 { x: 0.5, y: 0.25, z: 0.0 });
+        omitted.insert(4, Vec3 { x: -0.5, y: 0.75, z: 0.0 });
+
+        let corrected = correct_support_reactions(&parsed, &[1, 4], &omitted).unwrap();
+        assert_eq!(corrected[&1], Vec3 { x: -1.5, y: -2.25, z: 0.0 });
+        assert_eq!(corrected[&4], Vec3 { x: -6.5, y: 7.25, z: 0.0 });
+    }
+
+    #[test]
+    fn support_reaction_correction_fails_closed_on_inventory_or_numeric_errors() {
+        let parsed = parse_dat(FIXTURE, "NALL", &NODES, 1.0, 1.0e-8).unwrap();
+        let valid = BTreeMap::from([
+            (1, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[], &valid),
+            Err(ParseError::EmptyBoundaryNodeSet)
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 1], &valid),
+            Err(ParseError::DuplicateBoundaryNodeId(1))
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 4], &BTreeMap::new()),
+            Err(ParseError::BoundaryLoadInventoryMismatch { .. })
+        ));
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 5], &valid),
+            Err(ParseError::MissingBoundaryForce(5))
+        ));
+
+        let non_finite = BTreeMap::from([
+            (1, Vec3 { x: f64::NAN, y: 0.0, z: 0.0 }),
+            (4, Vec3 { x: 0.0, y: 0.0, z: 0.0 }),
+        ]);
+        assert!(matches!(
+            correct_support_reactions(&parsed, &[1, 4], &non_finite),
+            Err(ParseError::NonFiniteBoundaryLoad(1))
+        ));
     }
 
     #[test]
