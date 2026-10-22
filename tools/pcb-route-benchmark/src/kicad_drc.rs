@@ -767,7 +767,6 @@ mod tests {
         // Re-run the valid report, mutate a verified DRC file exactly after the
         // initial source/output/DRC hash pass, then ensure the parse-boundary
         // re-hash rejects the changed bytes before any DRC result is issued.
-        let report_for_race = serde_json::to_vec(&value_for_clean_report(&report_bytes)).unwrap_or_else(|_| report_bytes.clone());
         let race_report = report_bytes.clone();
         let race_root = root.clone();
         let error = verify_run_artifacts_with_kicad_drc_policy_inner(
@@ -781,7 +780,6 @@ mod tests {
             },
         ).unwrap_err();
         assert!(error.contains("DRC report changed after run-artifact verification"), "{error}");
-        let _ = report_for_race;
         let _ = fs::remove_dir_all(&root);
     }
 
