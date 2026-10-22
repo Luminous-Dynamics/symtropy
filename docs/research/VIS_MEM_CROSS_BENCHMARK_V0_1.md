@@ -361,3 +361,26 @@ Before training/evaluation, write down the evaluation split, held-out policy-sel
 This changes the comparative question from “does a bigger external store beat a small buffer?” to “which memory architecture gives the best task-success / reliability / latency / resource frontier under the same evidence and action budget?” The likely differentiator for Symtropy is not claiming one store architecture wins everywhere, but demonstrating that a hybrid can retain recurrent efficiency while exposing auditable provenance, stale-revision rejection, verification, and safe abstention when the latent state is insufficient.
 
 **Prospective go/no-go gates (not measured results):** at least +5 absolute points of paired native macro success over the strongest eligible baseline with a paired 95% interval above zero; at least 50% relative reduction in harmful-memory actions compared with always-recall on labelled intervention cases; at most 1-point regression on reactive controls; false abstention below 2% when an independently established correct path exists; and no worse measured success/resource Pareto position. Publish both passes and regressions.
+
+
+## Metamorphic invariants before native performance claims (VIS-MEM-018)
+
+[VIS-MEM-018 issue #2650 / draft PR #2652](https://github.com/Luminous-Dynamics/symtropy/pull/2652) adds a deterministic metamorphic test harness over four bounded-storage policies. It measures whether memory semantics survive transformations that should be irrelevant—duplicate delivery, chunking, and unrelated inserts when no eviction is needed—and intentionally exposes where weaker policies change their answer: arrival-order permutation, stale events after payload eviction, and same-revision conflicting values.
+
+The generated order test uses 16 fixed seeds over eight entities with three distinct source revisions each. The experiment distinguishes:
+- **latest-arrival counterexamples:** same source facts arrive in a different order and the chosen version changes;
+- **max-source-revision upsert limitation:** it rejects a stale value while a payload exists, but can accept it after the payload is evicted;
+- **persistent watermark:** the source high-water mark remains after payload eviction and blocks stale revival, at additional metadata cost;
+- **conflict-aware watermark:** equal-revision contradictory values are exposed as ambiguity instead of resolved by last arrival.
+
+These are synthetic mechanism findings until the exact-head Rust workflow executes successfully. The watermark is a small version/fingerprint index, not a substitute for the full payload, and its estimated logical bytes exclude allocator/map overhead. Results must show these costs separately from fixed payload slots.
+
+## Native MIKASA results: contract verified does not mean policy validated
+
+[VIS-MEM-017 issue #2643 / draft PR #2646](https://github.com/Luminous-Dynamics/symtropy/pull/2646) adds a fail-closed verifier for canonical MIKASA-Robo-VLA Long result files. The public protocol fixes 22 Long task IDs, 50 episodes per task, seeds `4242424242…4242424291`, RGB observations, `pd_ee_delta_pose`, and the `success_once` per-episode main metric. It requires full per-task and per-memory-type SR along with split macro SR; per-task mean return remains diagnostic rather than a split aggregate. The official task/seed stream is correlated across tasks, so uncertainty calculations must preserve the task and seed structure.
+
+The artifact verifier checks expected task roster, raw episode array lengths/seeds, score arithmetic, summary consistency, model/action-chunk consistency and common privileged-field keys in model config. It explicitly emits `contract_validated_not_performance_evaluated`: it cannot establish that policy code never accessed hidden observations or oracle state, which requires a separate source/runner audit.
+
+For the native comparison, include (under identical model/backbone, training allowance, seeds, wrappers and action executor): no persistent memory; frame/context window; external episodic retrieval; fixed-size learned recurrent/associative memory (MemBodied-like); revision-aware evidence ledger; and a learned-state + evidence-ledger hybrid. Keep the 22 tasks' canonical metrics intact, report resource/training costs, and preserve the ten-task Reactive split as an independent negative control so added memory is not rewarded when the answer is already visible.
+
+Recent benchmarks independently support this lifecycle-aware approach: WorldMemArena spans 400 multi-session multimodal tasks and separates write, maintain, retrieve and use; EmbodiedMemory-Bench has 2,554 interaction episodes across four task families and describes weak dynamic-state tracking and interaction-derived updates; MemBodied reports that fixed-size learned associative memory can outperform its vanilla recurrent baseline on RMBench. These paper/project results are external references and are not pooled with Symtropy synthetic results or treated as a controlled comparison. Sources: https://arxiv.org/abs/2605.29341, https://arxiv.org/abs/2609.28236, https://arxiv.org/abs/2609.28256.
