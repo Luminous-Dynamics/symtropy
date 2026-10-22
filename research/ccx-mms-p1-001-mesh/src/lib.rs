@@ -34,6 +34,12 @@ pub struct Mesh {
     pub triangles: Vec<Triangle>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct BodyForceAssembly {
+    pub nodal_loads: Vec<Vec2>,
+    pub integrated_absolute_force: Vec2,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ErrorNorms {
     pub displacement_l2_absolute: f64,
@@ -92,19 +98,20 @@ impl Mesh {
         output
     }
 
-    /// Assemble consistent nodal loads F_i = integral(N_i * f dOmega).
+    /// Assemble nodal loads and quadrature-scaled absolute force integrals.
     ///
     /// A tensor-product Gauss-Legendre rule on [0,1]^2 is mapped to the
     /// reference triangle with r=u, s=(1-u)*v. The Duffy Jacobian (1-u) and
     /// the physical triangle determinant are both included.
-    pub fn assemble_body_force(
+    pub fn assemble_body_force_with_diagnostics(
         &self,
         problem: ManufacturedProblem,
         quadrature_order: usize,
-    ) -> Result<Vec<Vec2>, MeshError> {
+    ) -> Result<BodyForceAssembly, MeshError> {
         validate_mesh(self)?;
         let quadrature = gauss_legendre_unit_interval(quadrature_order)?;
         let mut loads = vec![Vec2 { x: 0.0, y: 0.0 }; self.nodes.len()];
+        let mut integrated_absolute_force = Vec2 { x: 0.0, y: 0.0 };
 
         for triangle in &self.triangles {
             let a = self.nodes[triangle.nodes[0] - 1];
@@ -124,6 +131,8 @@ impl Mesh {
                     let y = a.y + r * (b.y - a.y) + s * (c.y - a.y);
                     let force = problem.body_force_closed_form(x, y);
                     let weight = determinant * (1.0 - u) * wu * wv;
+                    integrated_absolute_force.x += weight * force.x.abs();
+                    integrated_absolute_force.y += weight * force.y.abs();
 
                     for (node_id, shape_value) in triangle.nodes.iter().zip(shape) {
                         let contribution = shape_value * weight;
@@ -141,7 +150,27 @@ impl Mesh {
         {
             return Err(MeshError::InvalidMeshTopology);
         }
-        Ok(loads)
+        if !integrated_absolute_force.x.is_finite()
+            || !integrated_absolute_force.y.is_finite()
+            || integrated_absolute_force.x < 0.0
+            || integrated_absolute_force.y < 0.0
+        {
+            return Err(MeshError::InvalidLoadVectorLength);
+        }
+        Ok(BodyForceAssembly {
+            nodal_loads: loads,
+            integrated_absolute_force,
+        })
+    }
+
+    /// Assemble only the complete nodal load vector.
+    pub fn assemble_body_force(
+        &self,
+        problem: ManufacturedProblem,
+        quadrature_order: usize,
+    ) -> Result<Vec<Vec2>, MeshError> {
+        self.assemble_body_force_with_diagnostics(problem, quadrature_order)
+            .map(|assembly| assembly.nodal_loads)
     }
 
     /// Evaluate exact-continuum errors of a P1 finite-element field.
