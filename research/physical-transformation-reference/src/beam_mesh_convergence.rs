@@ -4,9 +4,9 @@
 //! Mode-shape MAC / cross-mesh pairing and the source's 200-element/member
 //! sparse solve remain explicit future gates.
 
-use crate::beam_mesh::{assemble_released_joint_beam_mesh, canonical_beam_mesh_request};
+use crate::beam_mesh::assemble_released_joint_beam_mesh;
 use crate::beam_modal::{BeamModalOptions, solve_released_joint_beam_modes};
-use crate::beam_pin_assembly::{BeamPinMember, BeamPinNode};
+use crate::beam_pin_assembly::{BeamPinMember, BeamPinNode, canonical_assembly_request};
 use crate::Check;
 
 /// A frequency-ranked snapshot for one uniform mesh density.
@@ -47,7 +47,7 @@ pub fn canonical_beam_mesh_convergence_request(
     monotonic_relative_tolerance: f64,
 ) -> Check<String> {
     validate_request(element_counts, requested_modes, monotonic_relative_tolerance)?;
-    let base_request = canonical_beam_mesh_request(nodes, members, element_counts[0])?;
+    let base_request = canonical_assembly_request(nodes, members)?;
     Ok(format!(
         "schema=beam-mesh-convergence-request-v0.1|elements_per_member={}|requested_modes={requested_modes}|monotonic_relative_tolerance={monotonic_relative_tolerance}|mode_pairing=frequency_ordinal_only_MAC_not_claimed|base_request={base_request}",
         element_counts
