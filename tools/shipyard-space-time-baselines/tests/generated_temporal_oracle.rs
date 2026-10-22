@@ -6,8 +6,8 @@
 
 use shipyard_space_time::{ExclusionZone, Footprint, Rect, TimeRange, verify};
 use shipyard_space_time_baselines::{
-    BaselineErrorCode, PlacementRequest, first_fit_bottom_left,
-    first_fit_decreasing_bottom_left, first_fit_heuristic_portfolio, first_fit_portfolio,
+    BaselineErrorCode, PlacementRequest, first_fit_bottom_left, first_fit_decreasing_bottom_left,
+    first_fit_heuristic_portfolio, first_fit_portfolio,
 };
 
 const YARD_WIDTH: i64 = 4;
@@ -73,9 +73,7 @@ fn exact_pack_exists(
             };
             let candidate_mask = cell_mask(candidate_rect);
 
-            if overlaps_in_time(request.occupied, zone_active)
-                && candidate_mask & zone_mask != 0
-            {
+            if overlaps_in_time(request.occupied, zone_active) && candidate_mask & zone_mask != 0 {
                 continue;
             }
             if occupied.iter().any(|(mask, interval)| {
@@ -101,9 +99,7 @@ fn exact_pack_exists(
     false
 }
 
-fn generated_case(
-    state: &mut u32,
-) -> (Vec<PlacementRequest>, ExclusionZone) {
+fn generated_case(state: &mut u32) -> (Vec<PlacementRequest>, ExclusionZone) {
     let mut requests = Vec::new();
     for index in 0..4 {
         let width = 1 + i64::from(pick(state, 3));
@@ -123,8 +119,14 @@ fn generated_case(
 
     let zone_width = 1 + i64::from(pick(state, 2));
     let zone_height = 1 + i64::from(pick(state, 2));
-    let zone_x = i64::from(pick(state, u32::try_from(YARD_WIDTH - zone_width + 1).unwrap()));
-    let zone_y = i64::from(pick(state, u32::try_from(YARD_HEIGHT - zone_height + 1).unwrap()));
+    let zone_x = i64::from(pick(
+        state,
+        u32::try_from(YARD_WIDTH - zone_width + 1).unwrap(),
+    ));
+    let zone_y = i64::from(pick(
+        state,
+        u32::try_from(YARD_HEIGHT - zone_height + 1).unwrap(),
+    ));
     let (zone_start, zone_end) = WINDOWS[pick(state, 3) as usize];
 
     (
@@ -180,14 +182,7 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
             Footprint::AxisAlignedRect(rect) => *rect,
             Footprint::Unsupported { .. } => unreachable!("generator emits supported rectangles"),
         };
-        let exact = exact_pack_exists(
-            &requests,
-            0,
-            &[],
-            yard,
-            cell_mask(zone_rect),
-            zone.active,
-        );
+        let exact = exact_pack_exists(&requests, 0, &[], yard, cell_mask(zone_rect), zone.active);
         if exact {
             exact_feasible += 1;
         }
@@ -267,26 +262,56 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
     assert_eq!(exact_feasible, 228, "exact temporal feasibility changed");
     assert_eq!(caller_solved, 168, "caller-order temporal coverage changed");
     assert_eq!(caller_missed, 60, "caller-order temporal misses changed");
-    assert_eq!(caller_rejected_infeasible, 284, "caller-order infeasibility changed");
-    assert_eq!(caller_false_feasible, 0, "caller-order false-feasible plans detected");
-    assert_eq!(decreasing_solved, 192, "decreasing-area temporal coverage changed");
-    assert_eq!(decreasing_missed, 36, "decreasing-area temporal misses changed");
+    assert_eq!(
+        caller_rejected_infeasible, 284,
+        "caller-order infeasibility changed"
+    );
+    assert_eq!(
+        caller_false_feasible, 0,
+        "caller-order false-feasible plans detected"
+    );
+    assert_eq!(
+        decreasing_solved, 192,
+        "decreasing-area temporal coverage changed"
+    );
+    assert_eq!(
+        decreasing_missed, 36,
+        "decreasing-area temporal misses changed"
+    );
     assert_eq!(
         decreasing_rejected_infeasible, 284,
         "decreasing-area infeasibility changed"
     );
-    assert_eq!(decreasing_false_feasible, 0, "decreasing-area false-feasible plans detected");
+    assert_eq!(
+        decreasing_false_feasible, 0,
+        "decreasing-area false-feasible plans detected"
+    );
     assert_eq!(portfolio_solved, 216, "portfolio temporal coverage changed");
     assert_eq!(portfolio_missed, 12, "portfolio temporal misses changed");
     assert_eq!(
         portfolio_rejected_infeasible, 284,
         "portfolio temporal infeasibility changed"
     );
-    assert_eq!(portfolio_false_feasible, 0, "portfolio false-feasible plans detected");
-    assert_eq!(exact_combined_solved, 228, "exact-repaired temporal coverage changed");
-    assert_eq!(exact_fallback_recovered, 12, "exact temporal recovery count changed");
-    assert_eq!(exact_proven_infeasible, 284, "exact temporal infeasibility count changed");
-    assert_eq!(exact_budget_exhausted, 0, "temporal exact-search budget changed");
+    assert_eq!(
+        portfolio_false_feasible, 0,
+        "portfolio false-feasible plans detected"
+    );
+    assert_eq!(
+        exact_combined_solved, 228,
+        "exact-repaired temporal coverage changed"
+    );
+    assert_eq!(
+        exact_fallback_recovered, 12,
+        "exact temporal recovery count changed"
+    );
+    assert_eq!(
+        exact_proven_infeasible, 284,
+        "exact temporal infeasibility count changed"
+    );
+    assert_eq!(
+        exact_budget_exhausted, 0,
+        "temporal exact-search budget changed"
+    );
     assert_eq!(
         exact_combined_false_feasible, 0,
         "exact-repaired temporal false-feasible plans detected"
