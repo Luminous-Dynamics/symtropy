@@ -118,15 +118,15 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)" = \
             "b7977a4e90b40fd28fa149fc69f1647661d10f56"
 
-      - name: Build stock CCX 2.22 with a pinned SPOOLES-only static profile
+      - name: Build stock CCX 2.22 with pinned SPOOLES plus oneMKL/ARPACK support
         id: build_ccx
         shell: bash
         run: |
           set -euo pipefail
           export WORK="$RUNNER_TEMP/ccx-build"
-          export WITH_PARDISO=0
+          export WITH_PARDISO=1
           export WITH_PASTIX=0
-          export WITH_ARPACK=0
+          export WITH_ARPACK=1
           export WITH_MT=1
           mkdir -p "$WORK"
           {
@@ -196,11 +196,11 @@ jobs:
               ccx_source_url:$source_url,
               ccx_source_sha256:$source_sha,
               spooles_sha256:$spooles_sha,
-              arpack_enabled:false,
+              arpack_enabled:true,
               ccx_executable_sha256:$exe_sha,
               toolchain_manifest_sha256:$toolchain_sha,
               build_log_sha256:$build_log_sha,
-              build_config:{with_pardiso:false,with_pastix:false,with_arpack:false,with_mt:true}
+              build_config:{with_pardiso:true,with_pastix:false,with_arpack:true,with_mt:true}
             }' > "$RUNNER_TEMP/ccx-evidence/build-manifest.json"
           cp "$GITHUB_WORKSPACE/CalculiX-builder/PROVENANCE.md" \
             "$RUNNER_TEMP/ccx-evidence/CalculiX-PROVENANCE.md"
