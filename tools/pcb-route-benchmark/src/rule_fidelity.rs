@@ -967,7 +967,126 @@ mod tests {
             &serde_json::to_vec(&bad).unwrap(), SOURCE_BOARD, OUTPUT_A, Some(SOURCE_RULES),
             COMPAT_POLICY.as_bytes(), COMPAT_CLEAN.as_bytes(), Some(STRICT_POLICY.as_bytes()),
             Some(STRICT_CLEAN.as_bytes()), &BTreeMap::new(), HEAD
-        ).unwrap_err().contains("mapping evidence path/digest"));
+        ).unwrap_err().contains("evidence path and SHA-256"));
+    }
+
+
+    #[test]
+    fn cited_evidence_bytes_must_exist_and_match_the_declared_digest() {
+        let migrated = RuleAssessment {
+            rule_id: "clearance.edge".into(),
+            classification: RuleClassification::VersionMigratedEquivalent,
+            source_value: Some("0.25mm".into()),
+            evaluated_value: Some("0.25mm effective".into()),
+            mapping_evidence_relative_path: Some("evidence/clearance-edge-migration.txt".into()),
+            mapping_evidence_sha256: Some(sha256_hex(MAPPING_EVIDENCE)),
+            waiver_evidence_relative_path: None,
+            waiver_evidence_sha256: None,
+            rationale: "synthetic pinned migration evidence".into(),
+        };
+        let plan = plan(OUTPUT_A, vec![migrated], true);
+        let plan_bytes = serde_json::to_vec(&plan).unwrap();
+
+        let mut missing = evidence_files_for(&plan);
+        missing.remove("evidence/clearance-edge-migration.txt");
+        assert!(verify_rule_evidence(&plan, &missing)
+            .unwrap_err()
+            .contains("rule-evidence file is missing"));
+
+        let mut tampered = evidence_files_for(&plan);
+        tampered.insert(
+            "evidence/clearance-edge-migration.txt".into(),
+            b"not the declared migration evidence".to_vec(),
+        );
+        assert!(verify_rule_evidence(&plan, &tampered)
+            .unwrap_err()
+            .contains("rule-evidence bytes SHA-256 mismatch"));
+
+        let mut extra = evidence_files_for(&plan);
+        extra.insert("evidence/unreferenced.txt".into(), b"extra".to_vec());
+        assert!(verify_rule_evidence(&plan, &extra)
+            .unwrap_err()
+            .contains("unreferenced artifact"));
+
+        let receipt = evaluate_rule_fidelity(
+            &plan_bytes,
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            COMPAT_POLICY.as_bytes(),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&plan),
+            HEAD,
+        ).unwrap();
+        assert!(receipt.strict_source_clean_pass);
+        assert_eq!(receipt.verified_rule_evidence.len(), 2);
+        assert!(receipt.verified_rule_evidence.iter().any(|item| item.purpose == "rule_mapping:clearance.edge"));
+        assert!(receipt.verified_rule_evidence.iter().any(|item| item.purpose == "strict_source_policy_derivation"));
+    }
+
+    #[test]
+    fn compatibility_drc_must_bind_to_exact_output_board_bytes() {
+        let mut plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        plan.compatibility_drc_input_board_sha256 = sha256_hex(OUTPUT_B);
+        let error = evaluate_rule_fidelity(
+            &serde_json::to_vec(&plan).unwrap(),
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            COMPAT_POLICY.as_bytes(),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&plan),
+            HEAD,
+        ).unwrap_err();
+        assert!(error.contains("compatibility DRC input board digest"));
+
+        let mut plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        plan.strict_source_drc_input_board_sha256 = Some(sha256_hex(OUTPUT_B));
+        let error = evaluate_rule_fidelity(
+            &serde_json::to_vec(&plan).unwrap(),
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            COMPAT_POLICY.as_bytes(),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&plan),
+            HEAD,
+        ).unwrap_err();
+        assert!(error.contains("strict-source DRC input board digest"));
+    }
+
+    #[test]
+    fn weakened_drc_policy_is_rejected_even_when_its_bytes_are_pinned() {
+        let plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        let weakened = br#"{
+          "schema":"kicad-drc-routing-policy-v0.1",
+          "kicad_version":"9.0.8",
+          "routing_violation_types":["clearance"],
+          "blocking_severities":["warning"],
+          "block_unconnected_items":false,
+          "block_schematic_parity":false
+        }"#;
+        let mut plan = plan;
+        plan.compatibility_policy_sha256 = sha256_hex(weakened);
+        let error = evaluate_rule_fidelity(
+            &serde_json::to_vec(&plan).unwrap(),
+            SOURCE_BOARD,
+            OUTPUT_A,
+            Some(SOURCE_RULES),
+            weakened,
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_POLICY.as_bytes()),
+            Some(STRICT_CLEAN.as_bytes()),
+            &evidence_files_for(&plan),
+            HEAD,
+        ).unwrap_err();
+        assert!(error.contains("must block error-severity violations"));
     }
 
     #[test]
