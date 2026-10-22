@@ -127,6 +127,8 @@ jobs:
               and .right_censored_jobs_at_horizon.sample_count == 20
               and ((.replications_with_good_flow_time_observations == 0)
                 or (.good_flow_time_mean_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p50_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
+                  and .good_flow_time_p90_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
                   and .good_flow_time_p95_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations
                   and .good_flow_time_p99_seconds_across_replications.sample_count == .replications_with_good_flow_time_observations))
             )
