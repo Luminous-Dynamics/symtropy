@@ -52,6 +52,7 @@ jobs:
             src/lib.rs \
             src/bin/triangle-patch-probe.rs \
             src/bin/triangle-conditioning-probe.rs \
+            src/bin/triangle-material-conditioning-probe.rs \
             Cargo.toml \
             Cargo.lock \
             README.md \
@@ -96,6 +97,31 @@ jobs:
             and .sweep[4].element_nonrigid_condition_number > 1e7
           ' /tmp/triangle-conditioning-a.json > /dev/null
           sha256sum /tmp/triangle-conditioning-a.json > /tmp/triangle-conditioning-a.sha256
+          cargo run --locked --release --quiet --bin triangle-material-conditioning-probe > /tmp/triangle-material-conditioning-a.json
+          cargo run --locked --release --quiet --bin triangle-material-conditioning-probe > /tmp/triangle-material-conditioning-b.json
+          cmp /tmp/triangle-material-conditioning-a.json /tmp/triangle-material-conditioning-b.json
+          jq -e '
+            .schema == "ccx-mms-p1-material-conditioning-v1"
+            and .solver_executed == false
+            and .volumetric_locking_measured == false
+            and .qualification_pass == false
+            and .material_conditioning_pass == true
+            and (.sweep | length == 4)
+            and (.source_sha | test("^[0-9a-f]{40}$"))
+            and (.checkout_sha | test("^[0-9a-f]{40}$"))
+            and .sweep[0].poisson_ratio < .sweep[1].poisson_ratio
+            and .sweep[1].poisson_ratio < .sweep[2].poisson_ratio
+            and .sweep[2].poisson_ratio < .sweep[3].poisson_ratio
+            and .sweep[0].lambda_over_mu < .sweep[1].lambda_over_mu
+            and .sweep[1].lambda_over_mu < .sweep[2].lambda_over_mu
+            and .sweep[2].lambda_over_mu < .sweep[3].lambda_over_mu
+            and .sweep[0].element_nonrigid_condition_number < .sweep[1].element_nonrigid_condition_number
+            and .sweep[1].element_nonrigid_condition_number < .sweep[2].element_nonrigid_condition_number
+            and .sweep[2].element_nonrigid_condition_number < .sweep[3].element_nonrigid_condition_number
+            and .sweep[3].lambda_over_mu > 1e4
+            and .sweep[3].element_nonrigid_condition_number > 1e4
+          ' /tmp/triangle-material-conditioning-a.json > /dev/null
+          sha256sum /tmp/triangle-material-conditioning-a.json > /tmp/triangle-material-conditioning-a.sha256
 
       - name: Preserve verification receipt and source digests
         if: always()
@@ -108,6 +134,8 @@ jobs:
             /tmp/element-oracle-source-digests.sha256
             /tmp/triangle-conditioning-a.json
             /tmp/triangle-conditioning-a.sha256
+            /tmp/triangle-material-conditioning-a.json
+            /tmp/triangle-material-conditioning-a.sha256
           if-no-files-found: ignore
           retention-days: 90
 
