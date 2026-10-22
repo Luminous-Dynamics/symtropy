@@ -15,7 +15,6 @@ const SAFETY_CEILING: &str =
 #[derive(Debug)]
 struct ScenarioAudit {
     scenario_id: String,
-    decision: String,
     blockers: Vec<String>,
     quality_findings: Vec<String>,
     violations: Vec<String>,
@@ -484,7 +483,6 @@ fn audit_scenario(scenario: &Value) -> Result<ScenarioAudit, String> {
 
     Ok(ScenarioAudit {
         scenario_id,
-        decision,
         blockers,
         quality_findings,
         violations,
