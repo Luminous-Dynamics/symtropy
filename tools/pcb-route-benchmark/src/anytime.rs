@@ -79,11 +79,29 @@ pub struct BudgetSelection {
 /// manufacturing qualification.
 pub fn evaluate_checkpoint(
     metadata: CheckpointMetadata,
+    manifest_bytes: &[u8],
     board_bytes: &[u8],
     drc_report_bytes: &[u8],
     policy_bytes: &[u8],
 ) -> Result<CheckpointEvaluation, String> {
     validate_metadata(&metadata)?;
+    if sha256_hex(manifest_bytes) != metadata.dataset_manifest_sha256 {
+        return Err("checkpoint dataset manifest digest does not match supplied manifest bytes".into());
+    }
+    let manifest: crate::DatasetManifest = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("checkpoint dataset manifest JSON invalid: {error}"))?;
+    crate::validate_manifest(&manifest)?;
+    let board_pin = manifest
+        .boards
+        .iter()
+        .find(|board| board.board_id == metadata.board_id)
+        .ok_or_else(|| format!("checkpoint board {} is not in the pinned dataset manifest", metadata.board_id))?;
+    if board_pin.input_board_sha256 != metadata.input_board_sha256 {
+        return Err("checkpoint source board digest does not match pinned dataset entry".into());
+    }
+    if board_pin.required_nets != metadata.required_nets {
+        return Err("checkpoint required-net count does not match pinned dataset entry".into());
+    }
     if board_bytes.is_empty() {
         return Err("checkpoint output board bytes must not be empty".into());
     }
@@ -317,14 +335,30 @@ mod tests {
     const POLICY: &[u8] = include_bytes!("../fixtures/kicad-drc-routing-policy-v0_1.json");
     const EVALUATOR_HEAD: &str = "abababababababababababababababababababab";
     const INPUT_SHA: &str = "1111111111111111111111111111111111111111111111111111111111111111";
-    const MANIFEST_SHA: &str = "2222222222222222222222222222222222222222222222222222222222222222";
+    const MANIFEST: &str = r#"{
+      "schema":"pcb-route-dataset-manifest-v0.1",
+      "benchmark_id":"pcb-route-anytime-test",
+      "benchmark_version":"0.1",
+      "dataset_id":"synthetic-anytime",
+      "split_id":"unit-test",
+      "evidence_class":"synthetic",
+      "source_url":"synthetic://pcb-route-anytime-tests",
+      "boards":[{
+        "board_id":"coupon",
+        "input_board_sha256":"1111111111111111111111111111111111111111111111111111111111111111",
+        "required_nets":2,
+        "license":"synthetic-fixture",
+        "source_url":"synthetic://coupon",
+        "relative_path":"boards/coupon.kicad_pcb"
+      }]
+    }"#;
 
     fn metadata(id: &str, elapsed_ms: u64, wirelength_mm: f64, via_count: u32) -> CheckpointMetadata {
         CheckpointMetadata {
             checkpoint_id: id.to_string(),
             board_id: "coupon".to_string(),
             input_board_sha256: INPUT_SHA.to_string(),
-            dataset_manifest_sha256: MANIFEST_SHA.to_string(),
+            dataset_manifest_sha256: sha256_hex(MANIFEST.as_bytes()),
             required_nets: 2,
             connected_nets: 2,
             dangling_track_count: 0,
@@ -356,6 +390,7 @@ mod tests {
         let report = drc_report("coupon.kicad_pcb", serde_json::json!([]), serde_json::json!([]));
         evaluate_checkpoint(
             metadata(id, elapsed_ms, wirelength_mm, vias),
+            MANIFEST.as_bytes(),
             format!("native pcb bytes {id}").as_bytes(),
             &report,
             POLICY,
@@ -381,6 +416,7 @@ mod tests {
         );
         let invalid = evaluate_checkpoint(
             metadata("late-invalid", 210_000, 35.0, 1),
+            MANIFEST.as_bytes(),
             b"invalid native board bytes",
             &crossed,
             POLICY,
@@ -391,7 +427,7 @@ mod tests {
         let identity = ArchiveIdentity {
             board_id:"coupon".into(),
             input_board_sha256:INPUT_SHA.into(),
-            dataset_manifest_sha256:MANIFEST_SHA.into(),
+            dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into()
         };
@@ -413,7 +449,7 @@ mod tests {
         let identity = ArchiveIdentity {
             board_id:"coupon".into(),
             input_board_sha256:INPUT_SHA.into(),
-            dataset_manifest_sha256:MANIFEST_SHA.into(),
+            dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into()
         };
@@ -433,10 +469,10 @@ mod tests {
         let mut meta = metadata("missing-net", 100_000, 20.0, 0);
         meta.connected_nets = 1;
         let report = drc_report("coupon.kicad_pcb", serde_json::json!([]), serde_json::json!([]));
-        let evaluation = evaluate_checkpoint(meta, b"board", &report, POLICY).unwrap();
+        let evaluation = evaluate_checkpoint(meta, MANIFEST.as_bytes(), b"board", &report, POLICY).unwrap();
         assert!(!evaluation.eligible_incumbent);
         assert!(evaluation.rejection_reasons.contains(&"REQUIRED_NETS_NOT_ALL_CONNECTED".to_string()));
-        assert!(evaluate_checkpoint(metadata("empty-drc", 100_000, 20.0, 0), b"board", b"", POLICY).is_err());
+        assert!(evaluate_checkpoint(metadata("empty-drc", 100_000, 20.0, 0), MANIFEST.as_bytes(), b"board", b"", POLICY).is_err());
     }
 
     #[test]
@@ -444,7 +480,7 @@ mod tests {
         let identity = ArchiveIdentity {
             board_id:"coupon".into(),
             input_board_sha256:INPUT_SHA.into(),
-            dataset_manifest_sha256:MANIFEST_SHA.into(),
+            dataset_manifest_sha256:sha256_hex(MANIFEST.as_bytes()),
             drc_policy_sha256:sha256_hex(POLICY),
             kicad_version:"9.0.9".into()
         };
