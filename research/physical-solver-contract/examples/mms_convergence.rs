@@ -691,6 +691,21 @@ mod tests {
 
     #[test]
     fn exact_interpolation_errors_have_the_expected_asymptotic_order() {
+        // Independent calibration values computed with generated 8-point
+        // Gauss-Legendre nodes. These test the quadrature/normalization layer
+        // separately from the observed-order interval gates below.
+        const EXPECTED_L2: [f64; 4] = [
+            3.9284347764823827e-2,
+            9.920919911464134e-3,
+            2.486501339423377e-3,
+            6.220177931436641e-4,
+        ];
+        const EXPECTED_H1: [f64; 4] = [
+            1.5868017590142830e-1,
+            7.9953640421627820e-2,
+            4.0053938352172210e-2,
+            2.0036622229917410e-2,
+        ];
         let mut l2 = Vec::new();
         let mut h1 = Vec::new();
         for elements in [4, 8, 16, 32] {
@@ -708,6 +723,22 @@ mod tests {
             let (_, l2_error, h1_error) = normalized_errors(elements, &rows).unwrap();
             l2.push(l2_error);
             h1.push(h1_error);
+        }
+        for index in 0..4 {
+            assert!(
+                ((l2[index] - EXPECTED_L2[index]).abs() / EXPECTED_L2[index]) < 5.0e-11,
+                "L2 calibration mismatch on mesh {}: actual={}, expected={}",
+                [4, 8, 16, 32][index],
+                l2[index],
+                EXPECTED_L2[index]
+            );
+            assert!(
+                ((h1[index] - EXPECTED_H1[index]).abs() / EXPECTED_H1[index]) < 5.0e-11,
+                "H1 calibration mismatch on mesh {}: actual={}, expected={}",
+                [4, 8, 16, 32][index],
+                h1[index],
+                EXPECTED_H1[index]
+            );
         }
         for index in 0..3 {
             assert!(
