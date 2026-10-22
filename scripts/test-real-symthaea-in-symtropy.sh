@@ -61,5 +61,13 @@ if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
     and .trials[0].controller.pid_baseline != null
     and .trials[0].controller.symthaea_trained_no_online_fep_native_backend != null
     and .paired_summary.sim_to_sim_transfer_gap_no_online_fep.bootstrap_95_ci_rmse_gap_m != null
+    and all(.trials[];
+      .controller.pd_baseline.invalid_inputs == 0
+      and .controller.pid_baseline.invalid_inputs == 0
+      and .controller.symthaea_untrained_no_fep_ablation.invalid_inputs == 0
+      and .controller.symthaea_trained_no_online_fep.invalid_inputs == 0
+      and .controller.symthaea_trained_with_fep.invalid_inputs == 0
+      and .controller.symthaea_trained_no_online_fep_native_backend.invalid_inputs == null
+    )
   ' "$out"
 fi
