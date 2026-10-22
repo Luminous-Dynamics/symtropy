@@ -556,16 +556,35 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                     board.board_id
                 ));
             }
-            let license_path = board.license_evidence_relative_path.as_deref().ok_or_else(|| {
-                format!("{}: external board lacks hash-bound license-evidence path", board.board_id)
-            })?;
-            validate_relative_path(license_path, &format!("{} license evidence", board.board_id))?;
+            let license_path =
+                board
+                    .license_evidence_relative_path
+                    .as_deref()
+                    .ok_or_else(|| {
+                        format!(
+                            "{}: external board lacks hash-bound license-evidence path",
+                            board.board_id
+                        )
+                    })?;
+            validate_relative_path(
+                license_path,
+                &format!("{} license evidence", board.board_id),
+            )?;
             let license_url = board.license_evidence_url.as_deref().ok_or_else(|| {
-                format!("{}: external board lacks license-evidence source URL", board.board_id)
+                format!(
+                    "{}: external board lacks license-evidence source URL",
+                    board.board_id
+                )
             })?;
-            let source_commit = board.license_evidence_source_commit_sha.as_deref().ok_or_else(|| {
-                format!("{}: external board lacks immutable license-source commit", board.board_id)
-            })?;
+            let source_commit = board
+                .license_evidence_source_commit_sha
+                .as_deref()
+                .ok_or_else(|| {
+                    format!(
+                        "{}: external board lacks immutable license-source commit",
+                        board.board_id
+                    )
+                })?;
             if !is_commit_sha(source_commit) {
                 return Err(format!(
                     "{}: license-evidence source commit must be a 40- or 64-character hexadecimal commit ID",
@@ -585,12 +604,22 @@ fn validate_manifest(manifest: &DatasetManifest) -> Result<(), String> {
                 ));
             }
             let license_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
-                format!("{}: external board lacks license-evidence SHA-256", board.board_id)
+                format!(
+                    "{}: external board lacks license-evidence SHA-256",
+                    board.board_id
+                )
             })?;
             require_sha256(license_sha, "license_evidence_sha256")?;
-            let git_blob_sha1 = board.license_evidence_git_blob_sha1.as_deref().ok_or_else(|| {
-                format!("{}: external board lacks license-evidence Git blob SHA-1", board.board_id)
-            })?;
+            let git_blob_sha1 =
+                board
+                    .license_evidence_git_blob_sha1
+                    .as_deref()
+                    .ok_or_else(|| {
+                        format!(
+                            "{}: external board lacks license-evidence Git blob SHA-1",
+                            board.board_id
+                        )
+                    })?;
             if !is_git_blob_sha1(git_blob_sha1) {
                 return Err(format!(
                     "{}: license-evidence Git blob SHA-1 must be 40 hexadecimal characters",
@@ -722,18 +751,21 @@ pub fn build_dataset_manifest(
             .license_evidence_relative_path
             .as_deref()
             .ok_or_else(|| {
-                format!("{}: license-evidence file path is required", selection.board_id)
+                format!(
+                    "{}: license-evidence file path is required",
+                    selection.board_id
+                )
             })?;
         validate_relative_path(
             license_relative_path,
             &format!("{} license evidence", selection.board_id),
         )?;
-        let license_url = selection
-            .license_evidence_url
-            .as_deref()
-            .ok_or_else(|| {
-                format!("{}: license-evidence source URL is required", selection.board_id)
-            })?;
+        let license_url = selection.license_evidence_url.as_deref().ok_or_else(|| {
+            format!(
+                "{}: license-evidence source URL is required",
+                selection.board_id
+            )
+        })?;
         if !license_url.starts_with("https://") {
             return Err(format!(
                 "{}: license-evidence source URL must use HTTPS",
@@ -744,13 +776,19 @@ pub fn build_dataset_manifest(
             .license_evidence_source_commit_sha
             .as_deref()
             .ok_or_else(|| {
-                format!("{}: license-evidence source commit is required", selection.board_id)
+                format!(
+                    "{}: license-evidence source commit is required",
+                    selection.board_id
+                )
             })?;
         let expected_license_blob = selection
             .license_evidence_git_blob_sha1
             .as_deref()
             .ok_or_else(|| {
-                format!("{}: license-evidence Git blob SHA-1 is required", selection.board_id)
+                format!(
+                    "{}: license-evidence Git blob SHA-1 is required",
+                    selection.board_id
+                )
             })?;
         if !is_git_blob_sha1(expected_license_blob) {
             return Err(format!(
@@ -810,15 +848,15 @@ pub fn build_dataset_manifest(
                 selection.board_id
             )
         })?;
-        let license_actual_path = root
-            .join(license_relative_path)
-            .canonicalize()
-            .map_err(|error| {
-                format!(
-                    "{}: cannot resolve license-evidence file {}: {error}",
-                    selection.board_id, license_relative_path
-                )
-            })?;
+        let license_actual_path =
+            root.join(license_relative_path)
+                .canonicalize()
+                .map_err(|error| {
+                    format!(
+                        "{}: cannot resolve license-evidence file {}: {error}",
+                        selection.board_id, license_relative_path
+                    )
+                })?;
         if !license_actual_path.starts_with(&root) || !license_actual_path.is_file() {
             return Err(format!(
                 "{}: license-evidence path is not a regular file contained by the dataset root",
@@ -958,13 +996,18 @@ pub fn verify_dataset_files(
             let evidence_relative_path = board
                 .license_evidence_relative_path
                 .as_deref()
-                .ok_or_else(|| format!("{}: license-evidence path is missing", board.board_id))?;
+                .ok_or_else(|| {
+                    format!("{}: license-evidence path is missing", board.board_id)
+                })?;
             validate_relative_path(
                 evidence_relative_path,
                 &format!("{} license evidence", board.board_id),
             )?;
             let expected_evidence_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
-                format!("{}: license-evidence SHA-256 is missing", board.board_id)
+                format!(
+                    "{}: license-evidence SHA-256 is missing",
+                    board.board_id
+                )
             })?;
             let evidence_path = root
                 .join(evidence_relative_path)
@@ -1007,7 +1050,10 @@ pub fn verify_dataset_files(
                 .license_evidence_git_blob_sha1
                 .as_deref()
                 .ok_or_else(|| {
-                    format!("{}: license-evidence Git blob SHA-1 is missing", board.board_id)
+                    format!(
+                        "{}: license-evidence Git blob SHA-1 is missing",
+                        board.board_id
+                    )
                 })?;
             let observed_git_blob_sha = git_blob_sha1(&evidence_bytes);
             if observed_git_blob_sha != expected_git_blob_sha {
@@ -2410,7 +2456,13 @@ mod tests {
             .expect("pinned split manifests build from source bytes");
         assert_eq!(manifest.boards.len(), 2);
         assert_eq!(manifest.evidence_class, "external_benchmark");
-        assert!(manifest.boards.iter().all(|board| board.license_evidence_source_commit_sha.as_ref().is_some_and(|sha| is_commit_sha(sha))));
+        assert!(manifest
+            .boards
+            .iter()
+            .all(|board| board
+                .license_evidence_source_commit_sha
+                .as_ref()
+                .is_some_and(|sha| is_commit_sha(sha))));
         assert_eq!(
             manifest.source_split_config_sha256.as_deref(),
             Some(sha256_hex(&split_config_bytes).as_str())
@@ -2422,7 +2474,11 @@ mod tests {
         assert_eq!(receipt.verified_license_evidence_count, 2);
         assert_eq!(receipt.entries.len(), 4);
         assert_eq!(
-            receipt.entries.iter().filter(|entry| entry.role == "license_evidence").count(),
+            receipt
+                .entries
+                .iter()
+                .filter(|entry| entry.role == "license_evidence")
+                .count(),
             2
         );
 
@@ -2455,11 +2511,9 @@ mod tests {
             b"modified after manifest creation\n",
         )
         .unwrap();
-        assert!(
-            verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
-                .unwrap_err()
-                .contains("license-evidence bytes SHA-256")
-        );
+        assert!(verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
+            .unwrap_err()
+            .contains("license-evidence bytes SHA-256"));
 
         let mut invalid = intake.clone();
         invalid.boards[0].board_id = "not-in-split".into();
@@ -2506,11 +2560,9 @@ mod tests {
             board.license_evidence_source_commit_sha = None;
             board.license_evidence_git_blob_sha1 = None;
         }
-        assert!(
-            validate_manifest(&manifest)
-                .unwrap_err()
-                .contains("hash-bound license-evidence path")
-        );
+        assert!(validate_manifest(&manifest)
+            .unwrap_err()
+            .contains("hash-bound license-evidence path"));
 
         // Evidence bytes and URLs must be pinned to a real commit, not a moving
         // branch name or an unrelated SHA typed into a separate field.
@@ -2525,11 +2577,9 @@ mod tests {
                 "e".repeat(40)
             ));
         }
-        assert!(
-            validate_manifest(&manifest)
-                .unwrap_err()
-                .contains("URL must contain the pinned immutable source commit")
-        );
+        assert!(validate_manifest(&manifest)
+            .unwrap_err()
+            .contains("URL must contain the pinned immutable source commit"));
 
         for board in &mut manifest.boards {
             board.license_evidence_url = Some(format!(
@@ -2542,11 +2592,9 @@ mod tests {
         assert!(validate_manifest(&manifest).is_ok());
 
         manifest.boards[0].license_evidence_source_commit_sha = None;
-        assert!(
-            validate_manifest(&manifest)
-                .unwrap_err()
-                .contains("immutable license-source commit")
-        );
+        assert!(validate_manifest(&manifest)
+            .unwrap_err()
+            .contains("immutable license-source commit"));
     }
 
     #[test]
