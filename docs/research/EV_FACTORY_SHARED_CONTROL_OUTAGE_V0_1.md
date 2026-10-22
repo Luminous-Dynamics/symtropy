@@ -2,7 +2,7 @@
 
 ## What was implemented
 
-The Rust discrete-event engine now accepts an optional, strict `common_cause_control_outage` catalog entry. The configuration names a shared domain, its exact member stations, first start time, recurrence interval and duration. Unknown station IDs, duplicate members, missing identifiers, nonpositive time values and overlapping recurrence windows fail closed.
+The Rust discrete-event engine now accepts an optional, strict `common_cause_control_outage` catalog entry. The configuration names a shared domain, its exact member stations, first start time, recurrence interval and duration. Unknown station IDs, duplicate members, missing identifiers, nonpositive time values, overlapping recurrence windows and any final outage interval truncated by the simulation horizon fail closed. Each root report includes `catalog_config_sha256`, the SHA-256 of the validated typed catalog's canonical serialization (including the seed list and outage configuration); this is a semantic configuration digest, not a hash of raw fixture bytes.
 
 During a declared event, the affected stations:
 - do not start new processing cycles;
@@ -26,7 +26,7 @@ The purpose is to make one structural assumption executable and independently te
 Fixture:
 `tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_shared_control_outage_v0_1.json`
 
-- Horizon: 4,000 s; warm-up: 0 s; one fixed replication seed.
+- Horizon: 4,000 s; warm-up: 0 s; 20 fixed replication seeds (20261020–20261039).
 - Shared domain: `shared-line-control`, containing `battery-module-install` and `final-assembly`.
 - Outages start at 600 s and 2,400 s; each lasts 300 s. Two complete events yield 600 measured wall-clock outage seconds.
 - Common random streams and the same product/supply config are used for the paired baseline comparison.
@@ -35,19 +35,20 @@ Fixture:
 Expected controls:
 - Configured stations expose a nonzero outage fraction; nonmembers expose zero.
 - No-outage catalog behavior reports null config and zero outage metrics.
-- Same catalog/seed/build is deterministic.
+- Same catalog/seed/build is deterministic; the canonical catalog digest is stable for the same typed configuration and differs when the outage mechanism is removed.
 - The test pairs no-outage and outage baseline outputs by the same 20 seed IDs and reports finite per-seed deltas. It does not require a monotonic throughput result: queueing, dispatch and finite-horizon interactions can change observed outputs, so the sign must be measured rather than assumed.
 - The causal event trace carries all four expected transition times: 600 s start, 900 s end, 2,400 s start, 2,700 s end, with the exact same configured station group on each event.
-- Invalid group membership and overlapping outage windows fail closed.
+- Invalid group membership, overlapping windows, and a final event interval that would be cut off by the horizon fail closed.
+- Every intervention reports the marginal good-output effect under both model structures and the paired difference-in-differences. The DES-derived maximin/minimax-regret summary is recomputable from the exposed family-effect table; baseline is a legal zero-gain choice.
 
 These are software/model-contract claims. The fixture is short and synthetic; they are not estimates of factory downtime or throughput loss.
 
 ## Next tests before treating this as credible model behavior
 
-1. Add a causal event trace that proves every domain member is gated on exactly the same intervals, including at equal-time events.
+1. Add explicit in-window trace assertions around equal-time completions/start/end events; the current frozen trace validates the domain group and event timeline but does not record each individual station operation transition.
 2. Add replay for interruptions of already-started cycles (remaining-time pause/resume, scrap/restart and qualification behavior as explicit alternatives); do not hide these policy choices under a generic outage flag.
 3. Add common-cause machine faults distinct from shared-control outages, with explicit cause IDs, affected servers, recovery ordering and overlapping-independent-fault semantics.
-4. Compare nominal vs structural family outcomes on matched per-family seeds, then calculate ranking reversals, maximin choice and minimax regret. Never treat model families as IID seeds or infer probabilities from family counts.
+4. Add more structural variants and hidden held-out mechanism families, then compare ranking reversals, maximin choice and minimax regret at equal simulation budgets. Never treat model families as IID seeds or infer probabilities from family counts.
 5. Validate on rights-cleared real event traces before calibration, ROI or investment claims.
 
 ## Research context and relevant comparison points
