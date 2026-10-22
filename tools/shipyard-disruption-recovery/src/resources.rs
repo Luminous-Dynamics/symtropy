@@ -1552,6 +1552,8 @@ mod tests {
             &spatial,
             &resources,
             &resources,
+            &[],
+            &[],
             &[duplicate.clone(), duplicate],
         );
         assert!(!report.robustly_accepted);
