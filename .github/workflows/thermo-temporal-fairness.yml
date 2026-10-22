@@ -1,0 +1,48 @@
+name: Thermodynamic temporal fairness
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-temporal-fairness/**"
+      - ".github/workflows/thermo-temporal-fairness.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-temporal-fairness/**"
+      - ".github/workflows/thermo-temporal-fairness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  temporal-fairness:
+    name: Temporal fairness metrics (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --manifest-path tools/thermo-temporal-fairness/Cargo.toml -- --check
+      - name: Unit tests
+        run: cargo test --manifest-path tools/thermo-temporal-fairness/Cargo.toml
+      - name: Audit alternating trace
+        shell: bash
+        run: |
+          output="$(cargo run --quiet --manifest-path tools/thermo-temporal-fairness/Cargo.toml -- --audit tools/thermo-temporal-fairness/fixtures/alternating.tsv)"
+          printf '%s\n' "$output"
+          grep -Fq "valid_trace=true" <<< "$output"
+          grep -Fq "sorted_horizon_service_profile=1/2,1/2" <<< "$output"
+          grep -Fq "max_starvation_streak=1" <<< "$output"
+      - name: Audit monopoly negative control
+        shell: bash
+        run: |
+          output="$(cargo run --quiet --manifest-path tools/thermo-temporal-fairness/Cargo.toml -- --audit tools/thermo-temporal-fairness/fixtures/monopoly.tsv)"
+          printf '%s\n' "$output"
+          grep -Fq "valid_trace=true" <<< "$output"
+          grep -Fq "sorted_horizon_service_profile=0/1,1/1" <<< "$output"
+          grep -Fq "agent=2 demand=2 allocated=0 unmet=2 horizon_ratio=0/1 eligible_demand_ticks=2 starved_ticks=2 max_starvation_streak=2" <<< "$output"
