@@ -383,12 +383,11 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
         }
         Transform::StaleAfterPayloadEviction => {
             query_entity = 1;
-            let events = [
-                event(1, 2, 102, EvidenceKind::Observation),
-                event(2, 1, 201, EvidenceKind::Outcome),
-                event(3, 1, 301, EvidenceKind::Inference),
-            ];
-            final_store = Store::new(policy, 2);
+            let mut events = vec![event(1, 2, 102, EvidenceKind::Observation)];
+            for distractor in 0..budget {
+                events.push(event(2 + distractor as u16, 1, 200 + distractor as u32, EvidenceKind::Inference));
+            }
+            final_store = Store::new(policy, budget);
             final_store.insert_all(&events);
             before = final_store.lookup(query_entity);
             final_store.insert(event(1, 1, 101, EvidenceKind::Observation));
