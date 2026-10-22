@@ -240,7 +240,20 @@ pub fn normalize_restricted_rf_bytes(
         .iter()
         .map(|item| (item.target_id.as_str(), item.node_id))
         .collect();
-    let expected_boundary = request_boundary_dofs(&request, &declared_support_map)?;
+    // Boundary conditions may target a support node or a separately declared
+    // load-end guide (for example, constraining only uy/uz on a 3D axial bar).
+    // The load map still remains separate from the RF support-node inventory.
+    let mut declared_boundary_map = declared_support_map.clone();
+    for (target_id, node_id) in &declared_load_map {
+        if let Some(existing) = declared_boundary_map.insert(*target_id, *node_id)
+            && existing != *node_id
+        {
+            return Err(format!(
+                "boundary target '{target_id}' resolves to conflicting node IDs {existing} and {node_id}"
+            ));
+        }
+    }
+    let expected_boundary = request_boundary_dofs(&request, &declared_boundary_map)?;
     if expected_boundary != parsed_deck.boundary_dofs {
         return Err("deck zero-displacement DOF inventory differs from the exact request boundary conditions".to_owned());
     }

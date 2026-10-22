@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use physical_solver_contract::{
+    calculix_displacement::compare_displacement_reference_bytes,
     calculix_rf_restricted::normalize_restricted_rf_bytes, equilibrium::assess_equilibrium_bytes,
     mesh_convergence::assess_mesh_refinement_study_bytes,
     reference_compare::compare_reference_observables, validate_request_bytes,
@@ -24,6 +25,8 @@ fn run() -> Result<(), String> {
     let mut mesh_study_path: Option<String> = None;
     let mut equilibrium_manifest_path: Option<String> = None;
     let mut restricted_rf_manifest_path: Option<String> = None;
+    let mut displacement_manifest_path: Option<String> = None;
+    let mut build_manifest_path: Option<String> = None;
     let mut deck_path: Option<String> = None;
     let mut dat_path: Option<String> = None;
     let mut node_catalog_path: Option<String> = None;
@@ -43,6 +46,30 @@ fn run() -> Result<(), String> {
                 request_path = Some(
                     args.get(i + 1)
                         .ok_or_else(|| "--request requires a path".to_owned())?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--displacement-manifest" => {
+                if displacement_manifest_path.is_some() {
+                    return Err("--displacement-manifest may be supplied only once".to_owned());
+                }
+                displacement_manifest_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| {
+                            "--displacement-manifest requires a manifest path".to_owned()
+                        })?
+                        .clone(),
+                );
+                i += 2;
+            }
+            "--build-manifest" => {
+                if build_manifest_path.is_some() {
+                    return Err("--build-manifest may be supplied only once".to_owned());
+                }
+                build_manifest_path = Some(
+                    args.get(i + 1)
+                        .ok_or_else(|| "--build-manifest requires a path".to_owned())?
                         .clone(),
                 );
                 i += 2;
@@ -200,8 +227,66 @@ fn run() -> Result<(), String> {
         }
     }
 
+    if let Some(manifest_path) = displacement_manifest_path.as_deref() {
+        if restricted_rf_manifest_path.is_some()
+            || receipt_path.is_some()
+            || mesh_study_path.is_some()
+            || equilibrium_manifest_path.is_some()
+            || node_catalog_path.is_some()
+            || reaction_force_output_id.is_some()
+            || reaction_moment_output_id.is_some()
+            || artifact_root.is_some()
+            || reference_path.is_some()
+            || observation_output_id.is_some()
+            || validator_revision.is_some()
+        {
+            return Err("--displacement-manifest accepts request/deck/dat/build-manifest only and cannot be combined with restricted RF, receipt, mesh-study, equilibrium, reference-comparison, artifact-root, or request-validator options".to_owned());
+        }
+        let request_path =
+            request_path.ok_or_else(|| "--displacement-manifest requires --request".to_owned())?;
+        let deck_path =
+            deck_path.ok_or_else(|| "--displacement-manifest requires --deck".to_owned())?;
+        let dat_path =
+            dat_path.ok_or_else(|| "--displacement-manifest requires --dat".to_owned())?;
+        let build_manifest_path = build_manifest_path
+            .ok_or_else(|| "--displacement-manifest requires --build-manifest".to_owned())?;
+        let request_bytes = fs::read(&request_path)
+            .map_err(|error| format!("could not read request {request_path}: {error}"))?;
+        let deck_bytes = fs::read(&deck_path)
+            .map_err(|error| format!("could not read deck {deck_path}: {error}"))?;
+        let dat_bytes = fs::read(&dat_path)
+            .map_err(|error| format!("could not read .dat output {dat_path}: {error}"))?;
+        let manifest_bytes = fs::read(manifest_path).map_err(|error| {
+            format!("could not read displacement manifest {manifest_path}: {error}")
+        })?;
+        let build_manifest_bytes = fs::read(&build_manifest_path).map_err(|error| {
+            format!("could not read build manifest {build_manifest_path}: {error}")
+        })?;
+        let report = compare_displacement_reference_bytes(
+            &request_bytes,
+            &deck_bytes,
+            &dat_bytes,
+            &manifest_bytes,
+            &build_manifest_bytes,
+        )?;
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|error| format!("report serialization failed: {error}"))?
+        );
+        if report["numeric_reference_status"] != "PASS" {
+            return Err("analytical displacement reference comparison did not pass".to_owned());
+        }
+        return Ok(());
+    }
+    if build_manifest_path.is_some() && displacement_manifest_path.is_none() {
+        return Err("--build-manifest requires --displacement-manifest".to_owned());
+    }
+
     if let Some(manifest_path) = restricted_rf_manifest_path.as_deref() {
         if receipt_path.is_some()
+            || displacement_manifest_path.is_some()
+            || build_manifest_path.is_some()
             || mesh_study_path.is_some()
             || equilibrium_manifest_path.is_some()
             || reaction_force_output_id.is_some()
@@ -247,8 +332,12 @@ fn run() -> Result<(), String> {
         );
         return Ok(());
     }
-    if deck_path.is_some() || dat_path.is_some() || node_catalog_path.is_some() {
-        return Err("--deck, --dat and --node-catalog require --restricted-rf-manifest".to_owned());
+    if deck_path.is_some()
+        || dat_path.is_some()
+        || node_catalog_path.is_some()
+        || build_manifest_path.is_some()
+    {
+        return Err("--deck and --dat require --restricted-rf-manifest or --displacement-manifest; --node-catalog requires --restricted-rf-manifest; --build-manifest requires --displacement-manifest".to_owned());
     }
 
     if let Some(study_path) = mesh_study_path.as_deref() {
