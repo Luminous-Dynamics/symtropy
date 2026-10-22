@@ -1987,7 +1987,7 @@ mod tests {
             placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                 reservation_id: "outgoing".to_owned(),
                 occupied_until_tick: 7,
-                            evidence: None,
+                evidence: None,
             }],
             ..empty_disruption(4)
         };
@@ -2081,7 +2081,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2107,7 +2107,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(5)
             },
@@ -2170,7 +2170,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: 7,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2196,7 +2196,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "missing-block".to_owned(),
                     occupied_until_tick: 9,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2234,7 +2234,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2281,7 +2281,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2335,7 +2335,7 @@ mod tests {
                     placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                         reservation_id: "outgoing".to_owned(),
                         occupied_until_tick: 7,
-                                            evidence: None,
+                        evidence: None,
                     }],
                     ..empty_disruption(4)
                 },
@@ -2504,7 +2504,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
@@ -2623,7 +2623,7 @@ mod tests {
                 placement_occupancy_extensions: vec![PlacementOccupancyExtension {
                     reservation_id: "outgoing".to_owned(),
                     occupied_until_tick: clear_tick,
-                                    evidence: None,
+                    evidence: None,
                 }],
                 ..empty_disruption(4)
             },
