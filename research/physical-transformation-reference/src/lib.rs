@@ -11,6 +11,7 @@ pub type Check<T> = Result<T, String>;
 
 pub mod beam_element;
 pub mod beam_line;
+pub mod beam_line_sparse;
 pub mod beam_modal;
 pub mod beam_pin_assembly;
 pub mod deconstruction;

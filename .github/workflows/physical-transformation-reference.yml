@@ -465,6 +465,19 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-pin-modal-receipt.json
 
+      - name: Verify BE25 sparse modal mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_be25_sparse_modal_mutations.sh
+
+      - name: Re-verify BE25 sparse modal source after mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_line_sparse.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify SOFiSTiK BE25 line candidate mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_sofistik_be25_line_mutations.sh
@@ -529,6 +542,19 @@ jobs:
             and (.claim_ceiling | contains("not-BE25-reproduction"))
           ' sofistik-be25-input-audit-receipt.json
 
+      - name: Verify BE25 sparse modal mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_be25_sparse_modal_mutations.sh
+
+      - name: Re-verify BE25 sparse modal source after mutation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_line_sparse.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Generate and verify deterministic BE25 line candidate receipt
         shell: bash
         run: |
@@ -584,6 +610,120 @@ jobs:
             and (.claim_ceiling | contains("not BE25 reproduction"))
           ' sofistik-be25-line-candidate-receipt.json
 
+      - name: Generate and verify 200-element sparse BE25 candidate receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-sparse-modal -- \
+            --source-commit "$source_commit" > sofistik-be25-sparse-modal-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-sparse-modal -- \
+            --source-commit "$source_commit" > sofistik-be25-sparse-modal-raw-b.json
+          cmp --silent sofistik-be25-sparse-modal-raw-a.json sofistik-be25-sparse-modal-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/sofistik_be25_sparse_modal_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' sofistik-be25-sparse-modal-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=sofistik-be25-sparse-modal-v0.1|benchmark=PHYS-BE25-SPARSE-MODAL-001|case=SOFiSTiK-2026-BE25-simple-cantilever-candidate|elements=200|requested_modes=6|max_lanczos_iterations=120|length_m=1|youngs_modulus_pa=200000000|second_moment_m4=1e-9|mass_per_length_kg_per_m=0.25492905324448206|mass_model=consistent_translational_only|boundary=simple-cantilever|claim_ceiling=sparse-numerical-candidate-not-BE25-reproduction"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "ace38c7461d22a21149ecdcdabcf94fec44c1c10dca9655b954f2e6b2e57441c"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' sofistik-be25-sparse-modal-raw-a.json > sofistik-be25-sparse-modal-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "sofistik-be25-sparse-modal-receipt-v0.1"
+            and .benchmark_id == "PHYS-BE25-SPARSE-MODAL-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "sparse-candidate-numerical-analysis"
+            and .result == "candidate-analysis-complete"
+            and .benchmark_disposition == "blocked-until-source-input-resolved"
+            and .model.element_count == 200
+            and .model.total_dof_count == 402
+            and .model.free_dof_count == 400
+            and .model.requested_modes == 6
+            and .diagnostics.analytical_first_frequency_hz > 0
+            and .diagnostics.first_frequency_hz > 0
+            and .diagnostics.first_frequency_relative_error < 1e-2
+            and .diagnostics.maximum_normalized_eigen_residual < 1e-5
+            and .diagnostics.maximum_modal_mass_norm_error < 1e-8
+            and .diagnostics.maximum_off_diagonal_mass_orthogonality_error < 1e-8
+            and .diagnostics.banded_matrix_storage_bytes * 100 < .diagnostics.dense_stiffness_mass_storage_estimate_bytes * 5
+            and .diagnostics.dense_crosscheck_max_relative_frequency_error < 1e-7
+            and .diagnostics.dense_crosscheck_min_mac > 0.9999999
+            and (.modes | length) == 6
+            and (.modes | all(.[]; .frequency_hz > 0 and .normalized_eigen_residual < 1e-5))
+            and (.modes | .[0].frequency_hz < .[1].frequency_hz and .[1].frequency_hz < .[2].frequency_hz and .[2].frequency_hz < .[3].frequency_hz and .[3].frequency_hz < .[4].frequency_hz and .[4].frequency_hz < .[5].frequency_hz)
+            and (.claim_ceiling | contains("not BE25 reproduction"))
+          ' sofistik-be25-sparse-modal-receipt.json
+
+      - name: Generate and verify 200-element sparse BE25 candidate receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-sparse-modal -- \
+            --source-commit "$source_commit" > sofistik-be25-sparse-modal-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin sofistik-be25-sparse-modal -- \
+            --source-commit "$source_commit" > sofistik-be25-sparse-modal-raw-b.json
+          cmp --silent sofistik-be25-sparse-modal-raw-a.json sofistik-be25-sparse-modal-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/sofistik_be25_sparse_modal_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' sofistik-be25-sparse-modal-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=sofistik-be25-sparse-modal-v0.1|benchmark=PHYS-BE25-SPARSE-MODAL-001|case=SOFiSTiK-2026-BE25-simple-cantilever-candidate|elements=200|requested_modes=6|max_lanczos_iterations=120|length_m=1|youngs_modulus_pa=200000000|second_moment_m4=1e-9|mass_per_length_kg_per_m=0.25492905324448206|mass_model=consistent_translational_only|boundary=simple-cantilever|claim_ceiling=sparse-numerical-candidate-not-BE25-reproduction"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "ace38c7461d22a21149ecdcdabcf94fec44c1c10dca9655b954f2e6b2e57441c"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' sofistik-be25-sparse-modal-raw-a.json > sofistik-be25-sparse-modal-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "sofistik-be25-sparse-modal-receipt-v0.1"
+            and .benchmark_id == "PHYS-BE25-SPARSE-MODAL-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and .evidence_class == "sparse-candidate-numerical-analysis"
+            and .result == "candidate-analysis-complete"
+            and .benchmark_disposition == "blocked-until-source-input-resolved"
+            and .model.element_count == 200
+            and .model.total_dof_count == 402
+            and .model.free_dof_count == 400
+            and .model.requested_modes == 6
+            and .diagnostics.analytical_first_frequency_hz > 0
+            and .diagnostics.first_frequency_hz > 0
+            and .diagnostics.first_frequency_relative_error < 1e-2
+            and .diagnostics.maximum_normalized_eigen_residual < 1e-5
+            and .diagnostics.banded_matrix_storage_bytes * 100 < .diagnostics.dense_stiffness_mass_storage_estimate_bytes * 5
+            and (.modes | length) == 6
+            and (.modes | all(.[]; .frequency_hz > 0 and .normalized_eigen_residual < 1e-5))
+            and (.modes | .[0].frequency_hz < .[1].frequency_hz and .[1].frequency_hz < .[2].frequency_hz and .[2].frequency_hz < .[3].frequency_hz and .[3].frequency_hz < .[4].frequency_hz and .[4].frequency_hz < .[5].frequency_hz)
+            and (.claim_ceiling | contains("not BE25 reproduction"))
+          ' sofistik-be25-sparse-modal-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -605,5 +745,9 @@ jobs:
             sofistik-be25-input-audit-receipt.json
             sofistik-be25-line-candidate-receipt.json
             sofistik-be25-line-mutation-receipt.json
+            sofistik-be25-sparse-modal-receipt.json
+            sofistik-be25-sparse-modal-mutation-receipt.json
+            sofistik-be25-sparse-modal-receipt.json
+            sofistik-be25-sparse-modal-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
