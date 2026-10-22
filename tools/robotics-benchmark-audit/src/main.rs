@@ -183,7 +183,7 @@ fn scenario_manifest_digest(scenarios: &[Scenario]) -> Result<String, String> {
         .collect())
 }
 
-fn find_scenario<'a>(scenarios: &'a BTreeMap<String, &Scenario>, id: &str) -> Option<&'a Scenario> {
+fn find_scenario<'a, 'b>(scenarios: &'a BTreeMap<String, &'b Scenario>, id: &str) -> Option<&'b Scenario> {
     scenarios.get(id).copied()
 }
 
@@ -263,12 +263,13 @@ fn audit_structure(eval: &Evaluation, actual_manifest_digest: &str) -> Vec<Strin
 
     let mut scenarios = BTreeMap::new();
     let mut source_splits: BTreeMap<String, String> = BTreeMap::new();
-    let mut scenario_sources_by_split: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for scenario in &eval.scenarios {
         if scenario.scenario_id.trim().is_empty()
+            || scenario.scenario_id.len() < 3
+            || !scenario.scenario_id.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'-')
             || scenarios.insert(scenario.scenario_id.clone(), scenario).is_some()
         {
-            errors.push(format!("empty or duplicate scenario ID: {}", scenario.scenario_id));
+            errors.push(format!("empty, invalid, or duplicate scenario ID: {}", scenario.scenario_id));
         }
         if scenario.scenario_family.trim().is_empty() || scenario.source_id.trim().is_empty() {
             errors.push(format!("{}: family and source ID are required", scenario.scenario_id));
@@ -288,6 +289,13 @@ fn audit_structure(eval: &Evaluation, actual_manifest_digest: &str) -> Vec<Strin
         if scenario.novelty_axes.is_empty() {
             errors.push(format!("{}: novelty_axes must not be empty", scenario.scenario_id));
         }
+        for axis in &scenario.novelty_axes {
+            if !allowed(axis, &["terrain_geometry", "surface_physics", "sensing", "localization",
+                "energy_model", "payload", "weather", "communications", "fault_composition",
+                "task_composition", "data_source", "other"]) {
+                errors.push(format!("{}: invalid novelty axis {}", scenario.scenario_id, axis));
+            }
+        }
         if let Some(previous) = source_splits.insert(scenario.source_id.clone(), scenario.split.clone()) {
             if previous != scenario.split {
                 errors.push(format!(
@@ -296,10 +304,6 @@ fn audit_structure(eval: &Evaluation, actual_manifest_digest: &str) -> Vec<Strin
                 ));
             }
         }
-        scenario_sources_by_split
-            .entry(scenario.split.clone())
-            .or_default()
-            .insert(scenario.source_id.clone());
     }
 
     let held_out_sources: BTreeSet<String> = eval
@@ -710,11 +714,12 @@ fn build_receipt(input: &str) -> Result<Receipt, String> {
 }
 
 fn main() -> ExitCode {
-    let Some(path) = std::env::args().nth(1) else {
+    let mut args = env::args().skip(1);
+    let Some(path) = args.next() else {
         eprintln!("usage: robotics-benchmark-audit <evaluation.json>");
         return ExitCode::FAILURE;
     };
-    if std::env::args().len() != 2 {
+    if args.next().is_some() {
         eprintln!("usage: robotics-benchmark-audit <evaluation.json>");
         return ExitCode::FAILURE;
     }
@@ -768,7 +773,7 @@ mod tests {
         for scenario in scenarios.as_array().unwrap() {
             let expected = scenario["expected_disposition"].as_str().unwrap();
             for seed in 0..2u64 {
-                for (policy_id, class) in classes {
+                for &(policy_id, class) in &classes {
                     let success = expected == "run_within_declared_envelope"
                         && match class {
                             "candidate" => true,
