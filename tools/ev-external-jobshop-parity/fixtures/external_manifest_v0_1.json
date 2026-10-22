@@ -21,5 +21,5 @@
     "primary_objective": "makespan",
     "supports_due_dates": false
   },
-  "claim_ceiling": "Pinned public benchmark input structure and an exhaustive tiny-instance makespan oracle are validated only; no dispatching policy was executed and no due-date, SOTA comparison, or production claim is established."
+  "claim_ceiling": "Pinned public benchmark input structure and an exhaustive tiny-instance makespan oracle are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established."
 }

@@ -6,7 +6,7 @@ const UPSTREAM_BLOB_SHA1: &str = "6bac8cfaf9f326f6405d5396b9cedd12941aba94";
 const UPSTREAM_REPOSITORY: &str =
     "https://github.com/ai-for-decision-making-tue/Job_Shop_Scheduling_Benchmark_Environments_and_Instances";
 const UPSTREAM_INSTANCE_PATH: &str = "data/fjsp_sdst/fattahi/Fattahi_setup_01.fjs";
-const CLAIM_CEILING: &str = "Pinned public benchmark input structure and an exhaustive tiny-instance makespan oracle are validated only; no dispatching policy was executed and no due-date, SOTA comparison, or production claim is established.";
+const CLAIM_CEILING: &str = "Pinned public benchmark input structure and an exhaustive tiny-instance makespan oracle are validated only. No dispatching policy was executed, and no due-date, SOTA comparison, or production claim is established.";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -412,7 +412,6 @@ fn validate_expected_structure(
     Ok(())
 }
 
-
 fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, String> {
     if parsed.jobs != 2 || parsed.machines != 2 || parsed.operations.len() != 4 {
         return Err("exact_oracle_supports_only_declared_two_job_two_machine_four_operation_case".into());
@@ -441,7 +440,7 @@ fn solve_tiny_instance(parsed: &ParsedInstance) -> Result<ExactOracleSummary, St
         .ok_or_else(|| "exact_oracle_found_no_feasible_acyclic_schedule".to_string())?;
     Ok(ExactOracleSummary {
         algorithm: "exhaustive_machine_assignment_and_machine_sequence_enumeration".into(),
-        setup_semantics: "non_anticipatory_setup; processing starts at max(job_predecessor_completion, machine_predecessor_completion) plus the machine-specific setup from previous operation; zero setup for first operation on a machine".into(),
+        setup_semantics: "non-anticipatory transition setup; first operation on a machine has zero setup".into(),
         candidate_assignment_sequence_combinations: accumulator
             .candidate_assignment_sequence_combinations,
         feasible_acyclic_schedules: accumulator.feasible_acyclic_schedules,
@@ -733,10 +732,19 @@ mod tests {
             result.optimal_machine_sequences_operation_ids,
             vec![vec![2, 3], vec![0, 1]]
         );
+        let schedule_times = result
+            .optimal_schedule
+            .iter()
+            .map(|operation| {
+                (
+                    operation.operation_id,
+                    operation.processing_start,
+                    operation.completion_time,
+                )
+            })
+            .collect::<Vec<_>>();
         assert_eq!(
-            result.optimal_schedule.iter()
-                .map(|operation| (operation.operation_id, operation.processing_start, operation.completion_time))
-                .collect::<Vec<_>>(),
+            schedule_times,
             vec![(0, 0, 37), (1, 40, 64), (2, 0, 45), (3, 49, 70)]
         );
         assert!(result.exhaustive_for_declared_instance);
@@ -762,16 +770,29 @@ mod tests {
                 assert!(operation.processing_start >= predecessor.completion_time);
             }
         }
-        for (machine_index, sequence) in result.optimal_machine_sequences_operation_ids.iter().enumerate() {
+        for (machine_index, sequence) in result
+            .optimal_machine_sequences_operation_ids
+            .iter()
+            .enumerate()
+        {
             for pair in sequence.windows(2) {
-                let previous = schedule.iter().find(|item| item.operation_id == pair[0]).unwrap();
-                let current = schedule.iter().find(|item| item.operation_id == pair[1]).unwrap();
+                let previous = schedule
+                    .iter()
+                    .find(|item| item.operation_id == pair[0])
+                    .expect("previous operation exists");
+                let current = schedule
+                    .iter()
+                    .find(|item| item.operation_id == pair[1])
+                    .expect("current operation exists");
                 let transition_setup = parsed.setup_times[machine_index][pair[0]][pair[1]];
                 assert_eq!(current.setup_time_before_processing, transition_setup);
                 assert!(current.processing_start >= previous.completion_time + transition_setup);
             }
             if let Some(&first) = sequence.first() {
-                let first_operation = schedule.iter().find(|item| item.operation_id == first).unwrap();
+                let first_operation = schedule
+                    .iter()
+                    .find(|item| item.operation_id == first)
+                    .expect("first operation exists");
                 assert_eq!(first_operation.setup_time_before_processing, 0);
             }
         }
