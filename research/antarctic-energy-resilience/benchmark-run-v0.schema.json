@@ -1,0 +1,498 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/antarctic-energy-resilience/benchmark-run-v0.schema.json",
+  "title": "ANTARCTIC-ENERGY-001 Benchmark Run Receipt v0",
+  "description": "Evidence-bounded record for one Antarctic station energy-resilience benchmark run. A valid receipt does not itself establish physical validity or operational performance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "evidence_tier",
+    "case_manifest",
+    "source_artifacts",
+    "split_plan",
+    "methods",
+    "budget",
+    "hard_gates",
+    "metrics",
+    "validation",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "antarctic-benchmark-run-v0.1"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "executed",
+        "adjudicated",
+        "blocked",
+        "failed"
+      ]
+    },
+    "evidence_tier": {
+      "enum": [
+        "S0_synthetic",
+        "S1_source_pinned_observation",
+        "S2_reproduced_reference",
+        "S3_bench_or_hardware_in_loop",
+        "S4_operational_validation"
+      ]
+    },
+    "case_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_sha256",
+        "physical_data",
+        "station_scope",
+        "system_boundary"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "physical_data": {
+          "type": "boolean"
+        },
+        "station_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_applicability_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "url",
+          "sha256",
+          "evidence_class",
+          "spatial_support",
+          "temporal_support",
+          "licence_review",
+          "raw_bytes_ingested"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic",
+              "direct_measurement",
+              "published_aggregate",
+              "gridded_reanalysis",
+              "published_model_output",
+              "derived",
+              "unknown"
+            ]
+          },
+          "spatial_support": {
+            "enum": [
+              "site",
+              "multi_site_program",
+              "region",
+              "grid_cell",
+              "synthetic",
+              "unknown"
+            ]
+          },
+          "temporal_support": {
+            "type": "string",
+            "minLength": 1
+          },
+          "licence_review": {
+            "enum": [
+              "approved",
+              "attribution_required",
+              "originator_contact_required",
+              "restricted",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "raw_bytes_ingested": {
+            "type": "boolean"
+          },
+          "source_revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "split_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "tuning_periods",
+        "validation_periods",
+        "locked_test_periods",
+        "leakage_policy",
+        "locked_before_tuning"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "synthetic_only",
+            "blocked_time_series",
+            "whole_year_holdout",
+            "leave_one_episode_out",
+            "not_yet_defined"
+          ]
+        },
+        "tuning_periods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validation_periods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "locked_test_periods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "leakage_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locked_before_tuning": {
+          "type": "boolean"
+        }
+      }
+    },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method_id",
+          "family",
+          "version",
+          "configuration_sha256",
+          "same_information",
+          "same_evaluation_budget"
+        ],
+        "properties": {
+          "method_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "enum": [
+              "incumbent",
+              "rule_based",
+              "deterministic_mpc_lp",
+              "stochastic_or_robust",
+              "conventional_search",
+              "symthaea",
+              "symthaea_ablation"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "same_information": {
+            "type": "boolean"
+          },
+          "same_evaluation_budget": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_budget_unit",
+        "max_evaluations_per_method",
+        "actual_evaluations_by_method",
+        "wall_time_seconds_by_method",
+        "hardware_manifest"
+      ],
+      "properties": {
+        "primary_budget_unit": {
+          "enum": [
+            "simulator_calls",
+            "decision_evaluations",
+            "real_experiments",
+            "synthetic_fixture_only"
+          ]
+        },
+        "max_evaluations_per_method": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actual_evaluations_by_method": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "wall_time_seconds_by_method": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "hardware_manifest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_or_calibration_cost_disclosed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "hard_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "electric_balance",
+        "thermal_balance",
+        "storage_bounds",
+        "critical_service",
+        "process_safety",
+        "environmental_constraints",
+        "independent_verifier_id"
+      ],
+      "properties": {
+        "electric_balance": {
+          "$ref": "#/$defs/gate"
+        },
+        "thermal_balance": {
+          "$ref": "#/$defs/gate"
+        },
+        "storage_bounds": {
+          "$ref": "#/$defs/gate"
+        },
+        "critical_service": {
+          "$ref": "#/$defs/gate"
+        },
+        "process_safety": {
+          "$ref": "#/$defs/gate"
+        },
+        "environmental_constraints": {
+          "$ref": "#/$defs/gate"
+        },
+        "independent_verifier_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gate_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "value",
+          "unit",
+          "boundary",
+          "evidence_class"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "enum": [
+              "measured",
+              "published_aggregate",
+              "derived",
+              "simulated",
+              "synthetic",
+              "unknown"
+            ]
+          },
+          "uncertainty": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_validation",
+        "model_validation",
+        "independent_audit",
+        "ci_status",
+        "reproducible_command"
+      ],
+      "properties": {
+        "source_validation": {
+          "enum": [
+            "not_started",
+            "pass",
+            "fail",
+            "indeterminate"
+          ]
+        },
+        "model_validation": {
+          "enum": [
+            "not_applicable_synthetic",
+            "not_started",
+            "pass_within_declared_scope",
+            "fail",
+            "indeterminate"
+          ]
+        },
+        "independent_audit": {
+          "enum": [
+            "not_started",
+            "pass",
+            "fail",
+            "indeterminate"
+          ]
+        },
+        "ci_status": {
+          "enum": [
+            "not_run",
+            "queued",
+            "skipped",
+            "pass_exact_head",
+            "fail",
+            "stale_or_unknown"
+          ]
+        },
+        "exact_head_sha": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "reproducible_command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "enum": [
+        "software_accounting_only",
+        "source_pinned_descriptive",
+        "published_reference_reproduced",
+        "bench_validated_within_scope",
+        "operationally_validated_within_scope"
+      ]
+    }
+  },
+  "$defs": {
+    "gate": {
+      "enum": [
+        "pass",
+        "fail",
+        "unknown",
+        "not_applicable"
+      ]
+    }
+  }
+}
