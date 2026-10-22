@@ -140,6 +140,7 @@ Example intake-spec shape:
       "source_split_commit_sha": "PINNED_40_HEX_UPSTREAM_COMMIT",
       "source_split_config_url": "https://github.com/LGAI-Research/PCBWorld/blob/PINNED_40_HEX_UPSTREAM_COMMIT/configs/datasets/d3.json",
       "source_split_config_git_blob_sha1": "PINNED_40_HEX_GIT_BLOB_SHA1",
+      "source_split_config_relative_path": "provenance/d3.json",
       "split_name": "test",
       "boards": [
         {
@@ -152,7 +153,11 @@ Example intake-spec shape:
       ]
     }
 
-Build the manifest from the exact upstream `d3.json`, intake-spec bytes, and local processed D3 root:
+Place the exact upstream `d3.json` bytes inside the declared dataset evidence root and build the manifest from the same byte sequence. The builder refuses a root copy that differs from the supplied config; `verify-dataset` reopens and checks the copy again before accepting the dataset:
+
+    mkdir -p /data/pcbworld/pcbench/exacad_sorted/provenance
+    cp /pinned/PCBWorld/configs/datasets/d3.json \
+      /data/pcbworld/pcbench/exacad_sorted/provenance/d3.json
 
     export PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)"
     cargo run --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
@@ -167,7 +172,7 @@ Then verify the actual file bytes before a run:
       /data/pcbworld/pcbench/exacad_sorted \
       > dataset-intake-receipt.json
 
-The builder proves each selected ID belongs to the explicitly named difficulty/split array in the supplied D3 configuration, derives the relative board path from D3's `board_filename`, hashes the board bytes it actually reads, and binds hashes of the raw split-config and intake-spec bytes plus the source Git commit into the resulting manifest. It also requires an immutable GitHub blob URL that contains the pinned commit, requires the expected source Git blob SHA-1, and computes Git's `blob <length>\0<bytes>` identifier from the supplied split-config bytes before reading membership arrays. A modified `d3.json` cannot be relabelled with a guessed commit SHA and accepted merely because its changed bytes hash consistently. It rejects absent boards, unknown license placeholders, non-HTTPS provenance, unsafe paths, duplicate IDs and IDs outside the pinned split. Keep `d3.json`, PCBWorld commit, engine submodule, intake spec, manifest and intake receipt as the experiment's immutable inputs.
+The builder proves each selected ID belongs to the explicitly named difficulty/split array in the supplied D3 configuration, derives the relative board path from D3's `board_filename`, hashes the board bytes it actually reads, and binds hashes of the raw split-config and intake-spec bytes plus the source Git commit into the resulting manifest. It also requires the immutable split-config URL to contain that commit, checks its Git blob SHA-1, and requires the copy under `source_split_config_relative_path` to match the supplied bytes exactly. `verify-dataset` reopens that split file and verifies both SHA-256 and Git blob SHA-1 alongside board and license-evidence files. It also requires an immutable GitHub blob URL that contains the pinned commit, requires the expected source Git blob SHA-1, and computes Git's `blob <length>\0<bytes>` identifier from the supplied split-config bytes before reading membership arrays. A modified `d3.json` cannot be relabelled with a guessed commit SHA and accepted merely because its changed bytes hash consistently. It rejects absent boards, unknown license placeholders, non-HTTPS provenance, unsafe paths, duplicate IDs and IDs outside the pinned split. Keep `d3.json`, PCBWorld commit, engine submodule, intake spec, manifest and intake receipt as the experiment's immutable inputs.
 
 **Do not treat the two identical D3 train/test lists as a train/test holdout.** An explicitly selected 30-board pilot is a pipeline qualification subset; freeze the selection before routing methods are compared, then run the entire declared split for the final score. A future source-family holdout should be a separate disclosed split, not inferred from D3's mirrored keys.
 
@@ -283,3 +288,8 @@ This proves which evidence bytes were used, not that the SPDX classification is 
 ### Split-config provenance regression
 
 The manifest builder now verifies two independent source references for the upstream split file: the exact raw-byte SHA-256 used in the run receipt, and the upstream Git blob SHA-1 plus immutable commit URL. This closes an intake flaw where a modified D3 JSON could otherwise be supplied with a caller-chosen commit ID and still pass the board-membership check. The native dataset is not authorized until both pins match the actual file bytes. The SHA-1 is only used to verify Git object identity; SHA-256 remains the content digest used in the experiment receipt.
+
+
+### The split file is part of the offline evidence bundle
+
+The dataset evidence root must retain `provenance/d3.json` (or another declared safe relative path). A manifest with plausible split hashes but no corresponding local split file fails `verify-dataset`; a modified split file fails both the SHA-256 and Git-blob checks. The split file becomes a first-class entry in the dataset verification receipt, not merely an annotation pasted into manifest metadata.
