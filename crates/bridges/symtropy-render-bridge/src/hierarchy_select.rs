@@ -193,19 +193,28 @@ fn validate_structure(
         }
     }
 
-    // Parent-pointer walks identify cycles, including cycles detached from a root.
-    for node in index.values() {
-        let mut seen = BTreeSet::new();
-        let mut current = Some(node.node_id);
+    // Walk each parent chain once. Per-node fresh walks are quadratic on deep
+    // hierarchies; completed nodes let later walks stop at a previously validated
+    // prefix while still detecting cycles detached from every root.
+    let mut completed = BTreeSet::new();
+    for start_id in index.keys().copied() {
+        let mut path = Vec::new();
+        let mut active_path = BTreeSet::new();
+        let mut current = Some(start_id);
         while let Some(node_id) = current {
-            if !seen.insert(node_id) {
+            if completed.contains(&node_id) {
+                break;
+            }
+            if !active_path.insert(node_id) {
                 return Err(HierarchySelectionError::HierarchyCycle);
             }
+            path.push(node_id);
             current = index
                 .get(&node_id)
                 .ok_or(HierarchySelectionError::OrphanedNode)?
                 .parent_id;
         }
+        completed.extend(path);
     }
     Ok(())
 }
@@ -515,6 +524,31 @@ mod tests {
             select_hierarchy(&[parent, child], POLICY),
             Err(HierarchySelectionError::DuplicateChildNode)
         );
+    }
+
+    #[test]
+    fn deep_hierarchy_validation_reuses_completed_parent_chains() {
+        // A long chain is the worst case for repeated per-node ancestor walks.
+        // Validate structure directly to isolate hierarchy checking from recursive
+        // representation selection and rendering behavior.
+        let depth = 4_096_u64;
+        let nodes = (0..depth)
+            .map(|node_id| {
+                let parent_id = (node_id > 0).then_some(node_id - 1);
+                let children = if node_id + 1 < depth {
+                    vec![node_id + 1]
+                } else {
+                    Vec::new()
+                };
+                node(node_id, parent_id, children, 0.5)
+            })
+            .collect::<Vec<_>>();
+        let index = nodes
+            .iter()
+            .map(|node| (node.node_id, node))
+            .collect::<BTreeMap<_, _>>();
+
+        assert_eq!(validate_structure(&index), Ok(()));
     }
 
     #[test]
