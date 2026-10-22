@@ -406,7 +406,7 @@ struct LedgerRow {
 }
 
 fn flag(value: bool) -> String {
-    if value { "1" } else { "0" }.to_owned()
+    if value { "1".to_owned() } else { "0".to_owned() }
 }
 
 fn rate(numerator: usize, denominator: usize) -> f64 {
