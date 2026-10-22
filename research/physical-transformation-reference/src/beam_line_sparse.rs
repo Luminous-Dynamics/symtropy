@@ -551,7 +551,8 @@ fn euclidean_norm(vector: &[f64]) -> f64 {
     dot(vector, vector).sqrt()
 }
 
-pub(crate) fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
+/// Compute the sign-invariant Modal Assurance Criterion for two mode shapes.
+pub fn modal_assurance_criterion(left: &[f64], right: &[f64]) -> Check<f64> {
     if left.len() != right.len() || left.is_empty() {
         return Err("MAC vectors must have the same non-zero length".to_owned());
     }
