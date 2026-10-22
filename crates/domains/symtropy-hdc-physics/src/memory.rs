@@ -135,6 +135,8 @@ pub struct EpisodeMemory {
     encoder_fingerprint: u64,
     dimension: usize,
     episodes: Vec<PhysicsEpisode>,
+    max_episodes: Option<usize>,
+    evicted_count: u64,
 }
 
 impl EpisodeMemory {
@@ -143,7 +145,32 @@ impl EpisodeMemory {
             encoder_fingerprint,
             dimension,
             episodes: Vec::new(),
+            max_episodes: None,
+            evicted_count: 0,
         }
+    }
+
+    /// Construct a FIFO-bounded reference memory. When full, insertion of a
+    /// valid new episode evicts the oldest retained episode. A zero capacity
+    /// is rejected so a caller cannot accidentally create a memory that
+    /// reports successful inserts while retaining nothing.
+    pub fn with_capacity(
+        encoder_fingerprint: u64,
+        dimension: usize,
+        max_episodes: usize,
+    ) -> Result<Self, PhysicsHdcError> {
+        if max_episodes == 0 {
+            return Err(PhysicsHdcError::InvalidConfig(
+                "episode memory capacity must be greater than zero".to_owned(),
+            ));
+        }
+        Ok(Self {
+            encoder_fingerprint,
+            dimension,
+            episodes: Vec::new(),
+            max_episodes: Some(max_episodes),
+            evicted_count: 0,
+        })
     }
 
     pub fn from_encoder(encoder: &PhysicsFrameEncoder) -> Self {
@@ -151,6 +178,28 @@ impl EpisodeMemory {
             encoder.config().fingerprint(),
             encoder.config().hdc.dimension,
         )
+    }
+
+    pub fn from_encoder_with_capacity(
+        encoder: &PhysicsFrameEncoder,
+        max_episodes: usize,
+    ) -> Result<Self, PhysicsHdcError> {
+        Self::with_capacity(
+            encoder.config().fingerprint(),
+            encoder.config().hdc.dimension,
+            max_episodes,
+        )
+    }
+
+    /// Configured maximum retained episode count; None preserves legacy
+    /// unbounded behavior of new and from_encoder.
+    pub fn capacity(&self) -> Option<usize> {
+        self.max_episodes
+    }
+
+    /// Monotonic count of payload episodes evicted by the FIFO capacity policy.
+    pub fn evicted_count(&self) -> u64 {
+        self.evicted_count
     }
 
     pub fn len(&self) -> usize {
@@ -184,6 +233,14 @@ impl EpisodeMemory {
             .any(|existing| existing.id == episode.id)
         {
             return Err(PhysicsHdcError::DuplicateEpisodeId(episode.id));
+        }
+        if let Some(capacity) = self.max_episodes
+            && self.episodes.len() >= capacity
+        {
+            // All identity/encoder validations happen before eviction. A
+            // rejected write must never displace a valid retained episode.
+            self.episodes.remove(0);
+            self.evicted_count = self.evicted_count.saturating_add(1);
         }
         let index = self.episodes.len();
         self.episodes.push(episode);
