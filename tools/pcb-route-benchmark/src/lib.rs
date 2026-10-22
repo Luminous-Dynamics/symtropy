@@ -1223,36 +1223,25 @@ pub fn verify_dataset_files(
     evaluator_git_head: &str,
 ) -> Result<DatasetFileVerificationReceipt, String> {
     if !is_commit_sha(evaluator_git_head) {
-        return Err(
-            "evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into(),
-        );
+        return Err("evaluator Git HEAD must be a 40- or 64-character hexadecimal commit ID".into());
     }
     let manifest: DatasetManifest = serde_json::from_slice(manifest_bytes)
         .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
     validate_manifest(&manifest)?;
 
     let root = dataset_root.canonicalize().map_err(|error| {
-        format!(
-            "cannot canonicalize dataset root {}: {error}",
-            dataset_root.display()
-        )
+        format!("cannot canonicalize dataset root {}: {error}", dataset_root.display())
     })?;
     if !root.is_dir() {
-        return Err(format!(
-            "dataset root is not a directory: {}",
-            root.display()
-        ));
+        return Err(format!("dataset root is not a directory: {}", root.display()));
     }
 
-    let mut entries = Vec::with_capacity(manifest.boards.len() * 2 + 1);
+    let mut entries = Vec::new();
     let mut used_paths = BTreeSet::new();
     let mut verified_license_evidence_count = 0usize;
+    let mut audit_digest = None;
 
-    if manifest.evidence_class == "external_benchmark" {
-        let split_relative_path = manifest
-            .source_split_config_relative_path
-            .as_deref()
-            .ok_or_else(|| "external manifest lacks source split-config path".to_string())?;
+    if let Some(split_relative_path) = manifest.source_split_config_relative_path.as_deref() {
         validate_relative_path(split_relative_path, "source split config")?;
         let split_path = root.join(split_relative_path).canonicalize().map_err(|error| {
             format!("cannot resolve source split config {split_relative_path}: {error}")
@@ -1265,19 +1254,14 @@ pub fn verify_dataset_files(
         }
         let split_bytes = fs::read(&split_path)
             .map_err(|error| format!("cannot read source split config {split_relative_path}: {error}"))?;
-        let expected_sha256 = manifest
-            .source_split_config_sha256
-            .as_deref()
-            .ok_or_else(|| "external manifest lacks source split-config SHA-256".to_string())?;
-        if sha256_hex(&split_bytes) != expected_sha256 {
+        let expected_sha = manifest.source_split_config_sha256.as_deref()
+            .ok_or_else(|| "manifest source split-config SHA-256 is missing".to_string())?;
+        if sha256_hex(&split_bytes) != expected_sha {
             return Err("source split-config bytes SHA-256 does not match the pinned manifest".into());
         }
-        let expected_git_blob_sha1 = manifest
-            .source_split_config_git_blob_sha1
-            .as_deref()
-            .ok_or_else(|| "external manifest lacks source split-config Git blob SHA-1".to_string())?;
-        let observed_git_blob_sha1 = git_blob_sha1(&split_bytes);
-        if observed_git_blob_sha1 != expected_git_blob_sha1 {
+        let expected_git_blob = manifest.source_split_config_git_blob_sha1.as_deref()
+            .ok_or_else(|| "manifest source split-config Git blob SHA-1 is missing".to_string())?;
+        if git_blob_sha1(&split_bytes) != expected_git_blob {
             return Err("source split-config bytes do not match the immutable source repository Git blob".into());
         }
         entries.push(DatasetFileVerificationEntry {
@@ -1285,166 +1269,131 @@ pub fn verify_dataset_files(
             role: "source_split_config".into(),
             relative_path: split_relative_path.to_string(),
             byte_len: split_bytes.len() as u64,
-            sha256: expected_sha256.to_string(),
-            git_blob_sha1: Some(observed_git_blob_sha1),
+            sha256: expected_sha.to_string(),
+            git_blob_sha1: Some(expected_git_blob.to_string()),
         });
+    } else if manifest.evidence_class == "external_benchmark" {
+        return Err("external manifest lacks source split-config path".into());
+    }
+
+    if let Some(audit_relative_path) = manifest.license_audit_manifest_relative_path.as_deref() {
+        validate_relative_path(audit_relative_path, "license-audit manifest")?;
+        let audit_path = root.join(audit_relative_path).canonicalize().map_err(|error| {
+            format!("cannot resolve license-audit manifest {audit_relative_path}: {error}")
+        })?;
+        if !audit_path.starts_with(&root) || !audit_path.is_file() {
+            return Err("license-audit manifest is not a regular file contained by the dataset root".into());
+        }
+        if !used_paths.insert(audit_path.clone()) {
+            return Err("license-audit manifest aliases another pinned dataset artifact".into());
+        }
+        let audit_bytes = fs::read(&audit_path)
+            .map_err(|error| format!("cannot read license-audit manifest bytes: {error}"))?;
+        let audit_sha = sha256_hex(&audit_bytes);
+        if audit_sha != manifest.license_audit_manifest_sha256.as_deref().unwrap_or_default() {
+            return Err("license-audit manifest bytes SHA-256 does not match the dataset manifest".into());
+        }
+        validate_audit_manifest_for_manifest(&audit_bytes, &manifest)?;
+        entries.push(DatasetFileVerificationEntry {
+            board_id: "__dataset__".into(),
+            role: "license_audit_manifest".into(),
+            relative_path: audit_relative_path.to_string(),
+            byte_len: audit_bytes.len() as u64,
+            sha256: audit_sha.clone(),
+            git_blob_sha1: None,
+        });
+        audit_digest = Some(audit_sha);
+    } else if manifest.evidence_class == "external_benchmark" {
+        return Err("external manifest lacks immutable license-audit manifest".into());
     }
 
     for board in &manifest.boards {
-        let relative_path = board
-            .relative_path
-            .as_deref()
+        let relative_path = board.relative_path.as_deref()
             .ok_or_else(|| format!("{}: dataset-relative source path missing", board.board_id))?;
         validate_relative_path(relative_path, &board.board_id)?;
         let actual_path = root.join(relative_path).canonicalize().map_err(|error| {
-            format!(
-                "{}: cannot resolve source file {}: {error}",
-                board.board_id, relative_path
-            )
+            format!("{}: cannot resolve source file {}: {error}", board.board_id, relative_path)
         })?;
-        if !actual_path.starts_with(&root) {
-            return Err(format!(
-                "{}: source file resolves outside the dataset root",
-                board.board_id
-            ));
-        }
-        if !actual_path.is_file() {
-            return Err(format!(
-                "{}: source path is not a regular file: {}",
-                board.board_id, relative_path
-            ));
+        if !actual_path.starts_with(&root) || !actual_path.is_file() {
+            return Err(format!("{}: source file is not a regular file contained by the dataset root", board.board_id));
         }
         if !used_paths.insert(actual_path.clone()) {
-            return Err(format!(
-                "{}: source path aliases another pinned dataset artifact",
-                board.board_id
-            ));
+            return Err(format!("{}: source path aliases another pinned dataset artifact", board.board_id));
         }
-        let bytes = fs::read(&actual_path).map_err(|error| {
-            format!(
-                "{}: cannot read source file {}: {error}",
-                board.board_id, relative_path
-            )
-        })?;
-        let digest = sha256_hex(&bytes);
-        if digest != board.input_board_sha256 {
-            return Err(format!(
-                "{}: source bytes SHA-256 does not match the pinned manifest",
-                board.board_id
-            ));
+        let board_bytes = fs::read(&actual_path)
+            .map_err(|error| format!("{}: cannot read source file: {error}", board.board_id))?;
+        let board_sha = sha256_hex(&board_bytes);
+        if board_sha != board.input_board_sha256 {
+            return Err(format!("{}: source bytes SHA-256 does not match the pinned manifest", board.board_id));
+        }
+        if let Some(audit_path) = board.relative_path.as_deref() {
+            let _ = audit_path;
         }
         entries.push(DatasetFileVerificationEntry {
             board_id: board.board_id.clone(),
             role: "source_board".into(),
             relative_path: relative_path.to_string(),
-            byte_len: bytes.len() as u64,
-            sha256: digest,
+            byte_len: board_bytes.len() as u64,
+            sha256: board_sha,
             git_blob_sha1: None,
         });
 
-        if manifest.evidence_class == "external_benchmark" {
-            let evidence_relative_path = board
-                .license_evidence_relative_path
-                .as_deref()
-                .ok_or_else(|| {
-                    format!("{}: license-evidence path is missing", board.board_id)
-                })?;
-            validate_relative_path(
-                evidence_relative_path,
-                &format!("{} license evidence", board.board_id),
-            )?;
-            let expected_evidence_sha = board.license_evidence_sha256.as_deref().ok_or_else(|| {
-                format!(
-                    "{}: license-evidence SHA-256 is missing",
-                    board.board_id
-                )
+        if board.license_evidence_relative_path.is_some() || manifest.evidence_class == "external_benchmark" {
+            let evidence_relative_path = board.license_evidence_relative_path.as_deref()
+                .ok_or_else(|| format!("{}: license-evidence path is missing", board.board_id))?;
+            validate_relative_path(evidence_relative_path, &format!("{} license evidence", board.board_id))?;
+            let expected_evidence_sha = board.license_evidence_sha256.as_deref()
+                .ok_or_else(|| format!("{}: license-evidence SHA-256 is missing", board.board_id))?;
+            require_sha256(expected_evidence_sha, "license_evidence_sha256")?;
+            let evidence_path = root.join(evidence_relative_path).canonicalize().map_err(|error| {
+                format!("{}: cannot resolve license-evidence file {}: {error}", board.board_id, evidence_relative_path)
             })?;
-            let evidence_path = root
-                .join(evidence_relative_path)
-                .canonicalize()
-                .map_err(|error| {
-                    format!(
-                        "{}: cannot resolve license-evidence file {}: {error}",
-                        board.board_id, evidence_relative_path
-                    )
-                })?;
-            if !evidence_path.starts_with(&root) {
-                return Err(format!(
-                    "{}: license-evidence file resolves outside the dataset root",
-                    board.board_id
-                ));
-            }
-            if !evidence_path.is_file() {
-                return Err(format!(
-                    "{}: license-evidence path is not a regular file: {}",
-                    board.board_id, evidence_relative_path
-                ));
+            if !evidence_path.starts_with(&root) || !evidence_path.is_file() {
+                return Err(format!("{}: license-evidence path is not a regular file contained by the dataset root", board.board_id));
             }
             if !used_paths.insert(evidence_path.clone()) {
-                return Err(format!(
-                    "{}: license-evidence path aliases another pinned dataset artifact",
-                    board.board_id
-                ));
+                return Err(format!("{}: license-evidence path aliases another pinned dataset artifact", board.board_id));
             }
-            let evidence_bytes = fs::read(&evidence_path).map_err(|error| {
-                format!(
-                    "{}: cannot read license-evidence file {}: {error}",
-                    board.board_id, evidence_relative_path
-                )
-            })?;
+            let evidence_bytes = fs::read(&evidence_path)
+                .map_err(|error| format!("{}: cannot read license-evidence file: {error}", board.board_id))?;
             if evidence_bytes.is_empty() {
                 return Err(format!("{}: license-evidence file is empty", board.board_id));
             }
-            let evidence_digest = sha256_hex(&evidence_bytes);
-            if evidence_digest != expected_evidence_sha {
-                return Err(format!(
-                    "{}: license-evidence bytes SHA-256 does not match the pinned manifest",
-                    board.board_id
-                ));
+            let evidence_sha = sha256_hex(&evidence_bytes);
+            if evidence_sha != expected_evidence_sha {
+                return Err(format!("{}: license-evidence bytes SHA-256 does not match the pinned manifest", board.board_id));
             }
-            let expected_git_blob_sha = board
-                .license_evidence_git_blob_sha1
-                .as_deref()
-                .ok_or_else(|| {
-                    format!(
-                        "{}: license-evidence Git blob SHA-1 is missing",
-                        board.board_id
-                    )
-                })?;
-            let observed_git_blob_sha = git_blob_sha1(&evidence_bytes);
-            if observed_git_blob_sha != expected_git_blob_sha {
-                return Err(format!(
-                    "{}: license-evidence bytes do not match the immutable source repository Git blob",
-                    board.board_id
-                ));
+            let expected_git_blob = board.license_evidence_git_blob_sha1.as_deref()
+                .ok_or_else(|| format!("{}: license-evidence Git blob SHA-1 is missing", board.board_id))?;
+            let observed_git_blob = git_blob_sha1(&evidence_bytes);
+            if observed_git_blob != expected_git_blob {
+                return Err(format!("{}: license-evidence bytes do not match the immutable source repository Git blob", board.board_id));
             }
             entries.push(DatasetFileVerificationEntry {
                 board_id: board.board_id.clone(),
                 role: "license_evidence".into(),
                 relative_path: evidence_relative_path.to_string(),
                 byte_len: evidence_bytes.len() as u64,
-                sha256: evidence_digest,
-                git_blob_sha1: Some(observed_git_blob_sha),
+                sha256: evidence_sha,
+                git_blob_sha1: Some(observed_git_blob),
             });
             verified_license_evidence_count += 1;
         }
     }
-    entries.sort_by(|a, b| {
-        a.board_id
-            .cmp(&b.board_id)
-            .then_with(|| a.role.cmp(&b.role))
-            .then_with(|| a.relative_path.cmp(&b.relative_path))
-    });
 
+    entries.sort_by(|a, b| a.board_id.cmp(&b.board_id)
+        .then_with(|| a.role.cmp(&b.role))
+        .then_with(|| a.relative_path.cmp(&b.relative_path)));
     Ok(DatasetFileVerificationReceipt {
         schema: "pcb-route-dataset-file-verification-v0.1".into(),
         evaluator_git_head: evaluator_git_head.to_ascii_lowercase(),
         dataset_manifest_sha256: sha256_hex(manifest_bytes),
+        license_audit_manifest_sha256: audit_digest,
         verified_board_count: manifest.boards.len(),
         verified_license_evidence_count,
         entries,
-        authority: "dataset_source_and_license_evidence_bytes_match_pinned_manifest_only".into(),
-        claim_ceiling: "This receipt verifies source-board and license-evidence file paths and byte digests under the declared dataset root. It does not determine whether a license label is a correct legal interpretation, route boards, authorize a benchmark score, or establish physical/manufacturing quality.".into(),
+        authority: "dataset_source_and_license_audit_and_evidence_bytes_match_pinned_manifest_only".into(),
+        claim_ceiling: "This receipt verifies source-board, immutable license-audit and license-evidence bytes against a manifest. It does not determine legal applicability, route boards, authorize a benchmark score or establish physical/manufacturing quality.".into(),
     })
 }
 
