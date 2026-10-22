@@ -3,9 +3,11 @@
 //! This is a numerical scaling result under the derived mass candidate, not a
 //! BE25 reproduction while the official input deck remains uninspected.
 
-use physical_transformation_reference::beam_line::BeamLineBoundaryCase;
+use physical_transformation_reference::beam_line::{
+    BeamLineBoundaryCase, BeamLineMassModel, solve_beam_line_modes,
+};
 use physical_transformation_reference::beam_line_sparse::{
-    canonical_request, solve_sparse_beam_line_modes,
+    canonical_request, modal_assurance_criterion, solve_sparse_beam_line_modes,
 };
 use std::env;
 use std::process::ExitCode;
@@ -43,6 +45,43 @@ fn run() -> Result<String, String> {
         6,
         120,
     )?;
+    let mut dense_crosscheck_max_relative_frequency_error = 0.0_f64;
+    let mut dense_crosscheck_min_mac = 1.0_f64;
+    for boundary_case in BeamLineBoundaryCase::ALL {
+        let dense = solve_beam_line_modes(
+            1.0,
+            200.0e6,
+            1.0e-9,
+            0.25492905324448206,
+            10,
+            boundary_case,
+            BeamLineMassModel::ConsistentTranslational,
+        )?;
+        let sparse = solve_sparse_beam_line_modes(
+            1.0,
+            200.0e6,
+            1.0e-9,
+            0.25492905324448206,
+            10,
+            boundary_case,
+            4,
+            32,
+        )?;
+        for mode_index in 0..4 {
+            let relative_error = (dense.modes[mode_index].frequency_hz
+                - sparse.modes[mode_index].frequency_hz)
+                .abs()
+                / dense.modes[mode_index].frequency_hz;
+            dense_crosscheck_max_relative_frequency_error =
+                dense_crosscheck_max_relative_frequency_error.max(relative_error);
+            let mac = modal_assurance_criterion(
+                &dense.modes[mode_index].shape,
+                &sparse.modes[mode_index].shape,
+            )?;
+            dense_crosscheck_min_mac = dense_crosscheck_min_mac.min(mac);
+        }
+    }
+
     let modes = solution
         .modes
         .iter()
@@ -99,6 +138,8 @@ fn run() -> Result<String, String> {
             "\"lanczos_basis_storage_bytes\":{},",
             "\"dense_stiffness_mass_storage_estimate_bytes\":{},",
             "\"banded_matrix_storage_fraction_of_dense\":{}",
+            "\"dense_crosscheck_max_relative_frequency_error\":{},",
+            "\"dense_crosscheck_min_mac\":{},",
             "}},",
             "\"modes\":[{}],",
             "\"claim_ceiling\":\"200-element continuous beam candidate only; not BE25 reproduction or physical validation\"",
@@ -126,6 +167,8 @@ fn run() -> Result<String, String> {
             solution.matrix_storage_bytes as f64
                 / solution.dense_stiffness_mass_storage_bytes as f64,
         ),
+        number(dense_crosscheck_max_relative_frequency_error),
+        number(dense_crosscheck_min_mac),
         modes,
     ))
 }
