@@ -49,6 +49,20 @@ run_mutation() {
         return 1
       fi
       ;;
+    collapse_all_member_rotations)
+      grep -Fq 'let private_rotation_base = translation_dof_count + 2 * member_index;' "$source"
+      perl -0pi -e 's/let private_rotation_base = translation_dof_count \+ 2 \* member_index;/let private_rotation_base = translation_dof_count;/' "$source"
+      grep -Fq 'let private_rotation_base = translation_dof_count;' "$source"
+      ;;
+    reverse_endpoint_translation_mapping)
+      grep -Fq 'let dof_map = [' "$source"
+      perl -0pi -e 's/let dof_map = \[\n            2 \* start_node_index,\n            2 \* start_node_index \+ 1,\n            private_rotation_base,\n            2 \* end_node_index,\n            2 \* end_node_index \+ 1,/let dof_map = [\n            2 * end_node_index,\n            2 * end_node_index + 1,\n            private_rotation_base,\n            2 * start_node_index,\n            2 * start_node_index + 1,/' "$source"
+      ;;
+    omit_second_member_assembly)
+      grep -Fq 'for (member_index, member) in ordered_members.iter().enumerate() {' "$source"
+      perl -0pi -e 's/for \(member_index, member\) in ordered_members\.iter\(\)\.enumerate\(\) \{/for (member_index, member) in ordered_members.iter().take(1).enumerate() {/' "$source"
+      grep -Fq 'ordered_members.iter().take(1).enumerate()' "$source"
+      ;;
     *)
       printf 'Unknown beam-assembly mutation: %s\n' "$mutation" >&2
       return 2
@@ -77,6 +91,19 @@ run_mutation \
   input_order_controls_global_numbering \
   assembly_is_invariant_to_input_storage_order
 
+run_mutation \
+  "collapsed-member-rotations" \
+  collapse_all_member_rotations \
+  every_member_end_rotation_has_stiffness_and_mass_support
+run_mutation \
+  "endpoint-translation-map-reversed" \
+  reverse_endpoint_translation_mapping \
+  condensing_private_pin_rotations_recovers_independent_axial_truss_stiffness
+run_mutation \
+  "second-member-omitted" \
+  omit_second_member_assembly \
+  every_member_end_rotation_has_stiffness_and_mass_support
+
 test "$assembly_sha256" = "$(sha256sum "$crate_dir/src/beam_pin_assembly.rs" | awk '{print $1}')"
 
 jq -n \
@@ -101,6 +128,21 @@ jq -n \
       {
         id: "PHYS-BEAM-PIN-MUT-INPUT-ORDER-001",
         expected_test: "assembly_is_invariant_to_input_storage_order",
+        disposition: "detected"
+      }
+      {
+        id: "PHYS-BEAM-PIN-MUT-ROTATION-COLLAPSE-001",
+        expected_test: "every_member_end_rotation_has_stiffness_and_mass_support",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-BEAM-PIN-MUT-ENDPOINT-MAP-001",
+        expected_test: "condensing_private_pin_rotations_recovers_independent_axial_truss_stiffness",
+        disposition: "detected"
+      },
+      {
+        id: "PHYS-BEAM-PIN-MUT-MEMBER-OMISSION-001",
+        expected_test: "every_member_end_rotation_has_stiffness_and_mass_support",
         disposition: "detected"
       }
     ],
