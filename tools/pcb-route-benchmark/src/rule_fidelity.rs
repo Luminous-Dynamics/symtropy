@@ -1440,9 +1440,9 @@ mod tests {
 
     #[test]
     fn paired_fidelity_requires_identical_constraint_fingerprint() {
-        let plan = plan(OUTPUT_A, vec![preserved_rule()], true);
-        let baseline = evaluate(&plan, COMPAT_CLEAN.as_bytes(), Some(STRICT_CLEAN.as_bytes()));
-        let mut altered_plan = plan.clone();
+        let baseline_plan = plan(OUTPUT_A, vec![preserved_rule()], true);
+        let baseline = evaluate(&baseline_plan, COMPAT_CLEAN.as_bytes(), Some(STRICT_CLEAN.as_bytes()));
+        let mut altered_plan = baseline_plan.clone();
         altered_plan.rule_assessments[0].evaluated_value = Some("0.30mm".into());
         altered_plan.rule_assessments[0].classification = RuleClassification::Relaxed;
         altered_plan.rule_assessments[0].rationale = "deliberate mismatch negative control".into();
