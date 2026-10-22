@@ -44,8 +44,8 @@ The explicit expressions to implement and unit-test are
 \[
 \begin{aligned}
 f_x={}&(\lambda+3\mu)A k^2\sin(kx)\sin(ky)\\
-&-4(\lambda+\mu)B k^2\cos(ky)\cos(2kx),\\
-f_y={}&(2\lambda+7\mu)B k^2\sin(2kx)\sin(ky)\\
+&-2(\lambda+\mu)B k^2\cos(ky)\cos(2kx),\\
+f_y={}&(\lambda+6\mu)B k^2\sin(2kx)\sin(ky)\\
 &-(\lambda+\mu)A k^2\cos(kx)\cos(ky).
 \end{aligned}
 \]
