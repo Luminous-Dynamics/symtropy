@@ -53,6 +53,8 @@ pub struct SparseBeamLineSolution {
     pub analytical_first_frequency_hz: f64,
     pub first_frequency_relative_error: f64,
     pub maximum_normalized_eigen_residual: f64,
+    pub maximum_modal_mass_norm_error: f64,
+    pub maximum_off_diagonal_mass_orthogonality_error: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -420,6 +422,7 @@ pub fn solve_sparse_beam_line_modes(
     let ritz_pairs = generalized_symmetric_eigenpairs(&projected, &identity)?;
 
     let mut modes = Vec::with_capacity(requested_modes);
+    let mut reduced_shapes = Vec::with_capacity(requested_modes);
     for (theta, ritz_vector) in ritz_pairs.into_iter().rev().take(requested_modes) {
         if !theta.is_finite() || theta <= 0.0 {
             return Err("Lanczos inverse eigenvalue is non-positive or non-finite".to_owned());
@@ -438,6 +441,7 @@ pub fn solve_sparse_beam_line_modes(
         for value in &mut reduced_shape {
             *value /= shape_norm;
         }
+        reduced_shapes.push(reduced_shape.clone());
 
         let kx = stiffness.mul(&reduced_shape)?;
         let mx = mass.mul(&reduced_shape)?;
@@ -477,6 +481,22 @@ pub fn solve_sparse_beam_line_modes(
         .iter()
         .map(|mode| mode.normalized_eigen_residual)
         .fold(0.0_f64, f64::max);
+    let mass_products = reduced_shapes
+        .iter()
+        .map(|shape| mass.mul(shape))
+        .collect::<Check<Vec<_>>>()?;
+    let maximum_modal_mass_norm_error = reduced_shapes
+        .iter()
+        .zip(&mass_products)
+        .map(|(shape, mass_shape)| (dot(shape, mass_shape) - 1.0).abs())
+        .fold(0.0_f64, f64::max);
+    let mut maximum_off_diagonal_mass_orthogonality_error = 0.0_f64;
+    for row in 0..reduced_shapes.len() {
+        for col in (row + 1)..reduced_shapes.len() {
+            maximum_off_diagonal_mass_orthogonality_error = maximum_off_diagonal_mass_orthogonality_error
+                .max(dot(&reduced_shapes[row], &mass_products[col]).abs());
+        }
+    }
 
     let matrix_storage_bytes =
         MATRIX_STORAGE_COUNT * stiffness.storage_bytes();
@@ -499,6 +519,8 @@ pub fn solve_sparse_beam_line_modes(
         analytical_first_frequency_hz,
         first_frequency_relative_error,
         maximum_normalized_eigen_residual,
+        maximum_modal_mass_norm_error,
+        maximum_off_diagonal_mass_orthogonality_error,
     })
 }
 
@@ -670,6 +692,8 @@ mod tests {
         assert_eq!(solution.free_dof_count, 400);
         assert_eq!(solution.modes.len(), 6);
         assert!(solution.maximum_normalized_eigen_residual < 1.0e-5);
+        assert!(solution.maximum_modal_mass_norm_error < 1.0e-8);
+        assert!(solution.maximum_off_diagonal_mass_orthogonality_error < 1.0e-8);
         assert!(solution.first_frequency_relative_error < 1.0e-2);
         assert!(solution.matrix_storage_bytes * 100 < solution.dense_stiffness_mass_storage_bytes * 5);
         assert!(solution.lanczos_basis_storage_bytes < 400 * 120 * 8 + 8);
