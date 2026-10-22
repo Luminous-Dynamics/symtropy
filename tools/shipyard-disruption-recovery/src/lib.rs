@@ -149,6 +149,157 @@ pub struct RecoveryInput {
     pub disruption: Disruption,
 }
 
+/// One plausible disturbance trajectory for a deterministic robust-envelope evaluation.
+///
+/// Scenarios are not assigned probabilities in V0: every supplied trajectory is a hard
+/// feasibility case, not a statistical forecast.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEnvelopeScenario {
+    pub scenario_id: String,
+    pub disruption: Disruption,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum RecoveryEnvelopeViolationCode {
+    EmptyScenarioSet,
+    EmptyScenarioId,
+    DuplicateScenarioId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEnvelopeViolation {
+    pub code: RecoveryEnvelopeViolationCode,
+    pub scenario_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEnvelopeScenarioReport {
+    pub scenario_id: String,
+    pub report: RecoveryReport,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RecoveryEnvelopeMetrics {
+    pub total_scenarios: usize,
+    pub accepted_scenarios: usize,
+    pub worst_case_recovery_horizon_ticks: Option<u64>,
+    pub worst_case_unaffected_placement_churn: usize,
+    pub worst_case_unaffected_transfer_churn: usize,
+    pub worst_case_time_shift_ticks: u64,
+    pub worst_case_rectangle_edge_shift_units: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryEnvelopeReport {
+    /// True only when the scenario set is valid and every candidate report is accepted.
+    pub robustly_accepted: bool,
+    pub metrics: RecoveryEnvelopeMetrics,
+    pub violations: Vec<RecoveryEnvelopeViolation>,
+    pub scenarios: Vec<RecoveryEnvelopeScenarioReport>,
+}
+
+/// Evaluate one candidate against every supplied plausible disturbance trajectory.
+///
+/// This is a finite scenario envelope, not a probability guarantee over unlisted scenarios. Every
+/// scenario is hard: the candidate is robustly accepted only when every underlying recovery report
+/// is accepted. Scenario IDs are required to be non-empty and unique so reports remain auditable.
+pub fn evaluate_recovery_envelope(
+    baseline: &Scenario,
+    candidate: &Scenario,
+    scenarios: &[RecoveryEnvelopeScenario],
+) -> RecoveryEnvelopeReport {
+    let mut violations = Vec::new();
+    if scenarios.is_empty() {
+        violations.push(RecoveryEnvelopeViolation {
+            code: RecoveryEnvelopeViolationCode::EmptyScenarioSet,
+            scenario_id: String::new(),
+        });
+    }
+
+    let mut seen = BTreeSet::new();
+    for scenario in scenarios {
+        if scenario.scenario_id.trim().is_empty() {
+            violations.push(RecoveryEnvelopeViolation {
+                code: RecoveryEnvelopeViolationCode::EmptyScenarioId,
+                scenario_id: scenario.scenario_id.clone(),
+            });
+        } else if !seen.insert(scenario.scenario_id.as_str()) {
+            violations.push(RecoveryEnvelopeViolation {
+                code: RecoveryEnvelopeViolationCode::DuplicateScenarioId,
+                scenario_id: scenario.scenario_id.clone(),
+            });
+        }
+    }
+
+    let mut scenario_reports: Vec<RecoveryEnvelopeScenarioReport> = scenarios
+        .iter()
+        .map(|scenario| RecoveryEnvelopeScenarioReport {
+            scenario_id: scenario.scenario_id.clone(),
+            report: evaluate_recovery(&RecoveryInput {
+                baseline: baseline.clone(),
+                candidate: candidate.clone(),
+                disruption: scenario.disruption.clone(),
+            }),
+        })
+        .collect();
+    scenario_reports.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+
+    let accepted_scenarios = scenario_reports
+        .iter()
+        .filter(|scenario| scenario.report.accepted)
+        .count();
+    let worst_case_recovery_horizon_ticks = scenario_reports
+        .iter()
+        .filter_map(|scenario| scenario.report.metrics.recovery_horizon_ticks)
+        .max();
+    let worst_case_unaffected_placement_churn = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.unaffected_placement_churn)
+        .max()
+        .unwrap_or_default();
+    let worst_case_unaffected_transfer_churn = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.unaffected_transfer_churn)
+        .max()
+        .unwrap_or_default();
+    let worst_case_time_shift_ticks = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.time_shift_ticks)
+        .max()
+        .unwrap_or_default();
+    let worst_case_rectangle_edge_shift_units = scenario_reports
+        .iter()
+        .map(|scenario| scenario.report.metrics.rectangle_edge_shift_units)
+        .max()
+        .unwrap_or_default();
+
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.scenario_id.cmp(&right.scenario_id))
+    });
+    violations.dedup();
+
+    let robustly_accepted = scenarios.len() > 0
+        && violations.is_empty()
+        && accepted_scenarios == scenarios.len();
+
+    RecoveryEnvelopeReport {
+        robustly_accepted,
+        metrics: RecoveryEnvelopeMetrics {
+            total_scenarios: scenarios.len(),
+            accepted_scenarios,
+            worst_case_recovery_horizon_ticks,
+            worst_case_unaffected_placement_churn,
+            worst_case_unaffected_transfer_churn,
+            worst_case_time_shift_ticks,
+            worst_case_rectangle_edge_shift_units,
+        },
+        violations,
+        scenarios: scenario_reports,
+    }
+}
+
 fn apply_disruption(scenario: &Scenario, disruption: &Disruption) -> Scenario {
     let mut effective = scenario.clone();
     effective
