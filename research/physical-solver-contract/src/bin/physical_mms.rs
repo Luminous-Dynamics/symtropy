@@ -288,7 +288,9 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     if integer_field(&model_manifest, "cells_per_axis", "model manifest")? != n as u64
         || integer_field(&run_manifest, "cells_per_axis", "run manifest")? != n as u64
     {
-        return Err("mesh cell count differs between command, model manifest and run manifest".to_owned());
+        return Err(
+            "mesh cell count differs between command, model manifest and run manifest".to_owned(),
+        );
     }
 
     let source_sha = string_field(&run_manifest, "source_sha", "run manifest")?;
@@ -308,7 +310,12 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let run_manifest_sha = sha256_hex(&run_manifest_bytes);
 
     require_equal_string(&model_manifest, "deck_sha256", &deck_sha, "model manifest")?;
-    require_equal_string(&model_manifest, "generator_executable_sha256", &auditor_sha, "model manifest")?;
+    require_equal_string(
+        &model_manifest,
+        "generator_executable_sha256",
+        &auditor_sha,
+        "model manifest",
+    )?;
     for (key, digest, label) in [
         ("model_manifest_sha256", model_manifest_sha.as_str(), "run manifest"),
         ("deck_sha256", deck_sha.as_str(), "run manifest"),
@@ -323,7 +330,9 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     if integer_field(&run_manifest, "solver_exit_code", "run manifest")? != 0
         || run_manifest.get("solver_completed").and_then(Value::as_bool) != Some(true)
     {
-        return Err("run manifest does not attest a completed process with zero exit code".to_owned());
+        return Err(
+            "run manifest does not attest a completed process with zero exit code".to_owned(),
+        );
     }
     for (key, expected) in [
         ("schema_version", "calculix-build-manifest-v0.1"),
@@ -357,7 +366,9 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
         return Err("build manifest flags differ from the pinned SPOOLES-only profile".to_owned());
     }
     if string_field(&build_manifest, "ccx_executable_sha256", "build manifest")? != solver_sha {
-        return Err("build manifest executable digest differs from the audited solver bytes".to_owned());
+        return Err(
+            "build manifest executable digest differs from the audited solver bytes".to_owned(),
+        );
     }
 
     let parameters = MmsParameters::default();
@@ -365,16 +376,22 @@ fn audit(options: &BTreeMap<String, String>) -> Result<(), String> {
     let mesh = MmsMesh::generate(n, parameters)?;
     let expected_deck = mesh.generate_input_deck(parameters)?;
     if expected_deck != deck_bytes {
-        return Err("input deck bytes differ from the deterministic manufactured mesh generator".to_owned());
+        return Err(
+            "input deck bytes differ from the deterministic manufactured mesh generator".to_owned(),
+        );
     }
     if integer_field(&model_manifest, "node_count", "model manifest")? != mesh.nodes.len() as u64
-        || integer_field(&model_manifest, "element_count", "model manifest")? != mesh.elements.len() as u64
+        || integer_field(&model_manifest, "element_count", "model manifest")?
+            != mesh.elements.len() as u64
     {
-        return Err("model manifest node/element counts differ from regenerated topology".to_owned());
+        return Err(
+            "model manifest node/element counts differ from regenerated topology".to_owned(),
+        );
     }
 
     let parsed_output = parse_mms_output(
-        std::str::from_utf8(&dat_bytes).map_err(|_| "solver .dat output is not UTF-8 text".to_owned())?,
+        std::str::from_utf8(&dat_bytes)
+            .map_err(|_| "solver .dat output is not UTF-8 text".to_owned())?,
         mesh.nodes.len(),
     )?;
     let metrics = audit_nodal_displacements(&mesh, parameters, &parsed_output.displacements_m)?;
