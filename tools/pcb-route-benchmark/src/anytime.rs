@@ -260,6 +260,76 @@ impl VerifiedIncumbentArchive {
         })
     }
 
+    /// Rebuild an archive by reopening every recorded checkpoint's board and
+    /// raw DRC files under the same pinned manifest/policy. Never trust saved
+    /// eligibility booleans or hashes without re-deriving them from bytes.
+    pub fn reverify_bytes(
+        archive_bytes: &[u8],
+        manifest_bytes: &[u8],
+        artifact_root: &Path,
+        policy_bytes: &[u8],
+        evaluator_git_head: &str,
+    ) -> Result<Self, String> {
+        let stored: Self = serde_json::from_slice(archive_bytes)
+            .map_err(|error| format!("incumbent archive JSON/schema invalid: {error}"))?;
+        if stored.schema != ANYTIME_ARCHIVE_SCHEMA {
+            return Err(format!("unsupported incumbent archive schema: {}", stored.schema));
+        }
+        if stored.evaluator_git_head != evaluator_git_head.to_ascii_lowercase() {
+            return Err("incumbent archive evaluator Git HEAD differs from current exact head".into());
+        }
+        if sha256_hex(manifest_bytes) != stored.identity.dataset_manifest_sha256 {
+            return Err("incumbent archive dataset manifest digest differs from supplied bytes".into());
+        }
+        if sha256_hex(policy_bytes) != stored.identity.drc_policy_sha256 {
+            return Err("incumbent archive DRC policy digest differs from supplied bytes".into());
+        }
+        let manifest: crate::DatasetManifest = serde_json::from_slice(manifest_bytes)
+            .map_err(|error| format!("dataset manifest JSON/schema invalid: {error}"))?;
+        crate::validate_manifest(&manifest)?;
+        let board_pin = manifest
+            .boards
+            .iter()
+            .find(|board| board.board_id == stored.identity.board_id)
+            .ok_or_else(|| "incumbent archive board is absent from pinned manifest".to_string())?;
+        if board_pin.input_board_sha256 != stored.identity.input_board_sha256 {
+            return Err("incumbent archive source-board digest differs from manifest".into());
+        }
+        let policy: crate::kicad_drc::KicadDrcRoutingPolicy =
+            serde_json::from_slice(policy_bytes)
+                .map_err(|error| format!("KiCad DRC policy JSON invalid: {error}"))?;
+        if policy.kicad_version != stored.identity.kicad_version {
+            return Err("incumbent archive KiCad version differs from DRC policy".into());
+        }
+
+        let mut rebuilt = Self::new(evaluator_git_head, stored.identity.clone())?;
+        for prior in &stored.candidates {
+            let observed = evaluate_checkpoint_from_root(
+                prior.checkpoint.clone(),
+                manifest_bytes,
+                artifact_root,
+                policy_bytes,
+            )?;
+            if observed != *prior {
+                return Err(format!(
+                    "checkpoint {} receipt differs from re-derived board/DRC bytes",
+                    prior.checkpoint.checkpoint_id
+                ));
+            }
+            rebuilt.record(observed)?;
+        }
+        if stored.candidate_count != rebuilt.candidate_count
+            || stored.eligible_checkpoint_count != rebuilt.eligible_checkpoint_count
+            || stored.rejected_checkpoint_count != rebuilt.rejected_checkpoint_count
+            || stored.candidates != rebuilt.candidates
+            || stored.authority != rebuilt.authority
+            || stored.claim_ceiling != rebuilt.claim_ceiling
+        {
+            return Err("stored incumbent archive counters/order/claims differ from re-derived archive".into());
+        }
+        Ok(rebuilt)
+    }
+
     /// Records failed candidates for audit but never lets them replace a verified
     /// checkpoint. All candidates must refer to the same source board, manifest,
     /// policy and engine version.
