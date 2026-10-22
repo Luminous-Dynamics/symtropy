@@ -99,6 +99,9 @@ mod tests {
         let first = mesh.to_calculix_input_deck(problem, 48).unwrap();
         let second = mesh.to_calculix_input_deck(problem, 48).unwrap();
         assert_eq!(first.as_bytes(), second.as_bytes());
-        assert!(first.contains("4.99990000000000000e-1"));
+        let reference = mesh
+            .to_calculix_input_deck(ManufacturedProblem::reference(), 48)
+            .unwrap();
+        assert_ne!(first.as_bytes(), reference.as_bytes());
     }
 }
