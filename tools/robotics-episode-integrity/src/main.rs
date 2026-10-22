@@ -694,7 +694,11 @@ mod tests {
     fn missing_plan_digest_is_rejected_before_validation() {
         let root = corpus();
         let mut episode = root["episodes"][0].clone();
-        episode["events"][0].as_object_mut().expect("proposal object").remove("plan_digest");
+        let removed = episode["events"][0]
+            .as_object_mut()
+            .expect("proposal object")
+            .remove("plan_digest");
+        assert!(removed.is_some());
         let result = evaluate_episode(&episode, &root["initial_state"]);
         assert_eq!(result.decision, BLOCKED);
         assert_eq!(result.reason_codes, vec!["EVENT_FIELDS_INVALID"]);
