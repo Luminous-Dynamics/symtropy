@@ -89,24 +89,23 @@ fn main() -> Result<(), String> {
 
     let mut quadrature_checks: Vec<QuadratureCheck> = Vec::with_capacity(levels.len());
     for (n, mesh, _) in &levels {
-        let loads_32 = mesh
-            .assemble_body_force(problem, 32)
+        let assembly_32 = mesh
+            .assemble_body_force_with_diagnostics(problem, 32)
             .map_err(|error| format!("32-point load assembly at n={n}: {error:?}"))?;
-        let loads_48 = mesh
-            .assemble_body_force(problem, 48)
+        let assembly_48 = mesh
+            .assemble_body_force_with_diagnostics(problem, 48)
             .map_err(|error| format!("48-point load assembly at n={n}: {error:?}"))?;
-        let load_difference = ccx_mms_p1_mesh::relative_load_difference(&loads_32, &loads_48)
-            .map_err(|error| format!("load quadrature comparison at n={n}: {error:?}"))?;
-        let load_resultant = Mesh::resultant(&loads_48)
+        let load_difference = ccx_mms_p1_mesh::relative_load_difference(
+            &assembly_32.nodal_loads,
+            &assembly_48.nodal_loads,
+        )
+        .map_err(|error| format!("load quadrature comparison at n={n}: {error:?}"))?;
+        let load_resultant = Mesh::resultant(&assembly_48.nodal_loads)
             .map_err(|error| format!("load resultant at n={n}: {error:?}"))?;
         let exact_resultant = problem.integrated_body_force();
         let x_resultant_residual = (load_resultant.x - exact_resultant.x).abs()
             / exact_resultant.x.abs().max(1.0);
-        let y_load_scale = loads_48
-            .iter()
-            .map(|load| load.y.abs())
-            .sum::<f64>()
-            .max(1.0);
+        let y_load_scale = assembly_48.integrated_absolute_force.y.max(1.0);
         let y_resultant_residual = load_resultant.y.abs() / y_load_scale;
         let load_quadrature_pass = load_difference <= 1.0e-12
             && x_resultant_residual <= 1.0e-10
