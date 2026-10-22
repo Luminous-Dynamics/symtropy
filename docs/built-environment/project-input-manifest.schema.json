@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:project-input-manifest:1.0.0",
+  "title": "Housing Engineering Project Input Manifest V1",
+  "description": "Defines project identity, jurisdiction, exact building model, resident design brief and additional inputs for an evaluation scope. Referenced artifacts are separately SHA-256 verified by the Rust verifier.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_id",
+    "project_revision",
+    "jurisdiction",
+    "building_model",
+    "design_brief",
+    "project_scope",
+    "additional_inputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "project_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country_code",
+        "region",
+        "municipality",
+        "resolution_status"
+      ],
+      "properties": {
+        "country_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        },
+        "municipality": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "resolution_status": {
+          "const": "confirmed"
+        }
+      }
+    },
+    "building_model": {
+      "$ref": "#/$defs/artifact"
+    },
+    "design_brief": {
+      "$ref": "#/$defs/artifact"
+    },
+    "project_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "building_use",
+        "construction_system",
+        "design_stage"
+      ],
+      "properties": {
+        "building_use": {
+          "enum": [
+            "residential_dwelling",
+            "multi_unit_residential",
+            "mixed_use",
+            "other"
+          ]
+        },
+        "construction_system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "design_stage": {
+          "enum": [
+            "concept",
+            "schematic",
+            "detailed_design",
+            "as_built",
+            "existing_building_assessment"
+          ]
+        }
+      }
+    },
+    "additional_inputs": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "input_id",
+          "role",
+          "artifact"
+        ],
+        "properties": {
+          "input_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+          },
+          "role": {
+            "enum": [
+              "site_survey",
+              "geotechnical_report",
+              "materials_schedule",
+              "load_case",
+              "climate_file",
+              "drainage_assessment",
+              "utility_service",
+              "other"
+            ]
+          },
+          "artifact": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z0-9._/-]+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

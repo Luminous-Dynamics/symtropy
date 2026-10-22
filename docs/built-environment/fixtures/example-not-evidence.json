@@ -1,0 +1,88 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "example-only/dwelling-001",
+  "created_at": "2026-10-13T09:00:00Z",
+  "jurisdiction": {
+    "country_code": "ZA",
+    "region": "Gauteng",
+    "municipality": null,
+    "resolution_status": "provisional"
+  },
+  "model": {
+    "model_id": "example-dwelling",
+    "revision_id": "example-revision-0001",
+    "format": "IFC",
+    "schema_or_version": "IFC4X3_ADD2",
+    "unit_system": "SI",
+    "artifact_ids": [
+      "synthetic-model-placeholder"
+    ]
+  },
+  "rule_pack": {
+    "rule_pack_id": "ZA-low-rise-pilot",
+    "status": "draft_unverified",
+    "edition": null,
+    "effective_date": null,
+    "source_references": [
+      {
+        "source_id": "za-nbr-act",
+        "uri": "https://www.gov.za/documents/national-building-regulations-and-building-standards-act-16-apr-2015-1302",
+        "source_type": "legislation",
+        "edition": null,
+        "clause_or_location": null,
+        "effective_from": null,
+        "retrieved_at": null,
+        "source_sha256": null,
+        "rights_status": "public",
+        "notes": "Reference pointer only. No operative clause has been encoded or verified in this example."
+      }
+    ]
+  },
+  "toolchain": [],
+  "claims": [
+    {
+      "claim_id": "example-structural-claim",
+      "claim_type": "structural_analysis",
+      "statement": "Structural capacity of the example dwelling has not been evaluated.",
+      "status": "NOT_EVALUATED",
+      "subject_element_ids": [],
+      "requirement": null,
+      "input_artifact_sha256": [],
+      "output_artifact_sha256": [],
+      "tool_id": null,
+      "validity_domain": null,
+      "acceptance_criteria": null,
+      "measured_result": null,
+      "uncertainty_notes": "No calculation or physical evidence exists.",
+      "limitations": [
+        "Synthetic example only.",
+        "The model artifact digest is a placeholder, not the digest of a real model.",
+        "This record does not demonstrate code compliance or suitability for construction."
+      ],
+      "review": {
+        "review_status": "not_requested",
+        "reviewer_role": null,
+        "reviewed_at": null,
+        "review_record_artifact_sha256": null
+      },
+      "mandatory": true
+    }
+  ],
+  "overall_status": "NOT_EVALUATED",
+  "limitations": [
+    "Example fixture for schema design only; not an engineering result.",
+    "No construction-ready model or evaluated building-code rule is included.",
+    "Jurisdiction and rule pack are deliberately provisional."
+  ],
+  "supersedes_case_id": null,
+  "evidence_artifacts": [
+    {
+      "artifact_id": "synthetic-model-placeholder",
+      "media_type": "application/x-step",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "model",
+      "uri": null,
+      "retention_class": "example-only"
+    }
+  ]
+}

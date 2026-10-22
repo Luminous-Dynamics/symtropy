@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:benchmark-result:0.1.0",
+  "title": "Engineering Benchmark Execution Record V1",
+  "description": "Binds a producer-declared benchmark outcome and raw output artifact to an externally pinned analytical benchmark. A valid record does not authenticate execution or prove engineering adequacy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "case_id",
+    "benchmark_sha256",
+    "declared_status",
+    "evaluator",
+    "execution",
+    "raw_output_artifact"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "benchmark_sha256": { "$ref": "#/$defs/sha256" },
+    "declared_status": {
+      "enum": [
+        "CLAIMED_PASS",
+        "CLAIMED_FAIL",
+        "BLOCKED",
+        "NOT_EVALUATED",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "executable_sha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "executable_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exit_code", "termination_status", "execution_kind", "convergence_status"],
+      "properties": {
+        "exit_code": { "type": "integer" },
+        "termination_status": {
+          "enum": ["COMPLETED", "FAILED", "TIMEOUT", "TERMINATED"]
+        },
+        "execution_kind": {
+          "enum": ["ANALYTICAL_REFERENCE", "NUMERICAL_SOLVER"]
+        },
+        "convergence_status": {
+          "enum": ["CONVERGED", "NOT_APPLICABLE", "NOT_CONVERGED", "NOT_EVALUATED"]
+        }
+      }
+    },
+    "raw_output_artifact": { "$ref": "#/$defs/artifact" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256"],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[A-Za-z0-9._/-]+$"
+        },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

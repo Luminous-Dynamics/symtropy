@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:benchmark-result-report:0.1.0",
+  "title": "Engineering Benchmark Result Report V1",
+  "description": "Auditable result of comparing numeric outputs against an equation-derived analytical reference. Does not attest that a solver executed or establish engineering adequacy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "validator_version",
+    "benchmark_id",
+    "case_id",
+    "validator_binary_sha256",
+    "checker_pin_matches",
+    "record_schema_sha256",
+    "output_schema_sha256",
+    "report_schema_sha256",
+    "benchmark_sha256_actual",
+    "benchmark_pin_matches",
+    "result_record_sha256",
+    "record_schema_valid",
+    "record_benchmark_sha256_matches",
+    "benchmark_identity_matches",
+    "execution_completed",
+    "raw_output_sha256_actual",
+    "raw_output_digest_matches",
+    "output_schema_valid",
+    "reference_case_resolved",
+    "outputs_match_reference",
+    "quantity_comparisons",
+    "declared_status",
+    "declared_status_consistent",
+    "independent_result_status",
+    "issues",
+    "limitations"
+  ],
+  "properties": {
+    "validator_version": { "type": "string", "minLength": 1 },
+    "benchmark_id": { "type": ["string", "null"] },
+    "case_id": { "type": ["string", "null"] },
+    "validator_binary_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "checker_pin_matches": { "type": "boolean" },
+    "record_schema_sha256": { "$ref": "#/$defs/sha256" },
+    "output_schema_sha256": { "$ref": "#/$defs/sha256" },
+    "report_schema_sha256": { "$ref": "#/$defs/sha256" },
+    "benchmark_sha256_actual": { "$ref": "#/$defs/sha256" },
+    "benchmark_pin_matches": { "type": "boolean" },
+    "result_record_sha256": { "$ref": "#/$defs/sha256" },
+    "record_schema_valid": { "type": "boolean" },
+    "record_benchmark_sha256_matches": { "type": "boolean" },
+    "benchmark_identity_matches": { "type": "boolean" },
+    "execution_completed": { "type": "boolean" },
+    "raw_output_sha256_actual": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+    "raw_output_digest_matches": { "type": "boolean" },
+    "output_schema_valid": { "type": "boolean" },
+    "reference_case_resolved": { "type": "boolean" },
+    "outputs_match_reference": { "type": "boolean" },
+    "quantity_comparisons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/quantity-comparison" },
+      "maxItems": 64
+    },
+    "declared_status": { "type": ["string", "null"] },
+    "declared_status_consistent": { "type": ["boolean", "null"] },
+    "independent_result_status": {
+      "enum": ["BLOCKED", "REFERENCE_MATCH", "REFERENCE_MISMATCH"]
+    },
+    "issues": { "type": "array", "items": { "type": "string" } },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "quantity-comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "actual_value",
+        "actual_unit",
+        "expected_value",
+        "expected_unit",
+        "absolute_error",
+        "allowed_error",
+        "within_tolerance"
+      ],
+      "properties": {
+        "quantity": { "type": "string", "minLength": 1 },
+        "actual_value": { "type": ["number", "null"] },
+        "actual_unit": { "type": ["string", "null"] },
+        "expected_value": { "type": "number" },
+        "expected_unit": { "type": "string", "minLength": 1 },
+        "absolute_error": { "type": ["number", "null"] },
+        "allowed_error": { "type": "number", "minimum": 0 },
+        "within_tolerance": { "type": "boolean" }
+      }
+    }
+  }
+}
