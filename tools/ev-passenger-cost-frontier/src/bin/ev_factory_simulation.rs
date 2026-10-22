@@ -1588,7 +1588,8 @@ mod tests {
         let nominal_report = evaluate_catalog(&nominal_catalog).expect("matched nominal run");
 
         assert_eq!(outage_report, evaluate_catalog(&outage_catalog).expect("deterministic replay"));
-        assert_eq!(outage_report.replication_count, 1);
+        assert_eq!(outage_report.replication_count, 20);
+        assert_eq!(outage_report.replication_seeds, nominal_report.replication_seeds);
         assert!(outage_report.scenarios.iter().all(|scenario| {
             scenario.common_cause_control_outage_starts_after_warmup == 2
                 && (scenario.measured_common_cause_control_outage_seconds - 600.0).abs() < 1e-9
@@ -1600,10 +1601,23 @@ mod tests {
             outage_report.scenarios[0].scenario_id,
             nominal_report.scenarios[0].scenario_id
         );
-        assert!(
-            outage_report.scenarios[0].good_units_total
-                <= nominal_report.scenarios[0].good_units_total
-        );
+        for seed in &outage_report.replication_seeds {
+            let outage_baseline = outage_report
+                .replication_outcomes
+                .iter()
+                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                .expect("shared-outage baseline seed outcome");
+            let nominal_baseline = nominal_report
+                .replication_outcomes
+                .iter()
+                .find(|outcome| outcome.seed == *seed && outcome.scenario_id == "baseline")
+                .expect("no-outage baseline seed outcome");
+            assert!(
+                outage_baseline.good_units_per_hour
+                    <= nominal_baseline.good_units_per_hour + 1e-12,
+                "shared control outage must not improve baseline output for seed {seed}"
+            );
+        }
         let affected = &outage_report.scenarios[0].stations;
         for station_id in ["battery-module-install", "final-assembly"] {
             let station = affected
