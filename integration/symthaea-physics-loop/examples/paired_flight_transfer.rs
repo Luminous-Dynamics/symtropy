@@ -19,7 +19,7 @@ struct Metrics {
     final_position_error_m: f64,
     max_position_error_m: f64,
     within_5cm_fraction: f64,
-    thrust_impulse_ns: f64,
+    thrust_impulse_n_s: f64,
     ground_contact_steps: u64,
     invalid_inputs: u64,
 }
@@ -59,7 +59,7 @@ fn evaluate_pd(
         final_position_error_m: setpoint.position_error_magnitude(sim.state()),
         max_position_error_m: max_error,
         within_5cm_fraction: within as f64 / steps.max(1) as f64,
-        thrust_impulse_ns: impulse,
+        thrust_impulse_n_s: impulse,
         ground_contact_steps: sim.ground_contact_count(),
         invalid_inputs: sim.invalid_input_count(),
     }
@@ -131,7 +131,7 @@ fn evaluate_symthaea(
         final_position_error_m: setpoint.position_error_magnitude(sim.state()),
         max_position_error_m: max_error,
         within_5cm_fraction: within as f64 / steps.max(1) as f64,
-        thrust_impulse_ns: impulse,
+        thrust_impulse_n_s: impulse,
         ground_contact_steps: sim.ground_contact_count(),
         invalid_inputs: sim.invalid_input_count(),
     }
@@ -221,7 +221,7 @@ fn main() {
             "fep_adaptation": true,
             "force_disturbances_enabled": force_enabled
         },
-        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_ns is thrust impulse, not electrical energy. ground_contact_steps counts explicit ground clamps. No win is assumed.",
+        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_n_s is thrust impulse, not electrical energy. ground_contact_steps counts explicit ground clamps. No win is assumed.",
         "trials": paired_rows
     }));
 }
