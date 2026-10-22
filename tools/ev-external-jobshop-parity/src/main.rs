@@ -205,8 +205,13 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
         return Err("unsupported_manifest_version_id_or_claim_ceiling".into());
     }
 
-    let (expected_path, expected_blob, expected_alternatives, expected_setup_max, expected_flexibility) =
-        match manifest.benchmark_id.as_str() {
+    let (
+        expected_path,
+        expected_blob,
+        expected_alternatives,
+        expected_setup_max,
+        expected_flexibility,
+    ) = match manifest.benchmark_id.as_str() {
             "FJSP-SDST-FATTAHI-001" => (
                 UPSTREAM_INSTANCE_PATH,
                 UPSTREAM_BLOB_SHA1,
@@ -291,7 +296,7 @@ fn parse_instance(input: &str) -> Result<ParsedInstance, String> {
         || declared_average_machine_flexibility <= 0.0
         || declared_average_machine_flexibility > machines as f64
     {
-        return Err("header_must_contain_positive_job_machine_and_average_flexibility_fields".into());
+        return Err("invalid_job_machine_count_or_average_flexibility_header".into());
     }
     if jobs > 100_000 || machines > 10_000 {
         return Err("instance_dimensions_exceed_contract_limits".into());
@@ -456,7 +461,8 @@ fn validate_expected_structure(
         || parsed.max_operations_per_job != expected.max_operations_per_job
         || parsed.operations.len() != expected.operations
         || parsed.operation_alternative_counts != expected.operation_alternative_counts
-        || parsed.declared_average_machine_flexibility != expected.declared_average_machine_flexibility
+        || parsed.declared_average_machine_flexibility
+            != expected.declared_average_machine_flexibility
         || parsed.setup_matrix_dimensions != expected.setup_matrix_dimensions
         || parsed.setup_values_min != expected.setup_values_min
         || parsed.setup_values_max != expected.setup_values_max
