@@ -54,6 +54,14 @@ pub enum ResourceViolationCode {
     InvalidReservationInterval,
     ConflictingResourceKinds,
     ResourceKindChangedAcrossSchedules,
+    EmptySpatialBindingId,
+    DuplicateSpatialBindingId,
+    UnknownBoundResourceReservation,
+    UnknownBoundTransfer,
+    DuplicateSpatialBindingPair,
+    TransferMissingResourceBinding,
+    ResourceReservationDoesNotCoverTransfer,
+    TransferVehicleResourceMismatch,
     ExclusiveResourceOverlap,
     EmptyPrecedenceConstraintId,
     DuplicatePrecedenceConstraintId,
@@ -91,6 +99,14 @@ impl ResourceViolationCode {
             Self::InvalidReservationInterval => "InvalidReservationInterval",
             Self::ConflictingResourceKinds => "ConflictingResourceKinds",
             Self::ResourceKindChangedAcrossSchedules => "ResourceKindChangedAcrossSchedules",
+            Self::EmptySpatialBindingId => "EmptySpatialBindingId",
+            Self::DuplicateSpatialBindingId => "DuplicateSpatialBindingId",
+            Self::UnknownBoundResourceReservation => "UnknownBoundResourceReservation",
+            Self::UnknownBoundTransfer => "UnknownBoundTransfer",
+            Self::DuplicateSpatialBindingPair => "DuplicateSpatialBindingPair",
+            Self::TransferMissingResourceBinding => "TransferMissingResourceBinding",
+            Self::ResourceReservationDoesNotCoverTransfer => "ResourceReservationDoesNotCoverTransfer",
+            Self::TransferVehicleResourceMismatch => "TransferVehicleResourceMismatch",
             Self::ExclusiveResourceOverlap => "ExclusiveResourceOverlap",
             Self::EmptyPrecedenceConstraintId => "EmptyPrecedenceConstraintId",
             Self::DuplicatePrecedenceConstraintId => "DuplicatePrecedenceConstraintId",
@@ -806,12 +822,23 @@ pub fn evaluate_resource_recovery(
     }
 }
 
+/// Bind a concrete resource reservation to a concrete spatial transfer.
+/// Multiple resources may be bound to one transfer (for example a tug and a lifting crane).
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ResourceSpatialBinding {
+    pub binding_id: String,
+    pub resource_reservation_id: String,
+    pub transfer_id: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct JointRecoveryInput {
     pub spatial: RecoveryInput,
     pub baseline_resources: ResourceSchedule,
     pub candidate_resources: ResourceSchedule,
     pub resource_outages: Vec<ResourceOutage>,
+    pub baseline_bindings: Vec<ResourceSpatialBinding>,
+    pub candidate_bindings: Vec<ResourceSpatialBinding>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -822,15 +849,160 @@ pub struct JointRecoveryReport {
     pub resources: ResourceRecoveryReport,
 }
 
+fn validate_spatial_bindings(
+    scenario: &super::Scenario,
+    resources: &ResourceSchedule,
+    bindings: &[ResourceSpatialBinding],
+) -> Vec<ResourceViolation> {
+    let resource_by_id: BTreeMap<&str, &ResourceReservation> = resources
+        .reservations
+        .iter()
+        .map(|reservation| (reservation.reservation_id.as_str(), reservation))
+        .collect();
+    let transfer_by_id: BTreeMap<&str, &shipyard_space_time::Transfer> = scenario
+        .transfers
+        .iter()
+        .map(|transfer| (transfer.id.as_str(), transfer))
+        .collect();
+
+    let mut violations = Vec::new();
+    let mut seen_binding_ids = BTreeSet::new();
+    let mut seen_pairs = BTreeSet::new();
+    let mut covered_transfers = BTreeSet::new();
+
+    for binding in bindings {
+        if binding.binding_id.trim().is_empty() {
+            push(
+                &mut violations,
+                ResourceViolationCode::EmptySpatialBindingId,
+                vec![binding.resource_reservation_id.clone(), binding.transfer_id.clone()],
+                "resource-to-transfer binding identity is required",
+            );
+        } else if !seen_binding_ids.insert(binding.binding_id.as_str()) {
+            push(
+                &mut violations,
+                ResourceViolationCode::DuplicateSpatialBindingId,
+                vec![binding.binding_id.clone()],
+                "resource-to-transfer binding IDs must be unique",
+            );
+        }
+
+        let pair = (
+            binding.resource_reservation_id.as_str(),
+            binding.transfer_id.as_str(),
+        );
+        if !seen_pairs.insert(pair) {
+            push(
+                &mut violations,
+                ResourceViolationCode::DuplicateSpatialBindingPair,
+                vec![binding.resource_reservation_id.clone(), binding.transfer_id.clone()],
+                "one resource reservation and transfer pair may only be bound once",
+            );
+        }
+
+        let resource = resource_by_id.get(binding.resource_reservation_id.as_str());
+        let transfer = transfer_by_id.get(binding.transfer_id.as_str());
+        if resource.is_none() {
+            push(
+                &mut violations,
+                ResourceViolationCode::UnknownBoundResourceReservation,
+                vec![binding.binding_id.clone(), binding.resource_reservation_id.clone()],
+                "binding references a resource reservation absent from the schedule",
+            );
+        }
+        if transfer.is_none() {
+            push(
+                &mut violations,
+                ResourceViolationCode::UnknownBoundTransfer,
+                vec![binding.binding_id.clone(), binding.transfer_id.clone()],
+                "binding references a spatial transfer absent from the scenario",
+            );
+        }
+
+        if let (Some(resource), Some(transfer)) = (resource, transfer) {
+            let covers_transfer = resource.interval.start_tick <= transfer.interval.start_tick
+                && resource.interval.end_tick >= transfer.interval.end_tick;
+            if covers_transfer {
+                covered_transfers.insert(transfer.id.as_str());
+            } else {
+                push(
+                    &mut violations,
+                    ResourceViolationCode::ResourceReservationDoesNotCoverTransfer,
+                    vec![binding.binding_id.clone(), binding.resource_reservation_id.clone(), binding.transfer_id.clone()],
+                    "resource reservation must contain the complete transfer interval",
+                );
+            }
+            if resource.resource_kind.eq_ignore_ascii_case("tug")
+                && resource.resource_id != transfer.vehicle_id
+            {
+                push(
+                    &mut violations,
+                    ResourceViolationCode::TransferVehicleResourceMismatch,
+                    vec![binding.binding_id.clone(), transfer.id.clone(), transfer.vehicle_id.clone(), resource.resource_id.clone()],
+                    "a tug reservation bound to a transfer must name that transfer's vehicle ID",
+                );
+            }
+        }
+    }
+
+    for transfer in &scenario.transfers {
+        if !covered_transfers.contains(transfer.id.as_str()) {
+            push(
+                &mut violations,
+                ResourceViolationCode::TransferMissingResourceBinding,
+                vec![transfer.id.clone()],
+                "every spatial transfer must be covered by at least one valid resource binding",
+            );
+        }
+    }
+
+    sort_dedup(&mut violations);
+    violations
+}
+
+fn sort_resource_violations(violations: &mut Vec<ResourceViolation>) {
+    sort_dedup(violations);
+}
+
 /// Compose independent spatial and resource checks without allowing either to override the other.
 pub fn evaluate_joint_recovery(input: &JointRecoveryInput) -> JointRecoveryReport {
     let spatial = evaluate_recovery(&input.spatial);
-    let resources = evaluate_resource_recovery(
+    let mut resources = evaluate_resource_recovery(
         &input.baseline_resources,
         &input.candidate_resources,
         input.spatial.disruption.observed_at_tick,
         &input.resource_outages,
     );
+
+    let baseline_binding_violations = validate_spatial_bindings(
+        &input.spatial.baseline,
+        &input.baseline_resources,
+        &input.baseline_bindings,
+    );
+    let candidate_binding_violations = validate_spatial_bindings(
+        &input.spatial.candidate,
+        &input.candidate_resources,
+        &input.candidate_bindings,
+    );
+
+    if !baseline_binding_violations.is_empty() {
+        resources.metrics.baseline_feasible_before_disruption = false;
+        resources.metrics.baseline_feasible_after_disruption = false;
+        resources.baseline_violations.extend(baseline_binding_violations.iter().cloned());
+        resources.violations.extend(baseline_binding_violations);
+    }
+    if !candidate_binding_violations.is_empty() {
+        resources.metrics.candidate_feasible_after_disruption = false;
+        resources.candidate_violations.extend(candidate_binding_violations.iter().cloned());
+        resources.violations.extend(candidate_binding_violations);
+    }
+    sort_resource_violations(&mut resources.baseline_violations);
+    sort_resource_violations(&mut resources.candidate_violations);
+    sort_resource_violations(&mut resources.violations);
+    resources.accepted = resources.metrics.baseline_feasible_before_disruption
+        && resources.metrics.candidate_feasible_after_disruption
+        && resources.violations.is_empty();
+
     let accepted = spatial.accepted && resources.accepted;
     JointRecoveryReport {
         accepted,
