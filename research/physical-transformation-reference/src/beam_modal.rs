@@ -6,6 +6,8 @@
 //! It is deliberately capped at 128 free DOFs; this is not the sparse/modal
 //! backend needed for the 200-elements-per-member NAFEMS convergence study.
 
+#![allow(clippy::needless_range_loop)] // Modal matrix reduction and residuals intentionally index coupled DOFs.
+
 use crate::beam_pin_assembly::BeamPinAssembly;
 use crate::modal_bar::solve_dense_generalized_symmetric;
 use crate::Check;
