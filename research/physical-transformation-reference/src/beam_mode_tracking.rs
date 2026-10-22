@@ -489,13 +489,15 @@ mod tests {
         assert_eq!(report.levels.len(), ELEMENT_COUNTS.len());
         assert!((report.rotation_scale_reference_length_m - 2.0_f64.sqrt()).abs() < 1.0e-14);
         assert_eq!(report.levels[0].pairs_from_previous, None);
-        for level in &report.levels[1..] {
+        let expected_common_dofs = [(6, 4), (10, 6), (18, 10)];
+        for (level_index, level) in report.levels[1..].iter().enumerate() {
             let pairs = level.pairs_from_previous.as_ref().expect("pairs");
             assert_eq!(pairs.len(), REQUESTED_MODES);
             let ordinals = pairs.iter().map(|pair| pair.current_mode_ordinal).collect::<BTreeSet<_>>();
             assert_eq!(ordinals.len(), REQUESTED_MODES);
-            assert!(pairs.iter().all(|pair| pair.mac.common_translation_dof_count >= 2));
-            assert!(pairs.iter().all(|pair| pair.mac.common_rotation_dof_count >= 2));
+            let (expected_translation_dofs, expected_rotation_dofs) = expected_common_dofs[level_index];
+            assert!(pairs.iter().all(|pair| pair.mac.common_translation_dof_count == expected_translation_dofs));
+            assert!(pairs.iter().all(|pair| pair.mac.common_rotation_dof_count == expected_rotation_dofs));
             assert!(pairs.iter().all(|pair| pair.mac.scaled_combined_mac.is_none_or(|score| (0.0..=1.0).contains(&score))));
         }
     }
