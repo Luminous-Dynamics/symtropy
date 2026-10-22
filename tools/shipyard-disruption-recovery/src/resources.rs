@@ -1749,6 +1749,220 @@ pub fn evaluate_joint_recourse_policy(
     }
 }
 
+/// A work domain represented in a multipurpose shipyard portfolio.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ShipyardActivityClass {
+    Newbuild,
+    Repair,
+    Recycling,
+}
+
+/// Classification and contractual finish deadline for one scheduled operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActivityOperationAssignment {
+    pub operation_id: String,
+    pub activity: ShipyardActivityClass,
+    pub due_tick: u64,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ActivityClassMetrics {
+    pub activity: Option<ShipyardActivityClass>,
+    pub operation_count: usize,
+    pub on_time_operations: usize,
+    pub late_operations: usize,
+    pub total_tardiness_ticks: u128,
+    pub worst_tardiness_ticks: u64,
+    /// Sum of reserved resource intervals for this class. Multi-resource work may be counted
+    /// more than once by design; this is resource-time consumption, not elapsed operation time.
+    pub reserved_resource_ticks: u128,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum MultipurposePortfolioViolationCode {
+    EmptyRequiredActivitySet,
+    DuplicateRequiredActivity,
+    MissingRequiredActivity,
+    EmptyAssignmentSet,
+    EmptyOperationId,
+    DuplicateOperationAssignment,
+    UnknownAssignedOperation,
+    UnclassifiedScheduledOperation,
+    InvalidResourceSchedule,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MultipurposePortfolioViolation {
+    pub code: MultipurposePortfolioViolationCode,
+    pub activity: Option<ShipyardActivityClass>,
+    pub operation_id: String,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct MultipurposePortfolioReport {
+    pub accepted: bool,
+    pub resource_schedule_feasible: bool,
+    pub scheduled_operation_count: usize,
+    pub activity_metrics: Vec<ActivityClassMetrics>,
+    pub resource_violations: Vec<ResourceViolation>,
+    pub violations: Vec<MultipurposePortfolioViolation>,
+}
+
+/// Audit a single shared resource schedule spanning newbuild, repair and recycling operations.
+///
+/// The declared required activity set is the benchmark scope: a missing class is an incomplete
+/// portfolio, not an implicit zero-work success. Every scheduled operation must have exactly one
+/// activity/deadline assignment. The existing independent resource and precedence verifier remains
+/// authoritative; this function adds portfolio coverage and per-class delivery metrics only. It
+/// does not optimize priorities, estimate cost/emissions, or prove physical equipment capability.
+pub fn audit_multipurpose_shipyard_portfolio(
+    schedule: &ResourceSchedule,
+    assignments: &[ActivityOperationAssignment],
+    required_activities: &[ShipyardActivityClass],
+) -> MultipurposePortfolioReport {
+    let mut violations = Vec::new();
+    if required_activities.is_empty() {
+        violations.push(MultipurposePortfolioViolation {
+            code: MultipurposePortfolioViolationCode::EmptyRequiredActivitySet,
+            activity: None,
+            operation_id: String::new(),
+        });
+    }
+    let mut required = BTreeSet::new();
+    for activity in required_activities {
+        if !required.insert(*activity) {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::DuplicateRequiredActivity,
+                activity: Some(*activity),
+                operation_id: String::new(),
+            });
+        }
+    }
+    if assignments.is_empty() {
+        violations.push(MultipurposePortfolioViolation {
+            code: MultipurposePortfolioViolationCode::EmptyAssignmentSet,
+            activity: None,
+            operation_id: String::new(),
+        });
+    }
+
+    let mut assignments_by_operation: BTreeMap<&str, &ActivityOperationAssignment> =
+        BTreeMap::new();
+    for assignment in assignments {
+        if assignment.operation_id.trim().is_empty() {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::EmptyOperationId,
+                activity: Some(assignment.activity),
+                operation_id: assignment.operation_id.clone(),
+            });
+        } else if assignments_by_operation
+            .insert(assignment.operation_id.as_str(), assignment)
+            .is_some()
+        {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::DuplicateOperationAssignment,
+                activity: Some(assignment.activity),
+                operation_id: assignment.operation_id.clone(),
+            });
+        }
+    }
+
+    let resource_violations = validate_schedule(schedule);
+    if !resource_violations.is_empty() {
+        violations.push(MultipurposePortfolioViolation {
+            code: MultipurposePortfolioViolationCode::InvalidResourceSchedule,
+            activity: None,
+            operation_id: String::new(),
+        });
+    }
+    let windows = operation_windows(schedule);
+    for operation_id in windows.keys() {
+        if !assignments_by_operation.contains_key(operation_id.as_str()) {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::UnclassifiedScheduledOperation,
+                activity: None,
+                operation_id: operation_id.clone(),
+            });
+        }
+    }
+    for assignment in assignments {
+        if !windows.contains_key(&assignment.operation_id) {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::UnknownAssignedOperation,
+                activity: Some(assignment.activity),
+                operation_id: assignment.operation_id.clone(),
+            });
+        }
+    }
+
+    let mut activity_metrics = Vec::new();
+    for activity in &required {
+        let mut metrics = ActivityClassMetrics {
+            activity: Some(*activity),
+            ..ActivityClassMetrics::default()
+        };
+        for assignment in assignments
+            .iter()
+            .filter(|assignment| assignment.activity == *activity)
+        {
+            let Some((_, finish_tick)) = windows.get(&assignment.operation_id) else {
+                continue;
+            };
+            metrics.operation_count += 1;
+            let tardiness = finish_tick.saturating_sub(assignment.due_tick);
+            if tardiness == 0 {
+                metrics.on_time_operations += 1;
+            } else {
+                metrics.late_operations += 1;
+                metrics.total_tardiness_ticks = metrics
+                    .total_tardiness_ticks
+                    .saturating_add(u128::from(tardiness));
+                metrics.worst_tardiness_ticks = metrics.worst_tardiness_ticks.max(tardiness);
+            }
+            let reserved_ticks: u128 = schedule
+                .reservations
+                .iter()
+                .filter(|reservation| reservation.operation_id == assignment.operation_id)
+                .map(|reservation| {
+                    u128::from(
+                        reservation
+                            .interval
+                            .end_tick
+                            .saturating_sub(reservation.interval.start_tick),
+                    )
+                })
+                .sum();
+            metrics.reserved_resource_ticks =
+                metrics.reserved_resource_ticks.saturating_add(reserved_ticks);
+        }
+        if metrics.operation_count == 0 {
+            violations.push(MultipurposePortfolioViolation {
+                code: MultipurposePortfolioViolationCode::MissingRequiredActivity,
+                activity: Some(*activity),
+                operation_id: String::new(),
+            });
+        }
+        activity_metrics.push(metrics);
+    }
+
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.activity.cmp(&right.activity))
+            .then_with(|| left.operation_id.cmp(&right.operation_id))
+    });
+    violations.dedup();
+
+    MultipurposePortfolioReport {
+        accepted: violations.is_empty() && resource_violations.is_empty(),
+        resource_schedule_feasible: resource_violations.is_empty(),
+        scheduled_operation_count: windows.len(),
+        activity_metrics,
+        resource_violations,
+        violations,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum JointDisruptionDimension {
     ClearanceOverrun,
