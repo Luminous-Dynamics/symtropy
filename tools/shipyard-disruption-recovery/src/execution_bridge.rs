@@ -51,6 +51,7 @@ pub enum ExecutionRecoveryBridgeViolationCode {
     ClearanceConfirmationMissing,
     ClearanceConfirmationAfterDecision,
     DuplicatePriorOccupancyExtension,
+    CompletionContradictsOccupancyWitness,
     EmptyWitnessId,
     DuplicateWitnessId,
     EmptyWitnessReservationId,
@@ -77,6 +78,7 @@ impl ExecutionRecoveryBridgeViolationCode {
             Self::ClearanceConfirmationMissing => "ClearanceConfirmationMissing",
             Self::ClearanceConfirmationAfterDecision => "ClearanceConfirmationAfterDecision",
             Self::DuplicatePriorOccupancyExtension => "DuplicatePriorOccupancyExtension",
+            Self::CompletionContradictsOccupancyWitness => "CompletionContradictsOccupancyWitness",
             Self::EmptyWitnessId => "EmptyWitnessId",
             Self::DuplicateWitnessId => "DuplicateWitnessId",
             Self::EmptyWitnessReservationId => "EmptyWitnessReservationId",
@@ -364,6 +366,19 @@ pub fn augment_disruption_from_execution(
         let assessment = assessments.get(binding.operation_id.as_str()).copied();
         let completion = assessment.and_then(|item| item.observed_completion_tick);
         if let Some(completion_tick) = completion {
+            if visible_witnesses_by_reservation
+                .contains_key(binding.placement_reservation_id.as_str())
+            {
+                push(
+                    &mut violations,
+                    ExecutionRecoveryBridgeViolationCode::CompletionContradictsOccupancyWitness,
+                    vec![
+                        binding.operation_id.clone(),
+                        binding.placement_reservation_id.clone(),
+                    ],
+                    "the same decision snapshot cannot say the block is both cleared and still occupying the placement",
+                );
+            }
             if completion_tick > decision_tick {
                 push(
                     &mut violations,
@@ -707,6 +722,37 @@ mod tests {
         assert!(report.disruption.is_none());
         assert!(report.violations.iter().any(|violation| {
             violation.code == ExecutionRecoveryBridgeViolationCode::ClearanceConfirmationMissing
+        }));
+    }
+
+    #[test]
+    fn completion_and_current_occupancy_witness_conflict_fails_closed() {
+        let report = augment_disruption_from_execution(
+            &baseline(5),
+            &plan(5),
+            &[event("finish-clear", ExecutionEventKind::Completed, 8, 8)],
+            &[PlacementOccupancyWitness {
+                witness_id: "scan-still-present".to_owned(),
+                placement_reservation_id: "block-a-placement".to_owned(),
+                source_id: "yard-scanner-1".to_owned(),
+                evidence_ref: "scan://block-a/8".to_owned(),
+                occupied_at_tick: 8,
+                recorded_tick: 8,
+            }],
+            ExecutionReplayCutoff {
+                as_of_occurred_tick: 8,
+                as_of_recorded_tick: 8,
+            },
+            8,
+            &prior(4),
+            &binding(),
+        );
+
+        assert!(!report.accepted);
+        assert!(report.disruption.is_none());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code
+                == ExecutionRecoveryBridgeViolationCode::CompletionContradictsOccupancyWitness
         }));
     }
 
