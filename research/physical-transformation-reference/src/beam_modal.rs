@@ -338,8 +338,8 @@ mod tests {
                 start_node_id: "B".to_owned(),
                 end_node_id: "C".to_owned(),
                 area_m2: 3.141592653589793e-4,
-                youngs_modulus_pa: 210.0e9,
-                density_kg_m3: 7800.0,
+                youngs_modulus_pa: 210.0e9 * youngs_modulus_scale,
+                density_kg_m3: 7800.0 * density_scale,
                 second_moment_m4: 7.853981633974483e-9,
             },
         ];
