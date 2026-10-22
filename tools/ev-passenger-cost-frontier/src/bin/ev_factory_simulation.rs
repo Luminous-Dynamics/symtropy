@@ -509,23 +509,6 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     if catalog.stations.len() < 2 {
         return Err("at_least_two_stations_required".into());
     }
-    if let Some(outage) = &catalog.common_cause_control_outage {
-        if outage.domain_id.trim().is_empty()
-            || outage.station_ids.len() < 2
-            || outage.first_start_seconds == 0
-            || outage.recurrence_interval_seconds == 0
-            || outage.duration_seconds == 0
-            || outage.duration_seconds >= outage.recurrence_interval_seconds
-        {
-            return Err("common_cause_control_outage_configuration_invalid".into());
-        }
-        let mut outage_stations = BTreeSet::new();
-        for station_id in &outage.station_ids {
-            if !ids.contains(station_id) || !outage_stations.insert(station_id.clone()) {
-                return Err("common_cause_control_outage_station_unknown_or_duplicate".into());
-            }
-        }
-    }
     if catalog.buffer_capacities.len() != catalog.stations.len() - 1
         || catalog.buffer_capacities.contains(&0)
     {
@@ -571,6 +554,24 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
             return Err("good_yield_fraction_must_be_positive".into());
         }
     }
+    if let Some(outage) = &catalog.common_cause_control_outage {
+        if outage.domain_id.trim().is_empty()
+            || outage.station_ids.len() < 2
+            || outage.first_start_seconds == 0
+            || outage.recurrence_interval_seconds == 0
+            || outage.duration_seconds == 0
+            || outage.duration_seconds >= outage.recurrence_interval_seconds
+        {
+            return Err("common_cause_control_outage_configuration_invalid".into());
+        }
+        let mut outage_stations = BTreeSet::new();
+        for station_id in &outage.station_ids {
+            if !ids.contains(station_id) || !outage_stations.insert(station_id.clone()) {
+                return Err("common_cause_control_outage_station_unknown_or_duplicate".into());
+            }
+        }
+    }
+
     Ok(())
 }
 
