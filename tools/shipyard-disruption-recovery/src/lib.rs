@@ -61,6 +61,8 @@ pub enum RecoveryViolationCode {
     OccupancyExtensionTargetMismatch,
     HistoricalPlacementChanged,
     HistoricalTransferChanged,
+    FuturePlacementReservationRemoved,
+    FutureTransferReservationRemoved,
     ActivePlacementMovedBeforeClearance,
     ActiveTransferChangedBeforeCompletion,
     VehicleUnavailable,
@@ -84,6 +86,8 @@ impl RecoveryViolationCode {
             Self::OccupancyExtensionTargetMismatch => "OccupancyExtensionTargetMismatch",
             Self::HistoricalPlacementChanged => "HistoricalPlacementChanged",
             Self::HistoricalTransferChanged => "HistoricalTransferChanged",
+            Self::FuturePlacementReservationRemoved => "FuturePlacementReservationRemoved",
+            Self::FutureTransferReservationRemoved => "FutureTransferReservationRemoved",
             Self::ActivePlacementMovedBeforeClearance => "ActivePlacementMovedBeforeClearance",
             Self::ActiveTransferChangedBeforeCompletion => "ActiveTransferChangedBeforeCompletion",
             Self::VehicleUnavailable => "VehicleUnavailable",
@@ -1167,10 +1171,19 @@ fn historical_mutations(
     let old_placements = placement_map(baseline);
     let new_placements = placement_map(candidate);
     for (id, old) in old_placements {
-        if old.occupied.end_tick <= disruption_tick && new_placements.get(id) != Some(&old) {
+        if old.occupied.end_tick <= disruption_tick {
+            if new_placements.get(id) != Some(&old) {
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::HistoricalPlacementChanged,
+                    vec![id.to_owned()],
+                    None,
+                );
+            }
+        } else if !new_placements.contains_key(id) {
             push_violation(
                 violations,
-                RecoveryViolationCode::HistoricalPlacementChanged,
+                RecoveryViolationCode::FuturePlacementReservationRemoved,
                 vec![id.to_owned()],
                 None,
             );
@@ -1180,10 +1193,19 @@ fn historical_mutations(
     let old_transfers = transfer_map(baseline);
     let new_transfers = transfer_map(candidate);
     for (id, old) in old_transfers {
-        if old.interval.end_tick <= disruption_tick && new_transfers.get(id) != Some(&old) {
+        if old.interval.end_tick <= disruption_tick {
+            if new_transfers.get(id) != Some(&old) {
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::HistoricalTransferChanged,
+                    vec![id.to_owned()],
+                    None,
+                );
+            }
+        } else if !new_transfers.contains_key(id) {
             push_violation(
                 violations,
-                RecoveryViolationCode::HistoricalTransferChanged,
+                RecoveryViolationCode::FutureTransferReservationRemoved,
                 vec![id.to_owned()],
                 None,
             );
@@ -1214,7 +1236,7 @@ fn in_progress_mutations(
                     && new.occupied.start_tick == old.occupied.start_tick
                     && new.occupied.end_tick >= old.occupied.end_tick
             });
-            if !matches {
+            if !matches && new_placements.contains_key(id) {
                 push_violation(
                     violations,
                     RecoveryViolationCode::ActivePlacementMovedBeforeClearance,
@@ -1239,7 +1261,7 @@ fn in_progress_mutations(
                     && new.vehicle_id == old.vehicle_id
                     && new.predecessor_move_ids == old.predecessor_move_ids
             });
-            if !matches {
+            if !matches && new_transfers.contains_key(id) {
                 push_violation(
                     violations,
                     RecoveryViolationCode::ActiveTransferChangedBeforeCompletion,
@@ -1650,6 +1672,59 @@ mod tests {
         assert!(!report.metrics.candidate_feasible_after_disruption);
         assert!(report.violations.iter().any(|violation| {
             violation.code == RecoveryViolationCode::VehicleUnavailable
+        }));
+    }
+
+    #[test]
+    fn future_placement_reservation_cannot_be_silently_dropped() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![
+                placement("required-future", "block-a", rect(0, 0, 2, 2), 5, 10),
+                placement("stay", "block-b", rect(4, 0, 6, 2), 0, 10),
+            ],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("stay", "block-b", rect(4, 0, 6, 2), 0, 10)],
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: empty_disruption(4),
+        });
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::FuturePlacementReservationRemoved
+        }));
+    }
+
+    #[test]
+    fn future_transfer_reservation_cannot_be_silently_dropped() {
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("p-a", "block-a", rect(0, 0, 2, 2), 0, 10)],
+            transfers: vec![transfer("required-move", "block-a", 5, 8, "tug-1")],
+            ..Scenario::default()
+        };
+        let candidate = Scenario {
+            yard_bounds: Some(yard()),
+            placements: baseline.placements.clone(),
+            transfers: Vec::new(),
+            ..Scenario::default()
+        };
+        let report = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate,
+            disruption: empty_disruption(4),
+        });
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::FutureTransferReservationRemoved
         }));
     }
 
