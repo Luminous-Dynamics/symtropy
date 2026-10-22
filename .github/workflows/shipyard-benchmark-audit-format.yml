@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: shipyard-benchmark-audit-format-\${{ github.event.pull_request.number || github.ref }}
+  group: shipyard-benchmark-audit-format-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.head_ref }}
+          ref: ${{ github.head_ref }}
           persist-credentials: true
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -32,7 +32,7 @@ jobs:
         run: cargo fmt --all --manifest-path tools/shipyard-benchmark-audit/Cargo.toml
       - name: Commit only rustfmt changes
         env:
-          HEAD_REF: \${{ github.head_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           if git diff --quiet -- tools/shipyard-benchmark-audit; then
             echo "No formatting changes needed."
