@@ -38,6 +38,12 @@ It contains 21 cases spanning feasible edge-touch/time-separated controls; overl
 
 These checks provide bounded correctness evidence, not proof of arbitrary polygon geometry, general optimizer correctness, production shipyard safety or real-world throughput. The test suite must pass on the exact PR head before the milestone can be called verified.
 
+## Irregular geometry research track
+
+A separate prototype now lives in tools/shipyard-irregular-geometry and is proposed in [PR #2688](https://github.com/Luminous-Dynamics/symtropy/pull/2688). It tests bounded simple-polygon validation, ear-clipping triangulation, positive-area overlap and rectangular-yard containment, with a 512-case differential test over rectangle pairs.
+
+This is deliberately **not integrated** into Footprint. This verifier continues to accept axis-aligned rectangles and fail closed on unsupported outlines. Polygon support will only be added here after the geometry prototype passes exact-head Rust checks, an independent concave-polygon oracle and a frozen boundary-contact corpus; all baseline/recovery exhaustive matches must then be updated to keep unsupported physical constraints fail-closed.
+
 ## Explicit limits
 
 V0 does **not** model arbitrary polygons, rotation of footprints, non-rectangular swept paths, vertical clearance, turning radius, lift/load/unload dynamics, cranes/rigging, stack/support rules, soil/floor bearing capacity, structural loads, human exclusion/safety envelopes, physical vehicle acceleration, or transport capacity greater than one exclusive vehicle. The corridor is supplied by the scenario; V0 does not compute a route. Unsupported dimensions need a distinct qualified model, not an assumption that clearance exists.
