@@ -230,3 +230,16 @@ VIS-MEM-009 already tests relevant-history sensitivity and irrelevant-history in
 - a distinct underdetermined state in which clarification is the utility-optimal decision.
 
 This broadens the benchmark target from retrieval correctness to **decision correctness under uncertainty**. Across native experiments, compare on the same backbone/executor and common evaluation scenarios wherever possible. Report exact memory/write/read resource budgets and a success–utility–cost Pareto frontier. A candidate should not win just by changing more actions, clarifying everything, or hiding unsafe committed mistakes inside average task success.
+
+
+## Failure memory and recovery: recurrence versus overgeneralization
+
+The 2026-10-22 sweep identified two useful public comparators beyond generic long-horizon task success:
+
+- **FAER** (Findings ACL 2026) defines 3,323 failure-focused episodes over 65 tasks and 83 objects. It separates failure detection, categorization, description, and correction, and reports high false-negative rates for failure detection among evaluated VLMs. The official ACL paper is at https://aclanthology.org/2026.findings-acl.948/. Its annotations/data license must be checked independently before reuse.
+- **LIBERO-Recover** (arXiv:2609.05178) moves evaluation from nominal success to recovery from execution-born failure, with four levels: action retry, action adaptation, object-state recovery, and environmental recovery. The project reports that initial-task success can overstate deployment robustness; its current public repository describes 4,803 annotated failure scenes and points to ModelScope assets. Code source main was pinned during this pass at `2162b4c5875835780ddfdbe89a8151273d2fe30a`. The public run path requires a separate CUDA/Python/LIBERO environment, so a source audit alone is not an executed benchmark result.
+- **BetaMem** (arXiv:2610.26554, submitted 2026-10-19) directly motivates failure-conditioned rule repair gated by independent replay. Its project page reports a separate EMem-Bench run at 38.4% mean task success and 24.9% error recurrence for Qwen3-VL-8B-Instruct. These are paper-reported scores, not Symtropy results or directly comparable to LIBERO-Recover's recovery-success metric. https://www.roboticscenter.ai/research/papers/betamem-learning-to-remember-a-changing-world-for-embodied-agents-2610
+
+The design lesson is that minimizing recurrence alone is gameable: a policy can suppress every action, at the cost of blocking useful behavior. Measure repeat failures **and** false suppression, unrelated-task collateral, nominal action retention, recovery success, and stale-rule invalidation.
+
+The follow-on [VIS-MEM-013 #2614 / draft PR #2615](https://github.com/Luminous-Dynamics/symtropy/pull/2615) adds an independent synthetic Rust diagnostic comparing always-retry, global action taboo, context-keyed suppression, conditional repair, and replay-gated repair. A global taboo candidate must be rejected if it regresses protected cases; a task/object/context-scoped candidate must pass a finite contract before it can be promoted. The runtime policy API does not receive evaluator-safe-action labels. The current synthetic suite qualifies only action/precondition semantics; native comparisons require pinned eligible baseline weights, assets, evaluator, seed protocol, and license review.
