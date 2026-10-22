@@ -29,4 +29,8 @@ path = "src/bin/nafems-nbc05-modal-reference.rs"
 name = "beam-pin-modal-reference"
 path = "src/bin/beam-pin-modal-reference.rs"
 
+[[bin]]
+name = "sofistik-be25-input-audit"
+path = "src/bin/sofistik-be25-input-audit.rs"
+
 [workspace]
