@@ -340,3 +340,28 @@ The candidate 30-board pilot in this repository remains **unauthorized for execu
 The Rust PCBWorld CSV importer now emits an explicit scorecard for 30 s, 60 s, 180 s, 300 s, and 1800 s. A row receives credit at a budget only when the source's `clean_pass` is true **and** its recorded `per_board_rollout_time` is known and at or below the cap. Missing runtime remains in the all-attempt denominator and never earns time-bounded credit; a clean label with no runtime is reported as an untimed clean row. Both the all-attempt rate and a secondary timed-row diagnostic are retained.
 
 This scorecard measures **final output completed by a recorded runtime**, not the earliest moment a route happened to become clean during an ongoing run. Reproducing a time-snapshot leaderboard such as “clean at 3 minutes” requires each method to be run under the same 3-minute cutoff (or a complete timestamped checkpoint trace); it is invalid to infer a 3-minute pass from a clean final board that took 30 minutes. The importer preserves the upstream `clean_pass` definition, which is not equivalent to the stricter raw-KiCad evidence gate in `compare-verified`.
+
+
+## Anytime verified-incumbent implementation
+
+Issue [PCB-ANYTIME-001 #2608](https://github.com/Luminous-Dynamics/symtropy/issues/2608) and the standalone API in tools/pcb-route-benchmark/src/anytime.rs now define a proof-carrying checkpoint archive:
+
+- A candidate is evaluated from the exact native board bytes and raw KiCad DRC JSON under a pinned policy. The evaluator itself computes board/report hashes; the caller's success flag is not accepted.
+- The candidate's source-board SHA-256, manifest-byte SHA-256, required-net count, board file name, KiCad version and DRC-policy digest must match the pinned manifest/policy.
+- The preferred root-based API reads the named files below a canonical artifact root and rejects traversal, absolute paths, symlink escapes, missing/non-regular files, aliases and a DRC source name that does not match the output board filename.
+- Only route-valid candidates enter the eligible incumbent set. Invalid/partial/late candidates stay in the audit history but cannot erase an earlier clean checkpoint.
+- For each requested time budget, selection considers only eligible snapshots whose recorded elapsed time is at or below that budget; it emits a deterministic Pareto front across wirelength/vias and a selected member.
+- Archive reuse is not trust-on-JSON: the record and select CLI commands re-open each board/DRC file, recompute DRC interpretation and hashes, and compare them with the stored receipt. An edited eligibility flag or changed artifact bytes must fail re-verification under the current exact evaluator head.
+
+### CLI
+
+From the isolated Rust crate directory/build invocation, the commands are:
+
+- init-incumbent-archive MANIFEST.json POLICY.json BOARD_ID
+- verify-checkpoint CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json
+- record-incumbent ARCHIVE.json CHECKPOINT.json MANIFEST.json ARTIFACT_ROOT POLICY.json
+- select-incumbent ARCHIVE.json MANIFEST.json ARTIFACT_ROOT POLICY.json BUDGET_MS
+
+A checkpoint metadata file supplies the checkpoint ID, board ID and source digest, manifest digest, required/connected net counts, dangling-item counts, elapsed milliseconds, wirelength, via count, relative output-board path, relative raw-DRC path, output filename and KiCad version. Run the command with PCB_ROUTE_BENCHMARK_GIT_HEAD set to the exact evaluator commit. Archive selection requires the original manifest, exact policy and retained raw artifacts so saved incumbents are revalidated instead of trusted.
+
+The tests include a later crossing attempt that cannot displace an earlier verified clean snapshot, the Pareto trade-off between wirelength and vias, missing-net rejection, path traversal rejection, and mutation of both the serialized eligibility field and underlying saved-board bytes. These are software contract tests only; they are not a PCBWorld router result or a physical qualification.
