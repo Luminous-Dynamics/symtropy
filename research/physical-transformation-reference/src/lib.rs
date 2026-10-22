@@ -17,6 +17,7 @@ pub mod mechanics;
 pub mod modal_bar;
 pub mod nafems_nbc05;
 pub mod planar_truss;
+pub mod sdof_dynamics;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Component {
