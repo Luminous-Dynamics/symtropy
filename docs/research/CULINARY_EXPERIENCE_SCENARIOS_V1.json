@@ -1,0 +1,491 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "CULINARY-EXPERIENCE-001",
+  "status": "scenario_contract_proposed_no_empirical_outcomes",
+  "metric_catalogue": "docs/research/CULINARY_EXPERIENCE_METRICS_V1.json",
+  "related_work": {
+    "scheduling": "https://github.com/Luminous-Dynamics/symtropy/issues/2227",
+    "transfer": "https://github.com/Luminous-Dynamics/symthaea/issues/8170",
+    "human_craft": "https://github.com/Luminous-Dynamics/symthaea/issues/8183",
+    "evidence": "https://github.com/Luminous-Dynamics/symthaea/issues/7952",
+    "benchmark_integrity": "https://github.com/Luminous-Dynamics/symthaea/issues/7859",
+    "kitchen_stations": "https://github.com/Luminous-Dynamics/symtropy/issues/2324"
+  },
+  "shared_rules": [
+    "Use identical permitted inputs and manifests across candidate baselines.",
+    "All predicted values and synthetic cases carry distinct evidence classes and cannot satisfy physical/human outcome claims.",
+    "No safety, allergen, rights or hard feasibility failure can be offset by faster time, lower cost, or preference scores.",
+    "Preserve unknown, abstained, missing, blocked, invalid and failed outcomes with explicit reasons; never impute zero.",
+    "Split recipes by lineage to avoid near-duplicate leakage; hold out complete cuisines/regions/ingredient families/equipment profiles where the scenario requires transfer.",
+    "Report denominators, group-level outcomes, uncertainty, measurement boundary, and exact source/manifest identity."
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "CUL-BASELINE-MULTIDISH-001",
+      "purpose": "Compare all baseline policies on the same multi-dish dinner task with shared equipment and serving-time constraints.",
+      "context": "household",
+      "shift_axes": [],
+      "required_metrics": [
+        "feasible_plan_fraction",
+        "hard_constraint_violation_count",
+        "end_to_end_execution_success_fraction",
+        "makespan_ms",
+        "serving_synchronization_error_s",
+        "absolute_timing_error_ms",
+        "cook_agency_scale"
+      ],
+      "required_gates": [
+        "GATE-PLAN-INDEPENDENT-VERIFY",
+        "GATE-FOOD-HANDLING-UNKNOWN-BLOCK",
+        "GATE-EXACT-MANIFEST"
+      ],
+      "evidence_needed": [
+        "synthetic_fixture",
+        "observed_physical"
+      ],
+      "adversarial_controls": [
+        "one burner is assigned to two overlapping tasks",
+        "one rest interval is violated",
+        "task durations are predicted but reported as measured",
+        "plan succeeds only because cleanup/serving tasks were omitted"
+      ],
+      "claim_limit": "Scheduling feasibility and full-meal completion only for the defined tasks/equipment; no taste or preference claim without human sensory data."
+    },
+    {
+      "scenario_id": "CUL-PANTRY-SUBSTITUTION-002",
+      "purpose": "Adapt a recipe when one or more ingredients are unavailable, preserving quantities, culinary role, declared exclusions and critical processes.",
+      "context": "household",
+      "shift_axes": [
+        "ingredient_family",
+        "market_availability"
+      ],
+      "required_metrics": [
+        "allergen_constraint_preservation_fraction",
+        "substitution_evidence_coverage_fraction",
+        "end_to_end_execution_success_fraction",
+        "food_cost_per_completed_serving",
+        "edible_yield_fraction",
+        "sensory_acceptability_score"
+      ],
+      "required_gates": [
+        "GATE-ALLERGEN-EXPLICIT",
+        "GATE-SUBSTITUTION-ROLE-AND-UNIT",
+        "GATE-CRITICAL-PROCESS-PRESERVED",
+        "GATE-UNKNOWN-ABSTAIN"
+      ],
+      "evidence_needed": [
+        "literature",
+        "observed_physical",
+        "observed_human"
+      ],
+      "adversarial_controls": [
+        "allergen status of replacement is unknown",
+        "mass and volume units are mixed without conversion",
+        "substitute has a different moisture/fat/binding role",
+        "system invents an ingredient from unavailable pantry stock"
+      ],
+      "claim_limit": "Only substitutions tested for the specified recipe, ingredient product and procedure; no global equivalence/safety claim."
+    },
+    {
+      "scenario_id": "CUL-LOW-INFRASTRUCTURE-003",
+      "purpose": "Plan an affordable meal under declared equipment, power and water availability constraints.",
+      "context": "household_south_africa_relevant",
+      "shift_axes": [
+        "equipment",
+        "power_availability",
+        "water_availability",
+        "market_period"
+      ],
+      "required_metrics": [
+        "end_to_end_execution_success_fraction",
+        "food_cost_per_completed_serving",
+        "energy_wh_per_completed_serving",
+        "water_l_per_completed_serving",
+        "accessibility_task_success_fraction",
+        "avoidable_edible_discard_g_per_serving"
+      ],
+      "required_gates": [
+        "GATE-EQUIPMENT-AVAILABLE",
+        "GATE-POWER-STATE-EXPLICIT",
+        "GATE-SAFE-COOKING-PRESERVED",
+        "GATE-WATER-BOUNDARY-EXPLICIT"
+      ],
+      "evidence_needed": [
+        "observed_physical",
+        "literature",
+        "assumption"
+      ],
+      "adversarial_controls": [
+        "plan assumes an unavailable oven/fridge",
+        "load-shedding window interrupts a critical heating/cooling step",
+        "water-saving workaround bypasses safe handling",
+        "low-cost score omits fuel and rework costs"
+      ],
+      "claim_limit": "A context-specific resilience case; not representative of every South African household or a food-safety certification."
+    },
+    {
+      "scenario_id": "CUL-SAFETY-ALLERGEN-004",
+      "purpose": "Verify that unresolved allergen, cross-contamination, safe-temperature or ingredient identity information blocks a safety assurance.",
+      "context": "household_and_food_service_separate",
+      "shift_axes": [
+        "ingredient_identity",
+        "handling_conditions"
+      ],
+      "required_metrics": [
+        "unsafe_or_unresolved_recommendation_count",
+        "hard_constraint_violation_count",
+        "uncertainty_and_missingness_coverage_fraction"
+      ],
+      "required_gates": [
+        "GATE-ALLERGEN-UNKNOWN-NEVER-SAFE",
+        "GATE-RAW-COOKED-SEPARATION",
+        "GATE-TEMPERATURE-CONTROL",
+        "GATE-SAFE-WATER-AND-MATERIALS"
+      ],
+      "evidence_needed": [
+        "literature",
+        "observed_physical"
+      ],
+      "adversarial_controls": [
+        "unknown label is interpreted as allergen-free",
+        "food safety facts are guessed from cuisine name",
+        "raw-to-cooked cross-contamination step is omitted",
+        "the score rewards recipe completion despite unresolved safety"
+      ],
+      "claim_limit": "Tests correct abstention and guardrail behaviour only; not medical advice, allergen guarantee or safety certification."
+    },
+    {
+      "scenario_id": "CUL-LEFTOVER-CLOSED-LOOP-005",
+      "purpose": "Record purchase, preparation, edible output, leftover portioning, safe storage, reuse/discard and cleanup so waste is directly measured end to end.",
+      "context": "household",
+      "shift_axes": [
+        "meal_day",
+        "leftover_availability"
+      ],
+      "required_metrics": [
+        "edible_yield_fraction",
+        "avoidable_edible_discard_g_per_serving",
+        "water_l_per_completed_serving",
+        "food_cost_per_completed_serving",
+        "uncertainty_and_missingness_coverage_fraction"
+      ],
+      "required_gates": [
+        "GATE-EDIBLE-AND-INEDIBLE-MASS-SEPARATE",
+        "GATE-LEFTOVER-STORAGE-EVIDENCE",
+        "GATE-WASTE-BOUNDARY-EXPLICIT",
+        "GATE-NO-WASTE-DISPLACEMENT"
+      ],
+      "evidence_needed": [
+        "observed_physical",
+        "derived_from_observations"
+      ],
+      "adversarial_controls": [
+        "discard is moved from plate waste to preparation waste",
+        "leftovers are assumed safe without time/temperature history",
+        "mass lost to evaporation is classified as edible discard",
+        "study reports short-term improvement without baseline/control"
+      ],
+      "claim_limit": "Waste-reduction claim requires direct mass measurement, suitable control and duration/persistence evidence; a simulated shopping list is insufficient."
+    },
+    {
+      "scenario_id": "CUL-CUISINE-TRANSFER-006",
+      "purpose": "Measure how recommendations and executable plans degrade on a held-out cuisine/region/ingredient family.",
+      "context": "cross_region",
+      "shift_axes": [
+        "cuisine",
+        "region",
+        "ingredient_family"
+      ],
+      "required_metrics": [
+        "end_to_end_execution_success_fraction",
+        "substitution_evidence_coverage_fraction",
+        "cultural_provenance_coverage_fraction",
+        "sensory_acceptability_score",
+        "hard_constraint_violation_count"
+      ],
+      "required_gates": [
+        "GATE-HELDOUT-LINEAGE",
+        "GATE-CULTURAL-SOURCE-AND-PERMISSION",
+        "GATE-LOCAL-INGREDIENT-EVIDENCE"
+      ],
+      "evidence_needed": [
+        "observed_human",
+        "observed_physical",
+        "literature"
+      ],
+      "adversarial_controls": [
+        "near-duplicate recipe crosses the split",
+        "one community's practice is used as universal rule",
+        "rare/seasonal ingredient substitution erases a defining technique",
+        "model score is called authentic without practitioner review"
+      ],
+      "claim_limit": "Transfer only across declared held-out splits and represented participants; no claim to universal authenticity."
+    },
+    {
+      "scenario_id": "CUL-SENSORY-CRAFT-007",
+      "purpose": "Compare an evaluated recipe or assistance variant using blinded sensory procedures, cook agency and technique learning.",
+      "context": "participant_study",
+      "shift_axes": [
+        "cook_experience",
+        "participant_group"
+      ],
+      "required_metrics": [
+        "sensory_acceptability_score",
+        "preference_pairwise_win_fraction",
+        "cook_agency_scale",
+        "independent_skill_retention_fraction",
+        "voluntary_adoption_fraction"
+      ],
+      "required_gates": [
+        "GATE-CONSENT-AND-PRIVACY",
+        "GATE-SENSORY-PROTOCOL-FROZEN",
+        "GATE-COOK-CAN-OVERRIDE",
+        "GATE-NO-PREDICTION-AS-TASTE"
+      ],
+      "evidence_needed": [
+        "observed_human"
+      ],
+      "adversarial_controls": [
+        "participants know which dish was AI-assisted before blind rating",
+        "model-predicted taste is merged with observed liking",
+        "assisted task quality improves but independent skill is never checked",
+        "professional cannot veto suggestion"
+      ],
+      "claim_limit": "Requires a properly designed, consented human sensory/learning study; cannot be filled by synthetic ratings."
+    },
+    {
+      "scenario_id": "CUL-EQUIPMENT-TRANSFER-008",
+      "purpose": "Evaluate successful cooking when the test equipment differs from training/development equipment.",
+      "context": "household_and_food_service_separate",
+      "shift_axes": [
+        "equipment_profile",
+        "thermal_response",
+        "cooktop_type"
+      ],
+      "required_metrics": [
+        "end_to_end_execution_success_fraction",
+        "absolute_timing_error_ms",
+        "rework_or_rerun_fraction",
+        "energy_wh_per_completed_serving",
+        "hard_constraint_violation_count"
+      ],
+      "required_gates": [
+        "GATE-EQUIPMENT-IDENTITY",
+        "GATE-TEMPERATURE-CUE-VERIFIED",
+        "GATE-COOKING-ENDPOINT-VERIFIED"
+      ],
+      "evidence_needed": [
+        "observed_physical"
+      ],
+      "adversarial_controls": [
+        "gas and induction heat-response assumptions are treated as identical",
+        "preheat state is missing",
+        "probe/thermometer is unavailable but the plan assumes it",
+        "elapsed time replaces the recipe's physical endpoint"
+      ],
+      "claim_limit": "Equipment generalization only for tested models/profiles and observed endpoints."
+    },
+    {
+      "scenario_id": "CUL-CULTURAL-PROVENANCE-009",
+      "purpose": "Ensure source attribution, permissions and community-defined restrictions survive recipe interpretation and adaptation.",
+      "context": "regional_and_community_knowledge",
+      "shift_axes": [
+        "source_type",
+        "language",
+        "cultural_context"
+      ],
+      "required_metrics": [
+        "cultural_provenance_coverage_fraction",
+        "substitution_evidence_coverage_fraction",
+        "cook_agency_scale"
+      ],
+      "required_gates": [
+        "GATE-SOURCE-ATTRIBUTION",
+        "GATE-RIGHTS-AND-COMMUNITY-PROTOCOL",
+        "GATE-PRACTITIONER-CORRECTION"
+      ],
+      "evidence_needed": [
+        "literature",
+        "observed_human"
+      ],
+      "adversarial_controls": [
+        "online availability treated as permission to reuse",
+        "community-defined restriction is omitted during paraphrase",
+        "a cookbook source is detached from its attribution",
+        "practitioner correction is silently overwritten"
+      ],
+      "claim_limit": "Provenance/documentation compliance is not proof of cultural legitimacy; affected practitioners/communities must determine their own rules."
+    },
+    {
+      "scenario_id": "CUL-ACCESSIBILITY-RECOVERY-010",
+      "purpose": "Evaluate cooking with declared accessibility needs, differing skill levels or task interruption, retaining a fully manual option.",
+      "context": "participant_study",
+      "shift_axes": [
+        "accessibility_profile",
+        "experience_level",
+        "task_interruption"
+      ],
+      "required_metrics": [
+        "accessibility_task_success_fraction",
+        "cook_agency_scale",
+        "voluntary_adoption_fraction",
+        "rework_or_rerun_fraction"
+      ],
+      "required_gates": [
+        "GATE-ACCESS-REQUIREMENTS-USER-DEFINED",
+        "GATE-MANUAL-PATH-AVAILABLE",
+        "GATE-INTERACTION-REVERSIBLE"
+      ],
+      "evidence_needed": [
+        "observed_human",
+        "observed_physical"
+      ],
+      "adversarial_controls": [
+        "one average hides cohort failures",
+        "assistance becomes mandatory to complete a task",
+        "the interface relies on inaccessible timing/sound-only alerts",
+        "interruption causes a hazardous state"
+      ],
+      "claim_limit": "Results apply only to declared cohorts, tasks and accessible configurations; not a universal accessibility certification."
+    },
+    {
+      "scenario_id": "CUL-COST-NUTRITION-TRADEOFF-011",
+      "purpose": "Show trade-offs among cost, edible serving, nutrient-data coverage and preference while retaining evidence provenance.",
+      "context": "household",
+      "shift_axes": [
+        "market_period",
+        "product_brand",
+        "seasonal_availability"
+      ],
+      "required_metrics": [
+        "food_cost_per_completed_serving",
+        "edible_yield_fraction",
+        "nutrient_data_coverage_fraction",
+        "sensory_acceptability_score",
+        "avoidable_edible_discard_g_per_serving"
+      ],
+      "required_gates": [
+        "GATE-PRICE-DATE-AND-CURRENCY",
+        "GATE-NUTRIENT-SOURCE-MATCH",
+        "GATE-PORTION-DENOMINATOR",
+        "GATE-NO-UNSUPPORTED-HEALTH-CLAIM"
+      ],
+      "evidence_needed": [
+        "literature",
+        "observed_physical",
+        "observed_human",
+        "assumption"
+      ],
+      "adversarial_controls": [
+        "price source date is missing",
+        "USDA branded product is incorrectly assumed to match a South African equivalent",
+        "nutrient estimate is presented without source coverage",
+        "cheap raw ingredients produce fewer completed servings"
+      ],
+      "claim_limit": "Descriptive trade-off for the stated price/date/source coverage; not personal medical or dietetics advice."
+    },
+    {
+      "scenario_id": "CUL-COMMERCIAL-SERVICE-012",
+      "purpose": "Evaluate a small commercial kitchen's batch throughput, synchrony, operator workload, food handling and post-service cleanup.",
+      "context": "commercial_food_service",
+      "shift_axes": [
+        "service_load",
+        "staffing",
+        "equipment"
+      ],
+      "required_metrics": [
+        "end_to_end_execution_success_fraction",
+        "makespan_ms",
+        "serving_synchronization_error_s",
+        "water_l_per_completed_serving",
+        "energy_wh_per_completed_serving",
+        "cook_agency_scale"
+      ],
+      "required_gates": [
+        "GATE-COMMERCIAL-R638-REVIEW",
+        "GATE-SERVICE-TEMPERATURE-CONTROL",
+        "GATE-STAFFING-AND-EQUIPMENT-DECLARED",
+        "GATE-CLEANUP-AND-REPAIR-RECORDED"
+      ],
+      "evidence_needed": [
+        "observed_physical",
+        "observed_human",
+        "literature"
+      ],
+      "adversarial_controls": [
+        "household safety assumptions transferred unreviewed to food service",
+        "staff pauses and cleaning time omitted",
+        "output throughput hides higher rework or operator fatigue",
+        "one site treated as representative of all commercial kitchens"
+      ],
+      "claim_limit": "Site-specific pilot only; requires local compliance review and adequate multi-site evidence before broad claims."
+    },
+    {
+      "scenario_id": "CUL-KITCHEN-AIR-HEAT-013",
+      "purpose": "Evaluate occupied-zone air quality and thermal exposure alongside cooking service performance in a declared commercial kitchen; never infer safety from throughput or energy scores.",
+      "context": "commercial_food_service",
+      "shift_axes": [
+        "fuel_and_appliance_type",
+        "hood_capture_and_ventilation_state",
+        "service_intensity",
+        "occupied_zone",
+        "idle_vs_active_period"
+      ],
+      "required_metrics": [
+        "measured_no2_1h_ppbv",
+        "thermal_exposure_degree_minutes_above_preregistered_threshold",
+        "air_quality_sensor_coverage_fraction",
+        "end_to_end_execution_success_fraction",
+        "cook_agency_scale"
+      ],
+      "required_gates": [
+        "GATE-LOCAL-OCCUPATIONAL-HEALTH-REVIEW",
+        "GATE-VENTILATION-STATE-RECORDED",
+        "GATE-SENSOR-CALIBRATION-AND-PLACEMENT",
+        "GATE-EXPOSURE-NOT-TRADED-FOR-THROUGHPUT",
+        "GATE-IDLE-PERIODS-INCLUDED"
+      ],
+      "evidence_needed": [
+        "observed_physical",
+        "observed_human",
+        "literature"
+      ],
+      "adversarial_controls": [
+        "measure only near the hood and omit the cook, plating, dining or dishwashing zones",
+        "ignore idle/overnight periods when pilot lights or other appliances may remain on",
+        "compare unlike menu loads or hood states between configurations",
+        "reduce apparent energy use by operating below a required ventilation/air-quality protection level",
+        "apply a US guideline as a local South African legal limit without jurisdiction review",
+        "sensor coverage gaps coincide with the hottest or highest-exposure intervals",
+        "small non-representative sample is reported as proof that all-electric or gas kitchens are universally safe/unsafe"
+      ],
+      "claim_limit": "A site- and protocol-specific occupational exposure observation only. A recent 27-kitchen US study motivates the scenario but does not establish South African prevalence or a universal causal claim. Requires calibrated monitoring, local occupational-health review and appropriately powered replicated assessment."
+    }
+  ],
+  "stretch_targets": {
+    "hard_constraint_violation_count": 0,
+    "unsafe_or_unresolved_recommendation_count": 0,
+    "makespan_reduction_vs_serial": 0.1,
+    "physical_plan_execution_success_fraction": 0.9,
+    "avoidable_edible_discard_reduction_vs_control": 0.15,
+    "consecutive_waste_measurement_weeks_min": 6,
+    "data_field_status_coverage": 1,
+    "status": "hypotheses_not_results",
+    "physical_kitchen_air_heat_scenario_requires_local_review": true
+  },
+  "source_references": [
+    "https://www.mdpi.com/2079-9292/15/15/3281",
+    "https://aclanthology.org/2025.findings-emnlp.229/",
+    "https://doi.org/10.1016/j.afres.2026.102145",
+    "https://www.mdpi.com/2071-1050/16/5/1963",
+    "https://doi.org/10.1016/j.resconrec.2025.108222",
+    "https://www.frontiersin.org/articles/10.3389/fsufs.2025.1556003/full",
+    "https://www.iso.org/standard/65519.html",
+    "https://www.iso.org/standard/50125.html",
+    "https://www.who.int/activities/promoting-safe-food-handling/five-key-to-safer-food/",
+    "https://www.health.gov.za/food-control-regulations/",
+    "https://fdc.nal.usda.gov/api-guide/",
+    "https://doi.org/10.1088/1748-9326/ae9d96",
+    "https://news.stanford.edu/stories/2026/10/pollution-levels-commercial-kitchens-gas-stoves"
+  ]
+}

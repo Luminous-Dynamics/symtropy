@@ -1,0 +1,68 @@
+name: Culinary Experience Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/CULINARY_EXPERIENCE_BENCHMARK_V1.md"
+      - "docs/research/CULINARY_EXPERIENCE_METRICS_V1.json"
+      - "docs/research/CULINARY_EXPERIENCE_SCENARIOS_V1.json"
+      - "tools/culinary-experience-bench/**"
+      - ".github/workflows/culinary-experience-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: culinary-experience-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Run contract validator unit and negative-control tests
+        run: cargo test --manifest-path tools/culinary-experience-bench/Cargo.toml
+
+      - name: Validate live culinary contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          expected_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$expected_commit"
+          cargo run --quiet --manifest-path tools/culinary-experience-bench/Cargo.toml -- \
+            validate docs/research > culinary-experience-contract-receipt.json
+          jq --arg source_commit "$source_commit" \
+            '. + {source_commit:$source_commit, receipt_kind:"contract_consistency_only"}' \
+            culinary-experience-contract-receipt.json > receipt.tmp
+          mv receipt.tmp culinary-experience-contract-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 13
+            and .metric_count == 28
+            and .required_gate_entries >= 40
+            and (.contract_sha256 | length == 2 and all(.[]; test("^[a-f0-9]{64}$")))
+            and (.source_commit | test("^[a-f0-9]{40}$"))
+            and .receipt_kind == "contract_consistency_only"
+          ' culinary-experience-contract-receipt.json
+
+      - name: Upload content-addressed contract receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: culinary-experience-contract-receipt
+          path: culinary-experience-contract-receipt.json
+          if-no-files-found: error
+          retention-days: 90

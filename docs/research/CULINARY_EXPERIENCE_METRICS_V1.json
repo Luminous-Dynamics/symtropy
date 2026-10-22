@@ -1,0 +1,233 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "CULINARY-EXPERIENCE-001",
+  "status": "proposed_metric_contract_no_observations",
+  "comparison_principles": [
+    "Metrics are kept separate; do not report a single overall score without publishing weights and sensitivity.",
+    "Unknown and missing values are not zero; every estimate carries an evidence class and provenance.",
+    "Safety, allergen and rights gates are non-compensatory.",
+    "A task may be called completed only after the declared endpoint is met.",
+    "Prediction is not measurement; predicted sensory acceptance is not human preference.",
+    "Each result reports denominator, population/context, split identity, uncertainty and exclusions.",
+    "For occupational air/heat evaluations, preserve zone and time-resolution; do not average away peaks, omit idle periods, or trade exposure reduction against energy/throughput. Threshold selection requires target-jurisdiction review."
+  ],
+  "evidence_classes": [
+    "observed_physical",
+    "observed_human",
+    "derived_from_observations",
+    "model_prediction",
+    "simulation",
+    "synthetic_fixture",
+    "literature",
+    "assumption",
+    "unknown"
+  ],
+  "metrics": {
+    "feasible_plan_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Valid schedules returned divided by all eligible tasks submitted.",
+      "denominator": "all eligible tasks including abstentions; report unknown/abstention separately",
+      "source": "independent constraint verifier",
+      "gate": false
+    },
+    "hard_constraint_violation_count": {
+      "unit": "count",
+      "direction": "lower",
+      "definition": "Number of independent-verifier hard constraint failures in a returned schedule.",
+      "denominator": "all returned schedules",
+      "gate": true,
+      "qualifying_values": [
+        0
+      ]
+    },
+    "unsafe_or_unresolved_recommendation_count": {
+      "unit": "count",
+      "direction": "lower",
+      "definition": "Recommendations presented as safe despite unresolved required allergen/food-handling evidence.",
+      "denominator": "all recommendations in evaluated cases",
+      "gate": true,
+      "qualifying_values": [
+        0
+      ]
+    },
+    "end_to_end_execution_success_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Cooked meal attempts meeting all preregistered task completion endpoints divided by all eligible attempted meals.",
+      "denominator": "all eligible meal attempts; preserve failures and withdrawn/aborted attempts by reason"
+    },
+    "makespan_ms": {
+      "unit": "ms",
+      "direction": "lower",
+      "definition": "Elapsed time from first declared meal task start to last declared completion event.",
+      "denominator": "one complete meal task",
+      "notes": "Report against serial and feasible baseline; not a food-quality proxy."
+    },
+    "absolute_timing_error_ms": {
+      "unit": "ms",
+      "direction": "lower",
+      "definition": "Absolute difference between forecast and observed duration at declared task or full-meal boundary.",
+      "denominator": "all timed tasks/meals with both planned and observed values"
+    },
+    "rework_or_rerun_fraction": {
+      "unit": "fraction",
+      "direction": "lower",
+      "definition": "Meals/tasks requiring a corrective rerun due to plan/recipe failure divided by eligible attempts.",
+      "denominator": "all eligible attempts; reasons are stratified"
+    },
+    "serving_synchronization_error_s": {
+      "unit": "s",
+      "direction": "lower",
+      "definition": "Spread between intended serving time and actual ready times for dishes designated to be served together.",
+      "denominator": "one multi-dish serving event",
+      "notes": "A range or distribution is preferred over a single average."
+    },
+    "food_cost_per_completed_serving": {
+      "unit": "currency/serving",
+      "direction": "lower",
+      "definition": "Measured or source-qualified ingredient cost attributable to a completed edible serving.",
+      "denominator": "completed edible servings",
+      "notes": "Currency, price date/region, discounts and pantry stock accounting must be declared."
+    },
+    "edible_yield_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Mass of edible output divided by declared raw input mass.",
+      "denominator": "mass-based batch; inedible portions and cooking moisture loss must be separated"
+    },
+    "avoidable_edible_discard_g_per_serving": {
+      "unit": "g/serving",
+      "direction": "lower",
+      "definition": "Directly weighed avoidable edible food discarded in the declared boundary, normalized by completed servings.",
+      "denominator": "completed servings plus recorded failed meals; keep inedible waste and leftovers distinct"
+    },
+    "water_l_per_completed_serving": {
+      "unit": "L/serving",
+      "direction": "lower",
+      "definition": "Measured water within the declared boundary divided by completed edible servings.",
+      "denominator": "completed servings; include prep and cleanup stages if in scope; avoid double-counting shared station measurements"
+    },
+    "energy_wh_per_completed_serving": {
+      "unit": "Wh/serving",
+      "direction": "lower",
+      "definition": "Measured electricity/fuel energy within the declared boundary divided by completed edible servings.",
+      "denominator": "completed servings; conversion factors and uncertainties must be sourced and declared"
+    },
+    "nutrient_data_coverage_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Required ingredient nutrient quantities with source-qualified composition data divided by required nutrient quantities.",
+      "denominator": "all requested nutrients/ingredients; report source geography and product-match uncertainty"
+    },
+    "sensory_acceptability_score": {
+      "unit": "protocol-specific scale",
+      "direction": "higher",
+      "definition": "Human consumer liking measured using a preregistered validated rating approach appropriate to the target population.",
+      "denominator": "valid participant responses; report distribution, cohort and study design",
+      "notes": "No model-derived score counts as an observed human response."
+    },
+    "preference_pairwise_win_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Blind paired sensory comparisons in which one outcome is preferred divided by valid paired comparisons.",
+      "denominator": "valid pairs; randomize order and report ties/invalid pairs explicitly"
+    },
+    "allergen_constraint_preservation_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Substitutions that preserve all declared allergen exclusions and evidence gates divided by proposed substitutions.",
+      "denominator": "all proposed substitutions including abstentions; false-safe is a hard failure"
+    },
+    "substitution_evidence_coverage_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Consequential substitutions with source, unit, quantity, role, and critical process evidence divided by consequential substitutions.",
+      "denominator": "all consequential proposed/accepted substitutions"
+    },
+    "cook_agency_scale": {
+      "unit": "protocol-specific scale",
+      "direction": "higher",
+      "definition": "Participant-reported ability to set goals, understand recommendations, change/decline assistance, and retain final control.",
+      "denominator": "consenting participants; scale, anchors and subgroup reporting preregistered"
+    },
+    "independent_skill_retention_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Relevant tasks correctly completed independently after assistance withdrawal divided by comparable independent baseline skill attempts.",
+      "denominator": "matched tasks/participants; adjust for learning and task difficulty, not only self-report"
+    },
+    "voluntary_adoption_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Eligible participants who voluntarily choose to use the assistance again after a trial.",
+      "denominator": "eligible participants who had a real opt-in choice; report non-adoption and reasons"
+    },
+    "cultural_provenance_coverage_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Recipe/source/community knowledge used in consequential outputs with required provenance/attribution/permission status documented.",
+      "denominator": "all consequential sourced culinary elements; public availability does not imply permission"
+    },
+    "accessibility_task_success_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Completed tasks among participants in a declared accessibility or experience cohort under an agreed protocol.",
+      "denominator": "all eligible attempts within each cohort; never report only an aggregate"
+    },
+    "uncertainty_and_missingness_coverage_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Expected outcome fields with either valid evidence and uncertainty or an explicit missing/blocked/unknown disposition.",
+      "denominator": "all expected outcome fields across all trials",
+      "qualifying_values": [
+        1
+      ]
+    },
+    "resource_boundary_completeness_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Declared in-scope water, energy, mass and cost streams actually measured or explicitly statused.",
+      "denominator": "all preregistered resource streams",
+      "qualifying_values": [
+        1
+      ]
+    },
+    "measured_no2_1h_ppbv": {
+      "unit": "ppbv",
+      "direction": "lower",
+      "definition": "Measured one-hour nitrogen dioxide concentration for a preregistered occupied zone during the stated cooking/idle interval.",
+      "denominator": "each declared occupied zone × measurement hour; preserve high-exposure intervals and monitor location",
+      "notes": "Select acceptance thresholds from applicable local occupational/environmental guidance with qualified review. U.S. study/reference values are context, not default South African legal limits."
+    },
+    "thermal_exposure_degree_minutes_above_preregistered_threshold": {
+      "unit": "°C·min",
+      "direction": "lower",
+      "definition": "Time-integrated occupied-zone temperature exposure above a threshold declared in the protocol and justified for the target worker/task.",
+      "denominator": "each declared worker zone × observed task/shift interval",
+      "notes": "The threshold is study- and jurisdiction-specific; report raw temperature time series too."
+    },
+    "air_quality_sensor_coverage_fraction": {
+      "unit": "fraction",
+      "direction": "higher",
+      "definition": "Valid calibrated sensor-time records for required zones/intervals divided by all preregistered zone-time records.",
+      "denominator": "all planned location × time windows; missing or invalid readings remain visible",
+      "qualifying_values": [
+        1
+      ],
+      "notes": "Coverage is a data-quality gate, not evidence that the zone was safe."
+    }
+  },
+  "composite_score_policy": {
+    "allowed": false,
+    "reason": "A universal weighted score obscures hard safety gates, cultural context, skill, and genuine preference trade-offs.",
+    "allowed_alternative": "Publish metric-wise Pareto sets for candidates that pass gates; if context-specific scalarization is requested, publish weights, sensitivity, hard constraints and affected-user approval."
+  },
+  "proposed_hypotheses": {
+    "schedule_makespan_reduction_fraction": 0.1,
+    "avoidable_edible_waste_reduction_fraction": 0.15,
+    "physical_plan_execution_success_fraction": 0.9,
+    "all_statused_data_field_fraction": 1,
+    "status": "stretch_targets_not_results"
+  }
+}
