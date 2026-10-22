@@ -1,0 +1,112 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "EV-FACTORY-SIM-001",
+  "seed": 20261020,
+  "horizon_seconds": 4000,
+  "warmup_seconds": 0,
+  "productive_seconds_per_year": 12960000,
+  "variant_count": 3,
+  "variant_batch_size": 20,
+  "mean_supply_interarrival_seconds": 235,
+  "supply_interarrival_variability_fraction": 0.55,
+  "source_buffer_capacity": 8,
+  "buffer_capacities": [
+    2,
+    2,
+    1,
+    2
+  ],
+  "input_evidence_class": "synthetic",
+  "calibration_gate": "unknown",
+  "local_compliance_gate": "unknown",
+  "line_safety_gate": "unknown",
+  "product_quality_release_gate": "unknown",
+  "stations": [
+    {
+      "station_id": "inbound-kitting",
+      "label": "Inbound verification and kitting",
+      "servers": 2,
+      "mean_cycle_seconds": 200,
+      "cycle_time_variability_fraction": 0.32,
+      "changeover_seconds": 25,
+      "mean_time_between_failures_seconds": 36000,
+      "mean_time_to_repair_seconds": 600,
+      "good_yield_fraction": 0.99,
+      "max_rework_attempts": 1,
+      "evidence_class": "synthetic",
+      "note": "Synthetic material presentation and scan-verification operation."
+    },
+    {
+      "station_id": "body-preparation",
+      "label": "Purchased painted body inspection and prep",
+      "servers": 2,
+      "mean_cycle_seconds": 260,
+      "cycle_time_variability_fraction": 0.25,
+      "changeover_seconds": 45,
+      "mean_time_between_failures_seconds": 32000,
+      "mean_time_to_repair_seconds": 900,
+      "good_yield_fraction": 0.985,
+      "max_rework_attempts": 1,
+      "evidence_class": "synthetic",
+      "note": "Illustrative incoming-body verification, fixture and trim preparation; no body shop is modeled."
+    },
+    {
+      "station_id": "battery-module-install",
+      "label": "Battery module positioning and fastening",
+      "servers": 2,
+      "mean_cycle_seconds": 380,
+      "cycle_time_variability_fraction": 0.28,
+      "changeover_seconds": 65,
+      "mean_time_between_failures_seconds": 30000,
+      "mean_time_to_repair_seconds": 900,
+      "good_yield_fraction": 0.98,
+      "max_rework_attempts": 2,
+      "evidence_class": "synthetic",
+      "note": "Synthetic battery/HV cell cycle only; it does not encode a validated safe work instruction."
+    },
+    {
+      "station_id": "final-assembly",
+      "label": "Final mechanical and electrical integration",
+      "servers": 2,
+      "mean_cycle_seconds": 400,
+      "cycle_time_variability_fraction": 0.24,
+      "changeover_seconds": 55,
+      "mean_time_between_failures_seconds": 36000,
+      "mean_time_to_repair_seconds": 700,
+      "good_yield_fraction": 0.985,
+      "max_rework_attempts": 1,
+      "evidence_class": "synthetic",
+      "note": "Synthetic final integration cell; human factors and high-voltage interlocks are not verified."
+    },
+    {
+      "station_id": "end-of-line-test",
+      "label": "End-of-line function and safety test",
+      "servers": 1,
+      "mean_cycle_seconds": 265,
+      "cycle_time_variability_fraction": 0.2,
+      "changeover_seconds": 20,
+      "mean_time_between_failures_seconds": 26000,
+      "mean_time_to_repair_seconds": 700,
+      "good_yield_fraction": 0.99,
+      "max_rework_attempts": 1,
+      "evidence_class": "synthetic",
+      "note": "Synthetic test duration and yield; not a homologation, battery safety or product-release test specification."
+    }
+  ],
+  "claim_ceiling": "Synthetic line-design sensitivity only; all rates, yields, variability, breakdown/repair values, buffer sizes, source timing, and annual operating hours are assumptions. Not measured site performance, a calibrated digital twin, a safety case or a machinery investment recommendation.",
+  "replication_seeds": [
+    20261020
+  ],
+  "dispatch_policy": "fifo",
+  "max_variant_skip_seconds": 600,
+  "common_cause_control_outage": {
+    "domain_id": "shared-line-control",
+    "station_ids": [
+      "battery-module-install",
+      "final-assembly"
+    ],
+    "first_start_seconds": 600,
+    "recurrence_interval_seconds": 1800,
+    "duration_seconds": 300
+  }
+}
