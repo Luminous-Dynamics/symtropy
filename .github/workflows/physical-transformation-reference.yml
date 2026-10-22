@@ -260,6 +260,19 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify beam-theory applicability mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_theory_applicability_mutations.sh
+
+      - name: Re-verify beam-theory applicability source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_theory_applicability.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify beam mode-tracking mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_beam_mode_tracking_mutations.sh
@@ -615,6 +628,63 @@ jobs:
             and (.claim_ceiling | contains("not_member_bending"))
           ' nafems-nbc05-modal-reference-receipt.json
 
+      - name: Generate and verify beam-theory applicability receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-theory-applicability-reference -- --source-commit "$source_commit" > beam-theory-applicability-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-theory-applicability-reference -- --source-commit "$source_commit" > beam-theory-applicability-raw-b.json
+          cmp --silent beam-theory-applicability-raw-a.json beam-theory-applicability-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_theory_applicability_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-theory-applicability-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-theory-applicability-request-v0.1|fixture=PHYS-BEAM-THEORY-SCREEN-001|case|static-slender|static-or-quasi-static|1|none|0.01|1|0.0006666666666666666|100|10|case|modal-short-wavelength|modal|1|0.04|0.01|1|0.0006666666666666666|100|10|case|modal-wavelength-missing|modal|1|none|0.01|1|0.0006666666666666666|100|10|case|intermediate-shear|static-or-quasi-static|1|none|0.01|1|0.002|100|10|case|low-shear-slenderness|static-or-quasi-static|1|none|0.01|1|0.004|100|10"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "96e47aeb13a0c9c44e0dfe91fc18cbc8673b74ae1ba69613797c91591c8bca5c"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-theory-applicability-raw-a.json > beam-theory-applicability-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-theory-applicability-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-THEORY-SCREEN-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "model-applicability-screen"
+            and .result == "pass"
+            and .case_count == 5
+            and ([.cases[].case_id] == ["static-slender","modal-short-wavelength","modal-wavelength-missing","intermediate-shear","low-shear-slenderness"])
+            and .cases[0].status == "EulerBernoulliCandidate"
+            and ((.cases[0].shear_slenderness_indicator - 150) | abs < 1e-9)
+            and .cases[1].status == "EulerBernoulliOutsideReferenceScreen"
+            and ((.cases[1].cross_section_to_axial_scale_ratio - 0.25) | abs < 1e-12)
+            and ((.cases[1].effective_axial_scale_m - 0.04) | abs < 1e-12)
+            and .cases[2].status == "MissingDynamicWavelength"
+            and .cases[2].wavelength_required_but_missing == true
+            and .cases[3].status == "TimoshenkoComparisonRecommended"
+            and ((.cases[3].shear_slenderness_indicator - 50) | abs < 1e-9)
+            and .cases[4].status == "EulerBernoulliOutsideReferenceScreen"
+            and ((.cases[4].shear_slenderness_indicator - 25) | abs < 1e-9)
+            and (.cases[0].uncorrected_static_cantilever_shear_deflection_ratio_proxy != null)
+            and (.cases[1].uncorrected_static_cantilever_shear_deflection_ratio_proxy == null)
+            and (.claim_ceiling | contains("no solver accuracy"))
+          ' beam-theory-applicability-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -638,5 +708,7 @@ jobs:
             beam-mode-tracking-mutation-receipt.json
             beam-subspace-mac-mutation-receipt.json
             beam-mode-tracking-receipt.json
+            beam-theory-applicability-mutation-receipt.json
+            beam-theory-applicability-receipt.json
           if-no-files-found: error
           retention-days: 90
