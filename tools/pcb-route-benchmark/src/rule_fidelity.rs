@@ -31,6 +31,8 @@ pub struct RuleFidelityPlan {
     pub strict_source_policy_sha256: Option<String>,
     pub strict_source_kicad_version: Option<String>,
     pub strict_source_drc_report_relative_path: Option<String>,
+    pub strict_source_policy_derivation_evidence_relative_path: Option<String>,
+    pub strict_source_policy_derivation_evidence_sha256: Option<String>,
     pub rule_assessments: Vec<RuleAssessment>,
 }
 
@@ -41,7 +43,9 @@ pub struct RuleAssessment {
     pub classification: RuleClassification,
     pub source_value: Option<String>,
     pub evaluated_value: Option<String>,
+    pub mapping_evidence_relative_path: Option<String>,
     pub mapping_evidence_sha256: Option<String>,
+    pub waiver_evidence_relative_path: Option<String>,
     pub waiver_evidence_sha256: Option<String>,
     pub rationale: String,
 }
@@ -67,6 +71,14 @@ pub struct DrcReportSummary {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct VerifiedRuleEvidence {
+    pub purpose: String,
+    pub relative_path: String,
+    pub byte_len: u64,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct RuleFidelityReceipt {
     pub schema: String,
     pub evaluator_git_head: String,
@@ -84,6 +96,7 @@ pub struct RuleFidelityReceipt {
     pub source_rule_status: String,
     pub source_authoritative: bool,
     pub rule_classification_counts: BTreeMap<String, usize>,
+    pub verified_rule_evidence: Vec<VerifiedRuleEvidence>,
     pub compatibility_drc: DrcReportSummary,
     pub strict_source_drc: Option<DrcReportSummary>,
     pub compatibility_policy_clean_pass: bool,
