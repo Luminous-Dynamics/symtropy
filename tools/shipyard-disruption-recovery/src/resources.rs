@@ -3765,5 +3765,151 @@ mod tests {
         }));
     }
 
+    #[test]
+    fn multipurpose_portfolio_audits_shared_crane_across_all_three_activities() {
+        let schedule = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![
+                reservation("build-crane", "build-a", "crane-1", "gantry-crane", 0, 3),
+                reservation("build-station", "build-a", "station-build", "workstation", 0, 3),
+                reservation("repair-crane", "repair-a", "crane-1", "gantry-crane", 3, 5),
+                reservation("repair-station", "repair-a", "station-repair", "workstation", 3, 5),
+                reservation("recycle-crane", "recycle-a", "crane-1", "gantry-crane", 5, 9),
+                reservation("recycle-station", "recycle-a", "station-recycle", "workstation", 5, 9),
+            ],
+        };
+        let assignments = [
+            ActivityOperationAssignment {
+                operation_id: "build-a".to_owned(),
+                activity: ShipyardActivityClass::Newbuild,
+                due_tick: 3,
+            },
+            ActivityOperationAssignment {
+                operation_id: "repair-a".to_owned(),
+                activity: ShipyardActivityClass::Repair,
+                due_tick: 4,
+            },
+            ActivityOperationAssignment {
+                operation_id: "recycle-a".to_owned(),
+                activity: ShipyardActivityClass::Recycling,
+                due_tick: 7,
+            },
+        ];
+        let required = [
+            ShipyardActivityClass::Newbuild,
+            ShipyardActivityClass::Repair,
+            ShipyardActivityClass::Recycling,
+        ];
+
+        let report = audit_multipurpose_shipyard_portfolio(&schedule, &assignments, &required);
+
+        assert!(report.accepted, "{:?}", report.violations);
+        assert!(report.resource_schedule_feasible);
+        assert_eq!(report.scheduled_operation_count, 3);
+        assert_eq!(report.activity_metrics.len(), 3);
+        assert_eq!(report.activity_metrics[0].activity, Some(ShipyardActivityClass::Newbuild));
+        assert_eq!(report.activity_metrics[0].on_time_operations, 1);
+        assert_eq!(report.activity_metrics[0].total_tardiness_ticks, 0);
+        assert_eq!(report.activity_metrics[0].reserved_resource_ticks, 6);
+        assert_eq!(report.activity_metrics[1].activity, Some(ShipyardActivityClass::Repair));
+        assert_eq!(report.activity_metrics[1].late_operations, 1);
+        assert_eq!(report.activity_metrics[1].total_tardiness_ticks, 1);
+        assert_eq!(report.activity_metrics[1].reserved_resource_ticks, 4);
+        assert_eq!(report.activity_metrics[2].activity, Some(ShipyardActivityClass::Recycling));
+        assert_eq!(report.activity_metrics[2].late_operations, 1);
+        assert_eq!(report.activity_metrics[2].total_tardiness_ticks, 2);
+        assert_eq!(report.activity_metrics[2].reserved_resource_ticks, 8);
+    }
+
+    #[test]
+    fn multipurpose_portfolio_rejects_missing_required_activity_as_incomplete_coverage() {
+        let schedule = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![
+                reservation("build", "build-a", "station-build", "workstation", 0, 3),
+                reservation("recycle", "recycle-a", "station-recycle", "workstation", 3, 6),
+            ],
+        };
+        let assignments = [
+            ActivityOperationAssignment {
+                operation_id: "build-a".to_owned(),
+                activity: ShipyardActivityClass::Newbuild,
+                due_tick: 5,
+            },
+            ActivityOperationAssignment {
+                operation_id: "recycle-a".to_owned(),
+                activity: ShipyardActivityClass::Recycling,
+                due_tick: 8,
+            },
+        ];
+        let required = [
+            ShipyardActivityClass::Newbuild,
+            ShipyardActivityClass::Repair,
+            ShipyardActivityClass::Recycling,
+        ];
+
+        let report = audit_multipurpose_shipyard_portfolio(&schedule, &assignments, &required);
+
+        assert!(!report.accepted);
+        assert!(report.resource_schedule_feasible);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == MultipurposePortfolioViolationCode::MissingRequiredActivity
+                && violation.activity == Some(ShipyardActivityClass::Repair)
+        }));
+    }
+
+    #[test]
+    fn multipurpose_portfolio_rejects_unclassified_work_duplicate_assignments_and_shared_conflicts() {
+        let schedule = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![
+                reservation("build", "build-a", "crane-1", "gantry-crane", 0, 4),
+                reservation("repair", "repair-a", "crane-1", "gantry-crane", 3, 6),
+                reservation("recycle", "recycle-a", "station-3", "workstation", 7, 9),
+            ],
+        };
+        let assignments = [
+            ActivityOperationAssignment {
+                operation_id: "build-a".to_owned(),
+                activity: ShipyardActivityClass::Newbuild,
+                due_tick: 5,
+            },
+            ActivityOperationAssignment {
+                operation_id: "build-a".to_owned(),
+                activity: ShipyardActivityClass::Repair,
+                due_tick: 5,
+            },
+            ActivityOperationAssignment {
+                operation_id: "missing-operation".to_owned(),
+                activity: ShipyardActivityClass::Recycling,
+                due_tick: 10,
+            },
+        ];
+        let required = [
+            ShipyardActivityClass::Newbuild,
+            ShipyardActivityClass::Repair,
+            ShipyardActivityClass::Recycling,
+        ];
+
+        let report = audit_multipurpose_shipyard_portfolio(&schedule, &assignments, &required);
+
+        assert!(!report.accepted);
+        assert!(!report.resource_schedule_feasible);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == MultipurposePortfolioViolationCode::DuplicateOperationAssignment
+        }));
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == MultipurposePortfolioViolationCode::UnclassifiedScheduledOperation
+                && violation.operation_id == "repair-a"
+        }));
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == MultipurposePortfolioViolationCode::UnknownAssignedOperation
+                && violation.operation_id == "missing-operation"
+        }));
+        assert!(report.resource_violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::ExclusiveResourceOverlap
+        }));
+    }
+
 
 }
