@@ -442,7 +442,6 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
         return Err(MeshError::InvalidMeshTopology);
     }
 
-
     for cell in 0..(n * n) {
         let i = cell % n;
         let j = cell / n;
