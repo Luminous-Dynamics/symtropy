@@ -15,6 +15,8 @@
 #[cfg(feature = "inspector")]
 pub mod inspector;
 pub mod material;
+#[cfg(feature = "debug-gizmos")]
+pub mod observability;
 pub mod projection;
 pub mod sync;
 pub mod telemetry_ssbo;
@@ -24,6 +26,11 @@ pub use inspector::SymtropyInspectorPlugin;
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
+};
+#[cfg(feature = "debug-gizmos")]
+pub use observability::{
+    ContactGlyph, PhysicsObservabilityPlugin, PhysicsOverlayConfig, VelocityGlyph,
+    extract_contact_glyphs, extract_velocity_glyphs,
 };
 pub use projection::{Projector, Projector2D, Projector3D, Projector4D};
 pub use sync::{PhysicsBody, sync_physics_2d, sync_physics_3d, sync_physics_4d};
