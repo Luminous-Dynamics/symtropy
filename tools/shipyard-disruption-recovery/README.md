@@ -30,9 +30,17 @@ The report separates:
 
 Already-completed reservations (end tick at or before the disruption observation tick) may not be rewritten. An infeasible candidate is rejected; a deterministic report or a lower churn count alone does not make it accepted.
 
+## Robust envelope across plausible disruptions
+
+`evaluate_recovery_envelope` evaluates the same candidate across a caller-supplied finite set of hard disturbance scenarios. V0 assigns no probabilities: **every listed scenario must pass**. Empty scenario sets, empty IDs and duplicate scenario IDs fail closed. The report records accepted scenarios and worst-case recovery horizon, unaffected placement/transfer churn, time shift and rectangle-edge displacement. The scenario report ordering is deterministic.
+
+This is a finite robustness envelope, not a probabilistic guarantee over disturbances that were never enumerated. A candidate that only works if a block clears at the optimistic tick is rejected when another supplied scenario keeps the same footprint occupied longer. The benchmark should construct these scenario sets from source-grounded lower/upper timing bounds and then report both per-scenario outcomes and worst-case metrics; do not invent probabilities from a point forecast.
+
+
+
 ## Tests authored in V0
 
-Eleven unit tests cover:
+Fourteen unit tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -44,6 +52,9 @@ Eleven unit tests cover:
 9. rejection of unknown extension targets;
 10. rejection when a candidate removes or moves the physical footprint that is still occupied;
 11. computing makespan and recovery horizon from the clearance-extended effective state, not the stale planned end time.
+12. robust acceptance across three clearance-time scenarios;
+13. rejection when a candidate survives the optimistic clearance time but fails a later-clearance scenario;
+14. fail-closed empty and duplicate scenario-set identities.
 
 A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
 
