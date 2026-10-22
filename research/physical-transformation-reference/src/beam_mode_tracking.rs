@@ -503,6 +503,71 @@ mod tests {
     }
 
     #[test]
+    fn reference_length_changes_combined_mac_when_translation_and_rotation_mix() {
+        use super::common_station_mac_scores;
+        use crate::beam_modal::BeamModalMode;
+        use crate::beam_pin_assembly::{
+            BeamPinAssembly, BeamPinDofDescriptor, BeamPinDofKind,
+        };
+
+        let assembly = BeamPinAssembly {
+            ordered_node_ids: vec!["C".to_owned()],
+            ordered_member_ids: vec!["M".to_owned()],
+            dof_descriptors: vec![
+                BeamPinDofDescriptor {
+                    index: 0,
+                    kind: BeamPinDofKind::NodeTranslationX { node_id: "C".to_owned() },
+                },
+                BeamPinDofDescriptor {
+                    index: 1,
+                    kind: BeamPinDofKind::NodeTranslationY { node_id: "C".to_owned() },
+                },
+                BeamPinDofDescriptor {
+                    index: 2,
+                    kind: BeamPinDofKind::MemberEndRotation { member_id: "M".to_owned(), at_start: true },
+                },
+                BeamPinDofDescriptor {
+                    index: 3,
+                    kind: BeamPinDofKind::MemberEndRotation { member_id: "M".to_owned(), at_start: false },
+                },
+            ],
+            stiffness_global: vec![vec![0.0; 4]; 4],
+            mass_global: vec![vec![0.0; 4]; 4],
+            translational_mass_global: vec![vec![0.0; 4]; 4],
+            rotary_inertia_mass_global: vec![vec![0.0; 4]; 4],
+            fixed_dof_indices: vec![],
+            free_dof_indices: vec![0, 1, 2, 3],
+        };
+        let previous = BeamModalMode {
+            eigenvalue_rad_s_squared: 1.0,
+            frequency_hz: 1.0,
+            shape_free_dofs: vec![1.0, 0.0, 1.0, 0.0],
+            shape_global_dofs: vec![1.0, 0.0, 1.0, 0.0],
+            normalized_eigen_residual: 0.0,
+            mass_norm_residual: 0.0,
+        };
+        let current = BeamModalMode {
+            eigenvalue_rad_s_squared: 2.0,
+            frequency_hz: 2.0,
+            shape_free_dofs: vec![1.0, 0.0, 0.25, 0.0],
+            shape_global_dofs: vec![1.0, 0.0, 0.25, 0.0],
+            normalized_eigen_residual: 0.0,
+            mass_norm_residual: 0.0,
+        };
+        let unit_scale = common_station_mac_scores(&assembly, 1, &previous, &assembly, 1, &current, 1.0)
+            .expect("unit rotation scale");
+        let long_scale = common_station_mac_scores(&assembly, 1, &previous, &assembly, 1, &current, 10.0)
+            .expect("long rotation scale");
+        assert_eq!(unit_scale.translation_mac, Some(1.0));
+        assert_eq!(unit_scale.rotation_mac, Some(1.0));
+        assert!(
+            (unit_scale.scaled_combined_mac.unwrap() - long_scale.scaled_combined_mac.unwrap()).abs()
+                > 0.1,
+            "characteristic-length scaling must alter the translation/rotation mixture score"
+        );
+    }
+
+    #[test]
     fn hungarian_assignment_finds_global_not_greedy_optimum() {
         let assignment = maximum_weight_assignment(&[
             vec![0.90, 0.80, 0.10],
