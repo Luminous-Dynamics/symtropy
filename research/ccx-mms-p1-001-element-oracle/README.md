@@ -92,6 +92,45 @@ consistent with the mesh-quality literature's observation that the condition num
 elliptic finite-element systems worsens with mesh refinement; performance must still be
 measured with an actual solve and matched accuracy.
 
+## Global CG and Jacobi-preconditioned CG diagnostic
+
+`triangle-global-pcg-probe` emits a deterministic
+`ccx-mms-p1-global-pcg-v1` receipt comparing two independent dense linear solves on
+the same oracle-assembled, boundary-constrained CST stiffness matrices:
+
+- standard Conjugate Gradient (CG);
+- Jacobi-preconditioned Conjugate Gradient (PCG), using the positive diagonal of the
+  assembled matrix.
+
+For each mesh with 2, 3, 4, 5, and 6 cells per side, the probe records both the
+unpreconditioned spectral condition number and the spectrum of the **symmetric**
+Jacobi-scaled matrix (D^{-1/2} K D^{-1/2}), along with CG/PCG iteration counts and
+the independently recomputed true relative residual (|b-Kx|_2 / |b|_2).
+Both solvers use the same deterministic, nonzero synthetic right-hand side and frozen
+(10^{-10}) true-residual tolerance. The reported condition numbers are properties of
+the reduced matrix assembled by this research oracle, not a CalculiX matrix.
+
+The probe fails closed for invalid/non-finite matrices, non-positive diagonals, invalid
+search curvature, eigensolver exhaustion, or a residual above tolerance. Unit tests
+include a known small SPD system, a non-positive-diagonal negative control, and repeatable
+mesh-family diagnostics. CI executes the binary twice and requires byte-identical receipts
+plus the exact schema, five resolutions, expected free-DOF counts, finite condition
+estimates, bounded true residuals, and bounded iteration counts.
+
+**Interpretation boundary:** the probe does not assume Jacobi PCG must outperform CG
+on every right-hand side or mesh; it measures both under equal stopping criteria so
+iteration/conditioning trends are evidence, not a baked-in victory condition. A dense
+Jacobi eigensolver and small matrices are appropriate for this independent diagnostic,
+not a scalable solver benchmark. It performs no physical FEM solve, measures no
+discretization error, and keeps `solver_executed=false` and
+`qualification_pass=false`. Later performance comparisons must use an actual pinned
+solver, matched accuracy, recorded hardware/build provenance, repeated wall time, and
+peak memory.
+
+This diagnostic follows the distinction made in mature Krylov-solver documentation:
+preconditioning effectiveness depends on spectral behavior, and CG requires symmetric
+positive-definite system and preconditioner. Reference: PETSc, [KSPCG documentation](https://petsc.gitlab.io/petsc/main/manualpages/KSP/KSPCG/).
+
 ## Near-incompressibility material sweep
 
 `triangle-material-conditioning-probe` emits a deterministic
