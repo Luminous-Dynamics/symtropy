@@ -586,6 +586,7 @@ mod tests {
                 .iter()
                 .any(|v| { v.code == ExecutionViolationCode::DuplicateEventId })
         );
+        assert_eq!(report.metrics.total_event_recording_latency_ticks, 0);
     }
 
     #[test]
