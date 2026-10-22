@@ -42,7 +42,7 @@ run_mutation() {
     break_internal_rotation_continuity)
       grep -Fq '            rotation_base + segment_index + 1,' "$source"
       perl -0pi -e 's/            rotation_base \+ segment_index \+ 1,\n        \];/            rotation_base,\n        ];/' "$source"
-      grep -Fq '            rotation_base,\n        ];' "$source"
+      grep -Fq '            rotation_base,' "$source"
       ;;
     collapse_interior_coordinates)
       grep -Fq 'let fraction = point_index as f64 / elements_per_member as f64;' "$source"
