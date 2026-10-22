@@ -8,6 +8,8 @@
 //! model so higher layers can attach Bevy, Device Bus, Chronicle, and GPU paths
 //! without weakening the ecological contract.
 
+pub mod landscape_scenarios;
+
 use arrow_array::{Float32Array, UInt64Array};
 use symtropy_colony::{ColonyDebugMetrics, ColonyWorld};
 use symtropy_lifesim_core::{
