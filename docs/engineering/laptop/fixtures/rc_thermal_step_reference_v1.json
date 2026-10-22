@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "fixture_id": "LAPTOP-TWIN-RC-STEP-SYNTHETIC-V1",
+  "evidence_status": "synthetic_reference_only",
+  "is_physical_laptop_data": false,
+  "model": {
+    "id": "one_node_rc_analytic_v1",
+    "assumptions": [
+      "constant power within each interval",
+      "constant ambient temperature within each interval",
+      "one effective thermal node",
+      "first-order linear RC response"
+    ],
+    "parameters": {
+      "thermal_resistance_K_per_W": 0.8,
+      "thermal_capacitance_J_per_K": 120,
+      "ambient_C": 25,
+      "initial_node_C": 25
+    },
+    "time_constant_seconds": 96
+  },
+  "trace": [
+    {
+      "interval_index": 0,
+      "dt_seconds": 10,
+      "power_W": 0,
+      "ambient_C": 25,
+      "expected_node_after_C": 25
+    },
+    {
+      "interval_index": 1,
+      "dt_seconds": 10,
+      "power_W": 20,
+      "ambient_C": 25,
+      "expected_node_after_C": 26.582798
+    },
+    {
+      "interval_index": 2,
+      "dt_seconds": 10,
+      "power_W": 20,
+      "ambient_C": 25,
+      "expected_node_after_C": 28.009018
+    },
+    {
+      "interval_index": 3,
+      "dt_seconds": 10,
+      "power_W": 20,
+      "ambient_C": 25,
+      "expected_node_after_C": 29.29415
+    },
+    {
+      "interval_index": 4,
+      "dt_seconds": 10,
+      "power_W": 0,
+      "ambient_C": 25,
+      "expected_node_after_C": 28.869352
+    },
+    {
+      "interval_index": 5,
+      "dt_seconds": 10,
+      "power_W": 0,
+      "ambient_C": 25,
+      "expected_node_after_C": 28.486576
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "non_positive_dt",
+      "input_override": {
+        "dt_seconds": 0
+      },
+      "expected": "reject_input"
+    },
+    {
+      "id": "negative_power",
+      "input_override": {
+        "power_W": -1
+      },
+      "expected": "reject_input"
+    },
+    {
+      "id": "non_positive_thermal_resistance",
+      "parameter_override": {
+        "thermal_resistance_K_per_W": 0
+      },
+      "expected": "reject_input"
+    },
+    {
+      "id": "missing_sensor_sample",
+      "input_override": {
+        "node_temperature_observed_C": null
+      },
+      "expected": "mark_missing_not_zero"
+    },
+    {
+      "id": "configuration_digest_mismatch",
+      "calibration_digest_match": false,
+      "expected": "abstain_not_qualified"
+    },
+    {
+      "id": "ac_to_battery_without_transition_model",
+      "condition_transition": "ac_to_battery",
+      "transition_qualified": false,
+      "expected": "abstain_not_qualified"
+    },
+    {
+      "id": "synthetic_data_claimed_as_physical",
+      "evidence_status_claim": "measured",
+      "expected": "reject_evidence_label"
+    }
+  ],
+  "claim_ceiling": "Synthetic golden outputs validate only equation arithmetic and input rejection. No commercial device parameters, performance, energy, thermals or safety are measured."
+}
