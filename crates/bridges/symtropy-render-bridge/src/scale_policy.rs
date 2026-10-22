@@ -571,4 +571,80 @@ mod tests {
             Err(ApparentScaleError::InvalidSizeThresholds)
         );
     }
+
+    #[test]
+    fn projected_diameter_is_finite_and_strictly_decreases_over_twelve_distance_decades() {
+        const RADIUS_M: f64 = 6_371_000.0;
+        let mut previous_diameter = f64::INFINITY;
+
+        for exponent in 1..=12 {
+            let distance_m = RADIUS_M * 10.0_f64.powi(exponent);
+            let diameter = projected_sphere_diameter_px(
+                RADIUS_M,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 2_160,
+                    vertical_fov_radians: 1.0,
+                    centre_distance: distance_m,
+                },
+            )
+            .expect("every distance in the supported logarithmic sweep must be valid");
+
+            assert!(diameter.is_finite() && diameter > 0.0);
+            assert!(
+                diameter < previous_diameter,
+                "apparent diameter must decrease with distance; exponent={exponent}, diameter={diameter}, previous={previous_diameter}"
+            );
+
+            let doubled_viewport = projected_sphere_diameter_px(
+                RADIUS_M,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 4_320,
+                    vertical_fov_radians: 1.0,
+                    centre_distance: distance_m,
+                },
+            )
+            .expect("doubled viewport projection must remain valid");
+            assert!(
+                ((doubled_viewport / diameter) - 2.0).abs() < 1e-10,
+                "projected diameter must scale linearly with viewport height; exponent={exponent}"
+            );
+
+            previous_diameter = diameter;
+        }
+    }
+
+    #[test]
+    fn hysteresis_stress_sweep_bounds_boundary_chatter_and_allows_real_transitions() {
+        let mut latch =
+            ScaleBandLatch::new(ApparentSizeBand::PointSource, 0.1).expect("valid latch");
+        let jitter = [1.01, 1.09, 1.02, 1.08, 1.04, 1.06, 1.03, 1.07, 1.05, 1.02];
+        let mut previous = latch.band();
+        let mut transitions = 0_usize;
+
+        for _ in 0..1_000 {
+            for diameter in jitter {
+                let current = latch.update(diameter, PROFILE).expect("finite jitter sample");
+                if current != previous {
+                    transitions += 1;
+                    previous = current;
+                }
+            }
+        }
+        assert_eq!(
+            transitions, 0,
+            "10,000 in-deadband samples must not cause representation chatter"
+        );
+        assert_eq!(latch.band(), ApparentSizeBand::PointSource);
+
+        for diameter in [1.11, 1.02, 0.91, 1.09, 0.89] {
+            let current = latch.update(diameter, PROFILE).expect("finite boundary sample");
+            if current != previous {
+                transitions += 1;
+                previous = current;
+            }
+        }
+        assert_eq!(transitions, 2, "one legitimate upgrade and downgrade expected");
+        assert_eq!(latch.band(), ApparentSizeBand::PointSource);
+    }
+
 }
