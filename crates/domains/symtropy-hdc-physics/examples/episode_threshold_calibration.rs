@@ -11,6 +11,7 @@
 //! cargo run --locked --package symtropy-hdc-physics --example episode_threshold_calibration
 //! cargo test --locked --package symtropy-hdc-physics --example episode_threshold_calibration
 
+use symtropy_hdc_core::BipolarHV;
 use symtropy_hdc_physics::{
     EpisodeMemory, EpisodeMetadata, IdentityPolicy, PhysicsEncoderConfig, PhysicsEpisode,
     PhysicsFrameEncoder, ReferenceFramePolicy,
@@ -95,6 +96,7 @@ struct ScoredQuery {
     nearest_episode: String,
     predicted_label: String,
     similarity: f32,
+    query_vector: BipolarHV,
     useful_if_accepted: bool,
 }
 
@@ -301,6 +303,7 @@ fn score_queries(
             nearest_episode: hit.episode_id,
             predicted_label: hit.label,
             similarity: hit.similarity,
+            query_vector: case.episode.vector.clone(),
             useful_if_accepted: case.scenario.in_bank()
                 && hit.label == case.scenario.label(),
         });
@@ -411,10 +414,8 @@ fn report() -> Result<String, Box<dyn std::error::Error>> {
         "similarity".into(), "positive_pair".into(),
     ]);
     for query in calibration.iter().chain(evaluation.iter()) {
-        let case = calibration.iter().chain(evaluation.iter())
-            .find(|case| case.id == query.id).expect("query maps to a query case");
         for candidate in memory.episodes() {
-            let similarity = case.episode.vector.similarity(&candidate.vector)?;
+            let similarity = query.query_vector.similarity(&candidate.vector)?;
             let positive_pair = query.label_is_stored && query.true_label == candidate.metadata.label;
             push(&mut out, &[
                 "PAIR".into(), query.split.label().into(), query.id.clone(),
@@ -455,9 +456,9 @@ mod tests {
     #[test]
     fn threshold_choice_uses_calibration_data_only_and_prefers_higher_ties() {
         let calibration = vec![
-            ScoredQuery { id:"a".into(), split:Split::Calibration, true_label:"known", label_is_stored:true, nearest_episode:"a".into(), predicted_label:"known".into(), similarity:0.80, useful_if_accepted:true },
-            ScoredQuery { id:"b".into(), split:Split::Calibration, true_label:"novel", label_is_stored:false, nearest_episode:"a".into(), predicted_label:"known".into(), similarity:0.70, useful_if_accepted:false },
-            ScoredQuery { id:"c".into(), split:Split::Calibration, true_label:"known", label_is_stored:true, nearest_episode:"x".into(), predicted_label:"wrong".into(), similarity:0.60, useful_if_accepted:false },
+            ScoredQuery { id:"a".into(), split:Split::Calibration, true_label:"known", label_is_stored:true, nearest_episode:"a".into(), predicted_label:"known".into(), similarity:0.80, query_vector:BipolarHV::new(vec![1]).unwrap(), useful_if_accepted:true },
+            ScoredQuery { id:"b".into(), split:Split::Calibration, true_label:"novel", label_is_stored:false, nearest_episode:"a".into(), predicted_label:"known".into(), similarity:0.70, query_vector:BipolarHV::new(vec![1]).unwrap(), useful_if_accepted:false },
+            ScoredQuery { id:"c".into(), split:Split::Calibration, true_label:"known", label_is_stored:true, nearest_episode:"x".into(), predicted_label:"wrong".into(), similarity:0.60, query_vector:BipolarHV::new(vec![1]).unwrap(), useful_if_accepted:false },
         ];
         let selected = choose_threshold(&calibration);
         assert!(selected.threshold >= 0.70);
@@ -469,7 +470,7 @@ mod tests {
         let query = ScoredQuery {
             id:"novel".into(), split:Split::Evaluation, true_label:"novel", label_is_stored:false,
             nearest_episode:"bank-a".into(), predicted_label:"bank-a".into(), similarity:0.90,
-            useful_if_accepted:false
+            query_vector:BipolarHV::new(vec![1]).unwrap(), useful_if_accepted:false
         };
         let metrics = ThresholdMetrics::from_queries(&[query],0.65);
         assert_eq!(metrics.accepted,1);
