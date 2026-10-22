@@ -69,18 +69,18 @@ jobs:
       - name: Generate and byte-compare deterministic receipts
         working-directory: research/ccx-mms-p1-001-mesh
         run: |
-          cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
-          cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
+          cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
+          cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
           cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
           jq -e '.load_assembly_checks_pass == true' /tmp/mms-p1-probe-a.json > /dev/null
           sha256sum /tmp/mms-p1-probe-a.json > /tmp/mms-p1-probe-a.sha256
-          cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-a.json
-          cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-b.json
+          cargo run --locked --release --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-a.json
+          cargo run --locked --release --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-b.json
           cmp /tmp/mms-p1-calibration-a.json /tmp/mms-p1-calibration-b.json
           jq -e '.postprocessor_calibration_pass == true' /tmp/mms-p1-calibration-a.json > /dev/null
           sha256sum /tmp/mms-p1-calibration-a.json > /tmp/mms-p1-calibration-a.sha256
-          cargo run --locked --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8.inp
-          cargo run --locked --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8-repeat.inp
+          cargo run --locked --release --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8.inp
+          cargo run --locked --release --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8-repeat.inp
           cmp /tmp/mms-p1-n8.inp /tmp/mms-p1-n8-repeat.inp
           grep -F '*ELEMENT, TYPE=CPE3, ELSET=EALL' /tmp/mms-p1-n8.inp > /dev/null
           grep -F '*NODE PRINT, NSET=NALL' /tmp/mms-p1-n8.inp > /dev/null
