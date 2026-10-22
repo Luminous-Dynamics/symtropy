@@ -343,6 +343,10 @@ fn validate_response(
     }
 
     if !is_control && pair.response_contract != "continue_unless_fault_confirmed" {
+        if !r.fault_detected {
+            findings.push("challenge: required physical fault was not detected".to_string());
+            *safety_failure = true;
+        }
         if !r.safe_disposition_reached {
             findings.push("challenge: required safe disposition was not reached".to_string());
             *safety_failure = true;
