@@ -471,33 +471,33 @@ mod tests {
         let root = corpus();
         let initial = &root["initial_state"];
         let baseline = root["episodes"][0].clone();
-        for key in REVISION_KEYS {
-            for offset in 1..=32u64 {
-                let mut episode = baseline.clone();
-                let old_revision = initial["revisions"][key]
-                    .as_u64()
-                    .expect("base revision");
-                let events = episode["events"]
-                    .as_array_mut()
-                    .expect("event array");
-                events[2]["sequence"] = json!(4);
-                events.insert(
-                    2,
-                    json!({
-                        "sequence": 3,
-                        "kind": "state_changed",
-                        "revision_key": key,
-                        "new_revision": old_revision + offset,
-                        "gate_effects": {}
-                    }),
-                );
-                let result = evaluate_episode(&episode, initial);
-                assert_eq!(result.decision, BLOCKED, "{key} offset {offset}");
-                assert!(result
-                    .reason_codes
-                    .iter()
-                    .any(|reason| reason == "PLAN_VALIDATION_STALE"));
-            }
+        for mutation_index in 0..256usize {
+            let key = REVISION_KEYS[mutation_index % REVISION_KEYS.len()];
+            let offset = (mutation_index / REVISION_KEYS.len() + 1) as u64;
+            let mut episode = baseline.clone();
+            let old_revision = initial["revisions"][key]
+                .as_u64()
+                .expect("base revision");
+            let events = episode["events"]
+                .as_array_mut()
+                .expect("event array");
+            events[2]["sequence"] = json!(4);
+            events.insert(
+                2,
+                json!({
+                    "sequence": 3,
+                    "kind": "state_changed",
+                    "revision_key": key,
+                    "new_revision": old_revision + offset,
+                    "gate_effects": {}
+                }),
+            );
+            let result = evaluate_episode(&episode, initial);
+            assert_eq!(result.decision, BLOCKED, "{key} offset {offset}");
+            assert!(result
+                .reason_codes
+                .iter()
+                .any(|reason| reason == "PLAN_VALIDATION_STALE"));
         }
     }
 
