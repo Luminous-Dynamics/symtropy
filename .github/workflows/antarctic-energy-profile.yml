@@ -13,6 +13,8 @@ on:
     paths:
       - "research/antarctic-energy-resilience/**"
       - "scripts/check-antarctic-energy-profile.sh"
+      - "scripts/check-antarctic-energy-data.sh"
+      - "scripts/acquire-antarctic-sources.sh"
       - ".github/workflows/antarctic-energy-profile.yml"
   workflow_dispatch:
 
