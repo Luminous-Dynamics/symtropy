@@ -412,9 +412,7 @@ fn conjugate_gradient(
 
 fn run_sweep() -> Result<Vec<SweepPoint>, String> {
     let mut points = Vec::with_capacity(10);
-    for (mesh_family, quadratically_graded) in
-        [("uniform", false), ("quadratic-graded", true)]
-    {
+    for (mesh_family, quadratically_graded) in [("uniform", false), ("quadratic-graded", true)] {
         for cells_per_side in [2, 3, 4, 5, 6] {
             let matrix = assemble_constrained_stiffness(cells_per_side, quadratically_graded)?;
             let n = matrix.len();
