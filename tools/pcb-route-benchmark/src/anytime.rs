@@ -40,7 +40,7 @@ pub struct CheckpointMetadata {
     pub kicad_version: String,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct CheckpointEvaluation {
     pub schema: String,
     pub checkpoint: CheckpointMetadata,
@@ -55,7 +55,8 @@ pub struct CheckpointEvaluation {
     pub claim_ceiling: String,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct VerifiedIncumbentArchive {
     pub schema: String,
     pub evaluator_git_head: String,
