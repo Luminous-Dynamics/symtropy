@@ -722,6 +722,57 @@ mod tests {
         assert_eq!(first, second);
     }
 
+    fn synthetic_mode(frequency_hz: f64, shape: Vec<f64>) -> crate::beam_modal::BeamModalMode {
+        crate::beam_modal::BeamModalMode {
+            eigenvalue_rad_s_squared: (2.0 * std::f64::consts::PI * frequency_hz).powi(2),
+            frequency_hz: Some(frequency_hz),
+            class: crate::beam_modal::BeamModeClass::Elastic,
+            shape_global_dofs: shape,
+            normalized_eigen_residual: 0.0,
+            mass_norm_residual: 0.0,
+        }
+    }
+
+    #[test]
+    fn clustered_eigenmodes_abstain_from_individual_mode_sensitivity() {
+        let baseline_shape = vec![1.0, 0.0];
+        let candidates = vec![
+            synthetic_mode(100.0, vec![1.0, 0.0]),
+            synthetic_mode(100.05, vec![0.0, 1.0]),
+        ];
+        let cluster_mask = clustered_mode_mask(&candidates);
+        assert_eq!(cluster_mask, vec![true, true]);
+        let outcome = match_perturbed_mode(
+            &baseline_shape,
+            100.0,
+            &candidates,
+            &[Some(vec![1.0, 0.0]), Some(vec![0.0, 1.0])],
+            &cluster_mask,
+        )
+        .expect("clustered-mode classification");
+        assert_eq!(outcome, ModeMatchOutcome::Clustered);
+    }
+
+    #[test]
+    fn equal_mac_candidates_abstain_instead_of_falling_back_to_frequency_rank() {
+        let baseline_shape = vec![1.0, 0.0];
+        let candidates = vec![
+            synthetic_mode(99.0, vec![1.0, 0.0]),
+            synthetic_mode(101.0, vec![-1.0, 0.0]),
+        ];
+        let cluster_mask = clustered_mode_mask(&candidates);
+        assert_eq!(cluster_mask, vec![false, false]);
+        let outcome = match_perturbed_mode(
+            &baseline_shape,
+            100.0,
+            &candidates,
+            &[Some(vec![1.0, 0.0]), Some(vec![-1.0, 0.0])],
+            &cluster_mask,
+        )
+        .expect("ambiguous-mode classification");
+        assert_eq!(outcome, ModeMatchOutcome::Ambiguous);
+    }
+
     #[test]
     fn invalid_uncertainty_specs_fail_closed() {
         assert!(
