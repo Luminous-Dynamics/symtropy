@@ -1,3 +1,4 @@
+use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt;
@@ -71,7 +72,7 @@ impl fmt::Display for ParseError {
             Self::InvalidTargetTime => f.write_str("target time must be finite"),
             Self::InvalidTimeTolerance => {
                 f.write_str("time tolerance must be finite and nonnegative")
-            },
+            }
             Self::MalformedHeader { line, detail } => {
                 write!(f, "malformed section header at line {line}: {detail}")
             }
@@ -207,7 +208,6 @@ fn parse_sections(text: &str) -> Result<Vec<Section>, ParseError> {
             }
             match parse_row(row, row_index + 1)? {
                 Some((node_id, value)) => {
-                    use std::collections::btree_map::Entry;
                     match values.entry(node_id) {
                         Entry::Vacant(entry) => {
                             entry.insert(value);
@@ -229,44 +229,74 @@ fn parse_sections(text: &str) -> Result<Vec<Section>, ParseError> {
 
 fn parse_header(header: &str, line: usize) -> Result<(String, f64), ParseError> {
     let tokens: Vec<&str> = header.split_whitespace().collect();
-    let lower: Vec<String> = tokens.iter().map(|token| token.to_ascii_lowercase()).collect();
-    let set_pos = lower.iter().position(|token| token == "set").ok_or(ParseError::MalformedHeader {
-        line, detail: "missing set name",
-    })?;
-    let set_name = tokens.get(set_pos + 1).ok_or(ParseError::MalformedHeader {
-        line, detail: "missing set name",
-    })?.trim_end_matches(',').to_owned();
+    let lower: Vec<String> = tokens
+        .iter()
+        .map(|token| token.to_ascii_lowercase())
+        .collect();
+    let set_pos = lower
+        .iter()
+        .position(|token| token == "set")
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing set name",
+        })?;
+    let set_name = tokens
+        .get(set_pos + 1)
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing set name",
+        })?
+        .trim_end_matches(',')
+        .to_owned();
     let time_pos = lower
         .iter()
         .position(|token| token == "time")
         .ok_or(ParseError::MalformedHeader {
-        line, detail: "missing time",
-    })?;
-    let time_str = tokens.get(time_pos + 1).ok_or(ParseError::MalformedHeader {
-        line, detail: "missing time value",
-    })?;
+            line,
+            detail: "missing time",
+        })?;
+    let time_str = tokens
+        .get(time_pos + 1)
+        .ok_or(ParseError::MalformedHeader {
+            line,
+            detail: "missing time value",
+        })?;
     let time = parse_number(time_str).ok_or(ParseError::MalformedHeader {
-        line, detail: "invalid time value",
+        line,
+        detail: "invalid time value",
     })?;
     if !time.is_finite() {
-        return Err(ParseError::MalformedHeader { line, detail: "non-finite time" });
+        return Err(ParseError::MalformedHeader {
+            line,
+            detail: "non-finite time",
+        });
     }
     Ok((set_name, time))
 }
 
 fn parse_row(row: &str, line: usize) -> Result<Option<(usize, Vec3)>, ParseError> {
     let fields: Vec<&str> = row.split_whitespace().collect();
-    let Some(first) = fields.first() else { return Ok(None) };
-    let Ok(node_id) = first.parse::<usize>() else { return Ok(None) };
+    let Some(first) = fields.first() else {
+        return Ok(None);
+    };
+    let Ok(node_id) = first.parse::<usize>() else {
+        return Ok(None);
+    };
     if node_id == 0 || fields.len() != 4 {
-        return Err(ParseError::MalformedRow { line, text: row.to_owned() });
+        return Err(ParseError::MalformedRow {
+            line,
+            text: row.to_owned(),
+        });
     }
     let (Some(x), Some(y), Some(z)) = (
         parse_number(fields[1]),
         parse_number(fields[2]),
         parse_number(fields[3]),
     ) else {
-        return Err(ParseError::MalformedRow { line, text: row.to_owned() });
+        return Err(ParseError::MalformedRow {
+            line,
+            text: row.to_owned(),
+        });
     };
     if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(ParseError::NonFiniteValue { line, node_id });
@@ -286,11 +316,16 @@ fn select_section(
     target_time: f64,
     time_tolerance: f64,
 ) -> Result<NodalField, ParseError> {
-    let matching_set: Vec<&Section> = sections.iter()
-        .filter(|s| s.kind == kind && s.set_name.eq_ignore_ascii_case(expected_set))
+    let matching_set: Vec<&Section> = sections
+        .iter()
+        .filter(|section| {
+            section.kind == kind && section.set_name.eq_ignore_ascii_case(expected_set)
+        })
         .collect();
-    let matching_time: Vec<&Section> = matching_set.iter().copied()
-        .filter(|s| (s.time - target_time).abs() <= time_tolerance)
+    let matching_time: Vec<&Section> = matching_set
+        .iter()
+        .copied()
+        .filter(|section| (section.time - target_time).abs() <= time_tolerance)
         .collect();
     if matching_time.is_empty() {
         if matching_set.is_empty() {
