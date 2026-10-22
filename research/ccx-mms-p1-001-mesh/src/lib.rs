@@ -767,6 +767,59 @@ mod tests {
     }
 
     #[test]
+    fn calculix_deck_reconstructs_the_complete_consistent_load_vector() {
+        let mesh = generate_mesh(4).unwrap();
+        let problem = ManufacturedProblem::reference();
+        let deck = mesh.to_calculix_input_deck(problem, 16).unwrap();
+        let mut total = Vec2 { x: 0.0, y: 0.0 };
+        let mut total_abs_y = 0.0;
+
+        for row in deck_rows(&deck, "*CLOAD") {
+            let fields: Vec<&str> = row.split(',').map(str::trim).collect();
+            assert_eq!(fields.len(), 3, "malformed CLOAD row: {row}");
+            let degree = fields[1].parse::<u8>().unwrap();
+            let value = fields[2].parse::<f64>().unwrap();
+            match degree {
+                1 => total.x += value,
+                2 => {
+                    total.y += value;
+                    total_abs_y += value.abs();
+                }
+                _ => panic!("unexpected CLOAD degree in {row}"),
+            }
+        }
+
+        let mut boundary_records = 0_usize;
+        for line in deck.lines().filter(|line| line.starts_with("** BOUNDARY_LOAD,")) {
+            let payload = line.trim_start_matches("** BOUNDARY_LOAD,");
+            let fields: Vec<&str> = payload.split(',').map(str::trim).collect();
+            assert_eq!(fields.len(), 3, "malformed boundary-load comment: {line}");
+            let node_id = fields[0].parse::<usize>().unwrap();
+            assert!(mesh.nodes[node_id - 1].boundary);
+            let fx = fields[1].parse::<f64>().unwrap();
+            let fy = fields[2].parse::<f64>().unwrap();
+            assert!(fx.is_finite() && fy.is_finite());
+            total.x += fx;
+            total.y += fy;
+            total_abs_y += fy.abs();
+            boundary_records += 1;
+        }
+        assert_eq!(boundary_records, 16);
+
+        let exact = problem.integrated_body_force();
+        let full_load_x_residual = (total.x - exact.x).abs() / exact.x.abs().max(1.0);
+        let full_load_y_residual = total.y.abs() / total_abs_y.max(1.0);
+        assert!(
+            full_load_x_residual <= 1.0e-10,
+            "reconstructed x-load residual={full_load_x_residual:e}"
+        );
+        assert!(
+            full_load_y_residual <= 1.0e-10,
+            "reconstructed y-load residual={full_load_y_residual:e}"
+        );
+    }
+
+    #[test]
     fn calculix_deck_writer_rejects_mutated_mesh_and_invalid_quadrature() {
         let problem = ManufacturedProblem::reference();
         let mut changed = generate_mesh(4).unwrap();
