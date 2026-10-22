@@ -13,6 +13,7 @@ on:
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md"
+      - "docs/research/EV_FACTORY_QUEUE_AGE_FAIRNESS_FRONTIER_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   push:
     branches: [main]
@@ -28,6 +29,7 @@ on:
       - "docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md"
       - "docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md"
+      - "docs/research/EV_FACTORY_QUEUE_AGE_FAIRNESS_FRONTIER_V0_1.md"
       - ".github/workflows/ev-factory-simulation.yml"
   workflow_dispatch:
 
@@ -324,6 +326,176 @@ jobs:
             and all(.linewide_paired_totals[]; .paired_total_changeovers_delta_ci95.sample_count == 20 and .paired_total_order_inversions_delta_ci95.sample_count == 20)
           ' ev-factory-dispatch-policy-comparison.json
 
+      - name: Sweep queue-age thresholds against paired FIFO baseline
+        run: |
+          for age in 300 900 1800 3600; do
+            if [ "$age" = "900" ]; then
+              cp ev-factory-variant-aware-report.json "ev-factory-age-$age-report.json"
+            else
+              jq --argjson age "$age" '
+                .dispatch_policy = "minimize_changeover"
+                | .maximum_queue_age_seconds = $age
+              ' tools/ev-passenger-cost-frontier/fixtures/ev_factory_simulation_v0_1.json \
+                > "ev-factory-age-$age.json"
+              cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_factory_simulation -- \
+                "ev-factory-age-$age.json" > "ev-factory-age-$age-report.json"
+            fi
+            jq -e --argjson age "$age" '
+              .benchmark_id == "EV-FACTORY-SIM-001"
+              and .dispatch_policy == "minimize_changeover"
+              and .maximum_queue_age_seconds == $age
+              and .replication_count == 20
+              and (.replication_seeds | length) == 20
+              and (.scenario_statistics | length) == 6
+              and (.station_sequence_statistics | length) == 30
+              and .input_evidence_class == "synthetic"
+              and .release_ready == false
+              and .output_never_exceeds_released_input
+              and .all_buffers_respected_capacity
+              and .station_time_accounting_within_horizon
+              and all(.scenarios[]; .release_ready == false and .all_buffers_respected_capacity and .station_time_accounting_within_horizon)
+              and all(.replication_scenario_records[]; (.variant_wait_statistics | length) == 3 and (.stations | length) == 5)
+            ' "ev-factory-age-$age-report.json"
+          done
+
+          jq -s '.' \
+            ev-factory-age-300-report.json \
+            ev-factory-age-900-report.json \
+            ev-factory-age-1800-report.json \
+            ev-factory-age-3600-report.json \
+            > ev-factory-age-threshold-reports.json
+
+          jq -n \
+            --slurpfile fifo ev-factory-simulation-report.json \
+            --slurpfile threshold_runs ev-factory-age-threshold-reports.json '
+            def paired_summary($values):
+              ($values | length) as $n
+              | ($values | add / $n) as $mean
+              | (if $n > 1
+                 then ([$values[] | (. - $mean) * (. - $mean)] | add / ($n - 1) | sqrt)
+                 else 0 end) as $sd
+              | (if $n > 1 then 2.093 else null end) as $t
+              | {
+                  sample_count: $n,
+                  mean: $mean,
+                  sample_standard_deviation: (if $n > 1 then $sd else null end),
+                  mean_confidence_95_lower: (if $n > 1 then $mean - $t * $sd / ($n | sqrt) else null end),
+                  mean_confidence_95_upper: (if $n > 1 then $mean + $t * $sd / ($n | sqrt) else null end)
+                };
+            ($fifo[0]) as $f
+            | ($threshold_runs[0]) as $runs
+            | {
+                schema_version: "ev-factory-age-threshold-frontier/0.1",
+                benchmark_id: $f.benchmark_id,
+                baseline_policy: $f.dispatch_policy,
+                baseline_seed_count: $f.replication_count,
+                thresholds_seconds: [$runs[].maximum_queue_age_seconds],
+                paired_seed_set_equal: all($runs[]; .replication_seeds == $f.replication_seeds),
+                paired_record_keys_equal: all($runs[] as $r;
+                  ($r.replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id]))
+                  == ($f.replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id]))
+                ),
+                threshold_results: [
+                  $runs[] as $r |
+                  {
+                    maximum_queue_age_seconds: $r.maximum_queue_age_seconds,
+                    policy: $r.dispatch_policy,
+                    scenario_results: [
+                      $f.scenario_statistics[] as $fs |
+                      ($r.scenario_statistics[] | select(.scenario_id == $fs.scenario_id)) as $rs |
+                      ($f.replication_scenario_records | map(select(.scenario_id == $fs.scenario_id)) | sort_by(.seed)) as $f_records |
+                      ($r.replication_scenario_records | map(select(.scenario_id == $fs.scenario_id)) | sort_by(.seed)) as $r_records |
+                      ([
+                        range(0; ($f_records | length)) as $i |
+                        {
+                          seed: $f_records[$i].seed,
+                          good_output_rate_delta: ($r_records[$i].measured_good_units_per_hour - $f_records[$i].measured_good_units_per_hour),
+                          good_units_delta: ($r_records[$i].good_units_total - $f_records[$i].good_units_total),
+                          scrap_delta: ($r_records[$i].scrapped_jobs_total - $f_records[$i].scrapped_jobs_total),
+                          rework_delta: ($r_records[$i].measured_rework_attempts - $f_records[$i].measured_rework_attempts),
+                          total_changeovers_delta: (
+                            [$f_records[$i].stations[] as $fb |
+                              ($r_records[$i].stations[] | select(.station_id == $fb.station_id)) as $ra |
+                              ($ra.changeovers_started - $fb.changeovers_started)
+                            ] | add
+                          ),
+                          total_order_inversions_delta: (
+                            [$f_records[$i].stations[] as $fb |
+                              ($r_records[$i].stations[] | select(.station_id == $fb.station_id)) as $ra |
+                              ($ra.out_of_order_output_transfers - $fb.out_of_order_output_transfers)
+                            ] | add
+                          ),
+                          per_variant_wait_deltas: [
+                            range(0; ($f_records[$i].variant_wait_statistics | length)) as $v |
+                            {
+                              variant: $f_records[$i].variant_wait_statistics[$v].variant,
+                              mean_wait_seconds_delta: (
+                                $r_records[$i].variant_wait_statistics[$v].average_wait_seconds
+                                - $f_records[$i].variant_wait_statistics[$v].average_wait_seconds
+                              ),
+                              p95_wait_seconds_delta: (
+                                $r_records[$i].variant_wait_statistics[$v].p95_wait_seconds
+                                - $f_records[$i].variant_wait_statistics[$v].p95_wait_seconds
+                              ),
+                              maximum_wait_seconds_delta: (
+                                $r_records[$i].variant_wait_statistics[$v].maximum_wait_seconds
+                                - $f_records[$i].variant_wait_statistics[$v].maximum_wait_seconds
+                              )
+                            }
+                          ]
+                        }
+                      ]) as $paired |
+                      {
+                        scenario_id: $fs.scenario_id,
+                        fifo_mean_good_output_per_hour: $fs.good_units_per_hour.mean,
+                        policy_mean_good_output_per_hour: $rs.good_units_per_hour.mean,
+                        paired_good_output_rate_delta_ci95: paired_summary([$paired[].good_output_rate_delta]),
+                        paired_good_units_delta_ci95: paired_summary([$paired[].good_units_delta]),
+                        paired_scrap_delta_ci95: paired_summary([$paired[].scrap_delta]),
+                        paired_rework_delta_ci95: paired_summary([$paired[].rework_delta]),
+                        paired_total_changeovers_delta_ci95: paired_summary([$paired[].total_changeovers_delta]),
+                        paired_total_order_inversions_delta_ci95: paired_summary([$paired[].total_order_inversions_delta]),
+                        per_variant_wait_delta_ci95: [
+                          range(0; ($f_records[0].variant_wait_statistics | length)) as $v |
+                          {
+                            variant: $f_records[0].variant_wait_statistics[$v].variant,
+                            mean_wait_seconds_delta_ci95: paired_summary([$paired[].per_variant_wait_deltas[$v].mean_wait_seconds_delta]),
+                            p95_wait_seconds_delta_ci95: paired_summary([$paired[].per_variant_wait_deltas[$v].p95_wait_seconds_delta]),
+                            maximum_wait_seconds_delta_ci95: paired_summary([$paired[].per_variant_wait_deltas[$v].maximum_wait_seconds_delta])
+                          }
+                        ],
+                        paired_seed_deltas: $paired
+                      }
+                    ]
+                  }
+                ],
+                claim_ceiling: "Paired synthetic threshold sensitivity screen only. Intervals cover the frozen 20-seed set and do not establish a universal optimum, plant performance or release readiness."
+              }
+          ' > ev-factory-age-threshold-sweep.json
+
+          jq -e '
+            .schema_version == "ev-factory-age-threshold-frontier/0.1"
+            and .benchmark_id == "EV-FACTORY-SIM-001"
+            and .baseline_policy == "fifo"
+            and .baseline_seed_count == 20
+            and .thresholds_seconds == [300, 900, 1800, 3600]
+            and .paired_seed_set_equal
+            and .paired_record_keys_equal
+            and (.threshold_results | length) == 4
+            and all(.threshold_results[]; .policy == "minimize_changeover" and (.scenario_results | length) == 6)
+            and all(.threshold_results[].scenario_results[];
+              .paired_good_output_rate_delta_ci95.sample_count == 20
+              and .paired_total_changeovers_delta_ci95.sample_count == 20
+              and .paired_total_order_inversions_delta_ci95.sample_count == 20
+              and (.per_variant_wait_delta_ci95 | length) == 3
+              and all(.per_variant_wait_delta_ci95[];
+                .mean_wait_seconds_delta_ci95.sample_count == 20
+                and .p95_wait_seconds_delta_ci95.sample_count == 20
+                and .maximum_wait_seconds_delta_ci95.sample_count == 20
+              )
+            )
+          ' ev-factory-age-threshold-sweep.json
+
       - name: Run PCB cell routes and assert fail-closed invariants
         run: |
           for fixture in \
@@ -402,11 +574,18 @@ jobs:
             docs/research/EV_FACTORY_SEQUENCE_AWARE_FLOW_V0_1.md \
             docs/research/EV_FACTORY_DISPATCH_POLICY_V0_1.md \
             docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
+            docs/research/EV_FACTORY_QUEUE_AGE_FAIRNESS_FRONTIER_V0_1.md \
             docs/research/PCB_CELL_DISCRETE_EVENT_SIMULATION_V0_1.md \
             ev-factory-simulation-report.json \
             ev-factory-variant-aware.json \
             ev-factory-variant-aware-report.json \
             ev-factory-dispatch-policy-comparison.json \
+            ev-factory-age-threshold-sweep.json \
+            ev-factory-age-threshold-reports.json \
+            ev-factory-age-300-report.json \
+            ev-factory-age-900-report.json \
+            ev-factory-age-1800-report.json \
+            ev-factory-age-3600-report.json \
             docs/research/EV_FACTORY_DISPATCH_BENCHMARK_LITERATURE_V0_1.md \
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json \
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json > ev-factory-simulation-report.sha256
@@ -418,6 +597,12 @@ jobs:
             ev-factory-variant-aware.json
             ev-factory-variant-aware-report.json
             ev-factory-dispatch-policy-comparison.json
+            ev-factory-age-threshold-sweep.json
+            ev-factory-age-threshold-reports.json
+            ev-factory-age-300-report.json
+            ev-factory-age-900-report.json
+            ev-factory-age-1800-report.json
+            ev-factory-age-3600-report.json
             PCB-CELL-P0-OUTSOURCED-BARE-BOARD-LOCAL-ASSEMBLY-report.json
             PCB-CELL-P1-LOCAL-ISOLATION-MILL-AND-ASSEMBLY-report.json
             ev-factory-simulation-report.sha256
