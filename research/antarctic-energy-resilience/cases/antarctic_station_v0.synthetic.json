@@ -52,7 +52,8 @@
         "discharge_to_bus_kwh_e": 0,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_internal": 20,
-        "closing_kwh_internal": 570
+        "closing_kwh_internal": 570,
+        "capacity_kwh_internal": 600
       },
       "heat": {
         "sources_kwh_th": {
@@ -76,7 +77,8 @@
         "discharge_to_service_kwh_th": 0,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_th_internal": 10,
-        "closing_kwh_th_internal": 1035
+        "closing_kwh_th_internal": 1035,
+        "capacity_kwh_th_internal": 1200
       }
     },
     {
@@ -104,7 +106,8 @@
         "discharge_to_bus_kwh_e": 100,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_internal": 10,
-        "closing_kwh_internal": 448.8888888889
+        "closing_kwh_internal": 448.8888888889,
+        "capacity_kwh_internal": 600
       },
       "heat": {
         "sources_kwh_th": {
@@ -128,7 +131,8 @@
         "discharge_to_service_kwh_th": 200,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_th_internal": 20,
-        "closing_kwh_th_internal": 792.7777777778
+        "closing_kwh_th_internal": 792.7777777778,
+        "capacity_kwh_th_internal": 1200
       }
     },
     {
@@ -156,7 +160,8 @@
         "discharge_to_bus_kwh_e": 100,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_internal": 20,
-        "closing_kwh_internal": 317.7777777778
+        "closing_kwh_internal": 317.7777777778,
+        "capacity_kwh_internal": 600
       },
       "heat": {
         "sources_kwh_th": {
@@ -180,7 +185,8 @@
         "discharge_to_service_kwh_th": 300,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_th_internal": 30,
-        "closing_kwh_th_internal": 429.4444444445
+        "closing_kwh_th_internal": 429.4444444445,
+        "capacity_kwh_th_internal": 1200
       }
     },
     {
@@ -208,7 +214,8 @@
         "discharge_to_bus_kwh_e": 200,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_internal": 20,
-        "closing_kwh_internal": 75.5555555556
+        "closing_kwh_internal": 75.5555555556,
+        "capacity_kwh_internal": 600
       },
       "heat": {
         "sources_kwh_th": {
@@ -232,7 +239,8 @@
         "discharge_to_service_kwh_th": 100,
         "discharge_efficiency": 0.9,
         "standing_loss_kwh_th_internal": 20,
-        "closing_kwh_th_internal": 298.3333333334
+        "closing_kwh_th_internal": 298.3333333334,
+        "capacity_kwh_th_internal": 1200
       }
     }
   ],
