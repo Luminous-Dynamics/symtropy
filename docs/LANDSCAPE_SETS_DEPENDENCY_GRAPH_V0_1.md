@@ -27,13 +27,14 @@ The small fixture includes water supply, irrigation, maintenance capacity, canop
 | Irrigation-link outage | 2 / 3 | 66.7% | Canopy-dependent service is unsupported; built shade remains an alternative |
 | Compound failure | 0 / 3 | 0% | Water, maintenance and access disruptions leave all services unsupported |
 
-The cascade-amplification diagnostic is unsupported-service count divided by injected node/edge failures. It is a graph-structure ratio, not a physical cascade probability, impact magnitude or causal effect.
+The cascade-amplification diagnostic is unsupported-service count divided by injected node/edge failures. It is a graph-structure ratio, not a physical cascade probability, impact magnitude or causal effect. The report also runs a deterministic single-failure audit over every declared node and dependency edge, then orders these by observed structural service loss. In the frozen fixture, failure of `maintenance_crew` is the top single-node failure: it removes support for both tree ecology and stormwater retention (2 of 3 baseline services). This is a graph-structure sensitivity, not a failure probability or a reason to prioritize real-world maintenance without validating the dependency model.
 
 ## Competitive benchmark ladder
 
 - Correctness: 100% known-answer agreement, deterministic replay, zero unknown references or cyclic dependency graphs accepted.
 - Redundancy: alternatives within an OR-group preserve service only when at least one provider remains operational; all mandatory groups must still hold.
-- Explainability: every unsupported service exposes its unsatisfied groups and provider states, enabling a reviewer to trace upstream blockers through the node-assessment table.
+- Explainability: every unsupported service exposes its unsatisfied groups and provider states, enabling reviewers to trace blockers. The single-failure audit ranks every node and edge by structurally lost service count and reports the affected service IDs.
+- Single-point-of-failure coverage: audit every declared node and edge in the frozen graph; require exact 22/22 audit entries and known-answer agreement for the maintenance dependency. Larger topology targets are 100% node/edge audit coverage without a partial report.
 - Generalization: expand with independently sourced asset inventories and qualified service-dependency evidence; test held-out districts and adversarial topology mutations.
 - Performance: freeze graphs at 100, 1,000 and 10,000 nodes; report validation/evaluation time and peak memory against a reference implementation. These are future targets, not measured results.
 - Decision usefulness: compare structural critical paths with field logs, maintenance tickets, utility outages and intervention outcomes. Do not equate structural reachability with hydrological, thermal, ecological or human outcomes.
