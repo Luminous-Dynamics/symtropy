@@ -1,0 +1,179 @@
+{
+  "schema_version": "0.2.0",
+  "fixture_kind": "synthetic_task_network",
+  "network_id": "visitor-awareness-network-v0-2",
+  "claim_boundary": "Synthetic design-contract example only. It proves nothing about actual device performance, home layout, accessibility, security, fire/egress safety, usability, legal compliance or resident suitability.",
+  "goal": {
+    "id": "visitor-awareness-and-choice",
+    "resident_statement": "I want to know that a visitor has arrived and decide whether to respond without depending on internet access.",
+    "observable_outcome": "The resident receives a chosen notification through a declared path and can independently choose whether to respond.",
+    "constraints": [
+      "A network outage must not silently remove every candidate notification path.",
+      "Notification does not imply consent to unlock a door or admit a visitor.",
+      "The resident owns the choice of notification modality."
+    ]
+  },
+  "nodes": [
+    {
+      "id": "visitor-signal",
+      "title": "Visitor generates an entry notification",
+      "kind": "action",
+      "required": true,
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/visitor-signal",
+      "review_with": "resident and selected access reviewer",
+      "note": "Synthetic fixture assertion, not a tested device."
+    },
+    {
+      "id": "network-service",
+      "title": "Network-dependent notification service",
+      "kind": "action",
+      "required": true,
+      "evidence_state": "needs_site_measurement",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/network-service",
+      "review_with": "resident and relevant technology/access reviewer",
+      "note": "Availability, latency and resident compatibility have not been measured."
+    },
+    {
+      "id": "mobile-notification",
+      "title": "Chosen notification delivered through a network-dependent device",
+      "kind": "action",
+      "required": true,
+      "evidence_state": "proposed",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/mobile-notification",
+      "review_with": "resident and selected assistive-technology reviewer",
+      "note": "A proposal is not proof of usable notification."
+    },
+    {
+      "id": "local-tactile-signal",
+      "title": "Local tactile notification independent of internet",
+      "kind": "action",
+      "required": true,
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/local-tactile-signal",
+      "review_with": "resident and qualified access/technology reviewer",
+      "note": "Verified only inside this synthetic fixture; power, placement and real operation are not tested."
+    },
+    {
+      "id": "resident-choice",
+      "title": "Resident decides whether and how to respond",
+      "kind": "outcome",
+      "required": true,
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/resident-choice",
+      "review_with": "resident",
+      "note": "The intended outcome preserves resident agency; no door-unlock behavior is implied."
+    }
+  ],
+  "edges": [
+    {
+      "id": "signal-to-network",
+      "from": "visitor-signal",
+      "to": "network-service",
+      "relation": "sequence",
+      "trigger": "normal",
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/signal-to-network",
+      "review_with": "resident and selected access reviewer",
+      "note": "Synthetic normal-mode sequence."
+    },
+    {
+      "id": "network-to-mobile",
+      "from": "network-service",
+      "to": "mobile-notification",
+      "relation": "sequence",
+      "trigger": "normal",
+      "evidence_state": "proposed",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/network-to-mobile",
+      "review_with": "resident and selected assistive-technology reviewer",
+      "note": "Service-to-device delivery has not been tested."
+    },
+    {
+      "id": "mobile-to-choice",
+      "from": "mobile-notification",
+      "to": "resident-choice",
+      "relation": "sequence",
+      "trigger": "normal",
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/mobile-to-choice",
+      "review_with": "resident",
+      "note": "Synthetic edge assertion only."
+    },
+    {
+      "id": "network-fallback-to-local",
+      "from": "visitor-signal",
+      "to": "local-tactile-signal",
+      "relation": "fallback",
+      "trigger": "network_unavailable",
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/network-fallback",
+      "review_with": "resident and qualified access/technology reviewer",
+      "note": "Fallback edge is claimed only within fixture semantics and requires real-world validation."
+    },
+    {
+      "id": "local-to-choice",
+      "from": "local-tactile-signal",
+      "to": "resident-choice",
+      "relation": "sequence",
+      "trigger": "network_unavailable",
+      "evidence_state": "verified_for_declared_scope",
+      "evidence_ref": "synthetic://visitor-awareness/v0.2/local-to-choice",
+      "review_with": "resident",
+      "note": "Synthetic edge assertion only."
+    }
+  ],
+  "paths": [
+    {
+      "id": "primary-network-path",
+      "title": "Network-dependent notification in normal operation",
+      "condition": "normal",
+      "node_ids": [
+        "visitor-signal",
+        "network-service",
+        "mobile-notification",
+        "resident-choice"
+      ],
+      "expected_assessment": "not_evaluable",
+      "success_condition": "The resident receives their selected notification and decides whether to respond.",
+      "note": "Not evaluable because network-service needs site measurement and mobile notification is proposed.",
+      "edge_ids": [
+        "signal-to-network",
+        "network-to-mobile",
+        "mobile-to-choice"
+      ]
+    },
+    {
+      "id": "local-fallback-path",
+      "title": "Local tactile notification when the network is unavailable",
+      "condition": "network_unavailable",
+      "node_ids": [
+        "visitor-signal",
+        "local-tactile-signal",
+        "resident-choice"
+      ],
+      "expected_assessment": "evidence_complete_for_fixture",
+      "success_condition": "The resident receives the chosen local signal and independently decides whether to respond without internet access.",
+      "note": "Complete only according to synthetic declared-scope states; it is not a real-home pass.",
+      "edge_ids": [
+        "network-fallback-to-local",
+        "local-to-choice"
+      ]
+    }
+  ],
+  "failure_modes": [
+    {
+      "id": "internet-outage",
+      "title": "Network-dependent service becomes unavailable",
+      "trigger": "network_unavailable",
+      "affected_node_ids": [
+        "network-service",
+        "mobile-notification"
+      ],
+      "activated_path_ids": [
+        "local-fallback-path"
+      ],
+      "expected_goal_state": "candidate_path_available_for_fixture",
+      "note": "Fixture contract says a separately represented local path is available under this condition; no real device or environment was tested."
+    }
+  ]
+}

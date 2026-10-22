@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/built-environment/accessible-home-task-network-v0.2.schema.json",
+  "title": "Accessible Home Resident Task Network v0.2",
+  "description": "Synthetic directed task network contract. JSON Schema validates shape only; a semantic validator must check ID uniqueness and graph references.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_kind",
+    "network_id",
+    "claim_boundary",
+    "goal",
+    "nodes",
+    "edges",
+    "paths",
+    "failure_modes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0"
+    },
+    "fixture_kind": {
+      "const": "synthetic_task_network"
+    },
+    "network_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 20
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "resident_statement",
+        "observable_outcome",
+        "constraints"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "resident_statement": {
+          "type": "string",
+          "minLength": 10
+        },
+        "observable_outcome": {
+          "type": "string",
+          "minLength": 10
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    },
+    "failure_modes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/failureMode"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+    },
+    "evidenceState": {
+      "type": "string",
+      "enum": [
+        "verified_for_declared_scope",
+        "known_barrier",
+        "unknown",
+        "proposed",
+        "needs_site_measurement",
+        "needs_professional_review"
+      ]
+    },
+    "assessment": {
+      "type": "string",
+      "enum": [
+        "blocked_by_declared_barrier",
+        "not_evaluable",
+        "evidence_complete_for_fixture"
+      ]
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "network_unavailable",
+        "power_unavailable",
+        "primary_device_unavailable",
+        "support_unavailable",
+        "resident_selected",
+        "other"
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "required",
+        "evidence_state",
+        "evidence_ref",
+        "review_with",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "action",
+            "decision",
+            "outcome",
+            "handoff"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "evidence_state": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_with": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "from",
+        "to",
+        "relation",
+        "trigger",
+        "evidence_state",
+        "evidence_ref",
+        "review_with",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "from": {
+          "$ref": "#/$defs/id"
+        },
+        "to": {
+          "$ref": "#/$defs/id"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "sequence",
+            "requires",
+            "alternative",
+            "fallback",
+            "recovery"
+          ]
+        },
+        "trigger": {
+          "$ref": "#/$defs/condition"
+        },
+        "evidence_state": {
+          "$ref": "#/$defs/evidenceState"
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_with": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relation": {
+                "enum": [
+                  "fallback",
+                  "recovery"
+                ]
+              }
+            },
+            "required": [
+              "relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "trigger": {
+                "not": {
+                  "const": "normal"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "condition",
+        "node_ids",
+        "edge_ids",
+        "expected_assessment",
+        "success_condition",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "$ref": "#/$defs/condition"
+        },
+        "node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "expected_assessment": {
+          "$ref": "#/$defs/assessment"
+        },
+        "success_condition": {
+          "type": "string",
+          "minLength": 10
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edge_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "failureMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "trigger",
+        "affected_node_ids",
+        "activated_path_ids",
+        "expected_goal_state",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger": {
+          "$ref": "#/$defs/condition"
+        },
+        "affected_node_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "activated_path_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "expected_goal_state": {
+          "type": "string",
+          "enum": [
+            "candidate_path_available_for_fixture",
+            "not_evaluable",
+            "no_candidate_path_proven"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
