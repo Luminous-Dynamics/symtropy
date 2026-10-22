@@ -488,7 +488,8 @@ fn validate_build_manifest(build: &Value) -> Check<()> {
         || config.get("with_mt").and_then(Value::as_bool) != Some(true)
     {
         return Err(
-            "build config does not match the pinned SPOOLES plus PARDISO/ARPACK static-bar profile".to_owned(),
+            "build config does not match the pinned SPOOLES plus PARDISO/ARPACK static-bar profile"
+                .to_owned(),
         );
     }
     Ok(())
