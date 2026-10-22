@@ -37,4 +37,8 @@ path = "src/bin/sofistik-be25-input-audit.rs"
 name = "sofistik-be25-line-candidate"
 path = "src/bin/sofistik-be25-line-candidate.rs"
 
+[[bin]]
+name = "sofistik-be25-sparse-modal"
+path = "src/bin/sofistik-be25-sparse-modal.rs"
+
 [workspace]
