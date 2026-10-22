@@ -324,6 +324,59 @@ impl TriangleElement {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GeometrySweepPoint {
+    pub height: f64,
+    pub mean_ratio_quality: f64,
+    /// Longest edge length times the maximum shape-gradient norm. This is a
+    /// dimensionless geometry-amplification proxy, not a matrix condition number.
+    pub dimensionless_gradient_amplification: f64,
+}
+
+pub fn run_geometry_conditioning_sweep() -> Result<Vec<GeometrySweepPoint>, ElementError> {
+    let heights = [1.0, 0.1, 0.01, 0.001, 0.0001];
+    let mut points = Vec::with_capacity(heights.len());
+    for height in heights {
+        let vertices = [
+            Point2 { x: 0.0, y: 0.0 },
+            Point2 { x: 1.0, y: 0.0 },
+            Point2 { x: 0.5, y: height },
+        ];
+        let element = TriangleElement::new(vertices, material_for_sweep(), 1.0)?;
+        let [a, b, c] = vertices;
+        let longest_edge = [
+            (b.x - a.x).hypot(b.y - a.y),
+            (c.x - a.x).hypot(c.y - a.y),
+            (c.x - b.x).hypot(c.y - b.y),
+        ]
+        .into_iter()
+        .fold(0.0_f64, f64::max);
+        let max_gradient_norm = element
+            .shape_gradients
+            .iter()
+            .map(|gradient| gradient[0].hypot(gradient[1]))
+            .fold(0.0_f64, f64::max);
+        let point = GeometrySweepPoint {
+            height,
+            mean_ratio_quality: element.mean_ratio_quality,
+            dimensionless_gradient_amplification: longest_edge * max_gradient_norm,
+        };
+        if !(point.mean_ratio_quality.is_finite()
+            && point.dimensionless_gradient_amplification.is_finite()
+            && point.mean_ratio_quality > 0.0
+            && point.dimensionless_gradient_amplification > 0.0)
+        {
+            return Err(ElementError::NonFiniteGeometry);
+        }
+        points.push(point);
+    }
+    Ok(points)
+}
+
+fn material_for_sweep() -> PlaneStrainMaterial {
+    PlaneStrainMaterial::new(1.0, 0.3).expect("reference material is admissible")
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PatchProbe {
     pub elements: usize,
     pub interior_nodes: usize,
@@ -815,6 +868,23 @@ mod tests {
             .mean_ratio_quality
         });
         assert!(qualities.windows(2).all(|pair| pair[1] < pair[0]));
+    }
+
+
+    #[test]
+    fn conditioning_sweep_separates_quality_from_gradient_amplification() {
+        let sweep = run_geometry_conditioning_sweep().unwrap();
+        assert_eq!(sweep.len(), 5);
+        assert!(sweep.windows(2).all(|pair| {
+            pair[1].mean_ratio_quality < pair[0].mean_ratio_quality
+                && pair[1].dimensionless_gradient_amplification
+                    > pair[0].dimensionless_gradient_amplification
+        }));
+        assert!(sweep.iter().all(|point| {
+            point.mean_ratio_quality > 0.0
+                && point.mean_ratio_quality <= 1.0
+                && point.dimensionless_gradient_amplification.is_finite()
+        }));
     }
 
 }
