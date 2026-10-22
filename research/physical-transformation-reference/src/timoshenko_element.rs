@@ -307,6 +307,50 @@ mod tests {
     }
 
     #[test]
+    fn shear_correction_factor_changes_shear_flexibility_and_deflection() {
+        let reference = timoshenko_frame_element_stiffness(
+            LENGTH_M,
+            AREA_M2,
+            YOUNGS_MODULUS_PA,
+            SHEAR_MODULUS_PA,
+            SECOND_MOMENT_M4,
+            1.0,
+        )
+        .expect("reference shear factor");
+        let corrected = timoshenko_frame_element_stiffness(
+            LENGTH_M,
+            AREA_M2,
+            YOUNGS_MODULUS_PA,
+            SHEAR_MODULUS_PA,
+            SECOND_MOMENT_M4,
+            0.5,
+        )
+        .expect("half shear factor");
+        close(
+            corrected.shear_flexibility_phi,
+            2.0 * reference.shear_flexibility_phi,
+            1.0e-13,
+            "shear correction factor scaling",
+        );
+
+        let load = 50.0;
+        let (reference_displacement, _) =
+            cantilever_tip_response(&reference.stiffness_local, load);
+        let (corrected_displacement, _) =
+            cantilever_tip_response(&corrected.stiffness_local, load);
+        let expected_corrected =
+            load * LENGTH_M.powi(3) / (3.0 * YOUNGS_MODULUS_PA * SECOND_MOMENT_M4)
+                + load * LENGTH_M / (0.5 * SHEAR_MODULUS_PA * AREA_M2);
+        close(
+            corrected_displacement,
+            expected_corrected,
+            1.0e-12,
+            "shear-corrected cantilever displacement",
+        );
+        assert!(corrected_displacement > reference_displacement);
+    }
+
+    #[test]
     fn invalid_timoshenko_domains_fail_closed() {
         assert!(timoshenko_frame_element_stiffness(
             0.0,
