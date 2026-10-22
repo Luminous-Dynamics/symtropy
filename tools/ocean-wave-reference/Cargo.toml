@@ -1,0 +1,12 @@
+[package]
+name = "ocean-wave-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Dependency-free analytic reference and frozen fixtures for gravity-wave kinematics."
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
