@@ -11,7 +11,7 @@ The prototype assembled linear CPS3 plane-stress stiffness matrices, integrated 
 
 ## Results
 
-| Cells per axis | Nodes | Triangles | Displacement L2 norm (m²) | H1 seminorm error | Stress tensor L2 error (Pa·m) |
+| Cells per axis | Nodes | Triangles | Displacement L2 norm (m²) | H1 seminorm (m) | Stress tensor L2 norm (Pa·m) |
 |---:|---:|---:|---:|---:|---:|
 | 4 | 25 | 32 | 1.4650992e-7 | 1.5796499e-6 | 257138.43 |
 | 8 | 81 | 128 | 4.3297110e-8 | 8.2742004e-7 | 136824.13 |
