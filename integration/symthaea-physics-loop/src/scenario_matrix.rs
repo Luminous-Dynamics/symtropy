@@ -105,20 +105,22 @@ pub fn scenario_catalogue() -> Vec<FlightScenario> {
             family: "lateral_step",
             split: ScenarioSplit::Train,
             setpoint: FlightSetpoint { position: [0.05, 0.0, 0.12], yaw: 0.0 },
-            disturbance: DisturbanceProfile::XImpulse,
+            // FlightTrainer currently consumes curriculum targets only; disturbances are evaluation-only.
+            disturbance: DisturbanceProfile::None,
             pulse_start_step: 60,
             pulse_duration_steps: 35,
-            disturbance_fraction_of_weight: 0.05,
+            disturbance_fraction_of_weight: 0.0,
         },
         FlightScenario {
             id: "train_y_step_5pct",
             family: "lateral_step",
             split: ScenarioSplit::Train,
             setpoint: FlightSetpoint { position: [0.0, 0.05, 0.15], yaw: 0.0 },
-            disturbance: DisturbanceProfile::YImpulse,
+            // FlightTrainer currently consumes curriculum targets only; disturbances are evaluation-only.
+            disturbance: DisturbanceProfile::None,
             pulse_start_step: 65,
             pulse_duration_steps: 35,
-            disturbance_fraction_of_weight: 0.05,
+            disturbance_fraction_of_weight: 0.0,
         },
         FlightScenario {
             id: "validation_diagonal_10pct",
