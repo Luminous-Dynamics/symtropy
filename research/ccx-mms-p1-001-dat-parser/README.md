@@ -49,3 +49,39 @@ The workflow builds stock CalculiX 2.22 from the SHA-pinned official source arch
 The parser-side JSON report always leaves `qualification_pass=false`; it does not attest to the process that created the DAT file. The workflow stores a separate process receipt that binds the exact executable, deck, DAT/FRD, logs, build manifest, and report digests. If the real DAT header, output inventory, force interpretation, or numerical trend disagrees with the protocol, the gate fails and retains evidence rather than substituting a synthetic fixture or relaxing thresholds.
 
 A passing run may qualify only this pinned linear plane-strain manufactured-solution case. It does not establish physical validation, engineering-use authorization, broad CalculiX capability, or superior performance to an industry solver. Performance work must remain a separate matched-accuracy experiment.
+
+
+## Executable qualification and follow-on diagnostics
+
+The draft real-run workflow is `.github/workflows/ccx-mms-p1-real-run.yml`. It reuses the
+source/build identity from the provenance-locked CCX 2.22 axial-bar workflow and adds:
+
+- Real CPE3 MMS executions for (n=8,16,32,64), plus a repeated (n=16) solve.
+- Independent load-resultant and corrected-reaction equilibrium checks, displacement
+  (L^2), plane-strain energy, stress errors and observed-order gates.
+- A smooth divergence-free manufactured field with exact (
+abla\cdot u=0), verified
+  independently through stress-divergence finite differences and a lambda-independent
+  body-force expression. Its global runs at (
+u=0.3,0.49,0.4999,0.49999), resolutions
+  (n=16,32), report finite-element volumetric strain and displacement/energy/stress errors.
+- Seven repeated CCX process timings per baseline mesh resolution, with warm-up excluded,
+  solver-only wall time, peak RSS, raw samples, median and interquartile range. Each timed
+  displacement field must also match the baseline result at the frozen repeat tolerance.
+- Pinned source archive, builder commit, container/package snapshot, executable digest,
+  toolchain/hardware inventory, per-deck/output/log/report hashes, and raw failure-artifact
+  upload.
+
+The real-run postprocessor never sets its own `qualification_pass` to true. A separate
+workflow gate checks the complete run family. Even if that gate passes, it qualifies only
+the declared pinned CCX 2.22 manufactured linear plane-strain case; it does not establish
+physical validation or engineering-use authorization.
+
+The incompressibility sweep is intentionally labelled a **diagnostic**, not a locking
+qualification: it lacks the planned mixed-formulation and/or authoritative reference
+comparison, so the JSON explicitly records
+`volumetric_locking_measured=false`. The work–precision report is also intentionally
+not a cross-solver or industry-superiority comparison: it measures repeatability, resource
+use and numerical error for CCX 2.22 alone. Those boundaries follow recognized code
+verification practice, where exact-solution mesh convergence and independently sourced
+reference cases are distinct evidence levels.
