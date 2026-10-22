@@ -151,11 +151,16 @@ impl TriangleElement {
             [0.0, 0.0, mu],
         ];
         let area = determinant.abs() * 0.5;
-        let mean_ratio_quality =
+        let raw_mean_ratio_quality =
             2.0 * 3.0_f64.sqrt() * determinant.abs() / edge_squared_sum;
-        if !mean_ratio_quality.is_finite() || !(0.0..=1.0).contains(&mean_ratio_quality) {
+        if !raw_mean_ratio_quality.is_finite()
+            || raw_mean_ratio_quality <= 0.0
+            || raw_mean_ratio_quality > 1.0 + 64.0 * f64::EPSILON
+        {
             return Err(ElementError::NonFiniteGeometry);
         }
+        // Roundoff may put an equilateral triangle a few ulps above one.
+        let mean_ratio_quality = raw_mean_ratio_quality.min(1.0);
         let scale = area * thickness;
         let mut constitutive_times_b = [[0.0_f64; 6]; 3];
         for (row_index, result_row) in constitutive_times_b.iter_mut().enumerate() {
