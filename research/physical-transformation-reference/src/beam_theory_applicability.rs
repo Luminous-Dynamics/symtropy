@@ -219,7 +219,7 @@ mod tests {
     };
 
     fn reference_cases() -> Vec<(&'static str, BeamTheoryApplicabilityInput)> {
-        let mut candidate = BeamTheoryApplicabilityInput {
+        let candidate = BeamTheoryApplicabilityInput {
             purpose: BeamAnalysisPurpose::StaticOrQuasiStatic,
             member_length_m: 1.0,
             shortest_relevant_wavelength_m: None,
@@ -238,9 +238,6 @@ mod tests {
         intermediate.second_moment_m4 = 0.002;
         let mut low_shear = candidate;
         low_shear.second_moment_m4 = 0.004;
-        // Keep the first value mutable only during explicit case construction;
-        // the input type is Copy so each named case is an isolated value.
-        candidate.purpose = BeamAnalysisPurpose::StaticOrQuasiStatic;
         vec![
             ("static-slender", candidate),
             ("modal-short-wavelength", short_wavelength),
