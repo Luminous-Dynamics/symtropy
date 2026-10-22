@@ -5,6 +5,19 @@ const RESOLUTIONS: [usize; 4] = [8, 16, 32, 64];
 const L2_ORDER_RANGE: (f64, f64) = (1.5, 2.5);
 const ENERGY_ORDER_RANGE: (f64, f64) = (0.75, 1.25);
 
+#[derive(Clone, Copy, Debug)]
+struct QuadratureCheck {
+    cells_per_side: usize,
+    load_vector_difference: f64,
+    x_resultant_residual: f64,
+    y_resultant_residual: f64,
+    l2_error_difference: f64,
+    energy_error_difference: f64,
+    stress_error_difference: f64,
+    load_pass: bool,
+    error_norm_pass: bool,
+}
+
 fn relative_difference(left: f64, right: f64) -> f64 {
     (left - right).abs() / right.abs().max(f64::MIN_POSITIVE)
 }
@@ -74,8 +87,7 @@ fn main() -> Result<(), String> {
         }
     }
 
-    let mut quadrature_checks: Vec<(usize, f64, f64, f64, f64, f64, f64, bool, bool)> =
-        Vec::with_capacity(levels.len());
+    let mut quadrature_checks: Vec<QuadratureCheck> = Vec::with_capacity(levels.len());
     for (n, mesh, _) in &levels {
         let loads_32 = mesh
             .assemble_body_force(problem, 32)
@@ -127,22 +139,23 @@ fn main() -> Result<(), String> {
             && energy_difference <= 1.0e-10
             && stress_difference <= 1.0e-10;
 
-        quadrature_checks.push((
-            *n,
-            load_difference,
+        quadrature_checks.push(QuadratureCheck {
+            cells_per_side: *n,
+            load_vector_difference: load_difference,
             x_resultant_residual,
             y_resultant_residual,
-            l2_difference,
-            energy_difference,
-            stress_difference,
-            load_quadrature_pass,
-            error_quadrature_pass,
-        ));
+            l2_error_difference: l2_difference,
+            energy_error_difference: energy_difference,
+            stress_error_difference: stress_difference,
+            load_pass: load_quadrature_pass,
+            error_norm_pass: error_quadrature_pass,
+        });
     }
-    let load_quadrature_pass = quadrature_checks.iter().all(|checks| checks.7);
-    let error_quadrature_pass = quadrature_checks.iter().all(|checks| checks.8);
+    let load_quadrature_pass = quadrature_checks.iter().all(|checks| checks.load_pass);
+    let error_quadrature_pass = quadrature_checks.iter().all(|checks| checks.error_norm_pass);
     let quadrature_pass = load_quadrature_pass && error_quadrature_pass;
-    let calibration_pass = positive_finite_errors && strict_decrease && final_orders_pass && quadrature_pass;
+    let calibration_pass =
+        positive_finite_errors && strict_decrease && final_orders_pass && quadrature_pass;
 
     println!("{{");
     println!("  \"protocol_id\": \"PHYS-CCX-MMS-P1-001\",");
@@ -197,15 +210,15 @@ fn main() -> Result<(), String> {
                 "\"load_quadrature_pass\": {}, ",
                 "\"error_quadrature_pass\": {}}}{}"
             ),
-            checks.0,
-            checks.1,
-            checks.2,
-            checks.3,
-            checks.4,
-            checks.5,
-            checks.6,
-            checks.7,
-            checks.8,
+            checks.cells_per_side,
+            checks.load_vector_difference,
+            checks.x_resultant_residual,
+            checks.y_resultant_residual,
+            checks.l2_error_difference,
+            checks.energy_error_difference,
+            checks.stress_error_difference,
+            checks.load_pass,
+            checks.error_norm_pass,
             if index + 1 < quadrature_checks.len() { "," } else { "" }
         );
     }
