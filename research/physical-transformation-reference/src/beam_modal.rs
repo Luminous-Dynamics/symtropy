@@ -236,56 +236,10 @@ fn matrix_vector(matrix: &Matrix, vector: &[f64]) -> Check<Vec<f64>> {
 #[cfg(test)]
 mod tests {
     use super::{BeamModalOptions, solve_released_joint_beam_modes};
-    use crate::beam_pin_assembly::{
-        BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss,
-    };
+    use crate::beam_pin_assembly::assemble_released_joint_pin_truss;
 
-    fn fixture_inputs() -> (Vec<BeamPinNode>, Vec<BeamPinMember>) {
-        (
-            vec![
-                BeamPinNode {
-                    id: "A".to_owned(),
-                    x_m: 0.0,
-                    y_m: 1.0,
-                    restrain_x: true,
-                    restrain_y: true,
-                },
-                BeamPinNode {
-                    id: "B".to_owned(),
-                    x_m: 0.0,
-                    y_m: 0.0,
-                    restrain_x: true,
-                    restrain_y: true,
-                },
-                BeamPinNode {
-                    id: "C".to_owned(),
-                    x_m: 1.0,
-                    y_m: 1.0,
-                    restrain_x: false,
-                    restrain_y: false,
-                },
-            ],
-            vec![
-                BeamPinMember {
-                    id: "AC".to_owned(),
-                    start_node_id: "A".to_owned(),
-                    end_node_id: "C".to_owned(),
-                    area_m2: 3.141592653589793e-4,
-                    youngs_modulus_pa: 210.0e9,
-                    density_kg_m3: 7800.0,
-                    second_moment_m4: 7.853981633974483e-9,
-                },
-                BeamPinMember {
-                    id: "BC".to_owned(),
-                    start_node_id: "B".to_owned(),
-                    end_node_id: "C".to_owned(),
-                    area_m2: 3.141592653589793e-4,
-                    youngs_modulus_pa: 210.0e9,
-                    density_kg_m3: 7800.0,
-                    second_moment_m4: 7.853981633974483e-9,
-                },
-            ],
-        )
+    fn fixture_inputs() -> (Vec<crate::beam_pin_assembly::BeamPinNode>, Vec<crate::beam_pin_assembly::BeamPinMember>) {
+        crate::beam_pin_assembly::nafems_nbc05_released_joint_beam_fixture()
     }
 
     fn frequencies(area_scale: f64, modulus_scale: f64, density_scale: f64) -> Vec<f64> {
