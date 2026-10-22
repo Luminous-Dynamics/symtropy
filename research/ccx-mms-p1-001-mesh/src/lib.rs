@@ -304,6 +304,133 @@ impl Mesh {
         })
     }
 
+
+    /// Render a deterministic CalculiX input deck for the frozen MMS problem.
+    ///
+    /// The complete consistent nodal load vector is computed from the chosen
+    /// quadrature. Loads on boundary nodes are preserved in explicit deck
+    /// comments but excluded from the CLOAD section because those DOFs are
+    /// constrained. The postprocessor must restore those omitted loads when
+    /// correcting the reported support reactions; this convention does not
+    /// change free-DOF equilibrium or the computed displacement field.
+    pub fn to_calculix_input_deck(
+        &self,
+        problem: ManufacturedProblem,
+        quadrature_order: usize,
+    ) -> Result<String, MeshError> {
+        validate_mesh(self)?;
+        let loads = self.assemble_body_force(problem, quadrature_order)?;
+        if loads.len() != self.nodes.len() {
+            return Err(MeshError::InvalidLoadVectorLength);
+        }
+        let material = problem.material();
+        let mut deck = String::new();
+
+        writeln!(
+            &mut deck,
+            "** PHYS-CCX-MMS-P1-001; protocol=0.2.0; mesh_n={}",
+            self.cells_per_side
+        )
+        .expect("String writes cannot fail");
+        writeln!(&mut deck, "*HEADING").expect("String writes cannot fail");
+        writeln!(
+            &mut deck,
+            "PHYS-CCX-MMS-P1-001 manufactured plane-strain field"
+        )
+        .expect("String writes cannot fail");
+
+        writeln!(&mut deck, "*NODE, NSET=NALL").expect("String writes cannot fail");
+        for node in &self.nodes {
+            writeln!(
+                &mut deck,
+                "{}, {:.17e}, {:.17e}, 0.00000000000000000e+00",
+                node.id, node.x, node.y
+            )
+            .expect("String writes cannot fail");
+        }
+
+        writeln!(&mut deck, "*ELEMENT, TYPE=CPE3, ELSET=EALL")
+            .expect("String writes cannot fail");
+        for triangle in &self.triangles {
+            writeln!(
+                &mut deck,
+                "{}, {}, {}, {}",
+                triangle.id, triangle.nodes[0], triangle.nodes[1], triangle.nodes[2]
+            )
+            .expect("String writes cannot fail");
+        }
+
+        writeln!(&mut deck, "*NSET, NSET=BOUNDARY").expect("String writes cannot fail");
+        write_node_set(
+            &mut deck,
+            self.nodes.iter().filter(|node| node.boundary).map(|node| node.id),
+        );
+
+        writeln!(&mut deck, "*MATERIAL, NAME=MMSMAT").expect("String writes cannot fail");
+        writeln!(&mut deck, "*ELASTIC").expect("String writes cannot fail");
+        writeln!(
+            &mut deck,
+            "{:.17e}, {:.17e}",
+            material.youngs_modulus(),
+            material.poisson_ratio()
+        )
+        .expect("String writes cannot fail");
+        writeln!(&mut deck, "*SOLID SECTION, ELSET=EALL, MATERIAL=MMSMAT")
+            .expect("String writes cannot fail");
+        writeln!(&mut deck, "1.00000000000000000e+00")
+            .expect("String writes cannot fail");
+
+        writeln!(&mut deck, "** Boundary-equivalent loads omitted from CLOAD on constrained DOFs.")
+            .expect("String writes cannot fail");
+        writeln!(
+            &mut deck,
+            "** Recover full support reaction by subtracting these loads from solver RF."
+        )
+        .expect("String writes cannot fail");
+        writeln!(&mut deck, "** BOUNDARY_LOAD columns: node_id, fx, fy")
+            .expect("String writes cannot fail");
+        for node in self.nodes.iter().filter(|node| node.boundary) {
+            let load = loads[node.id - 1];
+            writeln!(
+                &mut deck,
+                "** BOUNDARY_LOAD, {}, {:.17e}, {:.17e}",
+                node.id, load.x, load.y
+            )
+            .expect("String writes cannot fail");
+        }
+
+        writeln!(&mut deck, "*STEP").expect("String writes cannot fail");
+        writeln!(&mut deck, "*STATIC").expect("String writes cannot fail");
+        writeln!(&mut deck, "1.00000000000000000e+00, 1.00000000000000000e+00")
+            .expect("String writes cannot fail");
+        writeln!(&mut deck, "*BOUNDARY").expect("String writes cannot fail");
+        writeln!(&mut deck, "BOUNDARY, 1, 2, 0.00000000000000000e+00")
+            .expect("String writes cannot fail");
+
+        writeln!(&mut deck, "*CLOAD").expect("String writes cannot fail");
+        for node in self.nodes.iter().filter(|node| !node.boundary) {
+            let load = loads[node.id - 1];
+            if load.x != 0.0 {
+                writeln!(&mut deck, "{}, 1, {:.17e}", node.id, load.x)
+                    .expect("String writes cannot fail");
+            }
+            if load.y != 0.0 {
+                writeln!(&mut deck, "{}, 2, {:.17e}", node.id, load.y)
+                    .expect("String writes cannot fail");
+            }
+        }
+
+        writeln!(&mut deck, "*NODE PRINT, NSET=NALL").expect("String writes cannot fail");
+        writeln!(&mut deck, "U, RF").expect("String writes cannot fail");
+        writeln!(&mut deck, "*NODE FILE").expect("String writes cannot fail");
+        writeln!(&mut deck, "U").expect("String writes cannot fail");
+        writeln!(&mut deck, "*EL FILE").expect("String writes cannot fail");
+        writeln!(&mut deck, "S").expect("String writes cannot fail");
+        writeln!(&mut deck, "*END STEP").expect("String writes cannot fail");
+
+        Ok(deck)
+    }
+
     /// Sum the nodal loads to recover the global body-force resultant.
     pub fn resultant(loads: &[Vec2]) -> Result<Vec2, MeshError> {
         if loads.is_empty() {
@@ -461,6 +588,26 @@ fn validate_mesh(mesh: &Mesh) -> Result<(), MeshError> {
     }
 
     Ok(())
+}
+
+
+fn write_node_set(output: &mut String, node_ids: impl Iterator<Item = usize>) {
+    let mut on_line = 0_usize;
+    for node_id in node_ids {
+        if on_line > 0 {
+            output.push(',');
+            output.push(' ');
+        }
+        write!(output, "{node_id}").expect("String writes cannot fail");
+        on_line += 1;
+        if on_line == 16 {
+            output.push('\n');
+            on_line = 0;
+        }
+    }
+    if on_line > 0 {
+        output.push('\n');
+    }
 }
 
 fn energy_density(strain: ccx_mms_p1_oracle::Strain2, lambda: f64, mu: f64) -> f64 {
