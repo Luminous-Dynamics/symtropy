@@ -668,6 +668,20 @@ mod tests {
     }
 
     #[test]
+    fn authority_weighted_policy_is_bidirectionally_reliable_on_declared_fixtures() {
+        for case in fixtures() {
+            let result = evaluate_pair(&case, Policy::AuthorityWeighted);
+            assert!(
+                result.pair_reliable,
+                "authority-weighted policy failed declared fixture {}: {:?} -> {:?}",
+                case.name,
+                result.left_action,
+                result.right_action
+            );
+        }
+    }
+
+    #[test]
     fn finite_suite_shape_is_fixed() {
         assert_eq!(fixtures().len(), 6);
         assert_eq!(Policy::ALL.len(), 8);
