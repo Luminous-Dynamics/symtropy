@@ -17,6 +17,8 @@ pub struct DispatchStabilityPolicy {
     /// Explicitly permits an affected frozen reservation to change when disruption requires it.
     /// This is a policy waiver, not a physical-feasibility override.
     pub allow_affected_frozen_changes: bool,
+    pub max_changed_placement_reservations: usize,
+    pub max_changed_transfer_reservations: usize,
     pub max_unaffected_placement_churn: usize,
     pub max_unaffected_transfer_churn: usize,
     pub max_time_shift_ticks: u64,
@@ -27,6 +29,8 @@ pub struct DispatchStabilityPolicy {
 pub enum DispatchPolicyViolationCode {
     FrozenPlacementChanged,
     FrozenTransferChanged,
+    ChangedPlacementBudgetExceeded,
+    ChangedTransferBudgetExceeded,
     UnaffectedPlacementChurnExceeded,
     UnaffectedTransferChurnExceeded,
     TimeShiftBudgetExceeded,
@@ -38,6 +42,8 @@ impl DispatchPolicyViolationCode {
         match self {
             Self::FrozenPlacementChanged => "FrozenPlacementChanged",
             Self::FrozenTransferChanged => "FrozenTransferChanged",
+            Self::ChangedPlacementBudgetExceeded => "ChangedPlacementBudgetExceeded",
+            Self::ChangedTransferBudgetExceeded => "ChangedTransferBudgetExceeded",
             Self::UnaffectedPlacementChurnExceeded => "UnaffectedPlacementChurnExceeded",
             Self::UnaffectedTransferChurnExceeded => "UnaffectedTransferChurnExceeded",
             Self::TimeShiftBudgetExceeded => "TimeShiftBudgetExceeded",
@@ -175,6 +181,35 @@ pub fn evaluate_operational_recovery(
         &mut violations,
     );
 
+    if recovery.metrics.changed_placement_reservations
+        > policy.max_changed_placement_reservations
+    {
+        push(
+            &mut violations,
+            DispatchPolicyViolationCode::ChangedPlacementBudgetExceeded,
+            Vec::new(),
+            format!(
+                "changed placement reservations {} exceeds policy budget {}",
+                recovery.metrics.changed_placement_reservations,
+                policy.max_changed_placement_reservations
+            ),
+        );
+    }
+    if recovery.metrics.changed_transfer_reservations
+        > policy.max_changed_transfer_reservations
+    {
+        push(
+            &mut violations,
+            DispatchPolicyViolationCode::ChangedTransferBudgetExceeded,
+            Vec::new(),
+            format!(
+                "changed transfer reservations {} exceeds policy budget {}",
+                recovery.metrics.changed_transfer_reservations,
+                policy.max_changed_transfer_reservations
+            ),
+        );
+    }
+
     if recovery.metrics.unaffected_placement_churn > policy.max_unaffected_placement_churn {
         push(
             &mut violations,
@@ -291,6 +326,8 @@ mod tests {
         DispatchStabilityPolicy {
             freeze_before_tick,
             allow_affected_frozen_changes: false,
+            max_changed_placement_reservations: 100,
+            max_changed_transfer_reservations: 100,
             max_unaffected_placement_churn: 100,
             max_unaffected_transfer_churn: 100,
             max_time_shift_ticks: u64::MAX,
@@ -386,6 +423,69 @@ mod tests {
         assert!(report.policy_violations.iter().any(|violation| {
             violation.code == DispatchPolicyViolationCode::RectangleShiftBudgetExceeded
         }));
+    }
+
+    #[test]
+    fn total_rework_budgets_are_distinct_from_unaffected_churn_budgets() {
+        let baseline = scenario(
+            vec![
+                placement("p-a", 0, 0, 10, 20),
+                placement("p-b", 4, 0, 6, 20),
+            ],
+            vec![transfer("t-a", 10, 12, "tug-a")],
+        );
+        let candidate = scenario(
+            vec![
+                placement("p-a", 0, 2, 10, 20),
+                placement("p-b", 4, 0, 6, 20),
+            ],
+            vec![transfer("t-a", 10, 12, "tug-b")],
+        );
+        let mut limits = policy(0);
+        limits.max_changed_placement_reservations = 0;
+        limits.max_changed_transfer_reservations = 0;
+        let report = evaluate_operational_recovery(&input(baseline, candidate), &limits);
+
+        assert!(report.recovery.accepted);
+        assert!(!report.operationally_acceptable);
+        assert!(report.policy_violations.iter().any(|violation| {
+            violation.code == DispatchPolicyViolationCode::ChangedPlacementBudgetExceeded
+        }));
+        assert!(report.policy_violations.iter().any(|violation| {
+            violation.code == DispatchPolicyViolationCode::ChangedTransferBudgetExceeded
+        }));
+    }
+
+    #[test]
+    fn relaxing_numeric_policy_budgets_cannot_add_policy_violations() {
+        let baseline = scenario(
+            vec![placement("p-a", 0, 0, 10, 20)],
+            vec![transfer("t-a", 10, 12, "tug-a")],
+        );
+        let candidate = scenario(
+            vec![placement("p-a", 0, 2, 10, 20)],
+            vec![transfer("t-a", 10, 12, "tug-b")],
+        );
+        let request = input(baseline, candidate);
+        let mut stricter = policy(0);
+        stricter.max_changed_placement_reservations = 0;
+        stricter.max_changed_transfer_reservations = 0;
+        stricter.max_rectangle_edge_shift_units = 0;
+        stricter.max_time_shift_ticks = 0;
+        let strict_report = evaluate_operational_recovery(&request, &stricter);
+        assert!(!strict_report.operationally_acceptable);
+
+        let mut relaxed = stricter.clone();
+        relaxed.max_changed_placement_reservations = usize::MAX;
+        relaxed.max_changed_transfer_reservations = usize::MAX;
+        relaxed.max_unaffected_placement_churn = usize::MAX;
+        relaxed.max_unaffected_transfer_churn = usize::MAX;
+        relaxed.max_rectangle_edge_shift_units = u64::MAX;
+        relaxed.max_time_shift_ticks = u64::MAX;
+        let relaxed_report = evaluate_operational_recovery(&request, &relaxed);
+
+        assert!(relaxed_report.policy_violations.len() < strict_report.policy_violations.len());
+        assert!(relaxed_report.recovery.accepted);
     }
 
     #[test]
