@@ -56,9 +56,9 @@ fn run() -> Result<String, String> {
     ];
     let mut summaries = Vec::with_capacity(cases.len());
     for (case_name, system) in cases {
-        let simulation = simulate_free_vibration(system, 0.01, 1000)?;
+        let simulation = simulate_free_vibration(system, 0.001, 10_000)?;
         let initial_energy = simulation.samples[0].mechanical_energy_j;
-        let final_energy = simulation.samples[1000].mechanical_energy_j;
+        let final_energy = simulation.samples.last().ok_or_else(|| "SDOF simulation returned no samples".to_owned())?.mechanical_energy_j;
         summaries.push(format!(
             concat!(
                 "{{",
