@@ -59,6 +59,10 @@ The first source-pinned recent reporting snapshot is [DCCEEW Annual Report 2024â
 
 The exact source inventory, lineage gates and next ingestion steps are in [DATA_SOURCES.md](DATA_SOURCES.md). Do not fabricate missing hourly series or align an annual fuel total to weather as if it were an hourly observation.
 
+## Machine-readable run receipts
+
+`benchmark-run-v0.schema.json` defines one run receipt with source classes and digests, spatial/temporal support, train/validation/locked-test periods, baseline families, matched budgets, hard-gate states, metrics, validation status and a bounded claim ceiling. `benchmark-run-v0.synthetic.json` is intentionally a planned S0 example with no physical data, no claimed gate passes, and a software-accounting-only claim ceiling. The accompanying smoke-check rejects synthetic-to-physical and synthetic-to-operational claim promotion. This is a structural receipt contract, not a full JSON Schema validation or a physical-model verifier.
+
 ## Benchmark and data-acquisition protocol
 
 The preregistered method comparison is in [BENCHMARK_PROTOCOL.md](BENCHMARK_PROTOCOL.md). It fixes the locked data-split rules, matched-budget baselines, independent hard gates, metrics, target hypothesis and falsification criteria before a real-data performance claim is allowed.
