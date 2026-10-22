@@ -67,6 +67,31 @@ require independent tests. The element constructor rejects a triangle when
 degeneracy floor, not a general mesh-quality recommendation. Sliver elements above the
 floor are measured rather than automatically declared adequate for engineering analysis.
 
+## Constrained global stiffness conditioning
+
+`triangle-global-condition-probe` emits the deterministic
+`ccx-mms-p1-global-condition-v1` receipt for uniform triangular meshes with 2, 3, 4,
+5, and 6 cells per side. It assembles the global stiffness matrix from this crate's
+independent CST element kernel, removes both displacement DOFs for every boundary node,
+and computes the spectrum of the resulting small positive-definite matrix using a dense
+symmetric Jacobi iteration. The recorded free-DOF counts are 2, 8, 18, 32, and 50.
+
+An independent NumPy calculation gives constrained global condition numbers of roughly
+1.76923, 5.06740, 9.77110, 15.8533, and 23.3044 for this frozen mesh family. These are
+cross-check values, not Rust output. The probe's gate is qualitative: all minimum
+eigenvalues must be positive, and the global condition number must increase strictly with
+refinement and exceed 20 on the final small mesh. The five coarse points illustrate the
+trend; they are not enough to establish a precise asymptotic rate.
+
+Unlike the local element spectrum, this is a condition number for a **globally assembled,
+boundary-constrained stiffness matrix**. However, it is assembled from this oracle's
+own element kernel rather than from CalculiX output, and no displacement solve is
+performed. It therefore checks global assembly/conditioning behavior but is not a
+CalculiX matrix, a solver benchmark, or a qualification result. The spectral growth is
+consistent with the mesh-quality literature's observation that the condition number of
+elliptic finite-element systems worsens with mesh refinement; performance must still be
+measured with an actual solve and matched accuracy.
+
 ## Near-incompressibility material sweep
 
 `triangle-material-conditioning-probe` emits a deterministic
