@@ -1527,7 +1527,7 @@ mod tests {
         Scenario {
             yard_bounds: Some(yard()),
             placements: vec![
-                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 5),
+                placement("outgoing", "block-out", rect(0, 0, 2, 2), 0, 7),
                 placement("incoming-early", "block-in", rect(0, 2, 2, 4), 5, 7),
                 placement("incoming-late", "block-in", rect(2, 0, 4, 2), 8, 10),
                 placement("unaffected", "block-c", rect(4, 0, 6, 2), 0, 10),
