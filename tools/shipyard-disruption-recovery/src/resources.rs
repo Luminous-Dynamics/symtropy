@@ -439,15 +439,16 @@ pub fn evaluate_resource_recovery(
     let candidate_outage_conflicts = resource_outage_conflicts(candidate, outages);
     let baseline_feasible_after_disruption =
         baseline_feasible_before_disruption && outages_valid && baseline_outage_conflicts.is_empty();
-    let candidate_feasible_after_disruption =
+    let mut candidate_feasible_after_disruption =
         outages_valid && candidate_violations.is_empty() && candidate_outage_conflicts.is_empty();
 
     violations.extend(candidate_outage_conflicts.iter().cloned());
-    violations.extend(in_progress_and_history_mutations(
-        baseline,
-        candidate,
-        observed_at_tick,
-    ));
+    let mutation_violations =
+        in_progress_and_history_mutations(baseline, candidate, observed_at_tick);
+    if !mutation_violations.is_empty() {
+        candidate_feasible_after_disruption = false;
+    }
+    violations.extend(mutation_violations);
 
     let affected = affected_reservations(baseline, outages);
     let old_map = reservation_map(baseline);
@@ -1001,6 +1002,23 @@ mod tests {
         assert!(report.violations.iter().any(|violation| {
             violation.code == JointEnvelopeViolationCode::DuplicateScenarioId
         }));
+    }
+
+    #[test]
+    fn removed_future_resource_work_is_not_counted_as_candidate_feasible() {
+        let baseline = ResourceSchedule {
+            reservations: vec![
+                reservation("required", "weld-a", "station-1", "workstation", 5, 10),
+                reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10),
+            ],
+        };
+        let candidate = ResourceSchedule {
+            reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
+        };
+        let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
+
+        assert!(!report.accepted);
+        assert!(!report.metrics.candidate_feasible_after_disruption);
     }
 
     #[test]
