@@ -49,6 +49,7 @@ pub enum ResourceViolationCode {
     UnknownOutageResource,
     ResourceUnavailable,
     CompletedReservationChanged,
+    RequiredReservationRemoved,
     ActiveReservationChanged,
     BaselineScheduleInvalid,
     CandidateScheduleInvalid,
@@ -72,6 +73,7 @@ impl ResourceViolationCode {
             Self::UnknownOutageResource => "UnknownOutageResource",
             Self::ResourceUnavailable => "ResourceUnavailable",
             Self::CompletedReservationChanged => "CompletedReservationChanged",
+            Self::RequiredReservationRemoved => "RequiredReservationRemoved",
             Self::ActiveReservationChanged => "ActiveReservationChanged",
             Self::BaselineScheduleInvalid => "BaselineScheduleInvalid",
             Self::CandidateScheduleInvalid => "CandidateScheduleInvalid",
@@ -318,6 +320,13 @@ fn in_progress_and_history_mutations(
                     "completed operation history is immutable",
                 );
             }
+        } else if !new_map.contains_key(id) {
+            push(
+                &mut violations,
+                ResourceViolationCode::RequiredReservationRemoved,
+                vec![id.to_owned()],
+                "future or active operation cannot silently disappear from the candidate schedule",
+            );
         } else if old.interval.start_tick <= observed_at_tick
             && observed_at_tick < old.interval.end_tick
         {
@@ -395,6 +404,7 @@ pub fn evaluate_resource_recovery(
     let baseline_violations = validate_schedule(baseline);
     let candidate_violations = validate_schedule(candidate);
     let mut violations = validate_outages(outages, baseline, candidate);
+    let outages_valid = violations.is_empty();
     violations.extend(candidate_violations.iter().cloned());
 
     let baseline_feasible_before_disruption = baseline_violations.is_empty();
@@ -418,9 +428,9 @@ pub fn evaluate_resource_recovery(
     let baseline_outage_conflicts = resource_outage_conflicts(baseline, outages);
     let candidate_outage_conflicts = resource_outage_conflicts(candidate, outages);
     let baseline_feasible_after_disruption =
-        baseline_feasible_before_disruption && baseline_outage_conflicts.is_empty();
+        baseline_feasible_before_disruption && outages_valid && baseline_outage_conflicts.is_empty();
     let candidate_feasible_after_disruption =
-        candidate_violations.is_empty() && candidate_outage_conflicts.is_empty();
+        outages_valid && candidate_violations.is_empty() && candidate_outage_conflicts.is_empty();
 
     violations.extend(candidate_outage_conflicts.iter().cloned());
     violations.extend(in_progress_and_history_mutations(
@@ -648,6 +658,25 @@ mod tests {
         assert!(!report.accepted);
         assert!(report.violations.iter().any(|violation| {
             violation.code == ResourceViolationCode::CompletedReservationChanged
+        }));
+    }
+
+    #[test]
+    fn future_resource_reservation_cannot_be_silently_dropped() {
+        let baseline = ResourceSchedule {
+            reservations: vec![
+                reservation("required", "weld-a", "station-1", "workstation", 5, 10),
+                reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10),
+            ],
+        };
+        let candidate = ResourceSchedule {
+            reservations: vec![reservation("stay", "inspect-b", "inspector-1", "inspector", 0, 10)],
+        };
+        let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
+
+        assert!(!report.accepted);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::RequiredReservationRemoved
         }));
     }
 
