@@ -653,6 +653,13 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
                         if matches!(s,"unknown"|"timeout"|"invalid-output"|"not-run") && status.as_deref()==Some("passed") {
                             errors.push(format!("{}.verifier.status: outcome '{}' is inconsistent with passed classification",path,s));
                         }
+                        if s=="verified-infeasible" {
+                            let oracle_proves_infeasible = reference.as_deref()==Some("infeasible") && oracle_outcome.as_deref()==Some("match");
+                            let explicitly_measured_false_infeasible = reference.as_deref()==Some("feasible") && oracle_outcome.as_deref()==Some("mismatch");
+                            if !oracle_proves_infeasible && !explicitly_measured_false_infeasible {
+                                errors.push(format!("{}.outcome: infeasibility cannot be inferred from heuristic exhaustion, timeout, or an unknown reference",path));
+                            }
+                        }
                     }
                     match (outcome.as_deref(),reference.as_deref()) {
                         (Some("verified-feasible"),Some("infeasible"))=>false_feasible+=1,
