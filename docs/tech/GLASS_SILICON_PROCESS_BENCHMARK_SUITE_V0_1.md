@@ -24,6 +24,9 @@ The work must compare fairly with current practice rather than claim novelty for
 - A 2024 open-access review reports conventional metallurgical-grade silicon (MG-Si) production at approximately **11–13 kWh/kg Si** and **4.7–5 t direct CO₂/t Si**. It identifies biocarbon/CCU pathways with differing maturity and says several metallothermic/electrochemical alternatives remained laboratory-scale in that review: [Journal of Sustainable Metallurgy, DOI 10.1007/s40831-024-00913-3](https://doi.org/10.1007/s40831-024-00913-3).
 - Electrochemical silicon production has an active research literature, but laboratory demonstration is not evidence of commercially competitive throughput, purity, lifetime, or cost: [review indexed at PubMed](https://pubmed.ncbi.nlm.nih.gov/37214200/).
 
+- A July 2026 glass-discovery study introduces SCALE, integrating molecular dynamics, ML, and robotic synthesis. It reports more than 42,000 simulations, validation against 55 synthesized sodium alumino-borosilicate glasses, density/model bias up to 5%, and composition-dependent correction over three experimental iterations of six measurements each: [npj Computational Materials, DOI 10.1038/s41524-026-02249-w](https://doi.org/10.1038/s41524-026-02249-w). This is a particularly useful matched-budget baseline; its results are chemistry- and property-specific, not a universal glass-model score.
+- Glass Futures announced an AI/physics-informed twin for its multi-fuel pilot furnace in June 2026, reporting 16 sensor points and 11,530 calculations processed at once: [Glass Futures AI-GLASS](https://www.glass-futures.org/news/glass-futures-launches-ai-driven-digital-twin-to-reinvent-glass-manufacturing/). The public announcement does not define a standardized error dataset or an externally reproducible accuracy benchmark. Treat throughput as context, not proof of predictive superiority; compare on held-out campaign predictions, calibration, energy and accepted-product quality.
+
 **Targeted gap:** join source-grounded process models, uncertainty-aware experiment selection, a deterministic process/workcell twin, evidence-bounded manufacturing routes, and lifecycle comparison under one falsifiable decision protocol. Every subsystem remains accountable to its own physical authority.
 
 ## 3. v0.1 scope and functional units
@@ -109,6 +112,18 @@ Publish a Pareto frontier; do not hide trade-offs behind a single arbitrary gree
 Required outputs per accepted product unit, where evidence exists: energy by carrier and declared final-energy boundary; direct process GHG and lifecycle GHG as separate metrics; purchased/raw material, cullet/recycle fraction and quality, water, and consumables; saleable yield, defect/reject rate, rework, grade/chemistry, and uncertainty; variable cost, capex assumptions, throughput, uptime, maintenance/refractory life, and supply risks; balance residuals, source completeness, out-of-domain status, and evidence coverage.
 
 Compare each candidate to: (1) a matched measured plant baseline or source-published baseline; (2) a conventional engineering/physics model; (3) a simple grid-search or design-of-experiments baseline; and (4) a matched-budget Bayesian/active-learning policy where applicable. Report compute, experiment budget, dataset split, stopping rule, and all excluded runs.
+
+### SOTA replication and calibration test
+
+Use SCALE's published protocol as a concrete experimental-efficiency baseline, after verifying dataset licensing, composition overlap, and exact reported metrics. Do not combine chemistry families into a misleading aggregate score.
+
+1. Freeze train/calibration/test splits by composition families or synthesis campaign; exclude near-duplicates and source leakage.
+2. Establish a simulation-only baseline and report per-property MAE/RMSE, R², signed bias, uncertainty calibration, interval coverage, and out-of-domain abstention.
+3. Compare static simulated-data augmentation, random measurement selection, conventional design-of-experiments, and active learning under the **same physical-measurement budget**. Reproduce the published 3 × 6 measurement structure where the available data supports a fair replication.
+4. Measure the held-out improvement after calibration, not only training or cross-validation fit. Predefine target uncertainty and bias tolerances from measurement repeatability and intended engineering use; do not infer them from the best observed score.
+5. A model with high R² but systematic external bias is not qualified for the affected property/domain. Calibration may improve it, but calibration must itself be evaluated on unseen data.
+
+For the industrial process twin, use the same rule: calculation throughput is not predictive accuracy. Request or collect a rights-cleared, time-stamped held-out campaign with sensor calibration, process regime, product grade, operator interventions, and measured outcomes. If such data are unavailable, report the benchmark as blocked rather than fabricate a substitute from the public announcement.
 
 ### Robust scenario and resilience evaluation
 
