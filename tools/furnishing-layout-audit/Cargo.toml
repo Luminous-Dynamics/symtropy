@@ -33,3 +33,8 @@ harness = false
 name = "response_robustness_scaling"
 path = "benches/response_robustness_scaling.rs"
 harness = false
+
+[[bench]]
+name = "preference_policy_evaluation_scaling"
+path = "benches/preference_policy_evaluation_scaling.rs"
+harness = false
