@@ -14,6 +14,7 @@ on:
     branches: ["main"]
     paths:
       - "tools/verify-mikasa-long-results.sh"
+      - "tools/verify-mikasa-policy-boundary.sh"
       - "tools/test-verify-mikasa-long-results.sh"
       - "tools/vision-memory-mikasa-long-tasks.tsv"
       - ".github/workflows/vision-memory-mikasa-evidence.yml"
