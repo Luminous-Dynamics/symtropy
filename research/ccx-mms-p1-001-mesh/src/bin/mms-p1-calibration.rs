@@ -1,3 +1,5 @@
+use std::env;
+
 use ccx_mms_p1_mesh::{generate_mesh, ErrorNorms, Mesh};
 use ccx_mms_p1_oracle::{ManufacturedProblem, Vec2};
 
@@ -20,6 +22,14 @@ struct QuadratureCheck {
     error_norm_pass: bool,
 }
 
+fn required_sha(variable: &str) -> Result<String, String> {
+    let value = env::var(variable).map_err(|error| format!("{variable} is required: {error}"))?;
+    if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(format!("{variable} must be a 40-character hexadecimal commit SHA"));
+    }
+    Ok(value.to_ascii_lowercase())
+}
+
 fn relative_difference(left: f64, right: f64) -> f64 {
     (left - right).abs() / right.abs().max(f64::MIN_POSITIVE)
 }
@@ -36,6 +46,8 @@ fn observed_order(previous: f64, current: f64) -> f64 {
 }
 
 fn main() -> Result<(), String> {
+    let source_sha = required_sha("MMS_BENCH_SOURCE_SHA")?;
+    let checkout_sha = required_sha("MMS_BENCH_CHECKOUT_SHA")?;
     let problem = ManufacturedProblem::reference();
     let mut levels: Vec<(usize, Mesh, ErrorNorms)> = Vec::with_capacity(RESOLUTIONS.len());
 
@@ -163,6 +175,9 @@ fn main() -> Result<(), String> {
     println!("{{");
     println!("  \"protocol_id\": \"PHYS-CCX-MMS-P1-001\",");
     println!("  \"protocol_version\": \"0.3.0\",");
+    println!("  \"source_sha\": \"{source_sha}\",");
+    println!("  \"checkout_sha\": \"{checkout_sha}\",");
+    println!("  \"provenance_bound\": true,");
     println!("  \"probe_status\": \"exact_nodal_interpolation_postprocessor_calibration\",");
     println!("  \"solver_execution\": false,");
     println!("  \"solver_qualification\": false,");
