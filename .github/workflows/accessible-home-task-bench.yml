@@ -1,0 +1,43 @@
+name: Accessible home task-chain benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-task-bench/**"
+      - "docs/built-environment/accessible-home-task-benchmark-v0.1.md"
+      - ".github/workflows/accessible-home-task-bench.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-task-bench/**"
+      - "docs/built-environment/accessible-home-task-benchmark-v0.1.md"
+      - ".github/workflows/accessible-home-task-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-task-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Format, fail-closed tests, fixture receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/accessible-home-task-bench/Cargo.toml -- --check
+      - name: Test evaluator rules and negative controls
+        run: cargo test --manifest-path tools/accessible-home-task-bench/Cargo.toml --lib
+      - name: Evaluate exact synthetic fixture
+        run: cargo run --manifest-path tools/accessible-home-task-bench/Cargo.toml -- --input tools/accessible-home-task-bench/fixtures/accessibility-task-benchmark-v0.1.json --output /tmp/accessible-home-task-report.json
+      - name: Verify receipt and scenario counts
+        run: |
+          test "$(python3 -c 'import json; d=json.load(open("/tmp/accessible-home-task-report.json")); print(d["scenario_count"])')" = "9"
+          test "$(python3 -c 'import json; d=json.load(open("/tmp/accessible-home-task-report.json")); print(d["result_counts"]["blocked_by_declared_barrier"])')" = "2"
+          test "$(python3 -c 'import json; d=json.load(open("/tmp/accessible-home-task-report.json")); print(d["result_counts"]["not_evaluable"])')" = "6"
+          test "$(python3 -c 'import json; d=json.load(open("/tmp/accessible-home-task-report.json")); print(d["result_counts"]["evidence_complete_for_fixture"])')" = "1"
