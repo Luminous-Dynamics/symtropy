@@ -215,6 +215,7 @@ struct FlowTimeRunSummary {
     cohort_accounting_valid: bool,
     completed_good_flow_time_seconds: Option<FlowTimeObservationSummary>,
     completed_scrap_flow_time_seconds: Option<FlowTimeObservationSummary>,
+    right_censored_observed_age_seconds: Option<FlowTimeObservationSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -236,6 +237,12 @@ struct FlowTimeStatistics {
     completed_good_jobs: DistributionSummary,
     completed_scrap_jobs: DistributionSummary,
     right_censored_jobs_at_horizon: DistributionSummary,
+    replications_with_right_censored_observations: usize,
+    right_censored_observed_age_mean_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p50_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p90_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p95_seconds_across_replications: Option<DistributionSummary>,
+    right_censored_observed_age_p99_seconds_across_replications: Option<DistributionSummary>,
     right_censored_fraction_of_release_cohort: Option<DistributionSummary>,
     cohort_accounting_valid: bool,
 }
@@ -904,6 +911,51 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             .iter()
             .map(|summary| summary.right_censored_jobs_at_horizon as f64)
             .collect();
+        let censored_age_mean: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.mean_seconds)
+            })
+            .collect();
+        let censored_age_p50: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p50_seconds)
+            })
+            .collect();
+        let censored_age_p90: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p90_seconds)
+            })
+            .collect();
+        let censored_age_p95: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p95_seconds)
+            })
+            .collect();
+        let censored_age_p99: Vec<f64> = flow_summaries
+            .iter()
+            .filter_map(|summary| {
+                summary
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .map(|value| value.p99_seconds)
+            })
+            .collect();
         let censor_fractions: Vec<f64> = flow_summaries.iter()
             .filter(|summary| summary.release_cohort_jobs > 0)
             .map(|summary| {
@@ -939,6 +991,17 @@ fn evaluate_catalog(catalog: &Catalog) -> Result<Report, String> {
             completed_good_jobs: summarize_distribution(&good_counts)?,
             completed_scrap_jobs: summarize_distribution(&scrap_counts)?,
             right_censored_jobs_at_horizon: summarize_distribution(&censored_counts)?,
+            replications_with_right_censored_observations: censored_age_mean.len(),
+            right_censored_observed_age_mean_seconds_across_replications:
+                optional_distribution_summary(&censored_age_mean)?,
+            right_censored_observed_age_p50_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p50)?,
+            right_censored_observed_age_p90_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p90)?,
+            right_censored_observed_age_p95_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p95)?,
+            right_censored_observed_age_p99_seconds_across_replications:
+                optional_distribution_summary(&censored_age_p99)?,
             right_censored_fraction_of_release_cohort:
                 optional_distribution_summary(&censor_fractions)?,
             cohort_accounting_valid: flow_summaries
@@ -1567,11 +1630,14 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     }
     advance_time(&mut state, catalog, catalog.horizon_seconds)?;
     state.now = catalog.horizon_seconds;
-    let right_censored_jobs_at_horizon = count_right_censored_jobs(
+    let right_censored_observed_ages_seconds = collect_right_censored_observed_ages_seconds(
         &state,
         catalog.warmup_seconds,
         catalog.horizon_seconds,
     )?;
+    let right_censored_jobs_at_horizon = right_censored_observed_ages_seconds.len() as u64;
+    let right_censored_observed_age_seconds =
+        summarize_flow_time_seconds(&right_censored_observed_ages_seconds)?;
     let completed_good_flow_time_seconds =
         summarize_flow_time_seconds(&state.completed_good_flow_times_seconds)?;
     let completed_scrap_flow_time_seconds =
@@ -1689,6 +1755,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             cohort_accounting_valid: flow_time_cohort_accounting_valid,
             completed_good_flow_time_seconds,
             completed_scrap_flow_time_seconds,
+            right_censored_observed_age_seconds,
         },
         common_cause_control_outage_config: catalog.common_cause_control_outage.clone(),
         common_cause_control_outage_trace: state.common_cause_control_outage_trace.clone(),
@@ -1729,13 +1796,13 @@ fn summarize_flow_time_seconds(
     }))
 }
 
-fn count_right_censored_jobs(
+fn collect_right_censored_observed_ages_seconds(
     state: &SimState,
     warmup_seconds: u64,
     horizon_seconds: u64,
-) -> Result<u64, String> {
+) -> Result<Vec<f64>, String> {
     let mut seen_ids = BTreeSet::new();
-    let mut censored_count = 0_u64;
+    let mut censored_ages_seconds = Vec::new();
     let mut observe_job = |job: &Job| -> Result<(), String> {
         if !seen_ids.insert(job.id) {
             return Err("duplicate_job_id_in_live_system_at_horizon".into());
@@ -1743,7 +1810,9 @@ fn count_right_censored_jobs(
         if job.released_at_seconds >= warmup_seconds
             && job.released_at_seconds < horizon_seconds
         {
-            censored_count += 1;
+            censored_ages_seconds.push(
+                horizon_seconds.saturating_sub(job.released_at_seconds) as f64,
+            );
         }
         Ok(())
     };
@@ -1769,7 +1838,7 @@ fn count_right_censored_jobs(
             }
         }
     }
-    Ok(censored_count)
+    Ok(censored_ages_seconds)
 }
 
 fn safe_ratio(numerator: f64, denominator: f64) -> f64 {
@@ -2913,6 +2982,15 @@ mod tests {
             assert!(scenario.flow_time.cohort_accounting_valid);
             assert!(scenario.flow_time.release_cohort_jobs > 0);
             assert!(scenario.flow_time.right_censored_jobs_at_horizon > 0);
+            assert_eq!(
+                scenario
+                    .flow_time
+                    .right_censored_observed_age_seconds
+                    .as_ref()
+                    .expect("right-censored observed ages")
+                    .sample_count as u64,
+                scenario.flow_time.right_censored_jobs_at_horizon
+            );
             assert_eq!(
                 scenario.flow_time.completed_good_jobs
                     + scenario.flow_time.completed_scrap_jobs
