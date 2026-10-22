@@ -384,9 +384,9 @@ fn validate_grid(
     expected_processing_max: &[u64],
     expected_count: usize,
 ) -> Result<(), String> {
-    if grid.utilisation_levels != expected_utilisation
-        || grid.allowance_factors != expected_allowance
-        || grid.processing_time_max_values != expected_processing_max
+    if grid.utilisation_levels.as_slice() != expected_utilisation
+        || grid.allowance_factors.as_slice() != expected_allowance
+        || grid.processing_time_max_values.as_slice() != expected_processing_max
         || grid.scenario_count != expected_count
         || grid.reference_rows.len() != expected_count
     {
@@ -637,8 +637,8 @@ mod tests {
     #[test]
     fn duplicate_scenarios_fail_closed() {
         let mut contract = fixture();
-        contract.simulator_protocol.validation.reference_rows[1] =
-            contract.simulator_protocol.validation.reference_rows[0].clone();
+        let first = contract.simulator_protocol.validation.reference_rows[0].clone();
+        contract.simulator_protocol.validation.reference_rows[1] = first;
         assert_eq!(validate_manifest(&contract).unwrap_err(), "validation_reference_rows_have_invalid_or_duplicate_scenario");
     }
 
