@@ -168,6 +168,19 @@ jobs:
             and (.physical_comparator_status | contains("not asserted as a golden numerical target"))
           ' beam-modal-reference-receipt.json
 
+      - name: Verify continuous beam mesh assembly mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mesh_mutations.sh
+
+      - name: Re-verify beam mesh assembly source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mesh.rs research/physical-transformation-reference/src/beam_pin_assembly.rs research/physical-transformation-reference/src/bin/beam-pin-assembly-reference.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify planar-truss production source after mutation audit
         shell: bash
         run: |
@@ -464,5 +477,6 @@ jobs:
             beam-pin-assembly-mutation-receipt.json
             beam-modal-mutation-receipt.json
             beam-modal-reference-receipt.json
+            beam-mesh-assembly-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90

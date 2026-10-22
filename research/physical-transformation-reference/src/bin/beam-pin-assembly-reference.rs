@@ -236,6 +236,27 @@ fn descriptors_json(
                             at_start
                         )
                     }
+                    BeamPinDofKind::MemberInteriorTranslationX { member_id, station } => {
+                        format!(
+                            "\"kind\":\"member-interior-translation-x\",\"member_id\":{},\"station\":{}",
+                            json_quote(member_id),
+                            station
+                        )
+                    }
+                    BeamPinDofKind::MemberInteriorTranslationY { member_id, station } => {
+                        format!(
+                            "\"kind\":\"member-interior-translation-y\",\"member_id\":{},\"station\":{}",
+                            json_quote(member_id),
+                            station
+                        )
+                    }
+                    BeamPinDofKind::MemberInteriorRotation { member_id, station } => {
+                        format!(
+                            "\"kind\":\"member-interior-rotation\",\"member_id\":{},\"station\":{}",
+                            json_quote(member_id),
+                            station
+                        )
+                    }
                 };
                 format!("{{\"index\":{}, {kind}}}", descriptor.index)
             })

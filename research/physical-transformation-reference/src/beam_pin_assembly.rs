@@ -46,7 +46,10 @@ pub struct BeamPinMember {
 pub enum BeamPinDofKind {
     NodeTranslationX { node_id: String },
     NodeTranslationY { node_id: String },
+    MemberInteriorTranslationX { member_id: String, station: usize },
+    MemberInteriorTranslationY { member_id: String, station: usize },
     MemberEndRotation { member_id: String, at_start: bool },
+    MemberInteriorRotation { member_id: String, station: usize },
 }
 
 /// A globally indexed generalized coordinate, preserved in each receipt.
