@@ -74,6 +74,56 @@ const OUTSIDE_REFERENCE_CROSS_SECTION_RATIO: f64 = 1.0 / 8.0;
 const SHEAR_SLENDERNESS_CANDIDATE_LIMIT: f64 = 100.0;
 const SHEAR_SLENDERNESS_COMPARISON_LIMIT: f64 = 30.0;
 
+/// Produce canonical UTF-8 request bytes for a set of named screen cases.
+/// Case names must be unique and delimiter-safe. The exact numerical inputs and
+/// analysis purpose are serialized so changing the wavelength or section is a
+/// different request, not a post-processing option.
+pub fn canonical_beam_theory_screen_request(
+    cases: &[(&str, BeamTheoryApplicabilityInput)],
+) -> Check<String> {
+    use std::collections::BTreeSet;
+
+    if cases.is_empty() || cases.len() > 64 {
+        return Err("screen case count must be between 1 and 64".to_owned());
+    }
+    let mut names = BTreeSet::new();
+    let mut fields = vec![
+        "schema=beam-theory-applicability-request-v0.1".to_owned(),
+        "fixture=PHYS-BEAM-THEORY-SCREEN-001".to_owned(),
+    ];
+    for (name, input) in cases {
+        if name.is_empty()
+            || name.trim() != *name
+            || name.contains('|')
+            || name.chars().any(char::is_control)
+        {
+            return Err("screen case name is empty or non-canonical".to_owned());
+        }
+        if !names.insert(*name) {
+            return Err(format!("duplicate beam-theory screen case: {name}"));
+        }
+        // Validate the case before it is allowed into the provenance record.
+        assess_beam_theory_applicability(*input)?;
+        let purpose = match input.purpose {
+            BeamAnalysisPurpose::StaticOrQuasiStatic => "static-or-quasi-static",
+            BeamAnalysisPurpose::Modal => "modal",
+        };
+        let wavelength = input
+            .shortest_relevant_wavelength_m
+            .map_or_else(|| "none".to_owned(), |value| value.to_string());
+        fields.push(format!(
+            "case|{name}|{purpose}|{}|{wavelength}|{}|{}|{}|{}|{}",
+            input.member_length_m,
+            input.max_cross_section_dimension_m,
+            input.area_m2,
+            input.second_moment_m4,
+            input.youngs_modulus_pa,
+            input.shear_modulus_pa
+        ));
+    }
+    Ok(fields.join("|"))
+}
+
 /// Evaluate the named screening indicators and return an explicit advisory
 /// status. For modal analysis, the effective length is min(member length,
 /// shortest relevant wavelength); without that wavelength, the result remains
@@ -167,6 +217,50 @@ mod tests {
         BeamAnalysisPurpose, BeamTheoryApplicabilityInput, BeamTheoryScreenStatus,
         assess_beam_theory_applicability,
     };
+
+    fn reference_cases() -> Vec<(&'static str, BeamTheoryApplicabilityInput)> {
+        let mut candidate = BeamTheoryApplicabilityInput {
+            purpose: BeamAnalysisPurpose::StaticOrQuasiStatic,
+            member_length_m: 1.0,
+            shortest_relevant_wavelength_m: None,
+            max_cross_section_dimension_m: 0.01,
+            area_m2: 1.0,
+            second_moment_m4: 1.0 / 1500.0,
+            youngs_modulus_pa: 100.0,
+            shear_modulus_pa: 10.0,
+        };
+        let mut short_wavelength = candidate;
+        short_wavelength.purpose = BeamAnalysisPurpose::Modal;
+        short_wavelength.shortest_relevant_wavelength_m = Some(0.04);
+        let mut missing_wavelength = candidate;
+        missing_wavelength.purpose = BeamAnalysisPurpose::Modal;
+        let mut intermediate = candidate;
+        intermediate.second_moment_m4 = 0.002;
+        let mut low_shear = candidate;
+        low_shear.second_moment_m4 = 0.004;
+        // Keep the first value mutable only during explicit case construction;
+        // the input type is Copy so each named case is an isolated value.
+        candidate.purpose = BeamAnalysisPurpose::StaticOrQuasiStatic;
+        vec![
+            ("static-slender", candidate),
+            ("modal-short-wavelength", short_wavelength),
+            ("modal-wavelength-missing", missing_wavelength),
+            ("intermediate-shear", intermediate),
+            ("low-shear-slenderness", low_shear),
+        ]
+    }
+
+    #[test]
+    fn canonical_request_matches_frozen_five_case_fixture() {
+        let cases = reference_cases();
+        let actual = super::canonical_beam_theory_screen_request(&cases)
+            .expect("canonical applicability request");
+        assert_eq!(
+            actual,
+            include_str!("../fixtures/beam_theory_applicability_request_v0_1.txt")
+                .trim_end_matches('\n')
+        );
+    }
 
     fn slender_input() -> BeamTheoryApplicabilityInput {
         BeamTheoryApplicabilityInput {
