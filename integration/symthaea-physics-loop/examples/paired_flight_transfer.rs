@@ -39,6 +39,33 @@ fn percentile(values: &[f64], q: f64) -> f64 {
 }
 
 /// One deterministic disturbance schedule per seed, shared by every policy in a pair.
+fn mean(values: &[f64]) -> f64 {
+    if values.is_empty() { 0.0 } else { values.iter().sum::<f64>() / values.len() as f64 }
+}
+
+/// Deterministic paired bootstrap over per-trial differences.
+/// Returns None for fewer than two matched trials: one trial cannot estimate uncertainty.
+fn bootstrap_mean_ci(values: &[f64], resamples: usize, seed: u64) -> Option<[f64; 2]> {
+    if values.len() < 2 || resamples == 0 {
+        return None;
+    }
+    let mut rng = if seed == 0 { 0x9E37_79B9_7F4A_7C15 } else { seed };
+    let mut means = Vec::with_capacity(resamples);
+    for _ in 0..resamples {
+        let mut total = 0.0;
+        for _ in 0..values.len() {
+            rng ^= rng << 13;
+            rng ^= rng >> 7;
+            rng ^= rng << 17;
+            let index = (rng % values.len() as u64) as usize;
+            total += values[index];
+        }
+        means.push(total / values.len() as f64);
+    }
+    Some([percentile(&means, 0.025), percentile(&means, 0.975)])
+}
+
+/// One deterministic disturbance schedule per seed, shared by every policy in a pair.
 fn disturbance_for_seed(seed: u64, step: usize) -> Option<[f64; 3]> {
     let first_start = 60 + (seed % 20) as usize;
     let second_start = 200 + (seed % 20) as usize;
@@ -230,6 +257,11 @@ fn main() {
     let gains = PdGains::default();
 
     let mut paired_rows = Vec::new();
+    let mut trained_fep_rmse_vs_pd = Vec::with_capacity(trials.max(1));
+    let mut trained_no_fep_rmse_vs_pd = Vec::with_capacity(trials.max(1));
+    let mut fep_rmse_effect = Vec::with_capacity(trials.max(1));
+    let mut trained_fep_within_vs_pd = Vec::with_capacity(trials.max(1));
+    let mut fep_within_effect = Vec::with_capacity(trials.max(1));
     for index in 0..trials.max(1) {
         let seed = 0x53594d5400000000_u64.wrapping_add(index as u64 + 1);
         let pd = evaluate_classical(seed, eval_steps, &setpoint, &gains, force_enabled, false);
@@ -243,6 +275,11 @@ fn main() {
         let trained_with_fep = evaluate_symthaea(
             seed, eval_steps, &setpoint, &config, &trained_controller, force_enabled, true,
         );
+        trained_fep_rmse_vs_pd.push(trained_with_fep.rmse_m - pd.rmse_m);
+        trained_no_fep_rmse_vs_pd.push(trained_no_online_fep.rmse_m - pd.rmse_m);
+        fep_rmse_effect.push(trained_with_fep.rmse_m - trained_no_online_fep.rmse_m);
+        trained_fep_within_vs_pd.push(trained_with_fep.within_5cm_fraction - pd.within_5cm_fraction);
+        fep_within_effect.push(trained_with_fep.within_5cm_fraction - trained_no_online_fep.within_5cm_fraction);
         paired_rows.push(json!({
             "trial_seed": seed,
             "evidence_class": "simulator_experiment",
@@ -291,7 +328,27 @@ fn main() {
             "fep_adaptation": true,
             "force_disturbances_enabled": force_enabled
         },
-        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_n_s is thrust impulse, not electrical energy. ground_contact_steps counts explicit ground clamps. Controller p50/p95 and FEP p95 latencies are wall-clock microseconds measured in-process, are machine/load dependent, and are not cross-machine latency comparisons. No win is assumed.",
+        "metrics_note": "Position errors are sampled before each physics step. thrust_impulse_n_s is thrust impulse, not electrical energy. ground_contact_steps counts explicit ground clamps. Controller p50/p95 and FEP p95 latencies are wall-clock microseconds measured in-process, are machine/load dependent, and are not cross-machine latency comparisons. Positive RMSE deltas mean worse tracking; positive within-5-cm deltas mean better tracking. Bootstrap intervals resample paired seed-level deltas and are descriptive only for the two-trial CI smoke. No win is assumed.",
+        "paired_summary": {
+            "bootstrap_resamples": 2000,
+            "paired_trial_count": paired_rows.len(),
+            "trained_with_fep_vs_pd": {
+                "mean_delta_rmse_m": mean(&trained_fep_rmse_vs_pd),
+                "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&trained_fep_rmse_vs_pd, 2000, 0x5354_4601_u64),
+                "mean_delta_within_5cm_fraction": mean(&trained_fep_within_vs_pd),
+                "bootstrap_95_ci_delta_within_5cm_fraction": bootstrap_mean_ci(&trained_fep_within_vs_pd, 2000, 0x5354_4602_u64)
+            },
+            "trained_without_online_fep_vs_pd": {
+                "mean_delta_rmse_m": mean(&trained_no_fep_rmse_vs_pd),
+                "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&trained_no_fep_rmse_vs_pd, 2000, 0x5354_4603_u64)
+            },
+            "online_fep_effect_vs_same_trained_weights": {
+                "mean_delta_rmse_m": mean(&fep_rmse_effect),
+                "bootstrap_95_ci_delta_rmse_m": bootstrap_mean_ci(&fep_rmse_effect, 2000, 0x5354_4604_u64),
+                "mean_delta_within_5cm_fraction": mean(&fep_within_effect),
+                "bootstrap_95_ci_delta_within_5cm_fraction": bootstrap_mean_ci(&fep_within_effect, 2000, 0x5354_4605_u64)
+            }
+        },
         "trials": paired_rows
     }));
 }
