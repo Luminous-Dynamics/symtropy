@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "geo-sim-h0-known-truth-001",
+  "status": "benchmark_specification_not_executed",
+  "purpose": "Freeze public inputs and analytic covariance-whitened observability references for the first low-order GEO-SIM-001 controls.",
+  "claim_boundary": {
+    "synthetic_cases_are_earth_observations": false,
+    "analytic_fixture_validates_a_physical_geodynamo_model": false,
+    "parameterization_detail_implies_data_resolution": false,
+    "hidden_truth_is_in_public_manifest": false,
+    "notes": [
+      "Coordinates are dimensionless proxies, not calibrated physical units.",
+      "The manifest contains the observation operator, covariance and noise-free public observations, but no hidden truth arrays.",
+      "Truth arrays are stored in the scorer-gated Rust module and must be withheld from an estimator until scoring."
+    ]
+  },
+  "convention": {
+    "state_dimension": 2,
+    "observation_dimension": 2,
+    "observation_equation": "y = H x",
+    "covariance_role": "full observation-error covariance R; off-diagonal entries are preserved",
+    "time_axis": "model_relative_seconds; observation channels in each H0 fixture are simultaneous, equal timestamps are valid, and decreasing time order is invalid",
+    "units": "synthetic_dimensionless",
+    "randomness": "not_used_exact_analytic_fixture",
+    "rank_tolerance": {
+      "absolute": 1e-12,
+      "relative": 1e-12
+    },
+    "prior_mean": [
+      0,
+      0
+    ],
+    "prior_covariance": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "information_gain": "expected_information_gain_nats = 0.5 * ln(det(I + Sa * H^T * R^-1 * H)); Sa is the declared prior covariance",
+    "observation_cost_model": "each observation channel has unit acquisition cost, so all two-channel H0 fixtures have total cost 2"
+  },
+  "fixtures": [
+    {
+      "id": "h0-complementary-sensors",
+      "parameter_ids": [
+        "low_degree_field_proxy",
+        "flow_mode_proxy"
+      ],
+      "observation_ids": [
+        "sensor_low_degree",
+        "sensor_flow_mode"
+      ],
+      "observation_operator": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observation_covariance": [
+        [
+          0.25,
+          0
+        ],
+        [
+          0,
+          0.25
+        ]
+      ],
+      "observed_values": [
+        2,
+        -1
+      ],
+      "model_relative_seconds": [
+        0,
+        0
+      ],
+      "expected_observability": {
+        "numerical_rank": 2,
+        "singular_values": [
+          2,
+          2
+        ],
+        "condition_number": 1,
+        "null_space_basis": []
+      },
+      "expected_information_gain_nats": 1.6094379124341003,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.8047189562170501
+    },
+    {
+      "id": "h0-weak-high-mode",
+      "parameter_ids": [
+        "low_degree_field_proxy",
+        "high_degree_flow_proxy"
+      ],
+      "observation_ids": [
+        "sensor_low_degree",
+        "sensor_high_degree"
+      ],
+      "observation_operator": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0.1
+        ]
+      ],
+      "observation_covariance": [
+        [
+          0.25,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observed_values": [
+        2,
+        -0.3
+      ],
+      "model_relative_seconds": [
+        0,
+        0
+      ],
+      "expected_observability": {
+        "numerical_rank": 2,
+        "singular_values": [
+          2,
+          0.1
+        ],
+        "condition_number": 20,
+        "null_space_basis": []
+      },
+      "expected_information_gain_nats": 0.8096941216436342,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.4048470608218171
+    },
+    {
+      "id": "h0-exact-null-mode",
+      "parameter_ids": [
+        "low_degree_field_proxy",
+        "unobservable_mode_proxy"
+      ],
+      "observation_ids": [
+        "sensor_a",
+        "sensor_b"
+      ],
+      "observation_operator": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "observation_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observed_values": [
+        2,
+        2
+      ],
+      "model_relative_seconds": [
+        0,
+        0
+      ],
+      "expected_observability": {
+        "numerical_rank": 1,
+        "singular_values": [
+          1.4142135623730951,
+          0
+        ],
+        "condition_number": null,
+        "null_space_basis": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_information_gain_nats": 0.5493061443340549,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.27465307216702745
+    },
+    {
+      "id": "h0-correlated-duplicate",
+      "parameter_ids": [
+        "low_degree_field_proxy",
+        "unobservable_mode_proxy"
+      ],
+      "observation_ids": [
+        "sensor_a",
+        "sensor_a_repeat"
+      ],
+      "observation_operator": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "observation_covariance": [
+        [
+          0.25,
+          0.2475
+        ],
+        [
+          0.2475,
+          0.25
+        ]
+      ],
+      "observed_values": [
+        2,
+        2
+      ],
+      "model_relative_seconds": [
+        0,
+        0
+      ],
+      "expected_observability": {
+        "numerical_rank": 1,
+        "singular_values": [
+          2.005018828468342,
+          0
+        ],
+        "condition_number": null,
+        "null_space_basis": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_information_gain_nats": 0.8067249769620305,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.40336248848101525
+    }
+  ],
+  "acceptance_checks": [
+    "The Rust code fixture matrices, covariance, values and identifiers exactly match these frozen public inputs.",
+    "Computed covariance-whitened singular values and rank match the references within stated tolerance.",
+    "The exact null and correlated duplicate controls remain rank deficient; no unique-state claim is accepted.",
+    "The benchmark status remains specification_not_executed until a complete receipt passes independent qualification.",
+    "Compare policy utility per declared cost, not only raw EIG; complementary and correlated-duplicate fixtures both spend two unit-cost observations."
+  ]
+}
