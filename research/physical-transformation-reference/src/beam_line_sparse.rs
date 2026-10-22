@@ -312,7 +312,7 @@ pub fn solve_sparse_beam_line_modes(
     let mut previous: Option<Vec<f64>> = None;
     let mut previous_beta = 0.0_f64;
 
-    for _iteration in 0..iterations_limit {
+    for iteration_index in 0..iterations_limit {
         basis.push(q.clone());
         let mq = mass.mul(&q)?;
         let mut w = factor.solve(&mq)?;
@@ -339,6 +339,9 @@ pub fn solve_sparse_beam_line_modes(
         let beta = mass_norm(&mass, &w)?;
         let scale = alpha.abs().max(previous_beta.abs()).max(1.0);
         if !beta.is_finite() || beta < 1.0e-13 * scale {
+            break;
+        }
+        if iteration_index + 1 == iterations_limit {
             break;
         }
         off_diagonal.push(beta);
