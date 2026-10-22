@@ -123,7 +123,7 @@ jobs:
             > ev-external-jobshop-parity-report.json
           jq -e '
             .schema_version == "external-jobshop-input-parity/0.1"
-            and .status == "input_structure_validated_not_policy_benchmarked"
+            and .status == "input_and_tiny_exact_makespan_oracle_validated_not_policy_benchmarked"
             and .benchmark_id == "FJSP-SDST-FATTAHI-001"
             and .source_commit == "d088a26582f5cb79c6b4f2ad94f68ac7c50878cb"
             and .expected_source_git_blob_sha1 == "6bac8cfaf9f326f6405d5396b9cedd12941aba94"
@@ -134,6 +134,12 @@ jobs:
             and .setup_matrix_dimensions == [2,4,4]
             and .setup_values_min == 3
             and .setup_values_max == 8
+            and .exact_oracle.candidate_assignment_sequence_combinations == 120
+            and .exact_oracle.feasible_acyclic_schedules == 52
+            and .exact_oracle.optimal_makespan == 70
+            and .exact_oracle.optimal_machine_assignment_upstream_ids == [2,2,1,1]
+            and .exact_oracle.exhaustive_for_declared_instance
+            and (.exact_oracle.optimal_schedule | length) == 4
             and .primary_objective == "makespan"
             and .supports_due_dates == false
             and (.claim_ceiling | contains("No dispatching policy was executed"))

@@ -2,7 +2,7 @@
 
 **Related dispatch-policy evaluation:** [EV-FACTORY-DESIGN-003 #2445](https://github.com/Luminous-Dynamics/symtropy/issues/2445)  
 **Current EV-line experiments:** [PR #2443](https://github.com/Luminous-Dynamics/symtropy/pull/2443), [age fairness override #2457](https://github.com/Luminous-Dynamics/symtropy/pull/2457), [threshold sweep #2467](https://github.com/Luminous-Dynamics/symtropy/pull/2467), [multiplicity correction #2545](https://github.com/Luminous-Dynamics/symtropy/pull/2545)  
-**Status:** input-parity control only; the external scheduler has not been run by this harness.
+**Status:** pinned input parity plus an exhaustive exact makespan oracle for one tiny instance; external dispatch-policy baselines have not yet been run by this harness.
 
 ## Why a second benchmark stratum is required
 
@@ -25,13 +25,14 @@ Two public sources provide complementary references:
 - Strictly parses the tiny FJSP-SDST instance: header, per-job operation count, eligible-machine/processing-time pairs, then a complete square setup matrix per machine.
 - Rejects missing/extra setup rows, wrong matrix widths, duplicate machine alternatives, out-of-range machine IDs, zero processing times, negative setup times, undeclared dimensions and malformed integer values.
 - Verifies the frozen structure: 2 jobs, 2 machines, 4 operations, `[2,2,2,2]` alternatives, `[2,4,4]` setup tensor and setup values 3–8.
-- Emits a deterministic structural report with source provenance and an explicit claim ceiling.
-- Has no scheduler, machine simulator, due-date field or schedule-quality result. It cannot establish policy parity, improvement or SOTA.
+- Emits a deterministic structural/provenance report and exhaustively enumerates every eligible-machine assignment and machine sequence for this two-job/four-operation case. It rejects cyclic machine/job precedence combinations and uses explicit non-anticipatory setup semantics: processing starts after the later of job readiness and machine availability, plus transition setup; the first operation on a machine has zero setup.
+- Known-answer result on this frozen instance: 120 assignment/sequence combinations considered, 52 acyclic feasible schedules, exact makespan 70. The best schedule and per-operation machine/setup/start/completion trace are emitted for inspection. Exactness applies only to this finite case and its written setup semantics.
+- No dispatch-rule policy is executed. This does not reproduce a published solver baseline, compare with SOTA, model due dates, or establish industrial outcomes.
 
 ## Next benchmark sequence
 
-1. **Input parity first:** keep the pinned tiny instance as a parser/setup-tensor regression control; add more upstream cases only after their semantics are independently inspected.
-2. **Reproduce reference baselines:** execute upstream dispatching-rule and exact/CP-SAT/MILP methods on the same selected instances. Preserve version, configuration, objective, solver limits, seeds and raw outputs. For tiny cases, use exact results as an oracle/lower bound; do not compare wall-clock values across unlike hardware as quality scores.
+1. **Input parity and tiny exact oracle:** PR #2587 pins the upstream source. This stacked experiment enumerates all machine assignments and machine sequences for one 2-job/4-operation case, producing a known-answer makespan of 70 under its explicit non-anticipatory setup semantics. It is not yet checked against an independently run external solver.
+2. **Reproduce reference baselines:** execute upstream dispatching-rule and exact/CP-SAT/MILP methods on the same selected instances. Preserve version, configuration, objective, solver limits, seeds and raw outputs. Require independent agreement with the tiny exact oracle before expanding the corpus; do not compare wall-clock values across unlike hardware as quality scores.
 3. **Add a native Symtropy action adapter:** map the upstream ready-operation and machine-eligibility state into a versioned JSON contract, run the candidate policy against the *same* upstream simulator and constraint checker, and log decision latency plus chosen action. The current EV-line `minimize_changeover` rule is not presumed equivalent to machine/operation-dependent setup: implement that mapping explicitly.
 4. **Evaluate dynamic tardiness separately:** use a source whose instances define arrivals, due-date construction and tardiness scoring. The EV-line fixture lacks those semantics, so EDD, minimum slack, critical ratio and tardiness results are unsupported there. Preserve the upstream score definition exactly.
 5. **Predeclare statistics:** use paired replications only when common exogenous streams are genuinely shareable; use at least 100 predeclared replications per dynamic regime as an initial target, forward-time validation/holdout, multiplicity correction for the primary hypothesis family, and published adverse cases. Keep fairness, setup time, constraint violations and rule-switch/runtime overhead disaggregated.
@@ -46,4 +47,4 @@ Two public sources provide complementary references:
 
 ## Claim ceiling
 
-This v0.1 contribution verifies the input contract for one small public benchmark instance. It does not run a scheduler, reproduce an external paper, compare Symtropy with SOTA, estimate factory output or due-date performance, or authorize plant decisions.
+This v0.1 contribution verifies the input contract and an exact exhaustive makespan optimum for one tiny public instance under the explicitly stated setup semantics. It does not run a dispatching policy, reproduce an external reference solver or paper, compare Symtropy with SOTA, estimate factory output or due-date performance, or authorize plant decisions.
