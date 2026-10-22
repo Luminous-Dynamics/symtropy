@@ -42,6 +42,38 @@
       "published_or_reviewed": "2023",
       "use": "Research context for electrochemical silicon process families and unresolved scale-up questions.",
       "limitation": "Review of promising technologies is not evidence of commercial-scale competitiveness or qualified product output."
+    },
+    {
+      "reference_id": "flat-glass-tea-2025",
+      "title": "Decarbonising the glass industry: A comprehensive techno-economic assessment of low-emission pathways",
+      "url": "https://doi.org/10.1016/j.compchemeng.2025.109329",
+      "published_or_reviewed": "2025",
+      "use": "Scenario and uncertainty-aware comparison of hybrid furnaces, electrification, hydrogen, and CCS for flat glass.",
+      "limitation": "Model outputs depend on the study's declared flat-glass plant, prices, system boundary, and assumptions; do not generalize as measured results for another plant."
+    },
+    {
+      "reference_id": "container-glass-decarbonization-2026",
+      "title": "Assessing container glass production decarbonization through amine scrubbing, calcium looping and electrification: a comparative techno-economic analysis",
+      "url": "https://doi.org/10.1016/j.jclepro.2026.148702",
+      "published_or_reviewed": "2026",
+      "use": "Recent modeled comparison of CCS and electrification pathways for a declared 250 t/day container-glass case.",
+      "limitation": "Scenario-specific process-model and techno-economic results; not an independently measured universal benchmark."
+    },
+    {
+      "reference_id": "silicon-mse-tea-2026",
+      "title": "Techno-Economic Comparison of Molten-Salt Electrolysis and Carbothermic Reduction for the Production of Metallurgical-Grade Silicon",
+      "url": "https://doi.org/10.3390/en19092023",
+      "published_or_reviewed": "2026",
+      "use": "Recent conditional comparison of MG-Si conventional submerged-arc furnace and molten-salt electrolysis economics and energy assumptions.",
+      "limitation": "MSE for MG-Si has not been deployed at modeled industrial scale; inputs and cost results have high scale-up/financing uncertainty and are not validated plant performance."
+    },
+    {
+      "reference_id": "nist-digital-twins-2026",
+      "title": "Digital Twins Workshops Summary Report (NISTIR 8620)",
+      "url": "https://doi.org/10.6028/NIST.IR.8620",
+      "published_or_reviewed": "2026",
+      "use": "Manufacturing digital-twin concerns including interoperability, VVUQ, cybersecurity, and supply-chain resilience.",
+      "limitation": "Workshop synthesis and research priorities, not a glass- or silicon-specific process-performance standard."
     }
   ],
   "cases": [
