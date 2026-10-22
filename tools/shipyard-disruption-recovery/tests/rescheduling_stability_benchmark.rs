@@ -2,7 +2,7 @@
 //!
 //! This is not an industrial scheduling contest: it compares known-answer policies on a
 //! deliberately small spatial fixture to verify that the evaluator can distinguish localized
-//! repair from a feasible but unnecessarily broad right-shift. Every candidate is independently
+//! repair from a feasible but unnecessarily broad spatial translation or temporal right-shift. Every candidate is independently
 //! passed through the recovery evaluator; no runtime or global-optimality claim is made.
 
 use shipyard_disruption_recovery::{Disruption, RecoveryInput, evaluate_recovery};
@@ -14,7 +14,8 @@ const CASES: usize = 256;
 enum CandidatePolicy {
     NoOp,
     LocalRepair,
-    GlobalRightShift,
+    GlobalSpatialShift,
+    GlobalTemporalRightShift,
 }
 
 fn rect(min_x: i64, min_y: i64, max_x: i64, max_y: i64) -> Footprint {
@@ -86,9 +87,15 @@ fn candidate_for(baseline: &Scenario, policy: CandidatePolicy) -> Scenario {
             CandidatePolicy::NoOp => 0,
             CandidatePolicy::LocalRepair if index == 0 => 1,
             CandidatePolicy::LocalRepair => 0,
-            CandidatePolicy::GlobalRightShift => 1,
+            CandidatePolicy::GlobalSpatialShift => 1,
+            CandidatePolicy::GlobalTemporalRightShift => 0,
         };
         placement.footprint = rect(min_x + shift, min_y, max_x + shift, max_y);
+        if matches!(policy, CandidatePolicy::GlobalTemporalRightShift) {
+            let duration = placement.occupied.end_tick - placement.occupied.start_tick;
+            placement.occupied.start_tick += duration;
+            placement.occupied.end_tick += duration;
+        }
     }
     candidate
 }
@@ -114,6 +121,7 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
     let mut total_global_unaffected_churn = 0usize;
     let mut total_local_edge_shift = 0u64;
     let mut total_global_edge_shift = 0u64;
+    let mut total_temporal_right_shift_ticks = 0u64;
 
     for case_index in 0..CASES {
         let (baseline, disruption) = baseline_for(case_index);
@@ -136,7 +144,7 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
         );
         let global = evaluate(
             &baseline,
-            candidate_for(&baseline, CandidatePolicy::GlobalRightShift),
+            candidate_for(&baseline, CandidatePolicy::GlobalSpatialShift),
             &disruption,
         );
 
@@ -151,8 +159,24 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
         );
         assert!(
             local.metrics.rectangle_edge_shift_units < global.metrics.rectangle_edge_shift_units,
-            "localized repair should move fewer rectangle edges on case {case_index}"
+            "localized repair should move fewer rectangle edges than a global spatial translation on case {case_index}"
         );
+
+        let temporal = evaluate(
+            &baseline,
+            candidate_for(&baseline, CandidatePolicy::GlobalTemporalRightShift),
+            &disruption,
+        );
+        assert!(temporal.accepted, "temporal right-shift failed on case {case_index}: {:?}", temporal.violations);
+        assert_eq!(temporal.metrics.changed_placement_reservations, placement_count);
+        assert_eq!(temporal.metrics.unaffected_placement_churn, placement_count - 1);
+        assert_eq!(temporal.metrics.rectangle_edge_shift_units, 0);
+        assert_eq!(
+            temporal.metrics.time_shift_ticks,
+            (placement_count as u64) * 2 * (disruption.new_exclusion_zones[0].active.end_tick - disruption.new_exclusion_zones[0].active.start_tick)
+        );
+        assert_eq!(local.metrics.time_shift_ticks, 0);
+        total_temporal_right_shift_ticks += temporal.metrics.time_shift_ticks;
 
         total_local_changed += local.metrics.changed_placement_reservations;
         total_global_changed += global.metrics.changed_placement_reservations;
@@ -171,4 +195,5 @@ fn localized_repair_preserves_feasibility_with_less_churn_than_global_right_shif
     assert_eq!(total_global_unaffected_churn, 1_148);
     assert_eq!(total_local_edge_shift, 512);
     assert_eq!(total_global_edge_shift, 2_808);
+    assert!(total_temporal_right_shift_ticks > 0);
 }
