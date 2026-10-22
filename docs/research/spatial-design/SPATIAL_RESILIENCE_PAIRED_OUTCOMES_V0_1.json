@@ -1,0 +1,451 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "SPATIAL-RESILIENCE-PAIRED-OUTCOMES",
+  "version": "0.1.0",
+  "status": "synthetic_known_answer_outcomes_not_physical_predictions",
+  "claim_ceiling": "All quantities are synthetic, dimensionless units used only to test admission, pairing, hard floors, uncertainty and Pareto logic. They are not building-performance predictions.",
+  "units": {
+    "service_time": "synthetic service-hours",
+    "energy": "synthetic energy-units",
+    "repair": "synthetic repair-ticks",
+    "cost": "synthetic cost-units",
+    "uncertainty": "synthetic uncertainty-width-units"
+  },
+  "required_comparison_count": 5,
+  "comparisons": [
+    {
+      "id": "SPR-P-001",
+      "title": "Averages cannot compensate for a resident-specific service-floor failure",
+      "trace_id": "trace-shared-heat-outage-v1",
+      "trace_revision": "trace-revision-001",
+      "requirements": [
+        {
+          "requirement_id": "resident-a-step-free-entrance",
+          "minimum_service_hours": 8
+        },
+        {
+          "requirement_id": "resident-b-essential-device-power",
+          "minimum_service_hours": 10
+        }
+      ],
+      "uncertainty_limit": 2,
+      "expected_status": "evaluated",
+      "candidates": [
+        {
+          "candidate_id": "passive-resilient",
+          "trace_id": "trace-shared-heat-outage-v1",
+          "trace_revision": "trace-revision-001",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-step-free-entrance",
+              "available_hours": 9
+            },
+            {
+              "requirement_id": "resident-b-essential-device-power",
+              "available_hours": 10
+            }
+          ],
+          "energy_units": 12,
+          "repair_ticks": 4,
+          "cost_units": 8,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "nominally-efficient",
+          "trace_id": "trace-shared-heat-outage-v1",
+          "trace_revision": "trace-revision-001",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-step-free-entrance",
+              "available_hours": 9
+            },
+            {
+              "requirement_id": "resident-b-essential-device-power",
+              "available_hours": 7
+            }
+          ],
+          "energy_units": 7,
+          "repair_ticks": 4,
+          "cost_units": 5,
+          "expected_disposition": "excluded_service_floor"
+        },
+        {
+          "candidate_id": "balanced-modular",
+          "trace_id": "trace-shared-heat-outage-v1",
+          "trace_revision": "trace-revision-001",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-step-free-entrance",
+              "available_hours": 8
+            },
+            {
+              "requirement_id": "resident-b-essential-device-power",
+              "available_hours": 10
+            }
+          ],
+          "energy_units": 14,
+          "repair_ticks": 2,
+          "cost_units": 10,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "dominated-costly",
+          "trace_id": "trace-shared-heat-outage-v1",
+          "trace_revision": "trace-revision-001",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-step-free-entrance",
+              "available_hours": 8
+            },
+            {
+              "requirement_id": "resident-b-essential-device-power",
+              "available_hours": 10
+            }
+          ],
+          "energy_units": 16,
+          "repair_ticks": 5,
+          "cost_units": 12,
+          "expected_disposition": "dominated"
+        }
+      ]
+    },
+    {
+      "id": "SPR-P-002",
+      "title": "An attractive expected result outside the uncertainty envelope is not admitted",
+      "trace_id": "trace-uncertainty-ensemble-v1",
+      "trace_revision": "trace-revision-002",
+      "requirements": [
+        {
+          "requirement_id": "essential-water-service",
+          "minimum_service_hours": 7
+        },
+        {
+          "requirement_id": "resident-nighttime-access",
+          "minimum_service_hours": 7
+        }
+      ],
+      "uncertainty_limit": 2,
+      "expected_status": "evaluated",
+      "candidates": [
+        {
+          "candidate_id": "stable-balanced",
+          "trace_id": "trace-uncertainty-ensemble-v1",
+          "trace_revision": "trace-revision-002",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "essential-water-service",
+              "available_hours": 8
+            },
+            {
+              "requirement_id": "resident-nighttime-access",
+              "available_hours": 8
+            }
+          ],
+          "energy_units": 12,
+          "repair_ticks": 3,
+          "cost_units": 9,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "low-energy-tradeoff",
+          "trace_id": "trace-uncertainty-ensemble-v1",
+          "trace_revision": "trace-revision-002",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 2,
+          "services": [
+            {
+              "requirement_id": "essential-water-service",
+              "available_hours": 7
+            },
+            {
+              "requirement_id": "resident-nighttime-access",
+              "available_hours": 9
+            }
+          ],
+          "energy_units": 9,
+          "repair_ticks": 5,
+          "cost_units": 8,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "optimistic-high-variance",
+          "trace_id": "trace-uncertainty-ensemble-v1",
+          "trace_revision": "trace-revision-002",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 4,
+          "services": [
+            {
+              "requirement_id": "essential-water-service",
+              "available_hours": 10
+            },
+            {
+              "requirement_id": "resident-nighttime-access",
+              "available_hours": 10
+            }
+          ],
+          "energy_units": 8,
+          "repair_ticks": 2,
+          "cost_units": 6,
+          "expected_disposition": "excluded_uncertainty"
+        }
+      ]
+    },
+    {
+      "id": "SPR-P-003",
+      "title": "Candidate results from different disturbance traces cannot be paired",
+      "trace_id": "trace-required-shared-v1",
+      "trace_revision": "trace-revision-003",
+      "requirements": [
+        {
+          "requirement_id": "essential-room-function",
+          "minimum_service_hours": 5
+        }
+      ],
+      "uncertainty_limit": 2,
+      "expected_status": "reject_comparison",
+      "candidates": [
+        {
+          "candidate_id": "candidate-a",
+          "trace_id": "trace-required-shared-v1",
+          "trace_revision": "trace-revision-003",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "essential-room-function",
+              "available_hours": 6
+            }
+          ],
+          "energy_units": 8,
+          "repair_ticks": 2,
+          "cost_units": 4,
+          "expected_disposition": "rejected_pair_integrity"
+        },
+        {
+          "candidate_id": "candidate-b",
+          "trace_id": "trace-easier-outage-v1",
+          "trace_revision": "trace-revision-999",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "essential-room-function",
+              "available_hours": 9
+            }
+          ],
+          "energy_units": 5,
+          "repair_ticks": 1,
+          "cost_units": 3,
+          "expected_disposition": "rejected_pair_integrity"
+        }
+      ]
+    },
+    {
+      "id": "SPR-P-004",
+      "title": "Stale or missing model evidence blocks ranking",
+      "trace_id": "trace-model-domain-v1",
+      "trace_revision": "trace-revision-004",
+      "requirements": [
+        {
+          "requirement_id": "essential-thermal-service",
+          "minimum_service_hours": 6
+        }
+      ],
+      "uncertainty_limit": 2,
+      "expected_status": "evaluated",
+      "candidates": [
+        {
+          "candidate_id": "current-synthetic-reference",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 7
+            }
+          ],
+          "energy_units": 10,
+          "repair_ticks": 3,
+          "cost_units": 6,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "stale-evidence-optimist",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "stale",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 2,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        },
+        {
+          "candidate_id": "hard-constraint-failure",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": false,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 7
+            }
+          ],
+          "energy_units": 7,
+          "repair_ticks": 2,
+          "cost_units": 3,
+          "expected_disposition": "excluded_hard_constraint"
+        },
+        {
+          "candidate_id": "missing-evidence-optimist",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "missing",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        },
+        {
+          "candidate_id": "out-of-domain-evidence",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "out_of_domain",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        },
+        {
+          "candidate_id": "contradictory-evidence",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "contradictory",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        }
+      ]
+    },
+    {
+      "id": "SPR-P-005",
+      "title": "Distinct designs with identical objective vectors remain tied alternatives",
+      "trace_id": "trace-plural-alternatives-v1",
+      "trace_revision": "trace-revision-005",
+      "requirements": [
+        {
+          "requirement_id": "resident-a-quiet-use",
+          "minimum_service_hours": 6
+        },
+        {
+          "requirement_id": "resident-b-communication-access",
+          "minimum_service_hours": 6
+        }
+      ],
+      "uncertainty_limit": 2,
+      "expected_status": "evaluated",
+      "candidates": [
+        {
+          "candidate_id": "quiet-layout",
+          "trace_id": "trace-plural-alternatives-v1",
+          "trace_revision": "trace-revision-005",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-quiet-use",
+              "available_hours": 7
+            },
+            {
+              "requirement_id": "resident-b-communication-access",
+              "available_hours": 7
+            }
+          ],
+          "energy_units": 10,
+          "repair_ticks": 2,
+          "cost_units": 7,
+          "expected_disposition": "front"
+        },
+        {
+          "candidate_id": "communication-zones",
+          "trace_id": "trace-plural-alternatives-v1",
+          "trace_revision": "trace-revision-005",
+          "evidence_state": "synthetic_fixture",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 1,
+          "services": [
+            {
+              "requirement_id": "resident-a-quiet-use",
+              "available_hours": 7
+            },
+            {
+              "requirement_id": "resident-b-communication-access",
+              "available_hours": 7
+            }
+          ],
+          "energy_units": 10,
+          "repair_ticks": 2,
+          "cost_units": 7,
+          "expected_disposition": "front"
+        }
+      ]
+    }
+  ]
+}

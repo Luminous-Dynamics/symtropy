@@ -1,0 +1,1286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "SPATIAL-RESILIENCE-DECISION-IMPACT",
+  "version": "0.1.0",
+  "status": "synthetic_finite_state_decision_impact_not_probabilistic_voi",
+  "claim_ceiling": "Finite-state action partitions and candidate outcomes are synthetic. This corpus assigns no state probabilities, expected value of information, or real building measurement savings.",
+  "units": {
+    "measurement_cost": "synthetic cost units",
+    "measurement_duration": "synthetic duration ticks"
+  },
+  "required_case_count": 8,
+  "ranking_policy": [
+    "resolves_critical_unknowns_desc",
+    "hard_feasibility_change_desc",
+    "pareto_change_desc",
+    "worst_case_remaining_states_asc",
+    "measurement_cost_asc",
+    "duration_asc",
+    "action_id_asc"
+  ],
+  "cases": [
+    {
+      "id": "SPR-V-001",
+      "title": "Targeted clearance survey changes robust feasibility and Pareto choices",
+      "state_revision": "access-survey-v1",
+      "state_ids": [
+        "width-ok",
+        "width-fail"
+      ],
+      "current_possible_state_ids": [
+        "width-ok",
+        "width-fail"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "standard-layout",
+          "state_results": [
+            {
+              "state_id": "width-ok",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 10,
+                "energy_units": 6,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "width-fail",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 10,
+                "energy_units": 6,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            }
+          ]
+        },
+        {
+          "candidate_id": "adaptable-layout",
+          "state_results": [
+            {
+              "state_id": "width-ok",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "width-fail",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "targeted-clearance-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clearance-pass",
+              "compatible_state_ids": [
+                "width-ok"
+              ]
+            },
+            {
+              "outcome_id": "clearance-fail",
+              "compatible_state_ids": [
+                "width-fail"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        },
+        {
+          "action_id": "full-3d-scan",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1",
+          "estimated_cost_units": 10,
+          "estimated_duration_ticks": 4,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clearance-pass",
+              "compatible_state_ids": [
+                "width-ok"
+              ]
+            },
+            {
+              "outcome_id": "clearance-fail",
+              "compatible_state_ids": [
+                "width-fail"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "adaptable-layout"
+        ],
+        "pareto_candidate_ids": [
+          "adaptable-layout"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "targeted-clearance-survey",
+          "status": "evaluated",
+          "decision_relevant": true,
+          "changes_hard_feasible_set": true,
+          "changes_pareto_set": true,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [
+            "standard-layout"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "clearance-fail",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-fail"
+              ]
+            },
+            {
+              "outcome_id": "clearance-pass",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-layout",
+                "standard-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-layout",
+                "standard-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-ok"
+              ]
+            }
+          ],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1",
+          "changes_critical_unknown_set": false
+        },
+        {
+          "action_id": "full-3d-scan",
+          "status": "evaluated",
+          "decision_relevant": true,
+          "changes_hard_feasible_set": true,
+          "changes_pareto_set": true,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [
+            "standard-layout"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "clearance-fail",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-fail"
+              ]
+            },
+            {
+              "outcome_id": "clearance-pass",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-layout",
+                "standard-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-layout",
+                "standard-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "width-ok"
+              ]
+            }
+          ],
+          "estimated_cost_units": 10,
+          "estimated_duration_ticks": 4,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "access-survey-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": [
+        "targeted-clearance-survey",
+        "full-3d-scan"
+      ]
+    },
+    {
+      "id": "SPR-V-002",
+      "title": "High-volume measurement partitions states but cannot change the design decision",
+      "state_revision": "load-profile-v1",
+      "state_ids": [
+        "climate-mild",
+        "climate-hot"
+      ],
+      "current_possible_state_ids": [
+        "climate-mild",
+        "climate-hot"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "design-a",
+          "state_results": [
+            {
+              "state_id": "climate-mild",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            },
+            {
+              "state_id": "climate-hot",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            }
+          ]
+        },
+        {
+          "candidate_id": "design-b",
+          "state_results": [
+            {
+              "state_id": "climate-mild",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 6
+              }
+            },
+            {
+              "state_id": "climate-hot",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 6
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "high-frequency-metering",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1",
+          "estimated_cost_units": 7,
+          "estimated_duration_ticks": 2,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "mild-readout",
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            },
+            {
+              "outcome_id": "hot-readout",
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        },
+        {
+          "action_id": "mean-load-probe",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "mild-readout",
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            },
+            {
+              "outcome_id": "hot-readout",
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "design-a",
+          "design-b"
+        ],
+        "pareto_candidate_ids": [
+          "design-a",
+          "design-b"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "high-frequency-metering",
+          "status": "evaluated",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "hot-readout",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            },
+            {
+              "outcome_id": "mild-readout",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            }
+          ],
+          "estimated_cost_units": 7,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1",
+          "changes_critical_unknown_set": false
+        },
+        {
+          "action_id": "mean-load-probe",
+          "status": "evaluated",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "hot-readout",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            },
+            {
+              "outcome_id": "mild-readout",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            }
+          ],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "load-profile-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": []
+    },
+    {
+      "id": "SPR-V-003",
+      "title": "An incomplete measurement outcome partition is rejected",
+      "state_revision": "utility-survey-v1",
+      "state_ids": [
+        "utility-clear",
+        "utility-conflict",
+        "utility-unknown"
+      ],
+      "current_possible_state_ids": [
+        "utility-clear",
+        "utility-conflict",
+        "utility-unknown"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "reversible-layout",
+          "state_results": [
+            {
+              "state_id": "utility-clear",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 9,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "utility-conflict",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 9,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "utility-unknown",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 9,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "incomplete-utility-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "utility-survey-v1",
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "compatible_state_ids": [
+                "utility-clear"
+              ]
+            },
+            {
+              "outcome_id": "conflict",
+              "compatible_state_ids": [
+                "utility-conflict"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "reversible-layout"
+        ],
+        "pareto_candidate_ids": [
+          "reversible-layout"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "incomplete-utility-survey",
+          "status": "reject_action",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": null,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [],
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "utility-survey-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": []
+    },
+    {
+      "id": "SPR-V-004",
+      "title": "Overlapping outcome membership is rejected",
+      "state_revision": "repair-access-v1",
+      "state_ids": [
+        "panel-accessible",
+        "panel-blocked"
+      ],
+      "current_possible_state_ids": [
+        "panel-accessible",
+        "panel-blocked"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "modular-layout",
+          "state_results": [
+            {
+              "state_id": "panel-accessible",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "panel-blocked",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "overlapping-service-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "repair-access-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "panel-ok",
+              "compatible_state_ids": [
+                "panel-accessible",
+                "panel-blocked"
+              ]
+            },
+            {
+              "outcome_id": "panel-blocked",
+              "compatible_state_ids": [
+                "panel-blocked"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "modular-layout"
+        ],
+        "pareto_candidate_ids": [
+          "modular-layout"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "overlapping-service-survey",
+          "status": "reject_action",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": null,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "repair-access-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": []
+    },
+    {
+      "id": "SPR-V-005",
+      "title": "State reduction alone cannot clear an unrelated critical unknown",
+      "state_revision": "wall-fire-review-v1",
+      "state_ids": [
+        "wall-clear",
+        "wall-obstructed"
+      ],
+      "current_possible_state_ids": [
+        "wall-clear",
+        "wall-obstructed"
+      ],
+      "unresolved_critical_unknown_ids": [
+        "fire-separation-review"
+      ],
+      "candidates": [
+        {
+          "candidate_id": "standard-wall-layout",
+          "state_results": [
+            {
+              "state_id": "wall-clear",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 9,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "wall-obstructed",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 9,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 4
+              }
+            }
+          ]
+        },
+        {
+          "candidate_id": "adaptable-wall-layout",
+          "state_results": [
+            {
+              "state_id": "wall-clear",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "wall-obstructed",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "wall-only-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1",
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
+            },
+            {
+              "outcome_id": "obstructed",
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        },
+        {
+          "action_id": "wall-survey-plus-qualified-fire-review",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1",
+          "estimated_cost_units": 4,
+          "estimated_duration_ticks": 3,
+          "resolves_unknown_ids": [
+            "fire-separation-review"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
+            },
+            {
+              "outcome_id": "obstructed",
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [
+          "fire-separation-review"
+        ],
+        "robust_feasible_candidate_ids": [],
+        "pareto_candidate_ids": []
+      },
+      "expected_actions": [
+        {
+          "action_id": "wall-only-survey",
+          "status": "evaluated",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "remaining_critical_unknown_ids": [
+                "fire-separation-review"
+              ],
+              "robust_feasible_candidate_ids": [],
+              "pareto_candidate_ids": [],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
+            },
+            {
+              "outcome_id": "obstructed",
+              "remaining_critical_unknown_ids": [
+                "fire-separation-review"
+              ],
+              "robust_feasible_candidate_ids": [],
+              "pareto_candidate_ids": [],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
+            }
+          ],
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1",
+          "changes_critical_unknown_set": false
+        },
+        {
+          "action_id": "wall-survey-plus-qualified-fire-review",
+          "status": "evaluated",
+          "decision_relevant": true,
+          "changes_hard_feasible_set": true,
+          "changes_pareto_set": true,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [
+            "adaptable-wall-layout",
+            "standard-wall-layout"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-wall-layout",
+                "standard-wall-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-wall-layout",
+                "standard-wall-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-clear"
+              ]
+            },
+            {
+              "outcome_id": "obstructed",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "adaptable-wall-layout"
+              ],
+              "pareto_candidate_ids": [
+                "adaptable-wall-layout"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "wall-obstructed"
+              ]
+            }
+          ],
+          "estimated_cost_units": 4,
+          "estimated_duration_ticks": 3,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "wall-fire-review-v1",
+          "changes_critical_unknown_set": true
+        }
+      ],
+      "expected_recommended_action_order": [
+        "wall-survey-plus-qualified-fire-review"
+      ]
+    },
+    {
+      "id": "SPR-V-006",
+      "title": "A stale measurement source cannot change the current decision",
+      "state_revision": "weather-profile-v2",
+      "state_ids": [
+        "heat-low",
+        "heat-high"
+      ],
+      "current_possible_state_ids": [
+        "heat-low",
+        "heat-high"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "passive-shell",
+          "state_results": [
+            {
+              "state_id": "heat-low",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 6
+              }
+            },
+            {
+              "state_id": "heat-high",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 6
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "stale-weather-extract",
+          "action_type": "survey",
+          "evidence_state": "stale",
+          "source_revision": "weather-profile-v1",
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "low",
+              "compatible_state_ids": [
+                "heat-low"
+              ]
+            },
+            {
+              "outcome_id": "high",
+              "compatible_state_ids": [
+                "heat-high"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "passive-shell"
+        ],
+        "pareto_candidate_ids": [
+          "passive-shell"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "stale-weather-extract",
+          "status": "reject_action",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": null,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [],
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "stale",
+          "source_revision": "weather-profile-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": []
+    },
+    {
+      "id": "SPR-V-007",
+      "title": "Measurement changes the Pareto set without changing hard feasibility",
+      "state_revision": "thermal-profile-v1",
+      "state_ids": [
+        "climate-mild",
+        "climate-hot"
+      ],
+      "current_possible_state_ids": [
+        "climate-mild",
+        "climate-hot"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "design-a",
+          "state_results": [
+            {
+              "state_id": "climate-mild",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 10,
+                "energy_units": 5,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            },
+            {
+              "state_id": "climate-hot",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 10,
+                "repair_ticks": 4,
+                "cost_units": 6
+              }
+            }
+          ]
+        },
+        {
+          "candidate_id": "design-b",
+          "state_results": [
+            {
+              "state_id": "climate-mild",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 6
+              }
+            },
+            {
+              "state_id": "climate-hot",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 9,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "season-specific-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "thermal-profile-v1",
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "mild",
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            },
+            {
+              "outcome_id": "hot",
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [],
+        "robust_feasible_candidate_ids": [
+          "design-a",
+          "design-b"
+        ],
+        "pareto_candidate_ids": [
+          "design-b"
+        ]
+      },
+      "expected_actions": [
+        {
+          "action_id": "season-specific-survey",
+          "status": "evaluated",
+          "decision_relevant": true,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": true,
+          "worst_case_remaining_state_count": 1,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "hot",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-hot"
+              ]
+            },
+            {
+              "outcome_id": "mild",
+              "remaining_critical_unknown_ids": [],
+              "robust_feasible_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "pareto_candidate_ids": [
+                "design-a",
+                "design-b"
+              ],
+              "compatible_state_count": 1,
+              "compatible_state_ids": [
+                "climate-mild"
+              ]
+            }
+          ],
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "thermal-profile-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": [
+        "season-specific-survey"
+      ]
+    },
+    {
+      "id": "SPR-V-008",
+      "title": "A measurement cannot claim to resolve an undeclared unknown",
+      "state_revision": "ceiling-inspection-v1",
+      "state_ids": [
+        "ceiling-dry",
+        "ceiling-leak"
+      ],
+      "current_possible_state_ids": [
+        "ceiling-dry",
+        "ceiling-leak"
+      ],
+      "unresolved_critical_unknown_ids": [
+        "ceiling-leak-review"
+      ],
+      "candidates": [
+        {
+          "candidate_id": "repairable-ceiling",
+          "state_results": [
+            {
+              "state_id": "ceiling-dry",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 5,
+                "repair_ticks": 2,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "ceiling-leak",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 5,
+                "repair_ticks": 2,
+                "cost_units": 4
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "mis-scoped-moisture-survey",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "ceiling-inspection-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "resolves_unknown_ids": [
+            "different-unknown-id"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "dry",
+              "compatible_state_ids": [
+                "ceiling-dry"
+              ]
+            },
+            {
+              "outcome_id": "leak",
+              "compatible_state_ids": [
+                "ceiling-leak"
+              ]
+            }
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
+        }
+      ],
+      "expected_baseline": {
+        "remaining_critical_unknown_ids": [
+          "ceiling-leak-review"
+        ],
+        "robust_feasible_candidate_ids": [],
+        "pareto_candidate_ids": []
+      },
+      "expected_actions": [
+        {
+          "action_id": "mis-scoped-moisture-survey",
+          "status": "reject_action",
+          "decision_relevant": false,
+          "changes_hard_feasible_set": false,
+          "changes_pareto_set": false,
+          "worst_case_remaining_state_count": null,
+          "newly_robust_feasible_candidate_ids": [],
+          "outcomes": [],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1",
+          "action_type": "survey",
+          "evidence_state": "valid",
+          "source_revision": "ceiling-inspection-v1",
+          "changes_critical_unknown_set": false
+        }
+      ],
+      "expected_recommended_action_order": []
+    }
+  ]
+}

@@ -1,0 +1,771 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "SPATIAL-RESILIENCE-ADAPTIVE-POLICIES",
+  "version": "0.1.0",
+  "status": "synthetic_adaptive_measurement_policies_no_probabilities",
+  "claim_ceiling": "All states, costs, durations and candidate values are synthetic. The benchmark checks conditional policy mechanics only, not real survey accuracy, expected savings or building safety.",
+  "units": {
+    "measurement_cost": "synthetic cost units",
+    "measurement_duration": "synthetic duration ticks"
+  },
+  "required_case_count": 3,
+  "cases": [
+    {
+      "id": "SPA-001",
+      "title": "Adaptive survey sequence avoids a universal scan on the easy branch",
+      "state_revision": "building-survey-v1",
+      "state_ids": [
+        "pass-good",
+        "pass-bad",
+        "fail-good",
+        "fail-bad"
+      ],
+      "current_possible_state_ids": [
+        "pass-good",
+        "pass-bad",
+        "fail-good",
+        "fail-bad"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "standard-layout",
+          "state_results": [
+            {
+              "state_id": "pass-good",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 10,
+                "energy_units": 6,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "pass-bad",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 10,
+                "energy_units": 6,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "fail-good",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 4,
+                "energy_units": 7,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "fail-bad",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 4,
+                "energy_units": 7,
+                "repair_ticks": 4,
+                "cost_units": 4
+              }
+            }
+          ]
+        },
+        {
+          "candidate_id": "adaptable-layout",
+          "state_results": [
+            {
+              "state_id": "pass-good",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "pass-bad",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "fail-good",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 8,
+                "energy_units": 8,
+                "repair_ticks": 2,
+                "cost_units": 7
+              }
+            },
+            {
+              "state_id": "fail-bad",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 5,
+                "energy_units": 10,
+                "repair_ticks": 2,
+                "cost_units": 8
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "clearance-survey",
+          "evidence_state": "valid",
+          "source_revision": "building-survey-v1",
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "cost-basis-clearance-survey",
+          "duration_basis_id": "duration-basis-clearance-survey",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "access-pass",
+              "compatible_state_ids": [
+                "pass-good",
+                "pass-bad"
+              ]
+            },
+            {
+              "outcome_id": "access-fail",
+              "compatible_state_ids": [
+                "fail-good",
+                "fail-bad"
+              ]
+            }
+          ]
+        },
+        {
+          "action_id": "structure-probe",
+          "evidence_state": "valid",
+          "source_revision": "building-survey-v1",
+          "estimated_cost_units": 4,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "cost-basis-structure-probe",
+          "duration_basis_id": "duration-basis-structure-probe",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "structure-good",
+              "compatible_state_ids": [
+                "pass-good",
+                "fail-good"
+              ]
+            },
+            {
+              "outcome_id": "structure-bad",
+              "compatible_state_ids": [
+                "pass-bad",
+                "fail-bad"
+              ]
+            }
+          ]
+        },
+        {
+          "action_id": "full-building-scan",
+          "evidence_state": "valid",
+          "source_revision": "building-survey-v1",
+          "estimated_cost_units": 10,
+          "estimated_duration_ticks": 4,
+          "cost_basis_id": "cost-basis-full-building-scan",
+          "duration_basis_id": "duration-basis-full-building-scan",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "pass-good",
+              "compatible_state_ids": [
+                "pass-good"
+              ]
+            },
+            {
+              "outcome_id": "pass-bad",
+              "compatible_state_ids": [
+                "pass-bad"
+              ]
+            },
+            {
+              "outcome_id": "fail-good",
+              "compatible_state_ids": [
+                "fail-good"
+              ]
+            },
+            {
+              "outcome_id": "fail-bad",
+              "compatible_state_ids": [
+                "fail-bad"
+              ]
+            }
+          ]
+        }
+      ],
+      "policies": [
+        {
+          "policy_id": "adaptive-clearance-first",
+          "root_node_id": "root",
+          "max_depth": 2,
+          "max_actions": 2,
+          "max_cost_units": 5,
+          "max_duration_ticks": 3,
+          "nodes": [
+            {
+              "node_id": "root",
+              "node_type": "measure",
+              "action_id": "clearance-survey",
+              "branches": [
+                {
+                  "outcome_id": "access-pass",
+                  "next_node_id": "pass-leaf"
+                },
+                {
+                  "outcome_id": "access-fail",
+                  "next_node_id": "inspect-on-fail"
+                }
+              ]
+            },
+            {
+              "node_id": "pass-leaf",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "inspect-on-fail",
+              "node_type": "measure",
+              "action_id": "structure-probe",
+              "branches": [
+                {
+                  "outcome_id": "structure-good",
+                  "next_node_id": "fail-good-leaf"
+                },
+                {
+                  "outcome_id": "structure-bad",
+                  "next_node_id": "fail-bad-leaf"
+                }
+              ]
+            },
+            {
+              "node_id": "fail-good-leaf",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "fail-bad-leaf",
+              "node_type": "terminal",
+              "terminal_action": "reopen_design"
+            }
+          ],
+          "expected": {
+            "policy_id": "adaptive-clearance-first",
+            "status": "accepted",
+            "rejection_codes": [],
+            "worst_case_cost_units": 5,
+            "worst_case_duration_ticks": 3,
+            "worst_case_action_count": 2,
+            "leaf_count": 3,
+            "leaves": [
+              {
+                "leaf_node_id": "fail-bad-leaf",
+                "terminal_action": "reopen_design",
+                "compatible_state_ids": [
+                  "fail-bad"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [],
+                "pareto_candidate_ids": [],
+                "cumulative_cost_units": 5,
+                "cumulative_duration_ticks": 3
+              },
+              {
+                "leaf_node_id": "fail-good-leaf",
+                "terminal_action": "stop_decision_stable",
+                "compatible_state_ids": [
+                  "fail-good"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [
+                  "adaptable-layout"
+                ],
+                "pareto_candidate_ids": [
+                  "adaptable-layout"
+                ],
+                "cumulative_cost_units": 5,
+                "cumulative_duration_ticks": 3
+              },
+              {
+                "leaf_node_id": "pass-leaf",
+                "terminal_action": "stop_decision_stable",
+                "compatible_state_ids": [
+                  "pass-bad",
+                  "pass-good"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "pareto_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "cumulative_cost_units": 1,
+                "cumulative_duration_ticks": 1
+              }
+            ]
+          }
+        },
+        {
+          "policy_id": "fixed-universal-scan",
+          "root_node_id": "scan",
+          "max_depth": 1,
+          "max_actions": 1,
+          "max_cost_units": 10,
+          "max_duration_ticks": 4,
+          "nodes": [
+            {
+              "node_id": "scan",
+              "node_type": "measure",
+              "action_id": "full-building-scan",
+              "branches": [
+                {
+                  "outcome_id": "pass-good",
+                  "next_node_id": "scan-pass-good"
+                },
+                {
+                  "outcome_id": "pass-bad",
+                  "next_node_id": "scan-pass-bad"
+                },
+                {
+                  "outcome_id": "fail-good",
+                  "next_node_id": "scan-fail-good"
+                },
+                {
+                  "outcome_id": "fail-bad",
+                  "next_node_id": "scan-fail-bad"
+                }
+              ]
+            },
+            {
+              "node_id": "scan-pass-good",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "scan-pass-bad",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "scan-fail-good",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "scan-fail-bad",
+              "node_type": "terminal",
+              "terminal_action": "reopen_design"
+            }
+          ],
+          "expected": {
+            "policy_id": "fixed-universal-scan",
+            "status": "accepted",
+            "rejection_codes": [],
+            "worst_case_cost_units": 10,
+            "worst_case_duration_ticks": 4,
+            "worst_case_action_count": 1,
+            "leaf_count": 4,
+            "leaves": [
+              {
+                "leaf_node_id": "scan-fail-bad",
+                "terminal_action": "reopen_design",
+                "compatible_state_ids": [
+                  "fail-bad"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [],
+                "pareto_candidate_ids": [],
+                "cumulative_cost_units": 10,
+                "cumulative_duration_ticks": 4
+              },
+              {
+                "leaf_node_id": "scan-fail-good",
+                "terminal_action": "stop_decision_stable",
+                "compatible_state_ids": [
+                  "fail-good"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [
+                  "adaptable-layout"
+                ],
+                "pareto_candidate_ids": [
+                  "adaptable-layout"
+                ],
+                "cumulative_cost_units": 10,
+                "cumulative_duration_ticks": 4
+              },
+              {
+                "leaf_node_id": "scan-pass-bad",
+                "terminal_action": "stop_decision_stable",
+                "compatible_state_ids": [
+                  "pass-bad"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "pareto_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "cumulative_cost_units": 10,
+                "cumulative_duration_ticks": 4
+              },
+              {
+                "leaf_node_id": "scan-pass-good",
+                "terminal_action": "stop_decision_stable",
+                "compatible_state_ids": [
+                  "pass-good"
+                ],
+                "remaining_critical_unknown_ids": [],
+                "robust_feasible_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "pareto_candidate_ids": [
+                  "adaptable-layout",
+                  "standard-layout"
+                ],
+                "cumulative_cost_units": 10,
+                "cumulative_duration_ticks": 4
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "SPA-002",
+      "title": "An unresolved critical blocker cannot be closed by a seemingly stable result",
+      "state_revision": "fire-review-v1",
+      "state_ids": [
+        "zone-clear",
+        "zone-obstructed"
+      ],
+      "current_possible_state_ids": [
+        "zone-clear",
+        "zone-obstructed"
+      ],
+      "unresolved_critical_unknown_ids": [
+        "fire-separation-review"
+      ],
+      "candidates": [
+        {
+          "candidate_id": "standard-wall",
+          "state_results": [
+            {
+              "state_id": "zone-clear",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 9,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 4
+              }
+            },
+            {
+              "state_id": "zone-obstructed",
+              "feasible": false,
+              "objectives": {
+                "service_hours": 9,
+                "energy_units": 6,
+                "repair_ticks": 3,
+                "cost_units": 4
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "zone-survey",
+          "evidence_state": "valid",
+          "source_revision": "fire-review-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "cost-basis-zone-survey",
+          "duration_basis_id": "duration-basis-zone-survey",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "clear",
+              "compatible_state_ids": [
+                "zone-clear"
+              ]
+            },
+            {
+              "outcome_id": "obstructed",
+              "compatible_state_ids": [
+                "zone-obstructed"
+              ]
+            }
+          ]
+        }
+      ],
+      "policies": [
+        {
+          "policy_id": "unsafe-stop-before-fire-review",
+          "root_node_id": "unsafe-root",
+          "max_depth": 0,
+          "max_actions": 0,
+          "max_cost_units": 0,
+          "max_duration_ticks": 0,
+          "nodes": [
+            {
+              "node_id": "unsafe-root",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            }
+          ],
+          "expected": {
+            "policy_id": "unsafe-stop-before-fire-review",
+            "status": "rejected",
+            "rejection_codes": [
+              "POLICY_STOP_WITH_CRITICAL_BLOCKER"
+            ],
+            "worst_case_cost_units": null,
+            "worst_case_duration_ticks": null,
+            "worst_case_action_count": null,
+            "leaf_count": null,
+            "leaves": []
+          }
+        },
+        {
+          "policy_id": "escalate-fire-review",
+          "root_node_id": "escalate-root",
+          "max_depth": 0,
+          "max_actions": 0,
+          "max_cost_units": 0,
+          "max_duration_ticks": 0,
+          "nodes": [
+            {
+              "node_id": "escalate-root",
+              "node_type": "terminal",
+              "terminal_action": "escalate_blocker"
+            }
+          ],
+          "expected": {
+            "policy_id": "escalate-fire-review",
+            "status": "accepted",
+            "rejection_codes": [],
+            "worst_case_cost_units": 0,
+            "worst_case_duration_ticks": 0,
+            "worst_case_action_count": 0,
+            "leaf_count": 1,
+            "leaves": [
+              {
+                "leaf_node_id": "escalate-root",
+                "terminal_action": "escalate_blocker",
+                "compatible_state_ids": [
+                  "zone-clear",
+                  "zone-obstructed"
+                ],
+                "remaining_critical_unknown_ids": [
+                  "fire-separation-review"
+                ],
+                "robust_feasible_candidate_ids": [],
+                "pareto_candidate_ids": [],
+                "cumulative_cost_units": 0,
+                "cumulative_duration_ticks": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "SPA-003",
+      "title": "A child policy cannot branch on an outcome made unreachable by its parent",
+      "state_revision": "clearance-v1",
+      "state_ids": [
+        "a",
+        "b",
+        "c"
+      ],
+      "current_possible_state_ids": [
+        "a",
+        "b",
+        "c"
+      ],
+      "unresolved_critical_unknown_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "modular-design",
+          "state_results": [
+            {
+              "state_id": "a",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            },
+            {
+              "state_id": "b",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            },
+            {
+              "state_id": "c",
+              "feasible": true,
+              "objectives": {
+                "service_hours": 7,
+                "energy_units": 7,
+                "repair_ticks": 3,
+                "cost_units": 5
+              }
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "root-grouping-probe",
+          "evidence_state": "valid",
+          "source_revision": "clearance-v1",
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "cost-basis-root-grouping-probe",
+          "duration_basis_id": "duration-basis-root-grouping-probe",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "group-ab",
+              "compatible_state_ids": [
+                "a",
+                "b"
+              ]
+            },
+            {
+              "outcome_id": "group-c",
+              "compatible_state_ids": [
+                "c"
+              ]
+            }
+          ]
+        },
+        {
+          "action_id": "child-split-probe",
+          "evidence_state": "valid",
+          "source_revision": "clearance-v1",
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "cost-basis-child-split-probe",
+          "duration_basis_id": "duration-basis-child-split-probe",
+          "resolves_unknown_ids": [],
+          "outcomes": [
+            {
+              "outcome_id": "child-ab",
+              "compatible_state_ids": [
+                "a",
+                "b"
+              ]
+            },
+            {
+              "outcome_id": "child-c",
+              "compatible_state_ids": [
+                "c"
+              ]
+            }
+          ]
+        }
+      ],
+      "policies": [
+        {
+          "policy_id": "unreachable-child-outcome",
+          "root_node_id": "root",
+          "max_depth": 2,
+          "max_actions": 2,
+          "max_cost_units": 3,
+          "max_duration_ticks": 2,
+          "nodes": [
+            {
+              "node_id": "root",
+              "node_type": "measure",
+              "action_id": "root-grouping-probe",
+              "branches": [
+                {
+                  "outcome_id": "group-ab",
+                  "next_node_id": "child"
+                },
+                {
+                  "outcome_id": "group-c",
+                  "next_node_id": "c-leaf"
+                }
+              ]
+            },
+            {
+              "node_id": "child",
+              "node_type": "measure",
+              "action_id": "child-split-probe",
+              "branches": [
+                {
+                  "outcome_id": "child-ab",
+                  "next_node_id": "ab-leaf"
+                },
+                {
+                  "outcome_id": "child-c",
+                  "next_node_id": "c-from-child"
+                }
+              ]
+            },
+            {
+              "node_id": "ab-leaf",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "c-from-child",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            },
+            {
+              "node_id": "c-leaf",
+              "node_type": "terminal",
+              "terminal_action": "stop_decision_stable"
+            }
+          ],
+          "expected": {
+            "policy_id": "unreachable-child-outcome",
+            "status": "rejected",
+            "rejection_codes": [
+              "POLICY_BRANCH_UNREACHABLE_OUTCOME",
+              "POLICY_UNREACHABLE_NODE"
+            ],
+            "worst_case_cost_units": null,
+            "worst_case_duration_ticks": null,
+            "worst_case_action_count": null,
+            "leaf_count": null,
+            "leaves": []
+          }
+        }
+      ]
+    }
+  ]
+}

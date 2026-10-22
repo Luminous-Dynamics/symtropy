@@ -1,0 +1,570 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/SPATIAL_RESILIENCE_ADAPTIVE_POLICIES_V0_1.schema.json",
+  "title": "Spatial Resilience Adaptive Measurement Policies v0.1",
+  "description": "Synthetic deterministic adaptive measurement trees with explicit stopping rules. No probability or expected value of information fields are allowed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "units",
+    "required_case_count",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "SPATIAL-RESILIENCE-ADAPTIVE-POLICIES"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_adaptive_measurement_policies_no_probabilities"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_cost",
+        "measurement_duration"
+      ],
+      "properties": {
+        "measurement_cost": {
+          "const": "synthetic cost units"
+        },
+        "measurement_duration": {
+          "const": "synthetic duration ticks"
+        }
+      }
+    },
+    "required_case_count": {
+      "const": 3
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "state_revision",
+          "state_ids",
+          "current_possible_state_ids",
+          "unresolved_critical_unknown_ids",
+          "candidates",
+          "actions",
+          "policies"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SPA-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 12
+          },
+          "state_revision": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "state_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+            }
+          },
+          "current_possible_state_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+            }
+          },
+          "unresolved_critical_unknown_ids": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidate_id",
+                "state_results"
+              ],
+              "properties": {
+                "candidate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "state_results": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state_id",
+                      "feasible",
+                      "objectives"
+                    ],
+                    "properties": {
+                      "state_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                      },
+                      "feasible": {
+                        "type": "boolean"
+                      },
+                      "objectives": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "service_hours",
+                          "energy_units",
+                          "repair_ticks",
+                          "cost_units"
+                        ],
+                        "properties": {
+                          "service_hours": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "energy_units": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "repair_ticks": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "cost_units": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "actions": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "evidence_state",
+                "source_revision",
+                "estimated_cost_units",
+                "estimated_duration_ticks",
+                "cost_basis_id",
+                "duration_basis_id",
+                "resolves_unknown_ids",
+                "outcomes"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "evidence_state": {
+                  "type": "string",
+                  "enum": [
+                    "valid",
+                    "stale",
+                    "missing",
+                    "out_of_scope",
+                    "contradictory"
+                  ]
+                },
+                "source_revision": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "estimated_cost_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "estimated_duration_ticks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "cost_basis_id": {
+                  "type": "string",
+                  "minLength": 5,
+                  "maxLength": 128
+                },
+                "duration_basis_id": {
+                  "type": "string",
+                  "minLength": 5,
+                  "maxLength": 128
+                },
+                "resolves_unknown_ids": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                  }
+                },
+                "outcomes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outcome_id",
+                      "compatible_state_ids"
+                    ],
+                    "properties": {
+                      "outcome_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                      },
+                      "compatible_state_ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "policies": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "policy_id",
+                "root_node_id",
+                "max_depth",
+                "max_actions",
+                "max_cost_units",
+                "max_duration_ticks",
+                "nodes",
+                "expected"
+              ],
+              "properties": {
+                "policy_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "root_node_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "max_depth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "max_actions": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 32
+                },
+                "max_cost_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "max_duration_ticks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "nodes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 1000,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "node_id",
+                          "node_type",
+                          "action_id",
+                          "branches"
+                        ],
+                        "properties": {
+                          "node_id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                          },
+                          "node_type": {
+                            "const": "measure"
+                          },
+                          "action_id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 100,
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "outcome_id",
+                                "next_node_id"
+                              ],
+                              "properties": {
+                                "outcome_id": {
+                                  "type": "string",
+                                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                                },
+                                "next_node_id": {
+                                  "type": "string",
+                                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "node_id",
+                          "node_type",
+                          "terminal_action"
+                        ],
+                        "properties": {
+                          "node_id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                          },
+                          "node_type": {
+                            "const": "terminal"
+                          },
+                          "terminal_action": {
+                            "type": "string",
+                            "enum": [
+                              "stop_decision_stable",
+                              "reopen_design",
+                              "escalate_blocker"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "expected": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "policy_id",
+                    "status",
+                    "rejection_codes",
+                    "worst_case_cost_units",
+                    "worst_case_duration_ticks",
+                    "worst_case_action_count",
+                    "leaf_count",
+                    "leaves"
+                  ],
+                  "properties": {
+                    "policy_id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "accepted",
+                        "rejected"
+                      ]
+                    },
+                    "rejection_codes": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9_]+$"
+                      }
+                    },
+                    "worst_case_cost_units": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "worst_case_duration_ticks": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "worst_case_action_count": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "leaf_count": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "leaves": {
+                      "type": "array",
+                      "maxItems": 1000,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "leaf_node_id",
+                          "terminal_action",
+                          "compatible_state_ids",
+                          "remaining_critical_unknown_ids",
+                          "robust_feasible_candidate_ids",
+                          "pareto_candidate_ids",
+                          "cumulative_cost_units",
+                          "cumulative_duration_ticks"
+                        ],
+                        "properties": {
+                          "leaf_node_id": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                          },
+                          "terminal_action": {
+                            "type": "string",
+                            "enum": [
+                              "stop_decision_stable",
+                              "reopen_design",
+                              "escalate_blocker"
+                            ]
+                          },
+                          "compatible_state_ids": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 100,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                            }
+                          },
+                          "remaining_critical_unknown_ids": {
+                            "type": "array",
+                            "minItems": 0,
+                            "maxItems": 100,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                            }
+                          },
+                          "robust_feasible_candidate_ids": {
+                            "type": "array",
+                            "minItems": 0,
+                            "maxItems": 100,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                            }
+                          },
+                          "pareto_candidate_ids": {
+                            "type": "array",
+                            "minItems": 0,
+                            "maxItems": 100,
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                            }
+                          },
+                          "cumulative_cost_units": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "cumulative_duration_ticks": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
