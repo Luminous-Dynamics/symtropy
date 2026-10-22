@@ -481,6 +481,8 @@ fn main() {
     let failed = !report.failures.is_empty();
     let receipt = json!({
         "receipt_schema": "robotics-episode-integrity-receipt-v0",
+        "tested_revision": env::var("ROBOTICS_TESTED_SHA")
+            .unwrap_or_else(|_| "UNBOUND_LOCAL_RUN".to_owned()),
         "suite_id": str_at(&corpus, "suite_id").unwrap_or("unknown"),
         "suite_version": str_at(&corpus, "suite_version").unwrap_or("unknown"),
         "corpus_path": path,
