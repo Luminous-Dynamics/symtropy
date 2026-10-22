@@ -67,7 +67,7 @@ jobs:
           cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-a.json
           cargo run --locked --release --quiet --bin triangle-patch-probe > /tmp/triangle-patch-b.json
           cmp /tmp/triangle-patch-a.json /tmp/triangle-patch-b.json
-          jq -e '.solver_executed == false and .qualification_pass == false and .element_patch_pass == true and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$"))' /tmp/triangle-patch-a.json > /dev/null
+          jq -e '.solver_executed == false and .qualification_pass == false and .element_patch_pass == true and .max_energy_identity_defect <= 1e-12 and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$"))' /tmp/triangle-patch-a.json > /dev/null
           sha256sum /tmp/triangle-patch-a.json > /tmp/triangle-patch-a.sha256
 
       - name: Preserve verification receipt and source digests
