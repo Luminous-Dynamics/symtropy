@@ -121,8 +121,14 @@ fn candidate_coordinates(
 
     for footprint in existing
         .iter()
+        .filter(|placement| placement.occupied.overlaps(request.occupied))
         .map(|placement| &placement.footprint)
-        .chain(zones.iter().map(|zone| &zone.footprint))
+        .chain(
+            zones
+                .iter()
+                .filter(|zone| zone.active.overlaps(request.occupied))
+                .map(|zone| &zone.footprint),
+        )
     {
         if let Footprint::AxisAlignedRect(rect) = footprint {
             xs.extend(
@@ -965,6 +971,43 @@ mod tests {
                 assert!(left_cells.is_disjoint(&right_cells));
             }
         }
+    }
+
+    #[test]
+    fn inactive_temporal_objects_do_not_pollute_candidate_coordinates() {
+        let request = request("new", "new-block", 2, 2, 5, 10);
+        let previous = [Placement {
+            reservation_id: "old".to_owned(),
+            block_id: "old-block".to_owned(),
+            footprint: Footprint::AxisAlignedRect(Rect {
+                min_x: 6,
+                min_y: 6,
+                max_x: 8,
+                max_y: 8,
+            }),
+            occupied: TimeRange {
+                start_tick: 0,
+                end_tick: 5,
+            },
+        }];
+        let zones = [ExclusionZone {
+            id: "inactive-zone".to_owned(),
+            footprint: Footprint::AxisAlignedRect(Rect {
+                min_x: 4,
+                min_y: 4,
+                max_x: 5,
+                max_y: 5,
+            }),
+            active: TimeRange {
+                start_tick: 0,
+                end_tick: 5,
+            },
+        }];
+
+        let (xs, ys) = candidate_coordinates(yard(), &request, &previous, &zones);
+
+        assert_eq!(xs, vec![yard().min_x]);
+        assert_eq!(ys, vec![yard().min_y]);
     }
 
     #[test]
