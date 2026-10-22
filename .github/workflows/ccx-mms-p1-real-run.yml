@@ -157,6 +157,10 @@ jobs:
           sha256sum "$CCX" > "$RUNNER_TEMP/ccx-evidence/ccx-executable.sha256"
           {
             echo "platform=$(uname -srm)"
+            echo "cpu_model=$(awk -F: '/model name/ {gsub(/^ /, "", $2); print $2; exit}' /proc/cpuinfo)"
+            echo "logical_cpu_count=$(nproc)"
+            echo "memory_total_kib=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo)"
+            echo "solver_thread_environment=OMP_NUM_THREADS=1,OPENBLAS_NUM_THREADS=1,MKL_NUM_THREADS=1"
             echo "builder_repository=OmnibusCloud/CalculiX"
             echo "builder_repository_commit=$(git -C "$GITHUB_WORKSPACE/CalculiX-builder" rev-parse HEAD)"
             echo "ccx_source_sha256=$(sha256sum "$RUNNER_TEMP/ccx_2.22.src.tar.bz2" | cut -d ' ' -f 1)"
@@ -535,7 +539,7 @@ jobs:
             done
             jq -s -e '
               length == 7
-              and all(.[]; .source_sha == .[0].source_sha)
+              and (.[0].source_sha as $source | all(.[]; .source_sha == $source))
               and ([.[].wall_seconds] | all(.[]; . > 0))
               and ([.[].peak_rss_kb] | all(.[]; . > 0))
             ' "${sample_receipts[@]}" > /dev/null
