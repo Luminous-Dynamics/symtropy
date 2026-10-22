@@ -558,6 +558,7 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
         if outage.domain_id.trim().is_empty()
             || outage.station_ids.len() < 2
             || outage.first_start_seconds == 0
+            || outage.first_start_seconds >= catalog.horizon_seconds
             || outage.recurrence_interval_seconds == 0
             || outage.duration_seconds == 0
             || outage.duration_seconds >= outage.recurrence_interval_seconds
@@ -917,7 +918,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
     };
     schedule_event(&mut state, 0, EventKind::SupplyArrival);
     if let Some(outage) = &catalog.common_cause_control_outage {
-        if outage.first_start_seconds <= catalog.horizon_seconds {
+        if outage.first_start_seconds < catalog.horizon_seconds {
             schedule_event(
                 &mut state,
                 outage.first_start_seconds,
@@ -984,7 +985,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                 let end_at = state.now.saturating_add(outage.duration_seconds);
                 schedule_event(&mut state, end_at, EventKind::CommonCauseControlOutageEnd);
                 let next_start = state.now.saturating_add(outage.recurrence_interval_seconds);
-                if next_start <= catalog.horizon_seconds {
+                if next_start < catalog.horizon_seconds {
                     schedule_event(
                         &mut state,
                         next_start,
@@ -1146,9 +1147,12 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
             && catalog
                 .common_cause_control_outage
                 .as_ref()
-                .is_some_and(|outage| outage.station_ids.contains(&catalog.stations[index].station_id));
+                .is_some_and(|outage| {
+                    outage.station_ids.contains(&catalog.stations[index].station_id)
+                });
         if in_common_cause_domain {
-            runtime.metrics.common_cause_control_outage_seconds += dt;
+            runtime.metrics.common_cause_control_outage_seconds +=
+                dt * runtime.servers.len() as f64;
         }
         let input_empty = if index == 0 {
             state.source_buffer.is_empty()
