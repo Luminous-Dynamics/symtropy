@@ -77,7 +77,11 @@
       "wrong_executable_digest"
     ],
     "failed_runs_retained": true,
-    "performance_claim_requires_pinned_hardware_repetitions": true
+    "performance_claim_requires_pinned_hardware_repetitions": true,
+    "force_resultant_normalization": {
+      "x_component": "absolute difference normalized by max(1, abs(exact analytic x-resultant))",
+      "y_component": "absolute y-resultant normalized by max(1, integral over domain of abs(f_y))"
+    }
   },
   "postprocessor_calibration": {
     "purpose": "validate error integration independently of solver output",
