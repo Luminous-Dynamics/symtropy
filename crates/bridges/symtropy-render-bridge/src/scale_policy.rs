@@ -414,6 +414,87 @@ mod tests {
     }
 
     #[test]
+    fn perspective_projection_is_invariant_to_common_world_unit_scale() {
+        let radius = 6.371e6_f64;
+        let distance = 4.217e8_f64;
+        let projection = ApparentSizeProjection::Perspective {
+            viewport_height_px: 2_160,
+            vertical_fov_radians: 1.0,
+            centre_distance: distance,
+        };
+        let reference = projected_sphere_diameter_px(radius, projection)
+            .expect("reference projection");
+
+        for scale in [1e-12_f64, 1e-6, 1.0, 1e6, 1e12] {
+            let diameter = projected_sphere_diameter_px(
+                radius * scale,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 2_160,
+                    vertical_fov_radians: 1.0,
+                    centre_distance: distance * scale,
+                },
+            )
+            .expect("scaled units preserve the projection domain");
+            assert!(
+                (diameter - reference).abs() <= reference.abs() * 1e-12,
+                "common unit scale {scale:e} changed apparent diameter: {diameter} vs {reference}"
+            );
+        }
+    }
+
+    #[test]
+    fn perspective_projection_is_finite_and_monotonic_across_scale_decades() {
+        let radius = 6.371e6_f64;
+        let mut previous = f64::INFINITY;
+        for distance_multiplier in [1.01_f64, 1.1, 2.0, 10.0, 1e3, 1e6, 1e12] {
+            let diameter = projected_sphere_diameter_px(
+                radius,
+                ApparentSizeProjection::Perspective {
+                    viewport_height_px: 2_160,
+                    vertical_fov_radians: 1.0,
+                    centre_distance: radius * distance_multiplier,
+                },
+            )
+            .expect("finite distant-sphere projection");
+            assert!(diameter.is_finite() && diameter > 0.0);
+            assert!(
+                diameter < previous,
+                "apparent diameter did not decrease at distance multiplier {distance_multiplier}"
+            );
+            previous = diameter;
+        }
+    }
+
+    #[test]
+    fn orthographic_projection_is_invariant_to_common_world_unit_scale() {
+        let radius = 25.0_f64;
+        let vertical_span = 1_000.0_f64;
+        let reference = projected_sphere_diameter_px(
+            radius,
+            ApparentSizeProjection::Orthographic {
+                viewport_height_px: 1_440,
+                vertical_span,
+            },
+        )
+        .expect("reference orthographic projection");
+
+        for scale in [1e-12_f64, 1e-6, 1.0, 1e6, 1e12] {
+            let diameter = projected_sphere_diameter_px(
+                radius * scale,
+                ApparentSizeProjection::Orthographic {
+                    viewport_height_px: 1_440,
+                    vertical_span: vertical_span * scale,
+                },
+            )
+            .expect("scaled orthographic units");
+            assert!(
+                (diameter - reference).abs() <= reference.abs() * 1e-12,
+                "common unit scale {scale:e} changed orthographic diameter"
+            );
+        }
+    }
+
+    #[test]
     fn apparent_diameter_decreases_with_perspective_distance() {
         let near = projected_sphere_diameter_px(
             1.0,
