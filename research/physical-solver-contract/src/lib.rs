@@ -5,6 +5,7 @@
 //! this crate does not invoke a qualified mechanics solver.
 
 pub mod calculix_displacement;
+pub mod calculix_mms;
 pub mod calculix_rf_restricted;
 pub mod calculix_rr;
 pub mod equilibrium;
