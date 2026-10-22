@@ -48,7 +48,7 @@ impl PlaneStrainMaterial {
         if youngs_modulus <= 0.0 {
             return Err(OracleError::NonPositiveYoungsModulus);
         }
-        if poisson_ratio <= -1.0 || poisson_ratio >= 0.5 {
+        if !(-1.0 < poisson_ratio && poisson_ratio < 0.5) {
             return Err(OracleError::InvalidPoissonRatio);
         }
         Ok(Self {
