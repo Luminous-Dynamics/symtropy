@@ -14,21 +14,43 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  freeze-integration-subject:
+    if: ${{ github.event_name == 'pull_request' && !startsWith(github.head_ref, 'ci/living-world-') }}
+    name: Freeze PR integration subject
+    runs-on: ubuntu-latest
+    outputs:
+      base_sha: ${{ steps.freeze.outputs.base_sha }}
+      head_sha: ${{ steps.freeze.outputs.head_sha }}
+      tree_sha: ${{ steps.freeze.outputs.tree_sha }}
+    steps:
+    - name: Check out exact PR head with full history
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Test frozen-subject bootstrap
+      shell: bash
+      run: bash tests/ci/test-freeze-pr-integration-subject.sh
+
+    - name: Compute frozen integration subject
+      id: freeze
+      shell: bash
+      env:
+        EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: bash scripts/freeze-pr-integration-subject.sh "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA"
+
   test:
-    # Living World exact-head qualification helpers have their own dedicated,
-    # immutable-product workflows. Running the full 3-OS workspace matrix on
-    # those helper PRs duplicates runner demand without adding product evidence.
-    # Product/oracle PRs keep normal CI; pushes to main/stabilize also keep it
-    # because github.head_ref is empty outside pull_request events.
-    if: ${{ !startsWith(github.head_ref, 'ci/living-world-') }}
+    needs: freeze-integration-subject
+    # `always()` is required so push-to-main/stabilize matrices still run when
+    # the PR-only freeze job is skipped. Pull-request matrices require the
+    # bootstrap to succeed before any OS lane can execute.
+    if: ${{ always() && !startsWith(github.head_ref, 'ci/living-world-') && (github.event_name != 'pull_request' || needs.freeze-integration-subject.result == 'success') }}
     name: Test Suite (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      # Legs must report independently. Under the default fail-fast, the
-      # ubuntu leg's failure cancelled windows and macos mid-run, so from
-      # 2026-06-21 to 2026-07-28 their status was simply unknown -- we could
-      # not tell whether the Windows checkout problem diagnosed on 2026-07-13
-      # was fixed, because Windows never got to finish again.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -36,15 +58,31 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # Every PR lane must prove that its actual provider checkout is the same
+    # immutable integration subject independently computed by the bootstrap.
+    - name: Verify immutable PR integration subject
+      id: integration-subject
+      if: github.event_name == 'pull_request'
+      shell: bash
+      env:
+        EXPECTED_BASE_SHA: ${{ needs.freeze-integration-subject.outputs.base_sha }}
+        EXPECTED_HEAD_SHA: ${{ needs.freeze-integration-subject.outputs.head_sha }}
+        EXPECTED_TREE_SHA: ${{ needs.freeze-integration-subject.outputs.tree_sha }}
+      run: bash scripts/verify-pr-integration-subject.sh "$EXPECTED_BASE_SHA" "$EXPECTED_HEAD_SHA" "$EXPECTED_TREE_SHA"
+
+    # Hermetic authority regression stays ahead of apt/network setup so an
+    # unrelated package-mirror outage cannot erase evidence about this guard.
+    - name: Test integration subject verifier
+      if: runner.os == 'Linux'
+      shell: bash
+      run: bash tests/ci/test-verify-pr-integration-subject.sh
+
     - name: Install System Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
-    # Keep CI on the same explicit toolchain as rust-toolchain.toml. The action
-    # ref remains stable, but the installed compiler/lints are pinned so an
-    # unrelated Rust release cannot turn the repository red.
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -57,15 +95,6 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
-    # Repo-invariant guards. These scripts existed since at least June but were
-    # wired into nothing, so both of them silently failed against the tree for
-    # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
-    # been on 0.19.0 since the dual-bevy cleanup) plus a hardcoded 14-crate
-    # member list against 60 real members, and check-licenses.sh was finding 13
-    # crates with no `license` field and a real SPDX mismatch. Both are now
-    # repaired and enforced. Linux only -- they are filesystem/manifest checks
-    # with no platform-specific behaviour, and rg/python3 are not guaranteed on
-    # the Windows and macOS runners.
     - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
       if: runner.os == 'Linux'
       run: bash scripts/check-workspace.sh
