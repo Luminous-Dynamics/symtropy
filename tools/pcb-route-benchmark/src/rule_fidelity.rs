@@ -1446,13 +1446,11 @@ mod tests {
         altered_plan.rule_assessments[0].evaluated_value = Some("0.30mm".into());
         altered_plan.rule_assessments[0].classification = RuleClassification::Relaxed;
         altered_plan.rule_assessments[0].rationale = "deliberate mismatch negative control".into();
-        let altered = evaluate(&plan_to_receipt_bytes_variant(&altered_plan, OUTPUT_B), COMPAT_CLEAN.as_bytes(), Some(STRICT_CLEAN.as_bytes()));
+        let altered = evaluate(
+            &plan(OUTPUT_B, altered_plan.rule_assessments.clone(), true),
+            COMPAT_CLEAN.as_bytes(),
+            Some(STRICT_CLEAN.as_bytes()),
+        );
         assert!(compare_rule_fidelity(&baseline, &altered).unwrap_err().contains("different source-rule or compatibility constraints"));
-    }
-
-    fn plan_to_receipt_bytes_variant(plan: &RuleFidelityPlan, output: &[u8]) -> RuleFidelityPlan {
-        let mut altered = plan.clone();
-        altered.output_board_sha256 = sha256_hex(output);
-        altered
     }
 }
