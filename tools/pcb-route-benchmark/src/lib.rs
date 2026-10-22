@@ -2801,7 +2801,7 @@ mod tests {
         for (id, spdx, evidence_path, commit_char) in evidence_blobs {
             std::fs::create_dir_all(root.join(id)).unwrap();
             let board_relative = format!("{id}/processed_v9_guide_v3.kicad_pcb");
-            let board_bytes = format!("synthetic board fixture bytes: {id}\n");
+            let board_bytes = format!(r#"(kicad_pcb (version 20241229) (generator "pcbnew") (layers (0 "F.Cu" signal) (25 "Edge.Cuts" user)) (net 0 "") (net 1 "VCC") (footprint "AtomFab:Connector" (layer "F.Cu") (at 10 10) (property "Reference" "{id}") (pad "1" thru_hole rect (at 0 0) (size 1.7 1.7) (drill 1) (layers "*.Cu" "*.Mask") (net 1 "VCC"))) (gr_rect (start 0 0) (end 20 10) (layer "Edge.Cuts")))"#);
             std::fs::write(root.join(&board_relative), board_bytes.as_bytes()).unwrap();
             let license_bytes = format!("SYNTHETIC license-evidence fixture text for {spdx}\n");
             std::fs::write(root.join(evidence_path), license_bytes.as_bytes()).unwrap();
