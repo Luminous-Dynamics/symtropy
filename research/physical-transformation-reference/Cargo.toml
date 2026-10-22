@@ -41,4 +41,8 @@ path = "src/bin/beam-mesh-convergence-reference.rs"
 name = "beam-mode-tracking-reference"
 path = "src/bin/beam-mode-tracking-reference.rs"
 
+[[bin]]
+name = "beam-mass-formulation-sensitivity-reference"
+path = "src/bin/beam-mass-formulation-sensitivity-reference.rs"
+
 [workspace]
