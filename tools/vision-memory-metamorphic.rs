@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 
 const BUDGETS: [usize; 3] = [2, 4, 8];
 const MAX_DISTRACTORS: u16 = 24;
+const PERMUTATION_SEEDS: [u64; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EvidenceKind {
@@ -264,6 +265,21 @@ impl Store {
     }
 }
 
+fn next_seed(state: &mut u64) -> u64 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    *state
+}
+
+fn shuffle_events(events: &mut [Event], seed: u64) {
+    let mut state = seed;
+    for i in (1..events.len()).rev() {
+        let j = (next_seed(&mut state) % (i as u64 + 1)) as usize;
+        events.swap(i, j);
+    }
+}
+
 fn fingerprint(value: u32) -> u32 {
     let mut x = value.wrapping_add(0x9E37_79B9);
     x ^= x >> 16;
@@ -281,6 +297,7 @@ enum Transform {
     UnrelatedEntityInsertion,
     ChunkPartition,
     EqualRevisionConflict,
+    SeededRevisionPermutationSweep,
     DistractorPressure,
 }
 
@@ -292,6 +309,7 @@ impl Transform {
         Self::UnrelatedEntityInsertion,
         Self::ChunkPartition,
         Self::EqualRevisionConflict,
+        Self::SeededRevisionPermutationSweep,
         Self::DistractorPressure,
     ];
 
@@ -303,6 +321,7 @@ impl Transform {
             Self::UnrelatedEntityInsertion => "unrelated_entity_insertion",
             Self::ChunkPartition => "chunk_partition",
             Self::EqualRevisionConflict => "equal_revision_conflict",
+            Self::SeededRevisionPermutationSweep => "seeded_revision_permutation_sweep",
             Self::DistractorPressure => "distractor_pressure",
         }
     }
@@ -448,6 +467,45 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
                 "silent_resolution_control"
             };
         }
+        Transform::SeededRevisionPermutationSweep => {
+            let events: Vec<Event> = (1..=8u16)
+                .flat_map(|entity| (1..=3u16).map(move |revision| {
+                    event(entity, revision, u32::from(entity) * 100 + u32::from(revision), EvidenceKind::Observation)
+                }))
+                .collect();
+            let mut baseline = Store::new(policy, budget);
+            baseline.insert_all(&events);
+            before = baseline.lookup(query_entity);
+            let mut divergent_seeds = 0usize;
+            let mut invariant_violations = 0usize;
+            let mut last_lookup = Lookup::Missing;
+            for seed in PERMUTATION_SEEDS {
+                let mut shuffled = events.clone();
+                shuffle_events(&mut shuffled, seed);
+                final_store = Store::new(policy, budget);
+                final_store.insert_all(&shuffled);
+                last_lookup = final_store.lookup(query_entity);
+                if last_lookup != before {
+                    if policy == Policy::LatestArrival {
+                        divergent_seeds += 1;
+                    } else {
+                        invariant_violations += 1;
+                    }
+                }
+            }
+            after = format!(
+                "divergent_seeds:{divergent_seeds}/{};violations:{invariant_violations}/{};last={}",
+                PERMUTATION_SEEDS.len(), PERMUTATION_SEEDS.len(), last_lookup.label()
+            );
+            if budget < 8 {
+                expectation = "seeded_permutation_capacity_exemption";
+                required = false;
+            } else if policy == Policy::LatestArrival {
+                expectation = "seeded_order_counterexample_expected";
+            } else {
+                expectation = "seeded_revision_order_invariant";
+            }
+        }
         Transform::DistractorPressure => {
             let stream: Vec<Event> = (0..MAX_DISTRACTORS)
                 .map(|entity| event(100 + entity, 1, u32::from(entity) * 17, EvidenceKind::Inference))
@@ -463,6 +521,12 @@ fn transform_result(transform: Transform, policy: Policy, budget: usize) -> Resu
 
     let observed = match expectation {
         "arrival_order_counterexample_expected" => before != after,
+        "seeded_order_counterexample_expected" => after.contains("divergent_seeds:")
+            && after.split("divergent_seeds:").nth(1)
+                .and_then(|s| s.split('/').next())
+                .and_then(|s| s.parse::<usize>().ok())
+                .is_some_and(|n| n > 0),
+        "seeded_revision_order_invariant" => after.contains("violations:0/16"),
         "stale_revival_rejected" => !matches!(after, Lookup::Value { source_revision: 1, .. }),
         "stale_revival_counterexample_expected" => matches!(after, Lookup::Value { source_revision: 1, .. }),
         "conflict_must_be_visible" => matches!(after, Lookup::Conflict { .. }),
@@ -516,6 +580,8 @@ fn make_report() -> String {
     line(&mut out, &["META".into(), "scope".into(), "synthetic metamorphic semantics; not native task performance".into()]);
     line(&mut out, &["META".into(), "query_boundary".into(), "query key enters only after stream insertion for each case".into()]);
     line(&mut out, &["META".into(), "watermark_cost".into(), "9 conceptual packed payload bytes per entity watermark; map/allocator overhead excluded".into()]);
+    line(&mut out, &["META".into(), "permutation_seeds".into(), PERMUTATION_SEEDS.iter().map(u64::to_string).collect::<Vec<_>>().join(",")]);
+    line(&mut out, &["META".into(), "counterexample_semantics".into(), "expected weak-baseline failures are separately labeled and are not production-policy passes".into()]);
     line(&mut out, &[
         "ROW_HEADER".into(), "transformation".into(), "policy".into(), "budget".into(),
         "query_entity".into(), "expectation".into(), "required".into(), "contract_check_passed".into(),
@@ -649,13 +715,26 @@ mod tests {
     }
 
     #[test]
+    fn sixteen_seed_sweep_finds_arrival_order_failure_and_preserves_revision_order() {
+        let weak = transform_result(Transform::SeededRevisionPermutationSweep, Policy::LatestArrival, 8);
+        assert!(weak.passed);
+        assert!(weak.after.contains("divergent_seeds:"));
+        assert!(!weak.after.contains("divergent_seeds:0/16"));
+        for policy in [Policy::SourceRevisionUpsert, Policy::RevisionWatermark, Policy::ConflictAwareWatermark] {
+            let robust = transform_result(Transform::SeededRevisionPermutationSweep, policy, 8);
+            assert!(robust.passed, "{}: {}", policy.label(), robust.after);
+            assert!(robust.after.contains("violations:0/16"));
+        }
+    }
+
+    #[test]
     fn report_replays_and_has_exact_row_and_summary_schemas() {
         let a = make_report();
         assert_eq!(a, make_report());
         assert_eq!(a.lines().filter(|l| l.starts_with("ROW_HEADER\t")).count(), 1);
-        assert_eq!(a.lines().filter(|l| l.starts_with("ROW\t")).count(), 7 * 4 * 3);
+        assert_eq!(a.lines().filter(|l| l.starts_with("ROW\t")).count(), 8 * 4 * 3);
         assert_eq!(a.lines().filter(|l| l.starts_with("SUMMARY_HEADER\t")).count(), 1);
-        assert_eq!(a.lines().filter(|l| l.starts_with("SUMMARY\t")).count(), 7 * 4);
+        assert_eq!(a.lines().filter(|l| l.starts_with("SUMMARY\t")).count(), 8 * 4);
         for record in a.lines() {
             if record.starts_with("ROW_HEADER\t") || record.starts_with("ROW\t") {
                 assert_eq!(record.split('\t').count(), 15, "row schema: {record}");
