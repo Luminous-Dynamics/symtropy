@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/robotics/fault_response_pairs_v0_1.schema.json",
+  "title": "Robotics Fault-Response Paired Evaluation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "robotics-fault-response-dynamics-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "fault_response_audit_does_not_establish_physical_safety_or_reliability"
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    }
+  },
+  "$defs": {
+    "finiteTime": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "nullableNonnegative": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "evidenceClass": {
+      "enum": [
+        "synthetic_contract_fixture",
+        "simulator",
+        "hardware_in_loop",
+        "physical_field",
+        "independently_reviewed"
+      ]
+    },
+    "disposition": {
+      "enum": [
+        "run_within_declared_envelope",
+        "abort_or_retreat_safely",
+        "reject_as_out_of_domain",
+        "require_explicit_human_choice",
+        "keep_unknown_unresolved"
+      ]
+    },
+    "responseContract": {
+      "enum": [
+        "safe_state_required",
+        "hold_until_authorized",
+        "continue_unless_fault_confirmed"
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trial_id",
+        "task_success",
+        "safety_violation",
+        "observed_disposition",
+        "useful_work_units",
+        "energy_used_wh",
+        "response"
+      ],
+      "properties": {
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_success": {
+          "type": "boolean"
+        },
+        "safety_violation": {
+          "type": "boolean"
+        },
+        "observed_disposition": {
+          "$ref": "#/$defs/disposition"
+        },
+        "useful_work_units": {
+          "$ref": "#/$defs/nullableNonnegative"
+        },
+        "energy_used_wh": {
+          "$ref": "#/$defs/nullableNonnegative"
+        },
+        "response": {
+          "$ref": "#/$defs/response"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_fault_present",
+        "fault_signal_present",
+        "fault_onset_ms",
+        "fault_detected",
+        "fault_detected_ms",
+        "safe_disposition_reached",
+        "safe_disposition_ms",
+        "fault_cleared",
+        "fault_cleared_ms",
+        "service_restored",
+        "service_restored_ms",
+        "recovery_authorized"
+      ],
+      "properties": {
+        "physical_fault_present": {
+          "type": "boolean"
+        },
+        "fault_signal_present": {
+          "type": "boolean"
+        },
+        "fault_onset_ms": {
+          "$ref": "#/$defs/finiteTime"
+        },
+        "fault_detected": {
+          "type": "boolean"
+        },
+        "fault_detected_ms": {
+          "$ref": "#/$defs/finiteTime"
+        },
+        "safe_disposition_reached": {
+          "type": "boolean"
+        },
+        "safe_disposition_ms": {
+          "$ref": "#/$defs/finiteTime"
+        },
+        "fault_cleared": {
+          "type": "boolean"
+        },
+        "fault_cleared_ms": {
+          "$ref": "#/$defs/finiteTime"
+        },
+        "service_restored": {
+          "type": "boolean"
+        },
+        "service_restored_ms": {
+          "$ref": "#/$defs/finiteTime"
+        },
+        "recovery_authorized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "scenario_family",
+        "policy_id",
+        "seed",
+        "evidence_class",
+        "fault_class",
+        "response_contract",
+        "max_detection_latency_ms",
+        "max_safe_state_latency_ms",
+        "control",
+        "challenge"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "fault_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "response_contract": {
+          "$ref": "#/$defs/responseContract"
+        },
+        "max_detection_latency_ms": {
+          "$ref": "#/$defs/nullableNonnegative"
+        },
+        "max_safe_state_latency_ms": {
+          "$ref": "#/$defs/nullableNonnegative"
+        },
+        "control": {
+          "$ref": "#/$defs/episode"
+        },
+        "challenge": {
+          "$ref": "#/$defs/episode"
+        }
+      }
+    }
+  }
+}
