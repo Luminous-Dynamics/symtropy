@@ -18,6 +18,8 @@ Tests cover:
 - symmetric stiffness and the two translation plus one infinitesimal-rotation null modes;
 - invariance under reversed triangle vertex order, with the matching DOF permutation;
 - nonnegative strain energy for a deterministic displacement vector;
+- relative matrix-versus-constitutive energy identity;
+- a deliberately corrupted stiffness entry that must fail the energy identity control;
 - fail-closed rejection of degenerate geometry, non-finite coordinates/displacements,
   and invalid thickness;
 - global assembly of a 4-by-4 structured patch: the affine strain is exact element by
