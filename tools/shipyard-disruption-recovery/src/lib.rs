@@ -222,7 +222,9 @@ fn merge_known_zones(candidate: &mut Scenario, known_zones: &[ExclusionZone]) {
             candidate.exclusion_zones.push(zone.clone());
         }
     }
-    candidate.exclusion_zones.sort_by(|left, right| left.id.cmp(&right.id));
+    candidate
+        .exclusion_zones
+        .sort_by(|left, right| left.id.cmp(&right.id));
 }
 
 fn merge_active_outages(
@@ -337,19 +339,18 @@ pub fn evaluate_recovery_sequence(
             .saturating_add(report.metrics.changed_placement_reservations);
         total_changed_transfer_reservations = total_changed_transfer_reservations
             .saturating_add(report.metrics.changed_transfer_reservations);
-        cumulative_time_shift_ticks = cumulative_time_shift_ticks
-            .saturating_add(report.metrics.time_shift_ticks);
+        cumulative_time_shift_ticks =
+            cumulative_time_shift_ticks.saturating_add(report.metrics.time_shift_ticks);
         cumulative_rectangle_edge_shift_units = cumulative_rectangle_edge_shift_units
             .saturating_add(report.metrics.rectangle_edge_shift_units);
         if let Some(horizon) = report.metrics.recovery_horizon_ticks {
-            worst_case_recovery_horizon_ticks = Some(
-                worst_case_recovery_horizon_ticks.map_or(horizon, |prior| prior.max(horizon)),
-            );
+            worst_case_recovery_horizon_ticks =
+                Some(worst_case_recovery_horizon_ticks.map_or(horizon, |prior| prior.max(horizon)));
         }
-        worst_unaffected_placement_churn = worst_unaffected_placement_churn
-            .max(report.metrics.unaffected_placement_churn);
-        worst_unaffected_transfer_churn = worst_unaffected_transfer_churn
-            .max(report.metrics.unaffected_transfer_churn);
+        worst_unaffected_placement_churn =
+            worst_unaffected_placement_churn.max(report.metrics.unaffected_placement_churn);
+        worst_unaffected_transfer_churn =
+            worst_unaffected_transfer_churn.max(report.metrics.unaffected_transfer_churn);
 
         let accepted = report.accepted;
         stage_reports.push(RecoverySequenceStageReport {
@@ -507,16 +508,10 @@ fn pareto_score(report: &RecoveryEnvelopeReport) -> RecoveryParetoScore {
         worst_case_changed_transfer_reservations: report
             .metrics
             .worst_case_changed_transfer_reservations,
-        worst_case_unaffected_placement_churn: report
-            .metrics
-            .worst_case_unaffected_placement_churn,
-        worst_case_unaffected_transfer_churn: report
-            .metrics
-            .worst_case_unaffected_transfer_churn,
+        worst_case_unaffected_placement_churn: report.metrics.worst_case_unaffected_placement_churn,
+        worst_case_unaffected_transfer_churn: report.metrics.worst_case_unaffected_transfer_churn,
         worst_case_time_shift_ticks: report.metrics.worst_case_time_shift_ticks,
-        worst_case_rectangle_edge_shift_units: report
-            .metrics
-            .worst_case_rectangle_edge_shift_units,
+        worst_case_rectangle_edge_shift_units: report.metrics.worst_case_rectangle_edge_shift_units,
     }
 }
 
@@ -537,15 +532,16 @@ fn dominates(left: &RecoveryParetoScore, right: &RecoveryParetoScore) -> bool {
     let no_worse_everywhere = optional_no_worse(
         left.worst_case_recovery_horizon_ticks,
         right.worst_case_recovery_horizon_ticks,
-    ) && optional_no_worse(left.worst_case_makespan_tick, right.worst_case_makespan_tick)
-        && left.worst_case_changed_placement_reservations
-            <= right.worst_case_changed_placement_reservations
+    ) && optional_no_worse(
+        left.worst_case_makespan_tick,
+        right.worst_case_makespan_tick,
+    ) && left.worst_case_changed_placement_reservations
+        <= right.worst_case_changed_placement_reservations
         && left.worst_case_changed_transfer_reservations
             <= right.worst_case_changed_transfer_reservations
         && left.worst_case_unaffected_placement_churn
             <= right.worst_case_unaffected_placement_churn
-        && left.worst_case_unaffected_transfer_churn
-            <= right.worst_case_unaffected_transfer_churn
+        && left.worst_case_unaffected_transfer_churn <= right.worst_case_unaffected_transfer_churn
         && left.worst_case_time_shift_ticks <= right.worst_case_time_shift_ticks
         && left.worst_case_rectangle_edge_shift_units
             <= right.worst_case_rectangle_edge_shift_units;
@@ -556,16 +552,13 @@ fn dominates(left: &RecoveryParetoScore, right: &RecoveryParetoScore) -> bool {
         left.worst_case_makespan_tick,
         right.worst_case_makespan_tick,
     ) || left.worst_case_changed_placement_reservations
-            < right.worst_case_changed_placement_reservations
+        < right.worst_case_changed_placement_reservations
         || left.worst_case_changed_transfer_reservations
             < right.worst_case_changed_transfer_reservations
-        || left.worst_case_unaffected_placement_churn
-            < right.worst_case_unaffected_placement_churn
-        || left.worst_case_unaffected_transfer_churn
-            < right.worst_case_unaffected_transfer_churn
+        || left.worst_case_unaffected_placement_churn < right.worst_case_unaffected_placement_churn
+        || left.worst_case_unaffected_transfer_churn < right.worst_case_unaffected_transfer_churn
         || left.worst_case_time_shift_ticks < right.worst_case_time_shift_ticks
-        || left.worst_case_rectangle_edge_shift_units
-            < right.worst_case_rectangle_edge_shift_units;
+        || left.worst_case_rectangle_edge_shift_units < right.worst_case_rectangle_edge_shift_units;
     no_worse_everywhere && strictly_better_somewhere
 }
 
@@ -734,9 +727,8 @@ pub fn evaluate_recovery_envelope(
     });
     violations.dedup();
 
-    let robustly_accepted = scenarios.len() > 0
-        && violations.is_empty()
-        && accepted_scenarios == scenarios.len();
+    let robustly_accepted =
+        scenarios.len() > 0 && violations.is_empty() && accepted_scenarios == scenarios.len();
 
     RecoveryEnvelopeReport {
         robustly_accepted,
@@ -772,8 +764,10 @@ fn apply_disruption(scenario: &Scenario, disruption: &Disruption) -> Scenario {
     for extension in &disruption.placement_occupancy_extensions {
         for placement in &mut effective.placements {
             if placement.reservation_id == extension.reservation_id {
-                placement.occupied.end_tick =
-                    placement.occupied.end_tick.max(extension.occupied_until_tick);
+                placement.occupied.end_tick = placement
+                    .occupied
+                    .end_tick
+                    .max(extension.occupied_until_tick);
             }
         }
     }
@@ -1026,7 +1020,12 @@ fn all_reservation_ids(scenario: &Scenario) -> BTreeSet<String> {
         .placements
         .iter()
         .map(|placement| placement.reservation_id.clone())
-        .chain(scenario.transfers.iter().map(|transfer| transfer.id.clone()))
+        .chain(
+            scenario
+                .transfers
+                .iter()
+                .map(|transfer| transfer.id.clone()),
+        )
         .collect()
 }
 
@@ -1287,9 +1286,7 @@ fn in_progress_mutations(
     let old_placements = placement_map(baseline);
     let new_placements = placement_map(candidate);
     for (id, old) in old_placements {
-        if old.occupied.start_tick <= disruption_tick
-            && disruption_tick < old.occupied.end_tick
-        {
+        if old.occupied.start_tick <= disruption_tick && disruption_tick < old.occupied.end_tick {
             let matches = new_placements.get(id).is_some_and(|new| {
                 new.block_id == old.block_id
                     && new.footprint == old.footprint
@@ -1310,9 +1307,7 @@ fn in_progress_mutations(
     let old_transfers = transfer_map(baseline);
     let new_transfers = transfer_map(candidate);
     for (id, old) in old_transfers {
-        if old.interval.start_tick <= disruption_tick
-            && disruption_tick < old.interval.end_tick
-        {
+        if old.interval.start_tick <= disruption_tick && disruption_tick < old.interval.end_tick {
             let matches = new_transfers.get(id).is_some_and(|new| {
                 new.block_id == old.block_id
                     && new.corridor == old.corridor
@@ -1488,11 +1483,7 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
     let mut changed_ids = affected.clone();
     let old_placements = placement_map(&input.baseline);
     let new_placements = placement_map(&input.candidate);
-    for id in old_placements
-        .keys()
-        .chain(new_placements.keys())
-        .copied()
-    {
+    for id in old_placements.keys().chain(new_placements.keys()).copied() {
         if old_placements.get(id) != new_placements.get(id) {
             changed_ids.insert(id.to_owned());
         }
@@ -1757,9 +1748,12 @@ mod tests {
 
         assert!(!report.accepted);
         assert!(!report.metrics.candidate_feasible_after_disruption);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == RecoveryViolationCode::VehicleUnavailable
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|violation| { violation.code == RecoveryViolationCode::VehicleUnavailable })
+        );
     }
 
     #[test]
@@ -1783,9 +1777,12 @@ mod tests {
         });
         assert!(!carried.accepted);
         assert!(carried.baseline_spatial_violations.is_empty());
-        assert!(carried.candidate_spatial_violations.iter().any(|violation| {
-            violation.code == ViolationCode::BlockFootprintOverlap
-        }));
+        assert!(
+            carried
+                .candidate_spatial_violations
+                .iter()
+                .any(|violation| { violation.code == ViolationCode::BlockFootprintOverlap })
+        );
 
         let candidate_redefined = Scenario {
             yard_bounds: Some(yard()),
@@ -1984,10 +1981,12 @@ mod tests {
         assert_eq!(report.metrics.changed_placement_reservations, 1);
         assert_eq!(report.metrics.unaffected_placement_churn, 0);
         assert_eq!(report.metrics.recovery_horizon_ticks, Some(6));
-        assert!(report
-            .baseline_spatial_violations
-            .iter()
-            .any(|violation| violation.code == ViolationCode::BlockFootprintOverlap));
+        assert!(
+            report
+                .baseline_spatial_violations
+                .iter()
+                .any(|violation| violation.code == ViolationCode::BlockFootprintOverlap)
+        );
     }
 
     #[test]
@@ -2186,7 +2185,11 @@ mod tests {
         assert_eq!(report.metrics.worst_case_recovery_horizon_ticks, Some(6));
         assert_eq!(report.metrics.worst_case_unaffected_placement_churn, 0);
         assert_eq!(
-            report.scenarios.iter().map(|s| s.scenario_id.as_str()).collect::<Vec<_>>(),
+            report
+                .scenarios
+                .iter()
+                .map(|s| s.scenario_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["clear-at-6", "clear-at-7", "clear-at-8"]
         );
     }
@@ -2249,11 +2252,8 @@ mod tests {
             scenario_id: "same-id".to_owned(),
             disruption: empty_disruption(4),
         };
-        let duplicate_report = evaluate_recovery_envelope(
-            &baseline,
-            &baseline,
-            &[duplicate.clone(), duplicate],
-        );
+        let duplicate_report =
+            evaluate_recovery_envelope(&baseline, &baseline, &[duplicate.clone(), duplicate]);
         assert!(!duplicate_report.robustly_accepted);
         assert!(duplicate_report.violations.iter().any(|violation| {
             violation.code == RecoveryEnvelopeViolationCode::DuplicateScenarioId
@@ -2299,7 +2299,13 @@ mod tests {
         assert_eq!(report.metrics.accepted_stages, 2);
         assert_eq!(report.stages[0].stage_id, "clearance-delay");
         assert_eq!(report.stages[1].stage_id, "vehicle-and-corridor-loss");
-        assert_eq!(report.stages[1].report.metrics.changed_transfer_reservations, 1);
+        assert_eq!(
+            report.stages[1]
+                .report
+                .metrics
+                .changed_transfer_reservations,
+            1
+        );
         assert!(report.stopped_at_stage.is_none());
     }
 
@@ -2349,10 +2355,17 @@ mod tests {
 
         assert!(!report.accepted);
         assert_eq!(report.metrics.accepted_stages, 1);
-        assert_eq!(report.stopped_at_stage.as_deref(), Some("outage-still-active"));
-        assert!(report.stages[1].report.violations.iter().any(|violation| {
-            violation.code == RecoveryViolationCode::VehicleUnavailable
-        }));
+        assert_eq!(
+            report.stopped_at_stage.as_deref(),
+            Some("outage-still-active")
+        );
+        assert!(
+            report.stages[1]
+                .report
+                .violations
+                .iter()
+                .any(|violation| { violation.code == RecoveryViolationCode::VehicleUnavailable })
+        );
     }
 
     #[test]
@@ -2365,19 +2378,18 @@ mod tests {
 
         let empty = evaluate_recovery_sequence(&baseline, &[]);
         assert!(!empty.accepted);
-        assert!(empty.violations.iter().any(|violation| {
-            violation.code == RecoverySequenceViolationCode::EmptyStageSet
-        }));
+        assert!(
+            empty.violations.iter().any(|violation| {
+                violation.code == RecoverySequenceViolationCode::EmptyStageSet
+            })
+        );
 
         let stage = |stage_id: &str, tick: u64| RecoverySequenceStage {
             stage_id: stage_id.to_owned(),
             candidate: baseline.clone(),
             disruption: empty_disruption(tick),
         };
-        let invalid = evaluate_recovery_sequence(
-            &baseline,
-            &[stage("same", 5), stage("same", 4)],
-        );
+        let invalid = evaluate_recovery_sequence(&baseline, &[stage("same", 5), stage("same", 4)]);
         assert!(!invalid.accepted);
         assert!(invalid.stages.is_empty());
         assert!(invalid.violations.iter().any(|violation| {
@@ -2475,20 +2487,42 @@ mod tests {
             },
         ];
 
-        assert!(alternatives.iter().all(|alternative| alternative.report.robustly_accepted));
+        assert!(
+            alternatives
+                .iter()
+                .all(|alternative| alternative.report.robustly_accepted)
+        );
         let report = pareto_recovery_candidates(&alternatives);
 
         assert_eq!(
-            report.frontier.iter().map(|candidate| candidate.candidate_id.as_str()).collect::<Vec<_>>(),
+            report
+                .frontier
+                .iter()
+                .map(|candidate| candidate.candidate_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["fast-far", "slow-near"]
         );
         assert_eq!(report.dominated_candidate_ids, vec!["unnecessary-churn"]);
         assert!(report.rejected_candidate_ids.is_empty());
 
-        let fast = report.frontier.iter().find(|candidate| candidate.candidate_id == "fast-far").unwrap();
-        let slow = report.frontier.iter().find(|candidate| candidate.candidate_id == "slow-near").unwrap();
-        assert!(fast.score.worst_case_recovery_horizon_ticks < slow.score.worst_case_recovery_horizon_ticks);
-        assert!(fast.score.worst_case_rectangle_edge_shift_units > slow.score.worst_case_rectangle_edge_shift_units);
+        let fast = report
+            .frontier
+            .iter()
+            .find(|candidate| candidate.candidate_id == "fast-far")
+            .unwrap();
+        let slow = report
+            .frontier
+            .iter()
+            .find(|candidate| candidate.candidate_id == "slow-near")
+            .unwrap();
+        assert!(
+            fast.score.worst_case_recovery_horizon_ticks
+                < slow.score.worst_case_recovery_horizon_ticks
+        );
+        assert!(
+            fast.score.worst_case_rectangle_edge_shift_units
+                > slow.score.worst_case_rectangle_edge_shift_units
+        );
     }
 
     #[test]
@@ -2541,7 +2575,11 @@ mod tests {
         let report = pareto_recovery_candidates(&alternatives);
 
         assert_eq!(
-            report.frontier.iter().map(|candidate| candidate.candidate_id.as_str()).collect::<Vec<_>>(),
+            report
+                .frontier
+                .iter()
+                .map(|candidate| candidate.candidate_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["robust"]
         );
         assert_eq!(report.rejected_candidate_ids, vec!["fragile"]);
