@@ -238,7 +238,7 @@ fn sample_key(rng: &mut Rng, weights: &[u32; KEY_COUNT]) -> u8 {
     unreachable!("weighted sample must select a key")
 }
 
-fn build_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT], Vec<Query>) {
+fn build_online_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT], Rng) {
     let mut rng = Rng::new(seed);
     let historical_weights = query_weights(workload, false);
     let mut current_revision = [0_u16; KEY_COUNT];
@@ -253,7 +253,6 @@ fn build_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT],
     }
 
     for offset in 0..ONLINE_STEPS {
-        let step = offset as u32 + KEY_COUNT as u32;
         let is_burst_write = workload == Workload::DistractorBurst
             && offset >= ONLINE_STEPS - 48
             && rng.below(100) < 82;
@@ -262,7 +261,7 @@ fn build_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT],
             let key = if is_burst_write {
                 (8 + rng.below(4)) as u8
             } else {
-                (rng.below(KEY_COUNT)) as u8
+                rng.below(KEY_COUNT) as u8
             };
             current_revision[key as usize] = current_revision[key as usize].saturating_add(1);
             events.push(Event::Write {
@@ -276,22 +275,28 @@ fn build_stream(workload: Workload, seed: u64) -> (Vec<Event>, [u16; KEY_COUNT],
                 truth_revision: current_revision[key as usize],
             });
         }
-
-        // Keep event count independent of the conditional above; step is an
-        // ordering tag, not a source of hidden future demand.
-        let _ = step;
     }
 
+    // Return the PRNG state, not the future query sequence. Callers replay the
+    // online stream and freeze every policy snapshot before future sampling.
+    (events, current_revision, rng)
+}
+
+fn build_future_queries(
+    workload: Workload,
+    latest_revisions: &[u16; KEY_COUNT],
+    rng: &mut Rng,
+) -> Vec<Query> {
     let future_weights = query_weights(workload, true);
     let mut future = Vec::with_capacity(FUTURE_QUERIES);
     for _ in 0..FUTURE_QUERIES {
-        let key = sample_key(&mut rng, &future_weights);
+        let key = sample_key(rng, &future_weights);
         future.push(Query {
             key,
-            truth_revision: current_revision[key as usize],
+            truth_revision: latest_revisions[key as usize],
         });
     }
-    (events, current_revision, future)
+    future
 }
 
 fn entry_score(entry: &Entry, policy: Policy, now: u32) -> i64 {
@@ -492,8 +497,10 @@ fn run_row(workload: Workload, seed: usize, budget: usize, policy: Policy) -> Ro
     let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
         ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
         ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
-    let (events, latest_revisions, future) = build_stream(workload, mixed_seed);
+    let (events, latest_revisions, mut future_rng) = build_online_stream(workload, mixed_seed);
     let replayed = replay(&events, policy, budget);
+    // The evaluation trace is generated only after this policy snapshot freezes.
+    let future = build_future_queries(workload, &latest_revisions, &mut future_rng);
     let score = score_future(&replayed.entries, &future);
     let oracle_utility = hindsight_upper_bound(&latest_revisions, &future, budget);
 
@@ -649,7 +656,7 @@ mod tests {
     #[test]
     fn capacity_is_never_exceeded() {
         for workload in Workload::ALL {
-            let (events, _, _) = build_stream(workload, 12345);
+            let (events, _, _) = build_online_stream(workload, 12345);
             for budget in BUDGETS {
                 for policy in Policy::ALL {
                     let replayed = replay(&events, policy, budget);
@@ -671,10 +678,14 @@ mod tests {
                     let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
                         ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
                         ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
-                    let (events, latest, future) = build_stream(workload, mixed_seed);
+                    let (events, latest, mut future_rng) = build_online_stream(workload, mixed_seed);
+                    let snapshots: Vec<(Policy, Replay)> = Policy::ALL
+                        .into_iter()
+                        .map(|policy| (policy, replay(&events, policy, budget)))
+                        .collect();
+                    let future = build_future_queries(workload, &latest, &mut future_rng);
                     let oracle = hindsight_upper_bound(&latest, &future, budget);
-                    for policy in Policy::ALL {
-                        let replayed = replay(&events, policy, budget);
+                    for (policy, replayed) in snapshots {
                         let score = score_future(&replayed.entries, &future);
                         assert!(
                             oracle >= score.utility,
@@ -714,7 +725,7 @@ mod tests {
 
     #[test]
     fn fixed_slot_bytes_match_retained_records() {
-        let (events, _, _) = build_stream(Workload::Stationary, 9);
+        let (events, _, _) = build_online_stream(Workload::Stationary, 9);
         let replayed = replay(&events, Policy::Lru, 3);
         assert!(replayed.entries.len() <= 3);
         let logical_bytes = replayed.entries.len() * SLOT_BYTES;
