@@ -187,7 +187,7 @@ fn legacy_time_blind_first_fit(
                     overlaps_in_time(request.occupied, *interval)
                         && mask & cell_mask(*prior_rect) != 0
                 }) {
-                    continue 'candidate;
+                    continue;
                 }
 
                 selected = Some(rect);
