@@ -1,0 +1,293 @@
+# Shipyard disruption-recovery evaluator (V0)
+
+A dependency-free Rust evaluator for comparing a pre-disruption schedule with a proposed recovery plan, built on the independent verifier in [space-time PR #2548](https://github.com/Luminous-Dynamics/symtropy/pull/2548).
+
+## Run
+
+```sh
+cargo fmt --all --manifest-path tools/shipyard-disruption-recovery/Cargo.toml -- --check
+cargo test --locked --offline --manifest-path tools/shipyard-disruption-recovery/Cargo.toml
+cargo clippy --locked --offline --manifest-path tools/shipyard-disruption-recovery/Cargo.toml --all-targets -- -D warnings
+```
+
+The dedicated workflow pins Rust 1.96.0 and runs formatting, tests and Clippy offline.
+
+## Paradigm shift: measure recourse, not just static layout quality
+
+A disruption evaluator must answer more than whether the new plan passes a feasibility check. It should also report how much work changed, what changed outside the disturbance's scope, how much time/space was shifted, and how long affected work takes to finish. V0 deliberately emits separate metrics rather than hiding trade-offs in an arbitrary weighted scalar.
+
+The evaluator applies the same declared exclusion-zone, vehicle-outage, and delayed-clearance evidence to both the baseline and proposed candidate. A `PlacementOccupancyExtension` records that a block's old footprint cannot be assumed clear before an authoritative tick; the extension is applied to both plans, automatically marking the outgoing reservation and any intersecting future placement/corridor as affected. The candidate must preserve the same block, starting time and physical footprint for that extended reservation. An extension must be reported before the old scheduled end; V0 rejects retrospective extension of work already considered complete. New-zone intersections, corridor-zone intersections and vehicle-outage overlap also derive affected IDs. The evaluator runs the candidate through the independent space-time verifier; no planner-supplied feasibility assertion is accepted.
+
+The report separates:
+- baseline feasible before/after the disruption;
+- candidate feasible after the disruption, including vehicle-outage checks;
+- placement and transfer reservations added, removed or changed;
+- changed reservations outside the affected set (schedule churn);
+- summed absolute start/end tick shifts;
+- summed rectangle-edge displacement;
+- candidate makespan and a declared recovery horizon (latest end of affected/changed reservations minus disruption observation tick);
+- immutable-history violations.
+
+Already-completed reservations (end tick at or before the disruption observation tick) may not be rewritten. An infeasible candidate is rejected; a deterministic report or a lower churn count alone does not make it accepted. Previously known exclusion-zone evidence is carried into the candidate's effective scenario even when omitted from the submitted candidate; reusing the same zone ID with changed geometry/timing is a hard violation.
+
+## Robust envelope across plausible disruptions
+
+`evaluate_recovery_envelope` evaluates the same candidate across a caller-supplied finite set of hard disturbance scenarios. V0 assigns no probabilities: **every listed scenario must pass**. Empty scenario sets, empty IDs and duplicate scenario IDs fail closed. The report records accepted scenarios and worst-case recovery horizon, unaffected placement/transfer churn, time shift and rectangle-edge displacement. The scenario report ordering is deterministic.
+
+This is a finite robustness envelope, not a probabilistic guarantee over disturbances that were never enumerated. A candidate that only works if a block clears at the optimistic tick is rejected when another supplied scenario keeps the same footprint occupied longer. The benchmark should construct these scenario sets from source-grounded lower/upper timing bounds and then report both per-scenario outcomes and worst-case metrics; do not invent probabilities from a point forecast.
+
+
+
+## Sequential disruptions: replay the plan as a state trajectory
+
+`evaluate_recovery_sequence` evaluates plan updates in chronological order. Each accepted stage's candidate, with its observed occupancy extensions and newly known exclusion zones applied, becomes the next stage's baseline. Prior exclusion zones are carried forward; vehicle outages remain binding while their intervals have not ended. A stage may change future reservations but cannot silently alter already completed or in-progress operations. Stage IDs must be unique and observation ticks monotonic.
+
+The sequence stops at the first failed recovery rather than pretending the next step is grounded in a valid physical state. It reports accepted/total stages, cumulative changed-reservation counts and time/geometry shifts, plus worst per-stage recovery horizon and unaffected-work churn. These cumulative shift values count repeated revisions separately, which makes schedule thrashing visible; they are not unique-block counts.
+
+A test trajectory first extends a departing block's occupancy from tick 5 to tick 7, then applies a transfer-corridor closure and a tug outage. The next plan must preserve the confirmed outgoing footprint through tick 7 and reroute the not-yet-started transfer to an available tug. A separate test verifies an earlier outage stays binding in a later stage. This is deterministic sequence replay, not stochastic forecasting; scenario probabilities still require calibrated evidence.
+
+## Pareto selection without hidden weights
+
+`pareto_recovery_candidates` compares only robustly accepted candidates. A missing recovery horizon/makespan is treated as not-applicable: when one candidate has a metric and another does not, neither is allowed to dominate solely because an `Option` sorts before the other. It publishes separate objectives for worst-case recovery horizon, makespan, changed placement/transfer count, unaffected placement/transfer churn, time shift and rectangle-edge displacement. One candidate dominates another only when it is no worse on every published objective and strictly better on at least one. A candidate failing any scenario is excluded from the frontier; empty or duplicate candidate IDs invalidate the comparison. Equal-scoring alternatives may both remain on the frontier.
+
+This intentionally avoids inventing a single weighted score. Yard managers can review the frontier and state explicit business preferences rather than letting an undocumented coefficient trade away resilience, stability or schedule time. This is not a proof that the current objective set is complete: cost, emissions, lift energy, risk and downstream vessel-delivery penalties need properly sourced models before they can be added.
+
+
+## Tests authored in V0
+
+Twenty-eight core recovery tests cover:
+1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
+2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
+3. failure when the candidate still uses an unavailable vehicle;
+4. prevention of historical reservation mutation;
+5. detection of a transfer corridor invalidated by a new exclusion zone, with recovery that avoids unaffected churn;
+6. measurement of churn on work outside the affected set;
+7. a delayed block handoff that keeps the departing footprint occupied and requires relocation of the incoming block;
+8. rejection of clearance extensions received after the scheduled reservation is considered complete;
+9. rejection of unknown extension targets;
+10. rejection when a candidate removes or moves the physical footprint that is still occupied;
+11. computing makespan and recovery horizon from the clearance-extended effective state, not the stale planned end time.
+12. robust acceptance across three clearance-time scenarios;
+13. rejection when a candidate survives the optimistic clearance time but fails a later-clearance scenario;
+14. fail-closed empty and duplicate scenario-set identities.
+15. Pareto frontier selection preserving a real recovery-time versus geometry-shift trade-off;
+16. rejection of candidates that fail any member of a robust disturbance envelope;
+17. rejection of duplicate candidate identities;
+18. prevention of moving an active block before clearance;
+19. prevention of reassigning/rerouting an active transfer mid-operation;
+20. treatment of not-applicable Pareto metrics as incomparable, not automatically better.
+21. sequential recovery from a delayed clearance followed by a vehicle and corridor disruption;
+22. persistence of an earlier vehicle outage across later planning stages, with fail-closed stop on an invalid recovery;
+23. rejection of empty, duplicate-ID and time-reversed disruption sequences;
+24. rejection when an incoming placement silently disappears from a recovery plan;
+25. rejection when a future transfer reservation silently disappears;
+26. carrying forward known exclusion-zone geometry when a candidate omits it;
+27. rejection when a candidate redefines a known exclusion-zone ID.
+
+A separate integration test exhaustively enumerates every integer placement for one disturbed 2×2 block in a 6×4 yard. Its cell-set oracle finds exactly five feasible recovery layouts and identifies the minimum-edge-shift recovery while leaving unaffected reservations unchanged. It does not call the production candidate-coordinate generator and pins the expected recovery horizon.
+
+These are authored unit scenarios. The exact-head workflow must pass before they are treated as verified results. The integration oracle's five-layout count is also an expected result until verified on the exact commit. The evaluator models rectangle-zone intersections, exclusive vehicle outages and explicit occupied-until extensions for known placements; it does not infer crane/lift clearance from sensor signals, calculate the physical move, compute a placement/route, model workstation capacity, infer an affected set for every possible disruption type, or prove that a recovery is globally optimal.
+
+## Paired rescheduling-stability smoke benchmark
+
+The new `tests/rescheduling_stability_benchmark.rs` adds 256 deterministic, matched decision cases to check whether the metrics distinguish four intentionally simple policies under the same disruption: (1) no-op, which must fail; (2) localized spatial repair of the affected block; (3) global spatial translation of every block; and (4) global temporal right-shift of every reservation until the finite closure interval has ended.
+
+The benchmark declares the closure before future work starts, so no policy is allowed to rewrite work already in progress. All accepted candidates go through `evaluate_recovery`; the candidate generators are simple fixture policies, not an optimizer. The test pins these arithmetic known answers:
+
+| Metric across 256 cases | Local repair | Global spatial translation | Global temporal right-shift |
+|---|---:|---:|---:|
+| Placement records in baseline corpus | 1,404 | 1,404 | 1,404 |
+| Changed reservations | 256 | 1,404 | 1,404 |
+| Unaffected-work churn | 0 | 1,148 | 1,148 |
+| Rectangle-edge shift units | 512 | 2,808 | 0 |
+| Start/end time-shift ticks | 0 | 0 | 9,964 |
+
+These are authored expected outputs, **not observed results from a completed Rust run**. The point is to show that a feasible reschedule can still have very different stability costs, without inventing a weight that trades geometric movement against time shifts. The temporal strategy is only feasible here because the declared closure ends at the original schedule-window boundary; this does not claim that real closures always end on time or that localized repair is globally optimal.
+
+### How to turn this into an industry comparison
+
+The current executable is a metric smoke test, not a solver competition. The next benchmark should use published scheduling instances where appropriate, then add provenance-backed shipyard disruption cases. Keep general job-shop instances labelled as adjacent baselines rather than falsely describing them as real shipyard data. Compare no-op, localized repair, right-shift, full reschedule and a reproducible CP-SAT or other licensed solver baseline. Record hard feasibility first, then a Pareto vector of recovery horizon, tardiness, changed reservations, unaffected churn, time/geometry shift, resource utilization, objective gap where an exact bound exists, wall-clock time and replan latency. Publish per-instance outcomes and failure counts—not just averages.
+
+This is also the correct evidence ladder: synthetic evaluator tests; historical production replay and calibration; partial APS/MES integration; then sustained live KPIs. The 2026 shipyard digitalization review explicitly separates these levels and notes the gap between simulation results and operational validation ([review, Journal of Marine Science and Engineering](https://www.mdpi.com/2077-1312/14/4/396)). For adjacent scheduling baselines, JSPLib provides standard job-shop instances and solver comparison data ([JSPLib benchmark archive](https://scheduleopt.github.io/benchmarks/jsplib/)); it is not, by itself, an industrial shipyard benchmark.
+
+## Finite-resource constraints and joint acceptance
+
+The public `resources` module now provides an independent unary-resource schedule checker for resource IDs representing a workstation, crane, tug, lift team, inspection station or another explicitly named resource. Each reservation has a stable reservation ID, operation ID, resource ID/kind and half-open time interval. The verifier rejects empty resource schedules, overlapping reservations on one unary resource, profile-kind drift, malformed/duplicate IDs, unknown outage targets, resource outages that overlap candidate work, and attempts to rewrite completed or move active work. It measures changed reservations, unaffected resource churn, absolute time shift, makespan and recovery horizon.
+
+`evaluate_joint_recovery` composes spatial recovery and unary-resource checks **and requires explicit resource-to-transfer bindings**. Every spatial transfer must have at least one binding to a resource reservation whose half-open interval covers the complete transfer interval. If the bound resource kind is `tug`, its resource ID must match the transfer's declared vehicle ID. Baseline and candidate bindings are checked separately. Joint acceptance is true only when spatial feasibility, resource calendars, and the cross-layer bindings all accept. A plan cannot earn a pass by packing blocks neatly while double-booking a crane, ignoring an unavailable workstation, or leaving a transfer unassigned to a resource. This is still a narrow unary-resource gate: capacity greater than one, two-crane tandem lifts, shared rigging constraints, crane interference geometry, swept paths, operator qualifications, load charts, work precedence and setup/changeover times are not yet represented. Resource IDs must refer to authoritative equipment/workstation profiles.
+
+There are thirty-seven resource-level unit tests covering half-open endpoint behavior, future-operation recovery after an outage, in-progress immutability, completed-history immutability, unknown-resource rejection, joint spatial/resource rejection, prevention of dropped future resource work, rejection of empty resource schedules, robust recovery across station and inspection outages, rejection when a required crane is unavailable, invalid scenario-set controls, and ensuring reservation-integrity failures are not reported as candidate-feasible, finish-to-start precedence timing, cycle/unknown-operation negative controls, rejection when a candidate removes or changes an authoritative dependency, and prevention of resource-kind relabelling across baseline and candidate. These are authored tests awaiting exact-head CI verification.
+
+Current literature supports this next direction. An August 2026 multi-fidelity ant-colony study models multi-crane scheduling with safety distance, interference, precedence and tandem scheduling, and reports 7–13% shorter crane travel distance than its compared methods on its own real-world data ([Applied Soft Computing, DOI 10.1016/j.asoc.2026.115384](https://doi.org/10.1016/j.asoc.2026.115384)). Our unary resource module does not reproduce that model and makes no percentage-improvement claim. It adds a small, independently testable feasibility layer before attempting richer crane-coupling models.
+
+The same physical resource ID also cannot be reclassified between baseline and candidate. A schedule may reassign a future operation to a different resource ID, but it cannot turn a known inspection station into a crane (or vice versa) by changing the candidate's resource-kind string. This is a consistency check, not a capability qualification system; authoritative capabilities, capacity, load charts and credentials remain unmodelled.
+
+## Multipurpose activity portfolio: shared resources, separate outcomes
+
+The new \`audit_multipurpose_shipyard_portfolio\` adds a small audit layer for one resource schedule shared across three activity classes: newbuild, repair and recycling. Each scheduled operation must have exactly one activity/deadline assignment, every required activity class must be represented, and every schedule reservation must be classified. The same independent resource/precedence validator remains authoritative, so sharing a crane across activities still enforces exclusive calendar use.
+
+The output reports per-class operation count, on-time count, late count, aggregate/max tardiness and reserved resource-time. These are separate dimensions, not a weighted total: a policy cannot hide poor repair delivery inside strong newbuild performance. Multi-resource operations contribute each reservation interval to resource-time; the metric is explicitly not elapsed operation time or a cost estimate. Missing activity classes, duplicate assignments, unknown operations, unclassified work or invalid shared-resource schedules fail closed.
+
+The unit tests cover an accepted mixed portfolio with a shared crane and distinct workstations, missing required activity detection, duplicate/unclassified/unknown assignments, and a shared-resource overlap negative control. The integration test \`tests/multipurpose_portfolio_oracle.rs\` exercises 512 deterministic schedules with one operation from each activity class. An independent arithmetic reference expects 1,536 operations total, 982 on-time and 554 late, 2,054 aggregate tardiness ticks, maximum tardiness 11 ticks, and 7,740 reserved resource-ticks. These are synthetic unit-scale expectations, not industrial KPIs.
+
+Why this matters: Arif et al.'s 2026 review of 215 shipyard simulation studies reports 88% concentrated on shipbuilding, only 3.7% integrated multiple major activities, and none modelling shipbuilding, repair and recycling concurrently. It identifies shared-resource conflict, prioritisation, trade-off management, lifecycle linkage and decarbonisation as persistent gaps ([Ocean Engineering, DOI 10.1016/j.oceaneng.2026.124303](https://doi.org/10.1016/j.oceaneng.2026.124303)). This module starts an auditable common-resource representation; it does not close those gaps by itself. It does not model class-specific process networks, dry-dock geometry, hazardous-material controls, recycling yield, lifecycle cost or emissions yet.
+
+## Cross-layer binding: connect a physical transfer to its equipment reservation
+
+A new ResourceSpatialBinding links a stable resource-reservation ID to a stable spatial-transfer ID. The joint checker requires every transfer to have at least one valid binding, rejects unknown/dangling IDs and duplicate link pairs, requires the resource reservation's operation ID to equal the transfer ID, verifies that its interval contains the whole transfer, and requires an explicitly bound tug reservation whose resource ID matches the transfer's vehicle ID. A transfer can legitimately bind to multiple resources, such as a tug and a separately modelled lifting crane.
+
+The baseline and candidate have separate binding sets so a real recovery can revise which future resource reservation serves a transfer while still having to prove the new relation. This prevents a false pass where spatial and resource reports are individually valid but describe inconsistent plans. Tests include a valid complete binding, a missing binding, a too-short reservation, a tug-ID mismatch and an operation-ID mismatch. These are authored tests pending exact-head CI; the rule is interval/identity consistency, not crane load-chart or lift-path authorization.
+
+## Operation precedence is part of resource feasibility
+
+Each \`ResourceSchedule\` can include explicit finish-to-start \`OperationPrecedence\` constraints with a stable constraint ID, predecessor operation ID, successor operation ID, and minimum lag in ticks. The verifier computes an operation's conservative window from the earliest start and latest reserved-resource completion, then rejects successors that start before the predecessor's final resource interval plus the declared lag. It also rejects duplicate/empty IDs, self-edges, duplicate edges, unknown operations and dependency cycles.
+
+The candidate must preserve the baseline dependency graph exactly. An optimizer cannot make a schedule appear feasible by deleting the inspection-after-weld or assembly-after-cut relationship. The current relation is finish-to-start only; it does not model alternative branches, resource calendars, setup times, probabilistic durations, or richer temporal-constraint networks. These remain explicit future extensions rather than silently ignored assumptions.
+
+## Joint robust envelope across space and resources
+
+\`evaluate_joint_recovery_envelope\` evaluates one spatial candidate and one resource schedule under a finite set of hard joint scenarios. Each scenario may independently introduce clearance/zone/vehicle evidence and resource outages. The candidate is accepted only if **every** joint report accepts. Scenario identity must be unique and non-empty; an empty set is rejected. The summary records accepted/total cases, worst spatial and resource recovery horizons, worst unaffected-resource churn and worst resource time shift; each sorted per-scenario report retains the detailed spatial and resource checks.
+
+The tests include a single candidate that can survive either a workstation outage or an inspector outage by moving both future reservations, and a negative control where moving work to another workstation does not help if the required crane goes down. This catches a hidden failure in spatial-only robust planning: all geometric scenarios can pass while a resource-only scenario still breaks the plan. The envelope is finite and deterministic; there are no probabilities and no guarantees for unenumerated outages.
+
+## Independent exact oracle for resource precedence
+
+The integration test \`tests/resource_precedence_oracle.rs\` enumerates 4,096 combinations for three operations (cut → weld → inspect), two candidate unary resources per operation, start ticks 0–3, durations 1–2, and a one-tick minimum lag before inspection. A separate reference predicate uses explicit integer-tick sets to check resource exclusivity and finish-to-start timing; it does not call the production overlap or precedence checker.
+
+The frozen oracle expects 16 feasible schedules and 4,080 infeasible schedules. The acceptance criterion is zero false-feasible and zero false-infeasible results. This exhausts a tiny, deliberately discrete subproblem; it does not validate resource capacities above one, variable setup/processing durations, alternate operation routes, crane interference, or industrial scale. The exact-head workflow must pass before those counts are treated as verified.
+
+## Execution-versus-plan replay and observability metrics
+
+The public execution module can replay a frozen list of planned operation windows against source-referenced Started and Completed events. It accepts two independent cutoffs: event-occurrence time defines the physical snapshot being assessed, while recorded/ingestion time defines the evidence that had arrived. An event that happened before the physical cutoff but was not recorded until later is withheld from the earlier as-of replay; an event already ingested but occurring after the physical cutoff is also withheld. This supports honest historical views of what the scheduler could have known at a decision point.
+
+The report separates schedule deviation from evidence validity. It measures observed start/completion counts, due-aware missing events, signed start/finish deviations, late-start and late-finish ticks, operation-duration overruns, absolute deviation and event-recording latency for structurally valid, non-duplicate event records included in the physical snapshot. Each operation assessment also exposes explicit start/completion due flags and per-milestone missing-observation flags, so downstream rolling-horizon logic does not have to infer an operation's state from aggregate counts. Missing events are reported as observability gaps only when their planned start/completion is already due at the event-time cutoff. Future operations are counted separately as not-yet-due, not as missing. Recording-time and occurrence-time holdbacks are also separate metrics. Duplicate IDs, unknown operations, duplicate start/completion claims, malformed plan windows, missing source/evidence references and completion-before-start fail closed. Assessment order is deterministic even if input events arrive in another order.
+
+Nine unit tests cover a late-arriving completion visible only in a later as-of snapshot, event input-order invariance, duplicate ID/start rejection, unknown operation and invalid time ordering, missing-evidence metrics, and completion-before-start. These are authored tests pending exact-head CI. V0 requires event and recorded ticks to be normalized to a common monotonic time domain; evidence references are preserved as references, not treated as cryptographic attestations. The replay measures adherence and data quality; it does not approve physical work or by itself provide a discrete-event simulation.
+
+This bridges an important gap between static plan feasibility and industrial evaluation. The 2026 shipyard digitalisation review identifies historical execution replay, APS/MES connection and sustained KPI validation as materially stronger evidence than architecture alone. The next benchmark should compare a frozen planned schedule with synthetic or permissioned actual event traces and publish the same as-of reports at multiple ingestion cutoffs.
+
+The separate integration test execution_replay_oracle.rs runs 512 deterministic generated traces with three planned operations per case, selectively missing start/completion events, variable start shifts, duration variation, recording latency, and recorded-time cutoffs. Its simple reference recomputes event visibility, missing observations, signed absolute deviation, late starts/finishes and duration overrun from maps and arithmetic independent of the evaluator. The test asserts all 512 cases are valid evidence traces and that summary metrics exactly match the reference. It intentionally does not simulate resource interactions or infer causality between operations; that remains the scope of the resource/precedence and future discrete-event models.
+
+The integration test resource_transfer_binding_oracle.rs exercises 512 generated joint schedules with one spatial transfer and a unary tug reservation. Its reference accepts only when the resource interval fully contains the transfer interval and the resource ID matches the transfer's declared vehicle ID. Frozen targets: 197/512 intervals cover the transfer, 96/512 cases also have the correct tug identity, and the joint evaluator should accept exactly those 96 with zero false-feasible and zero false-infeasible cases. This is a synthetic cross-layer semantic oracle; it does not represent lift physics or yard-scale performance.
+
+## Execution-to-recovery bridge: evidence is not absence
+
+The new execution bridge translates a frozen operation plan, bitemporal execution events, explicit operation-to-placement clearance bindings, and positive occupancy witnesses into a disruption usable by the recovery evaluator. The public `evaluate_execution_driven_recovery` wrapper then runs the evidence bridge first and the independent spatial recovery evaluator second. A completion event by itself does not rewrite a lapsed placement's history, and a missing completion event is not treated as proof that the block remains physically present. If the bridge rejects its evidence, the wrapper returns no recovery report.
+
+When a placement's scheduled interval has elapsed, recovery can extend it only if the planner has a positive, source-referenced observation that the block still occupies that placement at the current decision tick. The bridge emits a receipt containing the witness identity, source, evidence reference, observation/recording ticks, previous interval end and new conservative end. V0 extends to the next discrete tick, after which the loop must observe again or fail closed. A witness arriving after the recorded-time cutoff is not usable for the earlier decision. Contradictory current evidence—a completion and a still-present witness for the same bound placement—also fails closed.
+
+The core recovery type now carries optional occupancy evidence. An extension correcting a placement whose scheduled end is already past is rejected unless that evidence is present, current at the disruption tick and recorded no later than that decision. Ordinary forward extensions before the scheduled end remain available to the existing synthetic scenarios. This avoids a subtle failure mode where a planner could retroactively lengthen completed history with an unsupported assertion, while also allowing a witnessed still-occupied block to continue constraining the next plan.
+
+Nine bridge unit tests cover witnessed next-tick extension and provenance receipt, late-recorded witness holdback, absent-clearance rejection, completion before the known placement end, invalid/duplicate binding controls, contradictory completion-versus-occupancy evidence, integration with spatial verification where a witnessed occupancy extension blocks a conflicting candidate, successful execution-driven recovery when both bridge and spatial evaluator accept, and withholding recovery results when bridge evidence is insufficient. These are authored tests pending exact-head CI; the source reference is not treated as cryptographic attestation.
+
+The integration test execution_recovery_bridge_oracle.rs adds a 256-case deterministic end-to-end test of the bridge and recovery wrapper. Each case uses one of four evidence timings: witness current and recorded at decision time, same-tick witness recorded late, stale witness recorded by the decision, or future-dated witness. The independent expected rule accepts exactly the 64 current-and-timely cases, with zero false approvals and zero false rejections. This is a timing/eligibility oracle for a single-placement prototype, not a production-yard success rate.
+
+### Frozen bitemporal replay oracle totals
+
+The 512-case generated execution replay uses seed 0x0e71_2026 and three planned operations per case. The reference implementation pins 1,536 operation assessments; 866 visible events; 1,045 events held back by recorded time; and 464 events held back by occurrence time. The independently computed KPI totals are: 546 observed starts, 320 observed completions, 261 fully observed operations, 504 due-but-missing starts, 580 due-but-missing completions, 486 not-yet-due starts, and 636 not-yet-due completions.
+
+The same corpus pins 277 late starts / 206 late completions; 699 aggregate start-lateness ticks / 553 completion-lateness ticks; 962 absolute start-deviation ticks / 663 absolute completion-deviation ticks; 268 operation-duration-overrun ticks; and 1,266 total event-recording-latency ticks. These frozen aggregates complement the per-case independent predicate assertions. They are test targets, not production observations.
+
+## Scenario coverage receipt: passing cases is not coverage
+
+A finite robustness result needs two different statements: (1) did the candidate pass every supplied hard scenario, and (2) did the scenario corpus contain every disturbance family required by the benchmark protocol? V0 now exposes audit_joint_scenario_coverage to make the second statement explicit. It records which scenario IDs exercise clearance overruns, vehicle outages, exclusion-zone closures, resource outages, spatial/resource cross-layer combinations, and multi-dimension combinations.
+
+The coverage receipt fails closed when the required-dimension list is empty, duplicated, or missing any required dimension. Receipts and scenario IDs are deterministically sorted, and scenario input order does not change the result. This audit is independent of schedule feasibility: a complete corpus can demonstrate that a candidate fails a hard scenario, while a candidate that passes all cases may still have an incomplete corpus. Neither result assigns probabilities to unenumerated disruptions.
+
+The coverage receipt also refuses empty or duplicate scenario IDs and records the offending IDs in its violations. Invalid-ID scenarios do not contribute to dimension receipts, so duplicated rows cannot inflate the apparent breadth of evidence.
+
+Four new unit tests check complete multi-family coverage, missing-family detection even when scenarios exist, empty/duplicate required dimensions, input-order invariance, and empty/duplicate scenario identities. These are authored tests awaiting exact-head CI.
+
+## Joint Pareto frontier across space and resources
+
+Joint candidate ranking is now available through pareto_joint_recovery_candidates. It compares only candidates accepted by every spatial-and-resource disturbance case. Its eleven separate objectives include worst spatial/resource recovery horizons, changed placements/transfers/resources, unaffected-work churn, spatial/resource time shifts, and geometric displacement. A candidate dominates another only when it is no worse on every applicable objective and strictly better on at least one; no hidden weighted scalar collapses the trade-offs. Candidate IDs must be non-empty and unique, and not-applicable recovery horizons do not automatically dominate measured values.
+
+The unit tests preserve a trade-off between a faster but farther relocation and a slower but nearer relocation; a plan that adds unnecessary churn is dominated, while a candidate failing any hard scenario is excluded. The joint frontier is still a decision aid over finite synthetic scenarios, not an optimizer and not evidence of industrial improvement. Its objective set will need to include calibrated monetary cost, energy, emissions, lift risk and vessel-delivery penalties as those models and data become available.
+
+## Adaptive recourse without clairvoyance
+
+The fixed-candidate envelope is intentionally conservative: one plan must survive every listed future disturbance. Real operations can replan after fresh evidence arrives—but a scenario-labelled optimizer must not choose different actions for two futures that are still indistinguishable at decision time. The new \`evaluate_joint_recourse_policy\` entry point evaluates scenario-specific candidate actions while enforcing this **non-anticipativity** rule.
+
+Each policy scenario carries \`observed_evidence_ids\`, the source-bound event/evidence identities available to the decision. IDs are normalized as a set for comparison. If two future scenarios have the same evidence set, their normalized spatial plan, resource reservations, precedence constraints, and resource-to-transfer bindings must be identical. Different actions are allowed only once the observed evidence differs. Scenario names alone do not count as information. The evaluator returns per-scenario joint receipts, information-set count, distinct-action count, accepted scenarios, and worst recovery/churn metrics. Empty/duplicate scenario IDs and empty/duplicate evidence IDs fail closed.
+
+This tests a more powerful planning abstraction than a static robust schedule: policy-level recourse with an explicit boundary between known observations and unobserved futures. It is not a stochastic optimizer and does not estimate scenario probabilities. Its correctness depends on callers supplying the actual immutable evidence references available at the decision cut—not convenient labels invented after seeing the future.
+
+The benchmark must compare three approaches on identical scenarios: (1) one fixed action for all cases, (2) an unconstrained clairvoyant per-scenario plan as an explicitly invalid upper-bound control, and (3) the non-anticipative policy evaluator. Report robustly accepted scenario count, false-feasible count, number of information sets/actions, worst recovery horizon and unaffected-work churn. Required target: zero acceptance of a policy that changes its action inside one information set, and zero false-feasible scenarios across independent small-case oracles. Do not compare policy quality unless all three approaches use the same scenario corpus and constraints.
+
+## Independent non-anticipative recourse oracle
+
+The integration test \`tests/nonanticipative_recourse_oracle.rs\` generates 512 pairs of possible future zone closures and candidate block positions in a 4×1 lattice yard. An independent single-cell predicate determines whether each action avoids its scenario's closed cell. A second predicate requires identical actions whenever both scenarios expose the same observed-evidence ID set. Every case also replays with reversed scenario input order to test deterministic reports.
+
+Frozen expected aggregates: 512 policy cases; 810 independently feasible scenario-actions across the 1,024 scenario slots; 204 policy pairs accepted robustly; and 190 same-information-set action mismatches explicitly rejected. The per-case assertions require exact agreement with the reference on scenario feasibility, policy acceptance, non-anticipativity violations, and input-order invariance. These are synthetic correctness targets, not a scheduling-quality claim; the candidate actions are generated rather than optimized.
+
+A second explicit counterexample uses a four-cell row with two possible closure patterns. In one future, only the leftmost cell remains available; in the other, only the rightmost remains available. Exhaustive enumeration confirms that all four static placements fail at least one scenario (0/4 robustly accepted), while an evidence-triggered policy selects left or right only after the corresponding closure evidence is observed and passes both scenarios (2/2). This is a tiny exact demonstration of adaptive recourse, not a yard-scale improvement claim.
+
+
+## Audited decision eligibility: do not rank against an easier corpus
+
+The public entry point select_joint_recovery_frontier_with_coverage connects scenario coverage to candidate selection. It only permits a decision when the declared required disruption dimensions are all represented and each candidate's receipt contains exactly the same scenario IDs and full structured disturbance inputs as the benchmark corpus. Empty or duplicated scenario IDs, a missing required dimension, a candidate evaluated against a different scenario set, or a reused scenario ID with a different outage/zone/clearance payload blocks the frontier from being decision-eligible.
+
+The audited selector also checks report self-consistency: scenario IDs must match their stored inputs, each joint verdict must equal the conjunction of its spatial and resource verdicts, and accepted-scenario counts and the robustly-accepted boolean must agree with the per-scenario receipts. A caller cannot turn an inconsistent public report into an eligible decision by flipping a summary boolean.
+
+This prevents a subtle benchmarking failure: candidate A can look better simply because it was evaluated against fewer or easier disturbances than candidate B. A separate coverage receipt is now a hard prerequisite to the joint Pareto decision, and exact scenario-set identity is checked per candidate. The returned report keeps the coverage evidence and rejection codes so consumers can distinguish an incomplete benchmark from a genuine “no robust candidate” outcome.
+
+Five selector unit tests cover exact matching corpora, incomplete coverage, different scenario IDs, reused IDs with changed disturbance content, and inconsistent aggregate/per-scenario robustness receipts. These are authored tests pending exact-head CI.
+
+## Matched comparison to current shipyard research
+
+The primary 2026 comparator is Wang, Yin and Khan, “Spatial-Scheduling Strategy for Irregularly Shaped Blocks Under Disruption in Shipbuilding” (first published 11 July 2026, DOI 10.1049/cim2.70066). It formulates a mixed-integer model for yard utilization and vehicle scheduling time and compares a two-stage artificial bee colony plus adaptive large-neighbourhood-search and disruption-recovery framework on real shipyard cases. Its published assumptions include not accounting for departing blocks' influence on incoming blocks, neglecting vehicle loading/unloading duration, not considering the entry sequence of concurrently arriving blocks, fixed workstation-to-yard travel times, and sufficient vehicle availability. These are explicit model boundaries, not errors in its reported evaluation.
+
+The present V0 has complementary but narrower guarantees: independent rectangular spatial verification, explicit retained occupancy until observed clearance, unary resource reservations/outages, finish-to-start dependencies, finite disruption coverage receipts and execution-event replay. It does not yet reproduce that paper's irregular block polygons, mixed-integer formulation, two-stage objective, or industrial input data. Therefore no direct superiority comparison is valid yet. The first fair differential experiment should reproduce the same instance/metric protocol under the study's assumptions, then toggle one added capability at a time: clearance overruns, resource outages, precedence, and late-arriving execution evidence. Report yard utilization and vehicle schedule time alongside false-feasible rate, recovery horizon, changed reservations and unaffected-plan churn; retain every objective separately.
+
+### Concrete reproduction target: Case9_50_4
+
+The July 2026 paper's Table 6 reports the following values for Case9_50_4 with disruption levels D1=2 and D2=2 (Aur = yard utilisation, Act = computing time, Vt = total vehicle travel time):
+
+| Method | Aur | Act (s) | Vt (min) |
+|---|---:|---:|---:|
+| Proposed hybrid ABC + ALNS | 0.775 | 308.0 | 2,339 |
+| Traditional ABC / IA | 0.765 | 398.7 | 2,339 |
+| Genetic algorithm / GA | 0.760 | 335.6 | 2,386 |
+| Differential evolution / DE | 0.768 | 352.1 | 2,360 |
+
+The article describes 15 independent repetitions for each sensitivity-analysis parameter setting and reports average results. Before making any runtime or quality claim, reproduce the same instance, yard-area denominator (including vehicle aisles), block geometry, disruption definitions, objective calculation, and repetition protocol. Record best/median/mean/worst, dispersion, machine/compiler/configuration, and search/evaluation budget. Runtime comparisons are invalid unless compute budgets and environment are made comparable; quality comparisons must use the same input model and objective definitions.
+
+V0 currently cannot calculate Aur or Vt for this case: it has rectangles rather than the paper's irregular block geometry and does not implement the paper's full vehicle travel-time objective. Its current benchmark results measure verifier/heuristic correctness on a different synthetic problem. This table is a future reproduction target, not a head-to-head result.
+
+A second current comparator is the August 2026 multi-fidelity ant colony system for multi-crane scheduling (Applied Soft Computing, DOI 10.1016/j.asoc.2026.115384). It explicitly models crane safety distance, interference, precedence and tandem scheduling and reports 7–13% shorter crane travel on its own real-world cases. The unary-resource layer here only prevents overlapping reservations and resource-outage conflicts; it does not reproduce crane reach envelopes, interference geometry or tandem lifts. The next crane-specific step is to add those physical/resource profiles and an independent swept-volume or conflict oracle before comparing travel-distance results.
+
+The February 2026 review of shipyard production planning concludes that hybrid discrete-event simulation plus optimization has stronger operational credibility than architecture-rich digital twins without longitudinal yard-wide KPI validation, while confidential industrial datasets limit reproducibility. For this reason, the evidence ladder remains: exact tiny oracles → reproduction of a published instance family → common-budget head-to-head baselines → permissioned execution-trace replay → longitudinal yard KPIs. A synthetic rectangle benchmark is useful for correctness and algorithm ablation, but cannot establish industrial benefit by itself.
+
+## Operational acceptance is not the same as physical feasibility
+
+The public policy module evaluates the recovery candidate first, then applies a site-owned dispatch-stability policy. The raw physical report remains intact. A candidate can therefore be physically valid but operationally unacceptable because it changes a dispatch-frozen placement/transfer, exceeds total changed-placement or changed-transfer budgets, exceeds permitted unaffected-work churn, or exceeds explicit time/geometry shift budgets.
+
+The `DispatchStabilityPolicy` exposes a `freeze_before_tick` commitment boundary, an explicit `allow_affected_frozen_changes` waiver, and separate budgets for total changed placements/transfers, unaffected placement/transfer churn, time shift and rectangle-edge displacement. Reservations starting strictly before the freeze tick are frozen; a reservation starting exactly at the boundary is outside the frozen window. Affected frozen work still requires an explicit policy waiver—physical disruption does not silently waive dispatch commitments. No weighted scalar combines these limits.
+
+Seven unit tests cover a physically valid but frozen-plan-changing candidate, exact boundary semantics, explicit waiver for affected frozen work, separate churn/geometry budget violations, a frozen transfer reassignment, total rework limits separate from unaffected churn, and a monotonicity control where relaxing numeric budgets cannot add policy violations. These are authored tests awaiting exact-head CI. The policy is a decision boundary, not a planner or a safety certification.
+
+## Independent dispatch-policy grid oracle
+
+The integration test \`tests/dispatch_policy_oracle.rs\` enumerates 512 combinations of a known two-placement/one-transfer fixture. The grid varies (1) whether a future placement moves, (2) whether a transfer changes vehicle, (3) the freeze boundary from tick 0 through 7, (4) total changed-placement and changed-transfer budgets, (5) unaffected-placement churn budget, and (6) rectangle-shift budget. A separate predicate computes the expected decision from the fixture's known deltas and half-open freeze rule rather than calling the policy's helper methods.
+
+Frozen target totals are 191 operationally accepted candidates, 96 cases with a frozen-placement violation, 64 with a frozen-transfer violation, and 193 candidates rejected by numeric budgets when neither frozen violation applies. Freeze-condition totals can overlap across the two violation classes; the per-case assertion checks each class and the final accept/reject value. Every candidate is expected to remain physically feasible, so the test specifically distinguishes physical feasibility from the operational policy. These are synthetic oracle targets awaiting exact-head CI, not industrial results.
+
+## Benchmark protocol and targets
+
+Freeze each base plan, disturbance time, outage/exclusion evidence, candidate plan, model profile, and expected output before comparing policies. Include:
+- vehicle outages;
+- late workstation completion;
+- newly occupied destinations or access routes;
+- new exclusion zones;
+- late-arriving blocks and inspection holds (not yet natively modelled by this V0 interface);
+- explicitly impossible-to-recover controls.
+
+For each case and policy, report independent feasibility, post-disruption baseline feasibility, changed affected reservations, unaffected churn, start/end shift, re-handle count when transfers are modelled, makespan/tardiness, recovery horizon, candidate rejection, runtime and peak memory. Compare policies as a Pareto frontier across recovery feasibility, nominal objective degradation, unaffected churn and runtime. Do not collapse these into one score without publishing the weights and sensitivity analysis.
+
+A useful research baseline is Wang et al. (first published 11 July 2026), which examines irregular-block shipyard spatial scheduling under workstation/vehicle disruption via mixed-integer programming and a hybrid artificial-bee-colony / adaptive-large-neighbourhood-search recovery method ([DOI](https://doi.org/10.1049/cim2.70066)). This crate does not reproduce that model and does not claim to beat it. First reproduce comparable assumptions and instances, then compare recovery quality against transparent first-fit/greedy baselines and an exact solver on tiny cases.
+
+For the generic scheduling subproblem, pin the instance revision and bounds from [JSPLib](https://scheduleopt.github.io/benchmarks/jsplib/) and [FJSPLib](https://scheduleopt.github.io/benchmarks/fjsplib/); those suites compare reference engines under standardized 10-minute budgets and track optimality gaps. They do not test irregular shipyard geometry, and a win there is not evidence of yard-wide superiority.
+
+## Claim boundary
+
+This is an evaluator, not a disruption-aware optimizer or production planner. It has no authenticated MES/ERP integration, no complete workstation model, no arbitrary polygon or swept-volume geometry, and no lift/crane/rigging or floor-bearing safety model. Physical claims require qualified engineering evidence; industrial cost/time savings require permissioned, longitudinal yard data and comparable baselines.

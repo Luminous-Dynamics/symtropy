@@ -5,10 +5,14 @@ on:
     branches: ["main", "research/shipyard-space-time-oracle-v0"]
     paths:
       - "tools/shipyard-disruption-recovery/**"
+      - "tools/shipyard-space-time/**"
+      - ".github/workflows/shipyard-disruption-recovery.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "research/shipyard-disruption-recovery-current-v0"]
     paths:
       - "tools/shipyard-disruption-recovery/**"
+      - "tools/shipyard-space-time/**"
+      - ".github/workflows/shipyard-disruption-recovery.yml"
   workflow_dispatch:
 
 permissions:
