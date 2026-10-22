@@ -701,7 +701,7 @@ jobs:
           mkdir -p "$OUT"
           test -x "$CCX"
           test -s "$MANIFEST"
-          source_sha="$(git rev-parse HEAD)"
+          source_sha="${{ github.event.pull_request.head.sha || github.sha }}"
           checkout_sha="$(git rev-parse HEAD)"
           exe_sha="$(sha256sum "$CCX" | cut -d ' ' -f 1)"
           build_sha="$(sha256sum "$MANIFEST" | cut -d ' ' -f 1)"
