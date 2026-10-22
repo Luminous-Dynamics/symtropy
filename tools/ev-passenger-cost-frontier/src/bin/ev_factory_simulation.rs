@@ -1918,7 +1918,8 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
     if dt <= 0.0 {
         return Ok(());
     }
-    state.system_wip_area += dt * live_job_count(state)? as f64;
+    let live_jobs = live_job_count(state)?;
+    state.system_wip_area += dt * live_jobs as f64;
     if state.common_cause_control_outage_active {
         state.measured_common_cause_control_outage_seconds += dt;
     }
