@@ -14,6 +14,21 @@ use crate::modal_bar::generalized_symmetric_eigenpairs;
 const BANDWIDTH: usize = 3;
 const MATRIX_STORAGE_COUNT: usize = 3; // K, M and banded Cholesky factor.
 
+/// Canonical 200-element candidate request. The mass value is the derived
+/// gamma*A/g candidate, not an accepted resolution of the source discrepancy.
+pub const fn canonical_request() -> &'static str {
+    concat!(
+        "schema=sofistik-be25-sparse-modal-v0.1",
+        "|benchmark=PHYS-BE25-SPARSE-MODAL-001",
+        "|case=SOFiSTiK-2026-BE25-simple-cantilever-candidate",
+        "|elements=200|requested_modes=6|max_lanczos_iterations=120",
+        "|length_m=1|youngs_modulus_pa=200000000|second_moment_m4=1e-9",
+        "|mass_per_length_kg_per_m=0.25492905324448206",
+        "|mass_model=consistent_translational_only|boundary=simple-cantilever",
+        "|claim_ceiling=sparse-numerical-candidate-not-BE25-reproduction"
+    )
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SparseBeamLineMode {
     pub eigenvalue_rad_s_squared: f64,
@@ -536,6 +551,15 @@ mod tests {
     const I_M4: f64 = 1.0e-9;
     const L_M: f64 = 1.0;
     const MU_KG_PER_M: f64 = 25_000.0 * 1.0e-4 / 9.80665;
+
+    #[test]
+    fn canonical_sparse_modal_request_matches_frozen_fixture() {
+        assert_eq!(
+            super::canonical_request(),
+            include_str!("../fixtures/sofistik_be25_sparse_modal_request_v0_1.txt")
+                .trim_end_matches('\n')
+        );
+    }
 
     #[test]
     fn banded_lanczos_matches_dense_solver_for_all_boundary_cases() {
