@@ -229,6 +229,49 @@ fn ensure_finite_matrix(name: &str, matrix: &Matrix) -> Check<()> {
 
 /// Solve K x = lambda M x by a Cholesky reduction followed by a symmetric
 /// Jacobi eigensolve. The reduced M must be positive definite.
+/// Shared internal entry point for small, dense generalized symmetric
+/// eigenproblems used by other reference model classes. The returned shapes
+/// are mass-normalized in the supplied generalized coordinates. Large sparse
+/// systems need a separate solver/backend; callers must not silently send
+/// unbounded meshes through this dense algorithm.
+pub(crate) fn solve_dense_generalized_symmetric(
+    stiffness: &[Vec<f64>],
+    mass: &[Vec<f64>],
+) -> Check<Vec<(f64, Vec<f64>)>> {
+    let size = stiffness.len();
+    if size == 0 || mass.len() != size {
+        return Err("stiffness and mass matrices must be non-empty and equally sized".to_owned());
+    }
+    if stiffness.iter().any(|row| row.len() != size)
+        || mass.iter().any(|row| row.len() != size)
+    {
+        return Err("generalized eigenproblem matrices must be square".to_owned());
+    }
+    ensure_finite_matrix("shared stiffness", &stiffness.to_vec())?;
+    ensure_finite_matrix("shared mass", &mass.to_vec())?;
+    for row in 0..size {
+        for col in 0..size {
+            let k_scale = stiffness[row][col]
+                .abs()
+                .max(stiffness[col][row].abs())
+                .max(1.0);
+            let m_scale = mass[row][col]
+                .abs()
+                .max(mass[col][row].abs())
+                .max(1.0);
+            if (stiffness[row][col] - stiffness[col][row]).abs() > 1.0e-10 * k_scale {
+                return Err(format!("stiffness is not symmetric at ({row}, {col})"));
+            }
+            if (mass[row][col] - mass[col][row]).abs() > 1.0e-10 * m_scale {
+                return Err(format!("mass is not symmetric at ({row}, {col})"));
+            }
+        }
+    }
+    let stiffness_owned = stiffness.to_vec();
+    let mass_owned = mass.to_vec();
+    generalized_symmetric_eigenpairs(&stiffness_owned, &mass_owned)
+}
+
 fn generalized_symmetric_eigenpairs(stiffness: &Matrix, mass: &Matrix) -> Check<Vec<Eigenpair>> {
     let lower = cholesky_lower(mass)?;
     let inverse_lower = inverse_lower_triangular(&lower)?;
