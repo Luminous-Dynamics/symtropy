@@ -59,6 +59,7 @@ pub enum RecoveryViolationCode {
     InvalidOccupancyExtension,
     OccupancyExtensionAfterCompletion,
     OccupancyExtensionTargetMismatch,
+    KnownExclusionZoneChanged,
     HistoricalPlacementChanged,
     HistoricalTransferChanged,
     FuturePlacementReservationRemoved,
@@ -84,6 +85,7 @@ impl RecoveryViolationCode {
             Self::InvalidOccupancyExtension => "InvalidOccupancyExtension",
             Self::OccupancyExtensionAfterCompletion => "OccupancyExtensionAfterCompletion",
             Self::OccupancyExtensionTargetMismatch => "OccupancyExtensionTargetMismatch",
+            Self::KnownExclusionZoneChanged => "KnownExclusionZoneChanged",
             Self::HistoricalPlacementChanged => "HistoricalPlacementChanged",
             Self::HistoricalTransferChanged => "HistoricalTransferChanged",
             Self::FuturePlacementReservationRemoved => "FuturePlacementReservationRemoved",
@@ -757,9 +759,15 @@ pub fn evaluate_recovery_envelope(
 
 fn apply_disruption(scenario: &Scenario, disruption: &Disruption) -> Scenario {
     let mut effective = scenario.clone();
-    effective
-        .exclusion_zones
-        .extend(disruption.new_exclusion_zones.iter().cloned());
+    for zone in &disruption.new_exclusion_zones {
+        if !effective
+            .exclusion_zones
+            .iter()
+            .any(|existing| existing.id == zone.id)
+        {
+            effective.exclusion_zones.push(zone.clone());
+        }
+    }
 
     for extension in &disruption.placement_occupancy_extensions {
         for placement in &mut effective.placements {
@@ -771,6 +779,58 @@ fn apply_disruption(scenario: &Scenario, disruption: &Disruption) -> Scenario {
     }
 
     effective
+}
+
+fn candidate_with_known_zones(
+    baseline: &Scenario,
+    candidate: &Scenario,
+    disruption: &Disruption,
+    violations: &mut Vec<RecoveryViolation>,
+) -> Scenario {
+    let mut effective = candidate.clone();
+    let mut authoritative = baseline.exclusion_zones.clone();
+    authoritative.extend(disruption.new_exclusion_zones.iter().cloned());
+    authoritative.sort_by(|left, right| left.id.cmp(&right.id));
+
+    for zone in &authoritative {
+        if let Some(existing) = effective
+            .exclusion_zones
+            .iter()
+            .find(|existing| existing.id == zone.id)
+        {
+            if existing != zone {
+                push_violation(
+                    violations,
+                    RecoveryViolationCode::KnownExclusionZoneChanged,
+                    vec![zone.id.clone()],
+                    "candidate redefines an already known exclusion-zone ID",
+                );
+            }
+        } else {
+            effective.exclusion_zones.push(zone.clone());
+        }
+    }
+    effective
+}
+
+fn exclusion_zone_evidence_violations(
+    baseline: &Scenario,
+    disruption: &Disruption,
+) -> Vec<RecoveryViolation> {
+    let mut violations = Vec::new();
+    for known in &baseline.exclusion_zones {
+        for newly_reported in &disruption.new_exclusion_zones {
+            if newly_reported.id == known.id && newly_reported != known {
+                push_violation(
+                    &mut violations,
+                    RecoveryViolationCode::KnownExclusionZoneChanged,
+                    vec![known.id.clone()],
+                    "new disruption reuses a known exclusion-zone ID with different geometry or timing",
+                );
+            }
+        }
+    }
+    violations
 }
 
 fn overlaps_rect(left: &Footprint, right: &Footprint) -> bool {
@@ -1328,9 +1388,19 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
         &input.disruption,
         &mut violations,
     );
+    violations.extend(exclusion_zone_evidence_violations(
+        &input.baseline,
+        &input.disruption,
+    ));
     let affected = derive_affected_ids(&input.baseline, &input.disruption, &mut violations);
     let baseline_after = apply_disruption(&input.baseline, &input.disruption);
-    let candidate_after = apply_disruption(&input.candidate, &input.disruption);
+    let candidate_input = candidate_with_known_zones(
+        &input.baseline,
+        &input.candidate,
+        &input.disruption,
+        &mut violations,
+    );
+    let candidate_after = apply_disruption(&candidate_input, &input.disruption);
 
     let baseline_spatial_report = verify(&baseline_after);
     let baseline_outage_violations =
@@ -1383,6 +1453,7 @@ pub fn evaluate_recovery(input: &RecoveryInput) -> RecoveryReport {
                 | RecoveryViolationCode::ActivePlacementMovedBeforeClearance
                 | RecoveryViolationCode::ActiveTransferChangedBeforeCompletion
                 | RecoveryViolationCode::OccupancyExtensionTargetMismatch
+                | RecoveryViolationCode::KnownExclusionZoneChanged
         )
     });
     if candidate_integrity_violation {
@@ -1688,6 +1759,45 @@ mod tests {
         assert!(!report.metrics.candidate_feasible_after_disruption);
         assert!(report.violations.iter().any(|violation| {
             violation.code == RecoveryViolationCode::VehicleUnavailable
+        }));
+    }
+
+    #[test]
+    fn candidate_cannot_drop_or_redefine_known_exclusion_zones() {
+        let known_zone = zone("known-zone", rect(0, 0, 2, 2), 5, 10);
+        let baseline = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("block-a", "block-a", rect(0, 0, 2, 2), 5, 10)],
+            exclusion_zones: vec![known_zone.clone()],
+            ..Scenario::default()
+        };
+        let candidate_missing = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("block-a", "block-a", rect(2, 0, 4, 2), 5, 10)],
+            ..Scenario::default()
+        };
+        let carried = evaluate_recovery(&RecoveryInput {
+            baseline: baseline.clone(),
+            candidate: candidate_missing,
+            disruption: empty_disruption(4),
+        });
+        assert!(carried.accepted, "{:?}", carried.violations);
+
+        let candidate_redefined = Scenario {
+            yard_bounds: Some(yard()),
+            placements: vec![placement("block-a", "block-a", rect(2, 0, 4, 2), 5, 10)],
+            exclusion_zones: vec![zone("known-zone", rect(8, 8, 9, 9), 5, 10)],
+            ..Scenario::default()
+        };
+        let rejected = evaluate_recovery(&RecoveryInput {
+            baseline,
+            candidate: candidate_redefined,
+            disruption: empty_disruption(4),
+        });
+        assert!(!rejected.accepted);
+        assert!(!rejected.metrics.candidate_feasible_after_disruption);
+        assert!(rejected.violations.iter().any(|violation| {
+            violation.code == RecoveryViolationCode::KnownExclusionZoneChanged
         }));
     }
 
