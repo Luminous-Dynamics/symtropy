@@ -1097,6 +1097,13 @@ pub struct JointRecoveryEnvelopeMetrics {
     pub accepted_scenarios: usize,
     pub worst_spatial_recovery_horizon_ticks: Option<u64>,
     pub worst_resource_recovery_horizon_ticks: Option<u64>,
+    pub worst_changed_placement_reservations: usize,
+    pub worst_changed_transfer_reservations: usize,
+    pub worst_unaffected_placement_churn: usize,
+    pub worst_unaffected_transfer_churn: usize,
+    pub worst_spatial_time_shift_ticks: u64,
+    pub worst_rectangle_edge_shift_units: u64,
+    pub worst_changed_resource_reservations: usize,
     pub worst_unaffected_resource_churn: usize,
     pub worst_resource_time_shift_ticks: u64,
 }
@@ -1196,15 +1203,44 @@ pub fn evaluate_joint_recovery_envelope(
         .iter()
         .filter_map(|scenario| scenario.report.resources.metrics.recovery_horizon_ticks)
         .max();
+    let worst_changed_placement_reservations = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.changed_placement_reservations)
+        .max()
+        .unwrap_or_default();
+    let worst_changed_transfer_reservations = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.changed_transfer_reservations)
+        .max()
+        .unwrap_or_default();
+    let worst_unaffected_placement_churn = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.unaffected_placement_churn)
+        .max()
+        .unwrap_or_default();
+    let worst_unaffected_transfer_churn = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.unaffected_transfer_churn)
+        .max()
+        .unwrap_or_default();
+    let worst_spatial_time_shift_ticks = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.time_shift_ticks)
+        .max()
+        .unwrap_or_default();
+    let worst_rectangle_edge_shift_units = reports
+        .iter()
+        .map(|scenario| scenario.report.spatial.metrics.rectangle_edge_shift_units)
+        .max()
+        .unwrap_or_default();
+    let worst_changed_resource_reservations = reports
+        .iter()
+        .map(|scenario| scenario.report.resources.metrics.changed_reservations)
+        .max()
+        .unwrap_or_default();
     let worst_unaffected_resource_churn = reports
         .iter()
-        .map(|scenario| {
-            scenario
-                .report
-                .resources
-                .metrics
-                .unaffected_reservation_churn
-        })
+        .map(|scenario| scenario.report.resources.metrics.unaffected_reservation_churn)
         .max()
         .unwrap_or_default();
     let worst_resource_time_shift_ticks = reports
@@ -1220,12 +1256,203 @@ pub fn evaluate_joint_recovery_envelope(
             accepted_scenarios,
             worst_spatial_recovery_horizon_ticks,
             worst_resource_recovery_horizon_ticks,
+            worst_changed_placement_reservations,
+            worst_changed_transfer_reservations,
+            worst_unaffected_placement_churn,
+            worst_unaffected_transfer_churn,
+            worst_spatial_time_shift_ticks,
+            worst_rectangle_edge_shift_units,
+            worst_changed_resource_reservations,
             worst_unaffected_resource_churn,
             worst_resource_time_shift_ticks,
         },
         violations,
         scenarios: reports,
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecoveryEnvelopeAlternative {
+    pub candidate_id: String,
+    pub report: JointRecoveryEnvelopeReport,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointParetoViolationCode {
+    EmptyCandidateId,
+    DuplicateCandidateId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointParetoViolation {
+    pub code: JointParetoViolationCode,
+    pub candidate_id: String,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct JointParetoScore {
+    pub worst_spatial_recovery_horizon_ticks: Option<u64>,
+    pub worst_resource_recovery_horizon_ticks: Option<u64>,
+    pub worst_changed_placement_reservations: usize,
+    pub worst_changed_transfer_reservations: usize,
+    pub worst_unaffected_placement_churn: usize,
+    pub worst_unaffected_transfer_churn: usize,
+    pub worst_spatial_time_shift_ticks: u64,
+    pub worst_rectangle_edge_shift_units: u64,
+    pub worst_changed_resource_reservations: usize,
+    pub worst_unaffected_resource_churn: usize,
+    pub worst_resource_time_shift_ticks: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointParetoCandidate {
+    pub candidate_id: String,
+    pub score: JointParetoScore,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct JointParetoReport {
+    pub frontier: Vec<JointParetoCandidate>,
+    pub dominated_candidate_ids: Vec<String>,
+    pub rejected_candidate_ids: Vec<String>,
+    pub violations: Vec<JointParetoViolation>,
+}
+
+fn joint_pareto_score(report: &JointRecoveryEnvelopeReport) -> JointParetoScore {
+    JointParetoScore {
+        worst_spatial_recovery_horizon_ticks: report
+            .metrics
+            .worst_spatial_recovery_horizon_ticks,
+        worst_resource_recovery_horizon_ticks: report
+            .metrics
+            .worst_resource_recovery_horizon_ticks,
+        worst_changed_placement_reservations: report
+            .metrics
+            .worst_changed_placement_reservations,
+        worst_changed_transfer_reservations: report
+            .metrics
+            .worst_changed_transfer_reservations,
+        worst_unaffected_placement_churn: report.metrics.worst_unaffected_placement_churn,
+        worst_unaffected_transfer_churn: report.metrics.worst_unaffected_transfer_churn,
+        worst_spatial_time_shift_ticks: report.metrics.worst_spatial_time_shift_ticks,
+        worst_rectangle_edge_shift_units: report.metrics.worst_rectangle_edge_shift_units,
+        worst_changed_resource_reservations: report.metrics.worst_changed_resource_reservations,
+        worst_unaffected_resource_churn: report.metrics.worst_unaffected_resource_churn,
+        worst_resource_time_shift_ticks: report.metrics.worst_resource_time_shift_ticks,
+    }
+}
+
+fn joint_optional_no_worse(left: Option<u64>, right: Option<u64>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => left <= right,
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn joint_optional_strictly_better(left: Option<u64>, right: Option<u64>) -> bool {
+    matches!((left, right), (Some(left), Some(right)) if left < right)
+}
+
+fn joint_pareto_dominates(left: &JointParetoScore, right: &JointParetoScore) -> bool {
+    let no_worse = joint_optional_no_worse(
+        left.worst_spatial_recovery_horizon_ticks,
+        right.worst_spatial_recovery_horizon_ticks,
+    ) && joint_optional_no_worse(
+        left.worst_resource_recovery_horizon_ticks,
+        right.worst_resource_recovery_horizon_ticks,
+    ) && left.worst_changed_placement_reservations
+        <= right.worst_changed_placement_reservations
+        && left.worst_changed_transfer_reservations <= right.worst_changed_transfer_reservations
+        && left.worst_unaffected_placement_churn <= right.worst_unaffected_placement_churn
+        && left.worst_unaffected_transfer_churn <= right.worst_unaffected_transfer_churn
+        && left.worst_spatial_time_shift_ticks <= right.worst_spatial_time_shift_ticks
+        && left.worst_rectangle_edge_shift_units <= right.worst_rectangle_edge_shift_units
+        && left.worst_changed_resource_reservations <= right.worst_changed_resource_reservations
+        && left.worst_unaffected_resource_churn <= right.worst_unaffected_resource_churn
+        && left.worst_resource_time_shift_ticks <= right.worst_resource_time_shift_ticks;
+    let strictly_better = joint_optional_strictly_better(
+        left.worst_spatial_recovery_horizon_ticks,
+        right.worst_spatial_recovery_horizon_ticks,
+    ) || joint_optional_strictly_better(
+        left.worst_resource_recovery_horizon_ticks,
+        right.worst_resource_recovery_horizon_ticks,
+    ) || left.worst_changed_placement_reservations
+        < right.worst_changed_placement_reservations
+        || left.worst_changed_transfer_reservations < right.worst_changed_transfer_reservations
+        || left.worst_unaffected_placement_churn < right.worst_unaffected_placement_churn
+        || left.worst_unaffected_transfer_churn < right.worst_unaffected_transfer_churn
+        || left.worst_spatial_time_shift_ticks < right.worst_spatial_time_shift_ticks
+        || left.worst_rectangle_edge_shift_units < right.worst_rectangle_edge_shift_units
+        || left.worst_changed_resource_reservations < right.worst_changed_resource_reservations
+        || left.worst_unaffected_resource_churn < right.worst_unaffected_resource_churn
+        || left.worst_resource_time_shift_ticks < right.worst_resource_time_shift_ticks;
+    no_worse && strictly_better
+}
+
+/// Pareto-rank joint plans only after each candidate passes every spatial and resource scenario.
+///
+/// No hidden scalar weight is used. Candidates rejected by any joint hard scenario are excluded
+/// from the frontier. Missing recovery-horizon metrics are not treated as automatically better
+/// than measured horizons; incomparable missing/measured pairs cannot dominate one another.
+pub fn pareto_joint_recovery_candidates(
+    alternatives: &[JointRecoveryEnvelopeAlternative],
+) -> JointParetoReport {
+    let mut result = JointParetoReport::default();
+    let mut seen = BTreeSet::new();
+    for alternative in alternatives {
+        if alternative.candidate_id.trim().is_empty() {
+            result.violations.push(JointParetoViolation {
+                code: JointParetoViolationCode::EmptyCandidateId,
+                candidate_id: alternative.candidate_id.clone(),
+            });
+        } else if !seen.insert(alternative.candidate_id.as_str()) {
+            result.violations.push(JointParetoViolation {
+                code: JointParetoViolationCode::DuplicateCandidateId,
+                candidate_id: alternative.candidate_id.clone(),
+            });
+        }
+    }
+    result.violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+    });
+    result.violations.dedup();
+    if !result.violations.is_empty() {
+        return result;
+    }
+
+    let mut eligible = Vec::new();
+    for alternative in alternatives {
+        if alternative.report.robustly_accepted {
+            eligible.push(JointParetoCandidate {
+                candidate_id: alternative.candidate_id.clone(),
+                score: joint_pareto_score(&alternative.report),
+            });
+        } else {
+            result
+                .rejected_candidate_ids
+                .push(alternative.candidate_id.clone());
+        }
+    }
+    eligible.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    for candidate in &eligible {
+        let dominated = eligible.iter().any(|other| {
+            other.candidate_id != candidate.candidate_id
+                && joint_pareto_dominates(&other.score, &candidate.score)
+        });
+        if dominated {
+            result
+                .dominated_candidate_ids
+                .push(candidate.candidate_id.clone());
+        } else {
+            result.frontier.push(candidate.clone());
+        }
+    }
+    result.dominated_candidate_ids.sort();
+    result.rejected_candidate_ids.sort();
+    result
 }
 
 #[cfg(test)]
