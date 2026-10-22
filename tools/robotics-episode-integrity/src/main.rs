@@ -39,6 +39,7 @@ struct Evaluation {
 #[derive(Debug)]
 struct ActivePlan {
     plan_id: String,
+    plan_digest: String,
     bound_revisions: BTreeMap<String, u64>,
     validated: bool,
     invalidated: bool,
@@ -68,6 +69,13 @@ fn sha256_hex(bytes: &[u8]) -> String {
         .map(|byte| format!("{byte:02x}"))
         .collect::<Vec<_>>()
         .join("")
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn parse_revisions(value: &Value) -> Option<BTreeMap<String, u64>> {
@@ -171,6 +179,12 @@ fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
                     push_once(&mut reasons, "PLAN_ID_MISSING");
                     continue;
                 };
+                let Some(plan_digest) = str_at(event, "plan_digest")
+                    .filter(|digest| valid_sha256(digest))
+                else {
+                    push_once(&mut reasons, "PLAN_DIGEST_INVALID");
+                    continue;
+                };
                 let Some(bound_revisions) =
                     event.get("bound_revisions").and_then(parse_revisions)
                 else {
@@ -179,6 +193,7 @@ fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
                 };
                 active_plan = Some(ActivePlan {
                     plan_id: plan_id.to_owned(),
+                    plan_digest: plan_digest.to_owned(),
                     bound_revisions,
                     validated: false,
                     invalidated: false,
@@ -189,6 +204,11 @@ fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
                 if let Some(plan) = active_plan.as_mut() {
                     if requested_id != Some(plan.plan_id.as_str()) {
                         push_once(&mut reasons, "PLAN_ID_MISMATCH");
+                        plan.validated = false;
+                        continue;
+                    }
+                    if str_at(event, "plan_digest") != Some(plan.plan_digest.as_str()) {
+                        push_once(&mut reasons, "PLAN_DIGEST_MISMATCH");
                         plan.validated = false;
                         continue;
                     }
@@ -252,6 +272,8 @@ fn evaluate_episode(episode: &Value, initial_state: &Value) -> Evaluation {
                 if let Some(plan) = active_plan.as_ref() {
                     if requested_id != Some(plan.plan_id.as_str()) {
                         push_once(&mut reasons, "PLAN_ID_MISMATCH");
+                    } else if str_at(event, "plan_digest") != Some(plan.plan_digest.as_str()) {
+                        push_once(&mut reasons, "PLAN_DIGEST_MISMATCH");
                     } else {
                         if plan.invalidated || plan.bound_revisions != revisions {
                             push_once(&mut reasons, "PLAN_VALIDATION_STALE");
@@ -461,8 +483,8 @@ mod tests {
     #[test]
     fn frozen_episode_corpus_matches_expected_dispositions() {
         let report = run_benchmark(&corpus()).expect("corpus schema is valid");
-        assert_eq!(report.episode_count, 15);
-        assert_eq!(report.passed_episode_count, 15);
+        assert_eq!(report.episode_count, 16);
+        assert_eq!(report.passed_episode_count, 16);
         assert!(report.failures.is_empty(), "{:?}", report.failures);
     }
 
@@ -521,6 +543,24 @@ mod tests {
         let result = evaluate_episode(&root["episodes"][10], initial);
         assert_eq!(result.decision, BLOCKED);
         assert_eq!(result.reason_codes, vec!["EVENT_SEQUENCE_NOT_MONOTONIC"]);
+    }
+
+    #[test]
+    fn plan_id_reuse_with_different_content_digest_is_rejected() {
+        let root = corpus();
+        let result = evaluate_episode(&root["episodes"][15], &root["initial_state"]);
+        assert_eq!(result.decision, BLOCKED);
+        assert_eq!(result.reason_codes, vec!["PLAN_DIGEST_MISMATCH"]);
+    }
+
+    #[test]
+    fn malformed_plan_digest_is_rejected() {
+        let root = corpus();
+        let mut episode = root["episodes"][0].clone();
+        episode["events"][0]["plan_digest"] = json!("not-a-digest");
+        let result = evaluate_episode(&episode, &root["initial_state"]);
+        assert_eq!(result.decision, BLOCKED);
+        assert!(result.reason_codes.iter().any(|r| r == "PLAN_DIGEST_INVALID"));
     }
 
     #[test]
