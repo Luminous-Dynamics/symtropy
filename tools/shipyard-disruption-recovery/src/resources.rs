@@ -1458,6 +1458,299 @@ pub fn pareto_joint_recovery_candidates(
     result
 }
 
+/// One scenario-specific action in a closed-loop recovery policy.
+///
+/// `observed_evidence_ids` is the exact set of evidence records available to the
+/// decision at this point. Scenarios with the same normalized evidence set are not yet
+/// distinguishable to the policy and therefore must choose the same action.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecourseScenario {
+    pub scenario: JointDisruptionScenario,
+    pub observed_evidence_ids: Vec<String>,
+    pub candidate_spatial: super::Scenario,
+    pub candidate_resources: ResourceSchedule,
+    pub candidate_bindings: Vec<ResourceSpatialBinding>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum JointRecourseViolationCode {
+    EmptyScenarioSet,
+    EmptyScenarioId,
+    DuplicateScenarioId,
+    EmptyObservedEvidenceId,
+    DuplicateObservedEvidenceId,
+    NonAnticipativeActionMismatch,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecourseViolation {
+    pub code: JointRecourseViolationCode,
+    pub scenario_ids: Vec<String>,
+    pub evidence_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecourseScenarioReport {
+    pub scenario_id: String,
+    pub scenario_input: JointDisruptionScenario,
+    pub observed_evidence_ids: Vec<String>,
+    pub candidate_spatial: super::Scenario,
+    pub candidate_resources: ResourceSchedule,
+    pub candidate_bindings: Vec<ResourceSpatialBinding>,
+    pub report: JointRecoveryReport,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct JointRecoursePolicyMetrics {
+    pub total_scenarios: usize,
+    pub observation_information_sets: usize,
+    pub distinct_actions: usize,
+    pub accepted_scenarios: usize,
+    pub worst_spatial_recovery_horizon_ticks: Option<u64>,
+    pub worst_resource_recovery_horizon_ticks: Option<u64>,
+    pub worst_unaffected_placement_churn: usize,
+    pub worst_unaffected_transfer_churn: usize,
+    pub worst_unaffected_resource_churn: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JointRecoursePolicyReport {
+    /// True only when every scenario is feasible and non-anticipativity holds.
+    pub robustly_accepted: bool,
+    pub metrics: JointRecoursePolicyMetrics,
+    pub violations: Vec<JointRecourseViolation>,
+    pub scenarios: Vec<JointRecourseScenarioReport>,
+}
+
+fn normalized_recourse_action(
+    spatial: &super::Scenario,
+    resources: &ResourceSchedule,
+    bindings: &[ResourceSpatialBinding],
+) -> (super::Scenario, ResourceSchedule, Vec<ResourceSpatialBinding>) {
+    let mut spatial = spatial.clone();
+    spatial
+        .placements
+        .sort_by(|left, right| left.reservation_id.cmp(&right.reservation_id));
+    spatial.transfers.sort_by(|left, right| left.id.cmp(&right.id));
+    for transfer in &mut spatial.transfers {
+        transfer.predecessor_move_ids.sort();
+    }
+    spatial
+        .exclusion_zones
+        .sort_by(|left, right| left.id.cmp(&right.id));
+
+    let mut resources = resources.clone();
+    resources
+        .reservations
+        .sort_by(|left, right| left.reservation_id.cmp(&right.reservation_id));
+    resources.precedence_constraints.sort();
+
+    let mut bindings = bindings.to_vec();
+    bindings.sort_by(|left, right| {
+        left.binding_id
+            .cmp(&right.binding_id)
+            .then_with(|| left.resource_reservation_id.cmp(&right.resource_reservation_id))
+            .then_with(|| left.transfer_id.cmp(&right.transfer_id))
+    });
+    (spatial, resources, bindings)
+}
+
+/// Evaluate scenario-specific recovery actions without granting the planner future knowledge.
+///
+/// The policy may choose different actions only when the recorded observation evidence differs.
+/// Scenarios sharing the same evidence set must carry semantically identical normalized spatial,
+/// resource and transfer-binding actions. This is the non-anticipativity constraint used in
+/// stochastic/robust programming: future scenario labels do not themselves constitute knowledge.
+pub fn evaluate_joint_recourse_policy(
+    baseline_spatial: &super::Scenario,
+    baseline_resources: &ResourceSchedule,
+    baseline_bindings: &[ResourceSpatialBinding],
+    policy_scenarios: &[JointRecourseScenario],
+) -> JointRecoursePolicyReport {
+    let mut violations = Vec::new();
+    if policy_scenarios.is_empty() {
+        violations.push(JointRecourseViolation {
+            code: JointRecourseViolationCode::EmptyScenarioSet,
+            scenario_ids: Vec::new(),
+            evidence_ids: Vec::new(),
+        });
+    }
+
+    let mut seen_scenario_ids = BTreeSet::new();
+    for item in policy_scenarios {
+        if item.scenario.scenario_id.trim().is_empty() {
+            violations.push(JointRecourseViolation {
+                code: JointRecourseViolationCode::EmptyScenarioId,
+                scenario_ids: vec![item.scenario.scenario_id.clone()],
+                evidence_ids: Vec::new(),
+            });
+        } else if !seen_scenario_ids.insert(item.scenario.scenario_id.as_str()) {
+            violations.push(JointRecourseViolation {
+                code: JointRecourseViolationCode::DuplicateScenarioId,
+                scenario_ids: vec![item.scenario.scenario_id.clone()],
+                evidence_ids: Vec::new(),
+            });
+        }
+        let mut evidence = BTreeSet::new();
+        for evidence_id in &item.observed_evidence_ids {
+            if evidence_id.trim().is_empty() {
+                violations.push(JointRecourseViolation {
+                    code: JointRecourseViolationCode::EmptyObservedEvidenceId,
+                    scenario_ids: vec![item.scenario.scenario_id.clone()],
+                    evidence_ids: vec![evidence_id.clone()],
+                });
+            } else if !evidence.insert(evidence_id.as_str()) {
+                violations.push(JointRecourseViolation {
+                    code: JointRecourseViolationCode::DuplicateObservedEvidenceId,
+                    scenario_ids: vec![item.scenario.scenario_id.clone()],
+                    evidence_ids: vec![evidence_id.clone()],
+                });
+            }
+        }
+    }
+
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.scenario_ids.cmp(&right.scenario_ids))
+            .then_with(|| left.evidence_ids.cmp(&right.evidence_ids))
+    });
+    violations.dedup();
+    if !violations.is_empty() {
+        return JointRecoursePolicyReport {
+            robustly_accepted: false,
+            metrics: JointRecoursePolicyMetrics {
+                total_scenarios: policy_scenarios.len(),
+                ..JointRecoursePolicyMetrics::default()
+            },
+            violations,
+            scenarios: Vec::new(),
+        };
+    }
+
+    let mut information_sets: BTreeMap<Vec<String>, Vec<usize>> = BTreeMap::new();
+    let mut normalized_actions = Vec::with_capacity(policy_scenarios.len());
+    for (index, item) in policy_scenarios.iter().enumerate() {
+        let mut evidence_ids = item.observed_evidence_ids.clone();
+        evidence_ids.sort();
+        information_sets.entry(evidence_ids).or_default().push(index);
+        normalized_actions.push(normalized_recourse_action(
+            &item.candidate_spatial,
+            &item.candidate_resources,
+            &item.candidate_bindings,
+        ));
+    }
+
+    for (evidence_ids, indices) in &information_sets {
+        if indices.len() < 2 {
+            continue;
+        }
+        let first = indices[0];
+        let inconsistent: Vec<String> = indices
+            .iter()
+            .copied()
+            .filter(|index| normalized_actions[*index] != normalized_actions[first])
+            .map(|index| policy_scenarios[index].scenario.scenario_id.clone())
+            .collect();
+        if !inconsistent.is_empty() {
+            let mut scenario_ids: Vec<String> = indices
+                .iter()
+                .map(|index| policy_scenarios[*index].scenario.scenario_id.clone())
+                .collect();
+            scenario_ids.sort();
+            violations.push(JointRecourseViolation {
+                code: JointRecourseViolationCode::NonAnticipativeActionMismatch,
+                scenario_ids,
+                evidence_ids: evidence_ids.clone(),
+            });
+        }
+    }
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.scenario_ids.cmp(&right.scenario_ids))
+            .then_with(|| left.evidence_ids.cmp(&right.evidence_ids))
+    });
+    violations.dedup();
+
+    let mut reports = Vec::with_capacity(policy_scenarios.len());
+    for item in policy_scenarios {
+        let report = evaluate_joint_recovery(&JointRecoveryInput {
+            spatial: RecoveryInput {
+                baseline: baseline_spatial.clone(),
+                candidate: item.candidate_spatial.clone(),
+                disruption: item.scenario.spatial_disruption.clone(),
+            },
+            baseline_resources: baseline_resources.clone(),
+            candidate_resources: item.candidate_resources.clone(),
+            resource_outages: item.scenario.resource_outages.clone(),
+            baseline_bindings: baseline_bindings.to_vec(),
+            candidate_bindings: item.candidate_bindings.clone(),
+        });
+        let mut evidence_ids = item.observed_evidence_ids.clone();
+        evidence_ids.sort();
+        reports.push(JointRecourseScenarioReport {
+            scenario_id: item.scenario.scenario_id.clone(),
+            scenario_input: item.scenario.clone(),
+            observed_evidence_ids: evidence_ids,
+            candidate_spatial: item.candidate_spatial.clone(),
+            candidate_resources: item.candidate_resources.clone(),
+            candidate_bindings: item.candidate_bindings.clone(),
+            report,
+        });
+    }
+    reports.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+
+    let accepted_scenarios = reports
+        .iter()
+        .filter(|scenario| scenario.report.accepted)
+        .count();
+    let mut distinct_actions = Vec::new();
+    for action in normalized_actions {
+        if !distinct_actions.contains(&action) {
+            distinct_actions.push(action);
+        }
+    }
+
+    let robustly_accepted = !policy_scenarios.is_empty()
+        && violations.is_empty()
+        && accepted_scenarios == policy_scenarios.len();
+    JointRecoursePolicyReport {
+        robustly_accepted,
+        metrics: JointRecoursePolicyMetrics {
+            total_scenarios: policy_scenarios.len(),
+            observation_information_sets: information_sets.len(),
+            distinct_actions: distinct_actions.len(),
+            accepted_scenarios,
+            worst_spatial_recovery_horizon_ticks: reports
+                .iter()
+                .filter_map(|item| item.report.spatial.metrics.recovery_horizon_ticks)
+                .max(),
+            worst_resource_recovery_horizon_ticks: reports
+                .iter()
+                .filter_map(|item| item.report.resources.metrics.recovery_horizon_ticks)
+                .max(),
+            worst_unaffected_placement_churn: reports
+                .iter()
+                .map(|item| item.report.spatial.metrics.unaffected_placement_churn)
+                .max()
+                .unwrap_or_default(),
+            worst_unaffected_transfer_churn: reports
+                .iter()
+                .map(|item| item.report.spatial.metrics.unaffected_transfer_churn)
+                .max()
+                .unwrap_or_default(),
+            worst_unaffected_resource_churn: reports
+                .iter()
+                .map(|item| item.report.resources.metrics.unaffected_reservation_churn)
+                .max()
+                .unwrap_or_default(),
+        },
+        violations,
+        scenarios: reports,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum JointDisruptionDimension {
     ClearanceOverrun,
