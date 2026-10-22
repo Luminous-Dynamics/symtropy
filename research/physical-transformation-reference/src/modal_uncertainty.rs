@@ -24,7 +24,6 @@ const CLUSTER_RELATIVE_FREQUENCY_GAP: f64 = 1.0e-3;
 const MAXIMUM_MATCH_FREQUENCY_GAP: f64 = 0.25;
 const MINIMUM_MODE_MAC: f64 = 0.70;
 const MINIMUM_MAC_SEPARATION: f64 = 0.05;
-const DEFAULT_SAMPLING_POINTS_PER_MEMBER: usize = 17;
 
 /// Parameter changed by a controlled finite-difference pair.
 ///
