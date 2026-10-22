@@ -143,10 +143,11 @@ A separate timing record must include warm-up policy, repetitions, raw durations
 
 1. Add analytic unit tests for displacement, strain, stress, and both body-force components at fixed points; check force-resultant identities independently.
 2. Implement deterministic mesh/request generation and consistent nodal-force integration. Cross-check quadrature order before invoking CalculiX.
-3. Add a strict output parser bound to the exact per-mesh request, deck, solver binary, and output bytes.
-4. Execute all four meshes plus the \(n=16\) repeat, preserving process receipts on both success and failure.
-5. Run the convergence and negative-control gates; archive raw machine-readable receipts and logs.
-6. Only after this family is qualified, extend toward 2D patch/geometry variation, 3D solids, transient dynamics, and nonlinear materials.
+3. **Calibrate the error postprocessor without a solver:** sample the exact displacement at all nodes on each of the four meshes, interpolate those samples with the P1 field, and integrate L2, energy, and stress errors. Require strict L2/energy decrease, observed L2 order in the preregistered 1.5–2.5 window and energy order in 0.75–1.25 for the final two intervals. Separately compare the primary error norms with 32- and 48-point quadrature. This is a postprocessor regression test, not a solver qualification result.
+4. Add a strict output parser bound to the exact per-mesh request, deck, solver binary, and output bytes.
+5. Execute all four meshes plus the \(n=16\) repeat, preserving process receipts on both success and failure.
+6. Run the convergence and negative-control gates; archive raw machine-readable receipts and logs.
+7. Only after this family is qualified, extend toward 2D patch/geometry variation, 3D solids, transient dynamics, and nonlinear materials.
 
 ## 8. References and rationale
 
