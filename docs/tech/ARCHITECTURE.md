@@ -24,7 +24,7 @@ symtropy-physics (depends on: symtropy-math, nalgebra, arrayvec)
 symtropy-consciousness-physics (depends on: symtropy-physics, symthaea-consciousness-equation)
     ConsciousnessField<D>    -- implements PhysicsCallback<D>
     EntityConsciousness      -- per-entity Phi computation + energy budget
-    HarmonyField<D>          -- CEMI-inspired 1/r^(D-1) spatial fields
+    HarmonyField<D>          -- softened radial influence, p_D=max(D-1,1); phenomenological coupling
     EnergyBudget             -- Helmholtz free energy, 2nd Law enforcement
     ThermodynamicLedger      -- J/Phi metric, conservation tracking
     SafetyTier               -- NRC 4-tier motor authority

@@ -1,21 +1,24 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Harmony field physics: spatially-varying consciousness fields that modulate
-//! local physics constants.
+//! HarmonyField: a phenomenological spatial influence model for simulations.
 //!
-//! Inspired by McFadden's CEMI field theory (2020): the brain's EM field *is*
-//! consciousness and causally influences neural activity. By analogy, harmony
-//! activations create fields that modulate local friction, collision response,
-//! and other physics parameters.
+//! The model uses explicit software rules to translate nonnegative activation
+//! profiles into spatially varying influences. It is inspired by ideas about
+//! field-mediated coupling, but it does not simulate electromagnetic fields,
+//! establish the CEMI theory, or imply subjective experience. It is a tunable
+//! simulation mechanism, not a validated physical law.
 //!
-//! # Field Properties
-//! - Each of the 9 harmonies creates a radial field around the entity
-//! - Field strength falls off as 1/r^(D-1) (dimension-correct, Plummer-softened)
-//! - Overlapping fields interact: resonance (aligned) vs interference (opposed)
-//! - Physical effects: resonant fields reduce friction, dissonant increase impulse
-//! - Harmony 9 (index 8): Emotional Contagion — social emotion spreading via
-//!   proximity-weighted CEMI coupling (McFadden 2020, Dunbar 2012)
+//! # Model Contract
+//! - Each source emits a radial influence profile over nine activation channels.
+//! - The Plummer-softened kernel uses p_D = max(D - 1, 1). The D=1 attenuation
+//!   floor is a modeling choice, not a universal dimension law.
+//! - Sources superpose. Nonnegative profiles can express similarity and
+//!   orthogonality; they do not represent signed anti-alignment or interference.
+//! - The coupled friction effect reduces friction for aligned profiles and
+//!   leaves orthogonal or absent profiles at baseline.
+//! - Emotional contagion is a separate, proximity-weighted agent update; it is
+//!   not an electromagnetic-field simulation.
 
 use nalgebra::SVector;
 use symtropy_math::Point;
@@ -40,6 +43,117 @@ pub const EMOTIONAL_CONTAGION_DECAY: f64 = 0.05;
 /// Maximum radius for emotional contagion influence (world units).
 pub const EMOTIONAL_CONTAGION_RADIUS: f64 = 20.0;
 
+/// Typed validation failures for harmony-field sources and numerical queries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HarmonyFieldInputError {
+    NonFiniteQueryCoordinate { axis: usize },
+    NonFiniteSourcePosition { source_index: usize, axis: usize },
+    NonFiniteActivation { source_index: usize, index: usize },
+    ActivationOutOfRange { source_index: usize, index: usize },
+    NonFiniteStrength { source_index: usize },
+    NegativeStrength { source_index: usize },
+    NonFiniteRadius { source_index: usize },
+    NonPositiveRadius { source_index: usize },
+    NonFiniteCreatedAt { source_index: usize },
+    NegativeCreatedAt { source_index: usize },
+    NonFinitePropagationSpeed { source_index: usize },
+    NonPositivePropagationSpeed { source_index: usize },
+    NonFiniteEntityActivation { index: usize },
+    EntityActivationOutOfRange { index: usize },
+    NonFiniteResonanceInput { vector: u8, index: usize },
+    NegativeResonanceInput { vector: u8, index: usize },
+    NonFiniteCurrentTime,
+    NegativeCurrentTime,
+    NonFiniteDistance { source_index: usize },
+    NonFiniteKernel { source_index: usize },
+    NonFinitePropagationDelay { source_index: usize },
+    NonFiniteFieldValue { harmony_index: usize },
+    NonFiniteFieldEnergy,
+    NonFiniteResonance,
+}
+
+impl std::fmt::Display for HarmonyFieldInputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid harmony-field input or result: {self:?}")
+    }
+}
+
+impl std::error::Error for HarmonyFieldInputError {}
+
+fn validate_point<const D: usize>(point: &Point<D>) -> Result<(), HarmonyFieldInputError> {
+    for axis in 0..D {
+        if !point.coord(axis).is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteQueryCoordinate { axis });
+        }
+    }
+    Ok(())
+}
+
+fn validate_source<const D: usize>(
+    source: &HarmonySource<D>,
+    source_index: usize,
+) -> Result<(), HarmonyFieldInputError> {
+    for axis in 0..D {
+        if !source.position.coord(axis).is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteSourcePosition { source_index, axis });
+        }
+    }
+    for (index, activation) in source.activations.iter().enumerate() {
+        if !activation.is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteActivation {
+                source_index,
+                index,
+            });
+        }
+        if !(0.0..=1.0).contains(activation) {
+            return Err(HarmonyFieldInputError::ActivationOutOfRange {
+                source_index,
+                index,
+            });
+        }
+    }
+    if !source.strength.is_finite() {
+        return Err(HarmonyFieldInputError::NonFiniteStrength { source_index });
+    }
+    if source.strength < 0.0 {
+        return Err(HarmonyFieldInputError::NegativeStrength { source_index });
+    }
+    if !source.radius.is_finite() {
+        return Err(HarmonyFieldInputError::NonFiniteRadius { source_index });
+    }
+    if source.radius <= 0.0 {
+        return Err(HarmonyFieldInputError::NonPositiveRadius { source_index });
+    }
+    if !source.created_at.is_finite() {
+        return Err(HarmonyFieldInputError::NonFiniteCreatedAt { source_index });
+    }
+    if source.created_at < 0.0 {
+        return Err(HarmonyFieldInputError::NegativeCreatedAt { source_index });
+    }
+    if !source.propagation_speed.is_finite() {
+        return Err(HarmonyFieldInputError::NonFinitePropagationSpeed { source_index });
+    }
+    // f64::MAX is the documented sentinel for instant propagation.
+    if source.propagation_speed <= 0.0 {
+        return Err(HarmonyFieldInputError::NonPositivePropagationSpeed { source_index });
+    }
+    Ok(())
+}
+
+fn validate_entity_harmonies(
+    harmonies: &[f64; NUM_HARMONIES],
+) -> Result<(), HarmonyFieldInputError> {
+    for (index, value) in harmonies.iter().enumerate() {
+        if !value.is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteEntityActivation { index });
+        }
+        if !(0.0..=1.0).contains(value) {
+            return Err(HarmonyFieldInputError::EntityActivationOutOfRange { index });
+        }
+    }
+    Ok(())
+}
+
 /// A harmony field source: an entity emitting harmony activations.
 #[derive(Debug, Clone)]
 pub struct HarmonySource<const D: usize> {
@@ -48,17 +162,50 @@ pub struct HarmonySource<const D: usize> {
     /// Harmony activations [0.0, 1.0] for each of the 9 harmonies.
     /// Index 8 = Emotional Contagion.
     pub activations: [f64; NUM_HARMONIES],
-    /// Field strength multiplier (scales with consciousness level).
+    /// Finite, nonnegative field-strength multiplier (scales with consciousness level).
     pub strength: f64,
-    /// Field radius (beyond this, field is negligible).
+    /// Finite, positive influence radius; zero/negative radii are invalid.
     pub radius: f64,
-    /// Simulation time when this source was created/activated (Fix 6).
+    /// Finite, nonnegative simulation time when this source was created/activated.
     /// Used for finite propagation delay. Default 0.0 (instant).
     pub created_at: f64,
-    /// Field propagation speed in units/sec (Fix 6).
-    /// Default f64::MAX (instant propagation for moving agents).
-    /// Use finite values only for stationary sources (wells, sanctuaries).
+    /// Finite, positive field propagation speed in units/sec.
+    /// f64::MAX is the documented instant-propagation sentinel for moving agents.
+    /// Use finite values below f64::MAX for stationary sources (wells, sanctuaries).
     pub propagation_speed: f64,
+}
+
+impl<const D: usize> HarmonySource<D> {
+    /// Create a source while enforcing the documented numerical contract.
+    ///
+    /// Public fields remain available for source compatibility. Call `validate()`
+    /// after direct mutation; every checked field computation also revalidates sources.
+    pub fn try_new(
+        position: Point<D>,
+        activations: [f64; NUM_HARMONIES],
+        strength: f64,
+        radius: f64,
+        created_at: f64,
+        propagation_speed: f64,
+    ) -> Result<Self, HarmonyFieldInputError> {
+        let source = Self {
+            position,
+            activations,
+            strength,
+            radius,
+            created_at,
+            propagation_speed,
+        };
+        validate_source(&source, 0)?;
+        Ok(source)
+    }
+
+    /// Validate all source fields using the documented contract.
+    ///
+    /// The returned source index is zero because this validates one standalone source.
+    pub fn validate(&self) -> Result<(), HarmonyFieldInputError> {
+        validate_source(self, 0)
+    }
 }
 
 /// The harmony field: aggregates all sources and computes field effects.
@@ -73,126 +220,260 @@ impl<const D: usize> HarmonyField<D> {
         }
     }
 
-    /// Softening parameter ε for Plummer softening: (r² + ε²)^(n/2).
-    /// Prevents singularity at r→0. Standard N-body astrophysics technique.
-    const SOFTENING_EPSILON: f64 = 1.0;
+    /// Construct a field only from validated sources.
+    pub fn try_from_sources(
+        sources: Vec<HarmonySource<D>>,
+    ) -> Result<Self, HarmonyFieldInputError> {
+        let field = Self { sources };
+        field.validate()?;
+        Ok(field)
+    }
 
-    /// Sample the total harmony field at a point.
+    /// Validate every source, including sources inserted through the public vector.
+    pub fn validate(&self) -> Result<(), HarmonyFieldInputError> {
+        for (index, source) in self.sources.iter().enumerate() {
+            validate_source(source, index)?;
+        }
+        Ok(())
+    }
+
+    /// Add a source only after validating it and the field's existing sources.
+    pub fn try_add_source(
+        &mut self,
+        source: HarmonySource<D>,
+    ) -> Result<(), HarmonyFieldInputError> {
+        self.validate()?;
+        validate_source(&source, self.sources.len())?;
+        self.sources.push(source);
+        Ok(())
+    }
+
+    /// Checked field sampling using p_D = max(D - 1, 1) and Plummer softening.
     ///
-    /// Returns the summed harmony activations at that location,
-    /// with dimension-correct 1/r^(D-1) falloff and Plummer softening.
-    pub fn sample(&self, point: &Point<D>) -> [f64; NUM_HARMONIES] {
+    /// Invalid public-field mutations and non-finite intermediate results are
+    /// errors, not numeric-looking field values. The source activations are
+    /// nonnegative and bounded by [0, 1]; field samples may exceed 1 after
+    /// superposition across sources.
+    pub fn try_sample(
+        &self,
+        point: &Point<D>,
+    ) -> Result<[f64; NUM_HARMONIES], HarmonyFieldInputError> {
+        self.try_sample_internal(point, None)
+    }
+
+    /// Checked field sampling with finite propagation delay.
+    pub fn try_sample_at_time(
+        &self,
+        point: &Point<D>,
+        current_time: f64,
+    ) -> Result<[f64; NUM_HARMONIES], HarmonyFieldInputError> {
+        self.try_sample_internal(point, Some(current_time))
+    }
+
+    fn try_sample_internal(
+        &self,
+        point: &Point<D>,
+        current_time: Option<f64>,
+    ) -> Result<[f64; NUM_HARMONIES], HarmonyFieldInputError> {
+        validate_point(point)?;
+        if let Some(time) = current_time {
+            if !time.is_finite() {
+                return Err(HarmonyFieldInputError::NonFiniteCurrentTime);
+            }
+            if time < 0.0 {
+                return Err(HarmonyFieldInputError::NegativeCurrentTime);
+            }
+        }
+
         let mut total = [0.0f64; NUM_HARMONIES];
-        let exponent = (D as f64 - 1.0).max(1.0); // 2D→1/r, 3D→1/r², 4D→1/r³
-        for source in &self.sources {
+        let exponent = (D as f64 - 1.0).max(1.0);
+        for (source_index, source) in self.sources.iter().enumerate() {
+            // Validate before radius/time filters so invalid sources are never
+            // silently ignored merely because they are currently out of range.
+            validate_source(source, source_index)?;
             let dist = source.position.distance(point);
+            if !dist.is_finite() {
+                return Err(HarmonyFieldInputError::NonFiniteDistance { source_index });
+            }
             if dist >= source.radius {
                 continue;
             }
-            // Plummer-softened 1/r^(D-1) falloff (dimension-correct field theory)
-            let r_soft = (dist * dist + Self::SOFTENING_EPSILON * Self::SOFTENING_EPSILON)
-                .powf(exponent / 2.0);
-            let falloff = source.strength / r_soft;
 
-            for (i, t) in total.iter_mut().enumerate() {
-                *t += source.activations[i] * falloff;
+            if let Some(time) = current_time {
+                // f64::MAX is the instant-propagation sentinel.
+                if source.propagation_speed < f64::MAX {
+                    let travel_time = dist / source.propagation_speed;
+                    let arrival_time = source.created_at + travel_time;
+                    if !travel_time.is_finite() || !arrival_time.is_finite() {
+                        return Err(HarmonyFieldInputError::NonFinitePropagationDelay {
+                            source_index,
+                        });
+                    }
+                    if time < arrival_time {
+                        continue;
+                    }
+                }
+            }
+
+            // hypot avoids overflow in dist². If the power itself overflows,
+            // the logarithmic fallback preserves cases where source strength
+            // is so large that the final ratio is still representable.
+            let softened_distance = dist.hypot(Self::SOFTENING_EPSILON);
+            let denominator = softened_distance.powf(exponent);
+            let falloff = if denominator.is_finite() {
+                source.strength / denominator
+            } else if source.strength == 0.0 {
+                0.0
+            } else {
+                (source.strength.ln() - exponent * softened_distance.ln()).exp()
+            };
+            if !falloff.is_finite() {
+                return Err(HarmonyFieldInputError::NonFiniteKernel { source_index });
+            }
+
+            for (index, total_value) in total.iter_mut().enumerate() {
+                *total_value += source.activations[index] * falloff;
+                if !total_value.is_finite() {
+                    return Err(HarmonyFieldInputError::NonFiniteFieldValue {
+                        harmony_index: index,
+                    });
+                }
             }
         }
-        total
+        Ok(total)
     }
 
-    /// Compute the resonance between two harmony activation vectors.
+    /// Compatibility API. Prefer `try_sample` so invalid data remains explicit.
+    /// Invalid input produces a NaN sentinel instead of a plausible zero field.
+    pub fn sample(&self, point: &Point<D>) -> [f64; NUM_HARMONIES] {
+        self.try_sample(point).unwrap_or([f64::NAN; NUM_HARMONIES])
+    }
+
+    /// Checked cosine resonance for finite, nonnegative vectors.
     ///
-    /// Resonance = dot product of normalized activation vectors.
-    /// Range: [-1, 1] where 1 = perfectly aligned, -1 = perfectly opposed.
-    pub fn resonance(a: &[f64; NUM_HARMONIES], b: &[f64; NUM_HARMONIES]) -> f64 {
-        let dot: f64 = a.iter().zip(b).map(|(x, y)| x * y).sum();
-        let norm_a: f64 = a.iter().map(|x| x * x).sum::<f64>().sqrt();
-        let norm_b: f64 = b.iter().map(|x| x * x).sum::<f64>().sqrt();
-        if norm_a < 1e-10 || norm_b < 1e-10 {
-            return 0.0;
+    /// Zero-norm vectors have defined neutral resonance 0.0. Scaling each
+    /// vector before norm/dot calculations avoids overflow for extreme finite
+    /// magnitudes. Negative components are rejected: anti-alignment is outside
+    /// the documented nonnegative activation contract.
+    pub fn try_resonance(
+        a: &[f64; NUM_HARMONIES],
+        b: &[f64; NUM_HARMONIES],
+    ) -> Result<f64, HarmonyFieldInputError> {
+        for (vector, values) in [(0_u8, a), (1_u8, b)] {
+            for (index, value) in values.iter().enumerate() {
+                if !value.is_finite() {
+                    return Err(HarmonyFieldInputError::NonFiniteResonanceInput { vector, index });
+                }
+                if *value < 0.0 {
+                    return Err(HarmonyFieldInputError::NegativeResonanceInput { vector, index });
+                }
+            }
         }
-        dot / (norm_a * norm_b)
+
+        let scale_a = a.iter().copied().fold(0.0_f64, f64::max);
+        let scale_b = b.iter().copied().fold(0.0_f64, f64::max);
+        if scale_a == 0.0 || scale_b == 0.0 {
+            return Ok(0.0);
+        }
+
+        let normalized_a: [f64; NUM_HARMONIES] = std::array::from_fn(|i| a[i] / scale_a);
+        let normalized_b: [f64; NUM_HARMONIES] = std::array::from_fn(|i| b[i] / scale_b);
+        let dot: f64 = normalized_a
+            .iter()
+            .zip(normalized_b.iter())
+            .map(|(x, y)| x * y)
+            .sum();
+        let norm_a = normalized_a.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let norm_b = normalized_b.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let resonance = dot / (norm_a * norm_b);
+        if !resonance.is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteResonance);
+        }
+        Ok(resonance.clamp(0.0, 1.0))
     }
 
-    /// Friction multiplier at a point, based on local harmony field.
+    /// Compatibility API. Prefer `try_resonance` to receive typed errors.
+    pub fn resonance(a: &[f64; NUM_HARMONIES], b: &[f64; NUM_HARMONIES]) -> f64 {
+        Self::try_resonance(a, b).unwrap_or(f64::NAN)
+    }
+
+    /// Checked friction modulation at a point.
     ///
-    /// Resonant fields (aligned harmonies) reduce friction (cooperation flows).
-    /// Dissonant fields (opposed harmonies) increase friction (conflict resistance).
+    /// Under the documented nonnegative activation contract, returns [0.5, 1.0]:
+    /// aligned vectors approach 0.5, while orthogonal or absent fields return 1.0.
+    pub fn try_friction_multiplier(
+        &self,
+        point: &Point<D>,
+        entity_harmonies: &[f64; NUM_HARMONIES],
+    ) -> Result<f64, HarmonyFieldInputError> {
+        validate_entity_harmonies(entity_harmonies)?;
+        let field = self.try_sample(point)?;
+        let resonance = Self::try_resonance(&field, entity_harmonies)?;
+        Ok(1.0 - resonance * 0.5)
+    }
+
+    /// Checked collision impulse modulation at a point.
     ///
-    /// Returns multiplier [0.5, 2.0]:
-    /// - 0.5 = half friction (strong resonance)
-    /// - 1.0 = normal friction (no field or neutral)
-    /// - 2.0 = double friction (strong dissonance)
+    /// Under the documented nonnegative activation contract, returns [0.5, 1.0]:
+    /// aligned vectors approach 0.5, while orthogonal or absent fields return 1.0.
+    pub fn try_impulse_multiplier(
+        &self,
+        point: &Point<D>,
+        entity_harmonies: &[f64; NUM_HARMONIES],
+    ) -> Result<f64, HarmonyFieldInputError> {
+        validate_entity_harmonies(entity_harmonies)?;
+        let field = self.try_sample(point)?;
+        let resonance = Self::try_resonance(&field, entity_harmonies)?;
+        Ok(1.0 - resonance * 0.5)
+    }
+
+    /// Compatibility API. Invalid input produces a NaN sentinel; use the
+    /// checked method in code that requires an explicit error boundary.
     pub fn friction_multiplier(
         &self,
         point: &Point<D>,
         entity_harmonies: &[f64; NUM_HARMONIES],
     ) -> f64 {
-        let field = self.sample(point);
-        let res = Self::resonance(&field, entity_harmonies);
-        // Map resonance [-1, 1] → friction [2.0, 0.5]
-        // res = 1.0 → 0.5 (half friction, harmony flows)
-        // res = 0.0 → 1.0 (normal)
-        // res = -1.0 → 2.0 (double friction, conflict resists)
-        1.0 - res * 0.5
+        self.try_friction_multiplier(point, entity_harmonies)
+            .unwrap_or(f64::NAN)
     }
 
-    /// Collision impulse multiplier at a point.
-    ///
-    /// Resonant fields dampen collisions (peaceful interactions).
-    /// Dissonant fields amplify collisions (conflict escalates).
-    ///
-    /// Returns multiplier [0.5, 1.5].
+    /// Compatibility API. Invalid input produces a NaN sentinel; use the
+    /// checked method in code that requires an explicit error boundary.
     pub fn impulse_multiplier(
         &self,
         point: &Point<D>,
         entity_harmonies: &[f64; NUM_HARMONIES],
     ) -> f64 {
-        let field = self.sample(point);
-        let res = Self::resonance(&field, entity_harmonies);
-        // res = 1.0 → 0.5 (dampened)
-        // res = 0.0 → 1.0 (normal)
-        // res = -1.0 → 1.5 (amplified)
-        1.0 - res * 0.5
+        self.try_impulse_multiplier(point, entity_harmonies)
+            .unwrap_or(f64::NAN)
     }
 
-    /// Sample the field at a point with finite propagation delay (Fix 6).
-    ///
-    /// Sources whose field hasn't reached the point yet (based on distance /
-    /// propagation_speed since created_at) contribute zero.
-    /// For stationary sources only — moving agents should use default
-    /// propagation_speed = f64::MAX (instant).
-    pub fn sample_at_time(&self, point: &Point<D>, current_time: f64) -> [f64; NUM_HARMONIES] {
-        let mut total = [0.0f64; NUM_HARMONIES];
-        let exponent = (D as f64 - 1.0).max(1.0);
-        for source in &self.sources {
-            let dist = source.position.distance(point);
-            if dist >= source.radius {
-                continue;
-            }
-            // Finite propagation delay check
-            if source.propagation_speed < f64::MAX {
-                let travel_time = dist / source.propagation_speed;
-                if current_time < source.created_at + travel_time {
-                    continue; // Field hasn't reached here yet
-                }
-            }
-            let r_soft = (dist * dist + Self::SOFTENING_EPSILON * Self::SOFTENING_EPSILON)
-                .powf(exponent / 2.0);
-            let falloff = source.strength / r_soft;
-            for (i, t) in total.iter_mut().enumerate() {
-                *t += source.activations[i] * falloff;
-            }
+    /// Checked total field energy. Overflow cannot masquerade as a valid scalar.
+    pub fn try_field_energy(&self, point: &Point<D>) -> Result<f64, HarmonyFieldInputError> {
+        let field = self.try_sample(point)?;
+        let energy = field.iter().sum::<f64>();
+        if !energy.is_finite() {
+            return Err(HarmonyFieldInputError::NonFiniteFieldEnergy);
         }
-        total
+        Ok(energy)
     }
 
-    /// Total field energy at a point (sum of all harmony strengths).
-    pub fn field_energy(&self, point: &Point<D>) -> f64 {
-        let field = self.sample(point);
-        field.iter().sum()
+    /// Compatibility API. Prefer `try_sample_at_time` so invalid data remains explicit.
+    /// Invalid input produces a NaN sentinel instead of a plausible zero field.
+    pub fn sample_at_time(&self, point: &Point<D>, current_time: f64) -> [f64; NUM_HARMONIES] {
+        self.try_sample_at_time(point, current_time)
+            .unwrap_or([f64::NAN; NUM_HARMONIES])
     }
+
+    /// Compatibility API. Prefer `try_field_energy` to receive typed errors.
+    pub fn field_energy(&self, point: &Point<D>) -> f64 {
+        self.try_field_energy(point).unwrap_or(f64::NAN)
+    }
+
+    /// Softening parameter ε for Plummer softening: (r² + ε²)^(n/2).
+    /// Prevents singularity at r→0. Standard N-body astrophysics technique.
+    const SOFTENING_EPSILON: f64 = 1.0;
 
     /// Gradient of conformal parameter σ = scale × field_energy (for curvature).
     /// Computed via central finite differences.
@@ -242,11 +523,11 @@ impl<const D: usize> Default for HarmonyField<D> {
 
 /// Compute the updated emotional contagion value for a single entity after one tick.
 ///
-/// Implements social emotion spreading via proximity-weighted EM field coupling
-/// (McFadden's CEMI theory). Nearby high-Φ entities share their emotional state;
-/// the receiver drifts toward the social mean at a rate proportional to their
-/// own Φ (consciousness gates emotional receptivity). In isolation, emotion
-/// decays toward zero at `EMOTIONAL_CONTAGION_DECAY`.
+/// Implements a simple agent-based affect update. Nearby sources contribute
+/// to a proximity-weighted social mean; the receiver drifts toward that mean at
+/// a rate scaled by the model's Φ input. In isolation, emotion decays toward
+/// zero at `EMOTIONAL_CONTAGION_DECAY`. This is a phenomenological rule, not
+/// an electromagnetic-field model or a validation of CEMI theory.
 ///
 /// # Parameters
 /// - `position`: this entity's position as a nalgebra SVector
@@ -448,6 +729,297 @@ mod tests {
         field.sources.push(source);
         let sample = field.sample(&Point::new([3.0, 0.0, 0.0, 0.0]));
         assert!(sample[0] > 0.0);
+    }
+
+    #[test]
+    fn source_constructor_rejects_invalid_contract_values() {
+        let valid_activations = [0.5; NUM_HARMONIES];
+        assert_eq!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                -1.0,
+                10.0,
+                0.0,
+                f64::MAX,
+            )
+            .unwrap_err(),
+            HarmonyFieldInputError::NegativeStrength { source_index: 0 }
+        );
+        assert_eq!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                1.0,
+                0.0,
+                0.0,
+                f64::MAX,
+            )
+            .unwrap_err(),
+            HarmonyFieldInputError::NonPositiveRadius { source_index: 0 }
+        );
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::new([f64::NAN, 0.0, 0.0]),
+                valid_activations,
+                1.0,
+                10.0,
+                0.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NonFiniteSourcePosition { axis: 0, .. })
+        ));
+        let mut negative_activation = valid_activations;
+        negative_activation[4] = -0.1;
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                negative_activation,
+                1.0,
+                10.0,
+                0.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::ActivationOutOfRange { index: 4, .. })
+        ));
+        let mut nan_activation = valid_activations;
+        nan_activation[3] = f64::NAN;
+        assert!(matches!(
+            HarmonySource::<3>::try_new(Point::origin(), nan_activation, 1.0, 10.0, 0.0, f64::MAX,),
+            Err(HarmonyFieldInputError::NonFiniteActivation { index: 3, .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(Point::origin(), valid_activations, 1.0, 10.0, 0.0, 0.0,),
+            Err(HarmonyFieldInputError::NonPositivePropagationSpeed { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                f64::INFINITY,
+                10.0,
+                0.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NonFiniteStrength { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                1.0,
+                f64::NAN,
+                0.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NonFiniteRadius { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                1.0,
+                -1.0,
+                0.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NonPositiveRadius { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                1.0,
+                10.0,
+                f64::NAN,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NonFiniteCreatedAt { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(
+                Point::origin(),
+                valid_activations,
+                1.0,
+                10.0,
+                -1.0,
+                f64::MAX,
+            ),
+            Err(HarmonyFieldInputError::NegativeCreatedAt { .. })
+        ));
+        assert!(matches!(
+            HarmonySource::<3>::try_new(Point::origin(), valid_activations, 1.0, 10.0, 0.0, -1.0,),
+            Err(HarmonyFieldInputError::NonPositivePropagationSpeed { .. })
+        ));
+        let mut over_activation = valid_activations;
+        over_activation[6] = 1.01;
+        assert!(matches!(
+            HarmonySource::<3>::try_new(Point::origin(), over_activation, 1.0, 10.0, 0.0, f64::MAX,),
+            Err(HarmonyFieldInputError::ActivationOutOfRange { index: 6, .. })
+        ));
+    }
+
+    #[test]
+    fn checked_add_rejects_invalid_source_without_mutating_field() {
+        let mut field = HarmonyField::<3>::new();
+        let mut invalid = stillness_source(Point::origin());
+        invalid.radius = -1.0;
+        assert_eq!(
+            field.try_add_source(invalid).unwrap_err(),
+            HarmonyFieldInputError::NonPositiveRadius { source_index: 0 }
+        );
+        assert!(field.sources.is_empty());
+    }
+
+    #[test]
+    fn checked_field_detects_invalid_public_mutation() {
+        let mut field = HarmonyField::<3>::new();
+        let mut source = stillness_source(Point::origin());
+        source.strength = f64::NAN;
+        // Public fields remain source-compatible; checked operations revalidate them.
+        field.sources.push(source);
+        assert_eq!(
+            field.try_sample(&Point::origin()).unwrap_err(),
+            HarmonyFieldInputError::NonFiniteStrength { source_index: 0 }
+        );
+        assert!(field.sample(&Point::origin())[7].is_nan());
+        assert!(field.field_energy(&Point::origin()).is_nan());
+        assert!(
+            field
+                .friction_multiplier(&Point::origin(), &[0.5; NUM_HARMONIES])
+                .is_nan()
+        );
+    }
+
+    #[test]
+    fn checked_field_rejects_invalid_query_and_time() {
+        let field = HarmonyField::<3>::new();
+        assert_eq!(
+            field
+                .try_sample(&Point::new([f64::INFINITY, 0.0, 0.0]))
+                .unwrap_err(),
+            HarmonyFieldInputError::NonFiniteQueryCoordinate { axis: 0 }
+        );
+        assert_eq!(
+            field
+                .try_sample_at_time(&Point::origin(), f64::NAN)
+                .unwrap_err(),
+            HarmonyFieldInputError::NonFiniteCurrentTime
+        );
+        assert_eq!(
+            field
+                .try_sample_at_time(&Point::origin(), -1.0)
+                .unwrap_err(),
+            HarmonyFieldInputError::NegativeCurrentTime
+        );
+    }
+
+    #[test]
+    fn checked_field_rejects_non_finite_distance_and_propagation_delay() {
+        let mut source = stillness_source(Point::new([f64::MAX, 0.0, 0.0]));
+        source.radius = f64::MAX;
+        let mut field = HarmonyField::<3>::new();
+        field.try_add_source(source).unwrap();
+        assert_eq!(
+            field
+                .try_sample(&Point::new([-f64::MAX, 0.0, 0.0]))
+                .unwrap_err(),
+            HarmonyFieldInputError::NonFiniteDistance { source_index: 0 }
+        );
+
+        let source = HarmonySource::<3>::try_new(
+            Point::origin(),
+            [1.0; NUM_HARMONIES],
+            1.0,
+            f64::MAX,
+            0.0,
+            1.0e-200,
+        )
+        .unwrap();
+        let field = HarmonyField::try_from_sources(vec![source]).unwrap();
+        assert_eq!(
+            field
+                .try_sample_at_time(&Point::new([1.0e150, 0.0, 0.0]), 1.0)
+                .unwrap_err(),
+            HarmonyFieldInputError::NonFinitePropagationDelay { source_index: 0 }
+        );
+    }
+
+    #[test]
+    fn checked_field_energy_rejects_overflow_across_harmonies() {
+        let source = HarmonySource::<3>::try_new(
+            Point::origin(),
+            [1.0; NUM_HARMONIES],
+            f64::MAX,
+            10.0,
+            0.0,
+            f64::MAX,
+        )
+        .unwrap();
+        let field = HarmonyField::try_from_sources(vec![source]).unwrap();
+        assert!(field.try_sample(&Point::origin()).is_ok());
+        assert_eq!(
+            field.try_field_energy(&Point::origin()).unwrap_err(),
+            HarmonyFieldInputError::NonFiniteFieldEnergy
+        );
+    }
+
+    #[test]
+    fn checked_resonance_defines_zero_norm_and_handles_extreme_magnitudes() {
+        assert_eq!(
+            HarmonyField::<3>::try_resonance(&[0.0; NUM_HARMONIES], &[1.0; NUM_HARMONIES]).unwrap(),
+            0.0
+        );
+        let huge = [f64::MAX; NUM_HARMONIES];
+        let resonance = HarmonyField::<3>::try_resonance(&huge, &huge).unwrap();
+        assert!(resonance.is_finite());
+        assert!((resonance - 1.0).abs() < 1e-12);
+        let mut negative = [0.0; NUM_HARMONIES];
+        negative[2] = -1.0;
+        assert_eq!(
+            HarmonyField::<3>::try_resonance(&negative, &[1.0; NUM_HARMONIES]).unwrap_err(),
+            HarmonyFieldInputError::NegativeResonanceInput {
+                vector: 0,
+                index: 2
+            }
+        );
+    }
+
+    #[test]
+    fn checked_field_rejects_overflow_from_multiple_extreme_sources() {
+        let mut activations = [0.0; NUM_HARMONIES];
+        activations[0] = 1.0;
+        let source = HarmonySource::<3>::try_new(
+            Point::origin(),
+            activations,
+            f64::MAX,
+            10.0,
+            0.0,
+            f64::MAX,
+        )
+        .unwrap();
+        let mut field = HarmonyField::<3>::new();
+        field.try_add_source(source.clone()).unwrap();
+        field.try_add_source(source).unwrap();
+        assert_eq!(
+            field.try_sample(&Point::origin()).unwrap_err(),
+            HarmonyFieldInputError::NonFiniteFieldValue { harmony_index: 0 }
+        );
+    }
+
+    #[test]
+    fn checked_constructors_accept_documented_instant_propagation_sentinel() {
+        let source = HarmonySource::<3>::try_new(
+            Point::origin(),
+            [0.5; NUM_HARMONIES],
+            1.0,
+            10.0,
+            0.0,
+            f64::MAX,
+        )
+        .unwrap();
+        let field = HarmonyField::try_from_sources(vec![source]).unwrap();
+        assert!(field.try_sample_at_time(&Point::origin(), 0.0).is_ok());
     }
 
     // ── Emotional Contagion (harmony index 8) tests ──────────────────────────
