@@ -68,16 +68,22 @@ jobs:
 
       - name: Generate and byte-compare deterministic receipts
         working-directory: research/ccx-mms-p1-001-mesh
+        env:
+          MMS_BENCH_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          MMS_BENCH_CHECKOUT_SHA: ${{ github.sha }}
         run: |
+          checkout_sha="$(git rev-parse HEAD)"
+          export MMS_BENCH_CHECKOUT_SHA="$checkout_sha"
+          sha256sum src/lib.rs src/bin/mms-p1-probe.rs src/bin/mms-p1-calibration.rs src/bin/mms-p1-deck.rs Cargo.toml ../ccx-mms-p1-001-oracle/src/lib.rs ../ccx-mms-p1-001-oracle/Cargo.toml ../physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json > /tmp/mms-p1-source-digests.sha256
           cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
           cargo run --locked --release --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
           cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
-          jq -e '.load_assembly_checks_pass == true' /tmp/mms-p1-probe-a.json > /dev/null
+          jq -e '.provenance_bound == true and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$")) and .load_assembly_checks_pass == true' /tmp/mms-p1-probe-a.json > /dev/null
           sha256sum /tmp/mms-p1-probe-a.json > /tmp/mms-p1-probe-a.sha256
           cargo run --locked --release --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-a.json
           cargo run --locked --release --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-b.json
           cmp /tmp/mms-p1-calibration-a.json /tmp/mms-p1-calibration-b.json
-          jq -e '.postprocessor_calibration_pass == true' /tmp/mms-p1-calibration-a.json > /dev/null
+          jq -e '.provenance_bound == true and (.source_sha | test("^[0-9a-f]{40}$")) and (.checkout_sha | test("^[0-9a-f]{40}$")) and .postprocessor_calibration_pass == true' /tmp/mms-p1-calibration-a.json > /dev/null
           sha256sum /tmp/mms-p1-calibration-a.json > /tmp/mms-p1-calibration-a.sha256
           cargo run --locked --release --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8.inp
           cargo run --locked --release --quiet --bin mms-p1-deck -- 8 48 > /tmp/mms-p1-n8-repeat.inp
@@ -98,6 +104,7 @@ jobs:
             /tmp/mms-p1-calibration-a.sha256
             /tmp/mms-p1-n8.inp
             /tmp/mms-p1-n8.sha256
+            /tmp/mms-p1-source-digests.sha256
           if-no-files-found: ignore
           retention-days: 90
 
