@@ -118,6 +118,11 @@ pub struct OperationExecutionAssessment {
     pub planned_end_tick: u64,
     pub observed_start_tick: Option<u64>,
     pub observed_completion_tick: Option<u64>,
+    pub start_milestone_due: bool,
+    pub completion_milestone_due: bool,
+    /// True only if a due milestone has no valid visible event in this as-of snapshot.
+    pub start_observation_missing: bool,
+    pub completion_observation_missing: bool,
     /// Signed observed-minus-planned displacement. Positive means late; negative means early.
     pub start_delta_ticks: Option<i128>,
     pub completion_delta_ticks: Option<i128>,
@@ -442,12 +447,18 @@ pub fn replay_execution(
             .total_duration_overrun_ticks
             .saturating_add(duration_overrun);
 
+        let start_milestone_due = operation.planned_start_tick <= cutoff.as_of_occurred_tick;
+        let completion_milestone_due = operation.planned_end_tick <= cutoff.as_of_occurred_tick;
         assessments.push(OperationExecutionAssessment {
             operation_id: operation.operation_id.clone(),
             planned_start_tick: operation.planned_start_tick,
             planned_end_tick: operation.planned_end_tick,
             observed_start_tick: observed_start,
             observed_completion_tick: observed_completion,
+            start_milestone_due,
+            completion_milestone_due,
+            start_observation_missing: start_milestone_due && observed_start.is_none(),
+            completion_observation_missing: completion_milestone_due && observed_completion.is_none(),
             start_delta_ticks: start_delta,
             completion_delta_ticks: completion_delta,
             planned_duration_ticks: planned_duration,
@@ -660,7 +671,32 @@ mod tests {
         assert_eq!(report.metrics.operations_not_yet_due_to_start, 0);
         assert_eq!(report.metrics.operations_not_yet_due_to_complete, 1);
         assert_eq!(report.operations[0].observed_duration_ticks, None);
+        assert!(report.operations[0].start_milestone_due);
+        assert!(report.operations[0].completion_milestone_due);
+        assert!(!report.operations[0].start_observation_missing);
+        assert!(report.operations[0].completion_observation_missing);
+        assert!(report.operations[1].start_milestone_due);
+        assert!(!report.operations[1].completion_milestone_due);
+        assert!(report.operations[1].start_observation_missing);
+        assert!(!report.operations[1].completion_observation_missing);
         assert!(report.evidence_valid);
+    }
+
+    #[test]
+    fn future_planned_operation_reports_not_due_not_missing() {
+        let plan = [op("weld-a", 8, 12)];
+        let report = replay_execution(&plan, &[], cutoff(5, 5));
+
+        assert!(report.evidence_valid);
+        assert_eq!(report.metrics.missing_start_events, 0);
+        assert_eq!(report.metrics.missing_completion_events, 0);
+        assert_eq!(report.metrics.operations_not_yet_due_to_start, 1);
+        assert_eq!(report.metrics.operations_not_yet_due_to_complete, 1);
+        let operation = &report.operations[0];
+        assert!(!operation.start_milestone_due);
+        assert!(!operation.completion_milestone_due);
+        assert!(!operation.start_observation_missing);
+        assert!(!operation.completion_observation_missing);
     }
 
     #[test]
