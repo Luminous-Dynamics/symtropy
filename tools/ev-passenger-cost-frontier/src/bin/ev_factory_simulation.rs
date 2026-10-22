@@ -36,7 +36,19 @@ struct Catalog {
     line_safety_gate: GateStatus,
     product_quality_release_gate: GateStatus,
     stations: Vec<Station>,
+    #[serde(default)]
+    common_cause_control_outage: Option<CommonCauseControlOutage>,
     claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct CommonCauseControlOutage {
+    domain_id: String,
+    station_ids: Vec<String>,
+    first_start_seconds: u64,
+    recurrence_interval_seconds: u64,
+    duration_seconds: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -136,6 +148,8 @@ struct ScenarioResult {
     source_buffer_average_units: f64,
     interstation_buffers: Vec<BufferResult>,
     stations: Vec<StationResult>,
+    common_cause_control_outage_starts_after_warmup: u64,
+    measured_common_cause_control_outage_seconds: f64,
     output_never_exceeds_released_input: bool,
     all_buffers_respected_capacity: bool,
     station_time_accounting_within_horizon: bool,
@@ -211,6 +225,7 @@ struct StationResult {
     blocked_fraction: f64,
     starved_fraction: f64,
     down_fraction: f64,
+    common_cause_control_outage_fraction: f64,
     accounted_fraction: f64,
     added_server_good_output_delta_fraction: Option<f64>,
 }
@@ -249,6 +264,7 @@ struct StationMetrics {
     blocked_seconds: f64,
     starved_seconds: f64,
     down_seconds: f64,
+    common_cause_control_outage_seconds: f64,
     attempts_started_after_warmup: u64,
     successful_attempts_after_warmup: u64,
     rework_attempts_after_warmup: u64,
@@ -288,6 +304,9 @@ struct SimState {
     scrapped_jobs_total: u64,
     measured_rework_attempts: u64,
     buffer_capacity_violation: bool,
+    common_cause_control_outage_active: bool,
+    common_cause_control_outage_starts_after_warmup: u64,
+    measured_common_cause_control_outage_seconds: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -302,6 +321,8 @@ enum EventKind {
     SupplyArrival,
     OperationComplete { station: usize, server: usize },
     RepairComplete { station: usize, server: usize },
+    CommonCauseControlOutageStart,
+    CommonCauseControlOutageEnd,
 }
 
 impl PartialEq for TimedEvent {
@@ -486,6 +507,23 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), String> {
     )?;
     if catalog.stations.len() < 2 {
         return Err("at_least_two_stations_required".into());
+    }
+    if let Some(outage) = &catalog.common_cause_control_outage {
+        if outage.domain_id.trim().is_empty()
+            || outage.station_ids.len() < 2
+            || outage.first_start_seconds == 0
+            || outage.recurrence_interval_seconds == 0
+            || outage.duration_seconds == 0
+            || outage.duration_seconds >= outage.recurrence_interval_seconds
+        {
+            return Err("common_cause_control_outage_configuration_invalid".into());
+        }
+        let mut outage_stations = BTreeSet::new();
+        for station_id in &outage.station_ids {
+            if !ids.contains(station_id) || !outage_stations.insert(station_id.clone()) {
+                return Err("common_cause_control_outage_station_unknown_or_duplicate".into());
+            }
+        }
     }
     if catalog.buffer_capacities.len() != catalog.stations.len() - 1
         || catalog.buffer_capacities.contains(&0)
@@ -871,8 +909,20 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         scrapped_jobs_total: 0,
         measured_rework_attempts: 0,
         buffer_capacity_violation: false,
+        common_cause_control_outage_active: false,
+        common_cause_control_outage_starts_after_warmup: 0,
+        measured_common_cause_control_outage_seconds: 0.0,
     };
     schedule_event(&mut state, 0, EventKind::SupplyArrival);
+    if let Some(outage) = &catalog.common_cause_control_outage {
+        if outage.first_start_seconds <= catalog.horizon_seconds {
+            schedule_event(
+                &mut state,
+                outage.first_start_seconds,
+                EventKind::CommonCauseControlOutageStart,
+            );
+        }
+    }
 
     while let Some(event) = state.events.pop() {
         if event.at > catalog.horizon_seconds {
@@ -917,6 +967,35 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
                     target.state = ServerState::Idle;
                 }
             }
+            EventKind::CommonCauseControlOutageStart => {
+                let outage = catalog
+                    .common_cause_control_outage
+                    .as_ref()
+                    .ok_or_else(|| "outage_event_without_configuration".to_string())?;
+                if state.common_cause_control_outage_active {
+                    return Err("overlapping_common_cause_control_outage_events".into());
+                }
+                state.common_cause_control_outage_active = true;
+                if state.now >= catalog.warmup_seconds {
+                    state.common_cause_control_outage_starts_after_warmup += 1;
+                }
+                let end_at = state.now.saturating_add(outage.duration_seconds);
+                schedule_event(&mut state, end_at, EventKind::CommonCauseControlOutageEnd);
+                let next_start = state.now.saturating_add(outage.recurrence_interval_seconds);
+                if next_start <= catalog.horizon_seconds {
+                    schedule_event(
+                        &mut state,
+                        next_start,
+                        EventKind::CommonCauseControlOutageStart,
+                    );
+                }
+            }
+            EventKind::CommonCauseControlOutageEnd => {
+                if !state.common_cause_control_outage_active {
+                    return Err("common_cause_control_outage_end_without_active_outage".into());
+                }
+                state.common_cause_control_outage_active = false;
+            }
         }
         reconcile(&mut state, catalog)?;
     }
@@ -939,6 +1018,10 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         let blocked = safe_ratio(runtime.metrics.blocked_seconds, denominator);
         let starved = safe_ratio(runtime.metrics.starved_seconds, denominator);
         let down = safe_ratio(runtime.metrics.down_seconds, denominator);
+        let common_cause_control_outage = safe_ratio(
+            runtime.metrics.common_cause_control_outage_seconds,
+            denominator,
+        );
         let accounted = busy + blocked + starved + down;
         if accounted > 1.000_001 || denominator <= 0.0 {
             time_accounting_within_horizon = false;
@@ -960,6 +1043,7 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
             blocked_fraction: blocked,
             starved_fraction: starved,
             down_fraction: down,
+            common_cause_control_outage_fraction: common_cause_control_outage,
             accounted_fraction: accounted,
             added_server_good_output_delta_fraction: extra_server_at
                 .filter(|added| *added == index)
@@ -1015,6 +1099,10 @@ fn simulate(catalog: &Catalog, extra_server_at: Option<usize>) -> Result<Scenari
         ),
         interstation_buffers,
         stations: station_results,
+        common_cause_control_outage_starts_after_warmup: state
+            .common_cause_control_outage_starts_after_warmup,
+        measured_common_cause_control_outage_seconds: state
+            .measured_common_cause_control_outage_seconds,
         output_never_exceeds_released_input,
         all_buffers_respected_capacity,
         station_time_accounting_within_horizon: time_accounting_within_horizon,
@@ -1047,7 +1135,18 @@ fn advance_time(state: &mut SimState, catalog: &Catalog, next_time: u64) -> Resu
     if dt <= 0.0 {
         return Ok(());
     }
+    if state.common_cause_control_outage_active {
+        state.measured_common_cause_control_outage_seconds += dt;
+    }
     for (index, runtime) in state.stations.iter_mut().enumerate() {
+        let in_common_cause_domain = state.common_cause_control_outage_active
+            && catalog
+                .common_cause_control_outage
+                .as_ref()
+                .is_some_and(|outage| outage.station_ids.contains(&catalog.stations[index].station_id));
+        if in_common_cause_domain {
+            runtime.metrics.common_cause_control_outage_seconds += dt;
+        }
         let input_empty = if index == 0 {
             state.source_buffer.is_empty()
         } else {
@@ -1267,6 +1366,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
         for station_index in (0..catalog.stations.len()).rev() {
             let server_count = state.stations[station_index].servers.len();
             for server_index in 0..server_count {
+                if is_in_common_cause_control_domain(state, catalog, station_index) {
+                    continue;
+                }
                 let waiting = matches!(
                     &state.stations[station_index].servers[server_index].state,
                     ServerState::WaitingOutput { .. }
@@ -1329,6 +1431,9 @@ fn reconcile(state: &mut SimState, catalog: &Catalog) -> Result<(), String> {
 
         // Start work from downstream to upstream, immediately freeing bounded buffers.
         for station_index in (0..catalog.stations.len()).rev() {
+            if is_in_common_cause_control_domain(state, catalog, station_index) {
+                continue;
+            }
             let server_count = state.stations[station_index].servers.len();
             for server_index in 0..server_count {
                 if !matches!(
