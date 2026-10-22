@@ -93,7 +93,7 @@ The static planar-truss solver does **not** implement free-vibration or modal an
 
 ## 3D shear-flexible beam primitive
 
-A new [local 3D Timoshenko element prototype](https://github.com/Luminous-Dynamics/symtropy/pull/2630) models 12 local DOFs, separate axial/torsional/bending stiffness blocks, explicit shear areas, and a declared lumped translational-plus-rotary-inertia mass matrix. It derives polar second moment from \(I_p=I_y+I_z\) while keeping torsional stiffness constant \(J\) distinct, important for square/rectangular sections. The six rigid-body states, block equations, shear-flexibility behavior and mass scaling have named tests; a 7-mutant audit is gated in CI. This remains local-element verification only: no global 3D assembly, FV5 solve, or physical validation is implied.
+A new [local 3D Timoshenko element prototype](https://github.com/Luminous-Dynamics/symtropy/pull/2631) models 12 local DOFs, separate axial/torsional/bending stiffness blocks, explicit shear areas, and a declared lumped translational-plus-rotary-inertia mass matrix. It derives polar second moment from \(I_p=I_y+I_z\) while keeping torsional stiffness constant \(J\) distinct, important for square/rectangular sections. The six rigid-body states, block equations, shear-flexibility behavior and mass scaling have named tests; a 7-mutant audit is gated in CI. This remains local-element verification only: no global 3D assembly, FV5 solve, or physical validation is implied.
 
 ## Safety and claim ceiling
 
