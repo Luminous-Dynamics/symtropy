@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/glass-silicon-contract-audit/fixtures/mass-ledger-v1.schema.json",
+  "title": "Elemental Mass Ledger v1",
+  "description": "Checks accounting arithmetic only; it cannot prove physical stream completeness or material production.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_id", "evidence_status", "stream_census_complete", "mass_unit", "inputs", "outputs", "inventory_change", "tolerance", "claim_ceiling"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "record_id": {"type": "string", "minLength": 1},
+    "evidence_status": {"enum": ["measured", "published", "simulated", "synthetic_test", "unknown"]},
+    "stream_census_complete": {"type": "boolean"},
+    "mass_unit": {"enum": ["kg", "g", "mg", "t"]},
+    "inputs": {"$ref": "#/$defs/elementMasses"},
+    "outputs": {"$ref": "#/$defs/elementMasses"},
+    "inventory_change": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "number"}
+    },
+    "tolerance": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "number", "minimum": 0}
+    },
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "elementMasses": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "number", "minimum": 0}
+    }
+  }
+}
