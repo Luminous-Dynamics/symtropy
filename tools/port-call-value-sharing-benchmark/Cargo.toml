@@ -1,0 +1,16 @@
+[package]
+name = "port-call-value-sharing-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed arithmetic checks for synthetic port-call value-sharing allocations"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "port-call-value-sharing-benchmark"
+path = "src/main.rs"
+
+[workspace]
