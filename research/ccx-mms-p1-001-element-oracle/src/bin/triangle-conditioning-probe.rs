@@ -32,6 +32,8 @@ fn main() -> ExitCode {
         pair[1].mean_ratio_quality < pair[0].mean_ratio_quality
             && pair[1].dimensionless_gradient_amplification
                 > pair[0].dimensionless_gradient_amplification
+            && pair[1].element_nonrigid_condition_number
+                > pair[0].element_nonrigid_condition_number
     });
     let records = sweep
         .iter()
