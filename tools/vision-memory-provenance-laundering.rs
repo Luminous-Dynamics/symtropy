@@ -300,6 +300,7 @@ fn fallback(observation: Observation) -> Decision {
     } else {
         Decision::Abstain
     }
+}
 
 // This is the complete policy input boundary. Evaluator-only attack labels and
 // actual_safe_action are not part of this function's input signature.
