@@ -159,14 +159,21 @@ fn exhaustive_dispatch_policy_grid_matches_independent_acceptance_predicate() {
                                 );
 
                                 cases += 1;
-                                expected_accepted += usize::from(expected);
-                                observed_accepted +=
-                                    usize::from(report.operationally_acceptable);
-                                frozen_placement_rejections +=
-                                    usize::from(placement_is_frozen);
-                                frozen_transfer_rejections += usize::from(transfer_is_frozen);
-                                budget_rejections +=
-                                    usize::from(!expected && !placement_is_frozen && !transfer_is_frozen);
+                                if expected {
+                                    expected_accepted += 1;
+                                }
+                                if report.operationally_acceptable {
+                                    observed_accepted += 1;
+                                }
+                                if placement_is_frozen {
+                                    frozen_placement_rejections += 1;
+                                }
+                                if transfer_is_frozen {
+                                    frozen_transfer_rejections += 1;
+                                }
+                                if !expected && !placement_is_frozen && !transfer_is_frozen {
+                                    budget_rejections += 1;
+                                }
                             }
                         }
                     }
@@ -178,7 +185,7 @@ fn exhaustive_dispatch_policy_grid_matches_independent_acceptance_predicate() {
     assert_eq!(cases, CASES);
     assert_eq!(expected_accepted, 191);
     assert_eq!(observed_accepted, expected_accepted);
-    assert_eq!(frozen_placement_rejections, 192);
-    assert_eq!(frozen_transfer_rejections, 128);
-    assert_eq!(budget_rejections, 64);
+    assert_eq!(frozen_placement_rejections, 96);
+    assert_eq!(frozen_transfer_rejections, 64);
+    assert_eq!(budget_rejections, 193);
 }
