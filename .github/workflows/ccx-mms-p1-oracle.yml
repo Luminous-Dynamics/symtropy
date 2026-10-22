@@ -1,0 +1,43 @@
+name: CCX MMS P1 analytic oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ccx-mms-p1-oracle.yml"
+      - "research/ccx-mms-p1-001-oracle/**"
+      - "research/physical-solver-contract/fixtures/ccx-mms-p1-001/problem.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccx-mms-p1-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        working-directory: research/ccx-mms-p1-001-oracle
+        run: cargo fmt --all -- --check
+
+      - name: Run analytical oracle tests
+        working-directory: research/ccx-mms-p1-001-oracle
+        run: cargo test --locked --all-targets
+
+      - name: Run strict Clippy
+        working-directory: research/ccx-mms-p1-001-oracle
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Ensure the lockfile stayed unchanged
+        run: git diff --exit-code -- research/ccx-mms-p1-001-oracle/Cargo.lock
