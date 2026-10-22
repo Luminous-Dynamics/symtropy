@@ -96,7 +96,11 @@ fn check_solution(
         ("Dx", d.displacement_x_m, expected[2]),
         ("Dy", d.displacement_y_m, expected[3]),
     ] {
-        close_to(actual, expected, &format!("{topology}/{} {label}", loads.name));
+        close_to(
+            actual,
+            expected,
+            &format!("{topology}/{} {label}", loads.name),
+        );
         assert!(
             actual.abs() <= MAX_DISPLACEMENT_M,
             "{topology}/{} {label} exceeded the synthetic serviceability envelope: {actual}",
@@ -131,31 +135,46 @@ fn check_solution(
 const LOAD_CASES: [LoadCase; 5] = [
     LoadCase {
         name: "symmetric_down_2kN",
-        c_fx_n: 0.0, c_fy_n: -2_000.0, d_fx_n: 0.0, d_fy_n: -2_000.0,
+        c_fx_n: 0.0,
+        c_fy_n: -2_000.0,
+        d_fx_n: 0.0,
+        d_fy_n: -2_000.0,
         expected_ad: [100e-6, -100e-6, 100e-6, -100e-6],
         expected_bc: [-100e-6, -100e-6, -100e-6, -100e-6],
     },
     LoadCase {
         name: "asymmetric_down",
-        c_fx_n: 0.0, c_fy_n: -1_000.0, d_fx_n: 0.0, d_fy_n: -500.0,
+        c_fx_n: 0.0,
+        c_fy_n: -1_000.0,
+        d_fx_n: 0.0,
+        d_fy_n: -500.0,
         expected_ad: [25e-6, -50e-6, 25e-6, -25e-6],
         expected_bc: [-50e-6, -50e-6, -50e-6, -25e-6],
     },
     LoadCase {
         name: "lateral_right_at_C",
-        c_fx_n: 1_000.0, c_fy_n: 0.0, d_fx_n: 0.0, d_fy_n: 0.0,
+        c_fx_n: 1_000.0,
+        c_fy_n: 0.0,
+        d_fx_n: 0.0,
+        d_fy_n: 0.0,
         expected_ad: [241.4213562373096e-6, 0.0, 191.42135623730958e-6, -50e-6],
         expected_bc: [191.4213562373096e-6, 50e-6, 191.42135623730964e-6, 0.0],
     },
     LoadCase {
         name: "lateral_left_at_C",
-        c_fx_n: -1_000.0, c_fy_n: 0.0, d_fx_n: 0.0, d_fy_n: 0.0,
+        c_fx_n: -1_000.0,
+        c_fy_n: 0.0,
+        d_fx_n: 0.0,
+        d_fy_n: 0.0,
         expected_ad: [-241.4213562373096e-6, 0.0, -191.42135623730958e-6, 50e-6],
         expected_bc: [-191.4213562373096e-6, -50e-6, -191.42135623730964e-6, 0.0],
     },
     LoadCase {
         name: "symmetric_uplift_1kN",
-        c_fx_n: 0.0, c_fy_n: 1_000.0, d_fx_n: 0.0, d_fy_n: 1_000.0,
+        c_fx_n: 0.0,
+        c_fy_n: 1_000.0,
+        d_fx_n: 0.0,
+        d_fy_n: 1_000.0,
         expected_ad: [-50e-6, 50e-6, -50e-6, 50e-6],
         expected_bc: [50e-6, 50e-6, 50e-6, 50e-6],
     },
