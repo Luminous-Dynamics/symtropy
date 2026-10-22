@@ -2687,19 +2687,83 @@ mod tests {
     }
 
     #[test]
-    fn pinned_split_manifest_builder_hashes_actual_sources_and_rejects_nonmembers() {
+    fn pinned_split_manifest_builder_requires_the_immutable_license_audit() {
         let split_config = serde_json::json!({
             "board_filename": "processed_v9_guide_v3.kicad_pcb",
             "easy": { "test": ["board-easy-1", "board-easy-2"] },
             "hard": { "test": ["board-hard-1"] }
         });
         let split_config_bytes = serde_json::to_vec(&split_config).unwrap();
+        let root = std::env::temp_dir().join(format!(
+            "pcb-route-manifest-build-audit-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("provenance")).unwrap();
+        std::fs::create_dir_all(root.join("license-evidence")).unwrap();
+        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
+
+        let evidence_blobs = [
+            ("board-easy-1", "CC-BY-4.0", "license-evidence/board-easy-1.txt", "a"),
+            ("board-hard-1", "MIT", "license-evidence/board-hard-1.txt", "b"),
+        ];
+        let mut audit_boards = Vec::new();
+        for (id, spdx, evidence_path, commit_char) in evidence_blobs {
+            std::fs::create_dir_all(root.join(id)).unwrap();
+            let board_relative = format!("{id}/processed_v9_guide_v3.kicad_pcb");
+            let board_bytes = format!("synthetic board fixture bytes: {id}\n");
+            std::fs::write(root.join(&board_relative), board_bytes.as_bytes()).unwrap();
+            let license_bytes = format!("SYNTHETIC license-evidence fixture text for {spdx}\n");
+            std::fs::write(root.join(evidence_path), license_bytes.as_bytes()).unwrap();
+            let source_repo = format!("https://github.com/example/{id}");
+            let commit = commit_char.repeat(40);
+            audit_boards.push(serde_json::json!({
+                "board_id": id,
+                "difficulty": if id == "board-easy-1" { "easy" } else { "hard" },
+                "pcbench_directory": id,
+                "metadata_path": format!("PCBs/{id}/metadata.json"),
+                "metadata_git_blob_sha1": "9".repeat(40),
+                "original_source_repository": source_repo,
+                "pcbench_reported_licenses": [{"spdx_id": spdx, "name": spdx}],
+                "primary_source_license_review": "synthetic_test_only_not_legal_review",
+                "benchmark_eligibility": "eligible_for_synthetic_test_only",
+                "primary_source_license_evidence": {
+                    "repository": source_repo,
+                    "file_path": "LICENSE",
+                    "git_blob_sha1": git_blob_sha1(license_bytes.as_bytes()),
+                    "resolved_spdx_id": spdx,
+                    "blob_url": format!("{source_repo}/blob/{commit}/LICENSE"),
+                    "source_commit_sha": commit,
+                    "blob_hash_reverified_at_pinned_commit": true
+                },
+                "license_match_status": "source_text_matches_pcbench_spdx_metadata",
+                "prepared_board_relative_path": board_relative,
+                "prepared_board_sha256": sha256_hex(board_bytes.as_bytes())
+            }));
+        }
+        let audit_value = serde_json::json!({
+            "schema": "pcbworld-pilot-source-metadata-audit-v0.1",
+            "status": "synthetic_test_only_eligible_fixture",
+            "evidence_class": "synthetic",
+            "upstream": {
+                "pcbworld_repository": "https://github.com/LGAI-Research/PCBWorld",
+                "pcbworld_commit_sha": "c".repeat(40),
+                "d3_split_config_path": "configs/datasets/d3.json",
+                "d3_split_config_git_blob_sha1": git_blob_sha1(&split_config_bytes),
+                "pcbench_repository": "https://github.com/PCBench/PCBench",
+                "pcbench_commit_sha": "d".repeat(40)
+            },
+            "boards": audit_boards
+        });
+        let audit_bytes = serde_json::to_vec_pretty(&audit_value).unwrap();
+        std::fs::write(root.join("provenance/license-audit.json"), &audit_bytes).unwrap();
+
         let intake = IntakeSpec {
-            schema: "pcb-route-intake-spec-v0.1".into(),
-            benchmark_id: "pcbworld-bench".into(),
-            benchmark_version: "v1.1.1".into(),
-            dataset_id: "pcbench-d3".into(),
-            split_id: "d3-test-pilot-v0.1".into(),
+            schema: "pcb-route-intake-spec-v0.2".into(),
+            benchmark_id: "synthetic-pcbworld-bench".into(),
+            benchmark_version: "v1.1.1-fixture".into(),
+            dataset_id: "synthetic-pcbench-d3".into(),
+            split_id: "synthetic-d3-test-pilot-v0.1".into(),
             source_url: "https://github.com/LGAI-Research/PCBWorld".into(),
             source_split_commit_sha: "c".repeat(40),
             source_split_config_url: format!(
@@ -2708,214 +2772,127 @@ mod tests {
             ),
             source_split_config_git_blob_sha1: git_blob_sha1(&split_config_bytes),
             source_split_config_relative_path: "provenance/d3.json".into(),
+            license_audit_manifest_relative_path: "provenance/license-audit.json".into(),
+            license_audit_manifest_sha256: sha256_hex(&audit_bytes),
             split_name: "test".into(),
             boards: vec![
                 IntakeBoard {
                     board_id: "board-easy-1".into(),
                     difficulty: "easy".into(),
                     required_nets: 4,
-                    license: "CC-BY-4.0".into(),
-                    source_url: "https://github.com/PCBench/PCBench".into(),
-                    license_evidence_relative_path: Some("license-evidence/board-easy-1.txt".into()),
-                    license_evidence_url: Some("https://github.com/example/license/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE".into()),
-                    license_evidence_source_commit_sha: Some("a".repeat(40)),
-                    license_evidence_git_blob_sha1: Some(git_blob_sha1(
-                        b"SYNTHETIC license-evidence fixture text for CC-BY-4.0\n",
-                    )),
+                    license_evidence_relative_path: "license-evidence/board-easy-1.txt".into(),
                 },
                 IntakeBoard {
                     board_id: "board-hard-1".into(),
                     difficulty: "hard".into(),
                     required_nets: 9,
-                    license: "MIT".into(),
-                    source_url: "https://github.com/PCBench/PCBench".into(),
-                    license_evidence_relative_path: Some("license-evidence/board-hard-1.txt".into()),
-                    license_evidence_url: Some("https://github.com/example/license/blob/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/LICENSE".into()),
-                    license_evidence_source_commit_sha: Some("b".repeat(40)),
-                    license_evidence_git_blob_sha1: Some(git_blob_sha1(
-                        b"SYNTHETIC license-evidence fixture text for MIT\n",
-                    )),
+                    license_evidence_relative_path: "license-evidence/board-hard-1.txt".into(),
                 },
             ],
         };
         let intake_bytes = serde_json::to_vec(&intake).unwrap();
-        let root =
-            std::env::temp_dir().join(format!("pcb-route-manifest-build-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir_all(root.join("provenance")).unwrap();
-        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
-        for id in ["board-easy-1", "board-hard-1"] {
-            std::fs::create_dir_all(root.join(id)).unwrap();
-            std::fs::write(
-                root.join(id).join("processed_v9_guide_v3.kicad_pcb"),
-                format!("synthetic board fixture bytes: {id}\n"),
-            )
-            .unwrap();
-        }
-        std::fs::create_dir_all(root.join("license-evidence")).unwrap();
-        // These are deliberately synthetic test payloads, not real board licenses.
-        std::fs::write(
-            root.join("license-evidence/board-easy-1.txt"),
-            b"SYNTHETIC license-evidence fixture text for CC-BY-4.0\n",
-        )
-        .unwrap();
-        std::fs::write(
-            root.join("license-evidence/board-hard-1.txt"),
-            b"SYNTHETIC license-evidence fixture text for MIT\n",
-        )
-        .unwrap();
-
         let manifest = build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
-            .expect("pinned split manifests build from source bytes");
-
-        let mut tampered_root_split = split_config_bytes.clone();
-        let hard_id_offset = tampered_root_split
-            .windows(b"board-hard-1".len())
-            .position(|window| window == b"board-hard-1")
-            .expect("hard board ID occurs in the pinned split JSON");
-        tampered_root_split[hard_id_offset..hard_id_offset + b"board-hard-1".len()]
-            .copy_from_slice(b"board-evil-1");
-        std::fs::write(root.join("provenance/d3.json"), &tampered_root_split).unwrap();
-        assert!(
-            build_dataset_manifest(&split_config_bytes, &intake_bytes, &root)
-                .unwrap_err()
-                .contains("dataset-root split-config bytes differ from the supplied pinned split config")
-        );
-        std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
-
-        let altered_split = split_config_bytes
-            .windows(b"board-hard-1".len())
-            .position(|window| window == b"board-hard-1")
-            .map(|index| {
-                let mut bytes = split_config_bytes.clone();
-                bytes[index..index + b"board-hard-1".len()]
-                    .copy_from_slice(b"board-evil-1");
-                bytes
-            })
-            .expect("hard board ID occurs in the pinned split JSON");
-        assert!(
-            build_dataset_manifest(&altered_split, &intake_bytes, &root)
-                .unwrap_err()
-                .contains("source split-config bytes do not match the pinned upstream Git blob")
-        );
-
-        let mut branch_url_intake = intake.clone();
-        branch_url_intake.source_split_config_url =
-            "https://github.com/LGAI-Research/PCBWorld/blob/main/configs/datasets/d3.json"
-                .into();
-        let branch_url_bytes = serde_json::to_vec(&branch_url_intake).unwrap();
-        assert!(
-            build_dataset_manifest(&split_config_bytes, &branch_url_bytes, &root)
-                .unwrap_err()
-                .contains("pinned immutable source commit")
-        );
+            .expect("synthetic audit fixture builds a synthetic-only manifest");
         assert_eq!(manifest.boards.len(), 2);
-        assert_eq!(manifest.evidence_class, "external_benchmark");
-        assert!(manifest
-            .boards
-            .iter()
-            .all(|board| board
-                .license_evidence_source_commit_sha
-                .as_ref()
-                .is_some_and(|sha| is_commit_sha(sha))));
-        assert_eq!(
-            manifest.source_split_config_sha256.as_deref(),
-            Some(sha256_hex(&split_config_bytes).as_str())
-        );
-        assert_eq!(
-            manifest.source_split_config_relative_path.as_deref(),
-            Some("provenance/d3.json")
-        );
-        assert_eq!(
-            manifest.source_split_config_git_blob_sha1.as_deref(),
-            Some(git_blob_sha1(&split_config_bytes).as_str())
-        );
+        assert_eq!(manifest.evidence_class, "synthetic");
+        assert_eq!(manifest.license_audit_manifest_sha256.as_deref(), Some(sha256_hex(&audit_bytes).as_str()));
+        assert!(manifest.boards.iter().all(|board| board.license_evidence_git_blob_sha1.is_some()));
+
         let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
         let receipt = verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
-            .expect("built source files verify");
+            .expect("source, audit, prepared-board and license evidence bytes verify");
         assert_eq!(receipt.verified_board_count, 2);
         assert_eq!(receipt.verified_license_evidence_count, 2);
-        assert_eq!(receipt.entries.len(), 5);
-        assert_eq!(
-            receipt
-                .entries
-                .iter()
-                .filter(|entry| entry.role == "source_split_config")
-                .count(),
-            1
-        );
-        assert_eq!(
-            receipt
-                .entries
-                .iter()
-                .filter(|entry| entry.role == "license_evidence")
-                .count(),
-            2
-        );
+        assert_eq!(receipt.entries.len(), 6);
+        assert_eq!(receipt.license_audit_manifest_sha256.as_deref(), Some(sha256_hex(&audit_bytes).as_str()));
+        assert_eq!(receipt.entries.iter().filter(|entry| entry.role == "license_audit_manifest").count(), 1);
 
-        let mut aliased_manifest: serde_json::Value =
-            serde_json::from_slice(&manifest_bytes).unwrap();
-        let first_board_path = aliased_manifest["boards"][0]["relative_path"].clone();
-        aliased_manifest["boards"][1]["relative_path"] = first_board_path;
-        let aliased_bytes = serde_json::to_vec(&aliased_manifest).unwrap();
-        assert!(
-            verify_dataset_files(&aliased_bytes, &root, EVALUATOR_HEAD)
-                .unwrap_err()
-                .contains("source path aliases another pinned dataset artifact")
+        // The currently published 30-board audit is metadata-only and marks
+        // every row unauthorised; caller-supplied labels cannot override it.
+        let actual_audit: LicenseAuditManifest = serde_json::from_slice(
+            include_str!("../fixtures/pcbworld-d3-pilot-source-metadata-audit-v0_1.json").as_bytes()
+        ).expect("published audit fixture");
+        assert_eq!(actual_audit.status, "metadata_inventory_only_not_benchmark_manifest");
+        assert!(actual_audit.boards.iter().all(|row| row.benchmark_eligibility != "approved_for_benchmark_execution"));
+        let blocked = validate_audit_envelope(
+            &actual_audit,
+            "https://github.com/LGAI-Research/PCBWorld",
+            "1989a9325796b73cca793a0c8f222dd1509256e8",
+            "61d86bbf6cfd8ff8d1e13089c8d98a90f6f81bb3",
+            "pcbworld-bench",
+            "pcbench-d3"
         );
+        assert!(blocked.unwrap_err().contains("does not authorize benchmark execution"));
 
-        // A manifest with an incorrect upstream Git blob pin must reject even
-        // when its SHA-256 still matches the actual copied evidence bytes.
-        let mut wrong_blob_manifest: serde_json::Value =
-            serde_json::from_slice(&manifest_bytes).unwrap();
-        wrong_blob_manifest["boards"][0]["license_evidence_git_blob_sha1"] =
-            serde_json::Value::String("0".repeat(40));
-        let wrong_blob_bytes = serde_json::to_vec(&wrong_blob_manifest).unwrap();
-        assert!(
-            verify_dataset_files(&wrong_blob_bytes, &root, EVALUATOR_HEAD)
-                .unwrap_err()
-                .contains("immutable source repository Git blob")
-        );
+        // Stale audit hash, unapproved row, unknown board, changed license
+        // blob, and changed prepared-board digest all fail closed.
+        let mut stale_intake = intake.clone();
+        stale_intake.license_audit_manifest_sha256 = "0".repeat(64);
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&stale_intake).unwrap(), &root)
+            .unwrap_err().contains("license-audit manifest bytes SHA-256"));
 
-        // Manifest construction must reject a copied file that does not match
-        // its declared upstream Git blob ID, before it emits a new manifest.
-        let mut wrong_intake_blob = intake.clone();
-        wrong_intake_blob.boards[0].license_evidence_git_blob_sha1 = Some("0".repeat(40));
-        let wrong_intake_bytes = serde_json::to_vec(&wrong_intake_blob).unwrap();
-        assert!(
-            build_dataset_manifest(&split_config_bytes, &wrong_intake_bytes, &root)
-                .unwrap_err()
-                .contains("source repository Git blob SHA-1")
-        );
+        let mut unapproved = audit_value.clone();
+        unapproved["boards"][0]["benchmark_eligibility"] = serde_json::Value::String("not_authorized_pending_review".into());
+        let unapproved_bytes = serde_json::to_vec_pretty(&unapproved).unwrap();
+        std::fs::write(root.join("provenance/license-audit.json"), &unapproved_bytes).unwrap();
+        let mut changed = intake.clone();
+        changed.license_audit_manifest_sha256 = sha256_hex(&unapproved_bytes);
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&changed).unwrap(), &root)
+            .unwrap_err().contains("license-audit eligibility"));
+        std::fs::write(root.join("provenance/license-audit.json"), &audit_bytes).unwrap();
 
-        std::fs::write(
-            root.join("provenance/d3.json"),
-            b"{\"tampered_split_config\":true}\n",
-        )
-        .unwrap();
+        let mut unlisted = intake.clone();
+        unlisted.boards[0].board_id = "not-in-audit".into();
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&unlisted).unwrap(), &root)
+            .unwrap_err().contains("not listed in the pinned license-audit"));
+
+        let mut changed_repo = audit_value.clone();
+        changed_repo["boards"][0]["original_source_repository"] = serde_json::Value::String("https://github.com/example/changed".into());
+        let changed_repo_bytes = serde_json::to_vec_pretty(&changed_repo).unwrap();
+        std::fs::write(root.join("provenance/license-audit.json"), &changed_repo_bytes).unwrap();
+        changed = intake.clone();
+        changed.license_audit_manifest_sha256 = sha256_hex(&changed_repo_bytes);
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&changed).unwrap(), &root)
+            .unwrap_err().contains("disagrees with the audited source repository"));
+        std::fs::write(root.join("provenance/license-audit.json"), &audit_bytes).unwrap();
+
+        let mut wrong_blob = audit_value.clone();
+        wrong_blob["boards"][0]["primary_source_license_evidence"]["git_blob_sha1"] = serde_json::Value::String("0".repeat(40));
+        let wrong_blob_bytes = serde_json::to_vec_pretty(&wrong_blob).unwrap();
+        std::fs::write(root.join("provenance/license-audit.json"), &wrong_blob_bytes).unwrap();
+        changed = intake.clone();
+        changed.license_audit_manifest_sha256 = sha256_hex(&wrong_blob_bytes);
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&changed).unwrap(), &root)
+            .unwrap_err().contains("license-evidence bytes do not match audit-pinned"));
+        std::fs::write(root.join("provenance/license-audit.json"), &audit_bytes).unwrap();
+
+        let mut wrong_board = audit_value.clone();
+        wrong_board["boards"][0]["prepared_board_sha256"] = serde_json::Value::String("0".repeat(64));
+        let wrong_board_bytes = serde_json::to_vec_pretty(&wrong_board).unwrap();
+        std::fs::write(root.join("provenance/license-audit.json"), &wrong_board_bytes).unwrap();
+        changed = intake.clone();
+        changed.license_audit_manifest_sha256 = sha256_hex(&wrong_board_bytes);
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&changed).unwrap(), &root)
+            .unwrap_err().contains("source-board bytes SHA-256"));
+        std::fs::write(root.join("provenance/license-audit.json"), &audit_bytes).unwrap();
+
+        let mut bad_path = intake.clone();
+        bad_path.boards[0].license_evidence_relative_path = "../outside.txt".into();
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&bad_path).unwrap(), &root)
+            .unwrap_err().contains("traversal"));
+
+        let mut alias = intake.clone();
+        alias.boards[1].license_evidence_relative_path = alias.boards[0].license_evidence_relative_path.clone();
+        assert!(build_dataset_manifest(&split_config_bytes, &serde_json::to_vec(&alias).unwrap(), &root)
+            .unwrap_err().contains("aliases another pinned dataset artifact"));
+
+        std::fs::write(root.join("provenance/d3.json"), b"{\"tampered\":true}\n").unwrap();
         assert!(verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
-            .unwrap_err()
-            .contains("source split-config bytes SHA-256"));
+            .unwrap_err().contains("source split-config bytes SHA-256"));
         std::fs::write(root.join("provenance/d3.json"), &split_config_bytes).unwrap();
-
-        std::fs::write(
-            root.join("license-evidence/board-easy-1.txt"),
-            b"modified after manifest creation\n",
-        )
-        .unwrap();
+        std::fs::write(root.join("license-evidence/board-easy-1.txt"), b"modified after manifest creation\n").unwrap();
         assert!(verify_dataset_files(&manifest_bytes, &root, EVALUATOR_HEAD)
-            .unwrap_err()
-            .contains("license-evidence bytes SHA-256"));
-
-        let mut invalid = intake.clone();
-        invalid.boards[0].board_id = "not-in-split".into();
-        let invalid_bytes = serde_json::to_vec(&invalid).unwrap();
-        assert!(
-            build_dataset_manifest(&split_config_bytes, &invalid_bytes, &root)
-                .unwrap_err()
-                .contains("is not a member of the pinned")
-        );
-
+            .unwrap_err().contains("license-evidence bytes SHA-256"));
         let _ = std::fs::remove_dir_all(&root);
     }
 
