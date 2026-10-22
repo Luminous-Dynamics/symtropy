@@ -7,6 +7,8 @@
 //! It is not a general sparse FEA framework and does not reproduce BE25 until
 //! the published mass/input contradiction has been resolved.
 
+#![allow(clippy::needless_range_loop)] // Explicit band-index loops preserve the assembly/triangular-solve contract.
+
 use crate::Check;
 use crate::beam_line::BeamLineBoundaryCase;
 use crate::modal_bar::generalized_symmetric_eigenpairs;
