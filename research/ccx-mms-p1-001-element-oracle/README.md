@@ -92,6 +92,57 @@ consistent with the mesh-quality literature's observation that the condition num
 elliptic finite-element systems worsens with mesh refinement; performance must still be
 measured with an actual solve and matched accuracy.
 
+## Global CG and Jacobi-preconditioned CG diagnostic
+
+`triangle-global-pcg-probe` emits a deterministic
+`ccx-mms-p1-global-pcg-v1` receipt comparing two independent dense linear solves on
+oracle-assembled, boundary-constrained CST stiffness matrices:
+
+- standard Conjugate Gradient (CG);
+- Jacobi-preconditioned Conjugate Gradient (PCG), using the positive diagonal of the
+  assembled matrix.
+
+The frozen sweep has two mesh families: the existing uniform structured mesh (control)
+and a quadratically graded coordinate map (x\mapsto x^2,\ y\mapsto y^2). Each family
+uses 2, 3, 4, 5, and 6 cells per side. For every matrix, the probe records the unscaled
+spectral condition number, the spectrum of the **symmetric** Jacobi-scaled matrix
+`D^(-1/2) K D^(-1/2)`, CG/PCG iteration counts, and the independently recomputed true
+relative residual `||b-Kx||_2 / ||b||_2`. Both solvers use the same deterministic,
+nonzero synthetic right-hand side and frozen `1e-10` true-residual tolerance.
+
+The uniform family is a control: its regular interior node pattern makes the diagonal
+scaling essentially a scalar operation, so no material condition-number improvement
+should be expected. The graded family changes the local stiffness scales. An independent
+NumPy calculation—not Rust or CI output—gave the following (n=6) condition numbers for
+the frozen quadratic grading:
+
+| Matrix | Spectral condition number |
+|---|---:|
+| Unscaled oracle-assembled stiffness | 30.57 |
+| Symmetric Jacobi-scaled stiffness | 15.35 |
+
+CI gates the uniform control to within 5% of unchanged condition number and requires the
+graded (n=6) condition number to fall below 75% of its unscaled value. The gate tests
+that this specific diagnostic is sensitive to nonuniform diagonal scales; it does not
+assert that Jacobi PCG is universally superior. Every solve is independently required to
+meet the same true relative residual bound.
+
+The probe fails closed for invalid/non-finite matrices, non-positive diagonals, invalid
+search curvature, eigensolver exhaustion, or a residual above tolerance. Unit tests cover
+a known small SPD system, a non-positive-diagonal negative control, and repeatable
+mesh-family diagnostics. CI executes the binary twice and requires byte-identical receipts,
+the exact schema, ten ordered mesh records, expected free-DOF counts, finite condition
+estimates, bounded true residuals, and bounded iteration counts.
+
+**Interpretation boundary:** this is a linear-algebra diagnostic of the independent CST
+kernel, not a CalculiX run, physical FEM solution, discretization-error study, or
+production solver performance benchmark. The dense Jacobi eigensolver and small matrices
+are used only to verify the diagnostic path. Later work–precision comparisons must use an
+actual pinned solver at matched solution accuracy, with recorded hardware/build
+provenance, repeated wall time, iteration/residual histories, and peak memory. See also
+PETSc's [KSPCG documentation](https://petsc.gitlab.io/petsc/main/manualpages/KSP/KSPCG/),
+which describes SPD requirements and the role of the preconditioned spectrum.
+
 ## Near-incompressibility material sweep
 
 `triangle-material-conditioning-probe` emits a deterministic
