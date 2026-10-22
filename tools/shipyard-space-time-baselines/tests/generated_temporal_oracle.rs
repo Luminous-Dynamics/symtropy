@@ -106,18 +106,26 @@ fn add_legacy_boundaries(
     width: i64,
     height: i64,
 ) {
-    xs.extend([
-        rect.min_x.checked_sub(width),
-        Some(rect.min_x),
-        rect.max_x.checked_sub(width),
-        Some(rect.max_x),
-    ].into_iter().flatten());
-    ys.extend([
-        rect.min_y.checked_sub(height),
-        Some(rect.min_y),
-        rect.max_y.checked_sub(height),
-        Some(rect.max_y),
-    ].into_iter().flatten());
+    xs.extend(
+        [
+            rect.min_x.checked_sub(width),
+            Some(rect.min_x),
+            rect.max_x.checked_sub(width),
+            Some(rect.max_x),
+        ]
+        .into_iter()
+        .flatten(),
+    );
+    ys.extend(
+        [
+            rect.min_y.checked_sub(height),
+            Some(rect.min_y),
+            rect.max_y.checked_sub(height),
+            Some(rect.max_y),
+        ]
+        .into_iter()
+        .flatten(),
+    );
 }
 
 /// Reconstruct the pre-fix policy: all prior placements and zones contribute candidate
@@ -213,9 +221,7 @@ fn legacy_time_blind_first_fit(
 }
 
 fn legacy_policy_orders(requests: &[PlacementRequest]) -> Vec<Vec<PlacementRequest>> {
-    let area = |request: &PlacementRequest| {
-        i128::from(request.width) * i128::from(request.height)
-    };
+    let area = |request: &PlacementRequest| i128::from(request.width) * i128::from(request.height);
     let max_side = |request: &PlacementRequest| request.width.max(request.height);
     let mut orders = vec![requests.to_vec()];
 
@@ -375,23 +381,13 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
             exact_feasible += 1;
         }
 
-        if legacy_time_blind_portfolio_solves(
-            yard,
-            &requests,
-            std::slice::from_ref(&zone),
-            false,
-        ) {
+        if legacy_time_blind_portfolio_solves(yard, &requests, std::slice::from_ref(&zone), false) {
             legacy_pre_fix_portfolio_solved += 1;
             if !exact {
                 legacy_pre_fix_false_feasible += 1;
             }
         }
-        if legacy_time_blind_portfolio_solves(
-            yard,
-            &requests,
-            std::slice::from_ref(&zone),
-            true,
-        ) {
+        if legacy_time_blind_portfolio_solves(yard, &requests, std::slice::from_ref(&zone), true) {
             boundary_only_portfolio_solved += 1;
             if !exact {
                 boundary_only_false_feasible += 1;
