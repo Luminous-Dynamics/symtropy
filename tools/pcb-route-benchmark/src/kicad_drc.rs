@@ -497,7 +497,7 @@ mod tests {
       "schema":"kicad-drc-routing-policy-v0.1",
       "kicad_version":"9.0.9",
       "schema_source_url":"https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/resources/schemas/drc.v1.json",
-      "schema_source_blob_sha1":"3db8d82fc807c0690fd231eea9efdb562576ce4",
+      "schema_source_blob_sha1":"3db8d82fc807c0690fd231eea9aefdb562576ce4",
       "taxonomy_source_url":"https://github.com/KiCad/kicad-source-mirror/blob/9.0.9/pcbnew/drc/drc_item.cpp",
       "taxonomy_source_blob_sha1":"f6822d5faf1ad17f859d6c8eb13eb85c917f1f61",
       "routing_violation_types":["tracks_crossing","shorting_items","clearance"],
