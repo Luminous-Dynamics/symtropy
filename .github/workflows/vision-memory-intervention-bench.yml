@@ -1,0 +1,76 @@
+name: VIS-MEM-009 Causal History Intervention Diagnostic
+
+on:
+  push:
+    branches: ["research/vis-mem-interventions-v0-1"]
+    paths:
+      - "tools/vision-memory-intervention-bench.rs"
+      - ".github/workflows/vision-memory-intervention-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-intervention-bench.rs"
+      - ".github/workflows/vision-memory-intervention-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-009-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-interventions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run intervention tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-intervention-bench.rs -o /tmp/vis-mem-intervention-tests
+          /tmp/vis-mem-intervention-tests
+
+      - name: Build, replay, and validate report
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-intervention-bench.rs -o /tmp/vis-mem-intervention-bench
+          /tmp/vis-mem-intervention-bench > vis-mem-interventions.tsv
+          /tmp/vis-mem-intervention-bench > vis-mem-interventions-repeat.tsv
+          cmp vis-mem-interventions.tsv vis-mem-interventions-repeat.tsv
+          grep -Fq $'META\tevaluator_truth\tnever passed to policy' vis-mem-interventions.tsv
+          grep -Fq $'METRIC\tno_memory' vis-mem-interventions.tsv
+          grep -Fq $'METRIC\tglobal_last' vis-mem-interventions.tsv
+          grep -Fq $'METRIC\tkeyed_latest_arrival' vis-mem-interventions.tsv
+          grep -Fq $'METRIC\tkeyed_latest_source_time' vis-mem-interventions.tsv
+          awk -F '\t' '$1 == "METRIC_HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 14) exit 1; n++ } END { if (h != 1 || n != 4) exit 1 }' vis-mem-interventions.tsv
+          sha256sum vis-mem-interventions.tsv > vis-mem-interventions.sha256
+          sha256sum -c vis-mem-interventions.sha256
+
+      - name: Upload exact-head artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-009-intervention-report
+          path: |
+            vis-mem-interventions.tsv
+            vis-mem-interventions.sha256
+          if-no-files-found: error
