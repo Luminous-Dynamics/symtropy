@@ -1,0 +1,116 @@
+{
+  "version": "wis-sim-substrate-map/0.1",
+  "status": "SOURCE_AUDIT_NOT_EXECUTION",
+  "source_ref": "main",
+  "families": [
+    {
+      "scenario_id": "WSS-001",
+      "family": "commons_resource_allocation",
+      "available_substrate": [
+        "symtropy-lifesim-core",
+        "symtropy-colony"
+      ],
+      "readiness": "PARTIAL_DOMAIN_ANALOGY",
+      "missing": [
+        "neutral allocation policy",
+        "agent-level allocation/unmet-need report"
+      ],
+      "claim_ceiling": "ecological/resource toy inputs only"
+    },
+    {
+      "scenario_id": "WSS-002",
+      "family": "contested_evidence",
+      "available_substrate": [
+        "physics replay identity principles only"
+      ],
+      "readiness": "NO_POLICY_MODEL_FOUND_IN_AUDITED_PATHS",
+      "missing": [
+        "typed claim/source/conflict/uncertainty model",
+        "independent policy evaluator"
+      ]
+    },
+    {
+      "scenario_id": "WSS-003",
+      "family": "minority_objection",
+      "available_substrate": [],
+      "readiness": "NO_POLICY_MODEL_FOUND_IN_AUDITED_PATHS",
+      "missing": [
+        "objection lifecycle",
+        "group-level outcome receipt"
+      ]
+    },
+    {
+      "scenario_id": "WSS-004",
+      "family": "repair_after_conflict",
+      "available_substrate": [
+        "physics replay snapshots as a design pattern"
+      ],
+      "readiness": "NO_GOVERNANCE_REPAIR_MODEL_FOUND_IN_AUDITED_PATHS",
+      "missing": [
+        "immutable decision versions",
+        "evidence-triggered reconsideration",
+        "repair-cost observables"
+      ]
+    },
+    {
+      "scenario_id": "WSS-005",
+      "family": "adversarial_authority",
+      "available_substrate": [
+        "synthetic scenario input contract"
+      ],
+      "readiness": "NEEDS_TYPED_POLICY_ADAPTER",
+      "missing": [
+        "separate synthetic ground truth",
+        "source-status influence policy",
+        "uncertainty-preserving decision receipt"
+      ]
+    },
+    {
+      "scenario_id": "WSS-006",
+      "family": "distributional_regression",
+      "available_substrate": [
+        "LifeSim field metrics for ecological cases"
+      ],
+      "readiness": "PARTIAL_METRIC_PATTERN",
+      "missing": [
+        "explicit groups/outcome vectors",
+        "missingness-aware worst-group report"
+      ]
+    },
+    {
+      "scenario_id": "WSS-007",
+      "family": "resource_shock",
+      "available_substrate": [
+        "symtropy-lifesim-core",
+        "symtropy-colony",
+        "symtropy-mycelium"
+      ],
+      "readiness": "PARTIAL_DOMAIN_SUBSTRATE",
+      "missing": [
+        "fixed shock schedule contract",
+        "conservation and recovery assertions",
+        "exact run receipts"
+      ]
+    }
+  ],
+  "audited_findings": [
+    {
+      "path": "crates/core/symtropy-physics/src/replay.rs",
+      "finding": "ReplayTape contains dt and ordered physics WorldCommand entries plus bitwise physics snapshots; it is not a governance event log."
+    },
+    {
+      "path": "crates/apps/symtropy-mycelix-village/src/headless.rs",
+      "finding": "Example calls synthetic agents Virtuous/Wasteful; uses body-handle-based power and directly penalizes stewardship_care, then expects the same field to drop. It is not an independent policy oracle."
+    },
+    {
+      "path": "crates/bridges/symthaea-bevy-brain/src/lib.rs",
+      "finding": "CognitiveBrain::phi() returns profile.epistemic_integrity directly in the reviewed implementation."
+    },
+    {
+      "path": "crates/apps/symtropy-mycelix-village/src/lib.rs",
+      "finding": "CityScalePlugin is an intentional no-op; not evidence of a wired city-scale social simulator."
+    }
+  ],
+  "required_next_layer": "typed run-report schema and executable invariant/assertion contract, followed by a separate adapter per semantic domain",
+  "no_simulation_executed": true
+}

@@ -1,0 +1,39 @@
+name: WIS-SIM Scenario Contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/wis-sim-scenario-contract.yml"
+      - "tools/wis-sim-fixture-verifier/**"
+      - "docs/research/fixtures/wis-sim-scenarios-v0.1.*"
+      - "docs/research/wis-sim-deterministic-scenario-pack-v0.1.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/wis-sim-scenario-contract.yml"
+      - "tools/wis-sim-fixture-verifier/**"
+      - "docs/research/fixtures/wis-sim-scenarios-v0.1.*"
+      - "docs/research/wis-sim-deterministic-scenario-pack-v0.1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wis-sim-scenario-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-scenario-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wis-sim-fixture-verifier/Cargo.toml -- --check
+      - name: Run verifier regression suite
+        run: cargo test --manifest-path tools/wis-sim-fixture-verifier/Cargo.toml --locked
+      - name: Verify pinned corpus
+        run: cargo run --manifest-path tools/wis-sim-fixture-verifier/Cargo.toml --locked -- verify docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl docs/research/fixtures/wis-sim-scenarios-v0.1.manifest.json docs/research/fixtures/wis-sim-scenarios-v0.1.schema.json

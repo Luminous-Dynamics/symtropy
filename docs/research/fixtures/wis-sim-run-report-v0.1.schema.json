@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wis-sim-run-report-v0.1.schema.json",
+  "title": "WIS-SIM deterministic run report",
+  "description": "Report shape for one synthetic policy run. Validation of this report does not establish that the model assumptions are valid or that the simulation was actually executed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "run_status",
+    "simulation_executed",
+    "claim_ceiling",
+    "identity",
+    "metrics",
+    "claims_retained",
+    "claims",
+    "decision",
+    "objections",
+    "events",
+    "invariant_results",
+    "warnings"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "wis-sim-run-report/0.1"
+    },
+    "run_status": {
+      "enum": [
+        "completed",
+        "failed",
+        "unsupported",
+        "not_run"
+      ]
+    },
+    "simulation_executed": {
+      "type": "boolean"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corpus_id",
+        "corpus_version",
+        "fixture_sha256",
+        "scenario_id",
+        "scenario_version",
+        "variant_id",
+        "policy_id",
+        "policy_version",
+        "deterministic_seed",
+        "execution_profile",
+        "engine_revision",
+        "toolchain_profile",
+        "target_triple",
+        "environment_fingerprint",
+        "input_sha256"
+      ],
+      "properties": {
+        "corpus_id": {
+          "const": "WIS-SIM-001"
+        },
+        "corpus_version": {
+          "const": "0.1"
+        },
+        "fixture_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^WSS-[0-9]{3}$"
+        },
+        "scenario_version": {
+          "const": "0.1"
+        },
+        "variant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deterministic_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "input_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "claims_retained": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "objections": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "invariant_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assertion_id",
+          "status",
+          "evidence_pointer",
+          "explanation"
+        ],
+        "properties": {
+          "assertion_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "observed": {},
+          "expected": {},
+          "evidence_pointer": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

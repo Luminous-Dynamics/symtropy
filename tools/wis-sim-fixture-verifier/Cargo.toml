@@ -1,0 +1,12 @@
+[package]
+name = "wis-sim-fixture-verifier"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Deterministic structural verifier for the synthetic WIS-SIM scenario corpus"
+
+[dependencies]
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[workspace]
