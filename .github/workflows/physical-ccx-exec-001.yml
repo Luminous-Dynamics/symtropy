@@ -805,7 +805,7 @@ jobs:
               and .physical_result_qualified == false
               and .real_world_validation_status == "UNRESOLVED"
               and .engineering_use_authorized == false
-              and (.displacement_l2_error_m > 0)
+              and (.displacement_l2_norm_m2 > 0)
               and (.displacement_h1_seminorm_error_m > 0)
               and (.stress_l2_error_pa_m > 0)
             ' "$R/audit-report.json" > /dev/null
@@ -832,7 +832,7 @@ jobs:
                 cells_per_axis,node_count,element_count,
                 report_sha256:._report_sha256,
                 process_receipt_sha256:._process_receipt_sha256,
-                displacement_l2_error_m,displacement_h1_seminorm_error_m,stress_l2_error_pa_m
+                displacement_l2_norm_m2,displacement_h1_seminorm_error_m,stress_l2_error_pa_m
               }
             ] as $levels |
             [
@@ -840,14 +840,14 @@ jobs:
               {
                 coarse_cells:$levels[$i].cells_per_axis,
                 fine_cells:$levels[$i+1].cells_per_axis,
-                displacement_l2_order:((($levels[$i].displacement_l2_error_m / $levels[$i+1].displacement_l2_error_m)|log)/(2|log)),
+                displacement_l2_order:((($levels[$i].displacement_l2_norm_m2 / $levels[$i+1].displacement_l2_norm_m2)|log)/(2|log)),
                 displacement_h1_order:((($levels[$i].displacement_h1_seminorm_error_m / $levels[$i+1].displacement_h1_seminorm_error_m)|log)/(2|log)),
                 stress_l2_order:((($levels[$i].stress_l2_error_pa_m / $levels[$i+1].stress_l2_error_pa_m)|log)/(2|log))
               }
             ] as $orders |
             (all(range(0; ($levels|length)-1); . as $i |
               if $i == ($levels|length)-1 then true else
-                $levels[$i].displacement_l2_error_m > $levels[$i+1].displacement_l2_error_m
+                $levels[$i].displacement_l2_norm_m2 > $levels[$i+1].displacement_l2_norm_m2
                 and $levels[$i].displacement_h1_seminorm_error_m > $levels[$i+1].displacement_h1_seminorm_error_m
                 and $levels[$i].stress_l2_error_pa_m > $levels[$i+1].stress_l2_error_pa_m
               end
