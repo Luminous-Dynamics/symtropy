@@ -750,7 +750,7 @@ mod tests {
             &cluster_mask,
         )
         .expect("clustered-mode classification");
-        assert_eq!(outcome, ModeMatchOutcome::Clustered);
+        assert!(matches!(outcome, ModeMatchOutcome::Clustered));
     }
 
     #[test]
@@ -770,7 +770,7 @@ mod tests {
             &cluster_mask,
         )
         .expect("ambiguous-mode classification");
-        assert_eq!(outcome, ModeMatchOutcome::Ambiguous);
+        assert!(matches!(outcome, ModeMatchOutcome::Ambiguous));
     }
 
     #[test]
