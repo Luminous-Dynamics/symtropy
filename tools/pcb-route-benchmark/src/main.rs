@@ -1,7 +1,7 @@
 use pcb_route_benchmark::{
     anytime::{
         evaluate_checkpoint_from_root, ArchiveIdentity, CheckpointMetadata,
-        VerifiedIncumbentArchive, ANYTIME_ARCHIVE_SCHEMA,
+        VerifiedIncumbentArchive,
     },
     build_dataset_manifest, compare_replicated_runs, compare_runs, evaluate_report_bytes,
     kicad_drc::verify_run_artifacts_with_kicad_drc_policy,
