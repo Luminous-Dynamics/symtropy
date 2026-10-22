@@ -533,13 +533,6 @@ fn validate_report(
                 errors.push(format!("{path}: must not claim a ground-truth match when reference_outcome is unknown"));
             }
         }
-        if outcome == "unknown" && reference != "not-applicable" {
-            // Unknown is counted once even if both candidate and reference are unknown.
-            if reference != "unknown" {
-                // The candidate outcome already incremented unknown_count.
-            }
-        }
-
         let expected_oracle = match (outcome, reference) {
             ("verified-feasible", "feasible") | ("verified-infeasible", "infeasible") => "match",
             ("verified-feasible", "infeasible") | ("verified-infeasible", "feasible") => "mismatch",
@@ -642,8 +635,8 @@ fn validate_summary(value: Option<&Value>, actual: &AuditSummary, errors: &mut V
         "timeout_count", "not_run_count", "invalid_output_count", "false_feasible_count",
         "false_infeasible_count", "aggregate_metrics",
     ];
-    if let Some(summary) = object(value, "report.summary", &allowed,
-        &fields.iter().map(|(name, _)| *name).collect::<Vec<_>>(), errors) {
+    let required_fields: Vec<&str> = fields.iter().map(|(name, _)| *name).collect();
+    if let Some(summary) = object(value, "report.summary", &allowed, &required_fields, errors) {
         for (field, expected) in fields {
             if summary.get(field).and_then(Value::as_u64) != Some(expected as u64) {
                 errors.push(format!("report.summary.{field}: inconsistent with per-case records (expected {expected})"));
@@ -660,7 +653,6 @@ fn validate_summary(value: Option<&Value>, actual: &AuditSummary, errors: &mut V
 /// Recompute summary totals from case records. Exposed so producers and tests can
 /// avoid copy/pasting the auditor's interpretation into report generation code.
 pub fn summary_from_cases(report: &Value) -> BTreeMap<String, usize> {
-    let mut summary = BTreeMap::new();
     let cases = report.get("case_results").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut values = BTreeMap::from([
         ("case_count".to_owned(), cases.len()),
@@ -695,8 +687,7 @@ pub fn summary_from_cases(report: &Value) -> BTreeMap<String, usize> {
             *values.get_mut("false_infeasible_count").unwrap() += 1;
         }
     }
-    summary.extend(values);
-    summary
+    values
 }
 
 #[cfg(test)]
