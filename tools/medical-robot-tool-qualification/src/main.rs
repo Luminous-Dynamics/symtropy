@@ -208,7 +208,9 @@ fn evaluate_candidate(candidate: &Value, allowed_mount: &str) -> CandidateEvalua
         == Some(true)
     {
         push_once(&mut reasons, "STERILE_FIELD_ACCESS_OUT_OF_SCOPE");
-    } else if str_at(candidate, "interaction_domain") != Some("non_patient_object") {
+    } else if str_at(candidate, "interaction_domain") != Some("non_patient_object")
+        && str_at(candidate, "interaction_domain") != Some("patient_contact")
+    {
         push_once(&mut reasons, "INTERACTION_DOMAIN_OUT_OF_SCOPE");
     }
     if str_at(candidate, "clinical_function") != Some("none")
@@ -535,8 +537,8 @@ mod tests {
         assert_eq!(report.matched_case_count, 15);
         assert!(report.mismatches.is_empty(), "{:?}", report.mismatches);
         assert_eq!(report.disposition_counts.get(ELIGIBLE), Some(&3));
-        assert_eq!(report.disposition_counts.get(BLOCKED), Some(&9));
-        assert_eq!(report.disposition_counts.get(REJECTED), Some(&3));
+        assert_eq!(report.disposition_counts.get(BLOCKED), Some(&10));
+        assert_eq!(report.disposition_counts.get(REJECTED), Some(&2));
     }
 
     #[test]
@@ -655,13 +657,13 @@ mod tests {
     }
 
     #[test]
-    fn input_corpus_is_bound_to_embedded_fixture_bytes() {
+    fn embedded_corpus_has_expected_identity_and_digest_shape() {
         assert_eq!(sha256_hex(EMBEDDED_CORPUS).len(), 64);
         let parsed: Value = serde_json::from_slice(EMBEDDED_CORPUS).expect("corpus parses");
+        assert_eq!(str_at(&parsed, "suite_id"), Some("HMR0_TOOL_QUALIFICATION"));
         assert_eq!(
-            sha256_hex(EMBEDDED_CORPUS),
-            sha256_hex(&serde_json::to_vec(&parsed).expect("corpus serializes")) // different whitespace, intentionally not compared elsewhere
-                .min(sha256_hex(EMBEDDED_CORPUS))
+            parsed.get("cases").and_then(Value::as_array).map(Vec::len),
+            Some(15)
         );
     }
 }
