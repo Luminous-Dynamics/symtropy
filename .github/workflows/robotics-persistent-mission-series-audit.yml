@@ -1,0 +1,84 @@
+name: Robotics Persistent Mission-Series Audit
+
+on:
+  push:
+    branches: ["research/robotics-persistent-mission-series-v0-1"]
+    paths:
+      - "docs/research/ROBOTICS_PERSISTENT_MISSION_SERIES_BENCHMARK_V0_1.md"
+      - "schemas/robotics/mission_series_v0_1.schema.json"
+      - "fixtures/robotics/mission_series_v0_1.json"
+      - "tools/robotics-mission-series-audit/**"
+      - ".github/workflows/robotics-persistent-mission-series-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/ROBOTICS_PERSISTENT_MISSION_SERIES_BENCHMARK_V0_1.md"
+      - "schemas/robotics/mission_series_v0_1.schema.json"
+      - "fixtures/robotics/mission_series_v0_1.json"
+      - "tools/robotics-mission-series-audit/**"
+      - ".github/workflows/robotics-persistent-mission-series-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-persistent-mission-series-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mission-series-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # pinned action revision
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/robotics-mission-series-audit/Cargo.toml -- --check
+
+      - name: Run mission-series contract tests
+        run: cargo test --manifest-path tools/robotics-mission-series-audit/Cargo.toml
+
+      - name: Audit synthetic mission series at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/robotics-mission-series-audit/Cargo.toml -- \
+            fixtures/robotics/mission_series_v0_1.json \
+            --source-commit "$source_commit" > mission-series-audit-receipt.json
+          jq -e '
+            .result == "pass"
+            and .audit_integrity_pass == true
+            and .safety_gate_pass == true
+            and .summary.series_count == 8
+            and .summary.comparison_group_count == 4
+            and .summary.mission_count == 32
+            and .summary.scenario_family_count == 4
+            and .summary.safety_violation_count == 0
+            and .summary.unauthorized_reset_count == 0
+            and .summary.safety_gate_failure_count == 0
+            and (.input_sha256 | test("^[0-9a-f]{64}$"))
+            and (.evaluator_source_commit | test("^[0-9a-f]{40}$"))
+          ' mission-series-audit-receipt.json
+
+      - name: Upload exact-input receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: robotics-persistent-mission-series-audit-receipt
+          path: mission-series-audit-receipt.json
+          if-no-files-found: error
