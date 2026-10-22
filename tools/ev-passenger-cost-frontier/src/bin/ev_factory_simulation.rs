@@ -2396,8 +2396,7 @@ mod tests {
     }
 
     #[test]
-    fn common_cause_control_outage_is_paired_deterministic_and_blocks_new_job_dispatch_and_transfers()
-    {
+    fn shared_outage_is_paired_deterministic_and_blocks_dispatch() {
         let outage_catalog = common_cause_fixture();
         validate_catalog(&outage_catalog).expect("shared control outage fixture validates");
         let outage_report = evaluate_catalog(&outage_catalog).expect("shared control outage run");
