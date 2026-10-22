@@ -37,8 +37,9 @@ Tests cover:
 
 ## Geometry conditioning receipt
 
-`triangle-conditioning-probe` emits a second deterministic JSON receipt over triangles
-whose height decreases from 1 to 1e-4. It reports the mean-ratio quality
+`triangle-conditioning-probe` emits the versioned `ccx-mms-p1-geometry-conditioning-v2`
+deterministic JSON receipt over triangles whose height decreases from 1 to 1e-4. It
+reports the mean-ratio quality
 
 `q = 2 * sqrt(3) * abs(det) / sum(edge_length_squared)`
 
@@ -56,9 +57,12 @@ The frozen sweep checks that quality decreases strictly while gradient amplifica
 local non-rigid spectral condition increase. Unit tests check three near-zero rigid modes,
 three positive deformational modes, a monotonic spectral-condition trend for slivers, and
 a final local element condition number above 1e7. Quality is invariant under rigid rotation
-and uniform scaling. The spectral estimate is useful precisely because it comes from the
-element stiffness matrix rather than being only a geometry-derived proxy, but its rigid
-mode classification threshold and eigensolver accuracy still require independent tests. The element constructor rejects a triangle when
+and uniform scaling. Tests also verify spectral trace and trace-of-square invariants,
+three rigid modes, three positive modes, and invariance of the non-rigid condition number
+under rigid rotation and vertex winding reversal. The spectral estimate is useful precisely
+because it comes from the element stiffness matrix rather than being only a geometry-
+derived proxy, but its rigid-mode classification threshold and eigensolver accuracy still
+require independent tests. The element constructor rejects a triangle when
 `abs(det) <= 64 * f64::EPSILON * longest_edge_squared`; that is a floating-point
 degeneracy floor, not a general mesh-quality recommendation. Sliver elements above the
 floor are measured rather than automatically declared adequate for engineering analysis.
