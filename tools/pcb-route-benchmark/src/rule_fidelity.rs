@@ -411,17 +411,21 @@ fn validate_plan_shape(plan: &RuleFidelityPlan) -> Result<(), String> {
         plan.strict_source_policy_sha256.as_deref(),
         plan.strict_source_kicad_version.as_deref(),
         plan.strict_source_drc_report_relative_path.as_deref(),
+        plan.strict_source_policy_derivation_evidence_relative_path.as_deref(),
+        plan.strict_source_policy_derivation_evidence_sha256.as_deref(),
     ) {
-        (Some(policy), Some(digest), Some(version), Some(report)) => {
+        (Some(policy), Some(digest), Some(version), Some(report), Some(derivation_path), Some(derivation_sha)) => {
             validate_relative_path(policy, "strict source policy path")?;
             validate_report_path(report, "strict source DRC report path")?;
+            validate_relative_path(derivation_path, "strict-source policy derivation evidence path")?;
             require_sha256(digest, "strict_source_policy_sha256")?;
+            require_sha256(derivation_sha, "strict_source_policy_derivation_evidence_sha256")?;
             if version.trim().is_empty() {
                 return Err("strict_source_kicad_version must not be empty".into());
             }
         }
-        (None, None, None, None) => {}
-        _ => return Err("strict-source policy path/digest/version/report path must be supplied together or all absent".into()),
+        (None, None, None, None, None, None) => {}
+        _ => return Err("strict-source policy, report, and derivation evidence pins must be supplied together or all absent".into()),
     }
     if plan.rule_assessments.is_empty() {
         return Err("rule_assessments must enumerate every required rule or explicitly mark unavailable".into());
@@ -452,18 +456,20 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
             if !source_profile_present
                 || assessment.source_value.as_deref().is_none_or(str::is_empty)
                 || assessment.evaluated_value.as_deref().is_none_or(str::is_empty)
+                || assessment.mapping_evidence_relative_path.as_deref().is_none_or(str::is_empty)
                 || assessment.mapping_evidence_sha256.as_deref().is_none_or(|v| !is_sha256(v))
                 || !rationale_required(&assessment.rationale)
             {
-                return Err(format!("{}: version_migrated_equivalent requires source/evaluated values, mapping evidence digest and rationale", assessment.rule_id));
+                return Err(format!("{}: version_migrated_equivalent requires source/evaluated values, mapping evidence path/digest and rationale", assessment.rule_id));
             }
         }
         RuleClassification::ExplicitlyWaived => {
             if !source_profile_present
+                || assessment.waiver_evidence_relative_path.as_deref().is_none_or(str::is_empty)
                 || assessment.waiver_evidence_sha256.as_deref().is_none_or(|v| !is_sha256(v))
                 || !rationale_required(&assessment.rationale)
             {
-                return Err(format!("{}: explicitly_waived requires pinned source rules, waiver evidence digest and rationale", assessment.rule_id));
+                return Err(format!("{}: explicitly_waived requires pinned source rules, waiver evidence path/digest and rationale", assessment.rule_id));
             }
         }
         RuleClassification::Inferred => {
@@ -487,12 +493,17 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
             }
         }
     }
-    for (label, value) in [
-        ("mapping_evidence_sha256", assessment.mapping_evidence_sha256.as_deref()),
-        ("waiver_evidence_sha256", assessment.waiver_evidence_sha256.as_deref()),
+    for (path, digest, label) in [
+        (assessment.mapping_evidence_relative_path.as_deref(), assessment.mapping_evidence_sha256.as_deref(), "mapping_evidence_sha256"),
+        (assessment.waiver_evidence_relative_path.as_deref(), assessment.waiver_evidence_sha256.as_deref(), "waiver_evidence_sha256"),
     ] {
-        if let Some(value) = value {
-            require_sha256(value, label)?;
+        match (path, digest) {
+            (Some(path), Some(digest)) => {
+                validate_relative_path(path, label)?;
+                require_sha256(digest, label)?;
+            }
+            (None, None) => {}
+            _ => return Err(format!("{}: evidence path and SHA-256 must be present together", assessment.rule_id)),
         }
     }
     Ok(())
