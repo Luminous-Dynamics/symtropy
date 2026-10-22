@@ -688,6 +688,196 @@ jobs:
           done
           cp -a "$OUT" "$ROOT/ccx-exec-001-raw-cases"
 
+      - name: Generate and audit manufactured plane-stress mesh refinement
+        id: mms_convergence
+        working-directory: symtropy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/ccx-evidence"
+          OUT="$ROOT/mms"
+          CCX="$RUNNER_TEMP/ccx-build/out/ccx"
+          MANIFEST="$ROOT/build-manifest.json"
+          mkdir -p "$OUT"
+          test -x "$CCX"
+          test -s "$MANIFEST"
+          source_sha="$(git rev-parse HEAD)"
+          checkout_sha="$(git rev-parse HEAD)"
+          exe_sha="$(sha256sum "$CCX" | cut -d ' ' -f 1)"
+          build_sha="$(sha256sum "$MANIFEST" | cut -d ' ' -f 1)"
+          : > "$OUT/levels.jsonl"
+
+          levels=(4 8 16 32 64)
+          for n in "${levels[@]}"; do
+            R="$OUT/n${n}"
+            mkdir -p "$R"
+            cargo run --quiet --locked --release \
+              --manifest-path research/physical-solver-contract/Cargo.toml \
+              --bin physical_mms -- generate \
+              --cells "$n" \
+              --deck "$R/model.inp" \
+              --model-manifest "$R/model-manifest.json" \
+              --source-sha "$source_sha" \
+              --checkout-sha "$checkout_sha" \
+              > "$R/generate-receipt.json"
+
+            start_epoch="$(date +%s)"
+            set +e
+            (cd "$R" && timeout 300s env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+              "$CCX" model) > "$R/process.log" 2>&1
+            solver_status=$?
+            set -e
+            end_epoch="$(date +%s)"
+            log_sha="$(sha256sum "$R/process.log" | cut -d ' ' -f 1)"
+            deck_sha="$(sha256sum "$R/model.inp" | cut -d ' ' -f 1)"
+            model_sha="$(sha256sum "$R/model-manifest.json" | cut -d ' ' -f 1)"
+            dat_present=false
+            frd_present=false
+            test ! -s "$R/model.dat" || dat_present=true
+            test ! -s "$R/model.frd" || frd_present=true
+
+            jq -n \
+              --arg source_sha "$source_sha" \
+              --arg checkout_sha "$checkout_sha" \
+              --arg case_id "PHYS-MMS-001-N${n}" \
+              --arg log_sha "$log_sha" --arg deck_sha "$deck_sha" \
+              --arg model_sha "$model_sha" --arg exe_sha "$exe_sha" \
+              --arg build_sha "$build_sha" \
+              --argjson cells "$n" --argjson exit_status "$solver_status" \
+              --argjson started "$start_epoch" --argjson ended "$end_epoch" \
+              --argjson dat_present "$dat_present" --argjson frd_present "$frd_present" \
+              '{
+                schema_version:"physical-mms-process-receipt-v0.1",
+                benchmark_id:"PHYS-MMS-001-PLANE-STRESS-CPS3",
+                case_id:$case_id,source_sha:$source_sha,checkout_sha:$checkout_sha,
+                cells_per_axis:$cells,model_manifest_sha256:$model_sha,
+                deck_sha256:$deck_sha,build_manifest_sha256:$build_sha,
+                solver_executable_sha256:$exe_sha,process_log_sha256:$log_sha,
+                solver_exit_code:$exit_status,solver_completed:($exit_status == 0),
+                dat_output_present:$dat_present,frd_output_present:$frd_present,
+                started_epoch_s:$started,ended_epoch_s:$ended,
+                physical_result_qualified:false,
+                real_world_validation_status:"UNRESOLVED"
+              }' > "$R/process-receipt.json"
+
+            if [ "$solver_status" -ne 0 ] || [ "$dat_present" != true ] || [ "$frd_present" != true ]; then
+              echo "MMS case n=$n did not complete with required .dat and .frd outputs" >&2
+              cat "$R/process.log" >&2
+              exit 1
+            fi
+
+            dat_sha="$(sha256sum "$R/model.dat" | cut -d ' ' -f 1)"
+            jq -n \
+              --arg schema "physical-mms-run-manifest-v0.1" \
+              --arg benchmark "PHYS-MMS-001-PLANE-STRESS-CPS3" \
+              --arg source_sha "$source_sha" --arg checkout_sha "$checkout_sha" \
+              --arg model_sha "$model_sha" --arg deck_sha "$deck_sha" \
+              --arg dat_sha "$dat_sha" --arg build_sha "$build_sha" \
+              --arg exe_sha "$exe_sha" --arg log_sha "$log_sha" \
+              --argjson cells "$n" \
+              '{
+                schema_version:$schema,benchmark_id:$benchmark,
+                source_sha:$source_sha,checkout_sha:$checkout_sha,cells_per_axis:$cells,
+                model_manifest_sha256:$model_sha,deck_sha256:$deck_sha,dat_sha256:$dat_sha,
+                build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+                process_log_sha256:$log_sha,solver_exit_code:0,solver_completed:true,
+                physical_result_qualified:false,real_world_validation_status:"UNRESOLVED"
+              }' > "$R/run-manifest.json"
+
+            cargo run --quiet --locked --release \
+              --manifest-path research/physical-solver-contract/Cargo.toml \
+              --bin physical_mms -- audit \
+              --cells "$n" \
+              --deck "$R/model.inp" \
+              --dat "$R/model.dat" \
+              --model-manifest "$R/model-manifest.json" \
+              --build-manifest "$MANIFEST" \
+              --solver "$CCX" \
+              --process-log "$R/process.log" \
+              --run-manifest "$R/run-manifest.json" \
+              --report "$R/audit-report.json" \
+              > "$R/audit-cli-receipt.json"
+            jq -e '
+              .schema_version == "physical-mms-audit-report-v0.1"
+              and .benchmark_id == "PHYS-MMS-001-PLANE-STRESS-CPS3"
+              and .numeric_reference_status == "MEASURED_UNQUALIFIED"
+              and .mesh_convergence_status == "NOT_EVALUATED_SINGLE_MESH"
+              and .physical_result_qualified == false
+              and .real_world_validation_status == "UNRESOLVED"
+              and .engineering_use_authorized == false
+              and (.displacement_l2_error_m > 0)
+              and (.displacement_h1_seminorm_error_m > 0)
+              and (.stress_l2_error_pa_m > 0)
+            ' "$R/audit-report.json" > /dev/null
+
+            report_sha="$(sha256sum "$R/audit-report.json" | cut -d ' ' -f 1)"
+            receipt_sha="$(sha256sum "$R/process-receipt.json" | cut -d ' ' -f 1)"
+            jq -c --arg report_sha "$report_sha" --arg receipt_sha "$receipt_sha" \
+              '. + {_report_sha256:$report_sha,_process_receipt_sha256:$receipt_sha}' \
+              "$R/audit-report.json" >> "$OUT/levels.jsonl"
+            sha256sum "$R/model.inp" "$R/model.dat" "$R/model.frd" \
+              "$R/process.log" "$R/process-receipt.json" "$R/audit-report.json" \
+              > "$R/evidence-sha256.txt"
+          done
+
+          jq -s \
+            --arg source_sha "$source_sha" \
+            --arg checkout_sha "$checkout_sha" \
+            --arg build_sha "$build_sha" \
+            --arg exe_sha "$exe_sha" \
+            '
+            . as $reports |
+            [
+              $reports[] | {
+                cells_per_axis,node_count,element_count,
+                report_sha256:._report_sha256,
+                process_receipt_sha256:._process_receipt_sha256,
+                displacement_l2_error_m,displacement_h1_seminorm_error_m,stress_l2_error_pa_m
+              }
+            ] as $levels |
+            [
+              range(0; ($levels|length)-1) as $i |
+              {
+                coarse_cells:$levels[$i].cells_per_axis,
+                fine_cells:$levels[$i+1].cells_per_axis,
+                displacement_l2_order:((($levels[$i].displacement_l2_error_m / $levels[$i+1].displacement_l2_error_m)|log)/(2|log)),
+                displacement_h1_order:((($levels[$i].displacement_h1_seminorm_error_m / $levels[$i+1].displacement_h1_seminorm_error_m)|log)/(2|log)),
+                stress_l2_order:((($levels[$i].stress_l2_error_pa_m / $levels[$i+1].stress_l2_error_pa_m)|log)/(2|log))
+              }
+            ] as $orders |
+            (all(range(0; ($levels|length)-1); . as $i |
+              if $i == ($levels|length)-1 then true else
+                $levels[$i].displacement_l2_error_m > $levels[$i+1].displacement_l2_error_m
+                and $levels[$i].displacement_h1_seminorm_error_m > $levels[$i+1].displacement_h1_seminorm_error_m
+                and $levels[$i].stress_l2_error_pa_m > $levels[$i+1].stress_l2_error_pa_m
+              end
+            )) as $monotonic |
+            (all($orders[2:][]; .displacement_l2_order >= 1.4 and .displacement_l2_order <= 2.6
+              and .displacement_h1_order >= 0.4 and .displacement_h1_order <= 1.6
+              and .stress_l2_order >= 0.4 and .stress_l2_order <= 1.6
+            )) as $orders_pass |
+            {
+              schema_version:"physical-mms-convergence-summary-v0.1",
+              benchmark_id:"PHYS-MMS-001-PLANE-STRESS-CPS3",
+              source_sha:$source_sha,checkout_sha:$checkout_sha,
+              build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
+              mesh_levels:$levels,observed_orders:$orders,
+              monotone_error_reduction:$monotonic,
+              final_two_refinement_orders_pass:$orders_pass,
+              mesh_convergence_status:(if $monotonic and $orders_pass then "PASS" else "FAIL" end),
+              physical_result_qualified:false,
+              real_world_validation_status:"UNRESOLVED",
+              engineering_use_authorized:false,
+              claim_ceiling:"observed code-verification convergence on PHYS-MMS-001; no experimental validation, general solver capability, or engineering-use authorization"
+            }' "$OUT/levels.jsonl" > "$OUT/convergence-summary.json"
+
+          cp "$OUT/convergence-summary.json" "$ROOT/physical-mms-001-convergence-summary.json"
+          jq -e '
+            .schema_version == "physical-mms-convergence-summary-v0.1"
+            and .benchmark_id == "PHYS-MMS-001-PLANE-STRESS-CPS3"
+            and (.mesh_levels | length == 5)
+            and (.observed_orders | length == 4)
+          ' "$OUT/convergence-summary.json" > /dev/null
       - name: Collect failure-preserving evidence files
         if: always()
         shell: bash
