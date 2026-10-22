@@ -18,6 +18,8 @@ That changes the decision objective from nominal energy optimization to **missio
 
 Official comparisons need careful boundaries. Australia's 2024–25 DCCEEW annual report lists 5,612,426 kWh of diesel-generated electricity and 1,004,020 kWh of renewable generation at Australian Antarctic operations (Mawson wind and Casey solar). This is an Australian-program annual reporting scope, not a universal measurement for Antarctica, and it does not alone reveal critical-load reliability, thermal demand or fuel used by ships and aircraft. Source: https://www.dcceew.gov.au/sites/default/files/documents/annual-report-2024-25.pdf
 
+A simple ratio of the two reported electricity-generation entries is about 15.2% renewable electricity (1,004,020 / (5,612,426 + 1,004,020)); this is a **reported electricity-generation share for that program boundary**, not the renewable share of total Antarctic energy, mission logistics, delivered heat or all nations' operations. The Australian State of the Environment 2021 report's historical 2015–16 to 2019–20 operational boundary says shipping consumed 40–45% and aircraft 21–24% of total Australian Antarctic operations fuel. Those figures are older and should not be fused with the 2024–25 station electricity table; they show why we need parallel, explicitly separate station and mission-logistics ledgers. Source: https://soe.dcceew.gov.au/antarctica/environment/human-environment
+
 Published research already includes:
 - Antarctic hybrid electric/hydrogen/thermal storage dispatch with temperature and degradation effects (2025): https://doi.org/10.1016/j.enconman.2025.120353
 - Two-stage robust dispatch with wind reserve for an Antarctic islanded microgrid (IEEE early access, 2026): https://doi.org/10.1109/TSG.2026.3725835
