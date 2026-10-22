@@ -59,23 +59,20 @@ jobs:
           cmp vis-mem-budget.tsv vis-mem-budget-repeat.tsv
           grep -Fq $'META\tformat\tVIS-MEM-016-v0.1' vis-mem-budget.tsv
           grep -Fq $'ROW\tarrival_reversal\t0\t12\tsource_revision_upsert_fifo\t0' vis-mem-budget.tsv
-          grep -Fq 
-          awk -F '\t' '$1 == "LEDGER_HEADER" { if (NF != 17) exit 1; lh++ } $1 == "LEDGER" { if (NF != 17) exit 1; l++ } $1 == "ROW_HEADER" { if (NF != 22) exit 1; rh++ } $1 == "ROW" { if (NF != 22) exit 1; r++ } $1 == "SUMMARY_HEADER" { if (NF != 19) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 19) exit 1; s++ } END { if (lh != 1 || l < 1000 || rh != 1 || r != 2880 || sh != 1 || s != 240) exit 1 }' vis-mem-budget.tsv
-          awk -F '\t' '$1 == "ROW" && ($16 > $4 || $22 != 0) { exit 1 } END { if (NR < 1000) exit 1 }' vis-mem-budget.tsv
-          sha256sum vis-mem-budget.tsv > vis-mem-budget.sha256
-          sha256sum -c vis-mem-budget.sha256
-
-      - name: Upload fixed-budget interference evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: vis-mem-016-budget-interference
-          path: |
-            vis-mem-budget.tsv
-            vis-mem-budget.sha256
-          if-no-files-found: error
-SUMMARY\trevision_watermark_evidence_tier\tarrival_reversal\t72\t4' vis-mem-budget.tsv
-          awk -F '\t' '$1 == "LEDGER_HEADER" { if (NF != 16) exit 1; lh++ } $1 == "LEDGER" { if (NF != 16) exit 1; l++ } $1 == "ROW_HEADER" { if (NF != 20) exit 1; rh++ } $1 == "ROW" { if (NF != 20) exit 1; r++ } $1 == "SUMMARY_HEADER" { if (NF != 17) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 17) exit 1; s++ } END { if (lh != 1 || l < 1000 || rh != 1 || r != 2304 || sh != 1 || s != 192) exit 1 }' vis-mem-budget.tsv
-          awk -F '\t' '$1 == "ROW" && ($16 > $4 || $20 != 0) { exit 1 } END { if (NR < 1000) exit 1 }' vis-mem-budget.tsv
+          grep -Fq $'SUMMARY\trevision_watermark_evidence_tier\tarrival_reversal\t72\t4' vis-mem-budget.tsv
+          awk -F '\t' '
+            $1 == "LEDGER_HEADER" { if (NF != 17) bad=1; lh++ }
+            $1 == "LEDGER" { if (NF != 17) bad=1; l++ }
+            $1 == "ROW_HEADER" { if (NF != 22) bad=1; rh++ }
+            $1 == "ROW" { if (NF != 22) bad=1; r++ }
+            $1 == "SUMMARY_HEADER" { if (NF != 19) bad=1; sh++ }
+            $1 == "SUMMARY" { if (NF != 19) bad=1; s++ }
+            END { if (bad || lh != 1 || l < 1000 || rh != 1 || r != 2880 || sh != 1 || s != 240) exit 1 }
+          ' vis-mem-budget.tsv
+          awk -F '\t' '
+            $1 == "ROW" && ($16 > $4 || $22 != 0) { bad=1 }
+            END { if (NR < 1000 || bad) exit 1 }
+          ' vis-mem-budget.tsv
           sha256sum vis-mem-budget.tsv > vis-mem-budget.sha256
           sha256sum -c vis-mem-budget.sha256
 
