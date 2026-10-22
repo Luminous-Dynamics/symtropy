@@ -378,21 +378,25 @@ pub fn gauss_legendre_unit(order: usize) -> Check<Vec<(f64, f64)>> {
         return Err(format!("quadrature order must be in [1,{MAX_QUADRATURE_ORDER}]"));
     }
     let mut points = Vec::with_capacity(order);
-    for i in 0..((order + 1) / 2) {
+    for i in 0..order.div_ceil(2) {
         let mut z = (PI * (i as f64 + 0.75) / (order as f64 + 0.5)).cos();
-        let mut derivative = 0.0;
+        let mut converged = false;
         for _ in 0..100 {
             let (pn, pnm1) = legendre_pair(order, z);
-            derivative = order as f64 * (z * pn - pnm1) / (z * z - 1.0);
+            let derivative = order as f64 * (z * pn - pnm1) / (z * z - 1.0);
             let next = z - pn / derivative;
             if (next - z).abs() <= 4.0 * f64::EPSILON {
                 z = next;
+                converged = true;
                 break;
             }
             z = next;
         }
-        let (_, pnm1) = legendre_pair(order, z);
-        derivative = order as f64 * (z * legendre_pair(order, z).0 - pnm1) / (z * z - 1.0);
+        if !converged {
+            return Err("Gauss-Legendre root iteration did not converge".to_owned());
+        }
+        let (pn, pnm1) = legendre_pair(order, z);
+        let derivative = order as f64 * (z * pn - pnm1) / (z * z - 1.0);
         let weight = 1.0 / ((1.0 - z * z) * derivative * derivative);
         let left = (1.0 - z) * 0.5;
         let right = (1.0 + z) * 0.5;
