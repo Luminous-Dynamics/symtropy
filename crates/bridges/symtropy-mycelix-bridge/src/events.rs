@@ -76,10 +76,12 @@ pub enum MycelixResponse {
         requester: Entity,
         proposals: Vec<serde_json::Value>,
     },
-    /// Success response to [`MycelixRequest::SubmitProposal`]. Carries the
-    /// action hash that Holochain produced for the new proposal.
+    /// Success response to [`MycelixRequest::SubmitProposal`]. Preserves both
+    /// the command identity and the action hash returned by Holochain so
+    /// concurrent submissions cannot be assigned to the wrong agent.
     ProposalSubmitted {
         requester: Entity,
+        proposal_id: String,
         action_hash: String,
     },
     /// Success response to [`MycelixRequest::CastVote`].
@@ -87,10 +89,11 @@ pub enum MycelixResponse {
         requester: Entity,
         proposal_id: String,
     },
-    /// Success response to [`MycelixRequest::QueryTendBalance`]. Raw JSON so
-    /// downstream code can decide whether to parse into a typed struct.
+    /// Success response to [`MycelixRequest::QueryTendBalance`]. The member
+    /// identity is preserved to disambiguate concurrent balance queries.
     TendBalance {
         requester: Entity,
+        member_did: String,
         balance: serde_json::Value,
     },
     /// Success response to [`MycelixRequest::GetProposal`]. `record` is
