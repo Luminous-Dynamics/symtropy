@@ -681,9 +681,6 @@ mod tests {
     fn held_out_future_has_no_stale_arrivals_in_this_drift_only_suite() {
         for workload in Workload::ALL {
             for seed in 0..SEEDS {
-                let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
-                    ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
-                    ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
                 for budget in BUDGETS {
                     for row in run_rows(workload, seed, budget) {
                         assert_eq!(
@@ -692,7 +689,6 @@ mod tests {
                         );
                     }
                 }
-                let _ = mixed_seed;
             }
         }
     }
