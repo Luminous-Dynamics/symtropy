@@ -74,7 +74,8 @@ jobs:
           cargo run --locked --release --quiet --bin triangle-conditioning-probe > /tmp/triangle-conditioning-b.json
           cmp /tmp/triangle-conditioning-a.json /tmp/triangle-conditioning-b.json
           jq -e '
-            .solver_executed == false
+            .schema == "ccx-mms-p1-geometry-conditioning-v2"
+            and .solver_executed == false
             and .qualification_pass == false
             and .geometry_conditioning_pass == true
             and (.sweep | length == 5)
