@@ -72,10 +72,12 @@ jobs:
           cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-a.json
           cargo run --locked --quiet --bin mms-p1-probe -- 8 > /tmp/mms-p1-probe-b.json
           cmp /tmp/mms-p1-probe-a.json /tmp/mms-p1-probe-b.json
+          grep -F '"load_assembly_checks_pass": true' /tmp/mms-p1-probe-a.json
           sha256sum /tmp/mms-p1-probe-a.json > /tmp/mms-p1-probe-a.sha256
           cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-a.json
           cargo run --locked --quiet --bin mms-p1-calibration > /tmp/mms-p1-calibration-b.json
           cmp /tmp/mms-p1-calibration-a.json /tmp/mms-p1-calibration-b.json
+          grep -F '"postprocessor_calibration_pass": true' /tmp/mms-p1-calibration-a.json
           sha256sum /tmp/mms-p1-calibration-a.json > /tmp/mms-p1-calibration-a.sha256
 
       - name: Preserve deterministic probe and calibration receipts
