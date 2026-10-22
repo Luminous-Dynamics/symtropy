@@ -91,7 +91,7 @@ fn main() -> Result<(), String> {
 
     println!("{{");
     println!("  \"protocol_id\": \"PHYS-CCX-MMS-P1-001\",");
-    println!("  \"protocol_version\": \"0.2.0\",");
+    println!("  \"protocol_version\": \"0.3.0\",");
     println!("  \"probe_status\": \"exact_nodal_interpolation_postprocessor_calibration\",");
     println!("  \"solver_execution\": false,");
     println!("  \"solver_qualification\": false,");
