@@ -93,6 +93,22 @@
       "published_or_reviewed": "2026",
       "use": "Public industrial benchmark context for a pilot-furnace twin with multi-fuel operation and sensor-informed physics/AI modeling.",
       "limitation": "Announcement reports sensor and computation scale but does not publish an externally reproducible holdout dataset, normalized accuracy, uncertainty calibration, or accepted-product performance results."
+    },
+    {
+      "reference_id": "silicon-purification-route-review-2026",
+      "title": "Silicon Purification: Purity, Energy and Environmental Trade-Offs Across Five Technological Routes",
+      "url": "https://doi.org/10.1080/08827508.2026.2716681",
+      "published_or_reviewed": "2026",
+      "use": "Recent grade-specific comparison of metallurgical, chemical, physical, electrochemical, and crystallization routes for silicon purification.",
+      "limitation": "Review-level energy/purity/carbon ranges are route-specific and mix technologies at different maturity/scale; do not compare directly without harmonized grade, yields, and boundaries."
+    },
+    {
+      "reference_id": "scale-glass-zenodo-data-2026",
+      "title": "Accelerating sustainable glass discovery: datasets, models, and supporting code (Zenodo record 18430657)",
+      "url": "https://doi.org/10.5281/zenodo.18430657",
+      "published_or_reviewed": "2026",
+      "use": "Candidate reproducibility artifact for V14/V18 datasets, trained models, and SCALE active-learning code.",
+      "limitation": "Exact file-level license/terms, versions, and SHA-256 digests must be pinned and reviewed before benchmark admission or redistribution; archive includes large files and Python research dependencies."
     }
   ],
   "cases": [
@@ -399,6 +415,24 @@
       ],
       "purpose": "Abstain when a model's headline validation score hides an external-domain bias that has not been measured or corrected on a legitimate calibration set.",
       "claim_ceiling": "Tests calibration-evidence gating only; it does not reproduce or falsify any published glass-model result."
+    },
+    {
+      "case_id": "unversioned-reference-artifacts",
+      "route": "evidence_contract",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "artifact_manifest_unpinned",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "paper_version",
+        "dataset_record_version",
+        "artifact_filename_and_version",
+        "sha256_digest",
+        "file_level_license_status"
+      ],
+      "purpose": "Reject a claimed reproduction that has no immutable dataset/code artifact identity, integrity digest, or resolved permitted-use status.",
+      "claim_ceiling": "Tests reference-artifact admission metadata only; no external dataset was downloaded or independently reproduced by this fixture."
     }
   ]
 }
