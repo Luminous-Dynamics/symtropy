@@ -83,7 +83,6 @@ struct QueryCase {
     id: String,
     split: Split,
     scenario: Scenario,
-    scale: f64,
     episode: PhysicsEpisode,
 }
 
@@ -263,7 +262,6 @@ fn query_cases(
                 id,
                 split,
                 scenario,
-                scale: *scale,
                 episode,
             });
         }
@@ -276,7 +274,6 @@ fn query_cases(
                 id,
                 split,
                 scenario,
-                scale: *scale,
                 episode,
             });
         }
