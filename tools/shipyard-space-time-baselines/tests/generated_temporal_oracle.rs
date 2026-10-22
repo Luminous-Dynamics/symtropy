@@ -99,6 +99,180 @@ fn exact_pack_exists(
     false
 }
 
+fn add_legacy_boundaries(
+    xs: &mut Vec<i64>,
+    ys: &mut Vec<i64>,
+    rect: Rect,
+    width: i64,
+    height: i64,
+) {
+    xs.extend([
+        rect.min_x.checked_sub(width),
+        Some(rect.min_x),
+        rect.max_x.checked_sub(width),
+        Some(rect.max_x),
+    ].into_iter().flatten());
+    ys.extend([
+        rect.min_y.checked_sub(height),
+        Some(rect.min_y),
+        rect.max_y.checked_sub(height),
+        Some(rect.max_y),
+    ].into_iter().flatten());
+}
+
+/// Reconstruct the pre-fix policy: all prior placements and zones contribute candidate
+/// boundaries even when their time windows do not overlap the request. The cell masks used
+/// for collision checks are intentionally separate from the production verifier.
+fn legacy_time_blind_first_fit(
+    yard: Rect,
+    requests: &[PlacementRequest],
+    zones: &[ExclusionZone],
+) -> bool {
+    let mut placed: Vec<(Rect, TimeRange)> = Vec::new();
+
+    for request in requests {
+        let mut xs = vec![yard.min_x];
+        let mut ys = vec![yard.min_y];
+        for (rect, _) in &placed {
+            add_legacy_boundaries(&mut xs, &mut ys, *rect, request.width, request.height);
+        }
+        for zone in zones {
+            match &zone.footprint {
+                Footprint::AxisAlignedRect(rect) => {
+                    add_legacy_boundaries(&mut xs, &mut ys, *rect, request.width, request.height);
+                }
+                Footprint::Unsupported { .. } => return false,
+            }
+        }
+
+        xs.retain(|x| *x >= yard.min_x && *x < yard.max_x);
+        ys.retain(|y| *y >= yard.min_y && *y < yard.max_y);
+        xs.sort_unstable();
+        xs.dedup();
+        ys.sort_unstable();
+        ys.dedup();
+
+        let mut selected = None;
+        'candidate: for y in &ys {
+            for x in &xs {
+                let Some(max_x) = x.checked_add(request.width) else {
+                    continue;
+                };
+                let Some(max_y) = y.checked_add(request.height) else {
+                    continue;
+                };
+                let rect = Rect {
+                    min_x: *x,
+                    min_y: *y,
+                    max_x,
+                    max_y,
+                };
+                if !yard.contains(rect) {
+                    continue;
+                }
+
+                let mask = cell_mask(rect);
+                if zones.iter().any(|zone| {
+                    overlaps_in_time(request.occupied, zone.active)
+                        && match &zone.footprint {
+                            Footprint::AxisAlignedRect(zone_rect) => {
+                                mask & cell_mask(*zone_rect) != 0
+                            }
+                            Footprint::Unsupported { .. } => true,
+                        }
+                }) {
+                    continue;
+                }
+                if placed.iter().any(|(prior_rect, interval)| {
+                    overlaps_in_time(request.occupied, *interval)
+                        && mask & cell_mask(*prior_rect) != 0
+                }) {
+                    continue 'candidate;
+                }
+
+                selected = Some(rect);
+                break 'candidate;
+            }
+        }
+
+        let Some(rect) = selected else {
+            return false;
+        };
+        placed.push((rect, request.occupied));
+    }
+    true
+}
+
+fn legacy_policy_orders(requests: &[PlacementRequest]) -> Vec<Vec<PlacementRequest>> {
+    let area = |request: &PlacementRequest| {
+        i128::from(request.width) * i128::from(request.height)
+    };
+    let max_side = |request: &PlacementRequest| request.width.max(request.height);
+    let mut orders = vec![requests.to_vec()];
+
+    let mut decreasing_area = requests.to_vec();
+    decreasing_area.sort_by(|left, right| {
+        area(right)
+            .cmp(&area(left))
+            .then_with(|| max_side(right).cmp(&max_side(left)))
+            .then_with(|| right.width.cmp(&left.width))
+            .then_with(|| right.height.cmp(&left.height))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+    orders.push(decreasing_area);
+
+    let mut maximum_side = requests.to_vec();
+    maximum_side.sort_by(|left, right| {
+        max_side(right)
+            .cmp(&max_side(left))
+            .then_with(|| area(right).cmp(&area(left)))
+            .then_with(|| right.width.cmp(&left.width))
+            .then_with(|| right.height.cmp(&left.height))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+    orders.push(maximum_side);
+
+    let mut height = requests.to_vec();
+    height.sort_by(|left, right| {
+        right
+            .height
+            .cmp(&left.height)
+            .then_with(|| right.width.cmp(&left.width))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+    orders.push(height);
+
+    let mut width = requests.to_vec();
+    width.sort_by(|left, right| {
+        right
+            .width
+            .cmp(&left.width)
+            .then_with(|| right.height.cmp(&left.height))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+    orders.push(width);
+
+    let mut perimeter = requests.to_vec();
+    perimeter.sort_by(|left, right| {
+        (i128::from(right.width) + i128::from(right.height))
+            .cmp(&(i128::from(left.width) + i128::from(left.height)))
+            .then_with(|| area(right).cmp(&area(left)))
+            .then_with(|| left.reservation_id.cmp(&right.reservation_id))
+    });
+    orders.push(perimeter);
+    orders
+}
+
+fn legacy_time_blind_portfolio_solves(
+    yard: Rect,
+    requests: &[PlacementRequest],
+    zones: &[ExclusionZone],
+) -> bool {
+    legacy_policy_orders(requests)
+        .iter()
+        .any(|ordered| legacy_time_blind_first_fit(yard, ordered, zones))
+}
+
 fn generated_case(state: &mut u32) -> (Vec<PlacementRequest>, ExclusionZone) {
     let mut requests = Vec::new();
     for index in 0..4 {
@@ -170,6 +344,8 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
     let mut portfolio_missed = 0usize;
     let mut portfolio_rejected_infeasible = 0usize;
     let mut portfolio_false_feasible = 0usize;
+    let mut legacy_time_blind_portfolio_solved = 0usize;
+    let mut legacy_time_blind_false_feasible = 0usize;
     let mut exact_combined_solved = 0usize;
     let mut exact_fallback_recovered = 0usize;
     let mut exact_proven_infeasible = 0usize;
@@ -185,6 +361,13 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
         let exact = exact_pack_exists(&requests, 0, &[], yard, cell_mask(zone_rect), zone.active);
         if exact {
             exact_feasible += 1;
+        }
+
+        if legacy_time_blind_portfolio_solves(yard, &requests, std::slice::from_ref(&zone)) {
+            legacy_time_blind_portfolio_solved += 1;
+            if !exact {
+                legacy_time_blind_false_feasible += 1;
+            }
         }
 
         match first_fit_bottom_left(yard, &requests, std::slice::from_ref(&zone)) {
@@ -260,6 +443,14 @@ fn generated_temporal_family_pins_exact_feasibility_and_portfolio_coverage() {
 
     assert_eq!(CASES, 512, "temporal/exclusion family size changed");
     assert_eq!(exact_feasible, 228, "exact temporal feasibility changed");
+    assert_eq!(
+        legacy_time_blind_portfolio_solved, 137,
+        "legacy time-blind portfolio coverage changed"
+    );
+    assert_eq!(
+        legacy_time_blind_false_feasible, 0,
+        "legacy time-blind portfolio produced false-feasible plans"
+    );
     assert_eq!(caller_solved, 168, "caller-order temporal coverage changed");
     assert_eq!(caller_missed, 60, "caller-order temporal misses changed");
     assert_eq!(
