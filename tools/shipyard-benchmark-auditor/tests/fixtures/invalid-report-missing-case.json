@@ -1,0 +1,37 @@
+{
+  "schema_version": "shipyard-benchmark-report/v0",
+  "benchmark_id": "tiny-oracle-v0",
+  "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "status": "complete",
+  "run_metadata": {
+    "git_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "executable_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "hardware_class": "ci-runner-x86_64",
+    "rustc_version": "rustc 1.96.0"
+  },
+  "case_results": [
+    {
+      "case_id": "layout-001",
+      "outcome": "verified-feasible",
+      "reference_outcome": "feasible",
+      "runtime_ms": 2.5,
+      "verifier": {
+        "status": "passed",
+        "oracle_outcome": "match",
+        "violation_count": 0,
+        "oracle_id": "tiny-cell-set-v0"
+      }
+    }
+  ],
+  "summary": {
+    "case_count": 1,
+    "verified_feasible_count": 1,
+    "verified_infeasible_count": 0,
+    "unknown_count": 0,
+    "timeout_count": 0,
+    "not_run_count": 0,
+    "invalid_output_count": 0,
+    "false_feasible_count": 0,
+    "false_infeasible_count": 0
+  }
+}
