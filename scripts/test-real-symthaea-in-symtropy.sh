@@ -71,3 +71,24 @@ if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
     )
   ' "$out"
 fi
+
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+  out="${STFR_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-bounded-residual.json}"
+  cargo run --manifest-path "$integration_manifest" --example bounded_residual_transfer > "$out"
+  jq -e '
+    .benchmark_id == "symthaea-symtropy-bounded-residual-v0.1"
+    and .evaluation.matched_seed_across_authority_arms == true
+    and (.evaluation.authorities | length) == 6
+    and (.paired_summary_vs_pid | length) == 6
+    and (.trials | length) == .evaluation.trials
+    and .paired_summary_vs_pid[0].authority == 0
+    and .paired_summary_vs_pid[0].mean_delta_rmse_vs_pid_m == 0
+    and .paired_summary_vs_pid[0].bootstrap_95_ci_delta_rmse_vs_pid_m != null
+    and all(.trials[];
+      .arms[0].authority == 0
+      and .arms[0].guard_rejections == 0
+      and .arms[0].residual_clipped_steps == 0
+      and all(.arms[]; .guard_rejections == 0)
+    )
+  ' "$out"
+fi
