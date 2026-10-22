@@ -76,6 +76,9 @@ Prefer on-station wind mast, irradiance, temperature, snow/icing and power-contr
 
 These papers provide comparison methods and model structures, not automatically accessible calibration data. Extract a benchmark only after its case values, model boundaries, data availability, solver budget and reported outputs have been verified. Do not claim reproduction from an abstract alone.
 
+
+Further source-level check: the linked AADC SOE_SFU electricity metadata record (DOI 10.26179/5d38f549336a7) describes a January 1993–February 2016 snapshot and temporal coverage from 1993-01-01. That is a third statement alongside Indicator 59's 1986–2016 display table and its own 'metadata record' start date of 1990-01-01. The atlas manifest now preserves all three values explicitly. The fuel series likewise has a 1993–2016 archive description and 1990 metadata start; its citation instructions state 2001 while its current metadata detail page renders 2019 for the same DOI. These issues need raw-byte inspection and originator clarification, not a guessed reconciliation.
+
 ## Data admission pipeline
 
 For each candidate artifact:
