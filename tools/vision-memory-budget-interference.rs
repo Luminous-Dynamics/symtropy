@@ -81,7 +81,7 @@ enum Regime {
 }
 
 impl Regime {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::Stable,
         Self::MonotonicUpdates,
         Self::UpdateChurn,
