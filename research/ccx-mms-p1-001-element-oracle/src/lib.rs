@@ -607,4 +607,65 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn irregular_star_patch_preserves_affine_strain_and_center_equilibrium() {
+        let vertices = [
+            Point2 { x: 0.0, y: 0.0 },
+            Point2 { x: 2.1, y: 0.2 },
+            Point2 { x: 1.7, y: 1.8 },
+            Point2 { x: -0.2, y: 1.4 },
+            Point2 { x: 0.72, y: 0.63 },
+        ];
+        let triangles = [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]];
+        let displacements = vertices.map(affine_displacement);
+        let mut assembled = [Vec2 { x: 0.0, y: 0.0 }; 5];
+        for triangle in triangles {
+            let element_vertices = triangle.map(|index| vertices[index]);
+            let element_displacements = triangle.map(|index| displacements[index]);
+            let element =
+                TriangleElement::new(element_vertices, material(), 1.0).unwrap();
+            let strain = element.strain(element_displacements).unwrap();
+            close(strain.xx, 0.021, 1.0e-14);
+            close(strain.yy, 0.052, 1.0e-14);
+            close(strain.xy, 0.003, 1.0e-14);
+
+            let internal = element.internal_force(element_displacements).unwrap();
+            for (local_node, global_node) in triangle.iter().enumerate() {
+                assembled[*global_node].x += internal[2 * local_node];
+                assembled[*global_node].y += internal[2 * local_node + 1];
+            }
+        }
+        close(assembled[4].x, 0.0, 1.0e-12);
+        close(assembled[4].y, 0.0, 1.0e-12);
+    }
+
+    #[test]
+    fn uniform_geometry_scaling_preserves_cst_stiffness() {
+        let original = TriangleElement::new(points(), material(), 1.0).unwrap();
+        for scale in [1.0e-6, 1.0e6] {
+            let scaled_points = points().map(|point| Point2 {
+                x: point.x * scale,
+                y: point.y * scale,
+            });
+            let scaled = TriangleElement::new(scaled_points, material(), 1.0).unwrap();
+            for (i, row) in scaled.stiffness.iter().enumerate() {
+                for (j, value) in row.iter().enumerate() {
+                    close(*value, original.stiffness[i][j], 1.0e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn stiffness_is_linear_in_element_thickness() {
+        let thin = TriangleElement::new(points(), material(), 1.0).unwrap();
+        let thick = TriangleElement::new(points(), material(), 2.5).unwrap();
+        for (i, row) in thick.stiffness.iter().enumerate() {
+            for (j, value) in row.iter().enumerate() {
+                close(*value, 2.5 * thin.stiffness[i][j], 1.0e-14);
+            }
+        }
+    }
+
 }
