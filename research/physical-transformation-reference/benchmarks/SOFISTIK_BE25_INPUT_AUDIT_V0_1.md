@@ -41,7 +41,7 @@ The candidates are contradictory. The implementation therefore emits `audit-comp
 
 A follow-on candidate implementation is being developed in [PR #2664](https://github.com/Luminous-Dynamics/symtropy/pull/2664). It assembles a 1D continuous Euler-Bernoulli beam with shared displacement/rotation DOFs, runs a ten-element consistent-translational-mass model for all four end conditions under both mass candidates, and records a 32-element convergence comparison. This isolates element/mesh effects from the published-input conflict. The candidate is not a BE25 pass, and does not resolve the input deck ambiguity.
 
-The stacked [PR #2667](https://github.com/Luminous-Dynamics/symtropy/pull/2667) adds a banded Cholesky/Lanczos path for six low modes of a 200-element beam and dense-solver cross-checks on small meshes. It reports storage and residual diagnostics, gates small-mesh frequency error and sign-invariant mode-shape MAC against the dense reference across all four boundary cases, and still uses the `gamma*A/g` candidate with the same blocked disposition.
+The stacked [PR #2667](https://github.com/Luminous-Dynamics/symtropy/pull/2667) adds a banded Cholesky/Lanczos path for six low modes of a 200-element beam and dense-solver cross-checks on small meshes. It reports storage, eigen-residual, mass normalization and orthogonality diagnostics; gates small-mesh frequency error and sign-invariant mode-shape MAC against the dense reference across all four boundary cases; and still uses the `gamma*A/g` candidate with the same blocked disposition.
 
 Required next evidence:
 
