@@ -391,8 +391,8 @@ jobs:
                 baseline_seed_count: $f.replication_count,
                 thresholds_seconds: [$runs[].maximum_queue_age_seconds],
                 paired_seed_set_equal: all($runs[]; .replication_seeds == $f.replication_seeds),
-                paired_record_keys_equal: all($runs[] as $r;
-                  ($r.replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id]))
+                paired_record_keys_equal: all($runs[];
+                  (.replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id]))
                   == ($f.replication_scenario_records | sort_by(.seed, .scenario_id) | map([.seed, .scenario_id]))
                 ),
                 threshold_results: [
