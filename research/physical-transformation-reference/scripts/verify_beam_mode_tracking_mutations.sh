@@ -81,7 +81,7 @@ run_mutation \
 run_mutation \
   "rotation-component-left-unscaled" \
   rotation_unscaled \
-  tracking_request_records_nested_levels_mode_count_and_rotation_scale
+  reference_length_changes_combined_mac_when_translation_and_rotation_mix
 
 test "$tracking_sha256" = "$(sha256sum "$crate_dir/src/beam_mode_tracking.rs" | awk '{print $1}')"
 
