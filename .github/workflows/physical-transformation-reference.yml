@@ -124,6 +124,19 @@ jobs:
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_modal_properties_mutations.sh
 
+      - name: Verify modal uncertainty mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_modal_uncertainty_mutations.sh
+
+      - name: Re-verify modal uncertainty production source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/modal_uncertainty.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
       - name: Re-verify modal participation production source after mutation audit
         shell: bash
         run: |
@@ -550,6 +563,62 @@ jobs:
             and (.claim_ceiling | contains("not a mesh-converged"))
           ' beam-chain-modal-sweep-receipt.json
 
+      - name: Generate and verify deterministic modal uncertainty receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-modal-uncertainty-reference -- \
+            --source-commit "$source_commit" > modal-uncertainty-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-modal-uncertainty-reference -- \
+            --source-commit "$source_commit" > modal-uncertainty-raw-b.json
+          cmp --silent modal-uncertainty-raw-a.json modal-uncertainty-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/modal_uncertainty_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' modal-uncertainty-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-modal-uncertainty-request-v0.1|fixture=PHYS-BEAM-MODAL-UQ-001|sampling_points_per_member=17|base_request_utf8_bytes=290|base_request=schema=beam-chain-request-v0.1|fixture=PHYS-BEAM-CHAIN-001|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|1|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|1|parameter|youngs_modulus|relative_uncertainty=0.05|finite_difference_step=0.001|parameter|density|relative_uncertainty=0.03|finite_difference_step=0.001|parameter|circular_section_radius|relative_uncertainty=0.02|finite_difference_step=0.001|parameter|geometry_scale|relative_uncertainty=0.01|finite_difference_step=0.001"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "0ec12b21d9c107bd6374ae3bce7b321121d4e4888bfec4023b1a7faf8800d4fd"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' modal-uncertainty-raw-a.json > modal-uncertainty-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-modal-uncertainty-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MODAL-UQ-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "deterministic-local-modal-sensitivity"
+            and .result == "pass"
+            and .baseline_mode_count == 6
+            and .sampling_points_per_member == 17
+            and (.qualified_sensitivity_count > 0)
+            and (.abstained_sensitivity_count >= 0)
+            and (.parameters | length == 4)
+            and (.sensitivity_results | length == 24)
+            and (.sensitivity_results | any(.[]; .parameter == "youngs_modulus" and .disposition == "qualified"))
+            and (.sensitivity_results | any(.[]; .parameter == "density" and .disposition == "qualified"))
+            and ([.sensitivity_results[] | select(.parameter == "youngs_modulus" and .disposition == "qualified")] | all(.[]; ((.logarithmic_frequency_sensitivity - 0.5) | abs < 1e-5) and ((.estimated_relative_frequency_uncertainty - 0.025) | abs < 1e-6)))
+            and ([.sensitivity_results[] | select(.parameter == "density" and .disposition == "qualified")] | all(.[]; ((.logarithmic_frequency_sensitivity + 0.5) | abs < 1e-5) and ((.estimated_relative_frequency_uncertainty - 0.015) | abs < 1e-6)))
+            and (.scaling_law_gates.youngs_modulus_log_sensitivity_plus_half == true)
+            and (.scaling_law_gates.density_log_sensitivity_minus_half == true)
+            and (.claim_ceiling | contains("not a probabilistic confidence interval"))
+          ' modal-uncertainty-receipt.json
+
       - name: Upload deterministic reference receipts
         uses: actions/upload-artifact@v4
         with:
@@ -569,6 +638,8 @@ jobs:
             beam-pin-modal-receipt.json
             beam-chain-mesh-mutation-receipt.json
             beam-chain-modal-sweep-receipt.json
+            modal-uncertainty-mutation-receipt.json
+            modal-uncertainty-receipt.json
             modal-properties-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
