@@ -201,6 +201,8 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     if mass.is_none_or(|value| !(1.0..=5000.0).contains(&value))
         || payload.is_none_or(|value| !(0.0..=20000.0).contains(&value))
         || force.is_none_or(|value| !(0.0..=50.0).contains(&value))
+        || (["sealed_supply_gripper", "tray_carrier"].contains(&kind)
+            && force.is_none_or(|value| value <= 0.0))
         || torque.is_none_or(|value| !(0.0..=20.0).contains(&value))
     {
         push_findings(&mut findings, "MECHANICAL_ENVELOPE_INVALID");
