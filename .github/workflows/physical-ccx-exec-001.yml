@@ -741,6 +741,10 @@ jobs:
             frd_present=false
             test ! -s "$R/model.dat" || dat_present=true
             test ! -s "$R/model.frd" || frd_present=true
+            frd_sha=""
+            if [ "$frd_present" = true ]; then
+              frd_sha="$(sha256sum "$R/model.frd" | cut -d ' ' -f 1)"
+            fi
 
             jq -n \
               --arg source_sha "$source_sha" \
@@ -748,7 +752,7 @@ jobs:
               --arg case_id "PHYS-MMS-001-N${n}" \
               --arg log_sha "$log_sha" --arg deck_sha "$deck_sha" \
               --arg model_sha "$model_sha" --arg exe_sha "$exe_sha" \
-              --arg auditor_sha "$mms_sha" --arg build_sha "$build_sha" \
+              --arg auditor_sha "$mms_sha" --arg frd_sha "$frd_sha" --arg build_sha "$build_sha" \
               --argjson cells "$n" --argjson exit_status "$solver_status" \
               --argjson started "$start_epoch" --argjson ended "$end_epoch" \
               --argjson dat_present "$dat_present" --argjson frd_present "$frd_present" \
@@ -759,7 +763,7 @@ jobs:
                 cells_per_axis:$cells,model_manifest_sha256:$model_sha,
                 deck_sha256:$deck_sha,build_manifest_sha256:$build_sha,
                 solver_executable_sha256:$exe_sha,auditor_executable_sha256:$auditor_sha,
-                process_log_sha256:$log_sha,
+                frd_sha256:$frd_sha,process_log_sha256:$log_sha,
                 solver_exit_code:$exit_status,solver_completed:($exit_status == 0),
                 dat_output_present:$dat_present,frd_output_present:$frd_present,
                 started_epoch_s:$started,ended_epoch_s:$ended,
@@ -779,13 +783,14 @@ jobs:
               --arg benchmark "PHYS-MMS-001-PLANE-STRESS-CPS3" \
               --arg source_sha "$source_sha" --arg checkout_sha "$checkout_sha" \
               --arg model_sha "$model_sha" --arg deck_sha "$deck_sha" \
-              --arg dat_sha "$dat_sha" --arg build_sha "$build_sha" \
+              --arg dat_sha "$dat_sha" --arg frd_sha "$frd_sha" --arg build_sha "$build_sha" \
               --arg exe_sha "$exe_sha" --arg auditor_sha "$mms_sha" --arg log_sha "$log_sha" \
               --argjson cells "$n" \
               '{
                 schema_version:$schema,benchmark_id:$benchmark,
                 source_sha:$source_sha,checkout_sha:$checkout_sha,cells_per_axis:$cells,
                 model_manifest_sha256:$model_sha,deck_sha256:$deck_sha,dat_sha256:$dat_sha,
+                frd_sha256:$frd_sha,
                 build_manifest_sha256:$build_sha,solver_executable_sha256:$exe_sha,
                 auditor_executable_sha256:$auditor_sha,
                 process_log_sha256:$log_sha,solver_exit_code:0,solver_completed:true,
@@ -796,6 +801,7 @@ jobs:
               --cells "$n" \
               --deck "$R/model.inp" \
               --dat "$R/model.dat" \
+              --frd "$R/model.frd" \
               --model-manifest "$R/model-manifest.json" \
               --build-manifest "$MANIFEST" \
               --solver "$CCX" \
