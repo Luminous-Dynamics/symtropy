@@ -1550,21 +1550,10 @@ mod tests {
     }
 
     fn common_cause_fixture() -> Catalog {
-        let mut catalog = fixture();
-        catalog.horizon_seconds = 4_000;
-        catalog.warmup_seconds = 0;
-        catalog.replication_seeds = vec![catalog.seed];
-        catalog.common_cause_control_outage = Some(CommonCauseControlOutage {
-            domain_id: "shared-line-control".into(),
-            station_ids: vec![
-                "battery-module-install".into(),
-                "final-assembly".into(),
-            ],
-            first_start_seconds: 600,
-            recurrence_interval_seconds: 1_800,
-            duration_seconds: 300,
-        });
-        catalog
+        serde_json::from_str(include_str!(
+            "../../fixtures/ev_factory_simulation_shared_control_outage_v0_1.json"
+        ))
+        .expect("shared control outage fixture parses")
     }
 
     #[test]
