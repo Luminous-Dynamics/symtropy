@@ -60,7 +60,7 @@ enum Policy {
 }
 
 impl Policy {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 7] = [
         Self::Fifo,
         Self::Lru,
         Self::Lfu,
@@ -539,6 +539,7 @@ fn report() -> String {
     let mut out = String::new();
     out.push_str("META\tformat\tVIS-MEM-021-v0.1\n");
     out.push_str("META\tscope\tfinite synthetic online-retention value diagnostic; not native robot performance\n");
+    out.push_str("META\tobservable_retention_signals\taccess counts, timestamps, write counts, source risk band and source reacquisition cost; no evaluator labels\n");
     out.push_str("META\tonline_query_input\tonline events carry query key only; no evaluator revision or utility label\n");
     out.push_str("META\tfuture_query_visibility\tfuture trace is evaluator-only and starts after all policy snapshots freeze\n");
     out.push_str("META\toracle\tclairvoyant fixed-budget upper bound; diagnostic only; never passed to selectors\n");
@@ -665,6 +666,34 @@ mod tests {
                 score_future(&snapshot_a, &future_a).utility,
                 score_future(&snapshot_b, &future_b).utility
             );
+        }
+    }
+
+    #[test]
+    fn policy_matrix_has_seven_distinct_selectors() {
+        assert_eq!(Policy::ALL.len(), 7);
+        let labels: std::collections::BTreeSet<_> =
+            Policy::ALL.into_iter().map(Policy::label).collect();
+        assert_eq!(labels.len(), 7);
+    }
+
+    #[test]
+    fn held_out_future_has_no_stale_arrivals_in_this_drift_only_suite() {
+        for workload in Workload::ALL {
+            for seed in 0..SEEDS {
+                let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
+                    ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+                    ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
+                for budget in BUDGETS {
+                    for row in run_rows(workload, seed, budget) {
+                        assert_eq!(
+                            row.score.stale, 0,
+                            "this suite isolates demand drift; stale-arrival handling belongs to VIS-MEM-016"
+                        );
+                    }
+                }
+                let _ = mixed_seed;
+            }
         }
     }
 
