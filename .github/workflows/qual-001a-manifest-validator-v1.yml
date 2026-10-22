@@ -1,0 +1,249 @@
+name: QUAL-001A Manifest Validator v1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qual-001a-manifest-validator-v1.yml'
+      - '.qualification/qual-001a-manifest-validator-v1.json'
+      - 'tools/qualification/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  QUAL_PARENT: 'd56d6a6c1381dc131d493f0713b657f01c98cb80'
+  PYTHON_VERSION: '3.12.10'
+  SCHEMA_SHA256: 'bfa58c22763916df94f4c2075856acb50abe4cd54f65a207a00bb74a3d059298'
+  SCHEMA_BYTES: '4704'
+  MANIFEST_SHA256: '91ce238990214895575eefaa748e89b9ad303c8aeaec8a63b4bbfb7760b061f1'
+  MANIFEST_BYTES: '1137'
+
+jobs:
+  qualify:
+    name: Qualify manifest schema and validator
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref_name == 'infra/qual-001a-manifest-validator-v1') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'infra/qual-001a-manifest-validator-v1')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact subject head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Bind exact additive tranche
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$QUAL_PARENT"
+          test "$(git rev-list --count "$QUAL_PARENT..HEAD")" -eq 1
+
+          mapfile -t changed < <(git diff --name-only "$QUAL_PARENT" HEAD | sort)
+          expected=(
+            '.github/workflows/qual-001a-manifest-validator-v1.yml'
+            '.qualification/qual-001a-manifest-validator-v1.json'
+            'tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json'
+            'tools/qualification/tests/test_validate_manifest_v1.py'
+            'tools/qualification/validate_manifest_v1.py'
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" -eq "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          for path in Cargo.toml Cargo.lock
+          do
+            test "$(git rev-parse "$QUAL_PARENT:$path")" = "$(git rev-parse "HEAD:$path")"
+          done
+
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: x64
+          check-latest: false
+
+      - name: Verify exact Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(python --version)" = "Python $PYTHON_VERSION"
+
+      - name: Bind frozen schema and bootstrap manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema='tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json'
+          manifest='.qualification/qual-001a-manifest-validator-v1.json'
+
+          test "$(sha256sum "$schema" | awk '{print $1}')" = "$SCHEMA_SHA256"
+          test "$(wc -c < "$schema")" -eq "$SCHEMA_BYTES"
+          test "$(sha256sum "$manifest" | awk '{print $1}')" = "$MANIFEST_SHA256"
+          test "$(wc -c < "$manifest")" -eq "$MANIFEST_BYTES"
+
+      - name: Compile validator source without bytecode output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/qualification/validate_manifest_v1.py')
+          compile(path.read_text(encoding='utf-8'), str(path), 'exec')
+          PY
+
+      - name: Execute validator theorem corpus
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B -m unittest discover \
+            -s tools/qualification/tests \
+            -p 'test_*.py' \
+            -v 2>&1 | tee /tmp/qual-001a-tests.log
+
+      - name: Validate bootstrap manifest through production validator
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B tools/qualification/validate_manifest_v1.py \
+            .qualification/qual-001a-manifest-validator-v1.json \
+            2>&1 | tee /tmp/qual-001a-bootstrap.log
+
+      - name: Independently audit bootstrap contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          manifest_path = Path('.qualification/qual-001a-manifest-validator-v1.json')
+          schema_path = Path('tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+
+          assert manifest['schema_id'] == 'luminous.qualification-manifest.v1'
+          assert manifest['exact_parent'] == 'd56d6a6c1381dc131d493f0713b657f01c98cb80'
+          assert manifest['required_commit_count'] == 1
+          assert manifest['qualification_suite_id'] == 'schema-only-v1'
+          assert manifest['toolchain_id'] == 'python-3.12.10'
+          assert manifest['artifact_name'] == 'qual-001a-manifest-validator-v1'
+
+          expected_owned = [
+              {'kind': 'file', 'path': '.github/workflows/qual-001a-manifest-validator-v1.yml'},
+              {'kind': 'file', 'path': '.qualification/qual-001a-manifest-validator-v1.json'},
+              {'kind': 'prefix', 'path': 'tools/qualification'},
+          ]
+          assert manifest['owned_paths'] == expected_owned
+          assert manifest['parent_equal_paths'] == [
+              {'kind': 'file', 'path': 'Cargo.lock'},
+              {'kind': 'file', 'path': 'Cargo.toml'},
+          ]
+          assert manifest['allow_transient_paths'] == [
+              {'kind': 'prefix', 'path': 'qualification'}
+          ]
+
+          schema = schema_path.read_bytes()
+          assert len(schema) == 4704
+          assert hashlib.sha256(schema).hexdigest() == 'bfa58c22763916df94f4c2075856acb50abe4cd54f65a207a00bb74a3d059298'
+          assert manifest['profile_files'] == [
+              {
+                  'path': 'tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json',
+                  'sha256': 'bfa58c22763916df94f4c2075856acb50abe4cd54f65a207a00bb74a3d059298',
+                  'byte_len': 4704,
+              }
+          ]
+          PY
+
+      - name: Audit validator as non-executable control plane
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('tools/qualification/validate_manifest_v1.py')
+          tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+
+          allowed_import_roots = {
+              '__future__', 'argparse', 'hashlib', 'json', 're',
+              'sys', 'pathlib', 'typing',
+          }
+          banned_call_names = {'eval', 'exec', '__import__'}
+          banned_attributes = {
+              'system', 'popen', 'spawn', 'run', 'call', 'check_call',
+              'check_output', 'urlopen', 'request',
+          }
+
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      root = alias.name.split('.', 1)[0]
+                      assert root in allowed_import_roots, root
+              elif isinstance(node, ast.ImportFrom):
+                  root = (node.module or '').split('.', 1)[0]
+                  assert root in allowed_import_roots, root
+              elif isinstance(node, ast.Call):
+                  if isinstance(node.func, ast.Name):
+                      assert node.func.id not in banned_call_names, node.func.id
+                  elif isinstance(node.func, ast.Attribute):
+                      assert node.func.attr not in banned_attributes, node.func.attr
+          PY
+
+      - name: Prove immutable tracked checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+
+      - name: Record qualification evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification
+          cp /tmp/qual-001a-tests.log qualification/
+          cp /tmp/qual-001a-bootstrap.log qualification/
+          sha256sum \
+            .github/workflows/qual-001a-manifest-validator-v1.yml \
+            .qualification/qual-001a-manifest-validator-v1.json \
+            tools/qualification/QUALIFICATION_MANIFEST_V1.schema.json \
+            tools/qualification/tests/test_validate_manifest_v1.py \
+            tools/qualification/validate_manifest_v1.py \
+            > qualification/subject-files.sha256
+          printf '%s\n' \
+            "subject_head=$(git rev-parse HEAD)" \
+            "subject_parent=$(git rev-parse HEAD^)" \
+            "schema_sha256=$SCHEMA_SHA256" \
+            "manifest_sha256=$MANIFEST_SHA256" \
+            "python_version=$(python --version 2>&1)" \
+            "validator_tests=PASS" \
+            "bootstrap_manifest=PASS" \
+            "non_executable_control_plane=PASS" \
+            "immutable_tracked_checkout=PASS" \
+            > qualification/qual-001a.status.txt
+
+          git diff --quiet
+          git diff --cached --quiet
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qual-001a-manifest-validator-v1
+          path: qualification/*
+          if-no-files-found: error
+          retention-days: 30

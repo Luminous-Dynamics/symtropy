@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/qualification-manifest-v1.schema.json",
+  "title": "Luminous Qualification Manifest v1",
+  "description": "Declarative, non-executable manifest for exact-head qualification contracts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "profile_id",
+    "profile_version",
+    "exact_parent",
+    "required_commit_count",
+    "owned_paths",
+    "profile_files",
+    "parent_equal_paths",
+    "qualification_suite_id",
+    "toolchain_id",
+    "allow_transient_paths",
+    "artifact_name"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "luminous.qualification-manifest.v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "profile_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "exact_parent": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "required_commit_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "owned_paths": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/pathRef"
+      }
+    },
+    "profile_files": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/profileFile"
+      }
+    },
+    "parent_equal_paths": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/pathRef"
+      }
+    },
+    "qualification_suite_id": {
+      "enum": [
+        "schema-only-v1",
+        "rust-standalone-protocol-v1",
+        "rust-workspace-package-v1",
+        "nix-build-path-v1"
+      ]
+    },
+    "toolchain_id": {
+      "enum": [
+        "python-3.12.10",
+        "rust-1.94.0",
+        "rust-1.96.0",
+        "nix-repo-pinned"
+      ]
+    },
+    "allow_transient_paths": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/pathRef"
+      }
+    },
+    "artifact_name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "qualification_suite_id": {
+            "const": "schema-only-v1"
+          }
+        },
+        "required": [
+          "qualification_suite_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "toolchain_id": {
+            "const": "python-3.12.10"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualification_suite_id": {
+            "enum": [
+              "rust-standalone-protocol-v1",
+              "rust-workspace-package-v1"
+            ]
+          }
+        },
+        "required": [
+          "qualification_suite_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "toolchain_id": {
+            "enum": [
+              "rust-1.94.0",
+              "rust-1.96.0"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualification_suite_id": {
+            "const": "nix-build-path-v1"
+          }
+        },
+        "required": [
+          "qualification_suite_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "toolchain_id": {
+            "const": "nix-repo-pinned"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "pathRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^(?!/)(?!.*//)(?!.*\\\\\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._@+\\-]+(?:/[A-Za-z0-9._@+\\-]+)*$"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "prefix"
+          ]
+        }
+      }
+    },
+    "profileFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "byte_len"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^(?!/)(?!.*//)(?!.*\\\\\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9._@+\\-]+(?:/[A-Za-z0-9._@+\\-]+)*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "byte_len": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1073741824
+        }
+      }
+    }
+  }
+}
