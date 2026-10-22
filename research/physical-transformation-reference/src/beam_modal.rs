@@ -404,7 +404,7 @@ mod tests {
             assembly.stiffness_global[row][negative_global] = 0.0;
             assembly.stiffness_global[negative_global][row] = 0.0;
         }
-        assembly.stiffness_global[negative_global][negative_global] = -1.0;
+        assembly.stiffness_global[negative_global][negative_global] = -1.0e30;
 
         let result = solve_beam_pin_assembly_modes(&assembly).expect("classified negative mode");
         assert_eq!(result.modes.len(), assembly.free_dof_indices.len());
