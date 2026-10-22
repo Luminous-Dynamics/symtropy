@@ -32,3 +32,20 @@ are errors. Unit tests include a balanced synthetic example and a deliberately p
 load that must fail the numeric gate. These tests verify arithmetic and fail-closed handling
 only. They do not qualify CalculiX's output semantics, the actual assembler, or a real solver
 run.
+
+## Real CalculiX MMS execution path
+
+The `mms-p1-real-verify` binary is the end-to-end numerical postprocessor used by
+`.github/workflows/ccx-mms-p1-real-run.yml`. For each generated mesh it:
+
+1. regenerates the declared CPE3 deck and requires byte-for-byte deck equality;
+2. strictly parses genuine DAT displacement and RF output for the complete `NALL` node inventory at the frozen static time;
+3. evaluates displacement (L^2), plane-strain energy, and stress errors from the solver-produced displacement field against the independent continuum oracle;
+4. independently reassembles all nodal body-force loads, verifies their resultant against the analytical integral, applies the frozen omitted-boundary-load reaction correction, and audits global force balance;
+5. optionally compares a repeat-run displacement field against its reference field at the same node inventory.
+
+The workflow builds stock CalculiX 2.22 from the SHA-pinned official source archive using the pinned OmnibusCloud builder commit and snapshot-pinned container/packages. It executes mesh resolutions (n=8,16,32,64), repeats (n=16), keeps stdout/stderr and raw DAT/FRD files, hashes the source/build/deck/output/report provenance, and uploads the complete evidence directory even when a gate fails. Only after every mesh has run does the strict gate evaluate resultants, corrected global equilibrium, boundary displacements, strict error decrease, observed displacement/energy orders, and repeat stability.
+
+The parser-side JSON report always leaves `qualification_pass=false`; it does not attest to the process that created the DAT file. The workflow stores a separate process receipt that binds the exact executable, deck, DAT/FRD, logs, build manifest, and report digests. If the real DAT header, output inventory, force interpretation, or numerical trend disagrees with the protocol, the gate fails and retains evidence rather than substituting a synthetic fixture or relaxing thresholds.
+
+A passing run may qualify only this pinned linear plane-strain manufactured-solution case. It does not establish physical validation, engineering-use authorization, broad CalculiX capability, or superior performance to an industry solver. Performance work must remain a separate matched-accuracy experiment.
