@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "id": "experiment:synthetic-harmonic-oscillator",
+  "title": "Synthetic undamped harmonic oscillator",
+  "mass_kg": 1.0,
+  "stiffness_n_per_m": 4.0,
+  "initial_position_m": 1.0,
+  "initial_velocity_mps": 0.0,
+  "duration_s": 10.0,
+  "time_step_s": 0.01,
+  "integrator": "symplectic_euler",
+  "assumptions": [
+    "One-dimensional motion",
+    "Linear Hooke-law restoring force F = -k*x",
+    "Constant mass and stiffness",
+    "No damping and no external forcing"
+  ],
+  "limitations": [
+    "Synthetic numerical reference case, not physical laboratory data",
+    "No damping, forcing, nonlinear stiffness, contact, or measurement noise",
+    "Symplectic Euler is a first-order numerical integrator; reported errors are against the analytical ideal model",
+    "This fixture validates one model family only and does not establish general solver credibility"
+  ]
+}
