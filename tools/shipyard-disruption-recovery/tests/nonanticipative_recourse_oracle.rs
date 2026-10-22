@@ -116,8 +116,13 @@ fn exact_case(
     let feasible_b = zone_x_b != candidate_x_b;
     let anticipative = same_information_set && candidate_x_a != candidate_x_b;
     let accepted = feasible_a && feasible_b && !anticipative;
-    let accepted_scenarios = (if feasible_a { 1 } else { 0 })
-        + (if feasible_b { 1 } else { 0 });
+    let mut accepted_scenarios = 0usize;
+    if feasible_a {
+        accepted_scenarios += 1;
+    }
+    if feasible_b {
+        accepted_scenarios += 1;
+    }
     (accepted, accepted_scenarios, anticipative)
 }
 
