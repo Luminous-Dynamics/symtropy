@@ -17,6 +17,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 MANIFEST="$SCRIPT_DIR/vision-memory-mikasa-long-tasks.tsv"
 PINNED_COMMIT="509b875f3d207c287497c0a897661062de928bb0"
 MANIFEST_BLOB_SHA1="613c571bc4a5e1585c995249adb31d594601822e"
+LOCAL_ROSTER_BLOB_SHA1="61fc51de3075e6a76ab87881aabd17a6f8ab5256"
 START_SEED=4242424242
 EPISODES=50
 EXPECTED_TASKS=22
@@ -36,10 +37,15 @@ close_enough() {
 
 [[ -d "$RUN_DIR" ]] || fail "run directory does not exist"
 [[ -f "$RUN_DIR/summary.json" ]] || fail "summary.json is missing"
+[[ ! -L "$RUN_DIR/summary.json" ]] || fail "summary.json must not be a symlink"
 [[ -f "$MANIFEST" ]] || fail "pinned Long task manifest is missing"
 [[ ! -e "$RECEIPT_DIR" ]] || fail "receipt directory already exists; use a fresh output path"
 command -v jq >/dev/null || fail "jq is required"
 command -v sha256sum >/dev/null || fail "sha256sum is required"
+command -v git >/dev/null || fail "git is required to verify the pinned roster"
+
+[[ "$(git hash-object "$MANIFEST")" == "$LOCAL_ROSTER_BLOB_SHA1" ]] || fail "checked-in Long roster differs from pinned validated roster"
+VERIFY_SCRIPT_SHA256=$(sha256sum "$0" | awk '{print $1}')
 
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -144,7 +150,9 @@ mkdir -p "$RECEIPT_DIR"
   printf 'META\tstatus\tcontract_validated_not_performance_evaluated\n'
   printf 'META\tbenchmark\tMIKASA-Robo-VLA Long\n'
   printf 'META\tbenchmark_commit\t%s\n' "$PINNED_COMMIT"
-  printf 'META\tmanifest_git_blob_sha1\t%s\n' "$MANIFEST_BLOB_SHA1"
+  printf 'META\tmanifest_upstream_git_blob_sha1\t%s\n' "$MANIFEST_BLOB_SHA1"
+  printf 'META\tlocal_roster_git_blob_sha1\t%s\n' "$LOCAL_ROSTER_BLOB_SHA1"
+  printf 'META\tverifier_script_sha256\t%s\n' "$VERIFY_SCRIPT_SHA256"
   printf 'META\tmanifest_tasks\t%d\n' "$EXPECTED_TASKS"
   printf 'META\tepisodes_per_task\t%d\n' "$EPISODES"
   printf 'META\tseed_start\t%d\n' "$START_SEED"
