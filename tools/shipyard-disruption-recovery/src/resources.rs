@@ -53,6 +53,7 @@ pub enum ResourceViolationCode {
     DuplicateReservationId,
     InvalidReservationInterval,
     ConflictingResourceKinds,
+    ResourceKindChangedAcrossSchedules,
     ExclusiveResourceOverlap,
     EmptyPrecedenceConstraintId,
     DuplicatePrecedenceConstraintId,
@@ -89,6 +90,7 @@ impl ResourceViolationCode {
             Self::DuplicateReservationId => "DuplicateReservationId",
             Self::InvalidReservationInterval => "InvalidReservationInterval",
             Self::ConflictingResourceKinds => "ConflictingResourceKinds",
+            Self::ResourceKindChangedAcrossSchedules => "ResourceKindChangedAcrossSchedules",
             Self::ExclusiveResourceOverlap => "ExclusiveResourceOverlap",
             Self::EmptyPrecedenceConstraintId => "EmptyPrecedenceConstraintId",
             Self::DuplicatePrecedenceConstraintId => "DuplicatePrecedenceConstraintId",
@@ -443,6 +445,43 @@ fn reservation_map(schedule: &ResourceSchedule) -> BTreeMap<&str, &ResourceReser
         .collect()
 }
 
+fn validate_cross_schedule_resource_kinds(
+    baseline: &ResourceSchedule,
+    candidate: &ResourceSchedule,
+) -> Vec<ResourceViolation> {
+    let mut baseline_kinds: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for reservation in &baseline.reservations {
+        if !reservation.resource_id.trim().is_empty()
+            && !reservation.resource_kind.trim().is_empty()
+        {
+            baseline_kinds
+                .entry(reservation.resource_id.as_str())
+                .or_default()
+                .insert(reservation.resource_kind.as_str());
+        }
+    }
+
+    let mut violations = Vec::new();
+    for reservation in &candidate.reservations {
+        if let Some(kinds) = baseline_kinds.get(reservation.resource_id.as_str()) {
+            if !kinds.contains(reservation.resource_kind.as_str()) {
+                push(
+                    &mut violations,
+                    ResourceViolationCode::ResourceKindChangedAcrossSchedules,
+                    vec![
+                        reservation.reservation_id.clone(),
+                        reservation.resource_id.clone(),
+                        reservation.resource_kind.clone(),
+                    ],
+                    "candidate cannot reclassify a known resource ID",
+                );
+            }
+        }
+    }
+    sort_dedup(&mut violations);
+    violations
+}
+
 fn validate_outages(
     outages: &[ResourceOutage],
     baseline: &ResourceSchedule,
@@ -631,6 +670,9 @@ pub fn evaluate_resource_recovery(
     let candidate_violations = validate_schedule(candidate);
     let mut violations = validate_outages(outages, baseline, candidate);
     let outages_valid = violations.is_empty();
+    let resource_kind_violations = validate_cross_schedule_resource_kinds(baseline, candidate);
+    let resource_kinds_consistent = resource_kind_violations.is_empty();
+    violations.extend(resource_kind_violations);
     let precedence_unchanged =
         normalized_precedence(baseline) == normalized_precedence(candidate);
     if !precedence_unchanged {
@@ -665,7 +707,8 @@ pub fn evaluate_resource_recovery(
     let candidate_outage_conflicts = resource_outage_conflicts(candidate, outages);
     let baseline_feasible_after_disruption =
         baseline_feasible_before_disruption && outages_valid && baseline_outage_conflicts.is_empty();
-    let mut candidate_feasible_after_disruption = precedence_unchanged
+    let mut candidate_feasible_after_disruption = resource_kinds_consistent
+        && precedence_unchanged
         && outages_valid
         && candidate_violations.is_empty()
         && candidate_outage_conflicts.is_empty();
@@ -1333,6 +1376,29 @@ mod tests {
         }));
         assert!(violations.iter().any(|violation| {
             violation.code == ResourceViolationCode::UnknownSuccessorOperation
+        }));
+    }
+
+    #[test]
+    fn candidate_cannot_reclassify_a_known_physical_resource() {
+        let baseline = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![
+                reservation("inspect", "inspect", "resource-1", "inspector", 5, 8),
+            ],
+        };
+        let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: vec![
+                reservation("inspect", "inspect", "resource-1", "gantry-crane", 5, 8),
+            ],
+        };
+        let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
+
+        assert!(!report.accepted);
+        assert!(!report.metrics.candidate_feasible_after_disruption);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::ResourceKindChangedAcrossSchedules
         }));
     }
 
