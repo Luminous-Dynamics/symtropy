@@ -1,6 +1,9 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Deterministic identifiers, simulation time, causal events, and hash chains.
+//! Deterministic identifiers, simulation time, causal events, hash chains, and multiplayer commitments.
+
+pub mod multiplayer;
+pub use multiplayer::{MultiplayerSessionV1, StateCheckpointV1, UnqualifiedIdentityDigest};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -289,6 +292,18 @@ impl<T: Serialize> EventChain<T> {
 /// Errors produced by deterministic game-state primitives.
 #[derive(Debug)]
 pub enum StateError {
+    /// Commitment domain is empty, oversized, or non-ASCII.
+    InvalidCommitmentDomain,
+    /// A commitment field exceeded the portable input bound.
+    CommitmentInputTooLarge,
+    /// Multiplayer participant list was not in canonical order.
+    NonCanonicalMultiplayerParticipants,
+    /// A multiplayer participant appeared more than once.
+    DuplicateMultiplayerParticipant,
+    /// Too many participant references were supplied.
+    TooManyMultiplayerParticipants,
+    /// A durable multiplayer commitment did not match its canonical fields.
+    MultiplayerCommitmentMismatch,
     /// Stable identifier text was empty, too long, or non-portable.
     InvalidStableId(String),
     /// The requested fixed frequency cannot divide one second exactly.
@@ -327,6 +342,20 @@ pub enum StateError {
 impl fmt::Display for StateError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidCommitmentDomain => formatter.write_str("invalid commitment domain"),
+            Self::CommitmentInputTooLarge => formatter.write_str("commitment input is too large"),
+            Self::NonCanonicalMultiplayerParticipants => {
+                formatter.write_str("multiplayer participants are not canonical")
+            }
+            Self::DuplicateMultiplayerParticipant => {
+                formatter.write_str("duplicate multiplayer participant")
+            }
+            Self::TooManyMultiplayerParticipants => {
+                formatter.write_str("too many multiplayer participants")
+            }
+            Self::MultiplayerCommitmentMismatch => {
+                formatter.write_str("multiplayer commitment mismatch")
+            }
             Self::InvalidStableId(value) => {
                 write!(formatter, "invalid stable identifier: {value:?}")
             }
@@ -390,6 +419,147 @@ fn hex(bytes: &[u8]) -> String {
         output.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
     }
     output
+}
+
+/// Schema version for transport-independent multiplayer commitments.
+pub const MULTIPLAYER_COMMITMENT_SCHEMA_VERSION: u32 = 1;
+
+/// Maximum size of one commitment field accepted by the canonical primitive.
+pub const MAX_COMMITMENT_FIELD_BYTES: usize = 16 * 1024 * 1024;
+
+/// Cryptographic digest used for multiplayer provenance identities.
+///
+/// This is deliberately distinct from the lockstep module's FNV state hash:
+/// the latter is a fast divergence detector, while this type is intended for
+/// durable identity/provenance and therefore uses SHA-256.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CommitmentDigest([u8; 32]);
+
+impl CommitmentDigest {
+    /// Computes a domain-separated digest over an ordered sequence of fields.
+    ///
+    /// Each field is length-prefixed, so concatenation boundaries cannot be
+    /// ambiguous. Callers must provide already-canonical bytes.
+    pub fn derive(domain: &str, fields: &[&[u8]]) -> Result<Self, StateError> {
+        if domain.is_empty() || domain.len() > 128 || !domain.is_ascii() {
+            return Err(StateError::InvalidCommitmentDomain);
+        }
+
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy.commitment.v1");
+        hasher.update((domain.len() as u64).to_le_bytes());
+        hasher.update(domain.as_bytes());
+
+        for field in fields {
+            if field.len() > MAX_COMMITMENT_FIELD_BYTES {
+                return Err(StateError::CommitmentInputTooLarge);
+            }
+            let len =
+                u64::try_from(field.len()).map_err(|_| StateError::CommitmentInputTooLarge)?;
+            hasher.update(len.to_le_bytes());
+            hasher.update(field);
+        }
+
+        Ok(Self(hasher.finalize().into()))
+    }
+
+    /// Returns the raw digest bytes.
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    /// Returns the lowercase hexadecimal representation.
+    pub fn to_hex(self) -> String {
+        hex(&self.0)
+    }
+}
+
+impl fmt::Display for CommitmentDigest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&hex(&self.0))
+    }
+}
+
+/// Explicit claim strength for replay evidence.
+///
+/// A replay implementation must select the strongest profile it can actually
+/// establish; the commitment layer never upgrades a weaker profile.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayProfile {
+    /// All claim-relevant state is covered by an exact deterministic model.
+    BitExactReplay,
+    /// The authoritative state/checkpoints are reproduced, but execution need
+    /// not be bit-for-bit identical internally.
+    AuthoritativeStateReplay,
+    /// Evidence is observational and cannot establish deterministic replay.
+    ObservationOnly,
+}
+
+impl ReplayProfile {
+    /// Whether this profile is permitted to claim bit-for-bit replay.
+    pub const fn permits_bit_exact_claim(self) -> bool {
+        matches!(self, Self::BitExactReplay)
+    }
+}
+
+#[cfg(test)]
+mod multiplayer_commitment_tests {
+    use super::*;
+
+    #[test]
+    fn commitment_field_size_limit_is_enforced() {
+        let oversized = vec![0u8; MAX_COMMITMENT_FIELD_BYTES + 1];
+        assert!(matches!(
+            CommitmentDigest::derive("test", &[oversized.as_slice()]),
+            Err(StateError::CommitmentInputTooLarge)
+        ));
+    }
+
+    #[test]
+    fn commitment_is_domain_separated() {
+        let fields = [b"same".as_slice()];
+        let a = CommitmentDigest::derive("session", &fields).expect("valid domain");
+        let b = CommitmentDigest::derive("checkpoint", &fields).expect("valid domain");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn commitment_preserves_field_boundaries() {
+        let concatenated = [b"ab".as_slice()];
+        let split = [b"a".as_slice(), b"b".as_slice()];
+        let a = CommitmentDigest::derive("test", &concatenated).expect("valid");
+        let b = CommitmentDigest::derive("test", &split).expect("valid");
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn commitment_is_stable_for_identical_canonical_bytes() {
+        let fields = [b"world".as_slice(), b"ruleset-v1".as_slice(), &[7u8][..]];
+        let first = CommitmentDigest::derive("session", &fields).expect("valid");
+        let second = CommitmentDigest::derive("session", &fields).expect("valid");
+        assert_eq!(first, second);
+        assert_eq!(first.to_hex().len(), 64);
+    }
+
+    #[test]
+    fn replay_profile_never_upgrades_itself() {
+        assert!(ReplayProfile::BitExactReplay.permits_bit_exact_claim());
+        assert!(!ReplayProfile::AuthoritativeStateReplay.permits_bit_exact_claim());
+        assert!(!ReplayProfile::ObservationOnly.permits_bit_exact_claim());
+    }
+
+    #[test]
+    fn invalid_commitment_domain_is_rejected() {
+        assert!(matches!(
+            CommitmentDigest::derive("", &[]),
+            Err(StateError::InvalidCommitmentDomain)
+        ));
+        assert!(matches!(
+            CommitmentDigest::derive("non-ascii-☃", &[]),
+            Err(StateError::InvalidCommitmentDomain)
+        ));
+    }
 }
 
 #[cfg(test)]
