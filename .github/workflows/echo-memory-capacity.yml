@@ -5,6 +5,7 @@ on:
     branches: ["research/vis-mem-bounded-episodes-v0-1"]
     paths:
       - "crates/domains/symtropy-hdc-physics/src/memory.rs"
+      - "crates/domains/symtropy-hdc-physics/examples/episode_memory_retention.rs"
       - "src/systems/echo_memory.rs"
       - ".github/workflows/echo-memory-capacity.yml"
   pull_request:
@@ -12,6 +13,7 @@ on:
     branches: ["main"]
     paths:
       - "crates/domains/symtropy-hdc-physics/src/memory.rs"
+      - "crates/domains/symtropy-hdc-physics/examples/episode_memory_retention.rs"
       - "src/systems/echo_memory.rs"
       - ".github/workflows/echo-memory-capacity.yml"
   workflow_dispatch:
@@ -57,6 +59,29 @@ jobs:
           set -euo pipefail
           cargo check --locked --package symtropy-launcher --features echo-memory
 
+      - name: Test bounded retention and diversity counterexamples
+        run: |
+          set -euo pipefail
+          cargo test --locked --package symtropy-hdc-physics --example episode_memory_retention
+
+      - name: Record diversity versus FIFO retention report
+        run: |
+          set -euo pipefail
+          cargo run --locked --package symtropy-hdc-physics --example episode_memory_retention > episode-memory-retention.tsv
+          grep -Fq $'META\tformat\tEPISODE-RETENTION-001-v0.1' episode-memory-retention.tsv
+          grep -Fq $'SUMMARY\tfifo_k4\t4\t1\t0.250\t4\t1\t65536\t0\t28\t24\t0\t16' episode-memory-retention.tsv
+          grep -Fq $'SUMMARY\tdiversity_novelty_k4\t4\t4\t1.000\t4\t4\t65536\t0\t4\t0\t24\t400' episode-memory-retention.tsv
+          grep -Fq $'SUMMARY\tunbounded_reference\t4\t4\t1.000\t28\t4\t458752\t0\t28\t0\t0\t112' episode-memory-retention.tsv
+          awk -F '\t' '
+            $1 == "CASE_HEADER" { if (NF != 9) bad=1; ch++ }
+            $1 == "CASE" { if (NF != 9) bad=1; c++ }
+            $1 == "SUMMARY_HEADER" { if (NF != 13) bad=1; sh++ }
+            $1 == "SUMMARY" { if (NF != 13) bad=1; s++ }
+            END { if (bad || ch != 1 || c != 12 || sh != 1 || s != 3) exit 1 }
+          ' episode-memory-retention.tsv
+          sha256sum episode-memory-retention.tsv > episode-memory-retention.sha256
+          sha256sum -c episode-memory-retention.sha256
+
       - name: Record exact-head qualification manifest
         run: |
           set -euo pipefail
@@ -66,18 +91,22 @@ jobs:
             printf 'META\ttoolchain\t%s\n' "$(rustc --version)"
             printf 'META\thdc_memory_source_sha256\t%s\n' "$(sha256sum crates/domains/symtropy-hdc-physics/src/memory.rs | awk '{print $1}')"
             printf 'META\techo_memory_source_sha256\t%s\n' "$(sha256sum src/systems/echo_memory.rs | awk '{print $1}')"
+            printf 'META\tretention_example_sha256\t%s\n' "$(sha256sum crates/domains/symtropy-hdc-physics/examples/episode_memory_retention.rs | awk '{print $1}')"
+            printf 'META\tretention_report_sha256\t%s\n' "$(sha256sum episode-memory-retention.tsv | awk '{print $1}')"
             printf 'META\tretention_policy\tfifo_oldest_first_after_write_validation\n'
             printf 'META\tlive_episode_capacity\t256\n'
-            printf 'META\tperformance_scope\tdata-structure and feature compile only; no robot or SOTA claim\n'
+            printf 'META\tperformance_scope\tdata-structure and synthetic retention contract only; no robot or SOTA claim\n'
           } > echo-memory-capacity-receipt.tsv
           sha256sum echo-memory-capacity-receipt.tsv > echo-memory-capacity-receipt.sha256
           sha256sum -c echo-memory-capacity-receipt.sha256
 
-      - name: Upload exact-head receipt
+      - name: Upload exact-head receipts and retention report
         uses: actions/upload-artifact@v4
         with:
           name: echo-memory-capacity-receipt
           path: |
             echo-memory-capacity-receipt.tsv
             echo-memory-capacity-receipt.sha256
+            episode-memory-retention.tsv
+            episode-memory-retention.sha256
           if-no-files-found: error
