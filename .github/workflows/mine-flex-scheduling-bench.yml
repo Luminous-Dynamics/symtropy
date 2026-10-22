@@ -1,0 +1,78 @@
+name: Mine Flexible Load Scheduling Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-flex-001-bench-v0-1"]
+    paths:
+      - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
+      - "tools/mine-flex-scheduling-bench/**"
+      - ".github/workflows/mine-flex-scheduling-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/MINE_FLEX_SCHEDULING_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-flex-scheduling-corpus-v0.1.json"
+      - "tools/mine-flex-scheduling-bench/**"
+      - ".github/workflows/mine-flex-scheduling-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-flex-scheduling-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- --check
+      - name: Run exact-oracle and hard-constraint tests
+        run: cargo test --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml
+      - name: Validate exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-scheduling-bench/Cargo.toml -- \
+            docs/tech/mine-flex-scheduling-corpus-v0.1.json \
+            --source-commit "$source_commit" > mine-flex-scheduling-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-FLEX-001"
+            and .scenario_count == 1
+            and .expected_controls_matched == 1
+            and .independent_checks_passed == true
+            and .hard_constraint_violations == 0
+            and .scenarios[0].status == "feasible"
+            and .scenarios[0].search_space_size == 36
+            and .scenarios[0].candidate_schedules_evaluated == 8
+            and .scenarios[0].feasible_schedule_count == 5
+            and .scenarios[0].best_schedule.batches == [1,3,0]
+            and .scenarios[0].best_schedule.total_grid_cost_units == 410
+            and .scenarios[0].best_schedule.total_grid_carbon_units == 152
+            and .scenarios[0].fixed_baseline_schedule.total_grid_cost_units == 590
+            and .scenarios[0].fixed_baseline_schedule.total_grid_carbon_units == 100
+            and ([.scenarios[0].pareto_frontier[] | {batches: .batches, grid_cost_units: .total_grid_cost_units, grid_carbon_units: .total_grid_carbon_units}] == [
+              {batches:[1,3,0],grid_cost_units:410,grid_carbon_units:152},
+              {batches:[2,2,0],grid_cost_units:450,grid_carbon_units:132},
+              {batches:[1,2,1],grid_cost_units:550,grid_carbon_units:120},
+              {batches:[2,1,1],grid_cost_units:590,grid_carbon_units:100}
+            ])
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+          ' mine-flex-scheduling-receipt.json
