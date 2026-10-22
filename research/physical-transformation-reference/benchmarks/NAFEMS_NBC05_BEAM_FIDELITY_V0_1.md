@@ -44,7 +44,7 @@ The first element-matrix implementation is in draft [PR #2559](https://github.co
 
 B0 acceptance tests cover local stiffness/mass symmetry, analytic axial stiffness and mass entries, bending-stiffness matrix entries, closed-form cantilever tip compliance/rotation under static load, explicit rotary-inertia scaling, and fail-closed input domains. Next add rigid-body modal checks, a beam generalized-eigenproblem, element coordinate transformation, shear-deformable comparison, and a blind global mesh-convergence test.
 
-A separate 3D Timoshenko local-element slice is now in draft PR #2630. It supplies 12 local DOFs, axial/torsional/shear-flexible bending blocks, explicit effective shear areas, and a declared lumped translational-plus-rotary-inertia mass model. Its mass rotary inertia uses \(I_p=I_y+I_z\), while torsional stiffness uses the distinct constant \(J\). Named tests cover the six rigid-body states. This is a different 3D element/model class from the 2D Euler-Bernoulli prototype and still does not qualify the global FV5 model.
+A separate 3D Timoshenko local-element slice is now in draft PR #2631. It supplies 12 local DOFs, axial/torsional/shear-flexible bending blocks, explicit effective shear areas, and a declared lumped translational-plus-rotary-inertia mass model. Its mass rotary inertia uses \(I_p=I_y+I_z\), while torsional stiffness uses the distinct constant \(J\). Named tests cover the six rigid-body states. This is a different 3D element/model class from the 2D Euler-Bernoulli prototype and still does not qualify the global FV5 model.
 
 A static stiffness matrix or a correct axial-bar frequency does not qualify beam dynamics.
 
