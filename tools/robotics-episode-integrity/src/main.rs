@@ -428,6 +428,12 @@ fn main() {
             process::exit(2);
         }
     };
+    if path == DEFAULT_CORPUS
+        && sha256_hex(&corpus_bytes) != sha256_hex(CORPUS_SOURCE)
+    {
+        eprintln!("runtime corpus differs from the corpus embedded in the compiled oracle");
+        process::exit(2);
+    }
     let corpus: Value = match serde_json::from_slice(&corpus_bytes) {
         Ok(value) => value,
         Err(error) => {
@@ -521,6 +527,74 @@ mod tests {
                 .iter()
                 .any(|reason| reason == "PLAN_VALIDATION_STALE"));
         }
+    }
+
+    #[test]
+    fn every_hard_gate_failure_after_validation_invalidates_the_plan() {
+        let root = corpus();
+        let initial = &root["initial_state"];
+        let baseline = root["episodes"][0].clone();
+        for (index, gate_key) in GATE_KEYS.iter().enumerate() {
+            let mut episode = baseline.clone();
+            let current_revision = initial["revisions"]["world"]
+                .as_u64()
+                .expect("world revision");
+            let events = episode["events"]
+                .as_array_mut()
+                .expect("event array");
+            events[2]["sequence"] = json!(4);
+            events.insert(
+                2,
+                json!({
+                    "sequence": 3,
+                    "kind": "state_changed",
+                    "revision_key": "world",
+                    "new_revision": current_revision + 1 + index as u64,
+                    "gate_effects": { gate_key: false }
+                }),
+            );
+            let result = evaluate_episode(&episode, initial);
+            assert_eq!(result.decision, BLOCKED, "{gate_key}");
+            assert!(result.reason_codes.iter().any(|r| r == "PLAN_VALIDATION_STALE"), "{gate_key}: {:?}", result.reason_codes);
+            assert!(result.reason_codes.iter().any(|r| r == "HARD_GATE_UNSATISFIED"), "{gate_key}: {:?}", result.reason_codes);
+        }
+    }
+
+    #[test]
+    fn restoring_a_gate_does_not_restore_old_plan_authority() {
+        let root = corpus();
+        let initial = &root["initial_state"];
+        let mut episode = root["episodes"][0].clone();
+        let world_revision = initial["revisions"]["world"].as_u64().expect("world revision");
+        let events = episode["events"].as_array_mut().expect("event array");
+        events[2]["sequence"] = json!(5);
+        events.insert(2, json!({
+            "sequence": 3,
+            "kind": "state_changed",
+            "revision_key": "world",
+            "new_revision": world_revision + 1,
+            "gate_effects": { "authorization_valid": false }
+        }));
+        events.insert(3, json!({
+            "sequence": 4,
+            "kind": "state_changed",
+            "revision_key": "world",
+            "new_revision": world_revision + 2,
+            "gate_effects": { "authorization_valid": true }
+        }));
+        let result = evaluate_episode(&episode, initial);
+        assert_eq!(result.decision, BLOCKED);
+        assert!(result.reason_codes.iter().any(|r| r == "PLAN_VALIDATION_STALE"));
+    }
+
+    #[test]
+    fn embedded_corpus_and_frozen_test_corpus_are_identical() {
+        let frozen = corpus();
+        let canonical = serde_json::to_vec(&frozen).expect("test corpus serializes");
+        let parsed_embedded: Value = serde_json::from_slice(CORPUS_SOURCE).expect("embedded corpus parses");
+        let embedded = serde_json::to_vec(&parsed_embedded).expect("embedded corpus serializes");
+        assert_eq!(canonical, embedded);
+        assert_eq!(sha256_hex(CORPUS_SOURCE), sha256_hex(include_bytes!("../../../docs/tech/robotics-plan-episode-integrity-corpus-v0.1.json")));
     }
 
     #[test]
