@@ -1265,6 +1265,106 @@ mod tests {
     }
 
     #[test]
+    fn finish_to_start_precedence_rejects_early_successor_and_accepts_valid_order() {
+        let dependency = OperationPrecedence {
+            constraint_id: "weld-before-paint".to_owned(),
+            predecessor_operation_id: "weld-block-a".to_owned(),
+            successor_operation_id: "paint-block-a".to_owned(),
+            minimum_lag_ticks: 2,
+        };
+        let baseline = ResourceSchedule {
+            precedence_constraints: vec![dependency.clone()],
+            reservations: vec![
+                reservation("weld", "weld-block-a", "station-1", "workstation", 0, 5),
+                reservation("paint", "paint-block-a", "station-2", "workstation", 7, 10),
+            ],
+        };
+        assert!(validate_schedule(&baseline).is_empty());
+
+        let candidate = ResourceSchedule {
+            precedence_constraints: vec![dependency],
+            reservations: vec![
+                reservation("weld", "weld-block-a", "station-1", "workstation", 0, 5),
+                reservation("paint", "paint-block-a", "station-2", "workstation", 6, 10),
+            ],
+        };
+        let report = evaluate_resource_recovery(&baseline, &candidate, 4, &[]);
+
+        assert!(!report.accepted);
+        assert!(!report.metrics.candidate_feasible_after_disruption);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::PrecedenceTimeConflict
+        }));
+    }
+
+    #[test]
+    fn precedence_cycles_and_unknown_operations_fail_closed() {
+        let schedule = ResourceSchedule {
+            precedence_constraints: vec![
+                OperationPrecedence {
+                    constraint_id: "a-before-b".to_owned(),
+                    predecessor_operation_id: "op-a".to_owned(),
+                    successor_operation_id: "op-b".to_owned(),
+                    minimum_lag_ticks: 0,
+                },
+                OperationPrecedence {
+                    constraint_id: "b-before-a".to_owned(),
+                    predecessor_operation_id: "op-b".to_owned(),
+                    successor_operation_id: "op-a".to_owned(),
+                    minimum_lag_ticks: 0,
+                },
+                OperationPrecedence {
+                    constraint_id: "c-before-missing".to_owned(),
+                    predecessor_operation_id: "op-c".to_owned(),
+                    successor_operation_id: "op-missing".to_owned(),
+                    minimum_lag_ticks: 0,
+                },
+            ],
+            reservations: vec![
+                reservation("r-a", "op-a", "station-a", "workstation", 0, 2),
+                reservation("r-b", "op-b", "station-b", "workstation", 3, 5),
+                reservation("r-c", "op-c", "station-c", "workstation", 6, 8),
+            ],
+        };
+
+        let violations = validate_schedule(&schedule);
+        assert!(violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::PrecedenceCycle
+        }));
+        assert!(violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::UnknownSuccessorOperation
+        }));
+    }
+
+    #[test]
+    fn candidate_cannot_delete_authoritative_operation_precedence() {
+        let dependency = OperationPrecedence {
+            constraint_id: "cut-before-inspection".to_owned(),
+            predecessor_operation_id: "cut".to_owned(),
+            successor_operation_id: "inspect".to_owned(),
+            minimum_lag_ticks: 0,
+        };
+        let baseline = ResourceSchedule {
+            precedence_constraints: vec![dependency],
+            reservations: vec![
+                reservation("cut-op", "cut", "station-1", "workstation", 0, 4),
+                reservation("inspect-op", "inspect", "inspector-1", "inspector", 4, 8),
+            ],
+        };
+        let candidate = ResourceSchedule {
+            precedence_constraints: Vec::new(),
+            reservations: baseline.reservations.clone(),
+        };
+        let report = evaluate_resource_recovery(&baseline, &candidate, 2, &[]);
+
+        assert!(!report.accepted);
+        assert!(!report.metrics.candidate_feasible_after_disruption);
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == ResourceViolationCode::PrecedenceConstraintsChanged
+        }));
+    }
+
+    #[test]
     fn future_resource_reservation_cannot_be_silently_dropped() {
         let baseline = ResourceSchedule {
             precedence_constraints: Vec::new(),
