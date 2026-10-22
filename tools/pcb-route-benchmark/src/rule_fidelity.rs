@@ -509,6 +509,76 @@ fn validate_assessment(assessment: &RuleAssessment, source_profile_present: bool
     Ok(())
 }
 
+fn verify_rule_evidence(
+    plan: &RuleFidelityPlan,
+    evidence_files: &BTreeMap<String, Vec<u8>>,
+) -> Result<Vec<VerifiedRuleEvidence>, String> {
+    let mut expected = Vec::<(String, String, String)>::new();
+    if let (Some(path), Some(digest)) = (
+        plan.strict_source_policy_derivation_evidence_relative_path.as_deref(),
+        plan.strict_source_policy_derivation_evidence_sha256.as_deref(),
+    ) {
+        expected.push((
+            "strict_source_policy_derivation".to_string(),
+            path.to_string(),
+            digest.to_string(),
+        ));
+    }
+    for assessment in &plan.rule_assessments {
+        if let (Some(path), Some(digest)) = (
+            assessment.mapping_evidence_relative_path.as_deref(),
+            assessment.mapping_evidence_sha256.as_deref(),
+        ) {
+            expected.push((
+                format!("rule_mapping:{}", assessment.rule_id),
+                path.to_string(),
+                digest.to_string(),
+            ));
+        }
+        if let (Some(path), Some(digest)) = (
+            assessment.waiver_evidence_relative_path.as_deref(),
+            assessment.waiver_evidence_sha256.as_deref(),
+        ) {
+            expected.push((
+                format!("rule_waiver:{}", assessment.rule_id),
+                path.to_string(),
+                digest.to_string(),
+            ));
+        }
+    }
+
+    let expected_paths: BTreeSet<&str> = expected.iter().map(|(_, path, _)| path.as_str()).collect();
+    if evidence_files.keys().any(|path| !expected_paths.contains(path.as_str())) {
+        return Err("rule-evidence input contains an unreferenced artifact".into());
+    }
+    let mut verified = Vec::with_capacity(expected.len());
+    for (purpose, relative_path, expected_sha) in expected {
+        validate_relative_path(&relative_path, "rule-evidence relative path")?;
+        require_sha256(&expected_sha, "rule-evidence SHA-256")?;
+        let bytes = evidence_files.get(&relative_path)
+            .ok_or_else(|| format!("rule-evidence file is missing: {relative_path}"))?;
+        if bytes.is_empty() {
+            return Err(format!("rule-evidence file is empty: {relative_path}"));
+        }
+        let actual = sha256_hex(bytes);
+        if actual != expected_sha {
+            return Err(format!("rule-evidence bytes SHA-256 mismatch: {relative_path}"));
+        }
+        verified.push(VerifiedRuleEvidence {
+            purpose,
+            relative_path,
+            byte_len: bytes.len() as u64,
+            sha256: actual,
+        });
+    }
+    verified.sort_by(|a, b| {
+        a.relative_path
+            .cmp(&b.relative_path)
+            .then_with(|| a.purpose.cmp(&b.purpose))
+    });
+    Ok(verified)
+}
+
 fn validate_policy_bytes(
     bytes: &[u8],
     expected_sha256: &str,
@@ -530,6 +600,14 @@ fn validate_policy_bytes(
         .ok_or_else(|| format!("{label} policy has no routing_violation_types array"))?;
     if routing_types.is_empty() || routing_types.iter().any(|v| v.as_str().is_none_or(str::is_empty)) {
         return Err(format!("{label} policy routing_violation_types must contain non-empty strings"));
+    }
+    let severities = value.get("blocking_severities").and_then(Value::as_array)
+        .ok_or_else(|| format!("{label} policy has no blocking_severities array"))?;
+    if severities.is_empty() || !severities.iter().any(|item| item.as_str() == Some("error")) {
+        return Err(format!("{label} policy must block error-severity violations"));
+    }
+    if value.get("block_unconnected_items").and_then(Value::as_bool) != Some(true) {
+        return Err(format!("{label} policy must block unconnected items"));
     }
     Ok(())
 }
