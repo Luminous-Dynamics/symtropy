@@ -55,7 +55,7 @@ This intentionally avoids inventing a single weighted score. Yard managers can r
 
 ## Tests authored in V0
 
-Thirty-one core recovery tests cover:
+Twenty-eight core recovery tests cover:
 1. a newly active zone invalidating a future reservation and the candidate recovering it without changing unaffected work;
 2. a vehicle outage requiring a transfer to be reassigned to another vehicle;
 3. failure when the candidate still uses an unavailable vehicle;
@@ -181,6 +181,12 @@ Each policy scenario carries \`observed_evidence_ids\`, the source-bound event/e
 This tests a more powerful planning abstraction than a static robust schedule: policy-level recourse with an explicit boundary between known observations and unobserved futures. It is not a stochastic optimizer and does not estimate scenario probabilities. Its correctness depends on callers supplying the actual immutable evidence references available at the decision cut—not convenient labels invented after seeing the future.
 
 The benchmark must compare three approaches on identical scenarios: (1) one fixed action for all cases, (2) an unconstrained clairvoyant per-scenario plan as an explicitly invalid upper-bound control, and (3) the non-anticipative policy evaluator. Report robustly accepted scenario count, false-feasible count, number of information sets/actions, worst recovery horizon and unaffected-work churn. Required target: zero acceptance of a policy that changes its action inside one information set, and zero false-feasible scenarios across independent small-case oracles. Do not compare policy quality unless all three approaches use the same scenario corpus and constraints.
+
+## Independent non-anticipative recourse oracle
+
+The integration test \`tests/nonanticipative_recourse_oracle.rs\` generates 512 pairs of possible future zone closures and candidate block positions in a 4×1 lattice yard. An independent single-cell predicate determines whether each action avoids its scenario's closed cell. A second predicate requires identical actions whenever both scenarios expose the same observed-evidence ID set. Every case also replays with reversed scenario input order to test deterministic reports.
+
+Frozen expected aggregates: 512 policy cases; 810 independently feasible scenario-actions across the 1,024 scenario slots; 204 policy pairs accepted robustly; and 190 same-information-set action mismatches explicitly rejected. The per-case assertions require exact agreement with the reference on scenario feasibility, policy acceptance, non-anticipativity violations, and input-order invariance. These are synthetic correctness targets, not a scheduling-quality claim; the candidate actions are generated rather than optimized.
 
 ## Audited decision eligibility: do not rank against an easier corpus
 
