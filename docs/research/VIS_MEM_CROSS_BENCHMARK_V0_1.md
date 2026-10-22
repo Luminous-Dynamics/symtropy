@@ -243,3 +243,30 @@ The 2026-10-22 sweep identified two useful public comparators beyond generic lon
 The design lesson is that minimizing recurrence alone is gameable: a policy can suppress every action, at the cost of blocking useful behavior. Measure repeat failures **and** false suppression, unrelated-task collateral, nominal action retention, recovery success, and stale-rule invalidation.
 
 The follow-on [VIS-MEM-013 #2614 / draft PR #2615](https://github.com/Luminous-Dynamics/symtropy/pull/2615) adds an independent synthetic Rust diagnostic comparing always-retry, global action taboo, context-keyed suppression, conditional repair, and replay-gated repair. A global taboo candidate must be rejected if it regresses protected cases; a task/object/context-scoped candidate must pass a finite contract before it can be promoted. The runtime policy API does not receive evaluator-safe-action labels. The current synthetic suite qualifies only action/precondition semantics; native comparisons require pinned eligible baseline weights, assets, evaluator, seed protocol, and license review.
+
+
+## First exact-head synthetic results (2026-10-22)
+
+Two Rust mechanism diagnostics have now produced qualified reports; both remain synthetic and must not be presented as native benchmark results.
+
+### VIS-MEM-011 transfer-under-mismatch
+
+Corrected head `14a13547de42a67281db571e514aab69d6c742e6`; focused workflow [#39713654827](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39713654827) and general CI passed. The exact report contains the 192-case finite matrix for each policy and the named control cases. In the matrix:
+
+| Strategy | Task success | Read of result |
+|---|---:|---|
+| No memory | 0.00% | Ordered task constraints are intentionally held in demonstration memory |
+| Fixed trajectory replay | 3.65% | Extremely brittle under starts/edges changed |
+| Nearest-demo replay | 51.04% | Recovers some changed-start utility but still follows trajectory |
+| Constraint planner | 81.25% | Replans from current graph while keeping stored waypoint order |
+| Guarded hybrid | 81.25% | No success gain over simpler planner on these cases |
+
+The constraint planner improves by 30.21 percentage points over nearest-demo replay in this tiny graph. The guarded hybrid offers no additional success, although it reuses a demonstration path in some cases instead of replanning. This is useful evidence against promotion based on added architectural complexity alone. Zero illegal graph edges were reported. The artifact TSV SHA-256 is `1c310754b9cbc54c8acd0fb0ad6708f346bb9683c093fd8e3375a606c7db4d88`.
+
+The first run exposed a waypoint-start accounting bug; the first-waypoint revisit contract was corrected and the current figures are from the regression-fixed head. These numbers are exact averages for the finite synthetic matrix, not results on a physical robot, not an external benchmark and not evidence of general SOTA.
+
+### VIS-MEM-012 counterfactual decision audit
+
+Qualified head `4cea6c46996c78a5b184c2b5438764b032ae7e5a`; [focused workflow #39713733432](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39713733432) and [general CI #39713733402](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39713733402) passed. In six authored paired cases, the authority-weighted resolver reached 100% warranted choice / bidirectional reliability and zero wrong actions; it clarified equal-authority irreducible conflicts. Relevant source-time recency reached 80% warranted choice, while relevant arrival-order recency reached 60%, with the latter failing the stale-arrival control. These are expected discriminations on a hand-authored contract test, not general accuracy estimates. Artifact TSV SHA-256: `9eb251efb887be26f73e291023e2f77c72fa8236163c3c3aa1cef6bd18045904`.
+
+VIS-MEM-013 (failure-conditioned memory) is implemented in draft PR #2615 but remains awaiting exact-head qualification. Its synthetic contract deliberately tests recurrence against overgeneralization and should not be represented as passing yet.
