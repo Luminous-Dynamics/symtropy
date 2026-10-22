@@ -878,5 +878,17 @@ mod tests {
         let mut altered = clean_candidate("other-board", 130_000, 18.0, 0);
         altered.checkpoint.board_id = "different".into();
         assert!(archive.record(altered).unwrap_err().contains("identity differs"));
+
+        let mut wrong_method = clean_candidate("wrong-method", 140_000, 18.0, 0);
+        wrong_method.checkpoint.method_id = "unrelated-router".into();
+        assert!(archive.record(wrong_method).unwrap_err().contains("method/configuration differs"));
+
+        let mut wrong_config = clean_candidate("wrong-config", 150_000, 18.0, 0);
+        wrong_config.checkpoint.router_config_sha256 = "3".repeat(64);
+        assert!(archive.record(wrong_config).unwrap_err().contains("method/configuration differs"));
+
+        let mut wrong_environment = clean_candidate("wrong-environment", 160_000, 18.0, 0);
+        wrong_environment.checkpoint.environment.cpu_model = "unrelated-cpu".into();
+        assert!(archive.record(wrong_environment).unwrap_err().contains("environment differs"));
     }
 }
