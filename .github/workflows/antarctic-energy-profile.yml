@@ -1,0 +1,37 @@
+name: Antarctic Energy Profile V0
+
+on:
+  pull_request:
+    paths:
+      - "research/antarctic-energy-resilience/**"
+      - "scripts/check-antarctic-energy-profile.sh"
+      - ".github/workflows/antarctic-energy-profile.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/antarctic-energy-resilience/**"
+      - "scripts/check-antarctic-energy-profile.sh"
+      - ".github/workflows/antarctic-energy-profile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: antarctic-energy-profile-v0-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-profile-audit:
+    name: Audit synthetic energy and storage ledgers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Verify jq is available
+        run: command -v jq
+
+      - name: Run independent fixture arithmetic checks
+        run: bash scripts/check-antarctic-energy-profile.sh
