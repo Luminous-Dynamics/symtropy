@@ -6,14 +6,12 @@ use physical_transformation_reference::beam_modal::{
     BeamModalMode, BeamModeClass, solve_beam_pin_assembly_modes,
 };
 use physical_transformation_reference::beam_pin_assembly::{
-    BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss,
-    canonical_assembly_request,
+    BeamPinMember, BeamPinNode, assemble_released_joint_pin_truss, canonical_assembly_request,
 };
 use std::env;
 use std::process::ExitCode;
 
-const FROZEN_REQUEST: &str =
-    include_str!("../../fixtures/beam_pin_assembly_request_v0_1.txt");
+const FROZEN_REQUEST: &str = include_str!("../../fixtures/beam_pin_assembly_request_v0_1.txt");
 
 fn main() -> ExitCode {
     match run() {
@@ -188,9 +186,7 @@ fn mode_json(index: usize, mode: &BeamModalMode) -> String {
 fn parse_source_commit() -> Result<String, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 2 || args[0] != "--source-commit" {
-        return Err(
-            "usage: beam-pin-modal-reference --source-commit <40-char-git-sha>".to_owned(),
-        );
+        return Err("usage: beam-pin-modal-reference --source-commit <40-char-git-sha>".to_owned());
     }
     let value = &args[1];
     if value.len() != 40 || !value.chars().all(|character| character.is_ascii_hexdigit()) {

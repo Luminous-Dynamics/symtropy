@@ -22,11 +22,19 @@ name = "modal-bar-reference"
 path = "src/bin/modal-bar-reference.rs"
 
 [[bin]]
+name = "beam-pin-assembly-reference"
+path = "src/bin/beam-pin-assembly-reference.rs"
+
+[[bin]]
 name = "nafems-nbc05-modal-reference"
 path = "src/bin/nafems-nbc05-modal-reference.rs"
 
 [[bin]]
 name = "beam-pin-modal-reference"
 path = "src/bin/beam-pin-modal-reference.rs"
+
+[[bin]]
+name = "beam-chain-modal-sweep-reference"
+path = "src/bin/beam-chain-modal-sweep-reference.rs"
 
 [workspace]

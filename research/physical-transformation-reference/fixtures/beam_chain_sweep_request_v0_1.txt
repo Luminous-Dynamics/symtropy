@@ -1,0 +1,1 @@
+schema=beam-chain-modal-sweep-request-v0.1|fixture=PHYS-BEAM-CHAIN-MODAL-001|element_counts_per_member=1,2,4,8|joint|A|0|1|true|true|joint|B|0|0|true|true|joint|C|1|1|false|false|chain|AC|A|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|chain|BC|B|C|0.0003141592653589793|210000000000|7800|0.000000007853981633974483

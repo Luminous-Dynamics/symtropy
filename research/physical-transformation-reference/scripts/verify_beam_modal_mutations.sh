@@ -55,6 +55,17 @@ run_mutation() {
       perl -0pi -e 's/let mass_norm = quadratic_form\(&mass_reduced, &shape_free\)\?;/let mass_norm = shape_free.iter().map(|value| value * value).sum::<f64>();/' "$source"
       grep -Fq 'let mass_norm = shape_free.iter().map(|value| value * value).sum::<f64>();' "$source"
       ;;
+    negative_mode_misclassified_as_mechanism)
+      grep -Fq 'if eigenvalue < -zero_tolerance {' "$source"
+      perl -0pi -e 's/if eigenvalue < -zero_tolerance \{/if eigenvalue < -zero_tolerance \&\& false {/' "$source"
+      grep -Fq 'if eigenvalue < -zero_tolerance && false {' "$source"
+      ;;
+    hermite_rotation_interpolation_sign)
+      grep -Fq 'let transverse = h1 * transverse_i' "$source"
+      grep -Fq '+ h2 * element_length * rotation_i' "$source"
+      perl -0pi -e 's/\+ h2 \* element_length \* rotation_i/- h2 * element_length * rotation_i/' "$source"
+      grep -Fq '- h2 * element_length * rotation_i' "$source"
+      ;;
     *)
       printf 'Unknown beam modal mutation: %s\n' "$mutation" >&2
       return 2
@@ -90,6 +101,14 @@ run_mutation \
   "wrong-modal-norm" \
   euclidean_instead_of_generalized_mass_norm \
   modes_preserve_all_free_dofs_and_have_small_residuals
+run_mutation \
+  "negative-mode-misclassified" \
+  negative_mode_misclassified_as_mechanism \
+  negative_eigenvalues_are_reported_as_unstable_not_silently_dropped
+run_mutation \
+  "hermite-rotation-interpolation-sign" \
+  hermite_rotation_interpolation_sign \
+  fixed_grid_mode_sampling_is_invariant_for_rigid_rotation_across_meshes
 
 test "$modal_sha256" = "$(sha256sum "$crate_dir/src/beam_modal.rs" | awk '{print $1}')"
 
@@ -127,11 +146,23 @@ jq -n \
         expected_test: "modes_preserve_all_free_dofs_and_have_small_residuals",
         disposition: "detected"
       }
+      ,
+      {
+        id: "PHYS-BEAM-MOD-NEGATIVE-CLASS-001",
+        expected_test: "negative_eigenvalues_are_reported_as_unstable_not_silently_dropped",
+        disposition: "detected"
+      }
+      ,
+      {
+        id: "PHYS-BEAM-MOD-HERMITE-SAMPLING-001",
+        expected_test: "fixed_grid_mode_sampling_is_invariant_for_rigid_rotation_across_meshes",
+        disposition: "detected"
+      }
     ],
     mutation_count: 4,
     detected_count: 4,
     production_source_unchanged: true,
-    claim_ceiling: "software test sensitivity for synthetic one-element-per-member generalized modal solve; no refined NAFEMS spectrum or physical validation"
+    claim_ceiling: "software test sensitivity for synthetic generalized modal solve and fixed-grid mode sampling; no 200-element NAFEMS spectrum or physical validation"
   }' > "$receipt_path"
 
 printf 'PASS beam-modal mutation receipt: %s\n' "$receipt_path"
