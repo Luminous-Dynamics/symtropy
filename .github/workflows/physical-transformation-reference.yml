@@ -90,6 +90,78 @@ jobs:
           cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
           cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Verify release-aware beam mesh mutation sensitivity
+        shell: bash
+        run: bash research/physical-transformation-reference/scripts/verify_beam_mesh_assembly_mutations.sh
+
+      - name: Re-verify beam mesh assembly source after mutation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD -- research/physical-transformation-reference/src/beam_mesh_assembly.rs
+          cargo fmt --manifest-path research/physical-transformation-reference/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path research/physical-transformation-reference/Cargo.toml
+          cargo clippy --locked --manifest-path research/physical-transformation-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate and verify deterministic release-aware beam mesh receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mesh-assembly-reference -- \
+            --source-commit "$source_commit" > beam-mesh-assembly-raw-a.json
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml --bin beam-mesh-assembly-reference -- \
+            --source-commit "$source_commit" > beam-mesh-assembly-raw-b.json
+          cmp --silent beam-mesh-assembly-raw-a.json beam-mesh-assembly-raw-b.json
+          request_canonical="$(tr -d '\n' < research/physical-transformation-reference/fixtures/beam_mesh_continuity_request_v0_1.txt)"
+          test "$(jq -r '.request_canonical' beam-mesh-assembly-raw-a.json)" = "$request_canonical"
+          test "$request_canonical" = "schema=beam-mesh-assembly-request-v0.1|fixture=PHYS-BEAM-MESH-CONTINUITY-001|node|A|0|1|true|true|false|node|B|0|0|true|true|false|node|C|1|1|false|false|false|node|D|0.5|1|false|false|false|node|E|0.5|0.5|false|false|false|element|AC-1|A|D|true|false|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|euler-bernoulli-consistent-translational-plus-rotary-mass|element|AC-2|D|C|false|true|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|euler-bernoulli-consistent-translational-plus-rotary-mass|element|BC-1|B|E|true|false|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|euler-bernoulli-consistent-translational-plus-rotary-mass|element|BC-2|E|C|false|true|0.0003141592653589793|210000000000|7800|0.000000007853981633974483|euler-bernoulli-consistent-translational-plus-rotary-mass"
+          request_sha256="$(printf '%s' "$request_canonical" | sha256sum | awk '{print $1}')"
+          test "$request_sha256" = "1463adc8645838f54a6fe8d64dc0472e6719cd32b388bc45ac98fc5546ec7144"
+          crate_tree_sha256="$(
+            git ls-files research/physical-transformation-reference |
+              LC_ALL=C sort |
+              xargs -r sha256sum |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          jq --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            . + {
+              request_sha256: $request_sha256,
+              request_digest_algorithm: "SHA-256 of canonical UTF-8 request bytes without final newline",
+              crate_source_tree_sha256: $crate_tree_sha256,
+              source_digest_algorithm: "SHA-256 over sorted per-file SHA-256 records for git-tracked reference-crate files"
+            }
+          ' beam-mesh-assembly-raw-a.json > beam-mesh-assembly-receipt.json
+          jq -e --arg source_commit "$source_commit" --arg request_sha256 "$request_sha256" --arg crate_tree_sha256 "$crate_tree_sha256" '
+            .schema_version == "beam-mesh-assembly-receipt-v0.1"
+            and .benchmark_id == "PHYS-BEAM-MESH-CONTINUITY-001"
+            and .source_commit == $source_commit
+            and .request_sha256 == $request_sha256
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+            and .crate_source_tree_sha256 == $crate_tree_sha256
+            and (.crate_source_tree_sha256 | test("^[0-9a-f]{64}$"))
+            and .evidence_class == "deterministic-software-assembly"
+            and .result == "pass"
+            and .node_count == 5
+            and .element_count == 4
+            and .dof_count == 16
+            and .fixed_dof_indices == [0,1,2,3]
+            and .free_dof_indices == [4,5,6,7,8,9,10,11,12,13,14,15]
+            and .shared_rotation_node_ids == ["D","E"]
+            and .private_release_rotation_indices == [12,13,14,15]
+            and .shared_interior_rotation_count == 2
+            and .private_release_rotation_count == 4
+            and .invariants.input_permutation_invariant == true
+            and .invariants.canonical_request_equals_frozen_fixture == true
+            and .invariants.global_stiffness_symmetric == true
+            and .invariants.global_mass_symmetric == true
+            and .invariants.released_joint_rotations_private == true
+            and .invariants.interior_mesh_rotations_shared == true
+            and (.claim_ceiling | contains("no eigenvalues"))
+          ' beam-mesh-assembly-receipt.json
+
       - name: Verify released-joint beam assembly mutation sensitivity
         shell: bash
         run: bash research/physical-transformation-reference/scripts/verify_beam_pin_assembly_mutations.sh
@@ -463,6 +535,8 @@ jobs:
             beam-element-mutation-receipt.json
             beam-pin-assembly-mutation-receipt.json
             beam-pin-assembly-receipt.json
+            beam-mesh-assembly-mutation-receipt.json
+            beam-mesh-assembly-receipt.json
             beam-pin-assembly-mutation-receipt.json
           if-no-files-found: error
           retention-days: 90
