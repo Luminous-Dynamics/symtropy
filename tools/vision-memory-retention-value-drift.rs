@@ -478,30 +478,41 @@ struct Row {
     oracle_utility: i64,
 }
 
-fn run_row(workload: Workload, seed: usize, budget: usize, policy: Policy) -> Row {
+fn run_rows(workload: Workload, seed: usize, budget: usize) -> Vec<Row> {
     let mixed_seed = 0x71_9d_21_a5_0000_0001_u64
         ^ (seed as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
         ^ ((Workload::ALL.iter().position(|w| *w == workload).unwrap() as u64 + 1) << 40);
     let (events, latest_revisions, mut future_rng) = build_online_stream(workload, mixed_seed);
-    let replayed = replay(&events, policy, budget);
-    // The evaluation trace is generated only after this policy snapshot freezes.
+
+    // Freeze every policy's memory snapshot before creating any held-out query.
+    let snapshots: Vec<(Policy, Replay)> = Policy::ALL
+        .into_iter()
+        .map(|policy| (policy, replay(&events, policy, budget)))
+        .collect();
+
+    // One shared held-out trace is sampled only after all matched snapshots freeze.
     let future = build_future_queries(workload, &latest_revisions, &mut future_rng);
-    let score = score_future(&replayed.entries, &future);
     let oracle_utility = hindsight_upper_bound(&latest_revisions, &future, budget);
 
-    Row {
-        workload,
-        seed,
-        budget,
-        policy,
-        score,
-        comparisons: replayed.comparisons,
-        writes: replayed.writes,
-        evictions: replayed.evictions,
-        retained: replayed.entries.len(),
-        logical_bytes: replayed.entries.len() * SLOT_BYTES,
-        oracle_utility,
-    }
+    snapshots
+        .into_iter()
+        .map(|(policy, replayed)| {
+            let score = score_future(&replayed.entries, &future);
+            Row {
+                workload,
+                seed,
+                budget,
+                policy,
+                score,
+                comparisons: replayed.comparisons,
+                writes: replayed.writes,
+                evictions: replayed.evictions,
+                retained: replayed.entries.len(),
+                logical_bytes: replayed.entries.len() * SLOT_BYTES,
+                oracle_utility,
+            }
+        })
+        .collect()
 }
 
 fn report() -> String {
@@ -522,9 +533,7 @@ fn report() -> String {
     for workload in Workload::ALL {
         for budget in BUDGETS {
             for seed in 0..SEEDS {
-                for policy in Policy::ALL {
-                    rows.push(run_row(workload, seed, budget, policy));
-                }
+                rows.extend(run_rows(workload, seed, budget));
             }
         }
     }
