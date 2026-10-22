@@ -549,6 +549,15 @@ fn material_for_sweep() -> PlaneStrainMaterial {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MaterialSweepPoint {
+    pub poisson_ratio: f64,
+    pub lambda_over_mu: f64,
+    pub smallest_positive_eigenvalue: f64,
+    pub largest_positive_eigenvalue: f64,
+    pub element_nonrigid_condition_number: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PatchProbe {
     pub elements: usize,
     pub interior_nodes: usize,
@@ -574,6 +583,47 @@ fn affine_displacement(point: Point2) -> Vec2 {
         x: 0.13 + 0.021 * point.x - 0.037 * point.y,
         y: -0.17 + 0.043 * point.x + 0.052 * point.y,
     }
+}
+
+/// Measure how the local CST stiffness spectrum changes as isotropic plane strain
+/// approaches incompressibility. This diagnoses local stiffness scaling only; it
+/// does not measure volumetric locking, which requires a global displacement-error
+/// or benchmark-response study.
+pub fn run_material_conditioning_sweep() -> Result<Vec<MaterialSweepPoint>, ElementError> {
+    let poisson_ratios = [0.3, 0.49, 0.4999, 0.49999];
+    let vertices = [
+        Point2 { x: 0.0, y: 0.0 },
+        Point2 { x: 1.0, y: 0.0 },
+        Point2 { x: 0.5, y: 0.7 },
+    ];
+    let mut points = Vec::with_capacity(poisson_ratios.len());
+    for poisson_ratio in poisson_ratios {
+        let material = PlaneStrainMaterial::new(1.0, poisson_ratio)
+            .expect("frozen material sweep parameters are admissible");
+        let element = TriangleElement::new(vertices, material, 1.0)?;
+        let (lambda, mu) = material.lame_parameters();
+        let spectrum = element.spectrum()?;
+        let point = MaterialSweepPoint {
+            poisson_ratio,
+            lambda_over_mu: lambda / mu,
+            smallest_positive_eigenvalue: spectrum.smallest_positive_eigenvalue,
+            largest_positive_eigenvalue: spectrum.largest_positive_eigenvalue,
+            element_nonrigid_condition_number: spectrum.nonrigid_condition_number,
+        };
+        if !(point.lambda_over_mu.is_finite()
+            && point.smallest_positive_eigenvalue.is_finite()
+            && point.largest_positive_eigenvalue.is_finite()
+            && point.element_nonrigid_condition_number.is_finite()
+            && point.lambda_over_mu > 0.0
+            && point.smallest_positive_eigenvalue > 0.0
+            && point.largest_positive_eigenvalue >= point.smallest_positive_eigenvalue
+            && point.element_nonrigid_condition_number >= 1.0)
+        {
+            return Err(ElementError::InvalidStiffnessSpectrum);
+        }
+        points.push(point);
+    }
+    Ok(points)
 }
 
 /// Assemble an affine-strain patch using the independent element kernel.
@@ -1161,6 +1211,23 @@ mod tests {
         assert!(
             sweep.last().unwrap().element_nonrigid_condition_number > 1.0e7,
             "{sweep:?}"
+        );
+    }
+
+
+    #[test]
+    fn near_incompressibility_increases_lame_ratio_and_local_conditioning() {
+        let sweep = run_material_conditioning_sweep().unwrap();
+        assert_eq!(sweep.len(), 4);
+        assert!(sweep.windows(2).all(|pair| {
+            pair[1].poisson_ratio > pair[0].poisson_ratio
+                && pair[1].lambda_over_mu > pair[0].lambda_over_mu
+                && pair[1].element_nonrigid_condition_number
+                    > pair[0].element_nonrigid_condition_number
+        }));
+        assert!(sweep.last().unwrap().lambda_over_mu > 1.0e4);
+        assert!(
+            sweep.last().unwrap().element_nonrigid_condition_number > 1.0e4
         );
     }
 
