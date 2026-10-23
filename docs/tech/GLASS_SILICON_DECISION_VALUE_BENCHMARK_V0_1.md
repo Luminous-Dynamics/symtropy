@@ -189,7 +189,7 @@ The synthetic fixture contains four scenarios and two crossed binary measurement
 
 The fixture's test target is therefore: pre-measurement worst-case regret 6; two-measurement adaptive regret 0; gross regret reduction 6; maximum two measurements per path; and deterministic branch-specific action choices. One-step budgets of one measurement should choose the no-measurement stop option on a tie, because it achieves equal worst-case regret at lower cost. If the cumulative budget cannot fund the complementary pair, the oracle should retain the safe stop action rather than overspend.
 
-The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Seven adaptive unit tests cover the complementary two-step solution, resolution when no robust pre-measurement action exists, abstention when the budget cannot fund resolution, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
+The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Eight adaptive unit tests cover the complementary two-step solution, resolution when no robust pre-measurement action exists, abstention when the budget cannot fund resolution, a one-step cap, the step ceiling, a measurement-count ceiling, graceful stopping when the joint experiment budget cannot be met, and drift/invalid-measurement recovery.
 
 ### Next scientific benchmark, once the exact reference is qualified
 
@@ -246,7 +246,8 @@ The deterministic adaptive fixture is insufficient by itself: real sensors can d
 The new `adaptive-decision-pool-drift-failure.synthetic.json` stress fixture represents two underlying process regimes crossed with three primary-instrument conditions: clean, drifted/misclassified, and invalid. Its action/feasibility values preserve the latent regime, while measurement outputs encode the possible signals. In this fixture, the primary reading can be misleading or invalid. The secondary test is only decisive on those ambiguous/failure branches; the comprehensive, perfectly discriminating test is excluded because it exceeds the declared resource caps.
 
 Expected oracle behavior:
-- choose the primary test first and the secondary test after every ambiguous or invalid observation;
+- the one-step comparator leaves worst-case regret at 6 synthetic units (gross reduction 0), even after selecting its best eligible single measurement;
+- choose the primary test first; stop after the unambiguous `signal-a` branch, and select the secondary test only after the mixed `signal-b` branch or the `invalid` branch;
 - achieve terminal worst-case regret 0 while remaining feasible at each leaf;
 - never exceed total path cost 4 synthetic reference units or 20 synthetic seconds;
 - exclude the over-budget perfect-information test;
