@@ -19,6 +19,8 @@ Fifteen definitions cover polar-night resource deficit, wind icing, battery dera
 
 Each case records scope, required inputs, measures, hard gates and assumptions. All are marked `not_run`; none encodes universal temperature thresholds or asserts validated behavior.
 
+The [stressor-to-measurement matrix](STRESSOR_MEASUREMENT_MATRIX.md) defines observables, minimum model/data evidence and a falsification probe for each of the 15 stressors. Before tuning any candidate, use the [benchmark preregistration template](benchmark/PREREGISTRATION_TEMPLATE.md) to freeze splits, thresholds, baselines, tuning budgets and exclusions.
+
 ## Benchmark protocol
 
 Freeze site envelope, source/model revisions, scenario splits, hard constraints and resource budgets before evaluation. Compare incumbent, transparent rules, conventional optimization (LP/MILP/MPC where applicable), robust/stochastic methods when supported, candidate and ablations. Use held-out scenarios and deliberately defective input/controller cases.
