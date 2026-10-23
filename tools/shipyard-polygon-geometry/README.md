@@ -38,6 +38,10 @@ These are shape-representation deltas, not the paper's yard-utilization scores. 
 
 The appendix does not supply a complete machine-readable Case9_50_4 corpus in the article download; the associated simulation data are available from the corresponding author upon request. Do not substitute the current synthetic orthogonal shapes for a paper reproduction. The source-authorized profile set and exact aisle/yard assumptions must be pinned first.
 
+## Oblique-shape controls
+
+In addition to the orthogonal raster corpus, the unit suite has explicit non-axis-aligned triangle cases: proper-crossing overlap with no strictly contained input vertices, disjoint interiors whose AABBs overlap, and diagonal boundary-only contact. These expected-relation tests complement the raster oracle; they are not yet a full independent arbitrary-polygon differential corpus.
+
 ## Limits
 
 This is only a planar footprint predicate layer. It does not establish swept-path clearance, access routes, rotation during movement, load support, stacking, floor bearing, vertical clearance, crane envelopes, lift physics, human safety or operational authorization. It has not yet been connected to the existing finite-yard verifier and has not been CI-confirmed at this commit.
