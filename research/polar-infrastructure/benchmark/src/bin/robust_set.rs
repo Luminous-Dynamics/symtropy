@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn rejects_probability_fields_and_other_unknown_json_fields() {
-        let mut value: serde_json::Value = serde_json::to_value(fixture()).unwrap();
+        let mut value: serde_json::Value = serde_json::from_str(include_str!("../../fixtures/toy-robust-set.json")).unwrap();
         value["scenarios"][0]["probability"] = serde_json::json!(0.9);
         assert!(serde_json::from_value::<RobustSetInput>(value).is_err());
     }
