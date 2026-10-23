@@ -29,6 +29,8 @@ pub struct Resource {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Completion {
     pub operation_id: String,
+    pub resource_id: String,
+    pub start_tick: Tick,
     pub completed_at_tick: Tick,
 }
 
@@ -245,8 +247,9 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     }
 
     let mut completion_map = BTreeMap::<String, Tick>::new();
+    let mut completion_intervals = BTreeMap::<String, Assignment>::new();
     for completion in &input.completed {
-        if !operation_map.contains_key(&completion.operation_id) {
+        let Some(operation) = operation_map.get(&completion.operation_id) else {
             push(
                 &mut diagnostics,
                 "UNKNOWN_COMPLETED_OPERATION",
@@ -254,13 +257,53 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 "completed operation is not in instance",
             );
             continue;
-        }
+        };
+        let Some(resource) = resource_map.get(&completion.resource_id) else {
+            push(
+                &mut diagnostics,
+                "UNKNOWN_COMPLETED_RESOURCE",
+                Some(&completion.operation_id),
+                format!("completed work references unknown resource {}", completion.resource_id),
+            );
+            continue;
+        };
         if completion.completed_at_tick > input.decision_tick {
             push(
                 &mut diagnostics,
                 "FUTURE_COMPLETION",
                 Some(&completion.operation_id),
                 "completion is after the declared decision tick",
+            );
+        }
+        if completion.start_tick >= completion.completed_at_tick {
+            push(
+                &mut diagnostics,
+                "INVALID_COMPLETION_INTERVAL",
+                Some(&completion.operation_id),
+                "completed work must have a positive start-to-completion interval",
+            );
+        } else if completion.completed_at_tick - completion.start_tick != operation.duration_ticks {
+            push(
+                &mut diagnostics,
+                "COMPLETED_DURATION_MISMATCH",
+                Some(&completion.operation_id),
+                "historical completion interval differs from declared operation duration",
+            );
+        }
+        if completion.start_tick < operation.release_tick {
+            push(
+                &mut diagnostics,
+                "COMPLETED_STARTS_BEFORE_RELEASE",
+                Some(&completion.operation_id),
+                "historical operation starts before its release tick",
+            );
+        }
+        if resource.kind != operation.resource_kind {
+            push(
+                &mut diagnostics,
+                "COMPLETED_RESOURCE_KIND_MISMATCH",
+                Some(&completion.operation_id),
+                "historical completion uses a resource of the wrong kind",
             );
         }
         if completion_map
@@ -274,6 +317,16 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 "an operation can be completed only once",
             );
         }
+        completion_intervals.insert(
+            completion.operation_id.clone(),
+            Assignment {
+                operation_id: completion.operation_id.clone(),
+                resource_id: completion.resource_id.clone(),
+                start_tick: completion.start_tick,
+                end_tick: completion.completed_at_tick,
+                frozen: false,
+            },
+        );
     }
 
     let mut expected_frozen = BTreeMap::<String, FrozenCommitment>::new();
@@ -459,8 +512,47 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     }
     missing_operation_ids.sort();
 
-    // Unary resources may never be occupied by overlapping intervals.
-    let mut assigned: Vec<&Assignment> = input.assignments.iter().collect();
+    // Validate evaluator truth even if no candidate happened to use the resource.
+    let mut outage_ids = BTreeSet::new();
+    for outage in &input.evaluator_outages {
+        if outage.event_id.trim().is_empty() {
+            push(
+                &mut diagnostics,
+                "EMPTY_EVALUATOR_OUTAGE_ID",
+                None,
+                "evaluator outage IDs must be non-empty",
+            );
+        } else if !outage_ids.insert(outage.event_id.as_str()) {
+            push(
+                &mut diagnostics,
+                "DUPLICATE_EVALUATOR_OUTAGE_ID",
+                None,
+                format!("evaluator outage ID {} is duplicated", outage.event_id),
+            );
+        }
+        if !resource_map.contains_key(&outage.resource_id) {
+            push(
+                &mut diagnostics,
+                "UNKNOWN_EVALUATOR_OUTAGE_RESOURCE",
+                None,
+                format!("evaluator outage {} references unknown resource {}", outage.event_id, outage.resource_id),
+            );
+        }
+        if outage.effective_until_tick <= outage.effective_from_tick {
+            push(
+                &mut diagnostics,
+                "INVALID_EVALUATOR_OUTAGE_INTERVAL",
+                None,
+                format!("outage {} has a non-positive interval", outage.event_id),
+            );
+        }
+    }
+
+    // Unary resources may never be occupied by overlapping intervals. Historical
+    // completions are included so a partially completed episode is checked too.
+    let mut occupied: Vec<Assignment> = input.assignments.clone();
+    occupied.extend(completion_intervals.values().cloned());
+    let mut assigned: Vec<&Assignment> = occupied.iter().collect();
     assigned.sort_by(|a, b| {
         a.resource_id
             .cmp(&b.resource_id)
@@ -487,16 +579,12 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
         for outage in input
             .evaluator_outages
             .iter()
-            .filter(|outage| outage.resource_id == left.resource_id)
+            .filter(|outage| {
+                outage.resource_id == left.resource_id
+                    && outage.effective_until_tick > outage.effective_from_tick
+            })
         {
-            if outage.effective_until_tick <= outage.effective_from_tick {
-                push(
-                    &mut diagnostics,
-                    "INVALID_EVALUATOR_OUTAGE_INTERVAL",
-                    None,
-                    format!("outage {} has a non-positive interval", outage.event_id),
-                );
-            } else if overlaps(
+            if overlaps(
                 left.start_tick,
                 left.end_tick,
                 outage.effective_from_tick,
@@ -517,7 +605,7 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
         let successor_start = assignment_by_operation
             .get(&operation.id)
             .map(|assignment| assignment.start_tick)
-            .or_else(|| completion_map.get(&operation.id).copied());
+            .or_else(|| completion_intervals.get(&operation.id).map(|item| item.start_tick));
         if let Some(successor_start) = successor_start {
             for predecessor_id in &operation.predecessor_ids {
                 let predecessor_end = assignment_by_operation
@@ -568,6 +656,15 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     }
     for completion in &input.completed {
         makespan_tick = Some(makespan_tick.unwrap_or(0).max(completion.completed_at_tick));
+        if let Some(operation) = operation_map.get(&completion.operation_id) {
+            let tardiness = completion.completed_at_tick.saturating_sub(operation.due_tick);
+            metric_add(
+                &mut total_tardiness_ticks,
+                tardiness,
+                &mut diagnostics,
+                "TARDINESS_METRIC_OVERFLOW",
+            );
+        }
     }
 
     sort_diagnostics(&mut diagnostics);
@@ -664,7 +761,7 @@ mod tests {
     #[test]
     fn rejects_mandatory_work_omission() {
         let mut input = base_input();
-        input.assignments.pop();
+        input.assignments.remove(0);
         let report = audit_schedule(&input);
         assert_eq!(report.status, AuditStatus::Rejected);
         assert!(has_code(&report, "MANDATORY_OPERATION_OMITTED"));
