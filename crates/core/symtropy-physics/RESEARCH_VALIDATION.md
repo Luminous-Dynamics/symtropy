@@ -75,7 +75,17 @@ Required first suite:
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
 
-The included `free_fall_validation` example is the reference format.
+The included `free_fall_validation` example is the first executable translational regression gate. The `constant_force_validation` example checks repeated external-force accumulation separately from gravity. The `harmonic_oscillator_validation` example checks the linearly stable timestep envelope for an undamped Hooke-law oscillator and measures the observed convergence orders separately for position and velocity.
+
+Run the three current analytical translational cases from the workspace root:
+
+```bash
+cargo run --release --example free_fall_validation
+cargo run --release --example constant_force_validation
+cargo run --release --example harmonic_oscillator_validation
+```
+
+The executables emit machine-readable measurements and should fail non-zero when declared expectations or timestep-convergence checks fail. These are narrow analytical cases, not evidence for contact, articulation, structural, fatigue, or material validity.
 
 ### Tier C — Independent implementation comparison
 
