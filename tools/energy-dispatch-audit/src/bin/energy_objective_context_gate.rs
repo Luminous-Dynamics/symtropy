@@ -124,6 +124,44 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err(reject("base/transformed candidate identity or synthetic boundary mismatch"));
     }
 
+    // Reconstruct the only permitted transform from the exact generated parent.
+    // This proves that capacities, topology, ports, service requirements,
+    // objectives, claims and chronology were not silently altered.
+    let mut expected_transformed = base.clone();
+    expected_transformed["candidate_id"] = serde_json::json!(known.candidate_id);
+    expected_transformed["generator"]["name"] =
+        serde_json::json!("symtropy-energy-objective-context-transform");
+    expected_transformed["generator"]["version"] = serde_json::json!("0.1.0");
+    expected_transformed["system_boundary"]["description"] = serde_json::json!(
+        "Synthetic single-site essential electric service hub with an explicit first-interval PV availability derate stress scenario."
+    );
+    let mut parent_scenario_description = expected_transformed["scenarios"][0]["description"]
+        .as_str()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "base scenario description missing"))?
+        .to_owned();
+    parent_scenario_description.push_str(
+        " Explicit stress transformation: PV available energy is reduced from 2 kWh to 1 kWh in the surplus interval; the component's 2 kWh cap remains an upper bound, not a forecast."
+    );
+    expected_transformed["scenarios"][0]["description"] =
+        serde_json::json!(parent_scenario_description);
+    let pv_resource = expected_transformed["scenarios"][0]["intervals"]
+        .as_array_mut()
+        .and_then(|intervals| intervals.iter_mut().find(|interval| {
+            interval.get("interval_id").and_then(Value::as_str) == Some("pv-surplus")
+        }))
+        .and_then(|interval| interval.get_mut("resource_available_kwh"))
+        .and_then(Value::as_array_mut)
+        .and_then(|resources| resources.iter_mut().find(|resource| {
+            resource.get("component_id").and_then(Value::as_str) == Some("pv")
+        }))
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "base candidate has no PV surplus resource"))?;
+    pv_resource["available_kwh"] = serde_json::json!(1.0);
+    if expected_transformed != candidate {
+        return Err(reject(
+            "transformed candidate contains changes beyond the single declared PV availability derate and transformation metadata",
+        ));
+    }
+
     let base_digest = sha256_hex(&base_bytes);
     let candidate_digest = sha256_hex(&candidate_bytes);
     if string_field(&transform_receipt, "base_candidate_sha256")? != base_digest
@@ -131,6 +169,18 @@ fn run() -> Result<(), Box<dyn Error>> {
         || string_field(&transform_receipt, "base_candidate_id")? != known.base_candidate_id
         || string_field(&transform_receipt, "transformed_candidate_id")? != known.candidate_id
         || string_field(&transform_receipt, "transform_id")? != known.transformation_id
+        || string_field(&transform_receipt, "receipt_schema_version")? != "1"
+        || string_field(&transform_receipt, "digest_algorithm")? != "SHA-256"
+        || string_field(&transform_receipt, "digest_scope")?
+            != "exact_base_candidate_bytes_and_exact_transformed_candidate_bytes"
+        || transform_receipt.get("synthetic").and_then(Value::as_bool) != Some(true)
+        || transform_receipt.get("base_candidate_bytes").and_then(Value::as_u64)
+            != Some(base_bytes.len() as u64)
+        || transform_receipt.get("transformed_candidate_bytes").and_then(Value::as_u64)
+            != Some(candidate_bytes.len() as u64)
+        || transform_receipt.get("pv_resource_before_kwh").and_then(Value::as_f64) != Some(2.0)
+        || transform_receipt.get("pv_resource_after_kwh").and_then(Value::as_f64) != Some(1.0)
+        || string_field(&transform_receipt, "pv_resource_interval_id")? != "pv-surplus"
     {
         return Err(reject("PV stress-transform receipt does not bind the exact parent and transformed bytes"));
     }
@@ -152,7 +202,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         || config.max_candidate_expansions != 100_000
         || config.grid_cost_units_per_quantum != known.cost_basis.grid_cost_units_per_quantum
         || config.grid_carbon_grams_per_quantum != known.carbon_basis.grid_carbon_grams_per_quantum
-        || config.factor_basis.trim().is_empty()
+        || config.factor_basis
+            != "Explicit synthetic economic stress context for known-answer testing only; not a real electricity tariff or grid-emissions factor."
         || known.cost_basis.unit != "synthetic_integer_cost_units"
         || known.carbon_basis.unit != "grams_per_declared_grid_quantum"
         || known.cost_basis.meaning.trim().is_empty()
