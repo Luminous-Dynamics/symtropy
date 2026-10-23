@@ -71,8 +71,8 @@
     },
     {
       "charge_id": "vat",
-      "rate_basis_points": null,
-      "reason": "VAT is excluded from the schedule. Not hardcoded here; treatment depends on actual billing/claim basis."
+      "reason": "VAT is excluded from the schedule. Not hardcoded here; treatment depends on actual billing/claim basis.",
+      "percent_basis_points": null
     },
     {
       "charge_id": "demand_capacity_reactive_energy",
