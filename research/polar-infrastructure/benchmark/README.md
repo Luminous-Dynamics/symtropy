@@ -15,17 +15,19 @@ The service weights and minimum fractions in the fixture are invented for softwa
 From the repository root, with a Rust toolchain and dependency access:
 
 ```sh
-cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
-cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
+cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
 ```
 
 The CLI emits a JSON report. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
 
 ## Metrics
 
-The scorer supports different physical units per service (for example, heat in kWh, water in litres, communications as a normalized service count) without adding those physical amounts together.
+The scorer supports different physical units per service (for example, heat delivery rate in kW, water flow in litres/hour, communications as a normalized service rate) without adding those physical amounts together.
 
-For service \(s\), let \(D_s\) be total demanded unit-hours and \(S_s\) be delivered unit-hours, both computed only within that service's declared unit. The per-service fraction is \(r_s = S_s / D_s\) when \(D_s > 0\). The headline metric is a dimensionless weighted mean of those per-service fractions:
+Each step's demand and delivery values are rates in the declared service unit per hour; the scorer integrates each service's rate over the timestep to produce unit-hours (for example, kW × h = kWh, or litres/hour × h = litres). `service_value_semantics` must be `rate_per_hour_integrated_to_unit_hours`.
+
+For service \(s\), let \(D_s\) be total demanded unit-hours and \(S_s\) be delivered unit-hours, both computed only within that service's declared rate unit. The per-service fraction is \(r_s = S_s / D_s\) when \(D_s > 0\). The headline metric is a dimensionless weighted mean of those per-service fractions:
 
 \[
 F = \frac{\sum_{s:D_s>0} w_s r_s}{\sum_{s:D_s>0} w_s}
@@ -37,7 +39,7 @@ F = \frac{\sum_{s:D_s>0} w_s r_s}{\sum_{s:D_s>0} w_s}
 - Weighted delivered/unserved service-fraction-hours integrate each active service's dimensionless delivered/unmet fraction over time and criticality weight. These are coverage metrics, not physical energy or water quantities.
 - Floor-breach service-hours sum the timestep duration for **each service** below its declared floor; two services breaching in one hour count as two service-hours.
 - `gate_pass` is false if any service-floor breach occurs.
-- Fuel intensity divides declared fuel units by weighted delivered service-fraction-hours. It is only comparable between runs that share the fuel unit and service contract/weights.
+- Each policy declares an explicit `fuel_unit`; all policies in an episode must use the same fuel unit, and the ensemble/robust-set evaluators reject unit drift across scenarios. Fuel intensity divides declared fuel units by weighted delivered service-fraction-hours. It is only comparable between runs that share the fuel unit and service contract/weights.
 - The scorer fails on non-finite/negative measurements, missing/extra service IDs, duplicate IDs, invalid floors, mismatched series lengths, and unsupported evidence claims.
 
 All outputs remain a vector. The scorer does not collapse critical-service admissibility, coverage, fuel and repair burden into one scalar, does not choose a universal winner, and does not infer a life-safety condition from a service fraction. Floor values and weights are fixture values for software tests, not engineering thresholds.
@@ -77,8 +79,8 @@ Not every remote-infrastructure failure mode has defensible occurrence probabili
 Run it with:
 
 ```sh
-cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
-cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json
+cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json
 ```
 
 The fixture enumerates three toy scenarios without probabilities. The cases and policy deliveries are deliberately fabricated to test the report contract. The policy IDs are shared across every scenario; the scorer rejects changed service contract semantics, duplicate scenario/episode IDs, mismatched policy sets, unknown JSON fields and evidence-claim escalation. Pareto status means only that no other included option is at least as good on every declared objective and strictly better on one; it is **not** a safety approval or winner label.
@@ -99,8 +101,8 @@ The companion binary `resilience_ensemble` evaluates **the same declared policy 
 Run it with:
 
 ```sh
-cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
-cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json
+cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json
 ```
 
 The fixture contains only two invented scenarios with artificial probabilities (0.9 and 0.1), just to exercise aggregation and tail calculations. It is not a forecast, an empirical frequency estimate, or an Antarctic/Arctic failure distribution. For a real evidence-backed risk estimate, probabilities must be justified using an explicit data/model basis and uncertainty analysis. If credible probabilities are unavailable, report enumerated scenario outcomes and worst-case results without describing them as event probabilities; CVaR over invented weights is not decision-grade evidence.
