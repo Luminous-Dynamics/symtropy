@@ -11,7 +11,9 @@
     "A valid software contract outcome is not a physical-process pass.",
     "A claimed route improvement must be assessed across a frozen scenario grid; one favorable scenario is not sufficient.",
     "High cross-validation fit does not qualify a model with unbounded external signed bias or absent calibration evidence.",
-    "The validator must accept the required glass and MG-Si valid controls; reject-all is not a passing policy."
+    "The validator must accept the required glass and MG-Si valid controls; reject-all is not a passing policy.",
+    "A candidate that violates or lacks evidence for any required product constraint cannot qualify from a favorable single-property score.",
+    "Project plans, announced pilot capacities, and target grades do not count as measured process performance."
   ],
   "research_references": [
     {
@@ -109,6 +111,22 @@
       "published_or_reviewed": "2026",
       "use": "Candidate reproducibility artifact for V14/V18 datasets, trained models, and SCALE active-learning code.",
       "limitation": "Exact file-level license/terms, versions, and SHA-256 digests must be pinned and reviewed before benchmark admission or redistribution; archive includes large files and Python research dependencies."
+    },
+    {
+      "reference_id": "pnnl-law-glass-validation-2026",
+      "title": "Low Activity Waste Glass Optimization with Property Models from Machine Learning, Part 2: Experimental Validation and Active Learning",
+      "url": "https://doi.org/10.1016/j.jnoncrysol.2026.123990",
+      "published_or_reviewed": "2026",
+      "use": "Multi-property constrained glass-formulation benchmark with experimental property validation and iterative model updates; use as a separate nuclear-waste-glass application class.",
+      "limitation": "Application-specific data are available on request according to the paper; do not mix its composition domain, property constraints, or metrics with container-glass or SCALE results."
+    },
+    {
+      "reference_id": "wa-silicon-electroreduction-pilot-2026",
+      "title": "Advancing Low-Carbon High-Grade Silicon Production from Iron Ore Waste (Phase 1)",
+      "url": "https://www.mriwa.wa.gov.au/research-projects/project-portfolio/advancing-low-carbon-high-grade-silicon-production-from-iron-ore-waste-phase-1/",
+      "published_or_reviewed": "2026",
+      "use": "Official project description for a planned 2026–2028 sodium-silicate electrolysis programme and 100 kg/day pilot targeting MG/solar-grade silicon from iron-ore waste.",
+      "limitation": "The page describes a project and proposed pilot objectives; it is not evidence that the pilot is built, that claimed grade/throughput has been achieved, or that the process is commercially qualified."
     }
   ],
   "cases": [
@@ -433,6 +451,42 @@
       ],
       "purpose": "Reject a claimed reproduction that has no immutable dataset/code artifact identity, integrity digest, or resolved permitted-use status.",
       "claim_ceiling": "Tests reference-artifact admission metadata only; no external dataset was downloaded or independently reproduced by this fixture."
+    },
+    {
+      "case_id": "single-property-score-bypasses-property-gates",
+      "route": "cross_route",
+      "case_type": "negative_control",
+      "expected_disposition": "reject",
+      "fault_class": "single_property_optimization_bypasses_constraints",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "all_required_property_constraints",
+        "hard_constraint_results",
+        "product_grade",
+        "processing_window",
+        "accepted_yield"
+      ],
+      "purpose": "Reject a candidate ranked as optimal by one favorable predicted property while other required product, processing, durability, or composition constraints remain untested or fail.",
+      "claim_ceiling": "Tests multi-property contract behavior only; it does not model or qualify any glass formulation."
+    },
+    {
+      "case_id": "planned-silicon-pilot-treated-as-qualified",
+      "route": "silicon_mg_reference",
+      "case_type": "hold_control",
+      "expected_disposition": "abstain",
+      "fault_class": "planned_pilot_treated_as_demonstrated",
+      "synthetic_only": true,
+      "evidence_status": "synthetic_test",
+      "required_evidence": [
+        "measured_pilot_campaign",
+        "verified_throughput",
+        "measured_purity_and_yield",
+        "energy_and_carbon_boundary",
+        "independent_qualification"
+      ],
+      "purpose": "Abstain when a planned electroreduction pilot or stated target is represented as demonstrated throughput, purity, energy performance, or product qualification.",
+      "claim_ceiling": "Tests maturity/evidence admission only; it does not assess the named pilot or infer performance."
     }
   ]
 }
