@@ -61,6 +61,6 @@ mod tests {
 
     #[test]
     fn does_not_assume_input_scores_are_sorted() {
-        assert_eq!(split_conformal_radius(&[4.0, 1.0, 3.0, 2.0], 0.4), Some(4.0));
+        assert_eq!(split_conformal_radius(&[4.0, 1.0, 3.0, 2.0], 0.4), Some(3.0));
     }
 }
