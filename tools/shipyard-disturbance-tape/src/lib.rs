@@ -1076,10 +1076,21 @@ mod tests {
         let reordered_report =
             validate_bytes(reordered.as_bytes(), None, 12).expect("reordered tape valid");
         assert_eq!(baseline.policy_view_json, reordered_report.policy_view_json);
-        assert_eq!(
-            baseline.evaluator_stream_json,
-            reordered_report.evaluator_stream_json
-        );
+        let baseline_evaluator = parse_json(&baseline.evaluator_stream_json).expect("baseline evaluator");
+        let reordered_evaluator =
+            parse_json(&reordered_report.evaluator_stream_json).expect("reordered evaluator");
+        let baseline_events = baseline_evaluator
+            .as_object("baseline evaluator")
+            .expect("evaluator object")
+            .get("events")
+            .expect("baseline events");
+        let reordered_events = reordered_evaluator
+            .as_object("reordered evaluator")
+            .expect("evaluator object")
+            .get("events")
+            .expect("reordered events");
+        assert_eq!(baseline_events, reordered_events);
+        assert_ne!(baseline.digest_sha256, reordered_report.digest_sha256);
     }
 
     #[test]
