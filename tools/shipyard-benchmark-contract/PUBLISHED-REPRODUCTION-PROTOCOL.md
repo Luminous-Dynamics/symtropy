@@ -29,6 +29,29 @@ The paper describes Case9 as a 50-block setting, five short-term subcycles, and 
 
 The appendix includes a finite collection of example block geometries and vehicle types. That is useful for creating a separately attributed geometry smoke-test corpus, but it is not by itself the complete 50-block Case9_50_4 benchmark. Check the article's reuse terms before copying its coordinate table into this repository. Prefer a source link and transformation script where licence status or reuse scope is not confirmed.
 
+
+## Published shape-approximation baseline: quantify geometry-induced waste
+
+Table 4 of the paper separately compares source/initial block profiles (R1), simplified profiles (R2), and regularized shapes (R3). It reports added footprint area relative to initial shapes:
+
+| Case size | Initial-shape area (m²) | Simplified R2 area (m²) | R2 inflation | Regularized R3 area (m²) | R3 inflation |
+|---|---:|---:|---:|---:|---:|
+| 40 blocks | 1,960.83 | 2,086.06 | 6.39% | 2,252.89 | 14.89% |
+| 50 blocks | 2,438.20 | 2,593.43 | 6.37% | 2,871.25 | 17.76% |
+| 60 blocks | 2,916.81 | 3,097.90 | 6.21% | 3,434.75 | 17.75% |
+
+Source: Table 4 in https://doi.org/10.1049/cim2.70066. These are the study's geometry-representation area deltas, not the yard-utilization percentages in Table 6. They do not mean the study's total utilization is reduced by exactly the same percentage: yard aisles, shape placement, and the objective's other terms remain separate.
+
+This creates a second benchmark axis in addition to optimizer quality:
+
+1. **Representation loss:** `(approximate footprint area - source profile area) / source profile area`. For exact fixed-point input polygons, target 0% added area from geometry simplification, while recording quantization and clearance inflation separately.
+2. **Packing quality:** actual source-profile area placed inside the qualified usable yard, divided by the published/declared usable yard area. Report this separately from representation loss.
+3. **Conservatism:** number of valid layouts rejected because bounding envelopes overlap while the source polygons are disjoint. The synthetic V0 L-shape counterexample is a semantic demonstration of this failure mode, not a proxy for the paper's entire industrial case.
+
+The prototype's three independently authored synthetic orthogonal shapes have bounding-box area ratios 1.5x–1.8x (50%–80% inflation). This adversarial set intentionally emphasizes concavity; do not compare its ratios directly to the paper's case-wide Table 4 values. It is useful for catching methods that conflate an AABB broadphase with authoritative footprint geometry. The fair next experiment is to acquire or obtain authorization for the original source profiles, run the same profile set through R1/R2/R3-style normalization and exact fixed-point geometry, and report profile-level area deltas plus final yard-placement metrics separately.
+
+**Target:** preserve every source profile without geometric-area inflation beyond the declared fixed-point quantization tolerance; do not claim improved industrial utilization until the same profiles, yard aisles, objective definitions and disruption schedule have been evaluated by the matched placement/recovery benchmark.
+
 ## Known modelling assumptions to challenge after faithful reproduction
 
 The article explicitly describes simplifying assumptions that are important for operational robustness:
