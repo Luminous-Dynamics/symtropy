@@ -2047,10 +2047,10 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
     for action in pool.get("actions").and_then(Value::as_array).unwrap() {
         let id = nonempty_string(action, "id").unwrap();
         let utilities = scenario_ids.iter().map(|scenario| {
-            (scenario.clone(), action["utility_by_scenario"][scenario].as_f64().unwrap())
+            (scenario.clone(), action.get("utility_by_scenario").and_then(|map| map.get(scenario)).and_then(Value::as_f64).unwrap())
         }).collect();
         let feasible = scenario_ids.iter().map(|scenario| {
-            (scenario.clone(), action["feasible_by_scenario"][scenario].as_bool().unwrap())
+            (scenario.clone(), action.get("feasible_by_scenario").and_then(|map| map.get(scenario)).and_then(Value::as_bool).unwrap())
         }).collect();
         actions.push(DecisionAction { id, utility_by_scenario: utilities, feasible_by_scenario: feasible });
     }
@@ -2062,7 +2062,7 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
         let cost_units = measurement["cost_units"].as_f64().unwrap();
         let duration_seconds = measurement["duration_seconds"].as_f64().unwrap();
         let observations = scenario_ids.iter().map(|scenario| {
-            (scenario.clone(), measurement["observation_by_scenario"][scenario].as_str().unwrap().to_string())
+            (scenario.clone(), measurement.get("observation_by_scenario").and_then(|map| map.get(scenario)).and_then(Value::as_str).unwrap().to_string())
         }).collect();
         measurements.push(AdaptiveMeasurement { id, cost_units, duration_seconds, observation_by_scenario: observations });
     }
