@@ -1,7 +1,8 @@
 //! Reference arithmetic for the candidate City Power Business Conventional tariff.
 //!
 //! This is intentionally not a billing authority. It computes only the explicitly
-//! represented progressive energy blocks and fixed monthly service/network charges.
+//! represented progressive energy blocks and published fixed monthly charge amounts.
+//! The identity/label of the secondary fixed component is disputed across sources.
 //! Unresolved surcharges, VAT, and account-specific fees stay excluded and visible.
 
 use std::{
@@ -69,7 +70,7 @@ struct EnergyBlock {
 struct FixedCharge {
     capacity_band: String,
     service_microzar_per_month: u64,
-    network_microzar_per_month: u64,
+    secondary_fixed_component_microzar_per_month: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -100,7 +101,7 @@ struct KnownCase {
     expected_block_use: Vec<ExpectedBlockUse>,
     expected_energy_charge_microzar: u64,
     expected_service_charge_microzar: u64,
-    expected_network_charge_microzar: u64,
+    expected_secondary_fixed_component_microzar: u64,
     expected_subtotal_excluding_unapplied_and_tax_microzar: u64,
 }
 
@@ -122,7 +123,7 @@ struct CalculatedCase {
     computed_block_use: Vec<ExpectedBlockUse>,
     energy_charge_microzar: u64,
     service_charge_microzar: u64,
-    network_charge_microzar: u64,
+    secondary_fixed_component_microzar: u64,
     subtotal_excluding_unapplied_and_tax_microzar: u64,
     unapplied_charge_ids: Vec<String>,
     account_verified: bool,
@@ -247,10 +248,10 @@ fn calculate_case(
     }
 
     let service = fixed[0].service_microzar_per_month;
-    let network = fixed[0].network_microzar_per_month;
+    let secondary_fixed = fixed[0].secondary_fixed_component_microzar_per_month;
     let subtotal = energy_charge
         .checked_add(service)
-        .and_then(|value| value.checked_add(network))
+        .and_then(|value| value.checked_add(secondary_fixed))
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "tariff subtotal overflow"))?;
 
     Ok(CalculatedCase {
@@ -261,7 +262,7 @@ fn calculate_case(
         computed_block_use: computed_blocks,
         energy_charge_microzar: energy_charge,
         service_charge_microzar: service,
-        network_charge_microzar: network,
+        secondary_fixed_component_microzar: secondary_fixed,
         subtotal_excluding_unapplied_and_tax_microzar: subtotal,
         unapplied_charge_ids: schedule.deliberately_unapplied_charges
             .iter()
@@ -294,7 +295,7 @@ fn load_and_calculate(
         if actual.computed_block_use != case.expected_block_use
             || actual.energy_charge_microzar != case.expected_energy_charge_microzar
             || actual.service_charge_microzar != case.expected_service_charge_microzar
-            || actual.network_charge_microzar != case.expected_network_charge_microzar
+            || actual.secondary_fixed_component_microzar != case.expected_secondary_fixed_component_microzar
             || actual.subtotal_excluding_unapplied_and_tax_microzar
                 != case.expected_subtotal_excluding_unapplied_and_tax_microzar
         {
@@ -375,7 +376,7 @@ mod tests {
             assert_eq!(actual.computed_block_use, case.expected_block_use, "{}", case.case_id);
             assert_eq!(actual.energy_charge_microzar, case.expected_energy_charge_microzar, "{}", case.case_id);
             assert_eq!(actual.service_charge_microzar, case.expected_service_charge_microzar, "{}", case.case_id);
-            assert_eq!(actual.network_charge_microzar, case.expected_network_charge_microzar, "{}", case.case_id);
+            assert_eq!(actual.secondary_fixed_component_microzar, case.expected_secondary_fixed_component_microzar, "{}", case.case_id);
             assert_eq!(
                 actual.subtotal_excluding_unapplied_and_tax_microzar,
                 case.expected_subtotal_excluding_unapplied_and_tax_microzar,
@@ -400,7 +401,7 @@ mod tests {
             actual.subtotal_excluding_unapplied_and_tax_microzar,
             actual.energy_charge_microzar
                 + actual.service_charge_microzar
-                + actual.network_charge_microzar
+                + actual.secondary_fixed_component_microzar
         );
         assert!(!actual.account_verified);
     }
