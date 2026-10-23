@@ -978,7 +978,10 @@ pub fn validate_file(
         .map_err(|error| format!("cannot read {}: {error}", input_path.display()))?;
     let report = validate_bytes(&bytes, Some(expected_sha256), as_of_tick)?;
     atomic_write(policy_output_path, report.policy_view_json.as_bytes())?;
-    atomic_write(evaluator_output_path, report.evaluator_stream_json.as_bytes())?;
+    atomic_write(
+        evaluator_output_path,
+        report.evaluator_stream_json.as_bytes(),
+    )?;
     Ok(report)
 }
 
@@ -1267,14 +1270,8 @@ mod tests {
         fs::write(&input_path, FIXTURE).expect("fixture input");
         let digest = sha256_hex(FIXTURE.as_bytes());
 
-        let report = validate_file(
-            &input_path,
-            &digest,
-            5,
-            &policy_path,
-            &evaluator_path,
-        )
-        .expect("valid tape writes separate outputs");
+        let report = validate_file(&input_path, &digest, 5, &policy_path, &evaluator_path)
+            .expect("valid tape writes separate outputs");
         assert_eq!(
             fs::read_to_string(&policy_path).expect("policy output"),
             report.policy_view_json
@@ -1284,14 +1281,8 @@ mod tests {
             report.evaluator_stream_json
         );
 
-        let collision = validate_file(
-            &input_path,
-            &digest,
-            5,
-            &input_path,
-            &evaluator_path,
-        )
-        .expect_err("input must not be reused as an output path");
+        let collision = validate_file(&input_path, &digest, 5, &input_path, &evaluator_path)
+            .expect_err("input must not be reused as an output path");
         assert!(collision.contains("paths must be distinct"));
         assert_eq!(
             fs::read_to_string(&input_path).expect("original input remains intact"),
@@ -1300,5 +1291,4 @@ mod tests {
 
         fs::remove_dir_all(&directory).expect("temporary directory cleanup");
     }
-
 }
