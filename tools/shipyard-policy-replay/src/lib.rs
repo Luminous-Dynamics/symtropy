@@ -106,10 +106,11 @@ pub struct PolicyReplayReport {
 /// Audit scenario inventory, source event histories, candidate decision traces,
 /// and the non-anticipativity condition.
 ///
-/// At decision tick t, visible history is the sorted list of source-owned
-/// (event ID, observation tick) pairs whose observation tick is <= t. For each
-/// identical (t, visible history), every candidate trace must select the same
-/// current action key.
+/// At decision tick t, visible history is the sorted list of policy-visible
+/// source observations delivered by t. Each entry includes event ID,
+/// observation tick, and canonical visible-payload key. Evaluator-only entries
+/// do not enter the policy information set. For each identical (t, history),
+/// every candidate trace must select the same current action key.
 ///
 /// The source inventory and logs must be bound by the caller to the intended
 /// immutable revision. This function cannot establish event truth, manifest
