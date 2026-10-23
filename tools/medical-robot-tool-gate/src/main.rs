@@ -1099,6 +1099,200 @@ fn compute_forward_kinematics(
     Ok(poses)
 }
 
+fn urdf_identifier_valid(value: &str) -> bool {
+    let mut characters = value.chars();
+    characters
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic())
+        && characters.all(|character| {
+            character.is_ascii_alphanumeric() || character == '_'
+        })
+}
+
+fn urdf_float(value: f64) -> String {
+    if value.abs() < 1.0e-15 {
+        "0".to_owned()
+    } else {
+        value.to_string()
+    }
+}
+
+fn urdf_vec3(value: &[f64; 3]) -> String {
+    format!(
+        "{} {} {}",
+        urdf_float(value[0]),
+        urdf_float(value[1]),
+        urdf_float(value[2])
+    )
+}
+
+/// Exports only a URDF kinematic/collision representation. It intentionally
+/// omits inertial data, transmissions, controllers and actuator interfaces.
+fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
+    let mut findings = validate_morphology(model)
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let Some(links) = model.get("links").and_then(Value::as_array) else {
+        return Err(vec!["MORPHOLOGY_LINKS_REQUIRED".to_owned()]);
+    };
+    let Some(joints) = model.get("joints").and_then(Value::as_array) else {
+        return Err(vec!["MORPHOLOGY_JOINTS_REQUIRED".to_owned()]);
+    };
+    for link in links {
+        if !urdf_identifier_valid(str_at(link, "link_id").unwrap_or("")) {
+            push_findings(&mut findings, "URDF_LINK_NAME_UNSUPPORTED");
+        }
+        if str_at(
+            link.get("collision").unwrap_or(&NULL_VALUE),
+            "shape",
+        ) != Some("box")
+        {
+            push_findings(&mut findings, "URDF_COLLISION_SHAPE_UNSUPPORTED");
+        }
+    }
+    for joint in joints {
+        if !urdf_identifier_valid(str_at(joint, "joint_id").unwrap_or("")) {
+            push_findings(&mut findings, "URDF_JOINT_NAME_UNSUPPORTED");
+        }
+        if !urdf_identifier_valid(str_at(joint, "parent_link").unwrap_or(""))
+            || !urdf_identifier_valid(str_at(joint, "child_link").unwrap_or(""))
+        {
+            push_findings(&mut findings, "URDF_LINK_NAME_UNSUPPORTED");
+        }
+    }
+    if !findings.is_empty() {
+        return Err(findings.into_iter().collect());
+    }
+
+    let mut xml = String::new();
+    xml.push_str("<?xml version=\"1.0\"?>\n");
+    xml.push_str("<robot name=\"careframe_synthetic_morphology_v0\" version=\"1.0\">\n");
+    xml.push_str("  <!-- Bounding boxes only; no inertial or control model exported. -->\n");
+    for link in links {
+        let name = str_at(link, "link_id").expect("validated link ID");
+        let dimensions = finite_vec3(&link["collision"]["dimensions_m"])
+            .expect("validated collision dimensions");
+        let size = urdf_vec3(&dimensions);
+        xml.push_str(&format!("  <link name=\"{name}\">\n"));
+        xml.push_str("    <visual>\n");
+        xml.push_str("      <geometry>\n");
+        xml.push_str(&format!("        <box size=\"{size}\"/>\n"));
+        xml.push_str("      </geometry>\n");
+        xml.push_str("    </visual>\n");
+        xml.push_str("    <collision>\n");
+        xml.push_str("      <geometry>\n");
+        xml.push_str(&format!("        <box size=\"{size}\"/>\n"));
+        xml.push_str("      </geometry>\n");
+        xml.push_str("    </collision>\n");
+        xml.push_str("  </link>\n");
+    }
+    for joint in joints {
+        let joint_id = str_at(joint, "joint_id").expect("validated joint ID");
+        let parent = str_at(joint, "parent_link").expect("validated parent ID");
+        let child = str_at(joint, "child_link").expect("validated child ID");
+        let joint_type = str_at(joint, "joint_type").expect("validated joint type");
+        let origin = finite_vec3(&joint["origin_m"]).expect("validated origin");
+        xml.push_str(&format!(
+            "  <joint name=\"{joint_id}\" type=\"{joint_type}\">\n"
+        ));
+        xml.push_str(&format!("    <parent link=\"{parent}\"/>\n"));
+        xml.push_str(&format!("    <child link=\"{child}\"/>\n"));
+        xml.push_str(&format!(
+            "    <origin xyz=\"{}\" rpy=\"0 0 0\"/>\n",
+            urdf_vec3(&origin)
+        ));
+        if joint_type == "revolute" {
+            let axis = finite_vec3(&joint["axis_xyz"]).expect("validated axis");
+            xml.push_str(&format!(
+                "    <axis xyz=\"{}\"/>\n",
+                urdf_vec3(&axis)
+            ));
+            xml.push_str(&format!(
+                "    <limit lower=\"{}\" upper=\"{}\" effort=\"{}\" velocity=\"{}\"/>\n",
+                urdf_float(num_at(joint, "lower_limit_rad").expect("validated lower limit")),
+                urdf_float(num_at(joint, "upper_limit_rad").expect("validated upper limit")),
+                urdf_float(num_at(joint, "max_effort_nm").expect("validated effort")),
+                urdf_float(num_at(joint, "max_velocity_rad_s").expect("validated velocity"))
+            ));
+        }
+        xml.push_str("  </joint>\n");
+    }
+    xml.push_str("</robot>\n");
+    Ok(xml)
+}
+
+fn export_urdf_file(model_path: &str, output_path: &str) {
+    let (model_bytes, model) = match load_json(model_path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    if model_path == MORPHOLOGY_PATH && sha256_hex(&model_bytes) != sha256_hex(MORPHOLOGY_SOURCE) {
+        eprintln!("runtime morphology differs from the model embedded in the compiled validator");
+        process::exit(2);
+    }
+    let tested_revision =
+        env::var("CARE_FRAME_TESTED_SHA").unwrap_or_else(|_| "UNBOUND_LOCAL_RUN".to_owned());
+    let xml = match export_urdf(&model) {
+        Ok(xml) => xml,
+        Err(findings) => {
+            let receipt = json!({
+                "receipt_schema": "careframe-urdf-export-receipt-v0",
+                "tested_revision": tested_revision,
+                "disposition": "BLOCKED",
+                "findings": findings,
+                "morphology_sha256": sha256_hex(&model_bytes),
+                "physical_actuation_authorized": false,
+                "patient_contact_authorized": false,
+                "clinical_use_authorized": false,
+                "dynamics_ready": false
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&receipt)
+                    .expect("URDF rejection receipt serialization cannot fail")
+            );
+            process::exit(1);
+        }
+    };
+    if let Err(error) = fs::write(output_path, xml.as_bytes()) {
+        eprintln!("failed to write URDF '{output_path}': {error}");
+        process::exit(2);
+    }
+    let receipt = json!({
+        "receipt_schema": "careframe-urdf-export-receipt-v0",
+        "tested_revision": tested_revision,
+        "model_id": str_at(&model, "model_id").unwrap_or("<missing>"),
+        "disposition": "KINEMATIC_INTERCHANGE_ONLY",
+        "morphology_sha256": sha256_hex(&model_bytes),
+        "urdf_sha256": sha256_hex(xml.as_bytes()),
+        "auditor_source_sha256": sha256_hex(AUDITOR_SOURCE),
+        "link_count": links_len(&model),
+        "joint_count": joints_len(&model),
+        "inertial_data_exported": false,
+        "dynamics_ready": false,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false,
+        "claim_ceiling": "URDF kinematic/collision interchange only; no validated dynamics or physical claim."
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt)
+            .expect("URDF export receipt serialization cannot fail")
+    );
+}
+
+fn links_len(model: &Value) -> usize {
+    model.get("links").and_then(Value::as_array).map_or(0, Vec::len)
+}
+
+fn joints_len(model: &Value) -> usize {
+    model.get("joints").and_then(Value::as_array).map_or(0, Vec::len)
+}
+
 fn link_poses_json(poses: &BTreeMap<String, LinkPose>) -> Value {
     let links = poses
         .iter()
@@ -1263,6 +1457,22 @@ fn main() {
         write_or_print_template(&tool_kind, output_path.as_deref());
         return;
     }
+    if first.as_deref() == Some("--export-urdf") {
+        let Some(model_path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --export-urdf MODEL_JSON OUTPUT_URDF");
+            process::exit(2);
+        };
+        let Some(output_path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --export-urdf MODEL_JSON OUTPUT_URDF");
+            process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("unexpected extra argument");
+            process::exit(2);
+        }
+        export_urdf_file(&model_path, &output_path);
+        return;
+    }
     if first.as_deref() == Some("--evaluate-kinematics") {
         let Some(model_path) = args.next() else {
             eprintln!(
@@ -1313,6 +1523,7 @@ fn main() {
         eprintln!("     | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
         eprintln!("     | --validate-morphology PATH");
         eprintln!("     | --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
+        eprintln!("     | --export-urdf MODEL_JSON OUTPUT_URDF");
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
@@ -1524,6 +1735,50 @@ mod tests {
             "right_shoulder_pitch": 0.0,
             "right_elbow": 0.0
         })
+    }
+
+    #[test]
+    fn urdf_export_preserves_kinematic_tree_but_omits_unvalidated_dynamics() {
+        let model = morphology();
+        let xml = export_urdf(&model).expect("synthetic box morphology exports to URDF");
+        assert!(xml.starts_with("<?xml version=\"1.0\"?>"));
+        assert!(xml.contains("<robot name=\"careframe_synthetic_morphology_v0\" version=\"1.0\">"));
+        assert!(xml.contains("<link name=\"base_chassis\">"));
+        assert!(xml.contains("<joint name=\"torso_yaw\" type=\"revolute\">"));
+        assert!(xml.contains("<origin xyz=\"0 0 0.22\" rpy=\"0 0 0\"/>"));
+        assert!(xml.contains("<axis xyz=\"0 0 1\"/>"));
+        assert!(xml.contains("<limit lower=\"-1.2\" upper=\"1.2\" effort=\"20\" velocity=\"0.35\"/>"));
+        assert_eq!(xml.matches("<link name=").count(), 16);
+        assert_eq!(xml.matches("<joint name=").count(), 15);
+        assert_eq!(xml.matches("<collision>").count(), 16);
+        assert!(!xml.contains("<inertial>"));
+        assert!(!xml.contains("<transmission"));
+        assert!(!xml.contains("<gazebo"));
+        assert!(xml.ends_with("</robot>\n"));
+    }
+
+    #[test]
+    fn urdf_export_rejects_unsupported_geometry_and_unsafe_names() {
+        let mut capsule = morphology();
+        capsule["links"][0]["collision"]["shape"] = json!("capsule");
+        assert!(export_urdf(&capsule)
+            .expect_err("capsule is not supported by this URDF 1.0 exporter")
+            .iter()
+            .any(|finding| finding == "URDF_COLLISION_SHAPE_UNSUPPORTED"));
+
+        let mut unsafe_name = morphology();
+        unsafe_name["links"][0]["link_id"] = json!("base chassis");
+        assert!(export_urdf(&unsafe_name)
+            .expect_err("non-token link name blocks export")
+            .iter()
+            .any(|finding| finding == "URDF_LINK_NAME_UNSUPPORTED"));
+
+        let mut unsafe_joint = morphology();
+        unsafe_joint["joints"][0]["joint_id"] = json!("wheel<drive>");
+        assert!(export_urdf(&unsafe_joint)
+            .expect_err("non-token joint name blocks export")
+            .iter()
+            .any(|finding| finding == "URDF_JOINT_NAME_UNSUPPORTED"));
     }
 
     #[test]
