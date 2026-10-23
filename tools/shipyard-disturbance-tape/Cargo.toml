@@ -1,0 +1,17 @@
+[package]
+name = "shipyard-disturbance-tape"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dependency-free strict validation and causal observation snapshots for shipyard disturbance tapes"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "shipyard-disturbance-tape"
+path = "src/main.rs"
+
+[workspace]
