@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 52 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, and 7 staged-feasibility-gate tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 53 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, and 7 staged-feasibility-gate tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
