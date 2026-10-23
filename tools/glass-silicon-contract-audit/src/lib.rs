@@ -2178,7 +2178,7 @@ mod adaptive_campaign_tests {
     fn adaptive_oracle_rejects_more_than_twelve_measurements() {
         let mut value = adaptive_pool();
         let extra = value["measurements"][0].clone();
-        for n in 0..10 {
+        for n in 0..11 {
             let mut measurement = extra.clone();
             measurement["id"] = json!(format!("extra-{n}"));
             value["measurements"].as_array_mut().unwrap().push(measurement);
