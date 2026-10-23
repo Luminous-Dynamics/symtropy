@@ -129,6 +129,8 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         "scale-glass-zenodo-data-2026",
         "glass-futures-ai-glass-2026",
         "silicon-purification-route-review-2026",
+        "pnnl-law-glass-validation-2026",
+        "wa-silicon-electroreduction-pilot-2026",
     ] {
         if !seen_reference_ids.contains(required_ref) {
             report.fail("RESEARCH_BASELINE_MISSING", format!("missing required source record {required_ref}"));
@@ -658,5 +660,20 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("PILOT_MATURITY_CONTROL:")));
+    }
+
+    #[test]
+    fn corpus_missing_pnnl_and_pilot_sources_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["research_references"].as_array_mut().unwrap().retain(|reference| {
+            !matches!(
+                reference["reference_id"].as_str(),
+                Some("pnnl-law-glass-validation-2026" | "wa-silicon-electroreduction-pilot-2026")
+            )
+        });
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("RESEARCH_BASELINE_MISSING:")));
     }
 }
