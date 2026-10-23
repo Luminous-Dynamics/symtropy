@@ -6,12 +6,12 @@
 
 use std::{env, error::Error, fs, io, path::PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use symtropy_energy_dispatch_audit::DispatchRequest;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct DispatchMappingConfig {
     schema_version: String,
