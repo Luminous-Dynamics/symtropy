@@ -261,6 +261,27 @@ impl Polygon {
             }
         }
 
+        // Vertex tests alone miss polygons whose vertices all lie on the other
+        // boundary while their edges chord through its interior (for example,
+        // a diamond inscribed in a square). Exact doubled-coordinate midpoints
+        // are rational points on each edge and distinguish that case.
+        for index in 0..self.vertices.len() {
+            let next = (index + 1) % self.vertices.len();
+            match midpoint_location(self.vertices[index], self.vertices[next], &other.vertices)? {
+                PointLocation::Inside => return Ok(PolygonRelation::PositiveAreaOverlap),
+                PointLocation::Boundary => boundary_contact = true,
+                PointLocation::Outside => {}
+            }
+        }
+        for index in 0..other.vertices.len() {
+            let next = (index + 1) % other.vertices.len();
+            match midpoint_location(other.vertices[index], other.vertices[next], &self.vertices)? {
+                PointLocation::Inside => return Ok(PolygonRelation::PositiveAreaOverlap),
+                PointLocation::Boundary => boundary_contact = true,
+                PointLocation::Outside => {}
+            }
+        }
+
         if boundary_contact {
             Ok(PolygonRelation::BoundaryContact)
         } else {
@@ -420,6 +441,66 @@ fn signed_double_area(vertices: &[Point]) -> Result<i128, GeometryError> {
     Ok(sum)
 }
 
+fn midpoint_location(
+    edge_start: Point,
+    edge_end: Point,
+    polygon: &[Point],
+) -> Result<PointLocation, GeometryError> {
+    // Coordinates are doubled, so (a+b) is the exact midpoint numerator.
+    // i64 coordinates are promoted before addition/multiplication.
+    let px2 = i128::from(edge_start.x) + i128::from(edge_end.x);
+    let py2 = i128::from(edge_start.y) + i128::from(edge_end.y);
+    let mut inside = false;
+
+    for index in 0..polygon.len() {
+        let a = polygon[index];
+        let b = polygon[(index + 1) % polygon.len()];
+        let ax2 = i128::from(a.x) * 2;
+        let ay2 = i128::from(a.y) * 2;
+        let bx2 = i128::from(b.x) * 2;
+        let by2 = i128::from(b.y) * 2;
+        let dx = i128::from(b.x) - i128::from(a.x);
+        let dy = i128::from(b.y) - i128::from(a.y);
+        let point_dx = px2
+            .checked_sub(ax2)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let point_dy = py2
+            .checked_sub(ay2)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let left = dx
+            .checked_mul(point_dy)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let right = dy
+            .checked_mul(point_dx)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+        let orientation2 = left
+            .checked_sub(right)
+            .ok_or(GeometryError::ArithmeticOverflow)?;
+
+        if orientation2 == 0
+            && px2 >= ax2.min(bx2)
+            && px2 <= ax2.max(bx2)
+            && py2 >= ay2.min(by2)
+            && py2 <= ay2.max(by2)
+        {
+            return Ok(PointLocation::Boundary);
+        }
+
+        if (ay2 > py2) != (by2 > py2) {
+            let crosses_right = if b.y > a.y {
+                orientation2 > 0
+            } else {
+                orientation2 < 0
+            };
+            if crosses_right {
+                inside = !inside;
+            }
+        }
+    }
+
+    Ok(if inside { PointLocation::Inside } else { PointLocation::Outside })
+}
+
 fn point_in_polygon(point: Point, vertices: &[Point]) -> Result<PointLocation, GeometryError> {
     let mut inside = false;
     for index in 0..vertices.len() {
@@ -525,6 +606,16 @@ mod tests {
         assert_eq!(a.relation(&vertex_touch), Ok(PolygonRelation::BoundaryContact));
         assert_eq!(a.relation(&overlap), Ok(PolygonRelation::PositiveAreaOverlap));
         assert_eq!(a.relation(&contained), Ok(PolygonRelation::PositiveAreaOverlap));
+        let inscribed_diamond = polygon(&[(2, 0), (4, 2), (2, 4), (0, 2)]);
+        let square = rectangle(0, 0, 4, 4);
+        assert_eq!(
+            square.relation(&inscribed_diamond),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            inscribed_diamond.relation(&square),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
         assert!(a.conflicts_with(&edge_touch).unwrap());
         assert!(!a.conflicts_with(&disjoint).unwrap());
     }
