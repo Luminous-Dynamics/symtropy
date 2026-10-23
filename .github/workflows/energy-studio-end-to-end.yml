@@ -30,6 +30,15 @@ jobs:
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@1.96.0
 
+      - name: Test independent verifier and frozen analytical known answers first
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          mkdir -p "$work/targets/symtropy"
+          CARGO_TARGET_DIR="$work/targets/symtropy" cargo test \
+            --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml"
+
       - name: Fetch exact upstream PR heads
         shell: bash
         run: |
