@@ -9,6 +9,8 @@ description = "Fail-closed contract and elemental mass-balance audit for glass/s
 [dependencies]
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
+md-5 = "=0.10.6"
+sha2 = "=0.10.9"
 
 # Keep this small tool independently buildable from the public repository
 # without adding another member to Symtropy's large workspace.
