@@ -10,7 +10,8 @@
   "account_verified": false,
   "sources": [
     "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
-    "https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json"
+    "https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json",
+    "https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg"
   ],
   "source_notes": [
     "Municipal FY2026/27 budget Annexure B calls its schedule proposed and states that a 6 c/kWh network surcharge, 2% business/large-power-user surcharge, and VAT are excluded.",
