@@ -619,6 +619,39 @@ mod tests {
     }
 
     #[test]
+    fn deterministic_collision_probe_matrix_matches_contact_expectations() {
+        let cases: [(&str, [f64; 3], bool); 8] = [
+            ("front_chassis_face", [0.34, 0.0, 0.0], true),
+            ("rear_chassis_face", [-0.34, 0.0, 0.0], true),
+            ("drive_wheel_outer_face", [0.0, 0.45, 0.0], true),
+            ("head_shell_top", [0.0, 0.0, 0.97], true),
+            ("one_centimetre_chassis_near_miss", [0.37, 0.0, 0.0], false),
+            ("far_positive_x", [2.0, 0.0, 0.0], false),
+            ("far_negative_y", [0.0, -2.0, 0.0], false),
+            ("far_corner", [2.0, 2.0, 2.0], false),
+        ];
+
+        for (case_id, position, expected_contact) in cases {
+            let mut physics = world();
+            spawn_static_collision_assembly(
+                &mut physics,
+                MORPHOLOGY_JSON,
+                ZERO_JOINT_STATE_JSON,
+                Point::origin(),
+            )
+            .expect("synthetic morphology imports");
+            physics.add_sphere(Point::new(position), 0.05, 1.0);
+            physics.step(0.002);
+            assert_eq!(
+                !physics.contacts.is_empty(),
+                expected_contact,
+                "{case_id}: expected_contact={expected_contact}, contacts={}",
+                physics.contacts.len()
+            );
+        }
+    }
+
+    #[test]
     fn morphology_import_honours_rotated_joint_state_in_the_physics_world() {
         let mut state: BTreeMap<String, f64> =
             serde_json::from_str(ZERO_JOINT_STATE_JSON).expect("joint state parses");
