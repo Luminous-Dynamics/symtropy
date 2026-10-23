@@ -6,6 +6,9 @@ on:
       - "research/medical-humanoid-platform-v0"
     paths:
       - "crates/bridges/symtropy-robotics-bridge-core/**"
+      - "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
+      - "docs/medical-robotics/careframe-nominal-joint-state-v0.json"
+      - "docs/medical-robotics/careframe-collision-probe-corpus-v0.1.json"
       - "Cargo.lock"
       - ".github/workflows/careframe-static-collision-adapter.yml"
   push:
@@ -44,6 +47,25 @@ jobs:
 
       - name: Clippy bridge core with warnings denied
         run: cargo clippy --locked -p symtropy-robotics-bridge-core --all-targets -- -D warnings
+
+      - name: Validate frozen collision-probe corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          corpus=docs/medical-robotics/careframe-collision-probe-corpus-v0.1.json
+          jq -e '
+            .suite_id == "CAREFRAME_STATIC_PROXY_COLLISION_PROBE" and
+            .suite_version == "0.1.0" and
+            .evidence_class == "synthetic_engine_integration" and
+            .claim_ceiling | contains("Static collision proxy")
+          ' "$corpus"
+          jq -e '
+            (.cases | length) == 8 and
+            ([.cases[] | select(.expected_contact == true)] | length) == 4 and
+            ([.cases[].case_id] | length) == ([.cases[].case_id] | unique | length) and
+            all(.cases[]; (.case_id | length) > 0 and (.rationale | length) > 0)
+          ' "$corpus"
+          echo "Collision probe corpus SHA-256: $(sha256sum "$corpus" | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify lockfile contains the new direct dependency
         shell: bash
