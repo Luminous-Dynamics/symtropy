@@ -184,7 +184,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     } else {
         let mut seen_artifact_ids = BTreeSet::new();
         let mut scale_archive_record = false;
-        for (index, record) in artifact_records.iter().enumerate() {
+        for (index, record) in artifact_records.iter().flat_map(|items| items.iter()).enumerate() {
             let artifact_id = nonempty_string(record, "artifact_id");
             let source_ref = nonempty_string(record, "source_ref");
             if artifact_id.as_deref().map_or(true, |id| !is_stable_slug(id)) {
@@ -1696,6 +1696,10 @@ pub fn audit_decision_value_pool(pool: &Value) -> DecisionValueReport {
     findings.dedup();
     let has_failure = evaluated.iter().any(|m| m.findings.iter().any(|f| f.starts_with("INFORMATION_MONOTONICITY")));
     let status = if has_failure { "FAIL" } else if !findings.is_empty() { "UNRESOLVED" } else { "PASS" };
+    // Materialize oracle outputs before moving the owned measurement vector into the report.
+    let oracle_measurement_id = chosen.map(|m| m.measurement_id.clone());
+    let oracle_worst_case_regret_after = chosen.and_then(|m| m.post_measurement_worst_case_regret);
+    let oracle_gross_regret_reduction = chosen.and_then(|m| m.gross_worst_case_regret_reduction);
     DecisionValueReport {
         status: status.to_string(),
         audit_kind: "synthetic_decision_value_pool".to_string(),
@@ -1707,9 +1711,9 @@ pub fn audit_decision_value_pool(pool: &Value) -> DecisionValueReport {
         max_duration_seconds: Some(max_duration),
         measurements: evaluated,
         pareto_frontier: frontier,
-        oracle_measurement_id: chosen.map(|m| m.measurement_id.clone()),
-        oracle_worst_case_regret_after: chosen.and_then(|m| m.post_measurement_worst_case_regret),
-        oracle_gross_regret_reduction: chosen.and_then(|m| m.gross_worst_case_regret_reduction),
+        oracle_measurement_id,
+        oracle_worst_case_regret_after,
+        oracle_gross_regret_reduction,
         findings,
         claim_ceiling: "Synthetic finite-pool contract and arithmetic only; no physical, model, or manufacturing claim is validated. Producer-access fields are declarations, not an executed isolation proof.".to_string(),
     }
@@ -2118,7 +2122,7 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
             audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
             benchmark_id, utility_unit, cost_unit,
             max_measurement_steps: steps,
-            pre_measurement_worst_case_regret: Some(pre_regret),
+            pre_measurement_worst_case_regret: pre_regret,
             adaptive_oracle_worst_case_regret: None,
             adaptive_oracle_gross_regret_reduction: None,
             adaptive_oracle_max_path_cost_units: None,
