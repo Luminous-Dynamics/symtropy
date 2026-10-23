@@ -1,0 +1,859 @@
+{
+  "suite_id": "ORE_FEED_BLEND_ROBUSTNESS_BENCHMARK",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic blend accounting and bounded decision semantics only; no orebody, assay, recovery, plant, economic, safety or environmental qualification.",
+  "search_node_limit": 200000,
+  "scenarios": [
+    {
+      "scenario_id": "GRADE_FIRST_REGRESSION",
+      "feed_capacity_tonnes": 3,
+      "minimum_feed_tonnes": 3,
+      "minimum_grade_ppm": 100000,
+      "maximum_contaminant_ppm": 8000,
+      "maximum_energy_units": 22,
+      "maximum_water_units": 20,
+      "lots": [
+        {
+          "lot_id": "A_HIGH_GRADE_HARD",
+          "available_tonnes": 3,
+          "sample_lot_id": "A_HIGH_GRADE_HARD",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 250000,
+          "grade_upper_ppm": 280000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 300000,
+          "recovery_upper_ppm": 450000,
+          "specific_energy_lower": 8,
+          "specific_energy_upper": 10,
+          "specific_water_lower": 2,
+          "specific_water_upper": 3,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_HIGH_GRADE_HARD",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_LOWER_GRADE_EFFICIENT",
+          "available_tonnes": 3,
+          "sample_lot_id": "B_LOWER_GRADE_EFFICIENT",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 150000,
+          "grade_upper_ppm": 170000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_LOWER_GRADE_EFFICIENT",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "no_feasible_blend",
+      "expected_baseline_selection": [],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_LOWER_GRADE_EFFICIENT",
+          "tonnes": 3
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "ROBUST_GRADE_INTERVAL_FAIL",
+      "feed_capacity_tonnes": 3,
+      "minimum_feed_tonnes": 2,
+      "minimum_grade_ppm": 100000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 30,
+      "maximum_water_units": 30,
+      "lots": [
+        {
+          "lot_id": "A_NOMINAL_PASSES_LOWER_BOUND_FAILS",
+          "available_tonnes": 3,
+          "sample_lot_id": "A_NOMINAL_PASSES_LOWER_BOUND_FAILS",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 80000,
+          "grade_upper_ppm": 150000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_NOMINAL_PASSES_LOWER_BOUND_FAILS",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "no_feasible_blend",
+      "expected_baseline_selection": [],
+      "expected_oracle_status": "no_feasible_blend",
+      "expected_oracle_selection": [],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "SAMPLE_LOT_MISMATCH_EXCLUDED",
+      "feed_capacity_tonnes": 2,
+      "minimum_feed_tonnes": 2,
+      "minimum_grade_ppm": 100000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 20,
+      "maximum_water_units": 20,
+      "lots": [
+        {
+          "lot_id": "A_VALID",
+          "available_tonnes": 2,
+          "sample_lot_id": "A_VALID",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 130000,
+          "grade_upper_ppm": 140000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_VALID",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_WRONG_SAMPLE_LINEAGE",
+          "available_tonnes": 2,
+          "sample_lot_id": "lot-not-B",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 300000,
+          "grade_upper_ppm": 320000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_WRONG_SAMPLE_LINEAGE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "B_WRONG_SAMPLE_LINEAGE": [
+          "SAMPLE_LOT_MISMATCH"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "A_VALID",
+          "tonnes": 2
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "A_VALID",
+          "tonnes": 2
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "CONTAMINANT_UPPER_BOUND_BLOCKS_BLEND",
+      "feed_capacity_tonnes": 2,
+      "minimum_feed_tonnes": 2,
+      "minimum_grade_ppm": 100000,
+      "maximum_contaminant_ppm": 2000,
+      "maximum_energy_units": 20,
+      "maximum_water_units": 20,
+      "lots": [
+        {
+          "lot_id": "A_DELETERIOUS_HIGH",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_DELETERIOUS_HIGH",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 300000,
+          "grade_upper_ppm": 330000,
+          "contaminant_lower_ppm": 5000,
+          "contaminant_upper_ppm": 6000,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_DELETERIOUS_HIGH",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_CLEAN_BUT_INSUFFICIENT_ALONE",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_CLEAN_BUT_INSUFFICIENT_ALONE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 150000,
+          "grade_upper_ppm": 160000,
+          "contaminant_lower_ppm": 300,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_CLEAN_BUT_INSUFFICIENT_ALONE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "no_feasible_blend",
+      "expected_baseline_selection": [],
+      "expected_oracle_status": "no_feasible_blend",
+      "expected_oracle_selection": [],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "ENERGY_LIMIT_FORCES_LOWER_GRADE",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 80000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 6,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_HIGH_GRADE_ENERGY_INTENSIVE",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_HIGH_GRADE_ENERGY_INTENSIVE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 250000,
+          "grade_upper_ppm": 280000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 8,
+          "specific_energy_upper": 10,
+          "specific_water_lower": 2,
+          "specific_water_upper": 3,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_HIGH_GRADE_ENERGY_INTENSIVE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_LOWER_GRADE_FEASIBLE",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_LOWER_GRADE_FEASIBLE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 100000,
+          "grade_upper_ppm": 120000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 600000,
+          "recovery_upper_ppm": 700000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_LOWER_GRADE_FEASIBLE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_LOWER_GRADE_FEASIBLE",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_LOWER_GRADE_FEASIBLE",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "BELOW_DETECTION_REMAINS_INTERVAL",
+      "feed_capacity_tonnes": 2,
+      "minimum_feed_tonnes": 2,
+      "minimum_grade_ppm": 100000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 5,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_QUANTIFIED_METAL",
+          "available_tonnes": 2,
+          "sample_lot_id": "A_QUANTIFIED_METAL",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 200000,
+          "grade_upper_ppm": 220000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 700000,
+          "recovery_upper_ppm": 800000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_QUANTIFIED_METAL",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_BELOW_DETECTION_INTERVAL",
+          "available_tonnes": 2,
+          "sample_lot_id": "B_BELOW_DETECTION_INTERVAL",
+          "assay_state": "below_detection",
+          "detection_limit_ppm": 50000,
+          "grade_lower_ppm": 0,
+          "grade_upper_ppm": 50000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 0,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 1,
+          "specific_energy_upper": 1,
+          "specific_water_lower": 1,
+          "specific_water_upper": 1,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_BELOW_DETECTION_INTERVAL",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "A_QUANTIFIED_METAL",
+          "tonnes": 1
+        },
+        {
+          "lot_id": "B_BELOW_DETECTION_INTERVAL",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "A_QUANTIFIED_METAL",
+          "tonnes": 1
+        },
+        {
+          "lot_id": "B_BELOW_DETECTION_INTERVAL",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "INVALID_RECOVERY_INTERVAL_EXCLUDED",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 10,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_INVALID_RECOVERY_BOUNDS",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_INVALID_RECOVERY_BOUNDS",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 300000,
+          "grade_upper_ppm": 320000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 900000,
+          "recovery_upper_ppm": 800000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_INVALID_RECOVERY_BOUNDS",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_VALID_RECOVERY",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_VALID_RECOVERY",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 100000,
+          "grade_upper_ppm": 120000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 700000,
+          "recovery_upper_ppm": 800000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_VALID_RECOVERY",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "A_INVALID_RECOVERY_BOUNDS": [
+          "RECOVERY_INTERVAL_INVALID"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_VALID_RECOVERY",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_VALID_RECOVERY",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "ASSAY_QC_FAILURE_EXCLUDED",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 10,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_QC_FAILED_HIGH_GRADE",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_QC_FAILED_HIGH_GRADE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 400000,
+          "grade_upper_ppm": 420000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": false,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_QC_FAILED_HIGH_GRADE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_QC_PASSED",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_QC_PASSED",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 100000,
+          "grade_upper_ppm": 120000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_QC_PASSED",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "A_QC_FAILED_HIGH_GRADE": [
+          "ASSAY_QC_UNRESOLVED"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_QC_PASSED",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_QC_PASSED",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "WATER_LIMIT_FORCES_ALTERNATIVE",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 15,
+      "maximum_water_units": 4,
+      "lots": [
+        {
+          "lot_id": "A_HIGH_RECOVERY_WATER_INTENSIVE",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_HIGH_RECOVERY_WATER_INTENSIVE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 200000,
+          "grade_upper_ppm": 220000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 900000,
+          "recovery_upper_ppm": 950000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 8,
+          "specific_water_upper": 10,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_HIGH_RECOVERY_WATER_INTENSIVE",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_LOWER_WATER",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_LOWER_WATER",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 100000,
+          "grade_upper_ppm": 120000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 700000,
+          "recovery_upper_ppm": 800000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 2,
+          "specific_water_upper": 3,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_LOWER_WATER",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {},
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_LOWER_WATER",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_LOWER_WATER",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "MISSING_ASSAY_SOURCE_EXCLUDED",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 10,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_SOURCE_MISSING",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_SOURCE_MISSING",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 350000,
+          "grade_upper_ppm": 370000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": null,
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_SOURCE_VALID",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 120000,
+          "grade_upper_ppm": 140000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_SOURCE_VALID",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "A_SOURCE_MISSING": [
+          "ASSAY_SOURCE_MISSING"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "INVALID_BELOW_DETECTION_LIMIT_EXCLUDED",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 10,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_BAD_DETECTION_BOUND",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_BAD_DETECTION_BOUND",
+          "assay_state": "below_detection",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 0,
+          "grade_upper_ppm": 0,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_BAD_DETECTION_BOUND",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        },
+        {
+          "lot_id": "B_VALID",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_VALID",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 120000,
+          "grade_upper_ppm": 140000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_VALID",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "A_BAD_DETECTION_BOUND": [
+          "DETECTION_LIMIT_BOUNDS_INVALID"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_VALID",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_VALID",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    },
+    {
+      "scenario_id": "ANALYTE_ID_MISMATCH_EXCLUDED",
+      "feed_capacity_tonnes": 1,
+      "minimum_feed_tonnes": 1,
+      "minimum_grade_ppm": 50000,
+      "maximum_contaminant_ppm": 5000,
+      "maximum_energy_units": 10,
+      "maximum_water_units": 10,
+      "lots": [
+        {
+          "lot_id": "A_WRONG_ANALYTE",
+          "available_tonnes": 1,
+          "sample_lot_id": "A_WRONG_ANALYTE",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 350000,
+          "grade_upper_ppm": 370000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-A_WRONG_ANALYTE",
+          "valuable_analyte_id": "Zn",
+          "contaminant_analyte_id": "Pb"
+        },
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "available_tonnes": 1,
+          "sample_lot_id": "B_SOURCE_VALID",
+          "assay_state": "quantified",
+          "detection_limit_ppm": 0,
+          "grade_lower_ppm": 120000,
+          "grade_upper_ppm": 140000,
+          "contaminant_lower_ppm": 100,
+          "contaminant_upper_ppm": 500,
+          "recovery_lower_ppm": 800000,
+          "recovery_upper_ppm": 900000,
+          "specific_energy_lower": 3,
+          "specific_energy_upper": 4,
+          "specific_water_lower": 3,
+          "specific_water_upper": 4,
+          "analytical_qc_pass": true,
+          "dry_basis": true,
+          "source_record_ref": "synthetic-source-B_SOURCE_VALID",
+          "valuable_analyte_id": "Cu",
+          "contaminant_analyte_id": "As"
+        }
+      ],
+      "expected_lot_block_reasons": {
+        "A_WRONG_ANALYTE": [
+          "CONTAMINANT_ANALYTE_MISMATCH",
+          "VALUABLE_ANALYTE_MISMATCH"
+        ]
+      },
+      "expected_baseline_status": "feasible",
+      "expected_baseline_selection": [
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "tonnes": 1
+        }
+      ],
+      "expected_oracle_status": "optimal",
+      "expected_oracle_selection": [
+        {
+          "lot_id": "B_SOURCE_VALID",
+          "tonnes": 1
+        }
+      ],
+      "required_valuable_analyte_id": "Cu",
+      "required_contaminant_analyte_id": "As"
+    }
+  ]
+}

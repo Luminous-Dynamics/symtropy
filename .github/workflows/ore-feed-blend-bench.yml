@@ -1,0 +1,80 @@
+name: Ore Feed Blend Benchmark
+
+on:
+  push:
+    branches: ["feat/ore-feed-blend-bench-v0-1"]
+    paths:
+      - "docs/tech/ORE_FEED_BLEND_BENCHMARK_V0_1.md"
+      - "docs/tech/ore-feed-blend-corpus-v0.1.json"
+      - "tools/ore-feed-blend-bench/**"
+      - ".github/workflows/ore-feed-blend-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/ORE_FEED_BLEND_BENCHMARK_V0_1.md"
+      - "docs/tech/ore-feed-blend-corpus-v0.1.json"
+      - "tools/ore-feed-blend-bench/**"
+      - ".github/workflows/ore-feed-blend-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ore-feed-blend-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ore-feed-blend-bench/Cargo.toml -- --check
+      - name: Run contract and adversarial tests
+        run: cargo test --manifest-path tools/ore-feed-blend-bench/Cargo.toml
+      - name: Emit exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/ore-feed-blend-bench/Cargo.toml -- \
+            docs/tech/ore-feed-blend-corpus-v0.1.json \
+            --source-commit "$source_commit" > ore-feed-blend-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 12
+            and .expected_controls_matched == 12
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].scenario_id] == [
+              "GRADE_FIRST_REGRESSION",
+              "ROBUST_GRADE_INTERVAL_FAIL",
+              "SAMPLE_LOT_MISMATCH_EXCLUDED",
+              "CONTAMINANT_UPPER_BOUND_BLOCKS_BLEND",
+              "ENERGY_LIMIT_FORCES_LOWER_GRADE",
+              "BELOW_DETECTION_REMAINS_INTERVAL",
+              "INVALID_RECOVERY_INTERVAL_EXCLUDED",
+              "ASSAY_QC_FAILURE_EXCLUDED",
+              "WATER_LIMIT_FORCES_ALTERNATIVE",
+              "MISSING_ASSAY_SOURCE_EXCLUDED",
+              "INVALID_BELOW_DETECTION_LIMIT_EXCLUDED",
+              "ANALYTE_ID_MISMATCH_EXCLUDED"
+            ])
+            and ([.scenarios[].baseline_independently_validated] | all)
+            and ([.scenarios[].oracle_independently_validated] | all)
+            and ([.scenarios[].oracle_status] == [
+              "optimal", "no_feasible_blend", "optimal", "no_feasible_blend",
+              "optimal", "optimal", "optimal", "optimal", "optimal", "optimal", "optimal", "optimal"
+            ])
+          ' ore-feed-blend-receipt.json
