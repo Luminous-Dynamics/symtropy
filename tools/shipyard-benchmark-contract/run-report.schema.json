@@ -85,8 +85,7 @@
           "case_id",
           "outcome",
           "runtime_ms",
-          "verifier",
-          "reference_outcome"
+          "verifier"
         ],
         "properties": {
           "case_id": {
@@ -95,9 +94,9 @@
           },
           "outcome": {
             "enum": [
-              "verified-feasible",
-              "verified-infeasible",
-              "unknown",
+              "feasible-claim",
+              "infeasibility-proof",
+              "no-solution",
               "timeout",
               "invalid-output",
               "not-run"
@@ -170,14 +169,6 @@
           },
           "notes": {
             "type": "string"
-          },
-          "reference_outcome": {
-            "enum": [
-              "feasible",
-              "infeasible",
-              "unknown",
-              "not-applicable"
-            ]
           }
         }
       }
@@ -187,25 +178,20 @@
       "additionalProperties": false,
       "required": [
         "case_count",
-        "verified_feasible_count",
-        "verified_infeasible_count",
         "unknown_count",
         "timeout_count",
         "false_feasible_count",
         "false_infeasible_count",
+        "invalid_output_count",
         "not_run_count",
-        "invalid_output_count"
+        "feasible_claim_count",
+        "infeasibility_proof_count",
+        "no_solution_count",
+        "feasible_reference_cases_found_count",
+        "feasible_reference_cases_missed_count"
       ],
       "properties": {
         "case_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "verified_feasible_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "verified_infeasible_count": {
           "type": "integer",
           "minimum": 0
         },
@@ -235,25 +221,40 @@
             ]
           }
         },
+        "invalid_output_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "not_run_count": {
           "type": "integer",
           "minimum": 0
         },
-        "invalid_output_count": {
+        "feasible_claim_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "infeasibility_proof_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_solution_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feasible_reference_cases_found_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feasible_reference_cases_missed_count": {
           "type": "integer",
           "minimum": 0
         }
-      },
-      "description": "Counts are audited against per-case results; false counts are derived from known reference outcomes, never trusted as input."
+      }
     },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "report_sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        },
         "artifact_uri": {
           "type": "string"
         },
