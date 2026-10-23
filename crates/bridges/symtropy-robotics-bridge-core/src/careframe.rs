@@ -557,12 +557,14 @@ mod tests {
         let morphology_with_whitespace = format!("{MORPHOLOGY_JSON}\n");
         let state_with_whitespace = format!("{ZERO_JOINT_STATE_JSON}\n");
         assert_eq!(
-            serde_json::from_str::<serde_json::Value>(MORPHOLOGY_JSON).expect("original morphology"),
+            serde_json::from_str::<serde_json::Value>(MORPHOLOGY_JSON)
+                .expect("original morphology"),
             serde_json::from_str::<serde_json::Value>(&morphology_with_whitespace)
                 .expect("whitespace morphology")
         );
         assert_eq!(
-            serde_json::from_str::<serde_json::Value>(ZERO_JOINT_STATE_JSON).expect("original state"),
+            serde_json::from_str::<serde_json::Value>(ZERO_JOINT_STATE_JSON)
+                .expect("original state"),
             serde_json::from_str::<serde_json::Value>(&state_with_whitespace)
                 .expect("whitespace state")
         );
