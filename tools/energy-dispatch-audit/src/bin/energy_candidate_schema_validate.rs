@@ -53,10 +53,10 @@ mod tests {
     #[test]
     fn schema_and_candidate_fixture_validate() {
         let schema: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../../schemas/energy-system-candidate-v0.1.schema.json"
+            "../../fixtures/energy-system-candidate-v0.1.schema.json"
         )).expect("pinned fixture schema is JSON");
         let candidate: serde_json::Value = serde_json::from_str(include_str!(
-            "../fixtures/energy-system-candidate.synthetic.json"
+            "../../fixtures/energy-system-candidate.synthetic.json"
         )).expect("candidate fixture is JSON");
         let validator = jsonschema::validator_for(&schema).expect("schema is valid");
         assert!(validator.is_valid(&candidate), "{:?}", validator.iter_errors(&candidate).collect::<Vec<_>>());
