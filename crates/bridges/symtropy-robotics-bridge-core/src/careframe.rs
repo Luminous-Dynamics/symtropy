@@ -520,6 +520,33 @@ mod tests {
     }
 
     #[test]
+    fn static_careframe_proxy_participates_in_physics_collision_detection() {
+        let mut physics = world();
+        let assembly = spawn_static_collision_assembly(
+            &mut physics,
+            MORPHOLOGY_JSON,
+            ZERO_JOINT_STATE_JSON,
+            Point::origin(),
+        )
+        .expect("synthetic Careframe fixture imports");
+        assert!(assembly.handle_for_link("base_chassis").is_some());
+
+        // The probe intentionally overlaps the base-chassis bounding box.
+        let probe = physics.add_sphere(Point::new([0.29, 0.0, 0.0]), 0.05, 1.0);
+        physics.step(0.002);
+
+        assert!(
+            !physics.contacts.is_empty(),
+            "a dynamic probe overlapping a static Careframe box should enter the collision pipeline"
+        );
+        let body = physics.body(probe).expect("probe remains in physics world");
+        assert!(
+            body.transform.translation.0.iter().all(|value| value.is_finite()),
+            "collision response should not produce non-finite probe coordinates"
+        );
+    }
+
+    #[test]
     fn morphology_import_honours_rotated_joint_state_in_the_physics_world() {
         let mut state: BTreeMap<String, f64> =
             serde_json::from_str(ZERO_JOINT_STATE_JSON).expect("joint state parses");
