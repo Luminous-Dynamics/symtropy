@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::{env, fs, process};
 
 const DEFAULT_CORPUS: &str = "docs/medical-robotics/medical-robot-tool-corpus-v0.1.json";
+const EXPECTED_CASE_COUNT: usize = 16;
 const NULL_VALUE: Value = Value::Null;
 const CORPUS_SOURCE: &[u8] =
     include_bytes!("../../../docs/medical-robotics/medical-robot-tool-corpus-v0.1.json");
@@ -365,6 +366,12 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
     };
     if root.get("expected_case_count").and_then(Value::as_u64) != Some(cases.len() as u64) {
         schema_errors.push("expected_case_count does not match corpus length".to_owned());
+    }
+    if cases.len() != EXPECTED_CASE_COUNT {
+        schema_errors.push(format!(
+            "v0 corpus requires exactly {EXPECTED_CASE_COUNT} cases, got {}",
+            cases.len()
+        ));
     }
     if !schema_errors.is_empty() {
         return Err(schema_errors);
