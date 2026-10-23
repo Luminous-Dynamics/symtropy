@@ -2200,6 +2200,12 @@ mod adaptive_campaign_tests {
     fn adaptive_oracle_survives_sensor_drift_and_failed_primary_measurement() {
         let value: Value = serde_json::from_str(include_str!("../fixtures/adaptive-decision-pool-drift-failure.synthetic.json"))
             .expect("drift/failure pool must be valid JSON");
+        let one_step = audit_decision_value_pool(&value);
+        assert_eq!(one_step.status, "PASS");
+        assert_eq!(one_step.pre_measurement_worst_case_regret, Some(6.0));
+        assert_eq!(one_step.oracle_worst_case_regret_after, Some(6.0));
+        assert_eq!(one_step.oracle_gross_regret_reduction, Some(0.0));
+
         let report = audit_adaptive_decision_campaign(&value);
         assert_eq!(report.status, "PASS");
         assert_eq!(report.pre_measurement_worst_case_regret, Some(6.0));
@@ -2211,7 +2217,11 @@ mod adaptive_campaign_tests {
         let root = report.policy_tree.expect("robust adaptive policy tree");
         assert_eq!(root.measurement_id.as_deref(), Some("measure-primary"));
         assert_eq!(root.observation_branches.len(), 3);
-        for branch in root.observation_branches.values() {
+        let early_stop = root.observation_branches.get("signal-a").expect("clean signal branch");
+        assert_eq!(early_stop.node_type, "STOP");
+        assert_eq!(early_stop.action_id.as_deref(), Some("route-a"));
+        for observation in ["signal-b", "invalid"] {
+            let branch = root.observation_branches.get(observation).expect("ambiguous or invalid branch");
             assert_eq!(branch.node_type, "MEASURE");
             assert_eq!(branch.measurement_id.as_deref(), Some("measure-secondary"));
             assert!(branch.observation_branches.values().all(|leaf| leaf.node_type == "STOP"));
