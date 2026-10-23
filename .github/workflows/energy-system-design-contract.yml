@@ -1,0 +1,91 @@
+name: Energy system design contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "schemas/energy-system-candidate-v0.1.schema.json"
+      - "schemas/examples/energy-system-candidate.synthetic.json"
+      - "docs/ENERGY_SYSTEM_DESIGN_STUDIO_V0_1.md"
+      - ".github/workflows/energy-system-design-contract.yml"
+  pull_request:
+    paths:
+      - "schemas/energy-system-candidate-v0.1.schema.json"
+      - "schemas/examples/energy-system-candidate.synthetic.json"
+      - "docs/ENERGY_SYSTEM_DESIGN_STUDIO_V0_1.md"
+      - ".github/workflows/energy-system-design-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator (CI tooling only)
+        run: python -m pip install --disable-pip-version-check "jsonschema[format]==4.26.0"
+      - name: Validate candidate schema and synthetic fixture semantics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          schema = json.loads(Path("schemas/energy-system-candidate-v0.1.schema.json").read_text())
+          candidate = json.loads(Path("schemas/examples/energy-system-candidate.synthetic.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema, format_checker=FormatChecker()).validate(candidate)
+
+          components = {component["component_id"]: component for component in candidate["components"]}
+          assert len(components) == len(candidate["components"]), "duplicate component ID"
+          services = {service["service_id"]: service for service in candidate["services"]}
+          assert len(services) == len(candidate["services"]), "duplicate service ID"
+
+          ports = {}
+          for component_id, component in components.items():
+              for port in component["ports"]:
+                  key = (component_id, port["port_id"])
+                  assert key not in ports, f"duplicate port: {key}"
+                  ports[key] = port
+
+          connection_ids = set()
+          for connection in candidate["connections"]:
+              assert connection["connection_id"] not in connection_ids, "duplicate connection ID"
+              connection_ids.add(connection["connection_id"])
+              source_key = (connection["from_component"], connection["from_port"])
+              target_key = (connection["to_component"], connection["to_port"])
+              assert source_key in ports, f"unknown source port: {source_key}"
+              assert target_key in ports, f"unknown target port: {target_key}"
+              source, target = ports[source_key], ports[target_key]
+              assert source["direction"] in ("output", "bidirectional"), f"source is not output: {source_key}"
+              assert target["direction"] in ("input", "bidirectional"), f"target is not input: {target_key}"
+              assert source["carrier"] == target["carrier"] == connection["carrier"], f"carrier mismatch: {connection['connection_id']}"
+              assert source["unit"] == target["unit"], f"unit mismatch: {connection['connection_id']}"
+
+          assert candidate["horizon"]["end_unix_seconds"] > candidate["horizon"]["start_unix_seconds"]
+          interval_ids = set()
+          for scenario in candidate["scenarios"]:
+              expected = candidate["horizon"]["start_unix_seconds"]
+              seen = set()
+              for interval in scenario["intervals"]:
+                  assert interval["interval_id"] not in interval_ids, "interval IDs must be globally unique in this fixture"
+                  interval_ids.add(interval["interval_id"])
+                  assert interval["start_unix_seconds"] == expected, f"gap/overlap in {scenario['scenario_id']}"
+                  expected += interval["duration_seconds"]
+                  assert interval["duration_seconds"] > 0
+                  for availability in interval["resource_available_kwh"]:
+                      assert availability["component_id"] in components
+                  for demand in interval["service_requested"]:
+                      assert demand["service_id"] in services
+                      assert demand["service_id"] not in seen, "duplicate service demand in an interval"
+                      seen.add(demand["service_id"])
+                  assert seen == set(services), "each declared service must have exactly one demand sample per interval"
+              assert expected == candidate["horizon"]["end_unix_seconds"], "scenario must cover its full declared horizon"
+
+          for service in candidate["services"]:
+              assert service["component_id"] in components, f"unknown service component: {service['service_id']}"
+          assert "synthetic" in candidate["claim_ceiling"].lower()
+          print("energy-system candidate schema, port connectivity, carrier/unit matching, service references and chronology passed")
+          PY
