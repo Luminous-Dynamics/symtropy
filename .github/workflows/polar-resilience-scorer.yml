@@ -60,3 +60,21 @@ jobs:
                (.scenario_outcomes | length == 2) and
                ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false)] | length == 1))] | length == 1)
           ' /tmp/polar-ensemble-report.json
+
+      - name: Exercise probability-free robust stress-set evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json > /tmp/polar-robust-set-report.json
+          jq -e '
+            .report_kind == "polar-resilience-robust-set-report" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
+            .scenario_count == 3 and
+            (.policy_results | length == 4) and
+            ([.policy_results[] | select(.policy_id == "candidate_full_service") |
+              (.passed_all_declared_service_floors == false and
+               .service_floor_breach_scenario_count > 0 and
+               (.scenario_outcomes | length == 3))] | length == 1)
+          ' /tmp/polar-robust-set-report.json
