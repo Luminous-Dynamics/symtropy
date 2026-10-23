@@ -564,7 +564,9 @@
           "published_checksum": "f912be7d034e1a368950c66926aa62d8",
           "sha256": null
         }
-      ]
+      ],
+      "rights_evidence_ref": null,
+      "rights_reviewed_on": null
     }
   ]
 }
