@@ -20,13 +20,26 @@ impl Point {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GeometryError {
     TooFewVertices,
-    ConsecutiveDuplicateVertex { index: usize },
-    DuplicateVertex { first: usize, second: usize },
+    ConsecutiveDuplicateVertex {
+        index: usize,
+    },
+    DuplicateVertex {
+        first: usize,
+        second: usize,
+    },
     ZeroArea,
-    AdjacentEdgesOverlap { vertex: usize },
-    SelfIntersection { first_edge: usize, second_edge: usize },
+    AdjacentEdgesOverlap {
+        vertex: usize,
+    },
+    SelfIntersection {
+        first_edge: usize,
+        second_edge: usize,
+    },
     ArithmeticOverflow,
-    InvalidTimeWindow { start: i64, end: i64 },
+    InvalidTimeWindow {
+        start: i64,
+        end: i64,
+    },
 }
 
 impl fmt::Display for GeometryError {
@@ -47,7 +60,9 @@ impl fmt::Display for GeometryError {
                 first_edge,
                 second_edge,
             } => write!(f, "edges {first_edge} and {second_edge} self-intersect"),
-            Self::ArithmeticOverflow => write!(f, "exact integer predicate exceeded checked i128 range"),
+            Self::ArithmeticOverflow => {
+                write!(f, "exact integer predicate exceeded checked i128 range")
+            }
             Self::InvalidTimeWindow { start, end } => {
                 write!(f, "invalid half-open time window [{start}, {end})")
             }
@@ -498,7 +513,11 @@ fn midpoint_location(
         }
     }
 
-    Ok(if inside { PointLocation::Inside } else { PointLocation::Outside })
+    Ok(if inside {
+        PointLocation::Inside
+    } else {
+        PointLocation::Outside
+    })
 }
 
 fn point_in_polygon(point: Point, vertices: &[Point]) -> Result<PointLocation, GeometryError> {
@@ -547,7 +566,10 @@ mod tests {
 
     #[test]
     fn exact_orientation_handles_clockwise_and_counter_clockwise_points() {
-        assert_eq!(orientation(p(0, 0), p(4, 0), p(2, 3)), Ok(Ordering::Greater));
+        assert_eq!(
+            orientation(p(0, 0), p(4, 0), p(2, 3)),
+            Ok(Ordering::Greater)
+        );
         assert_eq!(orientation(p(0, 0), p(4, 0), p(2, -3)), Ok(Ordering::Less));
         assert_eq!(orientation(p(0, 0), p(4, 0), p(2, 0)), Ok(Ordering::Equal));
     }
@@ -574,7 +596,10 @@ mod tests {
 
     #[test]
     fn polygon_rejects_degenerate_and_self_intersecting_inputs() {
-        assert_eq!(Polygon::new(vec![p(0, 0), p(1, 1)]), Err(GeometryError::TooFewVertices));
+        assert_eq!(
+            Polygon::new(vec![p(0, 0), p(1, 1)]),
+            Err(GeometryError::TooFewVertices)
+        );
         assert!(matches!(
             Polygon::new(vec![p(0, 0), p(2, 0), p(2, 0), p(0, 2)]),
             Err(GeometryError::ConsecutiveDuplicateVertex { .. })
@@ -589,7 +614,8 @@ mod tests {
         ));
         assert!(matches!(
             Polygon::new(vec![p(0, 0), p(4, 0), p(2, 0), p(2, 3), p(0, 3)]),
-            Err(GeometryError::AdjacentEdgesOverlap { .. }) | Err(GeometryError::SelfIntersection { .. })
+            Err(GeometryError::AdjacentEdgesOverlap { .. })
+                | Err(GeometryError::SelfIntersection { .. })
         ));
     }
 
@@ -602,10 +628,22 @@ mod tests {
         let overlap = rectangle(1, 1, 3, 3);
         let contained = rectangle(1, 1, 2, 2);
         assert_eq!(a.relation(&disjoint), Ok(PolygonRelation::Disjoint));
-        assert_eq!(a.relation(&edge_touch), Ok(PolygonRelation::BoundaryContact));
-        assert_eq!(a.relation(&vertex_touch), Ok(PolygonRelation::BoundaryContact));
-        assert_eq!(a.relation(&overlap), Ok(PolygonRelation::PositiveAreaOverlap));
-        assert_eq!(a.relation(&contained), Ok(PolygonRelation::PositiveAreaOverlap));
+        assert_eq!(
+            a.relation(&edge_touch),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            a.relation(&vertex_touch),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            a.relation(&overlap),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            a.relation(&contained),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
         let inscribed_diamond = polygon(&[(2, 0), (4, 2), (2, 4), (0, 2)]);
         let square = rectangle(0, 0, 4, 4);
         assert_eq!(
@@ -626,8 +664,14 @@ mod tests {
         let shifted = polygon(&[(4, 4), (0, 4), (0, 0), (4, 0)]);
         let clockwise_with_collinear = polygon(&[(0, 4), (2, 4), (4, 4), (4, 0), (0, 0)]);
         assert_eq!(base.canonical_vertices(), shifted.canonical_vertices());
-        assert_eq!(base.canonical_vertices(), clockwise_with_collinear.canonical_vertices());
-        assert_eq!(base.relation(&shifted), Ok(PolygonRelation::PositiveAreaOverlap));
+        assert_eq!(
+            base.canonical_vertices(),
+            clockwise_with_collinear.canonical_vertices()
+        );
+        assert_eq!(
+            base.relation(&shifted),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
     }
 
     #[test]
@@ -776,10 +820,7 @@ mod tests {
         a0.min(a1) <= b0.max(b1) && b0.min(b1) <= a0.max(a1)
     }
 
-    fn independent_boundary_contact(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> bool {
+    fn independent_boundary_contact(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
         for first_index in 0..first.len() {
             let a = first[first_index];
             let b = first[(first_index + 1) % first.len()];
@@ -789,12 +830,8 @@ mod tests {
                 let first_horizontal = a.1 == b.1;
                 let second_horizontal = c.1 == d.1;
                 let contact = match (first_horizontal, second_horizontal) {
-                    (true, true) => {
-                        a.1 == c.1 && closed_interval_overlap(a.0, b.0, c.0, d.0)
-                    }
-                    (false, false) => {
-                        a.0 == c.0 && closed_interval_overlap(a.1, b.1, c.1, d.1)
-                    }
+                    (true, true) => a.1 == c.1 && closed_interval_overlap(a.0, b.0, c.0, d.0),
+                    (false, false) => a.0 == c.0 && closed_interval_overlap(a.1, b.1, c.1, d.1),
                     (true, false) => {
                         closed_interval_overlap(a.0, b.0, c.0, d.0)
                             && closed_interval_overlap(a.1, b.1, c.1, d.1)
@@ -812,10 +849,7 @@ mod tests {
         false
     }
 
-    fn orthogonal_oracle(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> PolygonRelation {
+    fn orthogonal_oracle(first: &[(i64, i64)], second: &[(i64, i64)]) -> PolygonRelation {
         let first_cells = raster_cells(first);
         let second_cells = raster_cells(second);
         if !first_cells.is_disjoint(&second_cells) {
@@ -827,10 +861,7 @@ mod tests {
         }
     }
 
-    fn aabb_conflict(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> bool {
+    fn aabb_conflict(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
         let first_min_x = first.iter().map(|point| point.0).min().unwrap();
         let first_max_x = first.iter().map(|point| point.0).max().unwrap();
         let first_min_y = first.iter().map(|point| point.1).min().unwrap();
@@ -847,8 +878,26 @@ mod tests {
     fn concave_orthogonal_corpus_pins_aabb_ablation_against_independent_oracle() {
         let shapes: &[&[(i64, i64)]] = &[
             &[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)],
-            &[(0, 0), (4, 0), (4, 4), (3, 4), (3, 1), (1, 1), (1, 4), (0, 4)],
-            &[(0, 0), (3, 0), (3, 1), (2, 1), (2, 2), (1, 2), (1, 3), (0, 3)],
+            &[
+                (0, 0),
+                (4, 0),
+                (4, 4),
+                (3, 4),
+                (3, 1),
+                (1, 1),
+                (1, 4),
+                (0, 4),
+            ],
+            &[
+                (0, 0),
+                (3, 0),
+                (3, 1),
+                (2, 1),
+                (2, 2),
+                (1, 2),
+                (1, 3),
+                (0, 3),
+            ],
         ];
         let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
         for shape in shapes {
@@ -858,17 +907,13 @@ mod tests {
                         .iter()
                         .map(|(x, y)| (*x + shift_x, *y + shift_y))
                         .collect();
-                    let polygon = Polygon::new(
-                        vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
-                    )
-                    .expect("authored orthogonal shape should be valid");
+                    let polygon = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("authored orthogonal shape should be valid");
                     corpus.push((vertices.clone(), polygon));
 
                     vertices.reverse();
-                    let reversed = Polygon::new(
-                        vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
-                    )
-                    .expect("reversed simple shape should remain valid");
+                    let reversed = Polygon::new(vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("reversed simple shape should remain valid");
                     corpus.push((vertices, reversed));
                 }
             }
@@ -915,20 +960,30 @@ mod tests {
             }
         }
 
-        assert_eq!(positive_area_overlaps, 12_980, "frozen raster overlap count changed");
-        assert_eq!(boundary_contacts, 6_216, "frozen boundary-contact count changed");
+        assert_eq!(
+            positive_area_overlaps, 12_980,
+            "frozen raster overlap count changed"
+        );
+        assert_eq!(
+            boundary_contacts, 6_216,
+            "frozen boundary-contact count changed"
+        );
         assert_eq!(exact_disjoint, 3_304, "frozen disjoint count changed");
-        assert_eq!(aabb_conflicts, 20_180, "frozen AABB candidate count changed");
+        assert_eq!(
+            aabb_conflicts, 20_180,
+            "frozen AABB candidate count changed"
+        );
         assert_eq!(aabb_false_positive, 984, "AABB conservatism corpus changed");
-        assert_eq!(aabb_false_negative, 0, "AABB broadphase may not reject a real contact/overlap");
+        assert_eq!(
+            aabb_false_negative, 0,
+            "AABB broadphase may not reject a real contact/overlap"
+        );
     }
     #[test]
     fn exact_polygon_placement_finds_layouts_conservative_aabb_rejects() {
         let base_vertices = vec![(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
-        let fixed = Polygon::new(
-            base_vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
-        )
-        .expect("L-shaped footprint should be valid");
+        let fixed = Polygon::new(base_vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+            .expect("L-shaped footprint should be valid");
         let mut exact_feasible_offsets = Vec::new();
         let mut aabb_feasible_offsets = Vec::new();
         let mut checked_offsets = 0usize;
@@ -942,13 +997,9 @@ mod tests {
                     .iter()
                     .map(|(x, y)| (*x + shift_x, *y + shift_y))
                     .collect();
-                let candidate = Polygon::new(
-                    candidate_vertices
-                        .iter()
-                        .map(|(x, y)| p(*x, *y))
-                        .collect(),
-                )
-                .expect("translated L-shaped footprint should be valid");
+                let candidate =
+                    Polygon::new(candidate_vertices.iter().map(|(x, y)| p(*x, *y)).collect())
+                        .expect("translated L-shaped footprint should be valid");
                 assert!(candidate_vertices.iter().all(|(x, y)| *x <= 6 && *y <= 6));
                 checked_offsets += 1;
 
@@ -982,9 +1033,18 @@ mod tests {
         let disjoint = [(4, 0), (6, 0), (6, 2), (4, 2)];
         let boundary_touch = [(3, 0), (4, 0), (4, 1), (3, 1)];
         let overlap = [(0, 2), (1, 2), (1, 3), (0, 3)];
-        assert_eq!(orthogonal_oracle(&l_shape, &disjoint), PolygonRelation::Disjoint);
-        assert_eq!(orthogonal_oracle(&l_shape, &boundary_touch), PolygonRelation::BoundaryContact);
-        assert_eq!(orthogonal_oracle(&l_shape, &overlap), PolygonRelation::PositiveAreaOverlap);
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &disjoint),
+            PolygonRelation::Disjoint
+        );
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &boundary_touch),
+            PolygonRelation::BoundaryContact
+        );
+        assert_eq!(
+            orthogonal_oracle(&l_shape, &overlap),
+            PolygonRelation::PositiveAreaOverlap
+        );
     }
 
     #[test]
@@ -1012,7 +1072,12 @@ mod tests {
             Ok(PolygonRelation::BoundaryContact)
         );
         assert_eq!(
-            reservations_conflict(&l_shape, outgoing, &edge_neighbor, TimeWindow::new(1, 4).unwrap()),
+            reservations_conflict(
+                &l_shape,
+                outgoing,
+                &edge_neighbor,
+                TimeWindow::new(1, 4).unwrap()
+            ),
             Ok(true)
         );
     }
@@ -1064,7 +1129,13 @@ mod tests {
     fn positive_area_overlap_is_symmetric_for_adversarial_concave_shapes() {
         let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
         let bar = rectangle(0, 2, 3, 3);
-        assert_eq!(l_shape.relation(&bar), Ok(PolygonRelation::PositiveAreaOverlap));
-        assert_eq!(bar.relation(&l_shape), Ok(PolygonRelation::PositiveAreaOverlap));
+        assert_eq!(
+            l_shape.relation(&bar),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            bar.relation(&l_shape),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
     }
 }
