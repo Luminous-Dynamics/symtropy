@@ -37,6 +37,18 @@ For this two-interval integer model, the independently frozen stress-case answer
 
 This is the first non-zero economic objective test, not a real economic ranking. A field or site study still requires sourced tariffs, jurisdiction-appropriate emissions data, realistic battery losses/degradation and a model validated for its claim scope. The follow-on multi-scenario economics and robustness plan is tracked in [ENERGY-OBJECTIVES-001 #2739](https://github.com/Luminous-Dynamics/symtropy/issues/2739).
 
+## South African tariff reference arithmetic
+
+The standalone `energy_sa_tariff_reference` binary is a **source-bounded arithmetic check**, not a bill estimator. It consumes the provisional City Power Business Conventional 2026/27 candidate schedule and hand-calculated test cases under:
+- `fixtures/energy-sa-tariff-schedule-2026-27.reference.json`
+- `fixtures/energy-sa-tariff-known-answers-v0.1.json`
+
+The fixture tests a 2,600 kWh low-season case in the <50 kVA band and a 1,200 kWh high-season case in the >50-to-100 kVA band. Rates are represented as integer microZAR per kWh to avoid floating-point bill arithmetic. The calculator recomputes progressive block usage, energy charges, monthly service/network charges and the subtotal. It requires exact known-answer agreement before emitting a report and has a negative control for a modified expected amount.
+
+The report explicitly carries `account_verified=false` and lists excluded/unresolved charges. In particular, the municipal budget annexure excludes a 6 c/kWh network surcharge while the secondary machine-readable source lists a 6 c/kWh DSM levy. Those labels are not assumed equivalent; neither is silently double-counted or included in the subtotal. The 2% business/large-power-user surcharge and VAT are also not applied. Confirm the account's current approved tariff and all charges before using the arithmetic for any site bill or savings claim.
+
+The end-to-end workflow runs this calculator and preserves the exact schedule, expected-answer fixture, output report, qualification log and file hashes as artifacts. This remains a public-source arithmetic test, not customer-specific tariff evidence.
+
 ## What a pass means — and does not mean
 
 A pass means the exact request/report bytes match the run receipt, every returned schedule passes independently recomputed invariants, and the bounded reference enumerator agrees on feasible-schedule count and Pareto objective vectors. When reference enumeration completes, objective_claim_status = verified_for_bounded_model_case applies only to that finite request. When its separate expansion cap is exceeded, the aggregate status is unknown rather than a pass. Solver search_is_exact / pareto_frontier_complete flags are preserved as **solver-reported claims**; they are not the basis of the independent reference result.
