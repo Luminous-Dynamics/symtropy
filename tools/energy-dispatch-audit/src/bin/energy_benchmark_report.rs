@@ -192,8 +192,9 @@ fn benchmark_candidate(
         .into());
     }
     let candidate_is_synthetic = required_bool(&candidate, "synthetic")?;
+    let expected_case_id = format!("candidate:{candidate_id}");
     if required_str(&compilation, "candidate_id")? != candidate_id
-        || required_str(&request, "case_id")? != format!("candidate:{candidate_id}")
+        || required_str(&request, "case_id")? != expected_case_id.as_str()
         || !candidate_is_synthetic
         || candidate_is_synthetic != required_bool(&request, "synthetic")?
     {
