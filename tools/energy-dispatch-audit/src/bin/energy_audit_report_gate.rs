@@ -16,6 +16,8 @@ struct ExpectedBenchmark {
 #[serde(deny_unknown_fields)]
 struct ParametricKnownAnswers {
     schema_version: String,
+    scope: String,
+    derivation: String,
     axes: serde_json::Value,
     case_count: usize,
     cases: Vec<ParametricKnownAnswer>,
@@ -116,14 +118,29 @@ fn expected_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark
     .expect("frozen parametric known-answer fixture must remain valid JSON");
 
     if fixture.schema_version != "energy-parametric-known-answers-v0.1"
+        || fixture.scope.trim().is_empty()
+        || fixture.derivation.trim().is_empty()
         || fixture.case_count != 36
         || fixture.cases.len() != 36
         || !fixture.axes.is_object()
+        || fixture.axes.get("pv_rated_power_kw")? != &serde_json::json!([1, 2, 3])
+        || fixture.axes.get("battery_capacity_kwh")? != &serde_json::json!([1, 2, 3])
+        || fixture.axes.get("battery_charge_discharge_power_kw")? != &serde_json::json!([1, 2])
+        || fixture.axes.get("grid_import_power_kw")? != &serde_json::json!([1, 2])
+        || fixture.axes.as_object()?.len() != 4
     {
         return None;
     }
 
+    let (pv, capacity, battery_power, grid_power) = parse_parametric_id(candidate_id)?;
     let known = fixture.cases.iter().find(|case| case.candidate_id == candidate_id)?;
+    if known.pv_rated_power_kw != pv
+        || known.battery_capacity_kwh != capacity
+        || known.battery_charge_discharge_power_kw != battery_power
+        || known.grid_import_power_kw != grid_power
+    {
+        return None;
+    }
     Some(ExpectedBenchmark {
         case_id: format!("candidate:{candidate_id}"),
         feasible_schedules: known.feasible_complete_schedules,
