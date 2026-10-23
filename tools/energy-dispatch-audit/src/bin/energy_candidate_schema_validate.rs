@@ -65,10 +65,10 @@ mod tests {
     #[test]
     fn additional_properties_negative_control_is_rejected() {
         let schema: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../../schemas/energy-system-candidate-v0.1.schema.json"
+            "../../fixtures/energy-system-candidate-v0.1.schema.json"
         )).expect("pinned fixture schema is JSON");
         let mut candidate: serde_json::Value = serde_json::from_str(include_str!(
-            "../fixtures/energy-system-candidate.synthetic.json"
+            "../../fixtures/energy-system-candidate.synthetic.json"
         )).expect("candidate fixture is JSON");
         candidate["unexpected_field"] = serde_json::json!(true);
         let validator = jsonschema::validator_for(&schema).expect("schema is valid");
