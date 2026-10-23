@@ -51,7 +51,7 @@ The Rust gate can also run:
 medical-robot-tool-gate --export-urdf MORPHOLOGY_JSON OUTPUT_URDF
 ```
 
-It exports named links, centered box visual/collision geometry, parent/child joints, origins, revolute axes and limits. A digest-bound receipt labels the output `KINEMATIC_INTERCHANGE_ONLY`. The exporter rejects non-token names and unsupported geometry instead of silently changing the model. The current v0 schema omits joint-origin orientation, so the exporter writes `rpy="0 0 0"` for all joint origins.
+It exports named links, centered box visual/collision geometry, parent/child joints, origins, revolute axes and limits. Each box is centered on its link frame because v0 has no per-geometry origin field; that is an explicit modeling assumption, not measured CAD. A digest-bound receipt labels the output `KINEMATIC_INTERCHANGE_ONLY`. The exporter rejects non-token names and unsupported geometry instead of silently changing the model. The current v0 schema omits joint-origin orientation, so the exporter writes `rpy="0 0 0"` for all joint origins.
 
 The CI workflow independently parses the generated XML and checks link/joint counts and element structure. It does not run ROS or MuJoCo as a runtime, and the URDF intentionally omits inertial parameters, transmissions and controller tags. **This is a kinematic/collision interchange artifact, not a dynamics-ready or physics-validated robot model.**
 
