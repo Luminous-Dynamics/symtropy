@@ -182,7 +182,7 @@ v0.1 is complete when the protocol, schema, synthetic corpus, source limitations
 The standalone Rust reference tool lives at `tools/glass-silicon-contract-audit/`; dependency versions are pinned and a dedicated lockfile is checked in. Its contract verifier and mass-ledger arithmetic tests are written, but must be compiled/executed under the pinned toolchain before any runtime-pass claim. Its tolerance-basis field is provenance metadata, not proof that the tolerance is physically justified.
 
 Next sequence:
-1. freeze a source registry and reproduce one container-glass reference plus one MG-Si reference;
+1. freeze a source registry and reproduce one container-glass reference plus one MG-Si reference; before a source artifact can enter the benchmark, acquire it under resolved permitted-use terms, run the local `hash-artifacts` receipt to compare published MD5 and calculate SHA-256, independently review the receipt, and update the manifest without relabeling synthetic/simulated data as measured;
 2. implement dependency-free Rust contract/conservation checks with mutation tests;
 3. connect to Symthaea's existing materials and evidence owners and Symtropy's AtomFab/process-twin contract;
 4. define holdout data and baselines before running optimization;
