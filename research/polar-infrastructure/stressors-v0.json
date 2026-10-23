@@ -1,0 +1,631 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_kind": "polar-infrastructure-stressor-catalog",
+  "status": "proposed",
+  "evidence_claim_ceiling": "synthetic_only",
+  "created_date": "2026-10-23",
+  "summary": "Proposed polar infrastructure stressor definitions; not a site design, observed incidents, validated model or safety certification.",
+  "contexts": [
+    {
+      "id": "arctic_land_community",
+      "description": "Arctic/subarctic land community; ground and permafrost conditions vary by site."
+    },
+    {
+      "id": "antarctic_station",
+      "description": "Remote Antarctic station; requires separate operating and governance assumptions."
+    },
+    {
+      "id": "mobile_ice_platform",
+      "description": "Temporary/mobile platform on sea ice or moving ice; not a land foundation."
+    }
+  ],
+  "reference_basis": [
+    {
+      "title": "UFC 3-130-05 Arctic and Subarctic Utilities (2025)",
+      "url": "https://www.wbdg.org/FFC/DOD/UFC/ufc_3_130_05_2025.pdf",
+      "scope": "Cold-region water, wastewater, fire protection, utilities and thermal design"
+    },
+    {
+      "title": "UFC Arctic/Subarctic criteria index",
+      "url": "https://legacy.wbdg.org/dod/ufc",
+      "scope": "Site assessment, foundations and buildings"
+    },
+    {
+      "title": "GNWT Good Building Practice for Northern Facilities, 4th edition",
+      "url": "https://www.gov.nt.ca/en/newsroom/gnwt-releases-4th-edition-good-building-practice-northern-facilities-design-guide",
+      "scope": "Northern facilities lifecycle, climate and geotechnical design"
+    },
+    {
+      "title": "Arctic Council emergency preparedness",
+      "url": "https://www.admin.arctic-council.org/about/working-groups/eppr/",
+      "scope": "Emergency response in cold, darkness, remoteness and sparse infrastructure"
+    }
+  ],
+  "benchmark_rules": [
+    "Freeze site envelope, model revision, scenario split and hard constraints before scoring.",
+    "Synthetic scenarios prove software behavior only, not physical performance.",
+    "Compare incumbent, transparent rules, conventional optimization, robust method where justified, candidate and ablations with disclosed budgets.",
+    "Report critical services, recovery, repair burden, fuel/logistics and uncertainty separately.",
+    "Unknown, queued, pending or skipped checks are not passes.",
+    "No standards-compliance, field-readiness or health-benefit claim without required tests and expert review."
+  ],
+  "scenarios": [
+    {
+      "id": "POLAR-001",
+      "name": "Polar-night renewable deficit",
+      "domain": "energy",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Seasonal solar falls below planned demand",
+        "failure_conditions": [
+          "Critical heat/water compete with discretionary loads"
+        ],
+        "parameters_required": [
+          "site weather",
+          "critical load priorities",
+          "storage/fuel limits"
+        ]
+      },
+      "required_inputs": [
+        "site_weather",
+        "critical_load_priorities",
+        "storage_fuel_limits"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-002",
+      "name": "Wind icing and derating",
+      "domain": "energy",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Icing and access limits reduce usable wind output",
+        "failure_conditions": [
+          "Reserve margin falls below requirement"
+        ],
+        "parameters_required": [
+          "icing envelope",
+          "turbine limits",
+          "maintenance windows"
+        ]
+      },
+      "required_inputs": [
+        "icing_envelope",
+        "turbine_limits",
+        "maintenance_windows"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-003",
+      "name": "Cold battery derating",
+      "domain": "storage",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Usable battery power/energy differs from nameplate",
+        "failure_conditions": [
+          "Reserve estimate overstates deliverable energy"
+        ],
+        "parameters_required": [
+          "validated battery curves",
+          "thermal state",
+          "thermal-management load"
+        ]
+      },
+      "required_inputs": [
+        "validated_battery_curves",
+        "thermal_state",
+        "thermal_management_load"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-004",
+      "name": "Prime-power trip",
+      "domain": "power",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Primary generator trips under critical load",
+        "failure_conditions": [
+          "Backup fails to start or transfer"
+        ],
+        "parameters_required": [
+          "protection model",
+          "startup envelope",
+          "load steps"
+        ]
+      },
+      "required_inputs": [
+        "protection_model",
+        "startup_envelope",
+        "load_steps"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-005",
+      "name": "Inverter/controller loss",
+      "domain": "power",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Required inverter or control path fails",
+        "failure_conditions": [
+          "Common control dependency defeats redundancy"
+        ],
+        "parameters_required": [
+          "controller configuration",
+          "protection model",
+          "fallback control path"
+        ]
+      },
+      "required_inputs": [
+        "controller_configuration",
+        "protection_model",
+        "fallback_control_path"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-006",
+      "name": "Delayed fuel/resupply",
+      "domain": "logistics",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Fuel or spares arrive later than planned",
+        "failure_conditions": [
+          "Protected reserve is exhausted before resupply"
+        ],
+        "parameters_required": [
+          "inventory policy",
+          "delay distribution",
+          "service priority"
+        ]
+      },
+      "required_inputs": [
+        "inventory_policy",
+        "delay_distribution",
+        "service_priority"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-007",
+      "name": "Communications outage",
+      "domain": "communications",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Remote telemetry/supervisory link is unavailable",
+        "failure_conditions": [
+          "Local control cannot maintain known safe state"
+        ],
+        "parameters_required": [
+          "control dependency graph",
+          "offline procedures",
+          "local alarms"
+        ]
+      },
+      "required_inputs": [
+        "control_dependency_graph",
+        "offline_procedures",
+        "local_alarms"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-008",
+      "name": "Sensor drift/stale telemetry",
+      "domain": "sensing",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Sensor data are stale, biased, frozen or implausible",
+        "failure_conditions": [
+          "Controller treats invalid input as valid"
+        ],
+        "parameters_required": [
+          "sensor uncertainty",
+          "freshness limits",
+          "fallback rules"
+        ]
+      },
+      "required_inputs": [
+        "sensor_uncertainty",
+        "freshness_limits",
+        "fallback_rules"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-009",
+      "name": "Cold restart/black-start",
+      "domain": "recovery",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Cold-soaked or de-energized system must restart",
+        "failure_conditions": [
+          "Boot dependency blocks safe start"
+        ],
+        "parameters_required": [
+          "startup dependency graph",
+          "black-start procedure",
+          "configuration identity"
+        ]
+      },
+      "required_inputs": [
+        "startup_dependency_graph",
+        "black_start_procedure",
+        "configuration_identity"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-010",
+      "name": "Water/wastewater freeze",
+      "domain": "utilities",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Power/flow/thermal changes threaten utilities",
+        "failure_conditions": [
+          "Freeze or unsafe treatment/disposal state"
+        ],
+        "parameters_required": [
+          "utility topology",
+          "thermal/flow data",
+          "quality limits"
+        ]
+      },
+      "required_inputs": [
+        "utility_topology",
+        "thermal_flow_data",
+        "quality_limits"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-011",
+      "name": "Envelope heat loss",
+      "domain": "building",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Heat supply or envelope performance degrades",
+        "failure_conditions": [
+          "Indoor critical zone nears approved unsafe boundary"
+        ],
+        "parameters_required": [
+          "thermal model",
+          "ventilation/humidity inputs",
+          "heat availability"
+        ]
+      },
+      "required_inputs": [
+        "thermal_model",
+        "ventilation_humidity_inputs",
+        "heat_availability"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-012",
+      "name": "Permafrost thaw/settlement",
+      "domain": "ground",
+      "applicable_contexts": [
+        "arctic_land_community"
+      ],
+      "trigger": {
+        "summary": "Ground state or drainage departs from design",
+        "failure_conditions": [
+          "Foundation/utility geometry exceeds reviewed tolerance"
+        ],
+        "parameters_required": [
+          "geotechnical study",
+          "ground monitoring",
+          "design-life basis"
+        ]
+      },
+      "required_inputs": [
+        "geotechnical_study",
+        "ground_monitoring",
+        "design_life_basis"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-013",
+      "name": "Snow/ice access blockage",
+      "domain": "site_access",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station"
+      ],
+      "trigger": {
+        "summary": "Drifting snow/icing blocks egress, intake or equipment",
+        "failure_conditions": [
+          "Critical access or egress unavailable"
+        ],
+        "parameters_required": [
+          "site layout",
+          "wind/snow envelope",
+          "egress plan"
+        ]
+      },
+      "required_inputs": [
+        "site_layout",
+        "wind_snow_envelope",
+        "egress_plan"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-014",
+      "name": "Correlated common-cause failures",
+      "domain": "system_resilience",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Failures share power, heat, access or supply dependencies",
+        "failure_conditions": [
+          "Nominal redundancy fails together"
+        ],
+        "parameters_required": [
+          "dependency graph",
+          "failure/repair assumptions",
+          "service priorities"
+        ]
+      },
+      "required_inputs": [
+        "dependency_graph",
+        "failure_repair_assumptions",
+        "service_priorities"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    },
+    {
+      "id": "POLAR-015",
+      "name": "Gloved maintenance/delayed spares",
+      "domain": "maintainability",
+      "applicable_contexts": [
+        "arctic_land_community",
+        "antarctic_station",
+        "mobile_ice_platform"
+      ],
+      "trigger": {
+        "summary": "Repair occurs with PPE, limited tools or delayed parts",
+        "failure_conditions": [
+          "Task cannot be completed safely with available resources"
+        ],
+        "parameters_required": [
+          "task/tool inventory",
+          "PPE constraints",
+          "repair/parts dependencies"
+        ]
+      },
+      "required_inputs": [
+        "task_tool_inventory",
+        "ppe_constraints",
+        "repair_parts_dependencies"
+      ],
+      "outputs": [
+        "critical_service_continuity",
+        "recovery_time",
+        "resource_or_repair_burden"
+      ],
+      "hard_gates": [
+        "critical_service_safety",
+        "worker_or_occupant_safety"
+      ],
+      "assumptions": [
+        "Site inputs and limits require qualified review; this definition is synthetic."
+      ],
+      "test_status": "not_run"
+    }
+  ]
+}
