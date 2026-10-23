@@ -23,9 +23,9 @@ The CLI emits a JSON report. Invalid input fails closed: unknown service identif
 
 ## Metrics
 
-The scorer supports different physical units per service (for example, heat delivery rate in kW, water flow in litres/hour, communications as a normalized service rate) without adding those physical amounts together.
+The scorer requires explicit `rate_unit` and `integrated_unit` fields for each service. For example, heat delivery may use kW as its rate unit and kWh as its integrated unit; water flow may use litres/hour and litres. Different physical quantities are never added together.
 
-Each step's demand and delivery values are rates in the declared service unit per hour; the scorer integrates each service's rate over the timestep to produce unit-hours (for example, kW × h = kWh, or litres/hour × h = litres). `service_value_semantics` must be `rate_per_hour_integrated_to_unit_hours`.
+Each step's demand and delivery values are rates in the declared service unit per hour; the scorer integrates each service's rate over the timestep to produce unit-hours (for example, kW × h = kWh, or litres/hour × h = litres). `service_value_semantics` must be `rate_per_hour_integrated_to_unit_hours`; the unit labels declare the intended measurement semantics but do not perform a dimensional-analysis proof.
 
 For service \(s\), let \(D_s\) be total demanded unit-hours and \(S_s\) be delivered unit-hours, both computed only within that service's declared rate unit. The per-service fraction is \(r_s = S_s / D_s\) when \(D_s > 0\). The headline metric is a dimensionless weighted mean of those per-service fractions:
 
