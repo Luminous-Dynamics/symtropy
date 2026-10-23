@@ -14,7 +14,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "usage: energy_design_space_manifest_gate <design-space-manifest.json> <candidate-output-directory>",
-        ).into());
+        )
+        .into());
     }
 
     let bytes = fs::read(&args[1])?;
@@ -23,12 +24,22 @@ fn run() -> Result<(), Box<dyn Error>> {
         .get("candidates")
         .and_then(serde_json::Value::as_array)
         .map(Vec::len)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "manifest candidates must be an array"))?;
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "manifest candidates must be an array",
+            )
+        })?;
     let rejected_count = manifest
         .get("rejected_candidates")
         .and_then(serde_json::Value::as_array)
         .map(Vec::len)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "manifest rejected_candidates must be an array"))?;
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "manifest rejected_candidates must be an array",
+            )
+        })?;
 
     let requested = manifest
         .get("requested_candidate_count")
@@ -103,14 +114,15 @@ fn run() -> Result<(), Box<dyn Error>> {
         let path = candidate_dir.join(id).join("candidate.json");
         let file_bytes = fs::read(path)?;
         let file_candidate: serde_json::Value = serde_json::from_slice(&file_bytes)?;
-        if file_candidate != **manifest_candidate {
+        if &file_candidate != *manifest_candidate {
             candidate_files_match = false;
         }
     }
     let synthetic_ceiling = claim_ceiling.is_some_and(|claim| {
         claim.contains("synthetic sizing sweep")
             && claim.contains("no real-site optimization")
-            && claim.contains("no real-site optimization")
+            && claim.contains("physical-safety")
+            && claim.contains("field-performance")
     });
 
     let accepted = search_schema == Some("energy-architecture-search-v0.1")
@@ -126,8 +138,16 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     println!(
         "search_schema={:?} requested={:?} emitted={} rejected={} axes_match={} unique_ids={} IDs_match={} exported_files_match={} all_synthetic={} claim_ceiling_ok={}",
-        search_schema, requested, candidate_count, rejected_count, axes_match,
-        unique_ids, ids_match, candidate_files_match, all_synthetic, synthetic_ceiling
+        search_schema,
+        requested,
+        candidate_count,
+        rejected_count,
+        axes_match,
+        unique_ids,
+        ids_match,
+        candidate_files_match,
+        all_synthetic,
+        synthetic_ceiling
     );
     if !accepted {
         return Err(io::Error::new(
