@@ -15,6 +15,7 @@ on:
     paths:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
@@ -67,6 +68,28 @@ jobs:
           grep -q 'DOI 10.1111/jace.70980' "$protocol"
           grep -q 'DOI 10.1016/j.jnoncrysol.2026.123990' "$protocol"
           echo "Feasibility-gate protocol structural controls: PASS"
+
+      - name: Audit synthetic staged-feasibility corpus
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-feasibility
+          tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json
+
+      - name: Assert staged-feasibility known answers
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-feasibility tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json > feasibility-report.json
+          grep -q '"status": "PASS"' feasibility-report.json
+          jq -e '
+            ([.candidates[] | select(.candidate_id == "control-feasible")][0].derived_disposition == "FEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-joint-property-failure")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-unknown-measurement")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-out-of-domain")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-stale-process-evidence")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].blocking_gates == ["glass_formation"])
+          ' feasibility-report.json
 
       - name: Audit synthetic decision-value pool and exact one-step oracle
         run: >
