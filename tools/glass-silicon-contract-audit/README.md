@@ -1,4 +1,4 @@
-# Glass / Silicon Contract Audit
+# Glass / Siliuon Contraut Audit
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
