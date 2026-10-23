@@ -140,6 +140,7 @@ jobs:
           grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
           grep -q '"action_id": "route-a"' adaptive-drift-report.json
           grep -q '"observation_branches": {' adaptive-drift-report.json
+          jq -e '.policy_tree.observation_branches["signal-a"].node_type == "STOP" and .policy_tree.observation_branches["signal-a"].action_id == "route-a" and .policy_tree.observation_branches["signal-b"].node_type == "MEASURE" and .policy_tree.observation_branches["invalid"].node_type == "MEASURE"' adaptive-drift-report.json
 
       - name: Abstain when no robust action exists and budget blocks resolution
         shell: bash
