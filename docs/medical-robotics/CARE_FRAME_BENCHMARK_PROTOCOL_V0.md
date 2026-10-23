@@ -28,6 +28,12 @@ Compare the current human workflow, a standard cart/workstation, a conventional 
 - For hygienic tool/contact surfaces, use only approved surrogate-based protocols at future bench stage; no hygiene claim is accepted from material labels alone.
 - Maintenance time, tool-change time, calibration frequency, failure recovery, availability and cost per completed task.
 
+## Benchmark validity audit
+
+Before using a task-suite score as evidence of general manipulation ability, run the separate [Careframe Benchmark Validity Audit](CARE_FRAME_BENCHMARK_VALIDITY_AUDIT_V0.md). It covers shortcut resistance, statistical power/uncertainty, benchmark overfitting, and training/test data-source dependence, drawing on the June 2026 manipulation-benchmark audit and NIST's mobile-robot metrology work.
+
+The benchmark should include trivial policy baselines, randomized layouts and nuisance conditions, a public development corpus, a frozen regression corpus and a separately maintained holdout. Preserve the exact task, environment, tool, model and simulator digests for each result. A high score that can be reproduced by a shortcut baseline narrows the claim; a score from a tuned public set is not a held-out generalization result.
+
 ## Statistical and reporting protocol
 Freeze candidate revision, baselines, tasks, scorer, scenario digests, resource budgets and acceptance rules before running. Split public development fixtures from a holdout maintained by an independent custodian. Preserve every failure, timeout, refusal and missing result. Report paired effect sizes, confidence intervals, per-scenario distributions and subgroup/task strata. Avoid post-hoc scenario removal and aggregate-score compensation across hard safety gates.
 
