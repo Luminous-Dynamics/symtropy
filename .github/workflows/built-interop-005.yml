@@ -1,0 +1,41 @@
+name: BUILT-INTEROP-005 IFC Schema Gate
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-005/**"
+      - ".github/workflows/built-interop-005.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-005/**"
+      - ".github/workflows/built-interop-005.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-005-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-gate:
+    name: Build, test and lint declared-schema gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify committed dependency lock
+        run: echo "cdf5e081cacba012ed1e52246b399f1062934b0e71eeeb5f6743f4f81a279c7c  tools/built-interop-005/Cargo.lock" | sha256sum -c -
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-interop-005/Cargo.toml -- --check
+      - name: Run synthetic schema gate tests
+        run: cargo test --locked --manifest-path tools/built-interop-005/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-005/Cargo.toml --all-targets -- -D warnings
