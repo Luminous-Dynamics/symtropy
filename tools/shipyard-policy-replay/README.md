@@ -1,0 +1,34 @@
+# Shipyard non-anticipative policy replay auditor (V0)
+
+This dependency-free Rust crate audits **whether a recovery policy uses only information observable at each decision time** across a declared finite replay suite. It complements, but does not replace, the static geometry oracle, finite-scenario schedule auditor, or full JSON Schema / semantic benchmark contract.
+
+## Paradigm shift: benchmark a policy, not just a collection of final schedules
+
+A final schedule can look robust in hindsight while a dispatch policy that chose it could not have known which disruption would occur. V0 therefore treats each scenario as an event-observation trace plus a sequence of decisions. At a declared decision tick, only events with `observed_at_tick <= decision_tick` enter the information history. Scenarios with the same decision tick and identical ordered observable histories must carry the same canonical action key.
+
+This checks a necessary **non-anticipativity** property of adaptive policies. It is not an optimizer and does not determine whether an action is physically or operationally feasible.
+
+## Result semantics
+
+- `Consistent`: every declared scenario and decision epoch is structurally present, and all compared scenarios choose the same action key when their observable histories are identical.
+- `AnticipativityViolation`: the trace suite is structurally complete, but at least one shared information set selects different action keys.
+- `Incomplete`: scenario/epoch coverage, ordering, identities, or action keys are malformed or missing. Incomplete is not a pass.
+
+The audit fails closed for empty scenario or decision-epoch sets, duplicate scenario/event identities, non-increasing decision ticks, duplicate/missing decisions, unexpected decision ticks, and blank action keys.
+
+## Input assumptions
+
+- Event IDs identify immutable event content. If an ID can refer to different contents, the caller must canonicalize the source events before using this checker.
+- `action_key` must be a canonical identity of the full decision/policy action, ideally a digest of a canonicalized action encoding. This crate checks equality of keys; it does **not** compute or authenticate their digest.
+- Every scenario is replayed at the same declared decision epochs. If a system is event-triggered, represent no-op decisions explicitly rather than omitting them.
+- The decision tick is part of the information-set key. The observable history includes both the event identity and its observation tick.
+
+## Explicit non-claims
+
+This crate does not check geometry, swept movement paths, resource feasibility, precedence, mandatory work, schedule costs, outcome fidelity, event truth, probability calibration, or physical safety. Use the independent polygon / robust-scenario verifier for the declared static constraints, and preserve its receipt separately. A policy can be non-anticipative and still be unsafe, infeasible, poor-quality, or based on fabricated inputs.
+
+## Test strategy
+
+Frozen unit tests cover an adaptive two-branch policy, a clairvoyant policy that chooses differently before a branch is observed, missing and duplicated epochs, duplicate event IDs, and the fact that different observation times create different information histories. These fixtures are conformance tests, not industrial measurements or proof that the policy is optimal.
+
+The exact-head workflow runs Rust 1.96 formatting, locked/offline tests, and Clippy with warnings denied. No validation status should be inferred from a queued workflow.
