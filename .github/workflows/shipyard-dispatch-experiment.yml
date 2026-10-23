@@ -43,11 +43,25 @@ jobs:
           cargo fmt --manifest-path tools/shipyard-dispatch-audit/Cargo.toml -- --check
           cargo fmt --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml -- --check
 
-      - name: Test policy-to-auditor integration offline
+      - name: Test observed-history policy crate offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-observed-dispatch/Cargo.toml
+
+      - name: Test independent evaluator crate offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+
+      - name: Test policy-to-evaluator integration and result ledger offline
         run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml
 
-      - name: Check synthetic comparison example
+      - name: Compile synthetic comparison example
         run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --examples
+
+      - name: Run four-rule example and verify JSONL result ledger
+        shell: bash
+        run: |
+          cargo run --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --example compare_synthetic_rules > /tmp/shipyard-result-ledger.jsonl
+          test "$(wc -l < /tmp/shipyard-result-ledger.jsonl)" -eq 4
+          jq -s -e 'length == 4 and all(.[]; .schema_version == "shipyard-result-ledger-record-v0" and .feasibility_scope == "abstract-unary-resource-time-v0")' /tmp/shipyard-result-ledger.jsonl
+          jq -s -e '[.[].policy_id] | sort == ["critical_ratio","earliest_due_date","fixed_order","least_slack"]' /tmp/shipyard-result-ledger.jsonl
 
       - name: Lint all targets with warnings denied
         run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --all-targets -- -D warnings
