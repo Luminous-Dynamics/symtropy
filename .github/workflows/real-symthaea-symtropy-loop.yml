@@ -79,8 +79,9 @@ jobs:
           STFR_DATASET_OUTPUT_PATH: ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
           STFR_DATASET_EPISODES: 16
           STFR_DATASET_STEPS: 32
-          STFR_RIDGE_OUTPUT_PATH: ${{ runner.temp }}/symtropy-causal-residual-ridge-heldout.json
-          STFR_RIDGE_EVAL_EPISODES: 6
+          STFR_RIDGE_OUTPUT_PATH: ${{ runner.temp }}/symtropy-causal-residual-ridge-conformal-heldout.json
+          STFR_RIDGE_CALIBRATION_EPISODES: 18
+          STFR_RIDGE_EVAL_EPISODES: 18
           STFR_RIDGE_EVAL_STEPS: 64
         run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
 
@@ -92,5 +93,5 @@ jobs:
             ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
             ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
             ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
-            ${{ runner.temp }}/symtropy-causal-residual-ridge-heldout.json
+            ${{ runner.temp }}/symtropy-causal-residual-ridge-conformal-heldout.json
           if-no-files-found: error

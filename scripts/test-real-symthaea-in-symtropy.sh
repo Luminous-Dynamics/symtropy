@@ -170,11 +170,11 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   test -s "$dataset_input"
   export STFR_DATASET_INPUT_PATH="$dataset_input"
   export STFR_TRAIN_DATASET_SHA256="$(sha256sum "$dataset_input" | awk '{print $1}')"
-  ridge_out="${STFR_RIDGE_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-residual-ridge-heldout.json}"
+  ridge_out="${STFR_RIDGE_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-residual-ridge-conformal-heldout.json}"
   cargo run --manifest-path "$integration_manifest" --example causal_residual_ridge_benchmark > "$ridge_out"
   jq -e '
-    .benchmark_id == "symtropy-causal-transition-residual-ridge-heldout-v0.1"
-    and .claim_ceiling == "one_step_heldout_simulator_prediction_comparison_not_control_or_safety_evidence"
+    .benchmark_id == "symtropy-causal-transition-residual-ridge-conformal-v0.1"
+    and .claim_ceiling == "one_step_heldout_prediction_and_empirical_episode_block_calibration_not_control_or_safety_evidence"
     and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
     and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
     and (.source_receipt.rustc_version | startswith("rustc "))
@@ -182,13 +182,22 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
     and .training.sample_count > 0
     and .training.hidden_force_labels_used_as_features == false
+    and .calibration.split == "validation"
+    and .calibration.alpha == 0.1
+    and .calibration.valid_score_count == .calibration.score_count_requested
+    and .calibration.valid_score_count >= 9
+    and (.calibration.conformal_radius_m_s2 != null)
+    and all(.calibration.scores_m_s2[]; . >= 0)
     and .evaluation.split == "test"
-    and .evaluation.test_sample_count == (.evaluation.episodes * .evaluation.steps_per_episode)
-    and .evaluation.invalid_input_count == 0
-    and .evaluation.metrics.invalid_samples == 0
-    and .evaluation.metrics.ridge_residual_rmse_m_s2 >= 0
-    and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
-    and (.evaluation.per_family | length) == 3
-    and all(.evaluation.per_family[]; .sample_count > 0 and .invalid_samples == 0)
+    and .evaluation.summary.metrics.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
+    and .evaluation.summary.metrics.invalid_samples == 0
+    and .evaluation.summary.invalid_episode_count == 0
+    and .evaluation.summary.metrics.ridge_residual_rmse_m_s2 >= 0
+    and .evaluation.summary.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.summary.conformal_coverage.radius_euclidean_m_s2 != null
+    and .evaluation.summary.conformal_coverage.episode_coverage >= 0
+    and .evaluation.summary.conformal_coverage.episode_coverage <= 1
+    and (.evaluation.summary.family_metrics | length) == 3
+    and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null)
   ' "$ridge_out"
 fi
