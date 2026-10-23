@@ -94,7 +94,9 @@ impl Json {
                 raw.parse::<u64>()
                     .map_err(|_| format!("{path}: expected a non-negative integer in u64 range"))
             }
-            _ => Err(format!("{path}: expected a non-negative integer in u64 range")),
+            _ => Err(format!(
+                "{path}: expected a non-negative integer in u64 range"
+            )),
         }
     }
 }
@@ -309,8 +311,7 @@ impl<'a> Parser<'a> {
                                     return Err(self.error("invalid low surrogate"));
                                 }
                                 0x10000
-                                    + (((first as u32 - 0xD800) << 10)
-                                        | (second as u32 - 0xDC00))
+                                    + (((first as u32 - 0xD800) << 10) | (second as u32 - 0xDC00))
                             } else if (0xDC00..=0xDFFF).contains(&first) {
                                 return Err(self.error("unexpected low surrogate"));
                             } else {
@@ -589,8 +590,12 @@ fn validate_event(value: &Json, index: usize) -> Result<Event, String> {
             _ => return Err(format!("{path}.event_type: unsupported type {event_type}")),
         };
 
-    let truth_object =
-        validate_payload(truth, &truth_strings, &truth_ticks, &format!("{path}.truth"))?;
+    let truth_object = validate_payload(
+        truth,
+        &truth_strings,
+        &truth_ticks,
+        &format!("{path}.truth"),
+    )?;
     if event_type == "vehicle_outage" || event_type == "workstation_outage" {
         if tick_field(&truth_object, truth_ticks[0], &format!("{path}.truth"))?
             > tick_field(&truth_object, truth_ticks[1], &format!("{path}.truth"))?
@@ -677,21 +682,19 @@ pub struct ValidationReport {
 /// SHA-256 over exact source bytes, returned as lowercase hexadecimal.
 pub fn sha256_hex(input: &[u8]) -> String {
     const K: [u32; 64] = [
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-        0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-        0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-        0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xc24b8b70,
-        0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
-        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f,
-        0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa,
-        0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xc24b8b70,
+        0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+        0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee,
+        0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     ];
     let mut state: [u32; 8] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
     ];
 
     let bit_length = (input.len() as u64).wrapping_mul(8);
@@ -705,12 +708,8 @@ pub fn sha256_hex(input: &[u8]) -> String {
     for chunk in padded.chunks_exact(64) {
         let mut words = [0u32; 64];
         for (index, word_bytes) in chunk.chunks_exact(4).take(16).enumerate() {
-            words[index] = u32::from_be_bytes([
-                word_bytes[0],
-                word_bytes[1],
-                word_bytes[2],
-                word_bytes[3],
-            ]);
+            words[index] =
+                u32::from_be_bytes([word_bytes[0], word_bytes[1], word_bytes[2], word_bytes[3]]);
         }
         for index in 16..64 {
             let x = words[index - 15];
@@ -802,14 +801,21 @@ pub fn validate_bytes(
     let root_object = root.as_object("root")?;
     require_keys(
         root_object,
-        &["contract_version", "episode_id", "tick_duration_ms", "events"],
+        &[
+            "contract_version",
+            "episode_id",
+            "tick_duration_ms",
+            "events",
+        ],
         &["notes"],
         "root",
     )?;
 
     let version = string_field(root_object, "contract_version", "root")?;
     if version != CONTRACT_VERSION {
-        return Err(format!("root.contract_version: unsupported version {version}"));
+        return Err(format!(
+            "root.contract_version: unsupported version {version}"
+        ));
     }
     let episode_id = string_field(root_object, "episode_id", "root")?.to_owned();
     let tick_duration_ms = tick_field(root_object, "tick_duration_ms", "root")?;
@@ -850,7 +856,10 @@ pub fn validate_bytes(
         .map(|event| {
             object_json([
                 ("event_id".to_owned(), string_json(event.id.clone())),
-                ("event_type".to_owned(), string_json(event.event_type.clone())),
+                (
+                    "event_type".to_owned(),
+                    string_json(event.event_type.clone()),
+                ),
                 ("observed_tick".to_owned(), number_json(event.observed_tick)),
                 ("delivery_tick".to_owned(), number_json(event.delivery_tick)),
                 ("observation".to_owned(), event.observation.clone()),
@@ -878,7 +887,10 @@ pub fn validate_bytes(
         ("contract_version".to_owned(), string_json(CONTRACT_VERSION)),
         ("episode_id".to_owned(), string_json(episode_id.clone())),
         ("tick_duration_ms".to_owned(), number_json(tick_duration_ms)),
-        ("source_sha256".to_owned(), string_json(digest_sha256.clone())),
+        (
+            "source_sha256".to_owned(),
+            string_json(digest_sha256.clone()),
+        ),
         ("events".to_owned(), Json::Array(evaluator_events)),
     ]);
 
@@ -922,9 +934,8 @@ pub fn validate_file(
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!(
-        "../../shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json"
-    );
+    const FIXTURE: &str =
+        include_str!("../../shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json");
 
     fn valid_report(as_of_tick: u64) -> ValidationReport {
         let bytes = FIXTURE.as_bytes();
@@ -959,24 +970,53 @@ mod tests {
         let at_five = valid_report(5);
         assert!(at_five.policy_view_json.contains("evt-vehicle-001"));
         assert!(!at_five.policy_view_json.contains("evt-yard-closure-001"));
-        assert!(!at_five.policy_view_json.contains("evt-clearance-hidden-001"));
+        assert!(
+            !at_five
+                .policy_view_json
+                .contains("evt-clearance-hidden-001")
+        );
         assert!(!at_five.policy_view_json.contains("truth"));
-        assert!(!at_five.policy_view_json.contains("synthetic_inspection_delay"));
+        assert!(
+            !at_five
+                .policy_view_json
+                .contains("synthetic_inspection_delay")
+        );
 
         let at_twelve = valid_report(12);
         assert!(at_twelve.policy_view_json.contains("evt-yard-closure-001"));
-        assert!(!at_twelve.policy_view_json.contains("evt-clearance-hidden-001"));
-        assert!(!at_twelve.policy_view_json.contains("synthetic_inspection_delay"));
+        assert!(
+            !at_twelve
+                .policy_view_json
+                .contains("evt-clearance-hidden-001")
+        );
+        assert!(
+            !at_twelve
+                .policy_view_json
+                .contains("synthetic_inspection_delay")
+        );
     }
 
     #[test]
     fn evaluator_stream_contains_all_events_in_effective_time_order() {
         let report = valid_report(5);
-        let first = report.evaluator_stream_json.find("evt-vehicle-001").unwrap();
-        let second = report.evaluator_stream_json.find("evt-clearance-hidden-001").unwrap();
-        let third = report.evaluator_stream_json.find("evt-yard-closure-001").unwrap();
+        let first = report
+            .evaluator_stream_json
+            .find("evt-vehicle-001")
+            .unwrap();
+        let second = report
+            .evaluator_stream_json
+            .find("evt-clearance-hidden-001")
+            .unwrap();
+        let third = report
+            .evaluator_stream_json
+            .find("evt-yard-closure-001")
+            .unwrap();
         assert!(first < second && second < third);
-        assert!(report.evaluator_stream_json.contains("synthetic_inspection_delay"));
+        assert!(
+            report
+                .evaluator_stream_json
+                .contains("synthetic_inspection_delay")
+        );
     }
 
     #[test]
@@ -1004,15 +1044,20 @@ mod tests {
 
     #[test]
     fn unknown_fields_and_event_types_are_rejected() {
-        let unknown_field = FIXTURE.replace("\"notes\": [", "\"unexpected\": true,\n  \"notes\": [");
-        assert!(validate_bytes(unknown_field.as_bytes(), None, 5)
-            .expect_err("unknown root field")
-            .contains("unknown field unexpected"));
+        let unknown_field =
+            FIXTURE.replace("\"notes\": [", "\"unexpected\": true,\n  \"notes\": [");
+        assert!(
+            validate_bytes(unknown_field.as_bytes(), None, 5)
+                .expect_err("unknown root field")
+                .contains("unknown field unexpected")
+        );
 
         let unknown_type = FIXTURE.replace("vehicle_outage", "teleporting_vehicle");
-        assert!(validate_bytes(unknown_type.as_bytes(), None, 5)
-            .expect_err("unknown type")
-            .contains("unsupported type"));
+        assert!(
+            validate_bytes(unknown_type.as_bytes(), None, 5)
+                .expect_err("unknown type")
+                .contains("unsupported type")
+        );
     }
 
     #[test]
@@ -1021,33 +1066,41 @@ mod tests {
             "\"observation\": null",
             "\"observation\": {\"block_id\":\"blk-03\",\"status\":\"delayed\",\"reported_at_tick\":7}",
         );
-        assert!(validate_bytes(changed.as_bytes(), None, 7)
-            .expect_err("hidden payload")
-            .contains("must have null observation"));
+        assert!(
+            validate_bytes(changed.as_bytes(), None, 7)
+                .expect_err("hidden payload")
+                .contains("must have null observation")
+        );
     }
 
     #[test]
     fn malformed_ticks_and_unknown_versions_are_rejected() {
         let negative = FIXTURE.replace("\"effective_tick\": 4", "\"effective_tick\": -1");
-        assert!(validate_bytes(negative.as_bytes(), None, 5)
-            .expect_err("negative tick")
-            .contains("non-negative integer"));
+        assert!(
+            validate_bytes(negative.as_bytes(), None, 5)
+                .expect_err("negative tick")
+                .contains("non-negative integer")
+        );
 
         let fractional = FIXTURE.replace("\"effective_tick\": 4", "\"effective_tick\": 4.0");
-        assert!(validate_bytes(fractional.as_bytes(), None, 5)
-            .expect_err("fractional tick")
-            .contains("non-negative integer"));
+        assert!(
+            validate_bytes(fractional.as_bytes(), None, 5)
+                .expect_err("fractional tick")
+                .contains("non-negative integer")
+        );
 
         let version = FIXTURE.replace(CONTRACT_VERSION, "shipyard-disturbance-tape-v99");
-        assert!(validate_bytes(version.as_bytes(), None, 5)
-            .expect_err("version")
-            .contains("unsupported version"));
+        assert!(
+            validate_bytes(version.as_bytes(), None, 5)
+                .expect_err("version")
+                .contains("unsupported version")
+        );
     }
 
     #[test]
     fn digest_mismatch_is_rejected() {
-        let error = validate_bytes(FIXTURE.as_bytes(), Some(&"0".repeat(64)), 5)
-            .expect_err("wrong digest");
+        let error =
+            validate_bytes(FIXTURE.as_bytes(), Some(&"0".repeat(64)), 5).expect_err("wrong digest");
         assert!(error.contains("SHA-256 mismatch"));
     }
 
@@ -1076,7 +1129,8 @@ mod tests {
         let reordered_report =
             validate_bytes(reordered.as_bytes(), None, 12).expect("reordered tape valid");
         assert_eq!(baseline.policy_view_json, reordered_report.policy_view_json);
-        let baseline_evaluator = parse_json(&baseline.evaluator_stream_json).expect("baseline evaluator");
+        let baseline_evaluator =
+            parse_json(&baseline.evaluator_stream_json).expect("baseline evaluator");
         let reordered_evaluator =
             parse_json(&reordered_report.evaluator_stream_json).expect("reordered evaluator");
         let baseline_events = baseline_evaluator
@@ -1107,15 +1161,17 @@ mod tests {
             "\"status\": \"unavailable\",",
             "\"status\": \"unavailable\", \"status\": \"available\",",
         );
-        assert!(validate_bytes(changed.as_bytes(), None, 5)
-            .expect_err("duplicate nested key")
-            .contains("duplicate object key"));
+        assert!(
+            validate_bytes(changed.as_bytes(), None, 5)
+                .expect_err("duplicate nested key")
+                .contains("duplicate object key")
+        );
     }
 
     #[test]
     fn unicode_escapes_and_surrogate_pairs_round_trip() {
-        let parsed = parse_json(r#"{"rocket":"\ud83d\ude80","line":"a\nb"}"#)
-            .expect("valid Unicode JSON");
+        let parsed =
+            parse_json(r#"{"rocket":"\ud83d\ude80","line":"a\nb"}"#).expect("valid Unicode JSON");
         let serialized = parsed.stringify();
         assert!(serialized.contains("🚀"));
         assert_eq!(parse_json(&serialized).expect("serialized JSON"), parsed);
@@ -1127,12 +1183,16 @@ mod tests {
             "\"effective_tick\": 4",
             "\"effective_tick\": 18446744073709551616",
         );
-        assert!(validate_bytes(oversized.as_bytes(), None, 5)
-            .expect_err("overflowing tick")
-            .contains("non-negative integer"));
+        assert!(
+            validate_bytes(oversized.as_bytes(), None, 5)
+                .expect_err("overflowing tick")
+                .contains("non-negative integer")
+        );
 
-        assert!(validate_bytes(FIXTURE.as_bytes(), Some(&"z".repeat(64)), 5)
-            .expect_err("non-hex digest")
-            .contains("64 hexadecimal"));
+        assert!(
+            validate_bytes(FIXTURE.as_bytes(), Some(&"z".repeat(64)), 5)
+                .expect_err("non-hex digest")
+                .contains("64 hexadecimal")
+        );
     }
 }
