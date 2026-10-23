@@ -75,7 +75,14 @@ Required first suite:
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
 
-The included `free_fall_validation` example is the reference format.
+The included `free_fall_validation` example is the reference format. A new
+`elastic_collision_validation` example is authored at
+[`ELASTIC_COLLISION_VALIDATION.md`](ELASTIC_COLLISION_VALIDATION.md): it compares
+equal- and unequal-mass elastic outcomes plus a perfectly inelastic negative
+control against the 1D analytical collision law. Its focused workflow is the
+qualification gate; no exact-head pass is claimed until it completes successfully.
+This example qualifies only collinear, frictionless sphere-sphere translational
+response and does not implement physical heat-transfer/energy-ledger semantics.
 
 ### Tier C — Independent implementation comparison
 
