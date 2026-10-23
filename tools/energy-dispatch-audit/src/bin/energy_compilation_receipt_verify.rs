@@ -46,6 +46,22 @@ fn verify_and_write(
     compilation_bytes: &[u8],
     request_output: &PathBuf,
 ) -> Result<(), Box<dyn Error>> {
+    let candidate: serde_json::Value = serde_json::from_slice(candidate_bytes)?;
+    let candidate_id = candidate
+        .get("candidate_id")
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate document has no non-empty candidate_id",
+        ))?;
+    let candidate_is_synthetic = candidate
+        .get("synthetic")
+        .and_then(serde_json::Value::as_bool)
+        .ok_or_else(|| io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate document has no boolean synthetic field",
+        ))?;
     let supplied_config: DispatchMappingConfig = serde_json::from_slice(config_bytes)?;
     let compilation: CompilationDocument = serde_json::from_slice(compilation_bytes)?;
 
@@ -54,6 +70,12 @@ fn verify_and_write(
         || !compilation.synthetic
         || !compilation.mapping_config.synthetic
         || !supplied_config.synthetic
+        || !candidate_is_synthetic
+        || supplied_config.schema_version != "energy-dispatch-mapping-v0.1"
+        || supplied_config.energy_quantum_kwh <= 0.0
+        || !supplied_config.energy_quantum_kwh.is_finite()
+        || supplied_config.max_candidate_expansions == 0
+        || supplied_config.factor_basis.trim().is_empty()
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -81,20 +103,22 @@ fn verify_and_write(
         ).into());
     }
 
-    if !compilation
-        .dispatch_request
-        .case_id
-        .contains(&compilation.candidate_id)
-        && compilation.dispatch_request.case_id != "synthetic-pv-charge-outage"
+    if compilation.candidate_id != candidate_id
+        || compilation.dispatch_request.case_id != format!("candidate:{candidate_id}")
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "compiled dispatch request case ID is not bound to the candidate",
+            "candidate, compilation receipt, and dispatch request case IDs do not agree",
         ).into());
     }
     if compilation.dispatch_request.synthetic != compilation.synthetic
         || compilation.dispatch_request.energy_quantum_kwh != compilation.mapping_config.energy_quantum_kwh
         || compilation.dispatch_request.max_candidate_expansions != compilation.mapping_config.max_candidate_expansions
+        || compilation.dispatch_request.intervals.iter().any(|interval| {
+            interval.grid_cost_units_per_quantum != compilation.mapping_config.grid_cost_units_per_quantum
+                || interval.grid_carbon_grams_per_quantum
+                    != compilation.mapping_config.grid_carbon_grams_per_quantum
+        })
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
