@@ -15,7 +15,7 @@ The audit command validates both bundled contract schemas against the Draft 2020
 Reproducibility and security
 ----------------------------
 
-- Pin jsonschema to 0.59.0 and serde_json to 1.0.150, and commit the generated Cargo.lock.
+- Pin jsonschema to 0.60.0 and serde_json to 1.0.150, and commit the generated Cargo.lock.
 - Pin the draft explicitly to jsonschema::draft202012; do not infer the draft from arbitrary input.
 - Call offline() for instance validators. Unresolved external references fail at validator construction; these contract schemas intentionally use no remote references.
 - Enable declared format validation explicitly. Draft 2020-12 treats format as an annotation unless the validator is configured to assert it.
