@@ -3,7 +3,8 @@
 
 //! # symtropy-core
 //!
-//! The permissive Symtropy distribution: core Bevy physics bundle without AGPL dependencies.
+//! The permissive Symtropy distribution: core Bevy physics bundle and deterministic
+//! simulation primitives without AGPL dependencies.
 
 pub use symtropy_bevy_core as bevy_physics;
 pub use symtropy_bevy_scene as scene;
@@ -11,8 +12,15 @@ pub use symtropy_devconsole as devconsole;
 pub use symtropy_math as math;
 pub use symtropy_physics as physics;
 
+pub mod industrial_ecology;
+
 pub mod prelude {
     pub use crate::bevy_physics::{BevyPhysicsPlugin, NoCouplingResource, PhysicsBody};
+    pub use crate::industrial_ecology::{
+        DependencyShortage, IndustrialCapability, IndustrialDependencyState, IndustrialEcology,
+        IndustrialEcologyError, IndustrialGovernance, IndustrialShock, IndustrialTickReport,
+        IndustrialViabilityOutcome,
+    };
     pub use crate::math::Point;
     pub use crate::physics::body::BodyHandle;
     pub use crate::physics::world::PhysicsWorld;
