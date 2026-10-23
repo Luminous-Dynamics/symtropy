@@ -21,6 +21,8 @@ const GEOMETRY_FIDELITY: &str = "bounding_primitives_not_manufacturing_geometry"
 const SYNTHETIC_EVIDENCE_CLASS: &str = "synthetic_morphology_proposal";
 const SYNTHETIC_SOURCE: &str = "synthetic_placeholder";
 const NO_INERTIA: &str = "not_provided_kinematic_only";
+const MAX_MORPHOLOGY_BYTES: usize = 1_048_576;
+const MAX_JOINT_STATE_BYTES: usize = 16_384;
 
 /// Static geometry proxies placed at one validated joint state.
 ///
@@ -141,6 +143,12 @@ pub fn spawn_static_collision_assembly(
     joint_state_json: &str,
     base_position: Point<3>,
 ) -> Result<CareframeStaticCollisionAssembly, Vec<String>> {
+    if morphology_json.len() > MAX_MORPHOLOGY_BYTES {
+        return Err(vec!["MORPHOLOGY_JSON_TOO_LARGE".to_owned()]);
+    }
+    if joint_state_json.len() > MAX_JOINT_STATE_BYTES {
+        return Err(vec!["JOINT_STATE_JSON_TOO_LARGE".to_owned()]);
+    }
     let morphology_digest = sha256_hex(morphology_json.as_bytes());
     let joint_state_digest = sha256_hex(joint_state_json.as_bytes());
     let morphology: CareframeMorphology = serde_json::from_str(morphology_json)
@@ -708,6 +716,32 @@ mod tests {
                 .any(|finding| finding == "MORPHOLOGY_COLLISION_SHAPE_OR_SOURCE_UNSUPPORTED"),
             "{error:?}"
         );
+        assert_eq!(physics.body_count(), 0);
+    }
+
+    #[test]
+    fn oversized_inputs_are_rejected_before_world_mutation() {
+        let mut physics = world();
+        let oversized_morphology = " ".repeat(MAX_MORPHOLOGY_BYTES + 1);
+        let error = spawn_static_collision_assembly(
+            &mut physics,
+            &oversized_morphology,
+            ZERO_JOINT_STATE_JSON,
+            Point::origin(),
+        )
+        .expect_err("oversized morphology input rejects before parsing");
+        assert!(error.iter().any(|finding| finding == "MORPHOLOGY_JSON_TOO_LARGE"));
+        assert_eq!(physics.body_count(), 0);
+
+        let oversized_state = " ".repeat(MAX_JOINT_STATE_BYTES + 1);
+        let error = spawn_static_collision_assembly(
+            &mut physics,
+            MORPHOLOGY_JSON,
+            &oversized_state,
+            Point::origin(),
+        )
+        .expect_err("oversized joint state rejects before parsing");
+        assert!(error.iter().any(|finding| finding == "JOINT_STATE_JSON_TOO_LARGE"));
         assert_eq!(physics.body_count(), 0);
     }
 
