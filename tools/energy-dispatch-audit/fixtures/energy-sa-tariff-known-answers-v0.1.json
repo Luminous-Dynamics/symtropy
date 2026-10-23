@@ -46,7 +46,7 @@
       "expected_secondary_fixed_component_microzar": 853720000
     },
     {
-      "case_id": "high-season-1200kwh-over-50-to-100kva",
+      "case_id": "high-season-1200kwh-le-100kva",
       "season": "high_season",
       "monthly_energy_kwh": 1200,
       "capacity_band": "le_100_kva",
