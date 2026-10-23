@@ -37,7 +37,10 @@ fn main() -> ExitCode {
             println!("VALID SHA-256 {}", actual);
             return ExitCode::SUCCESS;
         }
-        eprintln!("INVALID: SHA-256 mismatch: expected {}, got {}", expected, actual);
+        eprintln!(
+            "INVALID: SHA-256 mismatch: expected {}, got {}",
+            expected, actual
+        );
         return ExitCode::from(1);
     }
 
@@ -49,7 +52,9 @@ fn main() -> ExitCode {
         }
     };
     let errors = match mode {
-        "manifest" if args.len() == 3 => shipyard_benchmark_audit::validate_manifest_json(&manifest),
+        "manifest" if args.len() == 3 => {
+            shipyard_benchmark_audit::validate_manifest_json(&manifest)
+        }
         "report" if args.len() == 4 => {
             let report = match fs::read_to_string(&args[3]) {
                 Ok(s) => s,
