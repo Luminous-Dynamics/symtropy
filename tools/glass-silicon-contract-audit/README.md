@@ -87,7 +87,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The staged feasibility command's current focused workflow run is pending at the latest branch head. A prior exact-head run passed the legacy 45-test suite; do not describe the new full 52-test suite as passing until the current-head run completes successfully.
+The staged feasibility command's current focused workflow run is pending at the latest branch head. A prior exact-head run passed the legacy 45-test suite; do not describe the new full 53-test suite as passing until the current-head run completes successfully.
 
 ## Staged feasibility gate
 
