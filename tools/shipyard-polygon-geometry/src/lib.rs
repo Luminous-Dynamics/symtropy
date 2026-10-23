@@ -921,6 +921,60 @@ mod tests {
         assert_eq!(aabb_false_negative, 0, "AABB broadphase may not reject a real contact/overlap");
     }
     #[test]
+    fn exact_polygon_placement_finds_layouts_conservative_aabb_rejects() {
+        let base_vertices = vec![(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
+        let fixed = Polygon::new(
+            base_vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
+        )
+        .expect("L-shaped footprint should be valid");
+        let mut exact_feasible_offsets = Vec::new();
+        let mut aabb_feasible_offsets = Vec::new();
+        let mut checked_offsets = 0usize;
+
+        // Two identical L-shaped blocks in a 6-by-6 yard. The first stays at
+        // (0,0); the second scans every legal unit-grid offset. AABB conflict
+        // is intentionally conservative, treating envelope touch as conflict.
+        for shift_y in 0..=3 {
+            for shift_x in 0..=3 {
+                let candidate_vertices: Vec<(i64, i64)> = base_vertices
+                    .iter()
+                    .map(|(x, y)| (*x + shift_x, *y + shift_y))
+                    .collect();
+                let candidate = Polygon::new(
+                    candidate_vertices
+                        .iter()
+                        .map(|(x, y)| p(*x, *y))
+                        .collect(),
+                )
+                .expect("translated L-shaped footprint should be valid");
+                assert!(candidate_vertices.iter().all(|(x, y)| *x <= 6 && *y <= 6));
+                checked_offsets += 1;
+
+                let expected = orthogonal_oracle(&base_vertices, &candidate_vertices);
+                assert_eq!(fixed.relation(&candidate), Ok(expected));
+                let aabb_says_conflict = aabb_conflict(&base_vertices, &candidate_vertices);
+                if expected == PolygonRelation::Disjoint {
+                    exact_feasible_offsets.push((shift_x, shift_y));
+                }
+                if !aabb_says_conflict {
+                    aabb_feasible_offsets.push((shift_x, shift_y));
+                }
+            }
+        }
+
+        assert_eq!(checked_offsets, 16);
+        assert_eq!(
+            exact_feasible_offsets,
+            vec![(2, 2), (3, 2), (2, 3), (3, 3)],
+            "independent oracle's feasible placement set changed"
+        );
+        assert!(
+            aabb_feasible_offsets.is_empty(),
+            "the AABB-only baseline should remain unable to distinguish this concave notch"
+        );
+    }
+
+    #[test]
     fn raster_oracle_has_frozen_positive_negative_and_contact_controls() {
         let l_shape = [(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
         let disjoint = [(4, 0), (6, 0), (6, 2), (4, 2)];
