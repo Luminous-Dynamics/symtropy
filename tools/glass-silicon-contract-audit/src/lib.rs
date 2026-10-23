@@ -2474,3 +2474,102 @@ mod adaptive_campaign_tests {
         assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(0));
     }
 }
+
+
+#[cfg(test)]
+mod feasibility_gate_tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!("../fixtures/glass-feasibility-gate.synthetic.json"))
+            .expect("synthetic feasibility-gate fixture must be valid JSON")
+    }
+
+    #[test]
+    fn staged_fixture_preserves_feasible_infeasible_and_unresolved() {
+        let report = audit_feasibility_corpus(&fixture());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.candidates.len(), 6);
+
+        let disposition = |id: &str| {
+            report.candidates.iter()
+                .find(|candidate| candidate.candidate_id == id)
+                .map(|candidate| candidate.derived_disposition.as_str())
+                .expect("candidate should exist")
+        };
+        assert_eq!(disposition("control-feasible"), "FEASIBLE");
+        assert_eq!(disposition("control-non-forming"), "INFEASIBLE");
+        assert_eq!(disposition("control-joint-property-failure"), "INFEASIBLE");
+        assert_eq!(disposition("control-unknown-measurement"), "UNRESOLVED");
+        assert_eq!(disposition("control-out-of-domain"), "UNRESOLVED");
+        assert_eq!(disposition("control-stale-process-evidence"), "UNRESOLVED");
+    }
+
+    #[test]
+    fn confirmed_non_forming_candidate_is_infeasible_even_if_later_gates_are_not_attempted() {
+        let report = audit_feasibility_corpus(&fixture());
+        let candidate = report.candidates.iter()
+            .find(|candidate| candidate.candidate_id == "control-non-forming")
+            .expect("non-forming control should exist");
+        assert_eq!(candidate.derived_disposition, "INFEASIBLE");
+        assert_eq!(candidate.blocking_gates, vec!["glass_formation".to_string()]);
+        assert_eq!(candidate.unresolved_gates.len(), 3);
+    }
+
+    #[test]
+    fn unknown_gate_cannot_be_promoted_to_pass_without_evidence_reference() {
+        let mut mutated = fixture();
+        mutated["candidates"][3]["gates"]["process_window"]["status"] = json!("PASS");
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_GATE_EVIDENCE_REQUIRED:control-unknown-measurement/process_window")
+        }));
+    }
+
+    #[test]
+    fn unknown_as_zero_payload_is_rejected_as_an_unrecognized_field() {
+        let mut mutated = fixture();
+        mutated["candidates"][3]["gates"]["process_window"]["value"] = json!(0);
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_GATE_KEYS:control-unknown-measurement/process_window")
+        }));
+    }
+
+    #[test]
+    fn missing_mandatory_gate_is_rejected() {
+        let mut mutated = fixture();
+        mutated["candidates"][0]["gates"].as_object_mut().unwrap()
+            .remove("joint_product_qualification");
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_GATE_CENSUS:control-feasible")
+        }));
+    }
+
+    #[test]
+    fn unknown_gate_status_is_rejected_closed() {
+        let mut mutated = fixture();
+        mutated["candidates"][0]["gates"]["process_window"]["status"] = json!("MAYBE");
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_GATE_STATUS:control-feasible/process_window")
+        }));
+    }
+
+    #[test]
+    fn declared_feasible_disposition_cannot_override_unresolved_gates() {
+        let mut mutated = fixture();
+        mutated["candidates"][3]["expected_disposition"] = json!("FEASIBLE");
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_DISPOSITION_MISMATCH:control-unknown-measurement")
+        }));
+    }
+}
