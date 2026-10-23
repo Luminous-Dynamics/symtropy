@@ -88,6 +88,7 @@ struct PhaseTimings {
 struct CandidateBenchmark {
     candidate_id: String,
     candidate_family: String,
+    generation_measurement_mode: String,
     candidate_sha256: String,
     compilation_sha256: String,
     dispatch_request_sha256: String,
@@ -125,6 +126,7 @@ struct BenchmarkSummary {
     reference_template_count: usize,
     parametric_variant_count: usize,
     failed_or_unknown_candidate_count: usize,
+    shared_design_space_generation_ns: u64,
     total_solver_action_expansions: u64,
     total_independent_reference_expansions: u64,
     total_generation_ns: u64,
@@ -258,8 +260,15 @@ fn benchmark_candidate(
         .into());
     }
 
+    let (generation_ns, generation_measurement_mode) =
+        if candidate_id.starts_with("synthetic-parametric-") {
+            let raw = fs::read_to_string(root.join("manifest-generation.elapsed_ns"))?;
+            (raw.trim().parse::<u64>()? / 36, "amortized_shared_manifest_export".to_owned())
+        } else {
+            (read_elapsed_ns(&dir, "generation")?, "individual_candidate_export".to_owned())
+        };
     let timings = PhaseTimings {
-        generation_ns: read_elapsed_ns(&dir, "generation")?,
+        generation_ns,
         schema_validation_ns: read_elapsed_ns(&dir, "schema")?,
         compilation_ns: read_elapsed_ns(&dir, "compilation")?,
         receipt_verification_ns: read_elapsed_ns(&dir, "receipt")?,
@@ -286,6 +295,7 @@ fn benchmark_candidate(
     Ok(CandidateBenchmark {
         candidate_id: candidate_id.to_owned(),
         candidate_family: family,
+        generation_measurement_mode,
         candidate_sha256: candidate_digest,
         compilation_sha256: compilation_digest,
         dispatch_request_sha256: request_digest,
@@ -377,6 +387,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     let solver_expansions = sum_checked(&candidates, |candidate| candidate.solver_evaluated_action_expansions)?;
     let reference_expansions = sum_checked(&candidates, |candidate| candidate.independent_reference_expansions)?;
     let total_generation = sum_checked(&candidates, |candidate| candidate.timings.generation_ns)?;
+    let shared_design_space_generation = fs::read_to_string(root.join("manifest-generation.elapsed_ns"))?
+        .trim()
+        .parse::<u64>()?;
     let total_schema = sum_checked(&candidates, |candidate| candidate.timings.schema_validation_ns)?;
     let total_compilation = sum_checked(&candidates, |candidate| candidate.timings.compilation_ns)?;
     let total_receipt = sum_checked(&candidates, |candidate| candidate.timings.receipt_verification_ns)?;
@@ -407,6 +420,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             reference_template_count: 3,
             parametric_variant_count: 36,
             failed_or_unknown_candidate_count: 0,
+            shared_design_space_generation_ns: shared_design_space_generation,
             total_solver_action_expansions: solver_expansions,
             total_independent_reference_expansions: reference_expansions,
             total_generation_ns: total_generation,
