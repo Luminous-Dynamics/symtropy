@@ -117,9 +117,16 @@ jobs:
           audit-adaptive-campaign
           tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json
 
-      - name: Assert drift recovery stays inside the cumulative budget
+      - name: Compare myopic and adaptive policies under drift and failed observations
         shell: bash
         run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > drift-myopic-report.json
+          grep -q '"status": "PASS"' drift-myopic-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' drift-myopic-report.json
+          grep -q '"oracle_worst_case_regret_after": 6.0' drift-myopic-report.json
+          grep -q '"oracle_gross_regret_reduction": 0.0' drift-myopic-report.json
+
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
             audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
           grep -q '"status": "PASS"' adaptive-drift-report.json
@@ -131,6 +138,7 @@ jobs:
           grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-drift-report.json
           grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
           grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"action_id": "route-a"' adaptive-drift-report.json
           grep -q '"observation_branches": {' adaptive-drift-report.json
 
       - name: Abstain when no robust action exists and budget blocks resolution
