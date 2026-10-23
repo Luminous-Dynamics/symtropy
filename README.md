@@ -258,3 +258,8 @@ macOS and Windows builds need no extra system packages beyond a standard Rust to
 - McFadden, J. (2020). CEMI field theory. *Neuroscience of Consciousness*.
 - Landauer, R. (1961). Irreversibility and Heat Generation. *IBM J. Res. Dev*.
 - ten Bosch, M. (2020). N-Dimensional Rigid Body Dynamics. *SIGGRAPH*.
+
+
+## Shipyard scheduling / disruption-recovery research
+
+The active research stack separates exact polygon predicates, bounded exact tiny-instance packing, finite-scenario schedule auditing, benchmark-manifest validation, and non-anticipative policy replay. Start with the [robust-recovery benchmark contract](tools/shipyard-benchmark-contract/ROBUST-RECOVERY-BENCHMARK.md) and [policy replay benchmark](tools/shipyard-policy-replay/POLICY-REPLAY-BENCHMARK.md). These are research prototypes and protocol proposals, not industrial deployment or SOTA claims; check the linked PRs and exact-head workflows before relying on implementation status.
