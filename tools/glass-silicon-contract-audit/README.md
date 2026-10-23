@@ -93,7 +93,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The current exact-head run is queued. At an earlier head, all 53 tests passed and the contract corpus passed, but the workflow then stopped at a stale documentation grep; the guard has been corrected and the new integrated campaign is added. Do not describe the full 54-test suite as qualified until the exact-head focused workflow passes.
+At an earlier head, all 53 tests and the then-current corpus passed, but a stale documentation grep stopped the workflow. After that guard was corrected, the integrated campaign test exposed a non-canonical fixture ID; the fixture now uses the existing pinned benchmark ID. The current exact-head workflow must pass the complete 54-test suite and new branch assertions before qualification.
 
 ## Staged feasibility gate
 
