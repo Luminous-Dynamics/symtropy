@@ -951,6 +951,10 @@ fn validate_morphology_file(path: &str) {
             process::exit(2);
         }
     };
+    if path == MORPHOLOGY_PATH && sha256_hex(&bytes) != sha256_hex(MORPHOLOGY_SOURCE) {
+        eprintln!("runtime morphology differs from the model embedded in the compiled validator");
+        process::exit(2);
+    }
     let findings = validate_morphology(&model);
     let blocked = !findings.is_empty();
     let tested_revision =
