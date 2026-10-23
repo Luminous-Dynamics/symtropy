@@ -7,7 +7,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write as IoWrite;
 use std::path::Path;
 
 const MAX_INPUT_BYTES: usize = 16 * 1024 * 1024;
@@ -905,7 +906,61 @@ pub fn validate_bytes(
     })
 }
 
-/// Validate first, then write the policy snapshot and the separate evaluator stream.
+fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| format!("output path {} has no file name", path.display()))?;
+    let temporary_path = parent.join(format!(
+        ".{}.tmp-{}",
+        file_name.to_string_lossy(),
+        std::process::id()
+    ));
+    let write_result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary_path)
+            .map_err(|error| {
+                format!(
+                    "cannot create temporary output {}: {error}",
+                    temporary_path.display()
+                )
+            })?;
+        file.write_all(contents).map_err(|error| {
+            format!(
+                "cannot write temporary output {}: {error}",
+                temporary_path.display()
+            )
+        })?;
+        file.sync_all().map_err(|error| {
+            format!(
+                "cannot sync temporary output {}: {error}",
+                temporary_path.display()
+            )
+        })?;
+        drop(file);
+        fs::rename(&temporary_path, path).map_err(|error| {
+            format!(
+                "cannot atomically replace output {} with {}: {error}",
+                path.display(),
+                temporary_path.display()
+            )
+        })?;
+        Ok(())
+    })();
+    if write_result.is_err() {
+        let _ = fs::remove_file(&temporary_path);
+    }
+    write_result
+}
+
+/// Validate the entire tape before replacing either output file. Each rename is
+/// atomic on the destination filesystem; the pair of files is not a single
+/// multi-file transaction.
 pub fn validate_file(
     input_path: &Path,
     expected_sha256: &str,
@@ -913,21 +968,17 @@ pub fn validate_file(
     policy_output_path: &Path,
     evaluator_output_path: &Path,
 ) -> Result<ValidationReport, String> {
+    if input_path == policy_output_path
+        || input_path == evaluator_output_path
+        || policy_output_path == evaluator_output_path
+    {
+        return Err("input and both output paths must be distinct".to_owned());
+    }
     let bytes = fs::read(input_path)
         .map_err(|error| format!("cannot read {}: {error}", input_path.display()))?;
     let report = validate_bytes(&bytes, Some(expected_sha256), as_of_tick)?;
-    fs::write(policy_output_path, &report.policy_view_json).map_err(|error| {
-        format!(
-            "cannot write policy snapshot {}: {error}",
-            policy_output_path.display()
-        )
-    })?;
-    fs::write(evaluator_output_path, &report.evaluator_stream_json).map_err(|error| {
-        format!(
-            "cannot write evaluator stream {}: {error}",
-            evaluator_output_path.display()
-        )
-    })?;
+    atomic_write(policy_output_path, report.policy_view_json.as_bytes())?;
+    atomic_write(evaluator_output_path, report.evaluator_stream_json.as_bytes())?;
     Ok(report)
 }
 
