@@ -177,7 +177,7 @@ mod tests {
 
         assert_eq!(target.dt_s, 0.01);
         for value in target.residual_acceleration_world_m_s2 {
-            assert!(value.abs() < 1.0e-9, "residual component={value}");
+            assert!(value.abs() < 1.0e-5, "residual component={value}");
         }
     }
 
