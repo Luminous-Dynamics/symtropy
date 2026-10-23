@@ -17,7 +17,7 @@ cargo run --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
 ```
 
-Exit codes: 0 = checks pass at the declared contract/arithmetic level; 2 = failed contract/arithmetic; 3 = unresolved or insufficient evidence; 64 = command/usage error. Reports are deterministic JSON with sorted element maps and stable finding codes.
+Exit codes: 0 = checks pass at the declared contract/arithmetic level; 2 = failed contract/arithmetic; 3 = unresolved or insufficient evidence; 64 = command/usage error. Reports are deterministic JSON with sorted element maps and stable finding codes. Run the CLI with `--locked`; Cargo.lock pins the standalone verifier's resolved dependency graph.
 
 ## Mass ledger contract
 
