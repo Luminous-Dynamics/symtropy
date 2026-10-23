@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
+mod reference;
+
 const REQUEST_SCHEMA: &str = "energy-dispatch-v0.1";
 const ASSESSMENT_SCHEMA: &str = "energy-dispatch-report-v1";
 const RECEIPT_SCHEMA: &str = "1";
@@ -86,7 +88,7 @@ pub struct ParetoAlternative {
     pub schedule: Vec<IntervalDecision>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 pub struct DispatchObjective {
     pub essential_unserved_quanta: u64,
@@ -164,6 +166,9 @@ pub struct IndependentAuditReport {
     /// Status is about receipt integrity and schedule feasibility, not optimality.
     pub status: String,
     pub solver_reported_search_status: String,
+    pub reference_frontier_status: String,
+    pub reference_expansions: Option<u64>,
+    pub reference_feasible_complete_schedules: Option<u64>,
     pub objective_claim_status: String,
     pub checks: Vec<AuditCheck>,
     pub claim_ceiling: String,
@@ -190,6 +195,9 @@ fn invalid_input_report(request_bytes: &[u8], report_bytes: &[u8], id: &str, err
         case_id: None,
         status: "fail".to_owned(),
         solver_reported_search_status: "unknown".to_owned(),
+        reference_frontier_status: "not_run_invalid_input".to_owned(),
+        reference_expansions: None,
+        reference_feasible_complete_schedules: None,
         objective_claim_status: "not_independently_verified".to_owned(),
         checks: vec![AuditCheck {
             id: id.to_owned(),
@@ -317,8 +325,91 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
         audit_alternative(&request, alternative, index, &mut checks);
     }
 
+    let request_ok = checks.iter().any(|item| item.id == "request_schema_version" && item.status == "pass")
+        && checks.iter().any(|item| item.id == "request_internal_invariants" && item.status == "pass");
+    let mut reference_frontier_status = "not_run_invalid_request".to_owned();
+    let mut reference_expansions = None;
+    let mut reference_feasible_complete_schedules = None;
+    let mut objective_claim_status = "not_independently_verified".to_owned();
+
+    if request_ok {
+        match reference::enumerate(&request, reference::DEFAULT_REFERENCE_EXPANSION_LIMIT) {
+            Ok(reference_result) => {
+                reference_expansions = Some(reference_result.expansions);
+                reference_feasible_complete_schedules = Some(reference_result.feasible_complete_schedules);
+
+                let mut expected_frontier = reference_result.frontier;
+                expected_frontier.sort();
+                let mut reported_frontier = assessment.pareto_alternatives
+                    .iter()
+                    .map(|alternative| alternative.objective.clone())
+                    .collect::<Vec<_>>();
+                reported_frontier.sort();
+                let frontier_matches = expected_frontier == reported_frontier;
+                check(
+                    &mut checks,
+                    "independent_reference_frontier",
+                    frontier_matches,
+                    format!(
+                        "independently enumerated {} frontier vectors; received {}; a mismatch fails closed",
+                        expected_frontier.len(),
+                        reported_frontier.len()
+                    ),
+                );
+
+                let complete_count_matches = assessment.feasible_complete_schedules
+                    == reference_result.feasible_complete_schedules;
+                check(
+                    &mut checks,
+                    "independent_reference_feasible_schedule_count",
+                    complete_count_matches,
+                    format!(
+                        "reference enumerated {} feasible complete schedules; report declares {}",
+                        reference_result.feasible_complete_schedules,
+                        assessment.feasible_complete_schedules
+                    ),
+                );
+
+                if frontier_matches && complete_count_matches {
+                    reference_frontier_status = "pass".to_owned();
+                    objective_claim_status = "verified_for_bounded_model_case".to_owned();
+                } else {
+                    reference_frontier_status = "fail".to_owned();
+                    objective_claim_status = "reference_frontier_mismatch".to_owned();
+                }
+            }
+            Err(reference::ReferenceError::BudgetExceeded { expansions }) => {
+                reference_expansions = Some(expansions);
+                reference_frontier_status = "not_run_budget_exceeded".to_owned();
+                checks.push(AuditCheck {
+                    id: "independent_reference_frontier".to_owned(),
+                    status: "unknown".to_owned(),
+                    detail: format!(
+                        "reference enumeration exceeded its independent budget of {}; schedule feasibility checks remain separate",
+                        reference::DEFAULT_REFERENCE_EXPANSION_LIMIT
+                    ),
+                });
+            }
+            Err(reference::ReferenceError::ArithmeticOverflow) => {
+                reference_frontier_status = "not_run_arithmetic_overflow".to_owned();
+                checks.push(AuditCheck {
+                    id: "independent_reference_frontier".to_owned(),
+                    status: "unknown".to_owned(),
+                    detail: "reference enumeration stopped on checked arithmetic overflow".to_owned(),
+                });
+            }
+        }
+    } else {
+        checks.push(AuditCheck {
+            id: "independent_reference_frontier".to_owned(),
+            status: "unknown".to_owned(),
+            detail: "reference enumeration was skipped because the request failed its independent structural checks".to_owned(),
+        });
+    }
+
     let has_fail = checks.iter().any(|item| item.status == "fail");
-    let status = if has_fail { "fail" } else { "pass" };
+    let has_unknown = checks.iter().any(|item| item.status == "unknown");
+    let status = if has_fail { "fail" } else if has_unknown { "unknown" } else { "pass" };
     let solver_reported_search_status = if assessment.search_is_exact && assessment.pareto_frontier_complete {
         "solver_reports_exhaustive_search"
     } else {
@@ -333,10 +424,12 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
         case_id: Some(request.case_id),
         status: status.to_owned(),
         solver_reported_search_status: solver_reported_search_status.to_owned(),
-        // A feasible schedule does not independently prove global optimality or a complete Pareto frontier.
-        objective_claim_status: "not_independently_verified".to_owned(),
+        reference_frontier_status,
+        reference_expansions,
+        reference_feasible_complete_schedules,
+        objective_claim_status,
         checks,
-        claim_ceiling: "Independent feasibility and receipt audit for a finite integer-quantized electrical dispatch model only; not an independent proof of optimality, Pareto completeness, AC/network physics, physical safety, evidence truth, or field performance.".to_owned(),
+        claim_ceiling: "Independent schedule feasibility and (when bounded enumeration completes) Pareto-frontier verification for the finite integer-quantized electrical model only; not AC/network physics, physical safety, evidence truth, model adequacy or field performance.".to_owned(),
     }
 }
 
