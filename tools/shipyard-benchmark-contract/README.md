@@ -18,6 +18,7 @@ A high score in one class cannot substitute for evidence in another. Zero errors
 - `benchmark-manifest.schema.json`: protocol inputs, source identity, model scope, solver budgets, candidate and baseline revisions, reference-oracle identity, and declared metrics.
 - `run-report.schema.json`: per-case outcomes, verifier results, run provenance, and summary counts. Unknown, timeout, invalid-output, and not-run are explicit outcomes rather than silently omitted cases; the report summary exposes separate counts for not-run and invalid-output cases.
 - `PUBLISHED-REPRODUCTION-PROTOCOL.md`: data availability boundary, Case9_50_4 target values, matched-run protocol, and the limits of comparing our current model to the published irregular-block method.
+- `ROBUST-RECOVERY-BENCHMARK.md`: scenario-complete robustness gates, mandatory-work invariants, fair matched-budget comparisons, and separate correctness/algorithmic/industrial claim thresholds.
 
 The schemas use JSON Schema Draft 2020-12. The manifest pins the expected case count and explicit metric definitions (unit, formula, aggregation, direction, and optional weight), not merely metric names. Each report case has a separate reference outcome so false-feasible and false-infeasible counts can be derived independently. Implementations should validate the manifest before running and validate the report before publishing it. A schema-valid report can still contain bad science; its hashes and claims require review.
 
