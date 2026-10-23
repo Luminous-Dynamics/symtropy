@@ -288,11 +288,23 @@ fn load_and_calculate(
         return Err(invalid_data("known-answer fixture does not bind to this schedule or supported schema"));
     }
 
-    let results = known
-        .cases
-        .iter()
-        .map(|case| calculate_case(&schedule, case))
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut results = Vec::with_capacity(known.cases.len());
+    for case in &known.cases {
+        let actual = calculate_case(&schedule, case)?;
+        if actual.computed_block_use != case.expected_block_use
+            || actual.energy_charge_microzar != case.expected_energy_charge_microzar
+            || actual.service_charge_microzar != case.expected_service_charge_microzar
+            || actual.network_charge_microzar != case.expected_network_charge_microzar
+            || actual.subtotal_excluding_unapplied_and_tax_microzar
+                != case.expected_subtotal_excluding_unapplied_and_tax_microzar
+        {
+            return Err(invalid_data(format!(
+                "tariff known answer mismatch for {}; refusing to emit qualified report",
+                case.case_id
+            )));
+        }
+        results.push(actual);
+    }
 
     Ok(TariffReferenceReport {
         schema_version: "energy-sa-tariff-reference-report-v0.1",
