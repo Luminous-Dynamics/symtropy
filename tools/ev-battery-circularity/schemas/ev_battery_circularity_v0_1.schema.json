@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-battery-circularity/schemas/ev_battery_circularity_v0_1.schema.json",
+  "title": "EV battery architecture circularity corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite_id",
+    "functional_unit",
+    "life_cycle_boundary",
+    "claim_ceiling",
+    "designs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "suite_id": {
+      "const": "EV-BATTERY-CIRCULARITY-001"
+    },
+    "functional_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "life_cycle_boundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "designs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/design"
+      }
+    }
+  },
+  "$defs": {
+    "nonnegative": {
+      "type": "number",
+      "minimum": 0
+    },
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "fraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidenceClass": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown"
+      ]
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_id",
+        "label",
+        "architecture",
+        "configuration_id",
+        "evidence_class",
+        "evidence_reference",
+        "evidence_note",
+        "nominal_capacity_kwh",
+        "usable_capacity_fraction",
+        "pack_mass_kg",
+        "initial_pack_cost_usd",
+        "initial_pack_embodied_kgco2e",
+        "lifetime_delivered_energy_kwh",
+        "use_phase_grid_intensity_kgco2e_per_kwh",
+        "electricity_price_usd_per_kwh",
+        "labor_rate_usd_per_hour",
+        "downtime_cost_usd_per_hour",
+        "serviceable_unit_count",
+        "smallest_replaceable_unit_kwh",
+        "maintenance",
+        "operations",
+        "materials",
+        "qualification_gates"
+      ],
+      "properties": {
+        "design_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_capacity_kwh": {
+          "$ref": "#/$defs/positive"
+        },
+        "usable_capacity_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "pack_mass_kg": {
+          "$ref": "#/$defs/positive"
+        },
+        "initial_pack_cost_usd": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "initial_pack_embodied_kgco2e": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "lifetime_delivered_energy_kwh": {
+          "$ref": "#/$defs/positive"
+        },
+        "use_phase_grid_intensity_kgco2e_per_kwh": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "electricity_price_usd_per_kwh": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "labor_rate_usd_per_hour": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "downtime_cost_usd_per_hour": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "serviceable_unit_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "smallest_replaceable_unit_kwh": {
+          "$ref": "#/$defs/positive"
+        },
+        "maintenance": {
+          "$ref": "#/$defs/maintenance"
+        },
+        "operations": {
+          "$ref": "#/$defs/operations"
+        },
+        "materials": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/material"
+          }
+        },
+        "qualification_gates": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        }
+      }
+    },
+    "maintenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repair_events_over_life",
+        "whole_pack_replacements_over_life",
+        "repair_unit_cost_usd",
+        "repair_unit_embodied_kgco2e",
+        "replacement_pack_cost_usd",
+        "replacement_pack_embodied_kgco2e",
+        "parts_wait_hours_per_repair",
+        "parts_wait_hours_per_pack_replacement"
+      ],
+      "properties": {
+        "repair_events_over_life": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "whole_pack_replacements_over_life": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_unit_cost_usd": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "repair_unit_embodied_kgco2e": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "replacement_pack_cost_usd": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "replacement_pack_embodied_kgco2e": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "parts_wait_hours_per_repair": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "parts_wait_hours_per_pack_replacement": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "operations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "isolation_minutes",
+        "diagnosis_minutes",
+        "enclosure_access_minutes",
+        "replace_unit_minutes",
+        "reassembly_minutes",
+        "post_service_validation_minutes",
+        "pack_removal_minutes",
+        "pack_installation_minutes",
+        "post_pack_validation_minutes"
+      ],
+      "properties": {
+        "isolation_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "diagnosis_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "enclosure_access_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "replace_unit_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "reassembly_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "post_service_validation_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "pack_removal_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "pack_installation_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "post_pack_validation_minutes": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_id",
+        "material_family",
+        "mass_kg_per_pack",
+        "collection_fraction",
+        "material_recovery_fraction",
+        "end_of_life_processing_kgco2e_per_kg",
+        "recovery_route",
+        "evidence_class",
+        "evidence_reference",
+        "evidence_note"
+      ],
+      "properties": {
+        "material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_kg_per_pack": {
+          "$ref": "#/$defs/positive"
+        },
+        "collection_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "material_recovery_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "end_of_life_processing_kgco2e_per_kg": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "recovery_route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status",
+        "evidence_class",
+        "evidence_reference",
+        "evidence_note"
+      ],
+      "properties": {
+        "gate_id": {
+          "enum": [
+            "structural_integrity",
+            "thermal_containment",
+            "electrical_isolation",
+            "diagnostic_access",
+            "repair_validation",
+            "end_of_life_handling"
+          ]
+        },
+        "status": {
+          "enum": [
+            "verified_pass",
+            "failed",
+            "unknown",
+            "not_assessed"
+          ]
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
