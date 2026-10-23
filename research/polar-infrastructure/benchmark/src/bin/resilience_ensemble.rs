@@ -47,6 +47,7 @@ struct EnsemblePolicyScore {
     gate_failure_probability: f64,
     expected_floor_breach_service_hours: f64,
     expected_fuel_intensity: Option<f64>,
+    fuel_unit: Option<String>,
     scenario_outcomes: Vec<ScenarioPolicyOutcome>,
 }
 
@@ -68,6 +69,7 @@ struct Observation {
     shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
+    fuel_unit: String,
     fuel_intensity: Option<f64>,
 }
 
@@ -122,7 +124,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     let mut ids = BTreeSet::new();
     let mut probability_sum = 0.0;
     let mut scored_scenarios = Vec::with_capacity(input.scenarios.len());
-    let mut expected_policies: Option<BTreeMap<String, String>> = None;
+    let mut expected_policies: Option<BTreeMap<String, (String, String)>> = None;
 
     for scenario in &input.scenarios {
         if scenario.scenario_id.trim().is_empty() || !ids.insert(scenario.scenario_id.clone()) {
@@ -134,15 +136,15 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
         probability_sum += scenario.probability;
 
         let report = score(&scenario.score_input)?;
-        let policies: BTreeMap<String, String> = report.results.iter()
-            .map(|p| (p.policy_id.clone(), p.method_family.clone()))
+        let policies: BTreeMap<String, (String, String)> = report.results.iter()
+            .map(|p| (p.policy_id.clone(), (p.method_family.clone(), p.fuel_unit.clone())))
             .collect();
         if policies.len() != report.results.len() {
             return Err(format!("scenario {} has duplicate policy IDs", scenario.scenario_id));
         }
         if let Some(expected) = &expected_policies {
             if expected != &policies {
-                return Err(format!("scenario {} does not contain the same policy IDs and method families", scenario.scenario_id));
+                return Err(format!("scenario {} does not contain the same policy IDs, method families and fuel units", scenario.scenario_id));
             }
         } else {
             expected_policies = Some(policies);
@@ -157,7 +159,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     let policy_map = expected_policies.unwrap_or_default();
     let mut results = Vec::with_capacity(policy_map.len());
 
-    for (policy_id, method_family) in policy_map {
+    for (policy_id, (method_family, fuel_unit)) in policy_map {
         let mut observations = Vec::with_capacity(scored_scenarios.len());
         for (scenario_id, probability, scores) in &scored_scenarios {
             let p: &PolicyScore = scores.iter().find(|s| s.policy_id == policy_id)
@@ -170,6 +172,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
                 shortfall,
                 gate_pass: p.gate_pass,
                 floor_breach_service_hours: p.floor_breach_service_hours,
+                fuel_unit: p.fuel_unit.clone(),
                 fuel_intensity: p.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
         }
@@ -216,6 +219,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             worst_case_service_shortfall: worst_case_shortfall,
             gate_failure_probability,
             expected_floor_breach_service_hours,
+            fuel_unit: if expected_fuel_intensity.is_some() { Some(fuel_unit) } else { None },
             expected_fuel_intensity,
             scenario_outcomes,
         });
@@ -302,6 +306,15 @@ mod tests {
         let mut input = fixture();
         input.evidence_class = "domain_validated".to_string();
         assert!(aggregate(&input).unwrap_err().contains("synthetic_only"));
+    }
+
+    #[test]
+    fn rejects_fuel_unit_mismatch_between_scenarios() {
+        let mut input = fixture();
+        for policy in &mut input.scenarios[1].score_input.policy_runs {
+            policy.fuel_unit = "litres".to_string();
+        }
+        assert!(aggregate(&input).unwrap_err().contains("fuel units"));
     }
 
     #[test]
