@@ -23,17 +23,24 @@ The CLI emits a JSON report. Invalid input fails closed: unknown service identif
 
 ## Metrics
 
-For each declared service s at step t:
+The scorer supports different physical units per service (for example, heat in kWh, water in litres, communications as a normalized service count) without adding those physical amounts together.
 
-- served units are capped at required demand; over-delivery cannot inflate the score;
-- criticality-weighted service fraction is weighted delivered units × timestep divided by weighted demanded units × timestep;
-- weighted unmet service is weighted unmet units × timestep;
-- floor-breach service-hours sum timestep duration for each demanded service below its fixture-declared floor;
-- gate_pass is false if any service-floor breach occurs;
-- fuel intensity is total declared fuel units divided by criticality-weighted delivered service-hours; it is undefined if no service is delivered.
+For service \(s\), let \(D_s\) be total demanded unit-hours and \(S_s\) be delivered unit-hours, both computed only within that service's declared unit. The per-service fraction is \(r_s = S_s / D_s\) when \(D_s > 0\). The headline metric is a dimensionless weighted mean of those per-service fractions:
 
-All outputs remain a vector. The crate does not collapse continuity, unmet demand, fuel, and admissibility into one score, does not choose a winner, and does not infer life-safety status from a floor.
+\[
+F = \frac{\sum_{s:D_s>0} w_s r_s}{\sum_{s:D_s>0} w_s}
+\]
 
+- Delivered values are capped at demand; over-delivery cannot inflate a score.
+- An inactive service with zero demand throughout the episode is explicitly excluded from the headline fraction and reports a missing per-service fraction, not a zero.
+- Physical demanded/delivered unit-hours are preserved separately per service; unlike units are never summed into one physical total.
+- Weighted delivered/unserved service-fraction-hours integrate each active service's dimensionless delivered/unmet fraction over time and criticality weight. These are coverage metrics, not physical energy or water quantities.
+- Floor-breach service-hours sum the timestep duration for **each service** below its declared floor; two services breaching in one hour count as two service-hours.
+- `gate_pass` is false if any service-floor breach occurs.
+- Fuel intensity divides declared fuel units by weighted delivered service-fraction-hours. It is only comparable between runs that share the fuel unit and service contract/weights.
+- The scorer fails on non-finite/negative measurements, missing/extra service IDs, duplicate IDs, invalid floors, mismatched series lengths, and unsupported evidence claims.
+
+All outputs remain a vector. The scorer does not collapse critical-service admissibility, coverage, fuel and repair burden into one scalar, does not choose a universal winner, and does not infer a life-safety condition from a service fraction. Floor values and weights are fixture values for software tests, not engineering thresholds.
 ## Benchmark protocol before making SOTA claims
 
 1. **Freeze the design basis:** geography (Arctic land, Antarctic station, and mobile ice platforms stay distinct), service contracts, units, episode boundaries, data versions, thresholds, missing-data policy, and hard gates.
