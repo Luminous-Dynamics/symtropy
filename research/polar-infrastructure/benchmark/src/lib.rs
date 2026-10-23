@@ -99,6 +99,36 @@ fn finite_nonnegative(value: f64) -> bool {
     value.is_finite() && value >= 0.0
 }
 
+/// Exact comparison basis for comparing policy outcomes between scenarios.
+/// Service order is ignored, but IDs, declared rate units, criticality weights,
+/// service floors, timestep, and value semantics must match.
+pub fn service_contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
+    if a.episode.time_step_hours.to_bits() != b.episode.time_step_hours.to_bits()
+        || a.episode.service_value_semantics != b.episode.service_value_semantics
+        || a.episode.service_contracts.len() != b.episode.service_contracts.len()
+    {
+        return false;
+    }
+    let left: BTreeMap<&str, (&str, u64, u64)> = a.episode.service_contracts.iter()
+        .map(|s| (s.id.as_str(), (s.unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
+        .collect();
+    let right: BTreeMap<&str, (&str, u64, u64)> = b.episode.service_contracts.iter()
+        .map(|s| (s.id.as_str(), (s.unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
+        .collect();
+    left == right
+}
+
+/// Services with positive integrated demand in an episode. Cross-scenario
+/// aggregation must use the same active set or the headline fraction changes basis.
+pub fn active_service_ids(input: &ScoreInput) -> BTreeSet<String> {
+    input.episode.service_contracts.iter().filter_map(|service| {
+        let total: f64 = input.episode.steps.iter()
+            .map(|step| step.demand.get(&service.id).copied().unwrap_or(0.0) * input.episode.time_step_hours)
+            .sum();
+        (total > 0.0).then(|| service.id.clone())
+    }).collect()
+}
+
 fn exact_keys<T>(
     values: &BTreeMap<String, T>,
     expected: &BTreeSet<String>,
@@ -391,6 +421,34 @@ mod tests {
         assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
         assert!(candidate.services.iter().any(|s| s.unit == "kW" && s.delivered_unit_hours > 0.0));
         assert!(candidate.services.iter().any(|s| s.unit == "litres_per_hour" && s.delivered_unit_hours > 0.0));
+    }
+
+    #[test]
+    fn rescaling_service_rate_units_does_not_change_dimensionless_coverage() {
+        let original = fixture();
+        let original_report = score(&original).expect("original fixture should score");
+        let mut scaled = fixture();
+        let service_id = "water";
+        let service = scaled.episode.service_contracts.iter_mut().find(|s| s.id == service_id).unwrap();
+        assert_eq!(service.unit, "normalized_service_units");
+        service.unit = "milli_normalized_service_units".to_string();
+        for step in &mut scaled.episode.steps {
+            *step.demand.get_mut(service_id).unwrap() *= 1000.0;
+        }
+        for policy in &mut scaled.policy_runs {
+            for step in &mut policy.steps {
+                *step.delivered.get_mut(service_id).unwrap() *= 1000.0;
+            }
+        }
+        let scaled_report = score(&scaled).expect("scaled fixture should score");
+        for original_policy in &original_report.results {
+            let scaled_policy = scaled_report.results.iter().find(|p| p.policy_id == original_policy.policy_id).unwrap();
+            assert!((original_policy.weighted_service_fraction - scaled_policy.weighted_service_fraction).abs() < 1e-12);
+            assert_eq!(original_policy.floor_breach_service_hours, scaled_policy.floor_breach_service_hours);
+            let before = original_policy.services.iter().find(|s| s.service_id == service_id).unwrap();
+            let after = scaled_policy.services.iter().find(|s| s.service_id == service_id).unwrap();
+            assert!((after.demanded_unit_hours / before.demanded_unit_hours - 1000.0).abs() < 1e-9);
+        }
     }
 
     #[test]
