@@ -201,3 +201,36 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null)
   ' "$ridge_out"
 fi
+
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+  dataset_input="${STFR_DATASET_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-transition-residual-dataset.json}"
+  test -s "$dataset_input"
+  export STFR_DATASET_INPUT_PATH="$dataset_input"
+  export STFR_TRAIN_DATASET_SHA256="$(sha256sum "$dataset_input" | awk '{print $1}')"
+  hdc_out="${STFR_HDC_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-hdc-ltc-residual-reservoir-heldout.json}"
+  cargo run --manifest-path "$integration_manifest" --example hdc_ltc_residual_reservoir_benchmark > "$hdc_out"
+  jq -e '
+    .benchmark_id == "symtropy-hdc-ltc-residual-reservoir-heldout-v0.1"
+    and .claim_ceiling == "frozen_hdc_ltc_reservoir_readout_one_step_prediction_only"
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.rustc_version | startswith("rustc "))
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .representation.hdc_dimension == 16384
+    and .representation.reservoir == "HdcLtcUnifiedNetwork"
+    and .representation.reservoir_weights_frozen == true
+    and .representation.trainable_weights == "readout only; no end-to-end HDC-LTC BPTT"
+    and .representation.readout_feature_dimension == 262
+    and .training.sample_count > 0
+    and .training.hidden_force_labels_used_as_features == false
+    and .evaluation.split == "test"
+    and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
+    and .evaluation.invalid_samples == 0
+    and .evaluation.metrics.invalid_samples == 0
+    and .evaluation.metrics.hdc_ltc_reservoir_residual_rmse_m_s2 >= 0
+    and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and (.evaluation.family_metrics | length) == 3
+    and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+  ' "$hdc_out"
+fi
