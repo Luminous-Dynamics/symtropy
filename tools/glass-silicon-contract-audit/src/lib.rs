@@ -375,6 +375,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     for required_ref in [
         "scale-glass-active-learning-2026",
         "glass-gfri-feasibility-2026",
+        "glass-gfr-xgboost-2026",
         "scale-glass-zenodo-data-2026",
         "glass-futures-ai-glass-2026",
         "silicon-purification-route-review-2026",
