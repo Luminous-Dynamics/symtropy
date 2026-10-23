@@ -1,5 +1,5 @@
 use shipyard_dispatch_audit::EvaluatorOutage;
-use shipyard_dispatch_experiment::evaluate_four_rules;
+use shipyard_dispatch_experiment::{evaluate_four_rules, serialize_result_ledger, ExperimentLedgerContext};
 use shipyard_observed_dispatch::{
     Commitment, DispatchInput, Operation, Resource, VisibleOutage,
 };
@@ -69,21 +69,18 @@ fn main() {
 
     let results = evaluate_four_rules(&policy_input, &[], &evaluator_outages)
         .expect("policy and evaluator histories must agree");
-    println!("synthetic_episode=yard-recovery-smoke-v0");
+    let context = ExperimentLedgerContext {
+        benchmark_release_id: "synthetic-dispatch-v0".to_owned(),
+        episode_id: "yard-recovery-smoke-v0".to_owned(),
+        replicate_id: "seed-0001".to_owned(),
+        initial_state_sha256: "a".repeat(64),
+        disturbance_tape_sha256: "b".repeat(64),
+        budget_profile_id: "no-search-deterministic-v0".to_owned(),
+        policy_revision: "synthetic-policy-bundle-revision".to_owned(),
+        evaluator_revision: "synthetic-evaluator-bundle-revision".to_owned(),
+    };
+    let ledger = serialize_result_ledger(&context, &results)
+        .expect("synthetic context satisfies the ledger contract");
     println!("note=synthetic plumbing test only; not industrial evidence");
-    println!("metric_directions=lower makespan/tardiness/occupied ticks are not collapsed into one score");
-    for result in results {
-        println!(
-            "rule={:?} policy_status={:?} audit_status={:?} makespan_tick={:?} tardiness_ticks={} occupied_resource_ticks={} assigned={} unscheduled={} violations={}",
-            result.rule,
-            result.policy_status,
-            result.audit.status,
-            result.audit.metrics.makespan_tick,
-            result.audit.metrics.total_tardiness_ticks,
-            result.audit.metrics.occupied_resource_ticks,
-            result.audit.metrics.assigned_operation_count,
-            result.audit.metrics.missing_operation_ids.len(),
-            result.audit.diagnostics.len()
-        );
-    }
+    print!("{ledger}");
 }
