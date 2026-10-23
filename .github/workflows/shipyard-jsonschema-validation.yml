@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: shipyard-jsonschema-validation-${{ github.event.pull_request.number || github.ref }}
+  group: shipyard-jsonschema-validation-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -37,8 +37,13 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt, clippy
-      - name: Generate pinned dependency lockfile if missing
-        run: cargo generate-lockfile --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Generate pinned dependency lockfile only when absent
+        run: |
+          if [ ! -f tools/shipyard-jsonschema-validator/Cargo.lock ]; then
+            cargo generate-lockfile --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+          else
+            echo "Using the already committed lockfile; dependency updates remain explicit."
+          fi
       - name: Apply Rust 1.96 formatting
         run: cargo fmt --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
       - name: Detect bootstrap changes
