@@ -920,7 +920,7 @@ fn validate_morphology(model: &Value) -> Vec<String> {
         push_findings(&mut findings, "MORPHOLOGY_ROOT_HAS_PARENT");
     }
     for link_id in &link_ids {
-        let expected_incoming = usize::from(link_id != root_link);
+        let expected_incoming = if link_id == root_link { 0 } else { 1 };
         if incoming.get(link_id).copied().unwrap_or(0) != expected_incoming {
             push_findings(&mut findings, "MORPHOLOGY_PARENT_COUNT_INVALID");
         }
@@ -1231,6 +1231,33 @@ mod tests {
         assert!(validate_morphology(&mass)
             .iter()
             .any(|finding| finding == "MORPHOLOGY_LINK_MASS_INVALID"));
+    }
+
+    #[test]
+    fn morphology_fixed_joints_require_zero_motion_and_effort_envelopes() {
+        let mut model = morphology();
+        let fixed_index = model["joints"]
+            .as_array()
+            .expect("joints")
+            .iter()
+            .position(|joint| str_at(joint, "joint_type") == Some("fixed"))
+            .expect("fixture includes fixed mount joints");
+        model["joints"][fixed_index]["axis_xyz"] = json!([0.0, 1.0, 0.0]);
+        assert!(validate_morphology(&model)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_FIXED_JOINT_ENVELOPE_INVALID"));
+
+        let mut model = morphology();
+        let fixed_index = model["joints"]
+            .as_array()
+            .expect("joints")
+            .iter()
+            .position(|joint| str_at(joint, "joint_type") == Some("fixed"))
+            .expect("fixture includes fixed mount joints");
+        model["joints"][fixed_index]["max_effort_nm"] = json!(0.1);
+        assert!(validate_morphology(&model)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_FIXED_JOINT_ENVELOPE_INVALID"));
     }
 
     #[test]
