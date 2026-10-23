@@ -13,6 +13,8 @@ cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.tom
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-corpus \
   docs/tech/glass-silicon-process-benchmark-v0.1.schema.json \
   docs/tech/glass-silicon-process-benchmark-v0.1.json
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
+  tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
 
@@ -43,3 +45,12 @@ The result proves only that the supplied arithmetic fits the supplied contract. 
 ## Claim ceiling
 
 The checked-in fixtures are synthetic software tests. They are not plant data, recipes, measured energy consumption, qualified glass, or silicon production results. Full JSON Schema validation, source-data reproduction, and physical-process validation remain separate gates.
+
+
+## Synthetic decision-value pool
+
+The `audit-decision-value` command evaluates a fully enumerated **synthetic** scenario/action pool. It computes the best robust action before measurement, the post-measurement worst-case regret for each observation partition, gross regret reduction, eligibility under separate cost and duration caps, and a Pareto frontier. Its exact one-step oracle is evaluator-side and chooses only among the enumerated budget-feasible measurements.
+
+The fixture includes an informative measurement, an uninformative measurement and an informative-but-over-budget measurement. Unit mutation tests reject a missing cost, producer-access leakage declarations, feasibility-control bypasses, and incomplete observation maps. The producer-access values are a declared contract, **not proof that a real producer process is isolated**. All utility values, scenarios, costs and feasibility controls in this fixture are synthetic; this command is not a materials model, physical value-of-information estimate, experiment authorization, or evidence of industrial gains.
+
+Exit codes retain the tool convention: 0 = PASS at the declared contract/arithmetic level; 2 = FAIL; 3 = UNRESOLVED; 64 = usage error.
