@@ -310,8 +310,8 @@ mod tests {
                             .expect("every axis combination is derivable");
                         assert_eq!(known.feasible_schedules, derived.feasible_schedules, "{id}");
                         assert_eq!(known.frontier, derived.frontier, "{id}");
-                        let max_charge = capacity.min(battery_power);
-                        assert_eq!(known.frontier.len(), usize::from(max_charge) + 1);
+                        let max_charge = capacity.min(battery_power) as usize;
+                        assert_eq!(known.frontier.len(), max_charge + 1);
                         assert!(known.feasible_schedules > 0);
                         assert_eq!(known.case_id, format!("candidate:{id}"));
                         ids.push(id);
