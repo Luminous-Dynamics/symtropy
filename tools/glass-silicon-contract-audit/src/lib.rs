@@ -46,6 +46,220 @@ impl AuditReport {
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct FeasibilityCandidateResult {
+    pub candidate_id: String,
+    pub status: String,
+    pub expected_disposition: String,
+    pub derived_disposition: String,
+    pub blocking_gates: Vec<String>,
+    pub unresolved_gates: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct FeasibilityAuditReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub candidates: Vec<FeasibilityCandidateResult>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl FeasibilityAuditReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+const FEASIBILITY_GATE_ORDER: [&str; 5] = [
+    "composition_validity",
+    "glass_formation",
+    "process_window",
+    "joint_product_qualification",
+    "manufacturing_feasibility",
+];
+
+const FEASIBILITY_GATE_STATUSES: [&str; 7] = [
+    "PASS",
+    "FAIL",
+    "UNKNOWN",
+    "NOT_ATTEMPTED",
+    "CENSORED",
+    "STALE",
+    "OUT_OF_DOMAIN",
+];
+
+const FEASIBILITY_DISPOSITIONS: [&str; 3] = ["FEASIBLE", "INFEASIBLE", "UNRESOLVED"];
+
+fn feasibility_exact_object_keys(value: &Value, allowed: &[&str], required: &[&str]) -> bool {
+    let Some(object) = value.as_object() else { return false };
+    object.keys().all(|key| allowed.contains(&key.as_str()))
+        && required.iter().all(|key| object.contains_key(*key))
+}
+
+/// Deterministic staged feasibility audit for the synthetic benchmark lane.
+/// A candidate is FEASIBLE only when every required gate is PASS. Any evidenced
+/// hard-gate FAIL makes it INFEASIBLE; otherwise any missing/unknown/stale/
+/*UNRESOLVED*/ out-of-domain/censored/not-attempted gate yields UNRESOLVED. This checks a
+/// declared contract; it does not validate physical evidence or source rights.
+pub fn audit_feasibility_corpus(corpus: &Value) -> FeasibilityAuditReport {
+    let benchmark_id = object_string(corpus, "benchmark_id").map(ToOwned::to_owned);
+    let mut findings = Vec::new();
+    let mut results = Vec::new();
+    let claim_ceiling = object_string(corpus, "claim_ceiling")
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("Synthetic contract only; no material or process performance is validated.")
+        .to_string();
+
+    if !feasibility_exact_object_keys(
+        corpus,
+        &["benchmark_id", "evidence_class", "claim_ceiling", "gate_order", "candidates"],
+        &["benchmark_id", "evidence_class", "claim_ceiling", "gate_order", "candidates"],
+    ) {
+        findings.push("FEASIBILITY_ROOT_KEYS:missing or unknown top-level fields".to_string());
+    }
+    if benchmark_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+        findings.push("FEASIBILITY_BENCHMARK_ID:missing or invalid benchmark_id".to_string());
+    }
+    if object_string(corpus, "evidence_class") != Some("synthetic") {
+        findings.push("FEASIBILITY_EVIDENCE_CLASS:executable control corpus must be explicitly synthetic".to_string());
+    }
+    if object_string(corpus, "claim_ceiling").map_or(true, |value| value.trim().is_empty()) {
+        findings.push("FEASIBILITY_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
+    }
+
+    let declared_gates = corpus
+        .get("gate_order")
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).collect::<Vec<_>>());
+    if declared_gates.as_deref() != Some(FEASIBILITY_GATE_ORDER.as_slice()) {
+        findings.push("FEASIBILITY_GATE_ORDER:required ordered gate list is missing or changed".to_string());
+    }
+
+    let candidates = corpus.get("candidates").and_then(Value::as_array);
+    if candidates.map_or(true, |items| items.is_empty()) {
+        findings.push("FEASIBILITY_CANDIDATES:at least one candidate control is required".to_string());
+    } else {
+        let mut seen_ids = BTreeSet::new();
+        let expected_gate_keys: BTreeSet<String> = FEASIBILITY_GATE_ORDER.iter().map(|value| value.to_string()).collect();
+
+        for (index, candidate) in candidates.into_iter().flatten().enumerate() {
+            let candidate_id = object_string(candidate, "id").unwrap_or("").to_string();
+            let expected = object_string(candidate, "expected_disposition").unwrap_or("").to_string();
+            let mut candidate_valid = true;
+
+            if !feasibility_exact_object_keys(candidate, &["id", "expected_disposition", "gates"], &["id", "expected_disposition", "gates"]) {
+                findings.push(format!("FEASIBILITY_CANDIDATE_KEYS:index {index} has missing or unknown fields"));
+                candidate_valid = false;
+            }
+            if !is_stable_slug(&candidate_id) || !seen_ids.insert(candidate_id.clone()) {
+                findings.push(format!("FEASIBILITY_CANDIDATE_ID:index {index} has missing, invalid or duplicate id"));
+                candidate_valid = false;
+            }
+            if !FEASIBILITY_DISPOSITIONS.contains(&expected.as_str()) {
+                findings.push(format!("FEASIBILITY_EXPECTED_DISPOSITION:{candidate_id} has unknown expected disposition"));
+                candidate_valid = false;
+            }
+
+            let gates = candidate.get("gates").and_then(Value::as_object);
+            let actual_gate_keys: BTreeSet<String> = gates
+                .into_iter()
+                .flat_map(|object| object.keys().cloned())
+                .collect();
+            if gates.is_none() || actual_gate_keys != expected_gate_keys {
+                findings.push(format!("FEASIBILITY_GATE_CENSUS:{candidate_id} must include exactly the five required gates"));
+                candidate_valid = false;
+            }
+
+            let mut blocking_gates = Vec::new();
+            let mut unresolved_gates = Vec::new();
+            if let Some(gates) = gates {
+                for gate_name in FEASIBILITY_GATE_ORDER {
+                    let Some(gate) = gates.get(gate_name) else { continue };
+                    if !feasibility_exact_object_keys(
+                        gate,
+                        &["status", "evidence_class", "basis", "source_ref"],
+                        &["status", "evidence_class", "basis"],
+                    ) {
+                        findings.push(format!("FEASIBILITY_GATE_KEYS:{candidate_id}/{gate_name} has missing or unknown fields"));
+                        candidate_valid = false;
+                        continue;
+                    }
+                    let status = object_string(gate, "status").unwrap_or("");
+                    let evidence_class = object_string(gate, "evidence_class").unwrap_or("");
+                    let basis = object_string(gate, "basis").unwrap_or("");
+                    let source_ref = nonempty_string(gate, "source_ref");
+
+                    if !FEASIBILITY_GATE_STATUSES.contains(&status) {
+                        findings.push(format!("FEASIBILITY_GATE_STATUS:{candidate_id}/{gate_name} has unknown status"));
+                        candidate_valid = false;
+                        continue;
+                    }
+                    if evidence_class != "synthetic" {
+                        findings.push(format!("FEASIBILITY_GATE_EVIDENCE_CLASS:{candidate_id}/{gate_name} is not synthetic"));
+                        candidate_valid = false;
+                    }
+                    if basis.trim().is_empty() {
+                        findings.push(format!("FEASIBILITY_GATE_BASIS:{candidate_id}/{gate_name} must explain its status"));
+                        candidate_valid = false;
+                    }
+                    if gate.get("source_ref").is_some() && source_ref.is_none() {
+                        findings.push(format!("FEASIBILITY_GATE_SOURCE_REF:{candidate_id}/{gate_name} source_ref is empty or not a string"));
+                        candidate_valid = false;
+                    }
+                    if (status == "PASS" || status == "FAIL") && source_ref.is_none() {
+                        findings.push(format!("FEASIBILITY_GATE_EVIDENCE_REQUIRED:{candidate_id}/{gate_name} PASS/FAIL needs a traceable evidence reference"));
+                        candidate_valid = false;
+                    }
+
+                    match status {
+                        "FAIL" => blocking_gates.push(gate_name.to_string()),
+                        "PASS" => {}
+                        _ => unresolved_gates.push(gate_name.to_string()),
+                    }
+                }
+            }
+
+            let derived = if !blocking_gates.is_empty() {
+                "INFEASIBLE"
+            } else if unresolved_gates.is_empty() && candidate_valid {
+                "FEASIBLE"
+            } else {
+                "UNRESOLVED"
+            }.to_string();
+
+            let disposition_match = candidate_valid && expected == derived;
+            if candidate_valid && !disposition_match {
+                findings.push(format!("FEASIBILITY_DISPOSITION_MISMATCH:{candidate_id} expected {expected} but gates derive {derived}"));
+            }
+            results.push(FeasibilityCandidateResult {
+                candidate_id,
+                status: if disposition_match { "PASS".to_string() } else { "FAIL".to_string() },
+                expected_disposition: expected,
+                derived_disposition: derived,
+                blocking_gates,
+                unresolved_gates,
+            });
+        }
+    }
+
+    findings.sort();
+    findings.dedup();
+    FeasibilityAuditReport {
+        status: if findings.is_empty() && results.iter().all(|result| result.status == "PASS") { "PASS".to_string() } else { "FAIL".to_string() },
+        audit_kind: "synthetic_glass_feasibility_gate_corpus".to_string(),
+        benchmark_id,
+        candidates: results,
+        findings,
+        claim_ceiling,
+    }
+}
+
 fn object_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.as_object()?.get(key)?.as_str()
 }
