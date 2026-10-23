@@ -2105,7 +2105,11 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
                 adaptive_oracle_max_path_duration_seconds: Some(policy_tree.max_additional_duration_seconds),
                 adaptive_oracle_max_measurements_on_path: Some(policy_tree.max_measurements_on_path),
                 policy_tree: Some(policy_tree),
-                findings: Vec::new(),
+                findings: if pre_regret.is_none() {
+                    vec!["PRE_MEASUREMENT_NO_ROBUST_ACTION: baseline regret is undefined; report only the adaptive policy's terminal regret".to_string()]
+                } else {
+                    Vec::new()
+                },
                 claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
             }
         }
