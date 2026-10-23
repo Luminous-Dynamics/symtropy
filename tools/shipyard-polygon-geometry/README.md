@@ -29,6 +29,15 @@ A separate temporal control uses a concave L-shaped footprint to test endpoint r
 - Half-open integer time windows; endpoint-touching windows may reuse the same footprint, while a delayed-clearance interval conflicts.
 - An independent unit-cell rectangle oracle checks every ordered pair of small axis-aligned rectangle cases.
 
+
+## Published geometry-quality benchmark
+
+The 2026 irregular-block shipyard study reports representation-induced footprint-area inflation in Table 4: 6.39%, 6.37%, and 6.21% for simplified R2 shapes on its 40-, 50-, and 60-block cases; regularized R3 shapes inflate area by 14.89%, 17.76%, and 17.75%, respectively. Source: [Wang, Yin & Khan (2026), DOI 10.1049/cim2.70066](https://doi.org/10.1049/cim2.70066).
+
+These are shape-representation deltas, not the paper's yard-utilization scores. The exact-polygon milestone should report (a) representation area inflation, (b) actual placed source-profile area / usable yard area, and (c) conservative false conflicts independently. The intended geometry target is no simplification-induced area inflation beyond a declared fixed-point quantization tolerance, while retaining explicit clearance policy; this is not yet demonstrated against the paper's source profiles.
+
+The appendix does not supply a complete machine-readable Case9_50_4 corpus in the article download; the associated simulation data are available from the corresponding author upon request. Do not substitute the current synthetic orthogonal shapes for a paper reproduction. The source-authorized profile set and exact aisle/yard assumptions must be pinned first.
+
 ## Limits
 
 This is only a planar footprint predicate layer. It does not establish swept-path clearance, access routes, rotation during movement, load support, stacking, floor bearing, vertical clearance, crane envelopes, lift physics, human safety or operational authorization. It has not yet been connected to the existing finite-yard verifier and has not been CI-confirmed at this commit.
