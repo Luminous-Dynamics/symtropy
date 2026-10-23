@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-polygon-layout-baseline"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic AABB and exact-polygon first-fit baseline for tiny shipyard layouts"
+
+[dependencies]
+shipyard-polygon-geometry = { path = "../shipyard-polygon-geometry" }
+
+[workspace]
