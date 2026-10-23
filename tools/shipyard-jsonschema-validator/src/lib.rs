@@ -19,7 +19,11 @@ impl Display for SchemaDiagnostic {
         if self.instance_path.is_empty() {
             write!(f, "{}: {}", self.source, self.message)
         } else {
-            write!(f, "{} at {}: {}", self.source, self.instance_path, self.message)
+            write!(
+                f,
+                "{} at {}: {}",
+                self.source, self.instance_path, self.message
+            )
         }
     }
 }
@@ -91,7 +95,11 @@ pub fn validate_instance_value(
         })
         .collect();
 
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 pub fn validate_instance_text(
@@ -180,14 +188,17 @@ mod unit_tests {
 
     #[test]
     fn embedded_contract_schemas_pass_the_draft_2020_12_meta_schema() {
-        validate_schema_document(MANIFEST_SCHEMA).expect("manifest schema must pass its meta-schema");
+        validate_schema_document(MANIFEST_SCHEMA)
+            .expect("manifest schema must pass its meta-schema");
         validate_schema_document(REPORT_SCHEMA).expect("report schema must pass its meta-schema");
     }
 
     #[test]
     fn schema_document_rejects_a_non_2020_12_dialect() {
-        let error = validate_schema_document(r#"{"$schema":"http://json-schema.org/draft-07/schema#","type":"object"}"#)
-            .expect_err("wrong dialect must fail");
+        let error = validate_schema_document(
+            r#"{"$schema":"http://json-schema.org/draft-07/schema#","type":"object"}"#,
+        )
+        .expect_err("wrong dialect must fail");
         assert!(error.iter().any(|item| item.source == "schema-draft"));
     }
 
@@ -198,15 +209,21 @@ mod unit_tests {
             "$ref":"https://example.invalid/not-fetchable.json"
         });
         let instance = serde_json::json!({"ok":true});
-        let errors = validate_instance_value(&schema, &instance).expect_err("offline external ref must not resolve");
+        let errors = validate_instance_value(&schema, &instance)
+            .expect_err("offline external ref must not resolve");
         assert!(errors.iter().any(|item| item.source == "schema-build"));
     }
 
     #[test]
     fn malformed_schema_keywords_fail_meta_validation() {
         let invalid = r#"{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"definitely-not-a-json-schema-type"}"#;
-        let errors = validate_schema_document(invalid).expect_err("invalid type keyword must fail meta-schema");
-        assert!(errors.iter().any(|item| item.source == "schema-meta-validation"));
+        let errors = validate_schema_document(invalid)
+            .expect_err("invalid type keyword must fail meta-schema");
+        assert!(
+            errors
+                .iter()
+                .any(|item| item.source == "schema-meta-validation")
+        );
     }
 
     #[test]
@@ -219,7 +236,12 @@ mod unit_tests {
             "additionalProperties":false
         });
         let instance = serde_json::json!({"observed_at":"yesterday at noon"});
-        let errors = validate_instance_value(&schema, &instance).expect_err("malformed date-time must fail");
-        assert!(errors.iter().any(|item| item.source == "instance-validation"));
+        let errors =
+            validate_instance_value(&schema, &instance).expect_err("malformed date-time must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|item| item.source == "instance-validation")
+        );
     }
 }
