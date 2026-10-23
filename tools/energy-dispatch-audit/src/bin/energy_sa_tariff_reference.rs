@@ -406,6 +406,17 @@ mod tests {
     }
 
     #[test]
+    fn altered_tariff_known_answer_is_rejected_by_the_cli_calculation_path() {
+        let schedule = SCHEDULE.as_bytes();
+        let tampered = ANSWERS.replace(
+            "\"expected_energy_charge_microzar\": 11094610000",
+            "\"expected_energy_charge_microzar\": 11094610001",
+        );
+        assert_ne!(tampered, ANSWERS);
+        assert!(load_and_calculate(schedule, tampered.as_bytes()).is_err());
+    }
+
+    #[test]
     fn missing_capacity_band_fails_closed_instead_of_inventing_fixed_charges() {
         let schedule: TariffSchedule = serde_json::from_str(SCHEDULE).unwrap();
         let known: KnownAnswerFile = serde_json::from_str(ANSWERS).unwrap();
