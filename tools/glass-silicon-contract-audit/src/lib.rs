@@ -2495,7 +2495,7 @@ mod feasibility_gate_tests {
         let disposition = |id: &str| {
             report.candidates.iter()
                 .find(|candidate| candidate.candidate_id == id)
-                .map(|candidate| candidate.derived_disposition.as_str())
+                .map(|candidate| candidate.derived_disposition.clone())
                 .expect("candidate should exist")
         };
         assert_eq!(disposition("control-feasible"), "FEASIBLE");
