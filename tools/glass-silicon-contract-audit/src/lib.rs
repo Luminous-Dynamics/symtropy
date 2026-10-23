@@ -1988,7 +1988,22 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
     let utility_unit = nonempty_string(pool, "utility_unit");
     let cost_unit = nonempty_string(pool, "cost_unit");
     let steps = pool.get("max_measurement_steps").and_then(Value::as_u64).map(|n| n as usize);
-    let base_failures = base.status != "PASS";
+    // The one-step evaluator can legitimately be UNRESOLVED when no action is
+    // feasible across all scenarios before measurement, or within a coarse
+    // one-step observation group. A later adaptive measurement may resolve that
+    // ambiguity. Structural FAIL remains disqualifying; only these known
+    // decision-state unresolved findings may be handed to the multi-step solver.
+    let allowed_base_unresolved = base.status == "UNRESOLVED"
+        && !base.findings.is_empty()
+        && base.findings.iter().all(|finding| {
+            [
+                "NO_PRE_OBSERVATION_ROBUST_ACTION:",
+                "NO_ROBUST_ACTION_FOR_OBSERVATION:",
+                "NO_BUDGET_FEASIBLE_MEASUREMENT:",
+            ].iter().any(|prefix| finding.starts_with(prefix))
+        });
+    let base_failures = base.status == "FAIL"
+        || (base.status == "UNRESOLVED" && !allowed_base_unresolved);
     let mut findings = Vec::new();
 
     if base_failures {
@@ -2060,27 +2075,10 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
             .map(|a| a.utility_by_scenario[scenario]).max_by(f64::total_cmp).unwrap();
         (scenario.clone(), best)
     }).collect();
+    // Absence of a pre-measurement robust action is itself meaningful. Keep
+    // the baseline regret unknown, but still search for an adaptive policy
+    // whose leaves are individually robust and feasible.
     let pre_regret = decision_worst_regret(&actions, &scenario_ids, &best_utility);
-    let pre_regret = match pre_regret {
-        Some(v) => v,
-        None => {
-            return AdaptiveCampaignReport {
-                status: "UNRESOLVED".to_string(),
-                audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
-                benchmark_id, utility_unit, cost_unit,
-                max_measurement_steps: steps,
-                pre_measurement_worst_case_regret: None,
-                adaptive_oracle_worst_case_regret: None,
-                adaptive_oracle_gross_regret_reduction: None,
-                adaptive_oracle_max_path_cost_units: None,
-                adaptive_oracle_max_path_duration_seconds: None,
-                adaptive_oracle_max_measurements_on_path: None,
-                policy_tree: None,
-                findings: vec!["NO_PRE_MEASUREMENT_ROBUST_ACTION:no action is feasible across all declared scenarios".to_string()],
-                claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
-            }
-        }
-    };
 
     let max_cost = pool["max_measurement_cost"].as_f64().unwrap();
     let max_duration = pool["max_duration_seconds"].as_f64().unwrap();
@@ -2092,15 +2090,17 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
     let plan = solver.solve(scenario_ids, 0);
     match plan {
         Some(policy_tree) => {
-            let gross_reduction = (pre_regret - policy_tree.worst_case_regret).max(0.0);
+            let gross_reduction = pre_regret.map(|before| {
+                (before - policy_tree.worst_case_regret).max(0.0)
+            });
             AdaptiveCampaignReport {
                 status: "PASS".to_string(),
                 audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
                 benchmark_id, utility_unit, cost_unit,
                 max_measurement_steps: steps,
-                pre_measurement_worst_case_regret: Some(pre_regret),
+                pre_measurement_worst_case_regret: pre_regret,
                 adaptive_oracle_worst_case_regret: Some(policy_tree.worst_case_regret),
-                adaptive_oracle_gross_regret_reduction: Some(gross_reduction),
+                adaptive_oracle_gross_regret_reduction: gross_reduction,
                 adaptive_oracle_max_path_cost_units: Some(policy_tree.max_additional_cost_units),
                 adaptive_oracle_max_path_duration_seconds: Some(policy_tree.max_additional_duration_seconds),
                 adaptive_oracle_max_measurements_on_path: Some(policy_tree.max_measurements_on_path),
@@ -2152,6 +2152,19 @@ mod adaptive_campaign_tests {
         assert_eq!(root.measurement_id.as_deref(), Some("measure-alpha"));
         assert_eq!(root.observation_branches.len(), 2);
         assert!(root.observation_branches.values().all(|branch| branch.node_type == "MEASURE"));
+    }
+
+    #[test]
+    fn adaptive_campaign_can_resolve_when_no_pre_measurement_action_is_robust() {
+        let mut value = adaptive_pool();
+        value["actions"].as_array_mut().unwrap().retain(|action| action["id"] != "conventional");
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.pre_measurement_worst_case_regret, None);
+        assert_eq!(report.adaptive_oracle_worst_case_regret, Some(0.0));
+        assert_eq!(report.adaptive_oracle_gross_regret_reduction, None);
+        assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(2));
+        assert!(report.policy_tree.as_ref().unwrap().node_type == "MEASURE");
     }
 
     #[test]
