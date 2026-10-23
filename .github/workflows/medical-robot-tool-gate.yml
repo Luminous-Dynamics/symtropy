@@ -39,10 +39,10 @@ jobs:
         run: cargo fmt --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --check
 
       - name: Focused tests
-        run: cargo test --manifest-path tools/medical-robot-tool-gate/Cargo.toml
+        run: cargo test --locked --manifest-path tools/medical-robot-tool-gate/Cargo.toml
 
       - name: Clippy with warnings denied
-        run: cargo clippy --manifest-path tools/medical-robot-tool-gate/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/medical-robot-tool-gate/Cargo.toml --all-targets -- -D warnings
 
       - name: Exercise corpus and single-candidate manifest gates
         env:
@@ -51,14 +51,14 @@ jobs:
         run: |
           set -euo pipefail
           corpus=docs/medical-robotics/medical-robot-tool-corpus-v0.1.json
-          cargo run --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- "$corpus" > /tmp/careframe-tool-receipt.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- "$corpus" > /tmp/careframe-tool-receipt.json
           grep -q '"clinical_use_authorized": false' /tmp/careframe-tool-receipt.json
           grep -q '"physical_actuation_authorized": false' /tmp/careframe-tool-receipt.json
           grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-tool-receipt.json
 
           # A proposal copied from a frozen positive fixture must be simulation-only.
           jq '.cases[0].manifest' "$corpus" > /tmp/careframe-proposal-valid.json
-          cargo run --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-valid.json > /tmp/careframe-proposal-valid-receipt.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-valid.json > /tmp/careframe-proposal-valid-receipt.json
           grep -q '"disposition": "SIMULATION_ONLY"' /tmp/careframe-proposal-valid-receipt.json
           grep -Eq '"tool_manifest_sha256": "[0-9a-f]{64}"' /tmp/careframe-proposal-valid-receipt.json
           grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-proposal-valid-receipt.json
@@ -66,7 +66,7 @@ jobs:
           # The same proposal with clinical authority escalated must be denied.
           jq '.cases[0].manifest | .authority.clinical_use_authorized = true' "$corpus" > /tmp/careframe-proposal-forbidden.json
           set +e
-          cargo run --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-forbidden.json > /tmp/careframe-proposal-forbidden-receipt.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-forbidden.json > /tmp/careframe-proposal-forbidden-receipt.json
           forbidden_status=$?
           set -e
           if [[ "$forbidden_status" -ne 1 ]]; then
