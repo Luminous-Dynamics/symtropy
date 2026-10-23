@@ -404,7 +404,8 @@ fn axis_angle_rotor(axis: [f64; 3], angle: f64) -> Rotor<3> {
     if angle.abs() < 1.0e-15 {
         return Rotor::identity();
     }
-    let [x, y, z] = axis;
+    let norm = axis.iter().map(|component| component * component).sum::<f64>().sqrt();
+    let [x, y, z] = axis.map(|component| component / norm);
     let cosine = angle.cos();
     let sine = angle.sin();
     let one_minus_cosine = 1.0 - cosine;
