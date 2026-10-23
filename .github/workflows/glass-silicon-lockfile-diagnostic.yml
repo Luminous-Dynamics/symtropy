@@ -1,0 +1,41 @@
+name: Glass Silicon Lockfile Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact PR revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Regenerate lockfile under the repository toolchain
+        run: cargo generate-lockfile --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+
+      - name: Show resolved toolchain and lock digest
+        run: |
+          cargo --version
+          rustc --version
+          sha256sum tools/glass-silicon-contract-audit/Cargo.lock
+
+      - name: Test using regenerated lockfile
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+
+      - name: Upload regenerated lockfile for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glass-silicon-cargo-lock-diagnostic
+          path: tools/glass-silicon-contract-audit/Cargo.lock
+          if-no-files-found: error
+          retention-days: 3
