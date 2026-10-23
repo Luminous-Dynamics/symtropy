@@ -6,78 +6,203 @@
   "episode": {
     "id": "TOY-HEAT-WATER-COMMS-004H",
     "location_context": "toy_not_site_data",
-    "time_step_hours": 1.0,
+    "time_step_hours": 1,
     "service_contracts": [
       {
         "id": "heat",
-        "criticality_weight": 3.0,
+        "criticality_weight": 3,
         "minimum_service_fraction": 0.75,
         "unit": "normalized_service_units"
       },
       {
         "id": "water",
-        "criticality_weight": 3.0,
+        "criticality_weight": 3,
         "minimum_service_fraction": 0.9,
         "unit": "normalized_service_units"
       },
       {
         "id": "communications",
-        "criticality_weight": 1.0,
+        "criticality_weight": 1,
         "minimum_service_fraction": 0.5,
         "unit": "normalized_service_units"
       }
     ],
     "steps": [
-      { "demand": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-      { "demand": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-      { "demand": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-      { "demand": { "heat": 10.0, "water": 5.0, "communications": 1.0 } }
-    ]
+      {
+        "demand": {
+          "heat": 10,
+          "water": 5,
+          "communications": 1
+        }
+      },
+      {
+        "demand": {
+          "heat": 10,
+          "water": 5,
+          "communications": 1
+        }
+      },
+      {
+        "demand": {
+          "heat": 10,
+          "water": 5,
+          "communications": 1
+        }
+      },
+      {
+        "demand": {
+          "heat": 10,
+          "water": 5,
+          "communications": 1
+        }
+      }
+    ],
+    "service_value_semantics": "rate_per_hour_integrated_to_unit_hours"
   },
   "policy_runs": [
     {
       "policy_id": "incumbent_reference",
       "method_family": "incumbent",
-      "fuel_units": 4.0,
+      "fuel_units": 4,
       "steps": [
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 8.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 4.0, "water": 3.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } }
-      ]
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 8,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 4,
+            "water": 3,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        }
+      ],
+      "fuel_unit": "normalized_fuel_units"
     },
     {
       "policy_id": "transparent_rules",
       "method_family": "transparent_rule_based",
       "fuel_units": 4.5,
       "steps": [
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 9.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 8.0, "water": 4.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } }
-      ]
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 9,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 8,
+            "water": 4,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        }
+      ],
+      "fuel_unit": "normalized_fuel_units"
     },
     {
       "policy_id": "candidate_full_service",
       "method_family": "candidate_placeholder_not_a_controller",
       "fuel_units": 5.5,
       "steps": [
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } }
-      ]
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        }
+      ],
+      "fuel_unit": "normalized_fuel_units"
     },
     {
       "policy_id": "defective_low_fuel_control",
       "method_family": "deliberately_defective_negative_control",
       "fuel_units": 2.5,
       "steps": [
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 0.0, "communications": 1.0 } },
-        { "delivered": { "heat": 8.0, "water": 5.0, "communications": 1.0 } },
-        { "delivered": { "heat": 10.0, "water": 5.0, "communications": 1.0 } }
-      ]
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 0,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 8,
+            "water": 5,
+            "communications": 1
+          }
+        },
+        {
+          "delivered": {
+            "heat": 10,
+            "water": 5,
+            "communications": 1
+          }
+        }
+      ],
+      "fuel_unit": "normalized_fuel_units"
     }
   ]
 }
