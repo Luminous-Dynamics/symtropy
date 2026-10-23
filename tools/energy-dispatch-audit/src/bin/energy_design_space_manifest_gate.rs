@@ -65,7 +65,7 @@ fn run() -> Result<(), Box<dyn Error>> {
                 .is_some_and(|actual| {
                     actual.len() == values.len()
                         && actual.iter().zip(values.iter()).all(|(actual, expected)| {
-                            actual.as_f64().is_some_and(|actual| (actual - expected).abs() < f64::EPSILON)
+                            actual.as_f64().is_some_and(|actual| (actual - *expected).abs() < f64::EPSILON)
                         })
                 })
         }) && axes.len() == expected.len()
