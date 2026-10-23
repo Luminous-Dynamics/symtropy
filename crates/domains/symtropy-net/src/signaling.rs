@@ -18,6 +18,12 @@ use tokio::sync::mpsc;
 use serde::{Deserialize, Serialize};
 
 use crate::peer::PeerId;
+use crate::transport::MAX_PEER_MESSAGE_BYTES;
+
+/// Maximum WebSocket signaling envelope size. The relay serializes the binary
+/// packet as a JSON byte array (up to four characters per byte) and then nests
+/// that JSON in an outer signaling message. Keep headroom for envelope metadata.
+const MAX_SIGNALING_MESSAGE_BYTES: usize = (4 * MAX_PEER_MESSAGE_BYTES) + 16 * 1024;
 
 /// Messages sent TO the signaling server.
 #[derive(Debug, Clone, Serialize)]
@@ -91,6 +97,14 @@ pub enum SignalingEvent {
     Error(String),
 }
 
+/// Bound WebSocket allocation before signaling JSON is parsed.
+#[cfg(feature = "webrtc")]
+fn bounded_websocket_config() -> tokio_tungstenite::tungstenite::protocol::WebSocketConfig {
+    tokio_tungstenite::tungstenite::protocol::WebSocketConfig::default()
+        .max_message_size(Some(MAX_SIGNALING_MESSAGE_BYTES))
+        .max_frame_size(Some(MAX_SIGNALING_MESSAGE_BYTES))
+}
+
 /// Signaling client handle — used by the transport to send/receive signaling messages.
 ///
 /// The actual WebSocket connection runs in a tokio task.
@@ -110,11 +124,12 @@ impl SignalingClient {
     /// Connect to the signaling server and spawn the WebSocket task.
     pub async fn connect(url: &str) -> Result<Self, String> {
         use futures_util::{SinkExt, StreamExt};
-        use tokio_tungstenite::connect_async;
+        use tokio_tungstenite::connect_async_with_config;
 
-        let (ws_stream, _) = connect_async(url)
-            .await
-            .map_err(|e| format!("Signaling connect failed: {e}"))?;
+        let (ws_stream, _) =
+            connect_async_with_config(url, Some(bounded_websocket_config()), false)
+                .await
+                .map_err(|e| format!("Signaling connect failed: {e}"))?;
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<SignalOutgoing>();
@@ -141,6 +156,15 @@ impl SignalingClient {
             let recv_task = async {
                 while let Some(Ok(msg)) = ws_rx.next().await {
                     if let tokio_tungstenite::tungstenite::Message::Text(text) = msg {
+                        // Defense in depth in addition to tungstenite's frame/message limits.
+                        if text.len() > MAX_SIGNALING_MESSAGE_BYTES {
+                            log::warn!(
+                                "Signaling message rejected: {} bytes exceeds limit {}",
+                                text.len(),
+                                MAX_SIGNALING_MESSAGE_BYTES
+                            );
+                            continue;
+                        }
                         match serde_json::from_str::<SignalIncoming>(&text) {
                             Ok(SignalIncoming::Welcome { peer_id }) => {
                                 let _ =
@@ -211,5 +235,46 @@ impl SignalingClient {
             events.push(evt);
         }
         events
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Serialize)]
+    struct RelayEnvelope {
+        channel: u8,
+        payload: Vec<u8>,
+    }
+
+    #[test]
+    fn maximum_peer_payload_fits_the_bounded_nested_json_envelope() {
+        let relay_json = serde_json::to_string(&RelayEnvelope {
+            channel: 0,
+            payload: vec![u8::MAX; MAX_PEER_MESSAGE_BYTES],
+        })
+        .expect("serialize relay envelope");
+        let outgoing = SignalOutgoing::Signal {
+            to: 1,
+            data: SignalData::Offer { sdp: relay_json },
+        };
+        let signaling_json =
+            serde_json::to_string(&outgoing).expect("serialize outer signaling message");
+
+        assert!(
+            signaling_json.len() <= MAX_SIGNALING_MESSAGE_BYTES,
+            "maximum valid peer packet expanded to {} bytes, over the {} byte signaling cap",
+            signaling_json.len(),
+            MAX_SIGNALING_MESSAGE_BYTES
+        );
+    }
+
+    #[cfg(feature = "webrtc")]
+    #[test]
+    fn websocket_config_enforces_frame_and_message_limits() {
+        let config = bounded_websocket_config();
+        assert_eq!(config.max_message_size, Some(MAX_SIGNALING_MESSAGE_BYTES));
+        assert_eq!(config.max_frame_size, Some(MAX_SIGNALING_MESSAGE_BYTES));
     }
 }
