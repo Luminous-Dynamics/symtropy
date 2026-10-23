@@ -840,7 +840,7 @@ mod tests {
                 for shift_y in 0..=2 {
                     let mut vertices: Vec<(i64, i64)> = shape
                         .iter()
-                        .map(|(x, y)| (x + shift_x, y + shift_y))
+                        .map(|(x, y)| (*x + shift_x, *y + shift_y))
                         .collect();
                     let polygon = Polygon::new(
                         vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
