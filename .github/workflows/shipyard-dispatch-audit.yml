@@ -1,0 +1,46 @@
+name: Shipyard independent dispatch audit
+
+on:
+  push:
+    paths:
+      - "tools/shipyard-dispatch-audit/**"
+      - ".github/workflows/shipyard-dispatch-audit.yml"
+  pull_request:
+    paths:
+      - "tools/shipyard-dispatch-audit/**"
+      - ".github/workflows/shipyard-dispatch-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-dispatch-audit-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/shipyard-dispatch-audit/Cargo.toml -- --check
+
+      - name: Test independent feasibility and injected violations offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+
+      - name: Check compile
+        run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml
+
+      - name: Lint with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-audit/Cargo.toml --all-targets -- -D warnings
