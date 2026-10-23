@@ -269,6 +269,15 @@ jobs:
             done
           done
 
+      - name: Build digest-bound benchmark ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          report="$work/targets/symtropy/debug/energy_benchmark_report"
+          "$report" "$work" "$work/energy-benchmark-report.json"
+          sha256sum "$work/energy-benchmark-report.json"
+
       - name: Preserve exact generation, compilation, dispatch and audit evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -276,6 +285,9 @@ jobs:
           name: energy-studio-e2e-${{ github.sha }}
           path: |
             ${{ runner.temp }}/energy-studio/energy-design-space-manifest.json
+            ${{ runner.temp }}/energy-studio/manifest-generation.elapsed_ns
+            ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
             ${{ runner.temp }}/energy-studio/synthetic-*/*.json
+            ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
           if-no-files-found: ignore
           retention-days: 14
