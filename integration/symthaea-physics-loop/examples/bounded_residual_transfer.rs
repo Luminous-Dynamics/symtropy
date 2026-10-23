@@ -14,6 +14,7 @@ use symthaea_multirotor::{
 };
 use symtropy_real_symthaea_physics_loop::{
     bounded_residual::ResidualEnvelope,
+    risk_metrics::empirical_upper_tail_mean,
     scenario_matrix::{scenarios_for_split, training_setpoints, FlightScenario, ScenarioSplit},
     symtropy_flight::SymtropyFlightSimulator,
 };
@@ -34,6 +35,8 @@ struct Metrics {
     thrust_impulse_n_s: f64,
     residual_clipped_steps: u64,
     guard_rejections: u64,
+    ground_contact_steps: u64,
+    invalid_inputs: u64,
     controller_compute_p95_us: f64,
 }
 
@@ -54,6 +57,7 @@ fn mean(values: &[f64]) -> f64 {
         values.iter().sum::<f64>() / values.len() as f64
     }
 }
+
 
 /// Deterministic percentile bootstrap over paired seed-level deltas.
 fn bootstrap_mean_ci(values: &[f64], resamples: usize, seed: u64) -> Option<[f64; 2]> {
@@ -159,6 +163,8 @@ fn evaluate(
         residual_clipped_steps: clipped_steps,
         guard_rejections,
         controller_compute_p95_us: percentile(&latencies_us, 0.95),
+        ground_contact_steps: sim.ground_contact_count(),
+        invalid_inputs: sim.invalid_input_count(),
     }
 }
 
@@ -204,8 +210,17 @@ fn main() {
         .map(|scenario| scenario.id)
         .collect::<Vec<_>>();
 
-    let mut trial_rows = Vec::with_capacity(evaluation_scenarios.len() * trials.max(1));
+    let expected_eval_count = evaluation_scenarios.len() * trials.max(1);
+    let mut trial_rows = Vec::with_capacity(expected_eval_count);
     let mut scenario_summaries = Vec::with_capacity(evaluation_scenarios.len());
+    let mut rmse_by_authority: Vec<Vec<f64>> =
+        vec![Vec::with_capacity(expected_eval_count); AUTHORITIES.len()];
+    let mut contact_episode_flags_by_authority: Vec<Vec<f64>> =
+        vec![Vec::with_capacity(expected_eval_count); AUTHORITIES.len()];
+    let mut ground_contact_steps_by_authority: Vec<Vec<f64>> =
+        vec![Vec::with_capacity(expected_eval_count); AUTHORITIES.len()];
+    let mut invalid_inputs_by_authority: Vec<Vec<f64>> =
+        vec![Vec::with_capacity(expected_eval_count); AUTHORITIES.len()];
 
     for scenario in &evaluation_scenarios {
         let mut rmse_deltas: Vec<Vec<f64>> =
@@ -223,6 +238,11 @@ fn main() {
             for (i, arm) in arms.iter().enumerate() {
                 rmse_deltas[i].push(arm.rmse_m - baseline.rmse_m);
                 within_deltas[i].push(arm.within_5cm_fraction - baseline.within_5cm_fraction);
+                rmse_by_authority[i].push(arm.rmse_m);
+                contact_episode_flags_by_authority[i]
+                    .push(if arm.ground_contact_steps > 0 { 1.0 } else { 0.0 });
+                ground_contact_steps_by_authority[i].push(arm.ground_contact_steps as f64);
+                invalid_inputs_by_authority[i].push(arm.invalid_inputs as f64);
             }
             trial_rows.push(json!({
                 "scenario_id": scenario.id,
@@ -268,9 +288,38 @@ fn main() {
         }));
     }
 
+    let risk_summary_by_authority: Vec<serde_json::Value> = AUTHORITIES
+        .iter()
+        .enumerate()
+        .map(|(i, authority)| {
+            json!({
+                "authority": authority,
+                "scenario_trial_observation_count": rmse_by_authority[i].len(),
+                "mean_rmse_m": mean(&rmse_by_authority[i]),
+                "p95_rmse_m": percentile(&rmse_by_authority[i], 0.95),
+                "empirical_cvar90_rmse_m": empirical_upper_tail_mean(&rmse_by_authority[i], 0.90),
+                "worst_observed_rmse_m": rmse_by_authority[i]
+                    .iter().copied().max_by(f64::total_cmp),
+                "ground_contact_episode_rate": mean(&contact_episode_flags_by_authority[i]),
+                "ground_contact_episode_count": contact_episode_flags_by_authority[i]
+                    .iter().filter(|flag| **flag > 0.0).count(),
+                "ground_contact_steps_total": ground_contact_steps_by_authority[i]
+                    .iter().sum::<f64>() as u64,
+                "invalid_input_total": invalid_inputs_by_authority[i]
+                    .iter().sum::<f64>() as u64
+            })
+        })
+        .collect();
+
     println!("{}", json!({
         "benchmark_id": "symthaea-symtropy-bounded-residual-matrix-v0.2",
         "claim_ceiling": "heldout_simulator_generalization_study_not_a_stability_certificate_or_physical_safety_claim",
+        "source_receipt": {
+            "symtropy_git_sha": std::env::var("STFR_SYMTROPY_SHA").unwrap_or_else(|_| "unset".to_owned()),
+            "symthaea_git_sha": std::env::var("STFR_SYMTHAEA_SHA").unwrap_or_else(|_| "unset".to_owned()),
+            "rustc_version": std::env::var("STFR_RUSTC_VERSION").unwrap_or_else(|_| "unset".to_owned()),
+            "scenario_matrix_sha256": std::env::var("STFR_SCENARIO_MATRIX_SHA256").unwrap_or_else(|_| "unset".to_owned())
+        },
         "training": {
             "backend": "Symthaea SimplePhysicsSimulator",
             "episodes_reported_by_trainer": training_metrics.len(),
@@ -295,8 +344,9 @@ fn main() {
             "max_abs_residual": MAX_RESIDUAL,
             "residual_limits_are_airframe_safety_limits": false
         },
-        "metrics_note": "Positive RMSE deltas mean worse tracking; positive within-5cm deltas mean better tracking. Thrust impulse is not electrical energy. Controller p95 is in-process wall time for nominal controller, cognitive forward when enabled, and residual guard; it is hardware/load dependent and excludes full sensor-to-actuator latency. Guard rejection falls back to nominal PID and is counted. Residual clipping counts steps where any requested cognitive-minus-PID channel exceeds its configured per-channel cap. Forces are normalized by vehicle weight. Bootstrap intervals from the two-trial CI smoke are descriptive only and are reported per scenario.",
+        "metrics_note": "Positive RMSE deltas mean worse tracking; positive within-5cm deltas mean better tracking. Thrust impulse is not electrical energy. Controller p95 is in-process wall time for nominal controller, cognitive forward when enabled, and residual guard; it is hardware/load dependent and excludes full sensor-to-actuator latency. Guard rejection falls back to nominal PID and is counted. Residual clipping counts steps where any requested cognitive-minus-PID channel exceeds its configured per-channel cap. Forces are normalized by vehicle weight. Bootstrap intervals from the two-trial CI smoke are descriptive only and are reported per scenario. Empirical CVaR90 is the mean of the worst 10% of scenario-trial RMSE samples (ceil rule); its two-trial-per-scenario value is smoke telemetry, not a robust performance estimate. Any ground-contact count denotes the simplified model's floor-clamp diagnostic, not a real flight crash metric."
         "paired_summary_by_scenario": scenario_summaries,
+        "risk_summary_by_authority": risk_summary_by_authority,
         "trials": trial_rows
     }));
 }
