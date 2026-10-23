@@ -131,6 +131,9 @@ impl Enumerator {
 
                     for essential_served in 0..=input.essential_demand_quanta {
                         for flexible_served in 0..=input.flexible_demand_quanta {
+                            // Count service allocation pairs too, so the cap also
+                            // bounds cases with huge demand ranges.
+                            self.tick()?;
                             let demand_and_charge = u64::from(essential_served)
                                 + u64::from(flexible_served)
                                 + u64::from(charge);
