@@ -15,10 +15,11 @@ pub struct ReplayEvent {
     pub observed_at_tick: Tick,
 }
 
-/// A canonical identity for the action selected at a decision epoch.
+/// A canonical identity for the action committed at a decision epoch.
 ///
-/// The caller should supply a digest of a canonical action encoding. This
-/// crate checks equality only; it does not calculate or authenticate digests.
+/// The caller should supply a digest of that action's canonical encoding, not
+/// a full future schedule whose unobserved branches may differ. This crate
+/// checks equality only; it does not calculate or authenticate digests.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyAction {
     pub tick: Tick,
@@ -330,8 +331,8 @@ fn push_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::{
-        PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite, ScenarioTrace,
-        audit_policy_replay,
+        audit_policy_replay, PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite,
+        ScenarioTrace,
     };
 
     fn event(id: &str, observed_at_tick: u64) -> ReplayEvent {
