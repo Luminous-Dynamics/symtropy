@@ -63,15 +63,33 @@ pub struct BenchmarkReport {
 }
 
 #[derive(Debug, Serialize)]
+pub struct ServiceScore {
+    pub service_id: String,
+    pub unit: String,
+    pub demanded_unit_hours: f64,
+    pub delivered_unit_hours: f64,
+    pub service_fraction: Option<f64>,
+    pub floor_breach_service_hours: f64,
+}
+
+#[derive(Debug, Serialize)]
 pub struct PolicyScore {
     pub policy_id: String,
     pub method_family: String,
+    /// Weighted mean of per-service delivered/demanded unit-hours ratios.
+    /// Units are normalized within each service before criticality weighting.
     pub weighted_service_fraction: f64,
-    pub weighted_delivered_service_unit_hours: f64,
-    pub weighted_unserved_service_unit_hours: f64,
+    /// Dimensionless per-service delivery fractions integrated over time and weighted by criticality.
+    pub weighted_delivered_service_fraction_hours: f64,
+    /// Dimensionless per-service unmet fractions integrated over time and weighted by criticality.
+    pub weighted_unserved_service_fraction_hours: f64,
+    /// Sum of timestep hours for each service below its declared floor.
     pub floor_breach_service_hours: f64,
     pub gate_pass: bool,
-    pub fuel_units_per_weighted_delivered_service_unit_hour: Option<f64>,
+    /// Fuel units divided by weighted delivered service-fraction-hours; comparable only under a shared fuel unit and service contract.
+    pub fuel_units_per_weighted_delivered_service_fraction_hour: Option<f64>,
+    /// Physical unit-hours stay separated by service; they are never summed across unlike units.
+    pub services: Vec<ServiceScore>,
 }
 
 fn finite_nonnegative(value: f64) -> bool {
@@ -130,7 +148,10 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
         }
     }
 
-    let mut total_weighted_demand = 0.0;
+    // Keep physical quantities by service. Different units (e.g. heat and water)
+    // must never be added together into one purportedly meaningful physical total.
+    let mut demanded_by_service: BTreeMap<String, f64> =
+        episode.service_contracts.iter().map(|s| (s.id.clone(), 0.0)).collect();
     for (step_index, step) in episode.steps.iter().enumerate() {
         exact_keys(&step.demand, &service_ids, &format!("demand step {step_index}"))?;
         for service in &episode.service_contracts {
@@ -138,11 +159,22 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             if !finite_nonnegative(demand) {
                 return Err(format!("demand step {step_index}/{} must be finite and nonnegative", service.id));
             }
-            total_weighted_demand += demand * service.criticality_weight * episode.time_step_hours;
+            let total = demanded_by_service.get_mut(&service.id).expect("service ID declared");
+            *total += demand * episode.time_step_hours;
+            if !total.is_finite() {
+                return Err(format!("service {} demand total is non-finite", service.id));
+            }
         }
     }
-    if !total_weighted_demand.is_finite() || total_weighted_demand <= 0.0 {
-        return Err("total criticality-weighted demand must be finite and positive".to_string());
+    let active_services: Vec<&ServiceContract> = episode.service_contracts.iter()
+        .filter(|s| demanded_by_service[&s.id] > 0.0)
+        .collect();
+    if active_services.is_empty() {
+        return Err("at least one service must have positive total demand".to_string());
+    }
+    let total_active_weight: f64 = active_services.iter().map(|s| s.criticality_weight).sum();
+    if !total_active_weight.is_finite() || total_active_weight <= 0.0 {
+        return Err("total criticality weight must be finite and positive".to_string());
     }
 
     if input.policy_runs.is_empty() {
@@ -170,8 +202,10 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             ));
         }
 
-        let mut weighted_delivered = 0.0;
-        let mut weighted_unserved = 0.0;
+        let mut delivered_by_service: BTreeMap<String, f64> =
+            episode.service_contracts.iter().map(|s| (s.id.clone(), 0.0)).collect();
+        let mut weighted_delivered_fraction_hours = 0.0;
+        let mut weighted_unserved_fraction_hours = 0.0;
         let mut floor_breach_hours = 0.0;
 
         for (step_index, (demand_step, delivery_step)) in
@@ -193,42 +227,84 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
                     ));
                 }
 
-                // Over-delivery cannot improve a service score beyond demand.
+                // Cap delivery at demand so over-delivery cannot inflate a score.
                 let delivered = delivered_raw.min(demand);
-                let weight_hours = service.criticality_weight * episode.time_step_hours;
-                weighted_delivered += delivered * weight_hours;
-                weighted_unserved += (demand - delivered) * weight_hours;
+                let unit_hours = delivered * episode.time_step_hours;
+                let total = delivered_by_service.get_mut(&service.id).expect("service ID declared");
+                *total += unit_hours;
+                if !total.is_finite() {
+                    return Err(format!("policy {}/{} delivered total is non-finite", policy.policy_id, service.id));
+                }
 
-                if demand > 0.0
-                    && delivered / demand < service.minimum_service_fraction
-                {
-                    floor_breach_hours += episode.time_step_hours;
+                if demand > 0.0 {
+                    let fraction = delivered / demand;
+                    let weight_hours = service.criticality_weight * episode.time_step_hours;
+                    weighted_delivered_fraction_hours += fraction * weight_hours;
+                    weighted_unserved_fraction_hours += (1.0 - fraction) * weight_hours;
+
+                    if fraction < service.minimum_service_fraction {
+                        floor_breach_hours += episode.time_step_hours;
+                    }
                 }
             }
         }
 
-        let service_fraction = weighted_delivered / total_weighted_demand;
-        if !service_fraction.is_finite()
-            || !weighted_delivered.is_finite()
-            || !weighted_unserved.is_finite()
-            || !floor_breach_hours.is_finite()
-        {
-            return Err(format!("policy {} produced non-finite metrics", policy.policy_id));
+        let mut weighted_service_fraction = 0.0;
+        let mut service_results = Vec::with_capacity(episode.service_contracts.len());
+        for service in &episode.service_contracts {
+            let demanded = demanded_by_service[&service.id];
+            let delivered = delivered_by_service[&service.id];
+            let fraction = if demanded > 0.0 {
+                let ratio = (delivered / demanded).clamp(0.0, 1.0);
+                weighted_service_fraction += service.criticality_weight * ratio;
+                Some(ratio)
+            } else {
+                None
+            };
+            service_results.push(ServiceScore {
+                service_id: service.id.clone(),
+                unit: service.unit.clone(),
+                demanded_unit_hours: demanded,
+                delivered_unit_hours: delivered,
+                service_fraction: fraction,
+                floor_breach_service_hours: episode.steps.iter().zip(&policy.steps).fold(0.0, |sum, (demand_step, delivery_step)| {
+                    let demand = demand_step.demand[&service.id];
+                    let delivered = delivery_step.delivered[&service.id].min(demand);
+                    if demand > 0.0 && delivered / demand < service.minimum_service_fraction {
+                        sum + episode.time_step_hours
+                    } else {
+                        sum
+                    }
+                }),
+            });
+        }
+        weighted_service_fraction /= total_active_weight;
+
+        for value in [
+            weighted_service_fraction,
+            weighted_delivered_fraction_hours,
+            weighted_unserved_fraction_hours,
+            floor_breach_hours,
+        ] {
+            if !value.is_finite() {
+                return Err(format!("policy {} produced non-finite metrics", policy.policy_id));
+            }
         }
 
         results.push(PolicyScore {
             policy_id: policy.policy_id.clone(),
             method_family: policy.method_family.clone(),
-            weighted_service_fraction: service_fraction,
-            weighted_delivered_service_unit_hours: weighted_delivered,
-            weighted_unserved_service_unit_hours: weighted_unserved,
+            weighted_service_fraction,
+            weighted_delivered_service_fraction_hours: weighted_delivered_fraction_hours,
+            weighted_unserved_service_fraction_hours: weighted_unserved_fraction_hours,
             floor_breach_service_hours: floor_breach_hours,
             gate_pass: floor_breach_hours == 0.0,
-            fuel_units_per_weighted_delivered_service_unit_hour: if weighted_delivered > 0.0 {
-                Some(policy.fuel_units / weighted_delivered)
+            fuel_units_per_weighted_delivered_service_fraction_hour: if weighted_delivered_fraction_hours > 0.0 {
+                Some(policy.fuel_units / weighted_delivered_fraction_hours)
             } else {
                 None
             },
+            services: service_results,
         });
     }
 
@@ -258,36 +334,61 @@ mod tests {
         assert_eq!(report.result_scope, "metric_calculation_only_not_physical_validation");
         assert_eq!(report.results.len(), 4);
 
-        let candidate = report
-            .results
-            .iter()
+        let candidate = report.results.iter()
             .find(|r| r.policy_id == "candidate_full_service")
             .expect("candidate trace should exist");
         assert!(candidate.gate_pass);
         assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
         assert_eq!(candidate.floor_breach_service_hours, 0.0);
+        assert_eq!(candidate.services.len(), 3);
     }
 
     #[test]
     fn low_fuel_does_not_compensate_for_a_service_floor_breach() {
         let report = score(&fixture()).expect("fixture should score");
-        let defective = report
-            .results
-            .iter()
+        let defective = report.results.iter()
             .find(|r| r.policy_id == "defective_low_fuel_control")
             .expect("negative control should exist");
-        let candidate = report
-            .results
-            .iter()
+        let candidate = report.results.iter()
             .find(|r| r.policy_id == "candidate_full_service")
             .expect("candidate trace should exist");
 
         assert!(!defective.gate_pass);
         assert_eq!(defective.floor_breach_service_hours, 1.0);
         assert!(
-            defective.fuel_units_per_weighted_delivered_service_unit_hour.unwrap()
-                < candidate.fuel_units_per_weighted_delivered_service_unit_hour.unwrap()
+            defective.fuel_units_per_weighted_delivered_service_fraction_hour.unwrap()
+                < candidate.fuel_units_per_weighted_delivered_service_fraction_hour.unwrap()
         );
+    }
+
+    #[test]
+    fn physically_different_service_units_are_not_summed() {
+        let mut input = fixture();
+        input.episode.service_contracts[0].unit = "kWh".to_string();
+        input.episode.service_contracts[1].unit = "litres".to_string();
+        input.episode.service_contracts[2].unit = "connected-service-count".to_string();
+        let report = score(&input).expect("heterogeneous service units should be supported");
+        let candidate = report.results.iter().find(|r| r.policy_id == "candidate_full_service").unwrap();
+        assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
+        assert!(candidate.services.iter().any(|s| s.unit == "kWh" && s.delivered_unit_hours > 0.0));
+        assert!(candidate.services.iter().any(|s| s.unit == "litres" && s.delivered_unit_hours > 0.0));
+    }
+
+    #[test]
+    fn inactive_service_is_not_counted_as_a_zero_fraction() {
+        let mut input = fixture();
+        for step in &mut input.episode.steps {
+            step.demand.insert("communications".to_string(), 0.0);
+        }
+        for policy in &mut input.policy_runs {
+            for step in &mut policy.steps {
+                step.delivered.insert("communications".to_string(), 0.0);
+            }
+        }
+        let report = score(&input).expect("inactive service is explicitly excluded");
+        let candidate = report.results.iter().find(|r| r.policy_id == "candidate_full_service").unwrap();
+        assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
+        assert!(candidate.services.iter().find(|s| s.service_id == "communications").unwrap().service_fraction.is_none());
     }
 
     #[test]
@@ -295,7 +396,6 @@ mod tests {
         let report = score(&fixture()).expect("fixture should score");
         let incumbent = report.results.iter().find(|r| r.policy_id == "incumbent_reference").unwrap();
         let rules = report.results.iter().find(|r| r.policy_id == "transparent_rules").unwrap();
-
         assert_eq!(incumbent.floor_breach_service_hours, 2.0);
         assert_eq!(rules.floor_breach_service_hours, 1.0);
         assert!(rules.weighted_service_fraction > incumbent.weighted_service_fraction);
@@ -347,7 +447,6 @@ mod tests {
         let mut duplicate_service = fixture();
         duplicate_service.episode.service_contracts[1].id = "heat".to_string();
         assert!(score(&duplicate_service).unwrap_err().contains("service IDs"));
-
         let mut duplicate_policy = fixture();
         duplicate_policy.policy_runs[1].policy_id = "incumbent_reference".to_string();
         assert!(score(&duplicate_policy).unwrap_err().contains("policy IDs"));
@@ -358,13 +457,12 @@ mod tests {
         let mut invalid_floor = fixture();
         invalid_floor.episode.service_contracts[0].minimum_service_fraction = 1.1;
         assert!(score(&invalid_floor).unwrap_err().contains("must be in [0, 1]"));
-
         let mut zero_demand = fixture();
         for step in &mut zero_demand.episode.steps {
             for demand in step.demand.values_mut() {
                 *demand = 0.0;
             }
         }
-        assert!(score(&zero_demand).unwrap_err().contains("demand must be finite and positive"));
+        assert!(score(&zero_demand).unwrap_err().contains("at least one service"));
     }
 }
