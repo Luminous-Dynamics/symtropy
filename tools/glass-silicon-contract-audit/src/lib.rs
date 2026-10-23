@@ -32,13 +32,6 @@ impl AuditReport {
         self.findings.push(format!("{code}:{}", detail.as_ref()));
     }
 
-    fn unresolved(&mut self, code: &str, detail: impl AsRef<str>) {
-        if self.status == "PASS" {
-            self.status = "UNRESOLVED".to_string();
-        }
-        self.findings.push(format!("{code}:{}", detail.as_ref()));
-    }
-
     fn finish(&mut self) {
         self.findings.sort();
         self.findings.dedup();
