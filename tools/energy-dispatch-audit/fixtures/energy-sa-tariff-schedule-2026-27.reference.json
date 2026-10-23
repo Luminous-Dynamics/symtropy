@@ -1,0 +1,87 @@
+{
+  "schema_version": "energy-sa-tariff-schedule-v0.1",
+  "tariff_id": "city-power-business-conventional-2026-27-candidate",
+  "tariff_class": "Business Conventional & Prepaid 400 V",
+  "valid_from": "2026-07-01",
+  "valid_to": "2027-06-30",
+  "currency": "ZAR",
+  "monetary_storage_unit": "microZAR",
+  "source_status": "candidate_schedule_not_account_verified",
+  "account_verified": false,
+  "sources": [
+    "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
+    "https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json"
+  ],
+  "source_notes": [
+    "Municipal FY2026/27 budget Annexure B calls its schedule proposed and states that a 6 c/kWh network surcharge, 2% business/large-power-user surcharge, and VAT are excluded.",
+    "Augos secondary machine-readable schedule lists a 0.06 ZAR/kWh DSM levy and seasonal energy rates. The 6 c/kWh surcharge and the 6 c/kWh DSM levy are not assumed to be identical. Their reconciliation and applicability must be resolved before total-bill claims."
+  ],
+  "energy_charge_basis": "progressive monthly usage blocks",
+  "blocks": [
+    {
+      "block_capacity_kwh": 500,
+      "high_season_microzar_per_kwh": 3983700,
+      "low_season_microzar_per_kwh": 3805200
+    },
+    {
+      "block_capacity_kwh": 500,
+      "high_season_microzar_per_kwh": 4337000,
+      "low_season_microzar_per_kwh": 4176700
+    },
+    {
+      "block_capacity_kwh": 1000,
+      "high_season_microzar_per_kwh": 4530600,
+      "low_season_microzar_per_kwh": 4379900
+    },
+    {
+      "block_capacity_kwh": 1000,
+      "high_season_microzar_per_kwh": 4687100,
+      "low_season_microzar_per_kwh": 4539600
+    },
+    {
+      "block_capacity_kwh": null,
+      "high_season_microzar_per_kwh": 4822800,
+      "low_season_microzar_per_kwh": 4686900
+    }
+  ],
+  "fixed_charges": [
+    {
+      "capacity_band": "lt_50_kva",
+      "service_microzar_per_month": 890450000,
+      "network_microzar_per_month": 853720000
+    },
+    {
+      "capacity_band": "gt_50_le_100_kva",
+      "service_microzar_per_month": 816850000,
+      "network_microzar_per_month": 783160000
+    }
+  ],
+  "deliberately_unapplied_charges": [
+    {
+      "charge_id": "network_surcharge_6c_per_kwh",
+      "amount_microzar_per_kwh": 60000,
+      "reason": "Budget Annexure B says excluded; applicability and reconciliation against the secondary DSM levy have not been verified."
+    },
+    {
+      "charge_id": "dsm_levy_6c_per_kwh",
+      "amount_microzar_per_kwh": 60000,
+      "reason": "Secondary source lists a DSM levy. Do not assume it is or is not identical to the municipal 6 c/kWh network surcharge until source mapping is confirmed."
+    },
+    {
+      "charge_id": "business_large_power_user_surcharge",
+      "percent_basis_points": 200,
+      "reason": "Budget Annexure B says excluded; base, applicability and calculation order require confirmation."
+    },
+    {
+      "charge_id": "vat",
+      "rate_basis_points": null,
+      "reason": "VAT is excluded from the schedule. Not hardcoded here; treatment depends on actual billing/claim basis."
+    },
+    {
+      "charge_id": "demand_capacity_reactive_energy",
+      "amount_microzar": null,
+      "reason": "Only the stated candidate conventional low-voltage fee structure is represented; account-specific charges require confirmation."
+    }
+  ],
+  "claim_ceiling": "Energy-block arithmetic plus the two candidate monthly fixed-charge fields only; not a complete bill, not an account quote, and not a tariff/legal interpretation."
+}
