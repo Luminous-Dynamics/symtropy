@@ -235,6 +235,21 @@
             "upper": null,
             "notes": "Synthetic reference-template value; not a real component specification."
           }
+        },
+        {
+          "parameter_id": "terminal_reserve_kwh",
+          "value": 0,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; reserve is explicit, not a missing-value default.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Explicit synthetic reserve value; not a real operating policy."
+          }
         }
       ]
     },
