@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 20 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -13,7 +13,7 @@ cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.tom
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-corpus \
   docs/tech/glass-silicon-process-benchmark-v0.1.schema.json \
   docs/tech/glass-silicon-process-benchmark-v0.1.json
-cargo run --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
 ```
 
