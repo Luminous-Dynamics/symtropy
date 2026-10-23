@@ -2,7 +2,7 @@
 
 ## Abstract
 
-We present a formal specification of the consciousness-physics coupling model implemented in the Symtropy engine. The model treats consciousness (Φ) as a thermodynamic quantity that modulates rigid body dynamics through five coupling channels. Under strict energy conservation with a Landauer-bounded floor, the model predicts that cooperative behavior is a thermodynamic necessity, not a design choice.
+We specify a computational model that couples a bounded integration variable Φ to rigid-body dynamics through five engineered channels. The model can be used to test hypotheses about cooperation, energy budgets, collision response, and resource allocation. Its outputs are model-dependent predictions; they do not establish that Φ is a physical thermodynamic state variable or that cooperative behavior is a universal thermodynamic necessity. Energy conservation and Landauer-bound claims are limited to the equations and assumptions explicitly implemented and verified.
 
 ## 1. Definitions
 
@@ -181,12 +181,15 @@ This measures the energy cost of consciousness. No prior publication of this met
 
 ### 5.3 Landauer Bound
 
-Minimum energy per bit of information processing:
+Landauer's bound is a lower bound on the work required to erase one bit of information in a logically irreversible process under idealized isothermal assumptions. It is not a universal minimum energy for every computation or every operation in this simulation.
+
 ```
-E_min = k_B × T × ln(2) = 2.87 × 10⁻²¹ J/bit    (at T = 310K)
+E_min = k_B × T × ln(2)
+k_B   = 1.380649 × 10⁻²³ J/K  (exact SI value)
+E_min = 2.96667818 × 10⁻²¹ J/bit  at T = 310 K
 ```
 
-Per Landauer (1961). All energy consumption in the model exceeds this floor.
+Reference: Landauer (1961). The current model's energy ledger does not count physical bit erasures, so it must not claim that every modeled action has been checked against this bound. A future validation study would need an explicit information-erasure count and an energy budget mapped to the relevant physical process.
 
 ## 6. Testable Predictions
 
