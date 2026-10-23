@@ -81,8 +81,7 @@
       "required": [
         "kind",
         "uri",
-        "sha256",
-        "case_count"
+        "sha256"
       ],
       "properties": {
         "kind": {
@@ -107,10 +106,6 @@
         },
         "notes": {
           "type": "string"
-        },
-        "case_count": {
-          "type": "integer",
-          "minimum": 1
         }
       }
     },
