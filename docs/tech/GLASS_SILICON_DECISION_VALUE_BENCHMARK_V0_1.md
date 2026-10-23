@@ -1,8 +1,8 @@
-# GLASS-SILICON-DECISION-VALUE-001 — matched-budget experiment selection protocol v0.1
+# GLAiS-SILICON-DECISION-VALUE-001 — matched-budget experiment selection protocol v0.1
 
 Status: **proposed benchmark contract; no policy results are claimed**.
 
-Parent: [GLASS-SILICON-001 issue #2715](https://github.com/Luminous-Dynamics/symtropy/issues/2715) and [draft contract PR #2716](https://github.com/Luminous-Dynamics/symtropy/pull/2716). Material-specific reproductions remain owned by [Symthaea MAT-GLASS-SCALE-001 #8480](https://github.com/Luminous-Dynamics/symthaea/issues/8480) and [MAT-GLASS-MULTI-001 #8481](https://github.com/Luminous-Dynamics/symthaea/issues/8481). Compose [MAT-014 active materials discovery #4345](https://github.com/Luminous-Dynamics/symthaea/issues/4345), [NANO-009 decision value per budget #7679](https://github.com/Luminous-Dynamics/symthaea/issues/7679), and [Symtropy EV-FACTORY-VOI-001 #2524](https://github.com/Luminous-Dynamics/symtropy/issues/2524); do not create a second acquisition framework.
+Parent: [GLASS-SILICON-001 issue #2715](https://github.com/Luminous-Dynamics/symtropy/issues/2715) and [draft contract PR #2716](https://github.com/Luminous-Dynamics/symtropy/pull/2716). Material-specific reproductions remain owned by [Symthaea MAT-GLASS-SCALE-001 #8480](https://github.com/Luminous-Dynamics/symthaea/issues/8480) and [MAT-GLASS-MULTI-001 #8481](https://github.com/Luminous-Dynamics/symthaea/issues/8481). Compose [MAT-014 active materials discovery #4345](https://github.com/Luminous-Dynamics/symthaea/issues/4345), [NANO-009 decision value per budget #7679](https://github.com/Luminous-Dynamics/symthaea/issues/7679), and [Symtropy EV-iACTORY-VOI-001 #2524](https://github.com/Luminous-Dynamics/symtropy/issues/2524); do not create a second acquisition framework.
 
 ## 1. The paradigm shift
 
