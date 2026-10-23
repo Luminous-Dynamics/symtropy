@@ -78,32 +78,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --disable-pip-version-check 'jsonschema==4.25.1'
-          python3 - "$RUNNER_TEMP/energy-studio/energy-system-candidate-v0.1.schema.json" \
-            "$RUNNER_TEMP/energy-studio/candidate.json" <<'PY'
-          import json
-          import sys
-          from jsonschema import Draft202012Validator
-
-          with open(sys.argv[1], encoding="utf-8") as f:
-              schema = json.load(f)
-          with open(sys.argv[2], encoding="utf-8") as f:
-              candidate = json.load(f)
-          errors = sorted(Draft202012Validator(schema).iter_errors(candidate),
-                          key=lambda error: list(map(str, error.absolute_path)))
-          if errors:
-              for error in errors:
-                  print(f"schema violation at {list(error.absolute_path)}: {error.message}", file=sys.stderr)
-              raise SystemExit(2)
-          print("Generated candidate validates against the pinned Symtropy schema.")
-          PY
+          work="$RUNNER_TEMP/energy-studio"
+          cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
+            --bin energy_candidate_schema_validate -- \
+            "$work/energy-system-candidate-v0.1.schema.json" "$work/candidate.json"
 
       - name: Compile generated candidate with Sol-Atlas adapter
         shell: bash
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          config="$work/sol-atlas/sol-atlas-core/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
           cd "$work/sol-atlas"
           cargo run --manifest-path sol-atlas-core/Cargo.toml \
             --bin energy_design_dispatch_compile -- \
@@ -127,7 +112,7 @@ jobs:
                                 allow_nan=False).encode("utf-8")
 
           candidate_bytes = (work / "candidate.json").read_bytes()
-          config_path = work / "sol-atlas/sol-atlas-core/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+          config_path = work / "sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
           with config_path.open(encoding="utf-8") as f:
               supplied_config = json.load(f)
           with (work / "compilation.json").open(encoding="utf-8") as f:
