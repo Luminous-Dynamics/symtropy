@@ -53,7 +53,8 @@ jobs:
           jq -e '
             .packages[] |
             select(.name == "symtropy-robotics-bridge-core") |
-            any(.dependencies[]; .name == "serde_json" and .kind == null)
+            (.dependencies | any(.name == "serde_json" and .kind == null)) and
+            (.dependencies | any(.name == "sha2" and .kind == null))
           ' /tmp/careframe-cargo-metadata.json
 
       - name: Summarize exact-head evidence ceiling
