@@ -52,3 +52,26 @@ Industry anchors for protocol design:
 - [UFC 3-130-05 Arctic and Subarctic Utilities (2025)](https://www.wbdg.org/FFC/DOD/UFC/ufc_3_130_05_2025.pdf) for cold-region engineering context.
 
 These are method/design references, not evidence that this crate is compliant with them or that any policy is better than state of the art.
+
+## Scenario-tail evaluation (synthetic-only)
+
+The companion binary `resilience_ensemble` evaluates **the same declared policy set across multiple episodes** and adds:
+- probability-weighted expected service shortfall;
+- upper-tail conditional value at risk (CVaR) of service shortfall at a declared confidence level;
+- worst-case service shortfall across the included episodes;
+- probability of at least one service-floor breach;
+- expected service-floor breach hours;
+- probability-weighted fuel intensity when defined for every included episode.
+
+Run it with:
+
+\`\`\`sh
+cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json
+\`\`\`
+
+The fixture contains only two invented scenarios with artificial probabilities (0.9 and 0.1), just to exercise aggregation and tail calculations. It is not a forecast, an empirical frequency estimate, or an Antarctic/Arctic failure distribution. For a real evidence-backed risk estimate, probabilities must be justified using an explicit data/model basis and uncertainty analysis. If credible probabilities are unavailable, report enumerated scenario outcomes and worst-case results without describing them as event probabilities; CVaR over invented weights is not decision-grade evidence.
+
+The aggregator requires probabilities to sum to one, unique scenario IDs, synthetic-only evidence status, and exactly the same policy IDs/method families in every episode. It does not impute missing scenarios or silently omit failures. CVaR and gate-failure probability are supplementary metrics; neither replaces per-scenario results, hard gates, calibration, or engineering judgment.
+
+Tests check fractional probability mass at the CVaR tail boundary, reject incoherent probability/policy sets and claim escalation, and ensure the adverse synthetic episode increases candidate tail risk while leaving the output explicitly synthetic-only.
