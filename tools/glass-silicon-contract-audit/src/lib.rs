@@ -611,6 +611,7 @@ pub fn hash_artifact_files(
     };
 
     for manifest_file in manifest_files {
+        let findings_before_file = report.findings.len();
         let filename = nonempty_string(manifest_file, "filename").unwrap_or_default();
         let expected_md5 = nonempty_string(manifest_file, "published_checksum");
         let expected_sha256 = match manifest_file.get("sha256") {
@@ -691,7 +692,7 @@ pub fn hash_artifact_files(
                     }
                 }
 
-                if report.status != "FAIL" || report.findings.iter().all(|finding| !finding.contains(&filename)) {
+                if report.findings.len() == findings_before_file {
                     file_receipt.file_status = "HASHED".to_string();
                 } else {
                     file_receipt.file_status = "FAIL".to_string();
@@ -899,6 +900,41 @@ pub fn audit_mass_balance(ledger: &Value) -> MassBalanceReport {
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary_directory() -> PathBuf {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after UNIX epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "glass-silicon-contract-audit-{}-{stamp}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&path).expect("temporary test directory should be created");
+        path
+    }
+
+    fn local_hash_corpus(filename: &str, published_md5: &str, sha256: Value) -> Value {
+        json!({
+            "artifact_admission": [{
+                "artifact_id": "unit-test-artifact",
+                "source_ref": "unit-test-source",
+                "record_status": "publicly_listed_not_downloaded",
+                "rights_status": "unresolved",
+                "sha256_status": "pending",
+                "benchmark_admission_status": "blocked",
+                "files": [{
+                    "filename": filename,
+                    "size_display": "3 Bytes",
+                    "published_checksum_algorithm": "MD5",
+                    "published_checksum": published_md5,
+                    "sha256": sha256
+                }]
+            }]
+        })
+    }
 
     fn ledger() -> Value {
         json!({
@@ -1094,6 +1130,72 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("PILOT_MATURITY_CONTROL:")));
+    }
+
+    #[test]
+    fn sha256_and_md5_match_known_abc_vector() {
+        let directory = temporary_directory();
+        let path = directory.join("example.txt");
+        std::fs::write(&path, b"abc").expect("test file should be written");
+        let (size, md5, sha256) = hash_file_md5_sha256(&path).expect("test file should hash");
+        assert_eq!(size, 3);
+        assert_eq!(md5, "900150983cd24fb0d6963f7d28e17f72");
+        assert_eq!(sha256, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn artifact_hash_receipt_matches_md5_but_does_not_admit() {
+        let directory = temporary_directory();
+        std::fs::write(directory.join("example.txt"), b"abc").expect("test file should be written");
+        let corpus = local_hash_corpus("example.txt", "900150983cd24fb0d6963f7d28e17f72", Value::Null);
+        let report = hash_artifact_files(&corpus, "unit-test-artifact", &directory);
+        assert_eq!(report.status, "HASHED_PENDING_ADMISSION");
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.files.len(), 1);
+        assert_eq!(report.files[0].md5_matches, Some(true));
+        assert_eq!(report.files[0].size_bytes, Some(3));
+        assert_eq!(report.files[0].observed_sha256.as_deref(), Some("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+        assert_eq!(report.rights_status.as_deref(), Some("unresolved"));
+        assert_eq!(report.manifest_admission_status.as_deref(), Some("blocked"));
+        assert!(report.findings.iter().any(|finding| finding == "HASH_RECEIPT_DOES_NOT_ADMIT_DATA"));
+        assert_eq!(corpus["artifact_admission"][0]["files"][0]["sha256"], Value::Null);
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn artifact_hash_receipt_fails_on_published_md5_mismatch() {
+        let directory = temporary_directory();
+        std::fs::write(directory.join("example.txt"), b"abc").expect("test file should be written");
+        let corpus = local_hash_corpus("example.txt", "00000000000000000000000000000000", Value::Null);
+        let report = hash_artifact_files(&corpus, "unit-test-artifact", &directory);
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.exit_code(), 2);
+        assert_eq!(report.files[0].md5_matches, Some(false));
+        assert!(report.findings.iter().any(|finding| finding.starts_with("ARTIFACT_PUBLISHED_MD5_MISMATCH:")));
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn artifact_hash_receipt_rejects_path_traversal() {
+        let directory = temporary_directory();
+        let corpus = local_hash_corpus("../example.txt", "900150983cd24fb0d6963f7d28e17f72", Value::Null);
+        let report = hash_artifact_files(&corpus, "unit-test-artifact", &directory);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("ARTIFACT_FILENAME_UNSAFE:")));
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn artifact_hash_receipt_fails_on_pinned_sha256_mismatch() {
+        let directory = temporary_directory();
+        std::fs::write(directory.join("example.txt"), b"abc").expect("test file should be written");
+        let corpus = local_hash_corpus("example.txt", "900150983cd24fb0d6963f7d28e17f72", json!("0000000000000000000000000000000000000000000000000000000000000000"));
+        let report = hash_artifact_files(&corpus, "unit-test-artifact", &directory);
+        assert_eq!(report.status, "FAIL");
+        assert_eq!(report.files[0].sha256_matches, Some(false));
+        assert!(report.findings.iter().any(|finding| finding.starts_with("ARTIFACT_PINNED_SHA256_MISMATCH:")));
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
     }
 
     #[test]
