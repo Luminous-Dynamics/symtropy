@@ -22,7 +22,7 @@ Copy this file into a study-specific directory and fill every mandatory field be
 - Site description and authorized geography resolution:
 - Applicable local governance, land/sea and environmental constraints:
 - Design envelope and source for each variable (temperature, wind, icing, snow, precipitation, sea/ground conditions, salinity, access and resupply):
-- Service contracts: identifier, unit, owner-approved minimum service fraction, criticality and time resolution.
+- Service contracts: identifier, declared rate unit, owner-approved minimum service fraction, criticality and time resolution. Record `service_value_semantics=rate_per_hour_integrated_to_unit_hours`; values are rates per hour integrated over the declared timestep.
 - Responsible person/group for approving each safety/service limit:
 - Why each floor is physically and operationally meaningful:
 - Unmodeled services or dependencies:
