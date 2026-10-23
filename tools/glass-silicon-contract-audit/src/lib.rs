@@ -2197,6 +2197,29 @@ mod adaptive_campaign_tests {
     }
 
     #[test]
+    fn adaptive_oracle_survives_sensor_drift_and_failed_primary_measurement() {
+        let value: Value = serde_json::from_str(include_str!("../fixtures/adaptive-decision-pool-drift-failure.synthetic.json"))
+            .expect("drift/failure pool must be valid JSON");
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.pre_measurement_worst_case_regret, Some(6.0));
+        assert_eq!(report.adaptive_oracle_worst_case_regret, Some(0.0));
+        assert_eq!(report.adaptive_oracle_gross_regret_reduction, Some(6.0));
+        assert_eq!(report.adaptive_oracle_max_path_cost_units, Some(4.0));
+        assert_eq!(report.adaptive_oracle_max_path_duration_seconds, Some(20.0));
+        assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(2));
+        let root = report.policy_tree.expect("robust adaptive policy tree");
+        assert_eq!(root.measurement_id.as_deref(), Some("measure-primary"));
+        assert_eq!(root.observation_branches.len(), 3);
+        for branch in root.observation_branches.values() {
+            assert_eq!(branch.node_type, "MEASURE");
+            assert_eq!(branch.measurement_id.as_deref(), Some("measure-secondary"));
+            assert!(branch.observation_branches.values().all(|leaf| leaf.node_type == "STOP"));
+        }
+        assert!(report.findings.is_empty());
+    }
+
+    #[test]
     fn adaptive_oracle_rejects_step_limit_overflow() {
         let mut value = adaptive_pool();
         value["max_measurement_steps"] = json!(9);
