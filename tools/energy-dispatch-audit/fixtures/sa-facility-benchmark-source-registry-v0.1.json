@@ -179,6 +179,19 @@
         "Preserve raw response bytes and parameter set; canonicalize separately if needed."
       ],
       "claim_ceiling": "Historical resource/PV estimate for a specified location and system configuration; not measured plant yield."
+    },
+    {
+      "source_id": "city-of-joburg-approved-tariff-notice-2026-27",
+      "authority": "municipal_official_announcement",
+      "title": "City of Johannesburg Engages Stakeholders on Approved 2026/2027 Tariffs",
+      "url": "https://joburg.org.za/media_/Newsroom/Pages/2026-News-Articles/City-of-Johannesburg-Engages-Stakeholders-on-Approved-20262027-Tariffs.aspx",
+      "publication_date": "2026-06-10",
+      "confirmed_facts": [
+        "City officials reported Council approval of the 2026/2027 municipal budget.",
+        "The City reported an approved average electricity tariff increase of 8.63%, effective 2026-07-01."
+      ],
+      "limitation": "This announcement confirms the budget approval/effective date and average increase, not the exact billing calculation for a particular tariff/account. Continue to treat the Business Conventional schedule arithmetic as candidate-only pending current approved schedule and account/bill confirmation.",
+      "claim_ceiling": "Official confirmation of the municipal budget/tariff effective date and average increase only."
     }
   ],
   "benchmark_protocol": {
