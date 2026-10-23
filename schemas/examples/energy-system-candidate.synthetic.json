@@ -301,6 +301,14 @@
       "to_component": "essential-load",
       "to_port": "supply",
       "carrier": "electricity"
+    },
+    {
+      "connection_id": "grid-to-battery-charge",
+      "from_component": "grid",
+      "from_port": "import",
+      "to_component": "battery",
+      "to_port": "charge",
+      "carrier": "electricity"
     }
   ],
   "services": [
