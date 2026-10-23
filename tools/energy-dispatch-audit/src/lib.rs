@@ -12,6 +12,7 @@ use std::collections::BTreeSet;
 
 mod reference;
 
+const MAX_REQUEST_EXPANSIONS: u64 = 1_000_000;
 const REQUEST_SCHEMA: &str = "energy-dispatch-v0.1";
 const ASSESSMENT_SCHEMA: &str = "energy-dispatch-report-v1";
 const RECEIPT_SCHEMA: &str = "1";
@@ -462,6 +463,7 @@ fn audit_request_contract(request: &DispatchRequest, checks: &mut Vec<AuditCheck
         && request.energy_quantum_kwh.is_finite()
         && request.energy_quantum_kwh > 0.0
         && request.max_candidate_expansions > 0
+        && request.max_candidate_expansions <= MAX_REQUEST_EXPANSIONS
         && !request.intervals.is_empty()
         && evidence_class_known
         && evidence_reference_ok
