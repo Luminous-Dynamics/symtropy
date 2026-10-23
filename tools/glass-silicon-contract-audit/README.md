@@ -13,6 +13,9 @@ cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.tom
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-corpus \
   docs/tech/glass-silicon-process-benchmark-v0.1.schema.json \
   docs/tech/glass-silicon-process-benchmark-v0.1.json
+
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-feasibility \
+  tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
   tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
@@ -81,3 +84,12 @@ The synthetic scenario pool includes valid, drifted/misclassified and invalid pr
 ### Lockfile maintenance and reproducible CI
 
 The standalone verifier is tested with the repository-pinned Rust toolchain (1.96.0) and `--locked`. If `Cargo.toml` changes, regenerate `Cargo.lock` locally or in a dedicated diagnostic job using that exact toolchain, review the dependency diff, commit the generated lockfile, and then verify `cargo test --locked`. Do not regenerate dependencies inside the primary contract-audit workflow: a stale lockfile should fail closed so the dependency graph is reviewable and reproducible. The lockfile's presence does not establish that the physical source data or industrial process has been validated.
+
+
+## Staged feasibility gate
+
+`audit-feasibility` runs the frozen synthetic staged-gate corpus. Every candidate must declare the same five ordered gates: composition validity, glass formation, process window, joint product qualification, and manufacturing feasibility. A candidate is `FEASIBLE` only when every gate is `PASS`; any evidenced hard-gate `FAIL` makes it `INFEASIBLE`; with no hard failure but any `UNKNOWN`, `NOT_ATTEMPTED`, `CENSORED`, `STALE`, or `OUT_OF_DOMAIN` gate it returns `UNRESOLVED`.
+
+The contract rejects missing/extra gates, unknown statuses, untraceable `PASS`/`FAIL` declarations, and arbitrary fields (including trying to attach a numeric zero to an unknown gate). The six checked-in controls cover a feasible candidate, a confirmed non-forming candidate, a mandatory-property failure, unknown measurement evidence, out-of-domain input and stale process-window evidence. Seven mutation tests check that unsupported passes and incomplete contracts fail closed.
+
+These controls test contract semantics only. They do not predict glass-forming ability, establish that a recipe can be manufactured, or validate real source data. For the scientific protocol and current GFRI-ML / PNNL baselines, see [GLASS-FEASIBILITY-GATE-001](../../docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md).
