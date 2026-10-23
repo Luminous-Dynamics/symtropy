@@ -97,6 +97,25 @@ jobs:
           cp "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
           sha256sum "$work/symthaea.Cargo.lock" "$work/sol-atlas.Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
 
+      - name: Verify published South African tariff arithmetic against hand-calculated answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/sa-tariff-context"
+          mkdir -p "$context"
+          schedule_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-schedule-2026-27.reference.json"
+          cases_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-known-answers-v0.1.json"
+          cp "$schedule_source" "$context/tariff-schedule.json"
+          cp "$cases_source" "$context/known-answers.json"
+          calculator="$work/targets/symtropy/debug/energy_sa_tariff_reference"
+          "$calculator" "$context/tariff-schedule.json" "$context/known-answers.json" "$context/report.json" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context/tariff-schedule.json" "$context/known-answers.json" "$context/report.json" \
+            > "$context/source-receipts.sha256"
+          cat "$context/source-receipts.sha256"
+
       - name: Export references and materialize all 36 parametric candidates once
         shell: bash
         run: |
@@ -392,6 +411,8 @@ jobs:
             ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
             ${{ runner.temp }}/energy-studio/objective-context/*
             ${{ runner.temp }}/energy-studio/multi-interval-context/*
+            ${{ runner.temp }}/energy-studio/sa-tariff-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json
             ${{ runner.temp }}/energy-studio/*.Cargo.lock
             ${{ runner.temp }}/energy-studio/synthetic-*/*.json
             ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
@@ -399,6 +420,8 @@ jobs:
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-objective-context-known-answer-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress.request.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress-known-answer-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-schedule-2026-27.reference.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-known-answers-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate-v0.1.schema.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate.synthetic.json
