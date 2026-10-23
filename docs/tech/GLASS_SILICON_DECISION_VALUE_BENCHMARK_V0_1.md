@@ -169,3 +169,35 @@ The companion Rust CLI now exposes `audit-decision-value <pool.json>` in `tools/
 The fixture's known-answer target is pre-measurement regret 5, informative in-budget measurement `measure-regime`, post-measurement regret 0, and gross regret reduction 5 in expressly synthetic units. The uninformative measurement has zero regret reduction and is dominated; an informative but over-budget measurement is excluded. Six unit tests cover the known answer, missing cost, producer leakage declaration, frozen feasibility-control bypass, uninformative observation and incomplete observation census. The focused workflow now runs the CLI and asserts the known-answer fields.
 
 **Not yet established:** the Rust code and these six new tests have not been compiled or executed by an available local Rust toolchain. The new CLI fixture is arithmetic/control scaffolding, not a selector-performance result. The `producer_access` fields are declarations and are not proof of runtime process isolation. The one-step enumerated oracle is a finite-pool upper bound, not an industrial strategy or physical value-of-information estimate. Exact-head CI is still required; queued workflow runs remain unqualified.
+
+
+## 12. Adaptive multi-step campaign oracle
+
+A one-step measurement ranker can miss complementarities: two individually uninformative measurements may jointly identify the relevant regime. The adaptive extension treats discovery as a decision tree:
+
+- At each node, either stop and choose an action feasible in every still-possible scenario, or select one unused measurement.
+- The observed outcome determines the next branch. Later measurements may differ across branches, so the policy can condition spend on earlier results.
+- Each root-to-leaf path must respect the same cumulative cost, duration, and measurement-count ceilings. Unknown scenarios are not assigned invented probabilities.
+- At each leaf, choose a robust feasible action; calculate regret against the best feasible action in each hidden scenario. The campaign objective is the maximum terminal regret across branches.
+- The exhaustive finite-pool oracle minimizes maximum terminal regret first, then maximum path cost, duration, and number of measurements. The returned policy tree is a reference bound for small enumerable pools, not a scalable production algorithm.
+
+The implementation is explicitly bounded to at most 32 scenarios, 12 available measurements and 8 measurement steps. Deterministic observations are assumed in this first synthetic slice. The oracle is exact only for the declared finite action/scenario/measurement pool and declared utility/feasibility map; it says nothing about omitted candidates or model validity. The producer's access to hidden truth is declared as a contract field but is not proven isolated by this evaluator.
+
+### Known-answer complementary-measurement fixture
+
+The synthetic fixture contains four scenarios and two crossed binary measurements. Either measurement alone leaves two incompatible high-utility routes indistinguishable, so worst-case regret stays at 6 synthetic units. Observing both measurements refines each branch to a single scenario, enabling a feasible action with terminal worst-case regret 0. Both measurements cost 1 synthetic reference-call unit and 10 synthetic seconds, for maximum per-path totals of 2 units and 20 seconds.
+
+The fixture's test target is therefore: pre-measurement worst-case regret 6; two-measurement adaptive regret 0; gross regret reduction 6; maximum two measurements per path; and deterministic branch-specific action choices. One-step budgets of one measurement should choose the no-measurement stop option on a tie, because it achieves equal worst-case regret at lower cost. If the cumulative budget cannot fund the complementary pair, the oracle should retain the safe stop action rather than overspend.
+
+The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Five additional unit tests cover the complementary two-step solution, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
+
+### Next scientific benchmark, once the exact reference is qualified
+
+- Add noisy observations with a declared likelihood model and compare posterior decision policies to a small-instance exact Bayesian oracle only when scenario probabilities/likelihoods are defensible.
+- Add failed measurements, repeatability, drift and censored experimental runs; charge retry/setup costs and retain failed attempts in denominators.
+- Compare fixed sequences, myopic one-step acquisition, uncertainty-only, expected improvement, cost-aware multi-fidelity BO, LLM-AL/GOLLuM where compatible, and adaptive tree search under equal cumulative cost/time.
+- Add held-out scenario families, not just new random seeds. Evaluate terminal feasible discovery rate, regret-versus-budget curves, worst-case constraint violations, calibration, compute and latency.
+- Adapt MADE's end-to-end closed-loop campaign framing where its task/label/chemistry semantics fit, while keeping glass and silicon separate from convex-hull stability objectives. MADE explicitly targets sequential closed-loop discovery under constrained oracle budgets; it is a methodological comparator, not a glass benchmark result: [MADE, ICML 2026](https://proceedings.mlr.press/v306/malik26a.html).
+- Evaluate multi-fidelity acquisition under source-specific costs and fidelity correlations. Recent benchmark guidance warns these properties materially change whether low-fidelity evaluations are worthwhile: [Best practices for multi-fidelity Bayesian optimization](https://www.nature.com/articles/s43588-025-00822-9), and a 2026 cost-aware batch BO paper gives a relevant alternative baseline for heterogeneous query costs: [Alvi et al. (2026)](https://www.nature.com/articles/s41524-026-01981-7).
+
+The current adaptive fixture is a software oracle test only. It does not establish real measurement information gain, glass/silicon process optimization, an industrial cost reduction, or any selector's superiority.
