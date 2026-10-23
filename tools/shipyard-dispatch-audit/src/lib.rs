@@ -636,7 +636,7 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     let mut makespan_tick = None;
     let mut total_tardiness_ticks = 0u64;
     let mut occupied_resource_ticks = 0u64;
-    for assignment in &input.assignments {
+    for assignment in &occupied {
         makespan_tick = Some(makespan_tick.unwrap_or(0).max(assignment.end_tick));
         metric_add(
             &mut occupied_resource_ticks,
@@ -656,15 +656,6 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     }
     for completion in &input.completed {
         makespan_tick = Some(makespan_tick.unwrap_or(0).max(completion.completed_at_tick));
-        if let Some(operation) = operation_map.get(&completion.operation_id) {
-            let tardiness = completion.completed_at_tick.saturating_sub(operation.due_tick);
-            metric_add(
-                &mut total_tardiness_ticks,
-                tardiness,
-                &mut diagnostics,
-                "TARDINESS_METRIC_OVERFLOW",
-            );
-        }
     }
 
     sort_diagnostics(&mut diagnostics);
@@ -843,4 +834,51 @@ mod tests {
         let input = base_input();
         assert_eq!(audit_schedule(&input), audit_schedule(&input));
     }
+
+    #[test]
+    fn completed_history_is_checked_for_real_start_time_and_occupancy() {
+        let mut input = base_input();
+        input.assignments.remove(0);
+        input.completed.push(Completion {
+            operation_id: "weld".to_owned(),
+            resource_id: "w-1".to_owned(),
+            start_tick: 0,
+            completed_at_tick: 2,
+        });
+        let accepted = audit_schedule(&input);
+        assert_eq!(accepted.status, AuditStatus::AbstractFeasible);
+        assert_eq!(accepted.metrics.completed_operation_count, 1);
+        assert_eq!(accepted.metrics.assigned_operation_count, 1);
+        assert_eq!(accepted.metrics.occupied_resource_ticks, 5);
+
+        let mut violation = base_input();
+        violation.operations[0].duration_ticks = 3;
+        violation.assignments.remove(0);
+        violation.assignments[0].start_tick = 2;
+        violation.assignments[0].end_tick = 5;
+        violation.completed.push(Completion {
+            operation_id: "weld".to_owned(),
+            resource_id: "w-1".to_owned(),
+            start_tick: 0,
+            completed_at_tick: 3,
+        });
+        assert!(has_code(&audit_schedule(&violation), "PRECEDENCE_VIOLATION"));
+    }
+
+    #[test]
+    fn malformed_evaluator_outage_is_rejected_even_without_candidate_use() {
+        let mut input = base_input();
+        input.resources.push(res("unused-crane", "crane"));
+        input.evaluator_outages.push(EvaluatorOutage {
+            event_id: "bad-outage".to_owned(),
+            resource_id: "unused-crane".to_owned(),
+            effective_from_tick: 8,
+            effective_until_tick: 3,
+        });
+        assert!(has_code(
+            &audit_schedule(&input),
+            "INVALID_EVALUATOR_OUTAGE_INTERVAL"
+        ));
+    }
+
 }
