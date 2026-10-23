@@ -66,8 +66,8 @@ Important boundary: split conformal's finite-sample guarantee requires exchangea
 4. Small MLP or TCN with equivalent transition data.
 5. End-to-end trained Symthaea HDC/LTC residual head.
 6. HDC/LTC with predictive scale or ensemble disagreement.
-6. Residual-target shuffle / time-offset placebo as a negative control.
-7. Simulator-ground-truth disturbance/oracle model as an upper-bound diagnostic only (never a deployable competitor).
+7. Residual-target shuffle / time-offset placebo as a negative control.
+8. Simulator-ground-truth disturbance/oracle model as an upper-bound diagnostic only (never a deployable competitor).
 
 Keep train data, total transition count, tuning budget, and inference hardware comparable. Report parameter count, memory, training time, p50/p95/p99 inference latency, and CPU/GPU energy where measurable. Preserve a frozen test split that is not used for authority or hyperparameter selection.
 
@@ -112,7 +112,7 @@ These are initial engineering gates to power and refine before confirmatory runs
 | Compute | Meet a declared control-loop deadline on the target hardware at p99, including sensor/state preparation, inference, guard and controller work. Report worst observed latency and deadline misses. |
 | Integrity | Source/model/scenario/data/config digests, frozen splits, baseline gains, seeds, invalid samples, and negative-control results must be included in a machine-readable receipt. |
 
-The current exact-head smoke config uses 18 validation episodes and 18 test episodes (64 steps each) to exercise episode-block calibration, and runs the frozen HDC/LTC reservoir on the same 18 test episodes for a matched one-step prediction comparison. This is pipeline validation only. Use a powered, independently seeded episode-block calibration/evaluation design for any confirmatory interval coverage claim.
+The current exact-head smoke config uses 18 validation episodes and 18 test episodes (64 steps each) to exercise episode-block calibration, and runs the frozen HDC/LTC reservoir on the same 18 test episodes for a matched one-step prediction comparison. The machine-readable gate verifies identical dataset digest, Symthaea/source/scenario digests, test episodes, seed order and scenario order between the raw-state ridge and HDC/LTC reservoir arms; it deliberately does not require either model to win. This is pipeline validation only. Use a powered, independently seeded episode-block calibration/evaluation design for any confirmatory interval coverage claim.
 
 The 10% targets are proposed research gates, not an industry standard or a performance estimate. Do a power analysis using pilot variance before choosing the confirmatory episode count; two-trial CI runs are schema/plumbing smoke tests only.
 
