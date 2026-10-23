@@ -90,6 +90,7 @@ struct CandidateBenchmark {
     candidate_family: String,
     generation_measurement_mode: String,
     candidate_sha256: String,
+    mapping_config_sha256: String,
     compilation_sha256: String,
     dispatch_request_sha256: String,
     dispatch_report_sha256: String,
@@ -151,6 +152,8 @@ struct EnergyStudioBenchmarkReport {
     rust_toolchain: &'static str,
     measurement_scope: &'static str,
     design_space_manifest_sha256: String,
+    shared_candidate_schema_sha256: String,
+    mapping_config_fixture_sha256: String,
     benchmark_summary: BenchmarkSummary,
     candidates: Vec<CandidateBenchmark>,
 }
@@ -188,9 +191,11 @@ fn benchmark_candidate(
         )
         .into());
     }
+    let candidate_is_synthetic = required_bool(&candidate, "synthetic")?;
     if required_str(&compilation, "candidate_id")? != candidate_id
         || required_str(&request, "case_id")? != format!("candidate:{candidate_id}")
-        || required_bool(&candidate, "synthetic")? != required_bool(&request, "synthetic")?
+        || !candidate_is_synthetic
+        || candidate_is_synthetic != required_bool(&request, "synthetic")?
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -206,6 +211,7 @@ fn benchmark_candidate(
     })?;
 
     let candidate_digest = sha256_hex(&candidate_bytes);
+    let mapping_config_digest = required_str(&compilation, "mapping_config_sha256")?.to_owned();
     let compilation_digest = sha256_hex(&compilation_bytes);
     let request_digest = sha256_hex(&request_bytes);
     let dispatch_digest = sha256_hex(&dispatch_bytes);
@@ -317,6 +323,7 @@ fn benchmark_candidate(
         candidate_family: family,
         generation_measurement_mode,
         candidate_sha256: candidate_digest,
+        mapping_config_sha256: mapping_config_digest,
         compilation_sha256: compilation_digest,
         dispatch_request_sha256: request_digest,
         dispatch_report_sha256: dispatch_digest,
@@ -368,6 +375,10 @@ fn run() -> Result<(), Box<dyn Error>> {
     let expected_set = expected_ids.iter().cloned().collect::<BTreeSet<_>>();
     let manifest_path = root.join("energy-design-space-manifest.json");
     let (manifest_bytes, manifest) = read_json(&manifest_path)?;
+    let schema_bytes = fs::read(root.join("energy-system-candidate-v0.1.schema.json"))?;
+    let mapping_config_bytes = fs::read(
+        root.join("sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"),
+    )?;
     if manifest.get("requested_candidate_count").and_then(Value::as_u64) != Some(36)
         || manifest.get("candidates").and_then(Value::as_array).map(Vec::len) != Some(36)
         || manifest.get("rejected_candidates").and_then(Value::as_array).map(Vec::len) != Some(0)
@@ -434,6 +445,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         rust_toolchain: "1.96.0",
         measurement_scope: "Per-candidate wall-clock process runtimes from a warmed build; excludes one-time dependency compilation and runner provisioning. These synthetic finite-case measurements are not a real-site or SOTA comparison.",
         design_space_manifest_sha256: sha256_hex(&manifest_bytes),
+        shared_candidate_schema_sha256: sha256_hex(&schema_bytes),
+        mapping_config_fixture_sha256: sha256_hex(&mapping_config_bytes),
         benchmark_summary: BenchmarkSummary {
             expected_candidate_count: 39,
             audited_candidate_count: candidates.len(),
