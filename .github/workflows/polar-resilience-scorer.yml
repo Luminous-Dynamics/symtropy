@@ -42,3 +42,18 @@ jobs:
             (.results | length == 4) and
             ([.results[] | select(.policy_id == "defective_low_fuel_control") | .gate_pass] == [false])
           ' /tmp/polar-score-report.json
+
+      - name: Exercise weighted scenario-tail evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json > /tmp/polar-ensemble-report.json
+          jq -e '
+            .report_kind == "polar-resilience-ensemble-report" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "weighted_synthetic_scenario_aggregation_not_physical_validation" and
+            .scenario_count == 2 and
+            ([.results[] | select(.policy_id == "candidate_full_service") |
+              (.cvar_service_shortfall >= .expected_service_shortfall and .gate_failure_probability > 0)] | length == 1)
+          ' /tmp/polar-ensemble-report.json
