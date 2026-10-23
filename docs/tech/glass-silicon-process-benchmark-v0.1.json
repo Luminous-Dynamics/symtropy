@@ -488,5 +488,83 @@
       "purpose": "Abstain when a planned electroreduction pilot or stated target is represented as demonstrated throughput, purity, energy performance, or product qualification.",
       "claim_ceiling": "Tests maturity/evidence admission only; it does not assess the named pilot or infer performance."
     }
+  ],
+  "artifact_admission": [
+    {
+      "artifact_id": "scale-zenodo-18430657-v1",
+      "source_ref": "scale-glass-zenodo-data-2026",
+      "record_version": "v1",
+      "published_on": "2026-01-30",
+      "record_status": "publicly_listed_not_downloaded",
+      "rights_status": "unresolved",
+      "sha256_status": "pending",
+      "benchmark_admission_status": "blocked",
+      "claim_ceiling": "The Zenodo source record is identifiable, but no archive bytes have been admitted to this benchmark. Public listing and MD5 metadata are not proof of reuse rights or content integrity at the required SHA-256 level.",
+      "files": [
+        {
+          "filename": "example_glass_sim.zip",
+          "size_display": "2.4 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "5f0c13831f2c93b0dd4b54e74c296470",
+          "sha256": null
+        },
+        {
+          "filename": "glass_sim_helper.zip",
+          "size_display": "83.6 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "6cd3e8cc5af31b8fc28f9d7060e4ed3c",
+          "sha256": null
+        },
+        {
+          "filename": "glass_sim_helper_requirements.txt",
+          "size_display": "270 Bytes",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "18643cf11ebab4c67851321b2a81dc55",
+          "sha256": null
+        },
+        {
+          "filename": "iterative_learning.zip",
+          "size_display": "54.3 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "738e1838f23ee1bfb7c79ed0fe00d4d2",
+          "sha256": null
+        },
+        {
+          "filename": "ml_regression_requirements.txt",
+          "size_display": "567 Bytes",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "ec62b95c18cd5481ce8655c4daec3901",
+          "sha256": null
+        },
+        {
+          "filename": "mlregression.zip",
+          "size_display": "44.4 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "5d1c07607f648a951292f242a50e55f1",
+          "sha256": null
+        },
+        {
+          "filename": "models_data_V14.zip",
+          "size_display": "51.8 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "deb614846654bda761a66614dac6b4e0",
+          "sha256": null
+        },
+        {
+          "filename": "models_data_V18.zip",
+          "size_display": "824.1 MB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "b7f7ffa6253050420de1b58b58b271b1",
+          "sha256": null
+        },
+        {
+          "filename": "README.md",
+          "size_display": "1.6 kB",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "f912be7d034e1a368950c66926aa62d8",
+          "sha256": null
+        }
+      ]
+    }
   ]
 }
