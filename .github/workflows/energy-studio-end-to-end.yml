@@ -366,6 +366,8 @@ jobs:
             ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-parametric-known-answers-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-objective-context-known-answer-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress.request.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress-known-answer-v0.1.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate-v0.1.schema.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate.synthetic.json
