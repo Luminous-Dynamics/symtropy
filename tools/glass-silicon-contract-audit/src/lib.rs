@@ -1280,3 +1280,505 @@ mod tests {
         assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_RIGHTS_PROOF:")));
     }
 }
+
+
+// --- GLASS-SILICON-DECISION-VALUE-001: finite-pool regret evaluator ---
+
+#[derive(Debug, Clone)]
+struct DecisionAction {
+    id: String,
+    utility_by_scenario: BTreeMap<String, f64>,
+    feasible_by_scenario: BTreeMap<String, bool>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct DecisionMeasurementReport {
+    pub measurement_id: String,
+    pub status: String,
+    pub cost_units: f64,
+    pub duration_seconds: f64,
+    pub within_budget: bool,
+    pub observation_groups: usize,
+    pub post_measurement_worst_case_regret: Option<f64>,
+    pub gross_worst_case_regret_reduction: Option<f64>,
+    pub findings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct DecisionValueReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub utility_unit: Option<String>,
+    pub cost_unit: Option<String>,
+    pub pre_measurement_worst_case_regret: Option<f64>,
+    pub max_measurement_cost: Option<f64>,
+    pub max_duration_seconds: Option<f64>,
+    pub measurements: Vec<DecisionMeasurementReport>,
+    pub pareto_frontier: Vec<String>,
+    pub oracle_measurement_id: Option<String>,
+    pub oracle_worst_case_regret_after: Option<f64>,
+    pub oracle_gross_regret_reduction: Option<f64>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl DecisionValueReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+fn decision_invalid(
+    benchmark_id: Option<String>,
+    utility_unit: Option<String>,
+    cost_unit: Option<String>,
+    findings: Vec<String>,
+) -> DecisionValueReport {
+    let mut findings = findings;
+    findings.sort();
+    findings.dedup();
+    DecisionValueReport {
+        status: "FAIL".to_string(),
+        audit_kind: "synthetic_decision_value_pool".to_string(),
+        benchmark_id,
+        utility_unit,
+        cost_unit,
+        pre_measurement_worst_case_regret: None,
+        max_measurement_cost: None,
+        max_duration_seconds: None,
+        measurements: Vec::new(),
+        pareto_frontier: Vec::new(),
+        oracle_measurement_id: None,
+        oracle_worst_case_regret_after: None,
+        oracle_gross_regret_reduction: None,
+        findings,
+        claim_ceiling: "Synthetic finite-pool contract and arithmetic only; no physical, model, or manufacturing claim is validated.".to_string(),
+    }
+}
+
+fn decision_exact_map_keys(value: &Value, expected: &BTreeSet<String>) -> bool {
+    let Some(object) = value.as_object() else { return false };
+    object.keys().cloned().collect::<BTreeSet<_>>() == *expected
+}
+
+fn decision_worst_regret(
+    actions: &[DecisionAction],
+    scenario_ids: &[String],
+    best_utility: &BTreeMap<String, f64>,
+) -> Option<f64> {
+    actions
+        .iter()
+        .filter(|action| {
+            scenario_ids.iter().all(|scenario| {
+                action.feasible_by_scenario.get(scenario).copied().unwrap_or(false)
+            })
+        })
+        .map(|action| {
+            scenario_ids
+                .iter()
+                .map(|scenario| {
+                    (best_utility[scenario] - action.utility_by_scenario[scenario]).max(0.0)
+                })
+                .fold(0.0_f64, f64::max)
+        })
+        .min_by(f64::total_cmp)
+}
+
+fn decision_post_regret(
+    actions: &[DecisionAction],
+    scenario_ids: &[String],
+    best_utility: &BTreeMap<String, f64>,
+    observations: &BTreeMap<String, Vec<String>>,
+) -> Option<f64> {
+    let mut overall = 0.0_f64;
+    for grouped_scenarios in observations.values() {
+        let group_regret = decision_worst_regret(actions, grouped_scenarios, best_utility)?;
+        overall = overall.max(group_regret);
+    }
+    Some(overall)
+}
+
+/// Audit a synthetic finite-pool measurement-selection problem.
+///
+/// The corpus contains evaluator-side ground truth. The producer-access declarations are
+/// checked as a contract only: this function does not sandbox a separate producer process.
+pub fn audit_decision_value_pool(pool: &Value) -> DecisionValueReport {
+    let benchmark_id = nonempty_string(pool, "benchmark_id");
+    let utility_unit = nonempty_string(pool, "utility_unit");
+    let cost_unit = nonempty_string(pool, "cost_unit");
+    let mut errors = Vec::new();
+
+    if benchmark_id.as_deref() != Some("glass-silicon-decision-value-synthetic-v0.1") {
+        errors.push("BENCHMARK_ID:expected glass-silicon-decision-value-synthetic-v0.1".to_string());
+    }
+    if object_string(pool, "evidence_class") != Some("synthetic") {
+        errors.push("EVIDENCE_CLASS:finite-pool reference requires evidence_class=synthetic".to_string());
+    }
+    if utility_unit.is_none() {
+        errors.push("UTILITY_UNIT:missing non-empty utility_unit".to_string());
+    }
+    if cost_unit.is_none() {
+        errors.push("COST_UNIT:missing non-empty cost_unit".to_string());
+    }
+    if nonempty_string(pool, "claim_ceiling").is_none() {
+        errors.push("CLAIM_CEILING:missing explicit claim ceiling".to_string());
+    }
+
+    let access_contract = pool.get("producer_access");
+    for field in ["ground_truth", "unobserved_utilities", "oracle_scores", "future_outcomes"] {
+        if access_contract.and_then(|v| v.get(field)).and_then(Value::as_bool) != Some(false) {
+            errors.push(format!("PRODUCER_LEAKAGE:producer_access.{field} must be explicitly false"));
+        }
+    }
+
+    let max_cost = pool.get("max_measurement_cost").and_then(Value::as_f64);
+    let max_duration = pool.get("max_duration_seconds").and_then(Value::as_f64);
+    if max_cost.map_or(true, |v| !v.is_finite() || v < 0.0) {
+        errors.push("MAX_COST:missing, non-finite, or negative max_measurement_cost".to_string());
+    }
+    if max_duration.map_or(true, |v| !v.is_finite() || v < 0.0) {
+        errors.push("MAX_DURATION:missing, non-finite, or negative max_duration_seconds".to_string());
+    }
+
+    let scenarios_value = pool.get("scenarios").and_then(Value::as_array);
+    let mut scenario_ids = Vec::new();
+    if scenarios_value.map_or(true, Vec::is_empty) {
+        errors.push("SCENARIOS:non-empty scenarios array required".to_string());
+    } else {
+        for (index, scenario) in scenarios_value.unwrap().iter().enumerate() {
+            let id = nonempty_string(scenario, "id");
+            if id.as_deref().map_or(true, |s| !is_stable_slug(s)) {
+                errors.push(format!("SCENARIO_ID:invalid ID at index {index}"));
+            } else {
+                scenario_ids.push(id.unwrap());
+            }
+        }
+        let unique: BTreeSet<_> = scenario_ids.iter().cloned().collect();
+        if unique.len() != scenario_ids.len() {
+            errors.push("DUPLICATE_SCENARIO_ID:scenario IDs must be unique".to_string());
+        }
+    }
+    let expected_scenarios: BTreeSet<String> = scenario_ids.iter().cloned().collect();
+
+    let actions_value = pool.get("actions").and_then(Value::as_array);
+    let mut actions = Vec::new();
+    if actions_value.map_or(true, Vec::is_empty) {
+        errors.push("ACTIONS:non-empty actions array required".to_string());
+    } else {
+        let mut seen = BTreeSet::new();
+        for (index, action) in actions_value.unwrap().iter().enumerate() {
+            let id = nonempty_string(action, "id");
+            if id.as_deref().map_or(true, |s| !is_stable_slug(s)) {
+                errors.push(format!("ACTION_ID:invalid ID at index {index}"));
+                continue;
+            }
+            let id = id.unwrap();
+            if !seen.insert(id.clone()) {
+                errors.push(format!("DUPLICATE_ACTION_ID:duplicate action {id}"));
+            }
+            let utility_value = action.get("utility_by_scenario").unwrap_or(&Value::Null);
+            let feasible_value = action.get("feasible_by_scenario").unwrap_or(&Value::Null);
+            if !decision_exact_map_keys(utility_value, &expected_scenarios) {
+                errors.push(format!("UTILITY_CENSUS:action {id} must have exactly one utility for each scenario"));
+                continue;
+            }
+            if !decision_exact_map_keys(feasible_value, &expected_scenarios) {
+                errors.push(format!("FEASIBILITY_CENSUS:action {id} must have exactly one feasibility value for each scenario"));
+                continue;
+            }
+            let mut utilities = BTreeMap::new();
+            let mut feasibility = BTreeMap::new();
+            for scenario in &scenario_ids {
+                let utility = utility_value.get(scenario).and_then(Value::as_f64);
+                if utility.map_or(true, |value| !value.is_finite()) {
+                    errors.push(format!("INVALID_UTILITY:action {id}, scenario {scenario} has non-finite or missing utility"));
+                } else {
+                    utilities.insert(scenario.clone(), utility.unwrap());
+                }
+                if let Some(feasible) = feasible_value.get(scenario).and_then(Value::as_bool) {
+                    feasibility.insert(scenario.clone(), feasible);
+                } else {
+                    errors.push(format!("INVALID_FEASIBILITY:action {id}, scenario {scenario} must be boolean"));
+                }
+            }
+            if utilities.len() == scenario_ids.len() && feasibility.len() == scenario_ids.len() {
+                actions.push(DecisionAction { id, utility_by_scenario: utilities, feasible_by_scenario: feasibility });
+            }
+        }
+    }
+
+    let controls = pool.get("constraint_controls").and_then(Value::as_array);
+    if controls.map_or(true, Vec::is_empty) {
+        errors.push("CONSTRAINT_CONTROLS:at least one frozen feasibility control is required".to_string());
+    } else {
+        for (index, control) in controls.unwrap().iter().enumerate() {
+            let action_id = nonempty_string(control, "action_id");
+            let scenario_id = nonempty_string(control, "scenario_id");
+            let expected = control.get("must_be_feasible").and_then(Value::as_bool);
+            let action = action_id.as_ref().and_then(|id| actions.iter().find(|a| &a.id == id));
+            let observed = action.and_then(|a| scenario_id.as_ref().and_then(|id| a.feasible_by_scenario.get(id))).copied();
+            if action.is_none() || !scenario_id.as_ref().map_or(false, |id| expected_scenarios.contains(id)) || expected.is_none() {
+                errors.push(format!("CONSTRAINT_CONTROL:malformed or unknown frozen control at index {index}"));
+            } else if observed != expected {
+                errors.push(format!("CONSTRAINT_CONTROL_BREACH:action {:?}, scenario {:?} differs from frozen feasibility control", action_id, scenario_id));
+            }
+        }
+    }
+
+    let measurements_value = pool.get("measurements").and_then(Value::as_array);
+    let mut raw_measurements = Vec::new();
+    if measurements_value.map_or(true, Vec::is_empty) {
+        errors.push("MEASUREMENTS:non-empty measurements array required".to_string());
+    } else {
+        let mut seen = BTreeSet::new();
+        for (index, measurement) in measurements_value.unwrap().iter().enumerate() {
+            let id = nonempty_string(measurement, "id");
+            if id.as_deref().map_or(true, |s| !is_stable_slug(s)) {
+                errors.push(format!("MEASUREMENT_ID:invalid ID at index {index}"));
+                continue;
+            }
+            let id = id.unwrap();
+            if !seen.insert(id.clone()) {
+                errors.push(format!("DUPLICATE_MEASUREMENT_ID:duplicate measurement {id}"));
+            }
+            let cost = measurement.get("cost_units").and_then(Value::as_f64);
+            let duration = measurement.get("duration_seconds").and_then(Value::as_f64);
+            if cost.map_or(true, |value| !value.is_finite() || value < 0.0) {
+                errors.push(format!("MEASUREMENT_COST:measurement {id} has missing, non-finite, or negative cost_units"));
+            }
+            if duration.map_or(true, |value| !value.is_finite() || value < 0.0) {
+                errors.push(format!("MEASUREMENT_DURATION:measurement {id} has missing, non-finite, or negative duration_seconds"));
+            }
+            let observation_value = measurement.get("observation_by_scenario").unwrap_or(&Value::Null);
+            if !decision_exact_map_keys(observation_value, &expected_scenarios) {
+                errors.push(format!("OBSERVATION_CENSUS:measurement {id} must map every scenario exactly once"));
+                continue;
+            }
+            let mut observation_map = BTreeMap::new();
+            for scenario in &scenario_ids {
+                if let Some(observation) = observation_value.get(scenario).and_then(Value::as_str).filter(|s| !s.trim().is_empty()) {
+                    observation_map.insert(scenario.clone(), observation.to_string());
+                } else {
+                    errors.push(format!("INVALID_OBSERVATION:measurement {id}, scenario {scenario} has no observation label"));
+                }
+            }
+            if let (Some(cost), Some(duration)) = (cost.filter(|v| v.is_finite() && *v >= 0.0), duration.filter(|v| v.is_finite() && *v >= 0.0)) {
+                if observation_map.len() == scenario_ids.len() {
+                    raw_measurements.push((id, cost, duration, observation_map));
+                }
+            }
+        }
+    }
+
+    if !errors.is_empty() {
+        return decision_invalid(benchmark_id, utility_unit, cost_unit, errors);
+    }
+    let max_cost = max_cost.unwrap();
+    let max_duration = max_duration.unwrap();
+
+    let mut best_utility = BTreeMap::new();
+    for scenario in &scenario_ids {
+        let best = actions.iter()
+            .filter(|action| action.feasible_by_scenario[scenario])
+            .map(|action| action.utility_by_scenario[scenario])
+            .max_by(f64::total_cmp);
+        match best {
+            Some(value) => { best_utility.insert(scenario.clone(), value); }
+            None => {
+                return DecisionValueReport {
+                    status: "UNRESOLVED".to_string(),
+                    audit_kind: "synthetic_decision_value_pool".to_string(),
+                    benchmark_id, utility_unit, cost_unit,
+                    pre_measurement_worst_case_regret: None,
+                    max_measurement_cost: Some(max_cost),
+                    max_duration_seconds: Some(max_duration),
+                    measurements: Vec::new(), pareto_frontier: Vec::new(),
+                    oracle_measurement_id: None, oracle_worst_case_regret_after: None,
+                    oracle_gross_regret_reduction: None,
+                    findings: vec![format!("NO_FEASIBLE_ACTION:scenario {scenario} has no feasible action")],
+                    claim_ceiling: "Synthetic finite-pool contract and arithmetic only; no physical, model, or manufacturing claim is validated.".to_string(),
+                }
+            }
+        }
+    }
+
+    let before = match decision_worst_regret(&actions, &scenario_ids, &best_utility) {
+        Some(value) => value,
+        None => return DecisionValueReport {
+            status: "UNRESOLVED".to_string(),
+            audit_kind: "synthetic_decision_value_pool".to_string(),
+            benchmark_id, utility_unit, cost_unit,
+            pre_measurement_worst_case_regret: None,
+            max_measurement_cost: Some(max_cost), max_duration_seconds: Some(max_duration),
+            measurements: Vec::new(), pareto_frontier: Vec::new(),
+            oracle_measurement_id: None, oracle_worst_case_regret_after: None,
+            oracle_gross_regret_reduction: None,
+            findings: vec!["NO_PRE_OBSERVATION_ROBUST_ACTION:no single action is feasible in every scenario before measurement".to_string()],
+            claim_ceiling: "Synthetic finite-pool contract and arithmetic only; no physical, model, or manufacturing claim is validated.".to_string(),
+        },
+    };
+
+    let mut evaluated = Vec::new();
+    let mut unresolved = Vec::new();
+    for (id, cost, duration, observation_map) in raw_measurements {
+        let mut groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for scenario in &scenario_ids {
+            groups.entry(observation_map[scenario].clone()).or_default().push(scenario.clone());
+        }
+        let post = decision_post_regret(&actions, &scenario_ids, &best_utility, &groups);
+        let within_budget = cost <= max_cost && duration <= max_duration;
+        let mut findings = Vec::new();
+        let reduction = post.map(|after| {
+            if after > before + 1e-9 {
+                findings.push("INFORMATION_MONOTONICITY:post-measurement worst-case regret exceeds pre-measurement regret".to_string());
+                unresolved.push(format!("INFORMATION_MONOTONICITY:{id}"));
+            }
+            (before - after).max(0.0)
+        });
+        if post.is_none() {
+            findings.push("NO_ROBUST_ACTION_FOR_OBSERVATION:at least one observation group has no action feasible across all scenarios in that group".to_string());
+            unresolved.push(format!("NO_ROBUST_ACTION_FOR_OBSERVATION:{id}"));
+        }
+        evaluated.push(DecisionMeasurementReport {
+            measurement_id: id,
+            status: if post.is_some() && !findings.iter().any(|f| f.starts_with("INFORMATION_MONOTONICITY")) { "PASS".to_string() } else { "UNRESOLVED".to_string() },
+            cost_units: cost,
+            duration_seconds: duration,
+            within_budget,
+            observation_groups: groups.len(),
+            post_measurement_worst_case_regret: post,
+            gross_worst_case_regret_reduction: reduction,
+            findings,
+        });
+    }
+
+    evaluated.sort_by(|a, b| a.measurement_id.cmp(&b.measurement_id));
+    let eligible: Vec<&DecisionMeasurementReport> = evaluated.iter()
+        .filter(|m| m.within_budget && m.post_measurement_worst_case_regret.is_some() && m.gross_worst_case_regret_reduction.is_some())
+        .collect();
+
+    let mut frontier: Vec<String> = Vec::new();
+    for candidate in &eligible {
+        let dominated = eligible.iter().any(|other| {
+            if other.measurement_id == candidate.measurement_id { return false; }
+            let other_regret = other.post_measurement_worst_case_regret.unwrap();
+            let candidate_regret = candidate.post_measurement_worst_case_regret.unwrap();
+            other_regret <= candidate_regret + 1e-9
+                && other.cost_units <= candidate.cost_units + 1e-9
+                && other.duration_seconds <= candidate.duration_seconds + 1e-9
+                && (other_regret < candidate_regret - 1e-9
+                    || other.cost_units < candidate.cost_units - 1e-9
+                    || other.duration_seconds < candidate.duration_seconds - 1e-9)
+        });
+        if !dominated { frontier.push(candidate.measurement_id.clone()); }
+    }
+    frontier.sort();
+
+    let mut oracle = eligible.clone();
+    oracle.sort_by(|a, b| {
+        a.post_measurement_worst_case_regret.unwrap().total_cmp(&b.post_measurement_worst_case_regret.unwrap())
+            .then_with(|| a.cost_units.total_cmp(&b.cost_units))
+            .then_with(|| a.duration_seconds.total_cmp(&b.duration_seconds))
+            .then_with(|| a.measurement_id.cmp(&b.measurement_id))
+    });
+    let chosen = oracle.first().copied();
+    if eligible.is_empty() {
+        unresolved.push("NO_BUDGET_FEASIBLE_MEASUREMENT:no evaluated measurement fits both declared budget caps".to_string());
+    }
+
+    let mut findings = unresolved;
+    findings.sort();
+    findings.dedup();
+    let has_failure = evaluated.iter().any(|m| m.findings.iter().any(|f| f.starts_with("INFORMATION_MONOTONICITY")));
+    let status = if has_failure { "FAIL" } else if !findings.is_empty() { "UNRESOLVED" } else { "PASS" };
+    DecisionValueReport {
+        status: status.to_string(),
+        audit_kind: "synthetic_decision_value_pool".to_string(),
+        benchmark_id,
+        utility_unit,
+        cost_unit,
+        pre_measurement_worst_case_regret: Some(before),
+        max_measurement_cost: Some(max_cost),
+        max_duration_seconds: Some(max_duration),
+        measurements: evaluated,
+        pareto_frontier: frontier,
+        oracle_measurement_id: chosen.map(|m| m.measurement_id.clone()),
+        oracle_worst_case_regret_after: chosen.and_then(|m| m.post_measurement_worst_case_regret),
+        oracle_gross_regret_reduction: chosen.and_then(|m| m.gross_worst_case_regret_reduction),
+        findings,
+        claim_ceiling: "Synthetic finite-pool contract and arithmetic only; no physical, model, or manufacturing claim is validated. Producer-access fields are declarations, not an executed isolation proof.".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod decision_value_tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn pool() -> Value {
+        serde_json::from_str(include_str!("../fixtures/decision-value-pool.synthetic.json"))
+            .expect("synthetic decision-value pool must be valid JSON")
+    }
+
+    #[test]
+    fn decision_value_pool_computes_exact_regret_and_budget_frontier() {
+        let report = audit_decision_value_pool(&pool());
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.pre_measurement_worst_case_regret, Some(5.0));
+        assert_eq!(report.oracle_measurement_id.as_deref(), Some("measure-regime"));
+        assert_eq!(report.oracle_worst_case_regret_after, Some(0.0));
+        assert_eq!(report.oracle_gross_regret_reduction, Some(5.0));
+        assert!(report.pareto_frontier.contains(&"measure-regime".to_string()));
+        assert!(!report.pareto_frontier.contains(&"measure-noise".to_string()));
+        assert!(report.measurements.iter().any(|m| m.measurement_id == "measure-expensive" && !m.within_budget));
+    }
+
+    #[test]
+    fn decision_value_missing_cost_fails_closed() {
+        let mut value = pool();
+        value["measurements"][0].as_object_mut().unwrap().remove("cost_units");
+        let report = audit_decision_value_pool(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("MEASUREMENT_COST:")));
+    }
+
+    #[test]
+    fn decision_value_producer_truth_leak_declaration_fails() {
+        let mut value = pool();
+        value["producer_access"]["ground_truth"] = json!(true);
+        let report = audit_decision_value_pool(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("PRODUCER_LEAKAGE:")));
+    }
+
+    #[test]
+    fn decision_value_frozen_constraint_control_detects_feasibility_bypass() {
+        let mut value = pool();
+        value["actions"][1]["feasible_by_scenario"]["s3"] = json!(true);
+        let report = audit_decision_value_pool(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("CONSTRAINT_CONTROL_BREACH:")));
+    }
+
+    #[test]
+    fn decision_value_uninformative_measurement_has_zero_regret_reduction() {
+        let report = audit_decision_value_pool(&pool());
+        let noise = report.measurements.iter().find(|m| m.measurement_id == "measure-noise").unwrap();
+        assert_eq!(noise.post_measurement_worst_case_regret, Some(5.0));
+        assert_eq!(noise.gross_worst_case_regret_reduction, Some(0.0));
+    }
+
+    #[test]
+    fn decision_value_rejects_incomplete_scenario_map() {
+        let mut value = pool();
+        value["measurements"][0]["observation_by_scenario"].as_object_mut().unwrap().remove("s4");
+        let report = audit_decision_value_pool(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|f| f.starts_with("OBSERVATION_CENSUS:")));
+    }
+}
