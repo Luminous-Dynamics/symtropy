@@ -428,6 +428,12 @@ mod tests {
         let (placements, checks) = feasible_result(&result);
         assert_eq!(placements.len(), 3);
         assert!(checks > 0);
+        assert_eq!(placements[0].block_id, "small-a");
+        assert_eq!(placements[0].origin, p(2, 0));
+        assert_eq!(placements[1].block_id, "small-b");
+        assert_eq!(placements[1].origin, p(2, 2));
+        assert_eq!(placements[2].block_id, "tall-c");
+        assert_eq!(placements[2].origin, p(0, 0));
         for i in 0..placements.len() {
             for j in (i + 1)..placements.len() {
                 assert!(
