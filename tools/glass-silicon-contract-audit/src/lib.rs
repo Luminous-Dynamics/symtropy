@@ -148,6 +148,8 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     let mut scenario_fragility = false;
     let mut artifact_manifest_control = false;
     let mut calibration_bias_control = false;
+    let mut multi_property_control = false;
+    let mut pilot_maturity_control = false;
     let mut valid_count = 0usize;
     let mut negative_count = 0usize;
     let mut hold_count = 0usize;
@@ -233,6 +235,22 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         {
             calibration_bias_control = true;
         }
+
+        if case_id.as_deref() == Some("single-property-score-bypasses-property-gates")
+            && case_type == "negative_control"
+            && fault_str == Some("single_property_optimization_bypasses_constraints")
+            && expected == "reject"
+        {
+            multi_property_control = true;
+        }
+
+        if case_id.as_deref() == Some("planned-silicon-pilot-treated-as-qualified")
+            && case_type == "hold_control"
+            && fault_str == Some("planned_pilot_treated_as_demonstrated")
+            && expected == "abstain"
+        {
+            pilot_maturity_control = true;
+        }
     }
 
     if valid_count == 0 || !valid_glass || !valid_silicon {
@@ -252,6 +270,12 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     }
     if !calibration_bias_control {
         report.fail("CALIBRATION_BIAS_CONTROL", "missing high-R2/unseen-bias abstention control");
+    }
+    if !multi_property_control {
+        report.fail("MULTI_PROPERTY_CONTROL", "missing single-property-score negative control");
+    }
+    if !pilot_maturity_control {
+        report.fail("PILOT_MATURITY_CONTROL", "missing planned-pilot qualification abstention control");
     }
 
     report.finish();
@@ -551,7 +575,7 @@ mod tests {
         value["tolerance_basis"]["Si"] = json!("   ");
         let report = audit_mass_balance(&value);
         assert_eq!(report.status, "UNRESOLVED");
-        assert!(report.findings.iter().any(|v| v.starts_with("TOLERANCE_BASIS:"));
+        assert!(report.findings.iter().any(|v| v.starts_with("TOLERANCE_BASIS:")));
     }
 
     #[test]
@@ -614,5 +638,25 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("RESEARCH_BASELINE_MISSING:")));
+    }
+
+    #[test]
+    fn corpus_missing_multi_property_control_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"].as_array_mut().unwrap().retain(|case| case["case_id"].as_str() != Some("single-property-score-bypasses-property-gates"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("MULTI_PROPERTY_CONTROL:")));
+    }
+
+    #[test]
+    fn corpus_missing_pilot_maturity_control_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"].as_array_mut().unwrap().retain(|case| case["case_id"].as_str() != Some("planned-silicon-pilot-treated-as-qualified"));
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("PILOT_MATURITY_CONTROL:")));
     }
 }
