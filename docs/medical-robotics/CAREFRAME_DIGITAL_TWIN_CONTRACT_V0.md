@@ -37,6 +37,10 @@ The companion [Forward-Kinematics Contract](CAREFRAME_FORWARD_KINEMATICS_CONTRAC
 
 This is **not yet an articulated Symtropy/Bevy physics adapter**. It validates one declared transform convention against synthetic reference points; it does not check collider installation, engine transforms, dynamics, contacts, or real hardware.
 
+## URDF interchange output
+
+A separate Rust exporter now emits URDF 1.0 kinematic/collision data from the validated synthetic model. It includes link bounding boxes and the current fixed/revolute joint graph, but intentionally emits no inertial data, transmissions or controller interfaces. The generated XML is parsed in CI and its 16-link/15-joint structure is checked. This is a bridge to independent kinematic tooling—not proof of compatibility with a running ROS graph, a MuJoCo dynamics model, or the Symtropy/Bevy engine.
+
 ## What the contract does not cover
 
 The current fixture does not contain validated inertias, centre-of-mass measurements, joint friction/backlash, gearbox or tendon models, cable routing, reach maps, self-collision simplification error, thermal/electrical behavior, emergency-stop response, human factors, payload-induced stability, actuator control, cleanability, material compatibility or clinical efficacy. Uniform-density primitive dynamics (if derived later) must be marked an approximation and compared against an independently constructed reference model.
