@@ -211,9 +211,10 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     }
 
     for i in 0..results.len() {
-        results[i].pareto_nondominated = !(0..results.len())
+        let nondominated = !(0..results.len())
             .filter(|&j| j != i)
             .any(|j| dominates(&results[j], &results[i]));
+        results[i].pareto_nondominated = nondominated;
     }
 
     Ok(RobustSetReport {
