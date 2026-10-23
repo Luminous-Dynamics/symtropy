@@ -16,6 +16,7 @@ use std::{
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use symtropy_energy_dispatch_audit::DispatchObjective;
 
 fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
@@ -112,6 +113,43 @@ struct CandidateBenchmark {
     timings: PhaseTimings,
 }
 
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MappingConfigForLedger {
+    schema_version: String,
+    energy_quantum_kwh: f64,
+    max_candidate_expansions: u64,
+    grid_cost_units_per_quantum: u32,
+    grid_carbon_grams_per_quantum: u32,
+    factor_basis: String,
+    synthetic: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct ObjectiveContextBenchmark {
+    context_id: String,
+    candidate_id: String,
+    base_candidate_sha256: String,
+    transformed_candidate_sha256: String,
+    transform_receipt_sha256: String,
+    mapping_config_sha256: String,
+    compilation_sha256: String,
+    dispatch_request_sha256: String,
+    dispatch_report_sha256: String,
+    independent_audit_sha256: String,
+    golden_known_answer_sha256: String,
+    grid_cost_units_per_quantum: u32,
+    grid_carbon_grams_per_quantum: u32,
+    solver_feasible_complete_schedules: u64,
+    solver_pareto_frontier: Vec<DispatchObjective>,
+    independent_reference_feasible_complete_schedules: u64,
+    independent_reference_frontier: Vec<DispatchObjective>,
+    objective_claim_status: String,
+    audit_check_count: usize,
+    timings: PhaseTimings,
+}
+
 #[derive(Debug, Serialize)]
 struct SourceHeads {
     symthaea: String,
@@ -159,6 +197,7 @@ struct EnergyStudioBenchmarkReport {
     sol_atlas_cargo_lock_sha256: String,
     symtropy_audit_cargo_lock_sha256: String,
     benchmark_summary: BenchmarkSummary,
+    objective_context: ObjectiveContextBenchmark,
     candidates: Vec<CandidateBenchmark>,
 }
 
@@ -365,6 +404,154 @@ where
     })
 }
 
+
+fn benchmark_objective_context(root: &Path) -> Result<ObjectiveContextBenchmark, Box<dyn Error>> {
+    let dir = root.join("objective-context");
+    let (base_bytes, base_candidate) = read_json(&root.join("synthetic-pv-battery-grid/candidate.json"))?;
+    let (candidate_bytes, candidate) = read_json(&dir.join("candidate.json"))?;
+    let (transform_receipt_bytes, transform_receipt) = read_json(&dir.join("transform-receipt.json"))?;
+    let (config_bytes, config_value) = read_json(&dir.join("mapping-config.json"))?;
+    let config: MappingConfigForLedger = serde_json::from_value(config_value)?;
+    let (compilation_bytes, compilation) = read_json(&dir.join("compilation.json"))?;
+    let (request_bytes, request) = read_json(&dir.join("dispatch-request.json"))?;
+    let (dispatch_bytes, dispatch) = read_json(&dir.join("dispatch-report.json"))?;
+    let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
+
+    let base_digest = sha256_hex(&base_bytes);
+    let candidate_digest = sha256_hex(&candidate_bytes);
+    let transformation_digest = sha256_hex(&transform_receipt_bytes);
+    let config_digest = sha256_hex(&config_bytes);
+    let compilation_digest = sha256_hex(&compilation_bytes);
+    let request_digest = sha256_hex(&request_bytes);
+    let dispatch_digest = sha256_hex(&dispatch_bytes);
+    let audit_digest = sha256_hex(&audit_bytes);
+
+    let context_id = "synthetic-pv-derate-nonzero-economics";
+    let candidate_id = "synthetic-pv-limited-battery-grid";
+    if required_str(&base_candidate, "candidate_id")? != "synthetic-pv-battery-grid"
+        || required_str(&candidate, "candidate_id")? != candidate_id
+        || required_str(&transform_receipt, "base_candidate_sha256")? != base_digest
+        || required_str(&transform_receipt, "transformed_candidate_sha256")? != candidate_digest
+        || required_str(&transform_receipt, "transform_id")? != "pv-availability-50pct-one-interval"
+        || required_str(&compilation, "candidate_sha256")? != candidate_digest
+        || required_str(&compilation, "candidate_id")? != candidate_id
+        || required_str(&compilation, "dispatch_request_sha256")? != request_digest
+        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest
+        || required_str(&audit, "request_sha256")? != request_digest
+        || required_str(&audit, "run_report_sha256")? != dispatch_digest
+        || required_str(&request, "case_id")? != "candidate:synthetic-pv-limited-battery-grid"
+        || !required_bool(&candidate, "synthetic")?
+        || !required_bool(&request, "synthetic")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "objective-context chain of custody or candidate identity mismatch",
+        ).into());
+    }
+
+    let typed_config_bytes = serde_json::to_vec(&config)?;
+    require_sha_match(
+        "objective-context mapping config digest",
+        required_str(&compilation, "mapping_config_sha256")?,
+        &sha256_hex(&typed_config_bytes),
+    )?;
+    if !config.synthetic
+        || config.schema_version != "energy-dispatch-mapping-v0.1"
+        || config.energy_quantum_kwh != 1.0
+        || config.max_candidate_expansions != 100_000
+        || config.grid_cost_units_per_quantum != 5
+        || config.grid_carbon_grams_per_quantum != 100
+        || config.factor_basis.trim().is_empty()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "non-zero objective-context mapping factors differ from the frozen context",
+        ).into());
+    }
+
+    let golden_bytes = include_bytes!("../../fixtures/energy-objective-context-known-answer-v0.1.json");
+    let golden: Value = serde_json::from_slice(golden_bytes)?;
+    if required_str(&golden, "context_id")? != context_id
+        || required_str(&golden, "candidate_id")? != candidate_id
+        || required_u64(&golden, "feasible_complete_schedules")? != 11
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "frozen objective-context known answer has the wrong identity/count",
+        ).into());
+    }
+    let expected_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(golden["pareto_frontier"].clone())?;
+    let solver_frontier: Vec<DispatchObjective> = dispatch["assessment"]["pareto_alternatives"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "objective-context solver frontier missing"))?
+        .iter()
+        .map(|alternative| serde_json::from_value(alternative["objective"].clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(audit["reference_frontier_objectives"].clone())?;
+    let audit_checks = audit["checks"].as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "objective-context audit checks missing"))?;
+    if required_str(&audit, "status")? != "pass"
+        || required_str(&audit, "reference_frontier_status")? != "pass"
+        || required_str(&audit, "objective_claim_status")? != "verified_for_bounded_model_case"
+        || required_u64(&audit, "reference_feasible_complete_schedules")? != 11
+        || required_u64(&dispatch["assessment"], "feasible_complete_schedules")? != 11
+        || required_u64(&dispatch["assessment"], "pareto_frontier_count")? != expected_frontier.len() as u64
+        || solver_frontier != expected_frontier
+        || independent_frontier != expected_frontier
+        || audit_checks.iter().any(|item| item["status"].as_str() != Some("pass"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "objective-context dispatch/audit disagrees with the frozen non-zero economics Pareto answer",
+        ).into());
+    }
+
+    let timings = PhaseTimings {
+        generation_ns: read_elapsed_ns(&dir, "generation")?,
+        schema_validation_ns: read_elapsed_ns(&dir, "schema")?,
+        compilation_ns: read_elapsed_ns(&dir, "compilation")?,
+        receipt_verification_ns: read_elapsed_ns(&dir, "receipt")?,
+        dispatch_ns: read_elapsed_ns(&dir, "dispatch")?,
+        independent_audit_ns: read_elapsed_ns(&dir, "audit")?,
+        measured_pipeline_total_ns: 0,
+    };
+    let measured_total = timings.generation_ns
+        .saturating_add(timings.schema_validation_ns)
+        .saturating_add(timings.compilation_ns)
+        .saturating_add(timings.receipt_verification_ns)
+        .saturating_add(timings.dispatch_ns)
+        .saturating_add(timings.independent_audit_ns);
+    let timings = PhaseTimings {
+        measured_pipeline_total_ns: measured_total,
+        ..timings
+    };
+
+    Ok(ObjectiveContextBenchmark {
+        context_id: context_id.to_owned(),
+        candidate_id: candidate_id.to_owned(),
+        base_candidate_sha256: base_digest,
+        transformed_candidate_sha256: candidate_digest,
+        transform_receipt_sha256: transformation_digest,
+        mapping_config_sha256: sha256_hex(&typed_config_bytes),
+        compilation_sha256: compilation_digest,
+        dispatch_request_sha256: request_digest,
+        dispatch_report_sha256: dispatch_digest,
+        independent_audit_sha256: audit_digest,
+        golden_known_answer_sha256: sha256_hex(golden_bytes),
+        grid_cost_units_per_quantum: config.grid_cost_units_per_quantum,
+        grid_carbon_grams_per_quantum: config.grid_carbon_grams_per_quantum,
+        solver_feasible_complete_schedules: required_u64(&dispatch["assessment"], "feasible_complete_schedules")?,
+        solver_pareto_frontier: solver_frontier,
+        independent_reference_feasible_complete_schedules: required_u64(&audit, "reference_feasible_complete_schedules")?,
+        independent_reference_frontier: independent_frontier,
+        objective_claim_status: required_str(&audit, "objective_claim_status")?.to_owned(),
+        audit_check_count: audit_checks.len(),
+        timings,
+    })
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -437,6 +624,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let max_dispatch = candidates.iter().map(|candidate| candidate.timings.dispatch_ns).max().unwrap_or(0);
     let mean_dispatch = total_dispatch / candidates.len() as u64;
 
+    let objective_context = benchmark_objective_context(&root)?;
     let report = EnergyStudioBenchmarkReport {
         schema_version: "energy-studio-benchmark-report-v0.1",
         benchmark_id: "energy-studio-synthetic-sizing-sweep-v0.1".to_owned(),
@@ -479,6 +667,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             max_dispatch_ns: max_dispatch,
             mean_dispatch_ns: mean_dispatch,
         },
+        objective_context,
         candidates,
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
