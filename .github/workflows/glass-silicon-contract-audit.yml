@@ -5,6 +5,7 @@ on:
     paths:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
@@ -49,6 +50,23 @@ jobs:
           audit-corpus
           docs/tech/glass-silicon-process-benchmark-v0.1.schema.json
           docs/tech/glass-silicon-process-benchmark-v0.1.json
+
+      - name: Audit feasibility-first protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'model the no-go region' "$protocol"
+          grep -q 'non-glass-forming' "$protocol"
+          grep -q 'Glass-Forming-Region-Informed ML' "$protocol"
+          grep -q 'unattempted, unknown or censored' "$protocol"
+          grep -q 'false-feasible' "$protocol"
+          grep -q 'system/family-held-out' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'DOI 10.1111/jace.70980' "$protocol"
+          grep -q 'DOI 10.1016/j.jnoncrysol.2026.123990' "$protocol"
+          echo "Feasibility-gate protocol structural controls: PASS"
 
       - name: Audit synthetic decision-value pool and exact one-step oracle
         run: >
