@@ -76,8 +76,9 @@
     },
     {
       "charge_id": "demand_capacity_reactive_energy",
-      "amount_microzar": null,
-      "reason": "Only the stated candidate conventional low-voltage fee structure is represented; account-specific charges require confirmation."
+      "reason": "Only the stated candidate conventional low-voltage fee structure is represented; account-specific charges require confirmation.",
+      "amount_microzar_per_kwh": null,
+      "percent_basis_points": null
     },
     {
       "charge_id": "secondary_fixed_charge_band_and_label_conflict",
