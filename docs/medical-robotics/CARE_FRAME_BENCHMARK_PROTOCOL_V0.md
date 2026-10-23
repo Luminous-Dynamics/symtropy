@@ -28,6 +28,17 @@ Compare the current human workflow, a standard cart/workstation, a conventional 
 - For hygienic tool/contact surfaces, use only approved surrogate-based protocols at future bench stage; no hygiene claim is accepted from material labels alone.
 - Maintenance time, tool-change time, calibration frequency, failure recovery, availability and cost per completed task.
 
+## Morphology / digital-twin conformance
+
+The synthetic Careframe model currently contains 16 links and 15 joints. Before using its geometry for reach, collision or dynamics claims, validate:
+- unique link/joint IDs, a single root and connected acyclic parent-child graph;
+- valid references, one parent per non-root link, and no self edges;
+- finite dimensions/masses, normalized revolute axes, ordered position limits and joint-type-consistent fixed-joint envelopes;
+- zero controller authority and every joint command disabled;
+- exact model, validator and tested-revision digests.
+
+This software gate checks the *declared graph and envelope only*. It does not establish that the present Symtropy physics bridge instantiates those links and joints correctly, that derived inertias are accurate, or that model rankings transfer to hardware. Any future adapter must be compared against independent transform/collision reference cases before robot-task results can use it.
+
 ## Benchmark validity audit
 
 Before using a task-suite score as evidence of general manipulation ability, run the separate [Careframe Benchmark Validity Audit](CARE_FRAME_BENCHMARK_VALIDITY_AUDIT_V0.md). It covers shortcut resistance, statistical power/uncertainty, benchmark overfitting, and training/test data-source dependence, drawing on the June 2026 manipulation-benchmark audit and NIST's mobile-robot metrology work.
