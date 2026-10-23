@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml -- \
+          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- \
             research/polar-infrastructure/benchmark/fixtures/toy-episode.json > /tmp/polar-score-report.json
           jq -e '
             .report_kind == "polar-resilience-score-report" and
