@@ -2172,6 +2172,20 @@ mod adaptive_campaign_tests {
     }
 
     #[test]
+    fn adaptive_campaign_abstains_when_no_robust_baseline_and_budget_blocks_resolution() {
+        let mut value = adaptive_pool();
+        value["actions"].as_array_mut().unwrap().retain(|action| action["id"] != "conventional");
+        value["max_measurement_cost"] = json!(1.0);
+        value["max_duration_seconds"] = json!(10.0);
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert_eq!(report.pre_measurement_worst_case_regret, None);
+        assert_eq!(report.adaptive_oracle_worst_case_regret, None);
+        assert!(report.policy_tree.is_none());
+        assert!(report.findings.iter().any(|finding| finding.starts_with("NO_FEASIBLE_ADAPTIVE_POLICY:")));
+    }
+
+    #[test]
     fn adaptive_oracle_respects_one_step_cap() {
         let mut value = adaptive_pool();
         value["max_measurement_steps"] = json!(1);
