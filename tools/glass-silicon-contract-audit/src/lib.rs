@@ -597,7 +597,7 @@ mod tests {
     #[test]
     fn missing_tolerance_is_unresolved() {
         let mut value = ledger();
-        value.as_object_mut().unwrap().remove("tolerance");
+        let _ = value.as_object_mut().unwrap().remove("tolerance");
         let report = audit_mass_balance(&value);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|v| v.starts_with("MISSING_MASS_MAP:")));
@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn missing_tolerance_basis_is_unresolved() {
         let mut value = ledger();
-        value.as_object_mut().unwrap().remove("tolerance_basis");
+        let _ = value.as_object_mut().unwrap().remove("tolerance_basis");
         let report = audit_mass_balance(&value);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|v| v.starts_with("MISSING_MASS_MAP:")));
