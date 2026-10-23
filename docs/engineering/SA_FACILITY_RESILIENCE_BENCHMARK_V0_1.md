@@ -16,12 +16,13 @@ It records the inputs discovered, their boundaries, and exactly what is still un
 
 ### Electricity price
 
-The City of Johannesburg's FY2026/27 budget book, Annexure B, lists a Business Conventional & Prepaid 400 V schedule by monthly energy band and season. A second machine-readable source, the Augos City Power Johannesburg Business Conventional tariff database, identifies its 2026/27 period as 1 July 2026 to 30 June 2027 and publishes its per-charge unit, band and season.
+The City of Johannesburg's FY2026/27 budget book, Annexure B, lists a Business Conventional & Prepaid 400 V schedule by monthly energy block and season. A City announcement confirms the approved FY2026/27 budget and tariff effective date, but not individual account bills. The Focal Energy cross-check describes the business block tariff as applying up to 100 kVA, with R890.45/month service and R853.72/month capacity charges. The Augos machine-readable source splits fixed charges at 50 kVA and labels the second component differently; that disagreement is now preserved and not silently resolved.
 
 Relevant sources:
 - [City of Johannesburg Medium-Term Budget 2026/27–2028/29](https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf)
 - [City of Johannesburg announcement on approved 2026/27 tariffs](https://joburg.org.za/media_/Newsroom/Pages/2026-News-Articles/City-of-Johannesburg-Engages-Stakeholders-on-Approved-20262027-Tariffs.aspx) — confirms Council budget approval, an average electricity tariff increase of 8.63%, and the effective date of 1 July 2026; it does not verify the billing semantics or eligibility of a specific account.
 - [Augos tariff page](https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/)
+- [Focal Energy business tariff cross-check](https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg)
 - [Augos machine-readable tariff JSON](https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json)
 - [City of Johannesburg tariffs portal](https://joburg.org.za/documents_/Pages/Key%20Documents/other/links/tariffs/Tariffs.aspx)
 
