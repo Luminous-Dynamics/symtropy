@@ -82,7 +82,7 @@ jobs:
           CARGO_TARGET_DIR="$work/targets/sol-atlas" cargo build --locked \
             --manifest-path "$work/sol-atlas/sol-atlas-core/Cargo.toml" \
             --bin energy_design_dispatch_compile --bin energy_dispatch_assess
-          CARGO_TARGET_DIR="$work/targets/symtropy" cargo build \
+          CARGO_TARGET_DIR="$work/targets/symtropy" cargo build --locked \
             --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
             --bins
 
