@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 25 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 30 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -15,9 +15,20 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   docs/tech/glass-silicon-process-benchmark-v0.1.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
+
+# Run only after permitted local acquisition of the source files; this command does not download or admit them.
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- hash-artifacts \
+  docs/tech/glass-silicon-process-benchmark-v0.1.json \
+  scale-zenodo-18430657-v1 /path/to/lawfully-acquired-files
 ```
 
 Exit codes: 0 = checks pass at the declared contract/arithmetic level; 2 = failed contract/arithmetic; 3 = unresolved or insufficient evidence; 64 = command/usage error. Reports are deterministic JSON with sorted element maps and stable finding codes. Run the CLI with `--locked`; Cargo.lock pins the standalone verifier's resolved dependency graph.
+
+## Local artifact hash receipt
+
+`hash-artifacts` takes a corpus manifest, artifact ID and caller-supplied local directory. It rejects path traversal and symlinks escaping the supplied directory, computes SHA-256 for each listed file, and compares the locally computed MD5 with the legacy checksum published in the source manifest. If a SHA-256 has already been pinned, it compares that too.
+
+The command never downloads data, changes the corpus manifest, resolves a license, or marks an artifact admitted. A successful report uses `HASHED_PENDING_ADMISSION` and lists the computed SHA-256 values for review. Update the manifest only after exact artifact identity and permitted use have been independently reviewed. MD5 is only legacy checksum corroboration; it is not secure authentication. Never claim reproducibility from a public record listing alone.
 
 ## Mass ledger contract
 
