@@ -55,6 +55,27 @@ Industry anchors for protocol design:
 
 These are method/design references, not evidence that this crate is compliant with them or that any policy is better than state of the art.
 
+## Probability-free robust stress-set evaluation (synthetic-only)
+
+Not every remote-infrastructure failure mode has defensible occurrence probabilities. The `robust_set` binary is a second evaluation path for an **explicitly enumerated stress set** that reports:
+- number of scenarios breaching at least one declared service floor, and whether all enumerated scenarios pass;
+- worst-case service shortfall and worst floor-breach duration;
+- the unweighted mean over the enumerated stress suite, explicitly **not** an expected-value or probability claim;
+- maximum fuel intensity across the included scenarios where defined;
+- Pareto non-dominance across breach-scenario count, worst shortfall, worst breach duration and maximum fuel intensity; gate eligibility remains a separate field;
+- the full outcome for every scenario so that failures stay inspectable.
+
+Run it with:
+
+\`\`\`sh
+cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json
+\`\`\`
+
+The fixture enumerates three toy scenarios without probabilities. The cases and policy deliveries are deliberately fabricated to test the report contract. The policy IDs are shared across every scenario; the scorer rejects changed service contract semantics, duplicate scenario/episode IDs, mismatched policy sets, unknown JSON fields and evidence-claim escalation. Pareto status means only that no other included option is at least as good on every declared objective and strictly better on one; it is **not** a safety approval or winner label.
+
+This model of reporting is consistent with recent reliability research highlighting time-coupled energy adequacy, correlated renewable scarcity and the limits of compressing reliability into single summary indicators. See the 2026 review [Reliability as a design principle: A systematic review and integrated framework for renewable-based microgrids](https://www.sciencedirect.com/science/article/pii/S2590174526003612). For a real study, scenario selection must be justified by site-specific hazards, operating envelopes and stakeholder requirements; do not confuse a finite stress suite with completeness, frequency estimation, or a formal proof of safety.
+
 ## Scenario-tail evaluation (synthetic-only)
 
 The companion binary `resilience_ensemble` evaluates **the same declared policy set across multiple episodes** and adds:
