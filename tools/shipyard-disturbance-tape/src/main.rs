@@ -25,8 +25,8 @@ fn main() -> ExitCode {
         Ok(value) => value,
         Err(_) => return fail("as-of-tick must be a non-negative u64 integer"),
     };
-    if args[5] == args[6] {
-        return fail("policy snapshot and evaluator stream must use distinct output paths");
+    if args[2] == args[5] || args[2] == args[6] || args[5] == args[6] {
+        return fail("input, policy snapshot, and evaluator stream must use distinct output paths");
     }
 
     let report = match validate_file(
