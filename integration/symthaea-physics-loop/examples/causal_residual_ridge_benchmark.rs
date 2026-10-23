@@ -40,23 +40,6 @@ struct ErrorAccumulator {
 }
 
 impl ErrorAccumulator {
-    fn add(&mut self, target: [f64; 3], prediction: [f64; 3]) -> f64 {
-        self.samples += 1;
-        let mut squared_norm = 0.0;
-        let mut target_squared_norm = 0.0;
-        for axis in 0..3 {
-            let error = target[axis] - prediction[axis];
-            squared_norm += error * error;
-            target_squared_norm += target[axis] * target[axis];
-            self.ridge_squared_error_sum += error * error;
-            self.zero_squared_error_sum += target[axis] * target[axis];
-        }
-        let error_norm = squared_norm.sqrt();
-        self.max_prediction_error_norm = self.max_prediction_error_norm.max(error_norm);
-        self.max_prediction_error_norm.max(target_squared_norm.sqrt());
-        error_norm
-    }
-
     fn merge(&mut self, other: &Self) {
         self.samples += other.samples;
         self.ridge_squared_error_sum += other.ridge_squared_error_sum;
