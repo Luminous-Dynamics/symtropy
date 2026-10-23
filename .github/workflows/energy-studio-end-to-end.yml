@@ -134,7 +134,7 @@ jobs:
             expected="${spec##*:}"
             echo "Auditing $candidate; expected feasible complete schedules=$expected"
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
-              --bin energy-dispatch-audit -- \
+              --bin symtropy-energy-dispatch-audit -- \
               "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
               > "$work/$candidate/independent-audit.json"
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
