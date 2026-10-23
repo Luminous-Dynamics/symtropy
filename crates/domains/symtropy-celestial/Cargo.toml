@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-celestial"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Newtonian N-body reference dynamics with conservation diagnostics and analytic orbital benchmarks"
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["astronomy", "celestial-mechanics", "n-body", "simulation"]
+categories = ["science", "simulation"]
+
+[lib]
+path = "src/lib.rs"
