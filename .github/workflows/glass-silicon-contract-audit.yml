@@ -50,6 +50,25 @@ jobs:
           docs/tech/glass-silicon-process-benchmark-v0.1.schema.json
           docs/tech/glass-silicon-process-benchmark-v0.1.json
 
+      - name: Audit synthetic decision-value pool and exact one-step oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-decision-value
+          tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
+
+      - name: Assert synthetic decision-value known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json > decision-value-report.json
+          grep -q '"status": "PASS"' decision-value-report.json
+          grep -q '"oracle_measurement_id": "measure-regime"' decision-value-report.json
+          grep -q '"pre_measurement_worst_case_regret": 5.0' decision-value-report.json
+          grep -q '"oracle_worst_case_regret_after": 0.0' decision-value-report.json
+          grep -q '"oracle_gross_regret_reduction": 5.0' decision-value-report.json
+          grep -q '"measurement_id": "measure-expensive"' decision-value-report.json
+          grep -q '"within_budget": false' decision-value-report.json
+
       - name: Accept balanced synthetic ledger
         run: >
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
