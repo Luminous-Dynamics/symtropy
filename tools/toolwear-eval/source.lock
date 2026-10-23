@@ -1,0 +1,14 @@
+repository=Vicomtech/dataset-machine-tool-wear
+commit=fa7941101847541cdd31339d6481ee61d152d80f
+filename=Dataset_Machine_tool_wear.csv
+git_blob_sha1=4d44a731dcef6dac26bd4f02904edbb7cabdbc50
+bytes=3346122
+sha256=0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56
+license_file=LICENSE.txt
+license_file_git_blob_sha1=bd8228c8073d4088ff6f848b42d0d5355557462a
+declared_license=CC-BY-SA-4.0
+github_repository_license_metadata=NOASSERTION
+expected_rows=2054
+expected_columns=154
+expected_distinct_tools=13
+expected_missing_cells=1142

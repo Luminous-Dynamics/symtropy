@@ -1,0 +1,97 @@
+name: toolwear-eval
+
+on:
+  pull_request:
+    paths:
+      - "tools/toolwear-eval/**"
+      - "docs/tech/TOOLWEAR_EVALUATION_V0_1.md"
+      - ".github/workflows/toolwear-eval.yml"
+  push:
+    paths:
+      - "tools/toolwear-eval/**"
+      - "docs/tech/TOOLWEAR_EVALUATION_V0_1.md"
+      - ".github/workflows/toolwear-eval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: toolwear-eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Verify evaluator license metadata and SPDX header
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="AGPL-3.0-or-later"
+          actual="$(sed -n 's/^license = "\(.*\)"/\1/p' tools/toolwear-eval/Cargo.toml)"
+          test "$actual" = "$expected"
+          grep -F "SPDX-License-Identifier: $expected" tools/toolwear-eval/src/main.rs >/dev/null
+          test -s tools/toolwear-eval/LICENSE
+
+      - name: Format
+        run: cargo fmt --check --manifest-path tools/toolwear-eval/Cargo.toml
+
+      - name: Unit tests
+        run: cargo test --locked --offline --manifest-path tools/toolwear-eval/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --locked --offline --manifest-path tools/toolwear-eval/Cargo.toml --all-targets -- -D warnings
+
+      - name: Fetch and verify the pinned source
+        shell: bash
+        run: |
+          set -euo pipefail
+          lock=tools/toolwear-eval/source.lock
+          value() { sed -n "s/^$1=//p" "$lock"; }
+          repository="$(value repository)"
+          commit="$(value commit)"
+          filename="$(value filename)"
+          expected_sha="$(value sha256)"
+          expected_bytes="$(value bytes)"
+          data_file="$RUNNER_TEMP/$filename"
+          url="https://raw.githubusercontent.com/$repository/$commit/$filename"
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 1 --output "$data_file" "$url"
+          actual_bytes="$(wc -c < "$data_file" | tr -d ' ')"
+          test "$actual_bytes" = "$expected_bytes"
+          printf '%s  %s\n' "$expected_sha" "$data_file" | sha256sum --check --strict
+          grep -F "$expected_sha" tools/toolwear-eval/src/main.rs >/dev/null
+          cargo run --locked --offline --quiet --manifest-path tools/toolwear-eval/Cargo.toml -- --data "$data_file" > toolwear-report.json
+
+      - name: Validate report contract
+        run: |
+          expected_missing_cells="$(sed -n 's/^expected_missing_cells=//p' tools/toolwear-eval/source.lock)"
+          jq -e --argjson expected_missing_cells "$expected_missing_cells" '
+            .schema_version == "0.1.0"
+            and .model_id == "MFG-DATA-001"
+            and .evidence_class == "external_dataset_evaluation_unqualified_for_process_control"
+            and .source.sha256 == "0199bc69cae5e74be3d668244f708da78450c669be641d254b5ca6aa712dda56"
+            and .dataset_diagnostics.rows == 2054
+            and .dataset_diagnostics.columns == 154
+            and .dataset_diagnostics.distinct_tools == 13
+            and .dataset_diagnostics.non_finite_cells == 0
+            and .dataset_diagnostics.missing_cells == $expected_missing_cells
+            and .split.train_tools == [4,5,6,9,10,11,13,14,15]
+            and .split.test_tools == [3,7,12,16]
+            and (.models | keys | sort) == ["constant_train_tool_balanced","ols_AE_RMS","ols_F_c_RMS","ols_F_p_RMS"]
+            and all(.models[]; (.pooled.rows == 476) and (.per_tool | keys | sort) == ["12","16","3","7"])
+          ' toolwear-report.json > /dev/null
+
+      - name: Upload reproducible report
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolwear-eval-${{ github.sha }}
+          path: toolwear-report.json
+          if-no-files-found: error
+          retention-days: 14
