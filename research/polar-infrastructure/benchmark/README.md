@@ -16,7 +16,7 @@ From the repository root, with a Rust toolchain and dependency access:
 
 \`\`\`sh
 cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
-cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
+cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
 \`\`\`
 
 The CLI emits a JSON report. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
