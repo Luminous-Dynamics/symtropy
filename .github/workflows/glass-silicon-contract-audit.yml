@@ -75,3 +75,17 @@ jobs:
           set -e
           test "$status" -eq 3
           grep -q '"status": "UNRESOLVED"' incomplete-report.json
+
+      - name: Hash synthetic artifact and preserve admission block
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            hash-artifacts \
+            tools/glass-silicon-contract-audit/fixtures/hash-receipt-corpus.synthetic.json \
+            local-hash-selftest-v1 \
+            tools/glass-silicon-contract-audit/fixtures > hash-receipt.json
+          grep -q '"status": "HASHED_PENDING_ADMISSION"' hash-receipt.json
+          grep -q '"md5_matches": true' hash-receipt.json
+          grep -q '"observed_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"' hash-receipt.json
+          grep -q '"rights_status": "unresolved"' hash-receipt.json
+          grep -q '"manifest_admission_status": "blocked"' hash-receipt.json
