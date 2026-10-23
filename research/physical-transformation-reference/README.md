@@ -82,3 +82,30 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 ## Safety and claim ceiling
 
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
+
+
+## Morphology/function benchmark receipt v0.1
+
+The additive `morph-function-receipt` binary computes a request-bound JSON receipt for the synthetic square-truss function benchmark. It reuses the existing planar-truss solver; it does not introduce a second mechanics implementation.
+
+The frozen input contract is `morph_function_request_v0_1.txt` (SHA-256 `18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e`). The receipt contains all per-case displacement vectors, member axial force/stress/strain, normalized equilibrium residuals, serviceability thresholds, and explicit expected mechanism rejections. It enumerates:
+
+- 5 load-envelope cases × (2 braced topologies + 1 unbraced mechanism control) = 15 dispositions;
+- 27 area/modulus/load parameter points × (2 braced topologies + 1 unbraced mechanism control) = 81 dispositions;
+- 96 outcomes total: 64 solved braced cases and 32 named mechanism rejections.
+
+The 120 μm and 300 μm thresholds are synthetic fixture limits, not code or design allowables. Parameter factors are a deterministic sensitivity grid; they are not a probability distribution. The unbraced member set retains 4 of the 5 members (member-set IoU 0.80) yet must fail as a mechanism, illustrating why geometric overlap cannot substitute for a mechanics check.
+
+Run the receipt locally from the repository root:
+
+```sh
+source_commit="$(git rev-parse HEAD)"
+source_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+cargo run --locked \
+  --manifest-path research/physical-transformation-reference/Cargo.toml \
+  --bin morph-function-receipt -- \
+  --source-commit "$source_commit" \
+  --source-tree-sha "$source_tree_sha"
+```
+
+The dedicated workflow checks the frozen request digest, exact source commit/tree, deterministic byte-for-byte replay, case census, per-case dispositions and residual gates. It uploads the receipt as a separate artifact. This benchmark remains limited to a synthetic 2D small-displacement, linear-elastic, pin-jointed axial-truss model; it does not establish physical validation, external benchmark reproduction, building-code compliance, or real-structure safety.
