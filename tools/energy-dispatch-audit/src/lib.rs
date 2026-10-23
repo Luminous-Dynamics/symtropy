@@ -7,7 +7,6 @@
 //! model adequacy, AC-network behavior, safety, or evidence truth.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -239,8 +238,11 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
     check(
         &mut checks,
         "receipt_schema_version",
-        receipt.receipt_schema_version == RECEIPT_SCHEMA && receipt.digest_algorithm == "SHA-256",
-        "receipt schema/digest algorithm must match the supported v0.1 receipt contract",
+        receipt.receipt_schema_version == RECEIPT_SCHEMA
+            && receipt.digest_algorithm == "SHA-256"
+            && receipt.evaluator_version == "energy-dispatch-v0.1"
+            && receipt.digest_scope == "exact_input_bytes_and_compact_assessment_json",
+        "receipt schema, evaluator version, digest scope and algorithm must match the supported v0.1 receipt contract",
     );
     check(
         &mut checks,
@@ -267,6 +269,15 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
         "synthetic_identity",
         request.synthetic == assessment.synthetic && assessment.synthetic == receipt.synthetic,
         "synthetic/evidence boundary must agree across request, assessment and receipt",
+    );
+    check(
+        &mut checks,
+        "assessment_parameters_match_request",
+        assessment.energy_quantum_kwh == request.energy_quantum_kwh
+            && assessment.evidence_class == request.evidence_class
+            && assessment.evidence_ref == request.evidence_ref
+            && assessment.evidence_as_of == request.evidence_as_of,
+        "energy quantum and evidence fields must be preserved from request into assessment",
     );
     check(
         &mut checks,
@@ -331,11 +342,26 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
 
 fn audit_request_contract(request: &DispatchRequest, checks: &mut Vec<AuditCheck>) {
     let battery = &request.battery;
-    let mut valid = request.case_id.trim().len() > 0
+    let evidence_class_known = matches!(
+        request.evidence_class.as_str(),
+        "analyst_assumption"
+            | "published_model"
+            | "vendor_target"
+            | "measured"
+            | "field_pilot"
+            | "operating_plant"
+            | "replicated_fleet"
+            | "independently_audited"
+    );
+    let evidence_reference_ok = request.evidence_class == "analyst_assumption"
+        || request.evidence_ref.as_deref().is_some_and(|value| !value.trim().is_empty());
+    let mut valid = !request.case_id.trim().is_empty()
         && request.energy_quantum_kwh.is_finite()
         && request.energy_quantum_kwh > 0.0
         && request.max_candidate_expansions > 0
         && !request.intervals.is_empty()
+        && evidence_class_known
+        && evidence_reference_ok
         && battery.initial_soc_quanta <= battery.capacity_quanta
         && battery.terminal_reserve_quanta <= battery.capacity_quanta
         && battery.charge_efficiency_denominator > 0
