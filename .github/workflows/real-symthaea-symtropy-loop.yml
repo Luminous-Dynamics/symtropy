@@ -80,7 +80,8 @@ jobs:
           STFR_DATASET_EPISODES: 16
           STFR_DATASET_STEPS: 32
           STFR_RIDGE_OUTPUT_PATH: ${{ runner.temp }}/symtropy-causal-residual-ridge-heldout.json
-          STFR_RIDGE_EVAL_EPISODES: 6
+          STFR_RIDGE_CALIBRATION_EPISODES: 18
+          STFR_RIDGE_EVAL_EPISODES: 18
           STFR_RIDGE_EVAL_STEPS: 64
         run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
 
