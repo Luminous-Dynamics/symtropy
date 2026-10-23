@@ -28,7 +28,9 @@ The initial implementation is in `integration/symthaea-physics-loop/src/transiti
 - records observed acceleration, nominal acceleration, and residual separately;
 - does not consume simulator-only wind / force labels.
 
-The target is deliberately a model discrepancy bucket. It can include external disturbances, attitude changes during the interval, integration mismatch, actuator/model mismatch, and measurement noise. Do not label it “wind estimate” without a separately identified disturbance-observer design and supporting tests. The currently used nominal model is simple; parameters must be frozen before test evaluation and included in the experiment receipt.
+The companion collector is `integration/symthaea-physics-loop/examples/causal_transition_dataset.rs`. It uses a classical PID baseline only as a data-collection policy, applies deterministic training-only exogenous force families, and writes one-step samples containing prior state, applied command, next state, and derived target. Exact hidden force values are omitted from per-sample records. The smoke workflow gates sample counts, split membership, timestamp order, vector dimensions and source receipt formats, then uploads the dataset as an artifact.
+
+The target is deliberately a model discrepancy bucket. It can include external disturbances, attitude changes during the interval, integration mismatch, actuator/model mismatch, and measurement noise. Do not label it “wind estimate” without a separately identified disturbance-observer design and supporting tests. The currently used nominal model is simple; parameters must be frozen before test evaluation and included in the experiment receipt. The dataset collector does not train a predictor, and a successful schema smoke would demonstrate plumbing only—not residual-model accuracy or control improvement.
 
 ## Data contract for the next executable increment
 
