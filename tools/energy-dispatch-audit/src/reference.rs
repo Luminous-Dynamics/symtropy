@@ -283,7 +283,32 @@ mod tests {
         let expected_frontier: Vec<DispatchObjective> =
             serde_json::from_value(answer["pareto_frontier"].clone())
                 .expect("known answer frontier has typed objective vectors");
+        let schedule_objectives: Vec<DispatchObjective> =
+            serde_json::from_value(answer["feasible_schedule_objectives"].clone())
+                .expect("known answer multiset has typed objective vectors");
+        assert_eq!(schedule_objectives.len() as u64, expected_schedules);
+        let mut distinct_objectives = schedule_objectives.clone();
+        distinct_objectives.sort();
+        distinct_objectives.dedup();
+        assert_eq!(
+            distinct_objectives.len() as u64,
+            answer["distinct_objective_count"]
+                .as_u64()
+                .expect("known answer declares distinct objective count")
+        );
 
+        let mut derived_frontier = distinct_objectives
+            .iter()
+            .filter(|candidate| {
+                !distinct_objectives.iter().any(|other| {
+                    other != *candidate && weakly_dominates(other, candidate)
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        derived_frontier.sort();
+
+        assert_eq!(derived_frontier, expected_frontier);
         assert_eq!(result.feasible_complete_schedules, expected_schedules);
         assert_eq!(result.frontier, expected_frontier);
     }
