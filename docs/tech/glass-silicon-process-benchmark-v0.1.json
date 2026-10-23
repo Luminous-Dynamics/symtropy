@@ -110,7 +110,7 @@
       "url": "https://doi.org/10.5281/zenodo.18430657",
       "published_or_reviewed": "2026",
       "use": "Candidate reproducibility artifact for V14/V18 datasets, trained models, and SCALE active-learning code.",
-      "limitation": "Exact file-level license/terms, versions, and SHA-256 digests must be pinned and reviewed before benchmark admission or redistribution; archive includes large files and Python research dependencies."
+      "limitation": "The record is version v1 published 2026-01-30 and labeled Dataset Open, but its Rights/License field is blank and the public file table shows MD5 rather than SHA-256 checksums. Published MD5: models_data_V14.zip=deb614846654bda761a66614dac6b4e0; models_data_V18.zip=b7f7ffa6253050420de1b58b58b271b1. Exact file-level reuse permissions remain unresolved; do not admit or redistribute the artifacts until terms are reviewed, bytes are acquired lawfully, and SHA-256 digests are calculated."
     },
     {
       "reference_id": "pnnl-law-glass-validation-2026",
