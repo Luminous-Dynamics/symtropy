@@ -893,6 +893,28 @@ mod tests {
     }
 
     #[test]
+    fn mandatory_resource_use_cannot_be_omitted_from_recovery_plan() {
+        let mut definition = definition("inspection", &[], &[("inspect", 3)], vec![]);
+        definition.required_resource_uses.push(RequiredResourceUse {
+            use_id: "inspect-station-use".to_owned(),
+            operation_id: "inspect".to_owned(),
+            resource_id: "inspection-station".to_owned(),
+            minimum_duration_ticks: 3,
+        });
+        let candidate = plan(
+            "inspection",
+            vec![],
+            vec![operation("inspect", 4, 7)],
+            vec![],
+        );
+        let audit = audit_robust_plan(&[definition], &[candidate]).unwrap();
+        assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
+        if let RobustStatus::Incomplete { diagnostics } = audit.status {
+            assert!(diagnostics.iter().any(|text| text.contains("required resource use inspect-station-use is missing")));
+        }
+    }
+
+    #[test]
     fn half_open_resource_and_space_windows_allow_endpoint_reuse() {
         let definitions = vec![definition("handoff", &["a", "b"], &[("first", 5), ("second", 2)], vec![outage("down", "crane", 8, 10)])];
         let plans = vec![plan(
