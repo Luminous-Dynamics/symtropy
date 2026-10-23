@@ -77,3 +77,7 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
 ```
 
 The synthetic scenario pool includes valid, drifted/misclassified and invalid primary-measurement states. The one-step policy cannot reduce worst-case regret below 6 synthetic units. The adaptive plan uses the primary test first, stops after an unambiguous signal, and requests the secondary test only on the mixed or invalid branches; its terminal worst-case regret is 0 at maximum path cost 4 synthetic units / 20 synthetic seconds. A perfect-information option is excluded because it exceeds both caps. No scenario probabilities are assigned; the expanded rows are possible worlds, not a statistical distribution. A Rust unit test and workflow known-answer assertions compare the one-step and adaptive results.
+
+### Lockfile maintenance and reproducible CI
+
+The standalone verifier is tested with the repository-pinned Rust toolchain (1.96.0) and `--locked`. If `Cargo.toml` changes, regenerate `Cargo.lock` locally or in a dedicated diagnostic job using that exact toolchain, review the dependency diff, commit the generated lockfile, and then verify `cargo test --locked`. Do not regenerate dependencies inside the primary contract-audit workflow: a stale lockfile should fail closed so the dependency graph is reviewable and reproducible. The lockfile's presence does not establish that the physical source data or industrial process has been validated.
