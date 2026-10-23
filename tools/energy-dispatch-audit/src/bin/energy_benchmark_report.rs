@@ -749,7 +749,7 @@ fn benchmark_south_african_tariff_context(
     let receipt_digest = sha256_hex(&receipt_bytes);
     let case_id_expected = [
         "low-season-2600kwh-under-50kva",
-        "high-season-1200kwh-over-50-to-100kva",
+        "high-season-1200kwh-le-100kva",
     ];
     let registry_site = registry.get("site").ok_or_else(|| {
         io::Error::new(io::ErrorKind::InvalidData, "source registry site boundary is missing")
