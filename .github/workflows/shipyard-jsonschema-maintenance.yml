@@ -27,7 +27,7 @@ jobs:
         env:
           HEAD_REF: ${{ github.ref_name }}
         run: |
-          if git diff --quiet -- tools/shipyard-jsonschema-validator; then
+          if [ -z "$(git status --porcelain -- tools/shipyard-jsonschema-validator)" ]; then
             echo "Lockfile and formatting already match."
             exit 0
           fi
