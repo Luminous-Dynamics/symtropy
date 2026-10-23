@@ -1,0 +1,14 @@
+[package]
+name = "shipyard-polygon-exact"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded exact tiny-instance polygon packing oracle with an explicit budget outcome"
+
+[dependencies]
+shipyard-polygon-geometry = { path = "../shipyard-polygon-geometry" }
+shipyard-polygon-layout-baseline = { path = "../shipyard-polygon-layout-baseline" }
+
+[workspace]
