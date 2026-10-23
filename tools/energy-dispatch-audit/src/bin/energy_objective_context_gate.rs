@@ -257,10 +257,54 @@ mod tests {
         let known: ExpectedContext = serde_json::from_str(include_str!(
             "../../fixtures/energy-objective-context-known-answer-v0.1.json"
         )).expect("golden objective context is valid JSON");
-        assert_eq!(known.feasible_complete_schedules, 11);
-        assert_eq!(known.pareto_frontier.len(), 5);
+        assert_eq!(known.feasible_complete_schedules, 1 + 4 + 6);
         assert_eq!(known.cost_basis.grid_cost_units_per_quantum, 5);
         assert_eq!(known.carbon_basis.grid_carbon_grams_per_quantum, 100);
+        assert_eq!(
+            known.pareto_frontier,
+            vec![
+                DispatchObjective {
+                    essential_unserved_quanta: 0,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 5,
+                    grid_carbon_grams: 100,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 0,
+                },
+                DispatchObjective {
+                    essential_unserved_quanta: 1,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 0,
+                    grid_carbon_grams: 0,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 0,
+                },
+                DispatchObjective {
+                    essential_unserved_quanta: 1,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 5,
+                    grid_carbon_grams: 100,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 1,
+                },
+                DispatchObjective {
+                    essential_unserved_quanta: 2,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 0,
+                    grid_carbon_grams: 0,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 1,
+                },
+                DispatchObjective {
+                    essential_unserved_quanta: 2,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 5,
+                    grid_carbon_grams: 100,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 2,
+                },
+            ]
+        );
     }
 
     #[test]
