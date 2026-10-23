@@ -114,7 +114,7 @@ struct CandidateBenchmark {
 }
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct MappingConfigForLedger {
     schema_version: String,
