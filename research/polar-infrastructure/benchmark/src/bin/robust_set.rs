@@ -1,4 +1,4 @@
-use polar_resilience_score::{score, PolicyScore, ScoreInput};
+use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -70,21 +70,6 @@ struct Observation {
     fuel_intensity: Option<f64>,
 }
 
-fn contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
-    if a.episode.time_step_hours.to_bits() != b.episode.time_step_hours.to_bits()
-        || a.episode.service_value_semantics != b.episode.service_value_semantics
-        || a.episode.service_contracts.len() != b.episode.service_contracts.len()
-    {
-        return false;
-    }
-    a.episode.service_contracts.iter().zip(&b.episode.service_contracts).all(|(left, right)| {
-        left.id == right.id
-            && left.unit == right.unit
-            && left.criticality_weight.to_bits() == right.criticality_weight.to_bits()
-            && left.minimum_service_fraction.to_bits() == right.minimum_service_fraction.to_bits()
-    })
-}
-
 fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     // No scalar blend: compare four disclosed outcomes. Missing fuel data is treated
     // conservatively as infinite for Pareto comparison, while remaining None in the report.
@@ -134,8 +119,11 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             return Err("episode IDs must also be unique across enumerated scenarios".to_string());
         }
         if let Some(first) = baseline {
-            if !contracts_match(first, &scenario.score_input) {
+            if !service_contracts_match(first, &scenario.score_input) {
                 return Err(format!("scenario {} changes time-step or service contract semantics", scenario.scenario_id));
+            }
+            if active_service_ids(first) != active_service_ids(&scenario.score_input) {
+                return Err(format!("scenario {} changes the active-service set", scenario.scenario_id));
             }
         } else {
             baseline = Some(&scenario.score_input);
@@ -322,6 +310,21 @@ mod tests {
         let mut duplicate_episode = fixture();
         duplicate_episode.scenarios[1].score_input.episode.id = duplicate_episode.scenarios[0].score_input.episode.id.clone();
         assert!(aggregate(&duplicate_episode).unwrap_err().contains("episode IDs"));
+    }
+
+    #[test]
+    fn rejects_active_service_set_drift() {
+        let mut input = fixture();
+        let scenario = &mut input.scenarios[1].score_input;
+        for step in &mut scenario.episode.steps {
+            step.demand.insert("communications".to_string(), 0.0);
+        }
+        for policy in &mut scenario.policy_runs {
+            for step in &mut policy.steps {
+                step.delivered.insert("communications".to_string(), 0.0);
+            }
+        }
+        assert!(aggregate(&input).unwrap_err().contains("active-service set"));
     }
 
     #[test]
