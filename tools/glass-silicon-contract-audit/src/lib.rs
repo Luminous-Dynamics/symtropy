@@ -2596,3 +2596,50 @@ mod feasibility_gate_tests {
         }));
     }
 }
+
+
+#[cfg(test)]
+mod feasibility_gated_campaign_tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn gated_pool() -> Value {
+        serde_json::from_str(include_str!("../fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json"))
+            .expect("synthetic feasibility-gated campaign fixture must be valid JSON")
+    }
+
+    #[test]
+    fn formation_screen_precedes_expensive_characterization_and_stops_on_no_go_branch() {
+        let pool = gated_pool();
+        let myopic = audit_decision_value_pool(&pool);
+        assert_eq!(myopic.status, "PASS", "{:?}", myopic.findings);
+        assert_eq!(myopic.pre_measurement_worst_case_regret, Some(10.0));
+        assert_eq!(myopic.oracle_measurement_id.as_deref(), Some("a-screen-formation"));
+        assert_eq!(myopic.oracle_worst_case_regret_after, Some(10.0));
+        assert_eq!(myopic.oracle_gross_regret_reduction, Some(0.0));
+
+        let adaptive = audit_adaptive_decision_campaign(&pool);
+        assert_eq!(adaptive.status, "PASS", "{:?}", adaptive.findings);
+        assert_eq!(adaptive.pre_measurement_worst_case_regret, Some(10.0));
+        assert_eq!(adaptive.adaptive_oracle_worst_case_regret, Some(0.0));
+        assert_eq!(adaptive.adaptive_oracle_gross_regret_reduction, Some(10.0));
+        assert_eq!(adaptive.adaptive_oracle_max_path_cost_units, Some(4.0));
+        assert_eq!(adaptive.adaptive_oracle_max_path_duration_seconds, Some(12.0));
+        assert_eq!(adaptive.adaptive_oracle_max_measurements_on_path, Some(2));
+
+        let tree = adaptive.policy_tree.expect("adaptive policy tree should exist");
+        assert_eq!(tree.node_type, "MEASURE");
+        assert_eq!(tree.measurement_id.as_deref(), Some("a-screen-formation"));
+        let non_forming = tree.observation_branches.get("non-forming")
+            .expect("non-forming branch should exist");
+        assert_eq!(non_forming.node_type, "STOP");
+        assert_eq!(non_forming.action_id.as_deref(), Some("reject"));
+
+        let forming = tree.observation_branches.get("forming")
+            .expect("forming branch should exist");
+        assert_eq!(forming.node_type, "MEASURE");
+        assert_eq!(forming.measurement_id.as_deref(), Some("b-characterize-route"));
+        assert_eq!(forming.observation_branches["route-a"].action_id.as_deref(), Some("route-a"));
+        assert_eq!(forming.observation_branches["route-b"].action_id.as_deref(), Some("route-b"));
+    }
+}
