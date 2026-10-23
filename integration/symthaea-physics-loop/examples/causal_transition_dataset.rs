@@ -156,10 +156,15 @@ fn main() {
             residual_norm_max = residual_norm_max.max(norm);
 
             samples.push(json!({
+                "data_schema_version": "causal-transition-residual-row-v0.1",
+                "residual_target_algorithm_version": "observed-minus-nominal-world-acceleration-v0.1",
+                "nominal_model_id": "linear-thrust-gravity-linear-drag-v0.1",
                 "episode_index": episode,
+                "episode_seed": seed,
                 "transition_index": step,
                 "split": "train",
                 "scenario_id": scenario.id,
+                "scenario_family": scenario.family,
                 "dt_s": target.dt_s,
                 "state_t": state_json(&before),
                 "applied_action_ctrl": applied_action.to_ctrl(),
@@ -176,6 +181,8 @@ fn main() {
 
     println!("{}", json!({
         "benchmark_id": "symtropy-causal-transition-residual-dataset-v0.1",
+        "data_schema_version": "causal-transition-residual-dataset-v0.1",
+        "residual_target_algorithm_version": "observed-minus-nominal-world-acceleration-v0.1",
         "claim_ceiling": "training_split_transition_dataset_and_target_plumbing_only",
         "source_receipt": {
             "symtropy_git_sha": std::env::var("STFR_SYMTROPY_SHA").unwrap_or_else(|_| "unset".to_owned()),
