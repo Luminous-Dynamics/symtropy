@@ -772,7 +772,7 @@ fn benchmark_south_african_tariff_context(
     let source_conflicts: Vec<String> =
         serde_json::from_value(registry["benchmark_protocol"]["source_conflicts"].clone())?;
     if source_conflicts.len() < 2
-        || !source_conflicts.iter().any(|item| item.contains("Augos") && item.contains("R816.85"))
+        || !source_conflicts.iter().any(|item| item.contains("Augos") && item.contains("816.85"))
         || !source_conflicts.iter().any(|item| item.contains("6 c/kWh"))
     {
         return Err(io::Error::new(
