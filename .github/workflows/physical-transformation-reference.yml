@@ -88,10 +88,66 @@ jobs:
             and (.claim_ceiling | contains("not_structural_or_collapse_prediction"))
           ' physical-transformation-reference-receipt.json
 
+      - name: Verify frozen morphology/function request
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e  research/physical-transformation-reference/morph_function_request_v0_1.txt" | sha256sum --check -
+
+      - name: Compute morphology/function receipt and enforce semantic gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          source_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml \
+            --bin morph-function-receipt -- \
+            --source-commit "$source_commit" --source-tree-sha "$source_tree_sha" > "$temp_dir/first.json"
+          cargo run --quiet --locked --manifest-path research/physical-transformation-reference/Cargo.toml \
+            --bin morph-function-receipt -- \
+            --source-commit "$source_commit" --source-tree-sha "$source_tree_sha" > "$temp_dir/second.json"
+          cmp "$temp_dir/first.json" "$temp_dir/second.json"
+          jq -e --arg source_commit "$source_commit" --arg tree "$source_tree_sha" '
+            .schema_version == "morph-function-receipt-v0.1"
+            and .benchmark_id == "MORPH-FUNCTION-001"
+            and .source_commit == $source_commit
+            and .source_tree_sha == $tree
+            and .request_sha256 == "18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e"
+            and .evidence_class == "synthetic"
+            and .model_class == "2d_small_displacement_linear_elastic_axial_truss"
+            and .case_count == 96
+            and .braced_pass_count == 64
+            and .mechanism_rejection_count == 32
+            and (.cases | length) == 96
+            and ([.cases[] | select(.suite == "load_envelope")] | length) == 15
+            and ([.cases[] | select(.suite == "parameter_grid")] | length) == 81
+            and ([.cases[] | select(.disposition == "pass")] | length) == 64
+            and ([.cases[] | select(.disposition == "expected_mechanism_rejected")] | length) == 32
+            and ([.cases[] | select(.disposition == "pass" and ((.member_results | length) != 5))] | length) == 0
+            and ([.cases[] | select(.disposition == "expected_mechanism_rejected" and .member_set_iou_vs_braced != 0.8)] | length) == 0
+            and ([.cases[] | select(.disposition == "pass" and
+              ((.normalized_force_residual >= 1e-12) or
+               (.normalized_moment_residual >= 1e-12) or
+               (.normalized_free_dof_residual >= 1e-12))] | length) == 0
+            and (.claim_ceiling | contains("no_physical_validation_no_code_compliance"))
+          ' "$temp_dir/first.json" > /dev/null
+          cp "$temp_dir/first.json" morph-function-reference-receipt.json
+
       - name: Upload deterministic reference receipt
         uses: actions/upload-artifact@v4
         with:
           name: physical-transformation-reference-receipt
           path: physical-transformation-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload morphology/function receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: morph-function-reference-receipt
+          path: morph-function-reference-receipt.json
           if-no-files-found: error
           retention-days: 90
