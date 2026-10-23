@@ -54,7 +54,7 @@
       "observation_by_scenario": { "a-clean": "signal-a", "a-drift": "signal-b", "a-failed": "invalid", "b-clean": "signal-b", "b-drift": "signal-a", "b-failed": "invalid" }
     },
     {
-      "id": "measure-followup",
+      "id": "measure-secondary",
       "cost_units": 3.0,
       "duration_seconds": 15.0,
       "observation_by_scenario": { "a-clean": "no-signal", "a-drift": "signal-a", "a-failed": "signal-a", "b-clean": "no-signal", "b-drift": "signal-b", "b-failed": "signal-b" }
