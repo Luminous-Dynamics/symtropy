@@ -1,0 +1,6 @@
+e5c2c999cb2231b8027e224bf90541db9577c177f0801b9cea6d5c886b8fb032  Cargo.toml
+c3b3e8870c7ae315392816f4bc7aad4aa700382b0724b739fe19680559b8952e  Cargo.lock
+6e391d7d005a2b3c5e4817f93ea7031c0444cd4bcf340970a7517681e0c4b3e7  crates/domains/symtropy-lifesim-core/Cargo.toml
+dcf598b92d55f6842f228cf5b37207133322ef21f7f487db031f58159037facd  crates/domains/symtropy-lifesim-core/src/lib.rs
+5a22af18cda6a1fb9ecd5d397ea5af5f0bfea375e12cd56b8c82772c92a76ede  crates/domains/symtropy-lifesim-core/src/wgpu_backend.rs
+635f878df3ae8b0efc353dc4fee0d0cd9bc25bc4b0f08567f8c5f9a13f8e7f64  .github/workflows/symtropy-wgpu-field-parity.yml
