@@ -63,6 +63,17 @@ jobs:
           grep -Eq '"tool_manifest_sha256": "[0-9a-f]{64}"' /tmp/careframe-proposal-valid-receipt.json
           grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-proposal-valid-receipt.json
 
+          # Every built-in proposal template must be emitted and re-qualified as simulation-only.
+          for kind in sealed_supply_gripper tray_carrier telepresence_head trainer_probe; do
+            template="/tmp/careframe-template-${kind}.json"
+            receipt="/tmp/careframe-template-${kind}-receipt.json"
+            cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --template "$kind" "$template"
+            cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest "$template" > "$receipt"
+            grep -q '"disposition": "SIMULATION_ONLY"' "$receipt"
+            grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" "$receipt"
+            grep -q '"physical_actuation_authorized": false' "$receipt"
+          done
+
           # The same proposal with clinical authority escalated must be denied.
           jq '.cases[0].manifest | .authority.clinical_use_authorized = true' "$corpus" > /tmp/careframe-proposal-forbidden.json
           set +e
