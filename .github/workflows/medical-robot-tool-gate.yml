@@ -190,3 +190,68 @@ jobs:
             cat /tmp/careframe-morphology-receipt.json
             cat /tmp/careframe-fk-receipt.json
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Export and independently parse kinematic-only URDF
+        env:
+          CARE_FRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          model=docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json
+          output=/tmp/careframe-synthetic-kinematics-v0.urdf
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf "$model" "$output" > /tmp/careframe-urdf-receipt.json
+          jq -e '
+            .disposition == "KINEMATIC_INTERCHANGE_ONLY" and
+            .link_count == 16 and
+            .joint_count == 15 and
+            .inertial_data_exported == false and
+            .dynamics_ready == false and
+            .physical_actuation_authorized == false and
+            .patient_contact_authorized == false and
+            .clinical_use_authorized == false
+          ' /tmp/careframe-urdf-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-urdf-receipt.json
+          grep -Eq '"urdf_sha256": "[0-9a-f]{64}"' /tmp/careframe-urdf-receipt.json
+
+          # Use Python's standard-library XML parser only as test tooling, not product code.
+          python3 - "$output" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          assert root.tag == "robot"
+          assert root.attrib.get("version") == "1.0"
+          links = root.findall("link")
+          joints = root.findall("joint")
+          assert len(links) == 16, len(links)
+          assert len(joints) == 15, len(joints)
+          assert all(link.find("visual/geometry/box") is not None for link in links)
+          assert all(link.find("collision/geometry/box") is not None for link in links)
+          assert all(link.find("inertial") is None for link in links)
+          assert sum(joint.attrib["type"] == "revolute" for joint in joints) == 9
+          assert sum(joint.attrib["type"] == "fixed" for joint in joints) == 6
+          assert all(joint.find("parent") is not None and joint.find("child") is not None for joint in joints)
+          assert all(joint.find("limit") is not None for joint in joints if joint.attrib["type"] == "revolute")
+          assert all(joint.find("limit") is None for joint in joints if joint.attrib["type"] == "fixed")
+          PY
+
+          # Non-box geometry is not silently translated into a supposedly compatible URDF 1.0.
+          jq '.links[0].collision.shape = "capsule"' "$model" > /tmp/careframe-unsupported-urdf-shape.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf /tmp/careframe-unsupported-urdf-shape.json /tmp/should-not-exist.urdf > /tmp/careframe-unsupported-urdf-shape-receipt.json
+          export_status=$?
+          set -e
+          if [[ "$export_status" -ne 1 ]]; then
+            echo "Expected URDF exporter to reject unsupported capsule shape; got $export_status" >&2
+            cat /tmp/careframe-unsupported-urdf-shape-receipt.json >&2
+            exit 1
+          fi
+          grep -q 'URDF_COLLISION_SHAPE_UNSUPPORTED' /tmp/careframe-unsupported-urdf-shape-receipt.json
+          grep -q '"dynamics_ready": false' /tmp/careframe-unsupported-urdf-shape-receipt.json
+          {
+            echo ""
+            echo "URDF 1.0 kinematic/collision interchange parsed successfully."
+            echo "Export digest: $(sha256sum "$output" | cut -d' ' -f1)"
+            echo "No inertial data, dynamics readiness or physical authority is included."
+            echo ""
+            cat /tmp/careframe-urdf-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"
