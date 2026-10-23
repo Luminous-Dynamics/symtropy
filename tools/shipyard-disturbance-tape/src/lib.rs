@@ -1125,4 +1125,3 @@ mod tests {
             .contains("64 hexadecimal"));
     }
 }
-}
