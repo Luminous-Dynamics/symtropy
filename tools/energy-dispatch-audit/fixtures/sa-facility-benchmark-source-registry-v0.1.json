@@ -270,7 +270,8 @@
     "source_conflicts": [
       "Official budget / Focal cross-check: one fixed pair of R890.45/month and R853.72/month for <=100 kVA business block tariff; Focal calls these service + capacity charges.",
       "Augos JSON: fixed-charge bands <50 kVA (890.45 and 853.72) and >50-to-100 kVA (816.85 and 783.16), with the second charge called monthly network charge.",
-      "Do not select the Augos upper-band values or decide whether the secondary fixed component is capacity or network without an approved tariff/account bill."
+      "Do not select the Augos upper-band values or decide whether the secondary fixed component is capacity or network without an approved tariff/account bill.",
+      "The municipal schedule states it excludes a 6 c/kWh Network Surcharge, while Augos lists a 0.06 ZAR/kWh DSM Levy. The names/applicability are not reconciled, so neither charge is applied by the tariff calculator."
     ]
   }
 }
