@@ -201,6 +201,12 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
             if !["unresolved", "resolved", "not_applicable"].contains(&rights_status) {
                 report.fail("ARTIFACT_RIGHTS_STATUS", format!("artifact record {index} has unknown rights_status"));
             }
+            if rights_status == "resolved"
+                && (nonempty_string(record, "rights_evidence_ref").is_none()
+                    || nonempty_string(record, "rights_reviewed_on").map_or(true, |date| date.len() != 10 || date.chars().nth(4) != Some('-') || date.chars().nth(7) != Some('-')))
+            {
+                report.fail("ARTIFACT_RIGHTS_PROOF", format!("artifact record {index} claims resolved rights without a rights evidence reference and review date"));
+            }
             if !["pending", "complete", "not_applicable"].contains(&sha256_status) {
                 report.fail("ARTIFACT_SHA256_STATUS", format!("artifact record {index} has unknown sha256_status"));
             }
@@ -862,5 +868,15 @@ mod tests {
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_ADMISSION_UNPROVEN:")));
         assert!(report.findings.iter().any(|v| v.starts_with("SCALE_ARTIFACT_GATE:")));
+    }
+
+    #[test]
+    fn rights_cannot_be_resolved_without_review_evidence() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["artifact_admission"][0]["rights_status"] = json!("resolved");
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_RIGHTS_PROOF:")));
     }
 }
