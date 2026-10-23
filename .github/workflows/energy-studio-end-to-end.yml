@@ -316,7 +316,9 @@ jobs:
           base_candidate="$work/synthetic-pv-battery-grid/candidate.json"
           transformed_candidate="$context/candidate.json"
           transform_receipt="$context/transform-receipt.json"
-          config="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json"
+          config_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json"
+          config="$context/mapping-config.json"
+          cp "$config_source" "$config"
 
           timed "$context/generation.elapsed_ns" "$transformer" \
             "$base_candidate" "$transformed_candidate" "$transform_receipt"
