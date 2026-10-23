@@ -144,14 +144,51 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.collection.nominal_model.mass_kg > 0)
     and (.collection.nominal_model.gravity_m_s2 > 0)
     and (.collection.nominal_model.linear_drag_n_s_per_m >= 0)
+    and .collection.training_randomization.design == "crossed_scenario_by_disturbance_family"
+    and .collection.training_randomization.complete_factorial_design == true
+    and (.collection.training_randomization.scenario_by_disturbance_family_episode_counts | length) == 4
+    and all(.collection.training_randomization.scenario_by_disturbance_family_episode_counts[]; all(.[]; . > 0))
     and (.collection.training_randomization.episode_family_counts | length) == 4
     and all(.collection.training_randomization.episode_family_counts[]; . >= 1)
     and all(.samples[];
       .split == "train"
+      and .data_schema_version == "causal-transition-residual-row-v0.1"
+      and .residual_target_algorithm_version == "observed-minus-nominal-world-acceleration-v0.1"
+      and .nominal_model_id == "linear-thrust-gravity-linear-drag-v0.1"
+      and .episode_seed != null
+      and .scenario_family != null
       and .dt_s > 0
       and (.target.residual_acceleration_world_m_s2 | length) == 3
       and (.applied_action_ctrl | length) == 4
       and (.state_t.timestamp_s < .state_t1.timestamp_s)
     )
   ' "$out"
+fi
+
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+  dataset_input="${STFR_DATASET_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-transition-residual-dataset.json}"
+  test -s "$dataset_input"
+  export STFR_DATASET_INPUT_PATH="$dataset_input"
+  export STFR_TRAIN_DATASET_SHA256="$(sha256sum "$dataset_input" | awk '{print $1}')"
+  ridge_out="${STFR_RIDGE_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-residual-ridge-heldout.json}"
+  cargo run --manifest-path "$integration_manifest" --example causal_residual_ridge_benchmark > "$ridge_out"
+  jq -e '
+    .benchmark_id == "symtropy-causal-transition-residual-ridge-heldout-v0.1"
+    and .claim_ceiling == "one_step_heldout_simulator_prediction_comparison_not_control_or_safety_evidence"
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.rustc_version | startswith("rustc "))
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .training.sample_count > 0
+    and .training.hidden_force_labels_used_as_features == false
+    and .evaluation.split == "test"
+    and .evaluation.test_sample_count == (.evaluation.episodes * .evaluation.steps_per_episode)
+    and .evaluation.invalid_input_count == 0
+    and .evaluation.metrics.invalid_samples == 0
+    and .evaluation.metrics.ridge_residual_rmse_m_s2 >= 0
+    and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and (.evaluation.per_family | length) == 3
+    and all(.evaluation.per_family[]; .sample_count > 0 and .invalid_samples == 0)
+  ' "$ridge_out"
 fi
