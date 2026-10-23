@@ -82,3 +82,30 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  # This project is intentionally a standalone Cargo workspace under tools/.
+  # Main workspace checks do not include it, so keep explicit exact-PR-head
+  # validation of its own math, oracle fixtures, formatting and lints here.
+  airspace-trajectory-audit:
+    name: Airspace Trajectory Audit (isolated workspace)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Check Formatting (isolated workspace)
+      run: cargo fmt --manifest-path tools/airspace-trajectory-audit/Cargo.toml -- --check
+
+    - name: Run Clippy (isolated workspace)
+      run: cargo clippy --manifest-path tools/airspace-trajectory-audit/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Unit and Independent Oracle Tests
+      run: cargo test --manifest-path tools/airspace-trajectory-audit/Cargo.toml
+
+    - name: Benchmark conservative broadphase at 10, 100, 1k, 10k trajectories
+      run: cargo run --release --manifest-path tools/airspace-trajectory-audit/Cargo.toml --bin benchmark_broadphase
