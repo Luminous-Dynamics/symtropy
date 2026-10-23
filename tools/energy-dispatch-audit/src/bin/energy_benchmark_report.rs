@@ -775,7 +775,9 @@ fn benchmark_south_african_tariff_context(
         || registry_site.get("customer_tariff_code").is_none()
         || !registry_site["measured_load_profile"].is_null()
         || !registry_site["customer_tariff_code"].is_null()
-        || required_source_ids.iter().any(|required| !registry_source_ids.iter().any(|observed| observed == required))
+        || required_source_ids.iter().any(|required| {
+            !registry_source_ids.iter().any(|observed| observed.as_str() == *required)
+        })
         || required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
         || required_str(&schedule, "tariff_id")?
             != "city-power-business-conventional-2026-27-candidate"
