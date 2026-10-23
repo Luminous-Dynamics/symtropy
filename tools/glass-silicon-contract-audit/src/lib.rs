@@ -225,9 +225,13 @@ pub fn audit_feasibility_corpus(corpus: &Value) -> FeasibilityAuditReport {
                 }
             }
 
-            let derived = if !blocking_gates.is_empty() {
+            let derived = if !candidate_valid {
+                // Invalid contract/evidence must not be presented as a qualified
+                // physical negative, even if an untrusted gate says FAIL.
+                "UNRESOLVED"
+            } else if !blocking_gates.is_empty() {
                 "INFEASIBLE"
-            } else if unresolved_gates.is_empty() && candidate_valid {
+            } else if unresolved_gates.is_empty() {
                 "FEASIBLE"
             } else {
                 "UNRESOLVED"
@@ -2562,6 +2566,23 @@ mod feasibility_gate_tests {
         assert!(report.findings.iter().any(|finding| {
             finding.starts_with("FEASIBILITY_GATE_STATUS:control-feasible/process_window")
         }));
+    }
+
+    #[test]
+    fn untraceable_failure_is_not_promoted_to_qualified_infeasibility() {
+        let mut mutated = fixture();
+        mutated["candidates"][1]["gates"]["glass_formation"].as_object_mut().unwrap()
+            .remove("source_ref");
+        let report = audit_feasibility_corpus(&mutated);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| {
+            finding.starts_with("FEASIBILITY_GATE_EVIDENCE_REQUIRED:control-non-forming/glass_formation")
+        }));
+        let candidate = report.candidates.iter()
+            .find(|candidate| candidate.candidate_id == "control-non-forming")
+            .expect("non-forming control should exist");
+        assert_eq!(candidate.derived_disposition, "UNRESOLVED");
+        assert_eq!(candidate.status, "FAIL");
     }
 
     #[test]
