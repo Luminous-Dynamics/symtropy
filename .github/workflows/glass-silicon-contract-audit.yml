@@ -111,12 +111,6 @@ jobs:
           grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
           grep -q '"observation_branches": {' adaptive-drift-report.json
 
-      - name: Audit adaptive sensor-drift and invalid-measurement stress fixture
-        run: >
-          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
-          audit-adaptive-campaign
-          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json
-
       - name: Compare myopic and adaptive policies under drift and failed observations
         shell: bash
         run: |
@@ -140,7 +134,21 @@ jobs:
           grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
           grep -q '"action_id": "route-a"' adaptive-drift-report.json
           grep -q '"observation_branches": {' adaptive-drift-report.json
-          jq -e '.policy_tree.observation_branches["signal-a"].node_type == "STOP" and .policy_tree.observation_branches["signal-a"].action_id == "route-a" and .policy_tree.observation_branches["signal-b"].node_type == "MEASURE" and .policy_tree.observation_branches["invalid"].node_type == "MEASURE"' adaptive-drift-report.json
+          jq -e '
+            .policy_tree.measurement_id == "measure-primary" and
+            .policy_tree.observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["signal-b"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].action_id == "route-b" and
+            .policy_tree.observation_branches["invalid"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["invalid"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-b"].action_id == "route-b"
+          ' adaptive-drift-report.json
 
       - name: Abstain when no robust action exists and budget blocks resolution
         shell: bash
