@@ -69,6 +69,27 @@ jobs:
           grep -q '"measurement_id": "measure-expensive"' decision-value-report.json
           grep -q '"within_budget": false' decision-value-report.json
 
+      - name: Audit adaptive synthetic campaign oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
+
+      - name: Assert adaptive campaign known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json > adaptive-campaign-report.json
+          grep -q '"status": "PASS"' adaptive-campaign-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 2.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-alpha"' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-beta"' adaptive-campaign-report.json
+
       - name: Accept balanced synthetic ledger
         run: >
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
