@@ -182,8 +182,29 @@ fn benchmark_candidate(
     let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
 
     if required_str(&candidate, "candidate_id")? != candidate_id {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "candidate ID does not match output directory").into());
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate ID does not match output directory",
+        )
+        .into());
     }
+    if required_str(&compilation, "candidate_id")? != candidate_id
+        || required_str(&request, "case_id")? != format!("candidate:{candidate_id}")
+        || required_bool(&candidate, "synthetic")? != required_bool(&request, "synthetic")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate, compilation and dispatch-request identities disagree",
+        )
+        .into());
+    }
+    let receipt = dispatch.get("receipt").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "dispatch report has no receipt object")
+    })?;
+    let assessment = dispatch.get("assessment").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "dispatch report has no assessment object")
+    })?;
+
     let candidate_digest = sha256_hex(&candidate_bytes);
     let compilation_digest = sha256_hex(&compilation_bytes);
     let request_digest = sha256_hex(&request_bytes);
@@ -202,7 +223,7 @@ fn benchmark_candidate(
     )?;
     require_sha_match(
         "dispatch receipt request digest",
-        required_str(&dispatch["receipt"], "input_sha256")?,
+        required_str(receipt, "input_sha256")?,
         &request_digest,
     )?;
     require_sha_match(
@@ -216,7 +237,6 @@ fn benchmark_candidate(
         &dispatch_digest,
     )?;
 
-    let assessment = &dispatch["assessment"];
     let solver_is_exact = required_bool(assessment, "search_is_exact")?;
     let solver_frontier_complete = required_bool(assessment, "pareto_frontier_complete")?;
     let solver_expansions = required_u64(assessment, "evaluated_action_expansions")?;
