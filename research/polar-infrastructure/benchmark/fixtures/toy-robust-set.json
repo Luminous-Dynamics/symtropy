@@ -20,19 +20,22 @@
               "id": "heat",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.75,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "water",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.9,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "communications",
               "criticality_weight": 1,
               "minimum_service_fraction": 0.5,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             }
           ],
           "steps": [
@@ -231,19 +234,22 @@
               "id": "heat",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.75,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "water",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.9,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "communications",
               "criticality_weight": 1,
               "minimum_service_fraction": 0.5,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             }
           ],
           "steps": [
@@ -442,19 +448,22 @@
               "id": "heat",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.75,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "water",
               "criticality_weight": 3,
               "minimum_service_fraction": 0.9,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             },
             {
               "id": "communications",
               "criticality_weight": 1,
               "minimum_service_fraction": 0.5,
-              "unit": "normalized_service_units"
+              "rate_unit": "normalized_service_units_per_hour",
+              "integrated_unit": "normalized_service_units"
             }
           ],
           "steps": [
