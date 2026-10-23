@@ -462,6 +462,60 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_two_branch_reveal_matrix_matches_information_sets() {
+        let decision_ticks = vec![0_u64, 1, 2];
+
+        // Tick 3 means the branch event is not visible during this replay.
+        for reveal_a in 0_u64..=3 {
+            for reveal_b in 0_u64..=3 {
+                for divergence_tick in 0_u64..=3 {
+                    let make_actions = |branch_key: &str| {
+                        decision_ticks
+                            .iter()
+                            .map(|tick| {
+                                let key = if *tick < divergence_tick {
+                                    "shared-action"
+                                } else {
+                                    branch_key
+                                };
+                                action(*tick, key)
+                            })
+                            .collect()
+                    };
+
+                    let suite = ReplaySuite {
+                        decision_ticks: decision_ticks.clone(),
+                        scenarios: vec![
+                            scenario(
+                                "branch-a",
+                                vec![event("common-start", 0), event("fault-a", reveal_a)],
+                                make_actions("action-a"),
+                            ),
+                            scenario(
+                                "branch-b",
+                                vec![event("common-start", 0), event("fault-b", reveal_b)],
+                                make_actions("action-b"),
+                            ),
+                        ],
+                    };
+
+                    let should_reject = divergence_tick < reveal_a.min(reveal_b);
+                    let expected = if should_reject {
+                        PolicyReplayStatus::AnticipativityViolation
+                    } else {
+                        PolicyReplayStatus::Consistent
+                    };
+                    assert_eq!(
+                        audit_policy_replay(&suite).status,
+                        expected,
+                        "reveal_a={reveal_a}, reveal_b={reveal_b}, divergence={divergence_tick}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn missing_action_is_incomplete_not_a_pass() {
         let suite = ReplaySuite {
             decision_ticks: vec![0, 1],
