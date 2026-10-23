@@ -51,7 +51,7 @@ For the wider industry matrix and proposed numerical acceptance targets, see [PH
 ## Benchmark ladder
 
 1. **Software invariants (implemented slice):** deterministic replay, transactional rejection, graph connectivity and exact integer mass balance.
-2. **Analytical mechanics (initial slice implemented):** unit-aware axial-bar and cantilever-tip-load cases with independently pinned expected values and declared tolerances.
+2. **Analytical mechanics (initial slice implemented):** unit-aware axial bar, cantilever tip load, and simply supported uniform-load cases with independently pinned expected values and declared tolerances.
 3. **Solver adapter:** pin solver/version, boundary conditions, mesh and convergence information; report error and residuals.
 4. **Physical fracture/contact:** use a rights-cleared measured dataset or controlled instrumented experiment, including uncertainty and held-out cases.
 5. **Construction planning:** temporary supports, connection prerequisites, assembly sequence and tool accessibility.
@@ -71,6 +71,14 @@ For the wider industry matrix and proposed numerical acceptance targets, see [PH
 - Uncertainty coverage and abstention rate.
 
 Do not reduce all of these to a single “realism” number. Do not claim state-of-the-art superiority until an openly described, matched evaluation against strong eligible baselines demonstrates it.
+
+## Planar truss reference v0.1
+
+The new `planar_truss` module adds a dependency-free, dense-stiffness reference for 2D pin-jointed axial bars under small-displacement linear elasticity. It accepts node coordinates, per-DOF restraints and loads, and bar area/Young's modulus. Results include nodal displacement, signed member axial force/strain/stress, support reactions, normalized force/moment equilibrium residuals, and the maximum free-DOF residual.
+
+A frozen symmetric two-bar V-truss has an independent closed-form oracle. Further tests cover input-order invariance, load/stiffness scaling, a mechanism/singular reduced stiffness system, duplicated IDs, isolated nodes, coincident endpoints, invalid IDs, non-finite loads and stiffness overflow. A scale-invariance control guards against incorrectly rejecting a valid matrix simply because its stiffness units are numerically small.
+
+The implementation intentionally caps the dense reference at 128 nodes / 512 bars. It is a small benchmark/oracle model, not a large-scale FEM solver; dense assembly and Gaussian elimination are not suitable as the production-scale route. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture and dynamics. Passing this benchmark qualifies only the named idealized mathematical model—not a real structure or the external SOFiSTiK BE1 benchmark.
 
 ## Safety and claim ceiling
 
