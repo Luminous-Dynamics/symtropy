@@ -766,6 +766,7 @@ fn benchmark_south_african_tariff_context(
         "augos-city-power-business-conventional-2026-27",
         "dffe-south-africa-2024-grid-emission-factors",
         "ec-jrc-pvgis-v6",
+        "focal-energy-city-power-business-tariff-2026-27",
     ];
 
     if required_str(&registry, "schema_version")?
@@ -835,8 +836,8 @@ fn benchmark_south_african_tariff_context(
                 != required_u64(case, "expected_energy_charge_microzar")?
             || required_u64(result, "service_charge_microzar")?
                 != required_u64(case, "expected_service_charge_microzar")?
-            || required_u64(result, "network_charge_microzar")?
-                != required_u64(case, "expected_network_charge_microzar")?
+            || required_u64(result, "secondary_fixed_component_microzar")?
+                != required_u64(case, "expected_secondary_fixed_component_microzar")?
             || required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")?
                 != required_u64(case, "expected_subtotal_excluding_unapplied_and_tax_microzar")?
             || result["computed_block_use"] != case["expected_block_use"]
@@ -851,7 +852,7 @@ fn benchmark_south_african_tariff_context(
         }
         let sum = required_u64(result, "energy_charge_microzar")?
             .checked_add(required_u64(result, "service_charge_microzar")?)
-            .and_then(|subtotal| subtotal.checked_add(required_u64(result, "network_charge_microzar").ok()?))
+            .and_then(|subtotal| subtotal.checked_add(required_u64(result, "secondary_fixed_component_microzar").ok()?))
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "tariff ledger subtotal overflow"))?;
         if sum != required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")? {
             return Err(io::Error::new(
