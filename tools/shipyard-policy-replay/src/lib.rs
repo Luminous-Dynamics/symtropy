@@ -38,6 +38,8 @@ pub struct ScenarioTrace {
 /// Event-triggered systems should encode explicit no-op actions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplaySuite {
+    /// Scenario identities loaded from the immutable benchmark/source manifest.
+    pub expected_scenario_ids: Vec<String>,
     pub decision_ticks: Vec<Tick>,
     pub scenarios: Vec<ScenarioTrace>,
 }
@@ -102,6 +104,35 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             None,
             "the replay suite must contain at least one declared scenario",
         );
+    }
+    if suite.expected_scenario_ids.is_empty() {
+        push_diagnostic(
+            &mut diagnostics,
+            "INCOMPLETE_EMPTY_EXPECTED_SCENARIOS",
+            None,
+            None,
+            "the source-defined expected scenario inventory must be non-empty",
+        );
+    }
+    let mut expected_scenario_ids = BTreeSet::new();
+    for expected_id in &suite.expected_scenario_ids {
+        if expected_id.trim().is_empty() {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_EMPTY_EXPECTED_SCENARIO_ID",
+                None,
+                None,
+                "expected scenario IDs must be non-empty",
+            );
+        } else if !expected_scenario_ids.insert(expected_id.as_str()) {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_DUPLICATE_EXPECTED_SCENARIO_ID",
+                Some(expected_id),
+                None,
+                "the source-defined expected scenario inventory must not duplicate IDs",
+            );
+        }
     }
     if suite.decision_ticks.is_empty() {
         push_diagnostic(
@@ -224,6 +255,29 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                     &format!("expected one action at this tick, found {count}"),
                 ),
             }
+        }
+    }
+
+    for expected_id in &expected_scenario_ids {
+        if !scenario_ids.contains(expected_id) {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_MISSING_DECLARED_SCENARIO",
+                Some(expected_id),
+                None,
+                "a source-declared scenario has no candidate replay trace",
+            );
+        }
+    }
+    for actual_id in &scenario_ids {
+        if !expected_scenario_ids.contains(actual_id) {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE",
+                Some(actual_id),
+                None,
+                "a candidate replay trace is not present in the source-defined scenario inventory",
+            );
         }
     }
 
@@ -364,6 +418,10 @@ mod tests {
     #[test]
     fn adaptive_policy_may_branch_only_after_disturbance_is_observed() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec![
+                "vehicle-a-fails".to_owned(),
+                "vehicle-b-fails".to_owned(),
+            ],
             decision_ticks: vec![0, 2, 5],
             scenarios: vec![
                 scenario(
@@ -390,6 +448,10 @@ mod tests {
     #[test]
     fn rejects_clairvoyant_action_before_branch_is_observed() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec![
+                "vehicle-a-fails".to_owned(),
+                "vehicle-b-fails".to_owned(),
+            ],
             decision_ticks: vec![0, 2, 5],
             scenarios: vec![
                 scenario(
@@ -416,6 +478,10 @@ mod tests {
     #[test]
     fn event_observed_at_decision_tick_is_visible_to_that_decision() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec![
+                "vehicle-a-fails".to_owned(),
+                "vehicle-b-fails".to_owned(),
+            ],
             decision_ticks: vec![4],
             scenarios: vec![
                 scenario(
@@ -440,6 +506,10 @@ mod tests {
     #[test]
     fn observation_time_is_part_of_the_information_history() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec![
+                "early-observation".to_owned(),
+                "late-observation".to_owned(),
+            ],
             decision_ticks: vec![2],
             scenarios: vec![
                 scenario(
@@ -484,6 +554,10 @@ mod tests {
                     };
 
                     let suite = ReplaySuite {
+                        expected_scenario_ids: vec![
+                            "branch-a".to_owned(),
+                            "branch-b".to_owned(),
+                        ],
                         decision_ticks: decision_ticks.clone(),
                         scenarios: vec![
                             scenario(
@@ -518,6 +592,7 @@ mod tests {
     #[test]
     fn missing_action_is_incomplete_not_a_pass() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec!["case-a".to_owned()],
             decision_ticks: vec![0, 1],
             scenarios: vec![scenario("case-a", vec![], vec![action(0, "a")])],
         };
@@ -533,6 +608,7 @@ mod tests {
     #[test]
     fn duplicate_event_identity_is_incomplete() {
         let suite = ReplaySuite {
+            expected_scenario_ids: vec!["case-a".to_owned()],
             decision_ticks: vec![0],
             scenarios: vec![scenario(
                 "case-a",
@@ -550,12 +626,43 @@ mod tests {
     }
 
     #[test]
+    fn declared_scenario_inventory_rejects_missing_and_unexpected_traces() {
+        let missing = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
+            decision_ticks: vec![0],
+            scenarios: vec![scenario("a", vec![], vec![action(0, "x")])],
+        };
+        let unexpected = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned()],
+            decision_ticks: vec![0],
+            scenarios: vec![
+                scenario("a", vec![], vec![action(0, "x")]),
+                scenario("b", vec![], vec![action(0, "x")]),
+            ],
+        };
+
+        let missing_report = audit_policy_replay(&missing);
+        assert_eq!(missing_report.status, PolicyReplayStatus::Incomplete);
+        assert!(missing_report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "INCOMPLETE_MISSING_DECLARED_SCENARIO"
+        }));
+
+        let unexpected_report = audit_policy_replay(&unexpected);
+        assert_eq!(unexpected_report.status, PolicyReplayStatus::Incomplete);
+        assert!(unexpected_report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE"
+        }));
+    }
+
+    #[test]
     fn empty_scenario_or_epoch_set_is_incomplete() {
         let empty_scenarios = ReplaySuite {
+            expected_scenario_ids: vec!["case-a".to_owned()],
             decision_ticks: vec![0],
             scenarios: vec![],
         };
         let empty_epochs = ReplaySuite {
+            expected_scenario_ids: vec!["case-a".to_owned()],
             decision_ticks: vec![],
             scenarios: vec![scenario("case-a", vec![], vec![])],
         };
@@ -584,10 +691,12 @@ mod tests {
         );
 
         let forward = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
             decision_ticks: vec![0, 4],
             scenarios: vec![a.clone(), b.clone()],
         };
         let reverse = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
             decision_ticks: vec![0, 4],
             scenarios: vec![b, a],
         };
