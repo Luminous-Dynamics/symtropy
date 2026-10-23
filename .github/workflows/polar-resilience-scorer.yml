@@ -27,6 +27,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Materialize resolver lock for reproducibility review
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+          cat research/polar-infrastructure/benchmark/Cargo.lock
       - name: Run unit and negative-control tests
         run: cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
       - name: Exercise JSON CLI on synthetic fixture
