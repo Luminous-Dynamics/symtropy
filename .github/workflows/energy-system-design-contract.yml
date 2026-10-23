@@ -63,6 +63,7 @@ jobs:
               assert target["direction"] in ("input", "bidirectional"), f"target is not input: {target_key}"
               assert source["carrier"] == target["carrier"] == connection["carrier"], f"carrier mismatch: {connection['connection_id']}"
               assert source["unit"] == target["unit"], f"unit mismatch: {connection['connection_id']}"
+              assert source["temperature_grade_c"] == target["temperature_grade_c"], f"heat-grade mismatch: {connection['connection_id']}"
 
           assert candidate["horizon"]["end_unix_seconds"] > candidate["horizon"]["start_unix_seconds"]
           for scenario in candidate["scenarios"]:
@@ -77,6 +78,7 @@ jobs:
                   assert interval["duration_seconds"] > 0
                   for availability in interval["resource_available_kwh"]:
                       assert availability["component_id"] in components
+                      assert components[availability["component_id"]]["kind"] == "source", f"resource is not a source: {availability['component_id']}"
                   for demand in interval["service_requested"]:
                       assert demand["service_id"] in services
                       assert demand["service_id"] not in seen, "duplicate service demand in an interval"
