@@ -553,6 +553,43 @@ mod tests {
     }
 
     #[test]
+    fn digests_bind_exact_input_bytes_not_only_parsed_values() {
+        let morphology_with_whitespace = format!("{MORPHOLOGY_JSON}\n");
+        let state_with_whitespace = format!("{ZERO_JOINT_STATE_JSON}\n");
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(MORPHOLOGY_JSON).expect("original morphology"),
+            serde_json::from_str::<serde_json::Value>(&morphology_with_whitespace)
+                .expect("whitespace morphology")
+        );
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(ZERO_JOINT_STATE_JSON).expect("original state"),
+            serde_json::from_str::<serde_json::Value>(&state_with_whitespace)
+                .expect("whitespace state")
+        );
+
+        let mut original_world = world();
+        let original = spawn_static_collision_assembly(
+            &mut original_world,
+            MORPHOLOGY_JSON,
+            ZERO_JOINT_STATE_JSON,
+            Point::origin(),
+        )
+        .expect("original input imports");
+        let mut whitespace_world = world();
+        let whitespace = spawn_static_collision_assembly(
+            &mut whitespace_world,
+            &morphology_with_whitespace,
+            &state_with_whitespace,
+            Point::origin(),
+        )
+        .expect("whitespace input imports");
+
+        assert_ne!(original.morphology_sha256, whitespace.morphology_sha256);
+        assert_ne!(original.joint_state_sha256, whitespace.joint_state_sha256);
+        assert_eq!(original.link_handles.len(), whitespace.link_handles.len());
+    }
+
+    #[test]
     fn static_careframe_proxy_participates_in_physics_collision_detection() {
         let mut physics = world();
         let assembly = spawn_static_collision_assembly(
