@@ -180,6 +180,7 @@ struct SouthAfricanTariffBenchmark {
     tariff_schedule_sha256: String,
     known_answer_fixture_sha256: String,
     source_registry_sha256: String,
+    source_conflicts: Vec<String>,
     calculator_report_sha256: String,
     qualification_log_sha256: String,
     source_receipts_sha256: String,
@@ -768,6 +769,18 @@ fn benchmark_south_african_tariff_context(
         "ec-jrc-pvgis-v6",
         "focal-energy-city-power-business-tariff-2026-27",
     ];
+    let source_conflicts: Vec<String> =
+        serde_json::from_value(registry["benchmark_protocol"]["source_conflicts"].clone())?;
+    if source_conflicts.len() < 2
+        || !source_conflicts.iter().any(|item| item.contains("Augos") && item.contains("R816.85"))
+        || !source_conflicts.iter().any(|item| item.contains("6 c/kWh"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "source registry must carry the unresolved fixed-charge and 6 c/kWh conflicts",
+        )
+        .into());
+    }
 
     if required_str(&registry, "schema_version")?
             != "energy-sa-benchmark-source-registry-v0.1"
@@ -892,6 +905,7 @@ fn benchmark_south_african_tariff_context(
         tariff_schedule_sha256: schedule_digest,
         known_answer_fixture_sha256: known_digest,
         source_registry_sha256: registry_digest,
+        source_conflicts,
         calculator_report_sha256: report_digest,
         qualification_log_sha256: log_digest,
         source_receipts_sha256: receipt_digest,
