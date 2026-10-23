@@ -85,28 +85,32 @@ fn summaries_are_recomputed_from_case_records() {
 #[test]
 fn an_oracle_match_cannot_contradict_a_known_reference() {
     let invalid = include_str!("../fixtures/invalid-oracle-claim.json");
-    let errors = audit_report_json(MANIFEST, invalid);
+    let invalid = pin_manifest_digest(invalid, MANIFEST);
+    let errors = audit_report_json(MANIFEST, &invalid);
     assert!(has_error(&errors, "contradicts candidate and reference outcomes"), "{errors:#?}");
 }
 
 #[test]
 fn exhaustion_cannot_be_promoted_to_a_proven_infeasibility() {
     let invalid = include_str!("../fixtures/invalid-infeasibility-claim.json");
-    let errors = audit_report_json(MANIFEST, invalid);
+    let invalid = pin_manifest_digest(invalid, MANIFEST);
+    let errors = audit_report_json(MANIFEST, &invalid);
     assert!(has_error(&errors, "infeasibility cannot be inferred"), "{errors:#?}");
 }
 
 #[test]
 fn complete_report_must_include_every_expected_case() {
     let invalid = include_str!("../fixtures/invalid-missing-case.json");
-    let errors = audit_report_json(MANIFEST, invalid);
+    let invalid = pin_manifest_digest(invalid, MANIFEST);
+    let errors = audit_report_json(MANIFEST, &invalid);
     assert!(has_error(&errors, "manifest requires 2"), "{errors:#?}");
 }
 
 #[test]
 fn duplicate_case_identifiers_are_rejected() {
     let invalid = include_str!("../fixtures/invalid-duplicate-case.json");
-    let errors = audit_report_json(MANIFEST, invalid);
+    let invalid = pin_manifest_digest(invalid, MANIFEST);
+    let errors = audit_report_json(MANIFEST, &invalid);
     assert!(has_error(&errors, "duplicate case identifier"), "{errors:#?}");
 }
 
