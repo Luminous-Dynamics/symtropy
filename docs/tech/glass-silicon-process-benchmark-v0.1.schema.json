@@ -12,7 +12,8 @@
     "claim_ceiling",
     "suite_invariants",
     "research_references",
-    "cases"
+    "cases",
+    "artifact_admission"
   ],
   "properties": {
     "schema_version": {
@@ -241,6 +242,156 @@
                 },
                 "fault_class": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "artifact_admission": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "source_ref",
+          "record_version",
+          "published_on",
+          "record_status",
+          "rights_status",
+          "sha256_status",
+          "benchmark_admission_status",
+          "claim_ceiling",
+          "files"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "source_ref": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "record_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "published_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "record_status": {
+            "enum": [
+              "publicly_listed_not_downloaded",
+              "downloaded_pending_hash",
+              "downloaded_hashed"
+            ]
+          },
+          "rights_status": {
+            "enum": [
+              "unresolved",
+              "resolved",
+              "not_applicable"
+            ]
+          },
+          "sha256_status": {
+            "enum": [
+              "pending",
+              "complete",
+              "not_applicable"
+            ]
+          },
+          "benchmark_admission_status": {
+            "enum": [
+              "blocked",
+              "admitted",
+              "literature_only"
+            ]
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 20
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "filename",
+                "size_display",
+                "published_checksum_algorithm",
+                "published_checksum",
+                "sha256"
+              ],
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "size_display": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "published_checksum_algorithm": {
+                  "const": "MD5"
+                },
+                "published_checksum": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$"
+                },
+                "sha256": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "benchmark_admission_status": {
+                  "const": "admitted"
+                }
+              },
+              "required": [
+                "benchmark_admission_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "record_status": {
+                  "const": "downloaded_hashed"
+                },
+                "rights_status": {
+                  "const": "resolved"
+                },
+                "sha256_status": {
+                  "const": "complete"
+                },
+                "files": {
+                  "items": {
+                    "properties": {
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    }
+                  }
                 }
               }
             }
