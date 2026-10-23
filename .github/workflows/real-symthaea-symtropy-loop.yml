@@ -101,4 +101,5 @@ jobs:
             ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
             ${{ runner.temp }}/symtropy-causal-residual-ridge-conformal-heldout.json
             ${{ runner.temp }}/symtropy-hdc-ltc-residual-reservoir-heldout.json
+            ${{ runner.temp }}/symtropy-compact-mlp-residual-heldout.json
           if-no-files-found: error
