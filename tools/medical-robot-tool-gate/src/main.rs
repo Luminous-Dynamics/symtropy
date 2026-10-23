@@ -737,6 +737,187 @@ mod tests {
     }
 
     #[test]
+    fn only_whitelisted_tool_task_contact_triples_are_eligible() {
+        let root = corpus();
+        let base = root["cases"][0]["manifest"].clone();
+        let tool_kinds = [
+            "sealed_supply_gripper",
+            "tray_carrier",
+            "telepresence_head",
+            "trainer_probe",
+            "patient_transfer",
+            "medication_dispenser",
+        ];
+        let tasks = [
+            "sealed_supply_transfer",
+            "tray_transfer",
+            "telepresence_support",
+            "training_mannequin_measurement",
+            "patient_transfer",
+            "medication_dispensation",
+        ];
+        let contacts = ["none", "object_only", "mannequin_only", "patient_contact", "invasive"];
+        let mut combinations = 0usize;
+        let mut eligible = 0usize;
+
+        for kind in tool_kinds {
+            for task in tasks {
+                for contact in contacts {
+                    let mut manifest = base.clone();
+                    manifest["tool_kind"] = json!(kind);
+                    manifest["intended_task"] = json!(task);
+                    manifest["contact_class"] = json!(contact);
+                    let allowed = matches!(
+                        (kind, task, contact),
+                        ("sealed_supply_gripper", "sealed_supply_transfer", "object_only")
+                            | ("tray_carrier", "tray_transfer", "object_only")
+                            | ("telepresence_head", "telepresence_support", "none")
+                            | (
+                                "trainer_probe",
+                                "training_mannequin_measurement",
+                                "mannequin_only"
+                            )
+                    );
+                    let findings = validate_tool(&manifest);
+                    assert_eq!(
+                        findings.is_empty(),
+                        allowed,
+                        "{kind}/{task}/{contact} unexpectedly returned {findings:?}"
+                    );
+                    combinations += 1;
+                    if findings.is_empty() {
+                        eligible += 1;
+                    }
+                }
+            }
+        }
+
+        assert_eq!(combinations, 180);
+        assert_eq!(eligible, 4);
+    }
+
+    #[test]
+    fn numeric_limits_reject_both_sides_of_every_registered_boundary() {
+        let root = corpus();
+        let base = root["cases"][0]["manifest"].clone();
+
+        for (field, values, valid) in [
+            (
+                "mass_g",
+                vec![json!(-1), json!(0), json!(1), json!(5000), json!(5001), json!("1"), Value::Null],
+                vec![false, false, true, true, false, false, false],
+            ),
+            (
+                "payload_g",
+                vec![json!(-1), json!(0), json!(20000), json!(20001), json!("1"), Value::Null],
+                vec![false, true, true, false, false, false],
+            ),
+            (
+                "max_object_force_n",
+                vec![json!(-1), json!(0), json!(1), json!(50), json!(51), json!("1"), Value::Null],
+                vec![false, false, true, true, false, false, false],
+            ),
+            (
+                "max_torque_nm",
+                vec![json!(-1), json!(0), json!(20), json!(21), json!("1"), Value::Null],
+                vec![false, true, true, false, false, false],
+            ),
+        ] {
+            for (value, should_be_valid) in values.into_iter().zip(valid) {
+                let mut manifest = base.clone();
+                manifest["mechanical"][field] = value.clone();
+                let findings = validate_tool(&manifest);
+                assert_eq!(
+                    findings.is_empty(),
+                    should_be_valid,
+                    "mechanical.{field}={value} returned {findings:?}"
+                );
+            }
+        }
+
+        for (dimension, value, should_be_valid) in [
+            (0usize, json!(0), false),
+            (0, json!(1), true),
+            (0, json!(2000), true),
+            (0, json!(2001), false),
+            (1, json!(0), false),
+            (1, json!(2000), true),
+            (2, json!(0), false),
+            (2, json!(2000), true),
+        ] {
+            let mut manifest = base.clone();
+            manifest["mechanical"]["geometry_bbox_mm"][dimension] = value.clone();
+            let findings = validate_tool(&manifest);
+            assert_eq!(
+                findings.is_empty(),
+                should_be_valid,
+                "geometry[{dimension}]={value} returned {findings:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn capture_policy_truth_table_fails_closed() {
+        let root = corpus();
+        let base = root["cases"][2]["manifest"].clone();
+        let mut combinations = 0usize;
+        for captures_audio in [false, true] {
+            for captures_video in [false, true] {
+                for shutter in [false, true] {
+                    for default_enabled in [false, true] {
+                        let mut manifest = base.clone();
+                        manifest["privacy"]["captures_audio"] = json!(captures_audio);
+                        manifest["privacy"]["captures_video"] = json!(captures_video);
+                        manifest["privacy"]["physical_privacy_shutter"] = json!(shutter);
+                        manifest["privacy"]["default_capture_state"] =
+                            json!(if default_enabled { "enabled" } else { "disabled" });
+                        let captures = captures_audio || captures_video;
+                        let allowed = !captures || (shutter && !default_enabled);
+                        let findings = validate_tool(&manifest);
+                        assert_eq!(
+                            findings.is_empty(),
+                            allowed,
+                            "audio={captures_audio}, video={captures_video}, shutter={shutter}, enabled={default_enabled}: {findings:?}"
+                        );
+                        combinations += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(combinations, 16);
+    }
+
+    #[test]
+    fn powered_and_unpowered_tool_electrical_envelopes_are_exhaustive() {
+        let root = corpus();
+        let base = root["cases"][0]["manifest"].clone();
+        let mut combinations = 0usize;
+        for powered in [false, true] {
+            for power in [0.0_f64, 0.1, 20.0, 100.0, 100.1] {
+                for isolated in [false, true] {
+                    let mut manifest = base.clone();
+                    manifest["electrical"]["powered"] = json!(powered);
+                    manifest["electrical"]["max_power_w"] = json!(power);
+                    manifest["electrical"]["protective_isolation_declared"] = json!(isolated);
+                    let allowed = if powered {
+                        power > 0.0 && power <= 100.0 && isolated
+                    } else {
+                        power == 0.0
+                    };
+                    let findings = validate_tool(&manifest);
+                    assert_eq!(
+                        findings.is_empty(),
+                        allowed,
+                        "powered={powered}, power={power}, isolation={isolated}: {findings:?}"
+                    );
+                    combinations += 1;
+                }
+            }
+        }
+        assert_eq!(combinations, 20);
+    }
+
+    #[test]
     fn corpus_and_source_digests_are_bound_to_the_build() {
         assert_eq!(sha256_hex(AUDITOR_SOURCE).len(), 64);
         assert_eq!(sha256_hex(CORPUS_SOURCE).len(), 64);
