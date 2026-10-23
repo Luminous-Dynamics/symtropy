@@ -1199,6 +1199,22 @@ mod tests {
     }
 
     #[test]
+    fn artifact_hash_receipt_accepts_matching_pinned_sha256() {
+        let directory = temporary_directory();
+        std::fs::write(directory.join("example.txt"), b"abc").expect("test file should be written");
+        let corpus = local_hash_corpus(
+            "example.txt",
+            "900150983cd24fb0d6963f7d28e17f72",
+            json!("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+        );
+        let report = hash_artifact_files(&corpus, "unit-test-artifact", &directory);
+        assert_eq!(report.status, "HASHED_PENDING_ADMISSION");
+        assert_eq!(report.files[0].md5_matches, Some(true));
+        assert_eq!(report.files[0].sha256_matches, Some(true));
+        std::fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
     fn corpus_missing_pnnl_and_pilot_sources_fails() {
         let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
         let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
