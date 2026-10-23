@@ -3,14 +3,6 @@
 version = 4
 
 [[package]]
-name = "medical-robot-tool-gate"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "sha2",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -168,6 +160,14 @@ name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
+
+[[package]]
+name = "medical-robot-tool-gate"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+]
 
 [[package]]
 name = "memchr"
