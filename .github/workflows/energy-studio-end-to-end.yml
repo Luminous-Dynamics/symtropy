@@ -67,15 +67,26 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          CARGO_TARGET_DIR="$work/targets/symthaea" cargo build \
+          CARGO_TARGET_DIR="$work/targets/symthaea" cargo build --locked \
             --manifest-path "$work/symthaea/crates/domains/symthaea-engineering/Cargo.toml" \
             --bin energy_architecture_candidates
-          CARGO_TARGET_DIR="$work/targets/sol-atlas" cargo build \
+          CARGO_TARGET_DIR="$work/targets/sol-atlas" cargo build --locked \
             --manifest-path "$work/sol-atlas/sol-atlas-core/Cargo.toml" \
             --bin energy_design_dispatch_compile --bin energy_dispatch_assess
           CARGO_TARGET_DIR="$work/targets/symtropy" cargo build \
             --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
             --bins
+
+          # Capture the exact dependency resolutions used by the binaries.
+          # Upstream lockfiles are source-pinned and --locked above; the nested
+          # standalone audit crate resolves once and exports its generated lock.
+          test -f "$work/symthaea/Cargo.lock"
+          test -f "$work/sol-atlas/Cargo.lock"
+          test -f "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock"
+          cp "$work/symthaea/Cargo.lock" "$work/symthaea.Cargo.lock"
+          cp "$work/sol-atlas/Cargo.lock" "$work/sol-atlas.Cargo.lock"
+          cp "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
+          sha256sum "$work/symthaea.Cargo.lock" "$work/sol-atlas.Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
 
       - name: Export references and materialize all 36 parametric candidates once
         shell: bash
@@ -287,6 +298,7 @@ jobs:
             ${{ runner.temp }}/energy-studio/energy-design-space-manifest.json
             ${{ runner.temp }}/energy-studio/manifest-generation.elapsed_ns
             ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
+            ${{ runner.temp }}/energy-studio/*.Cargo.lock
             ${{ runner.temp }}/energy-studio/synthetic-*/*.json
             ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
           if-no-files-found: ignore
