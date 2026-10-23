@@ -44,6 +44,8 @@ All outputs remain a vector. The crate does not collapse continuity, unmet deman
 6. **Advance evidence in stages:** scorer/fixture tests → deterministic model tests → calibrated scenario sweeps and sensitivity analyses → software/power/controller HIL as applicable → independently reviewed site data. Synthetic scorer success proves only software behavior.
 7. **Fail closed on claims:** queued/skipped checks are not passes. Standards are references for designing tests, not badges of compliance. A standard-conformance claim requires the appropriate suite, a justified test boundary, and qualified review.
 
+For a project-specific test-family crosswalk and explicit limitations, see [IEC TS 62898-3-5:2026 alignment map](../IEC_TS_62898-3-5_ALIGNMENT.md). It is a gap analysis only, not conformance evidence.
+
 Industry anchors for protocol design:
 - [IEEE 2030.8-2018: Standard for the Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) and the [active P2030.8 revision project](https://standards.ieee.org/ieee/2030.8/12543/).
 - [IEC TS 62898-3-5:2026](https://webstore.iec.ch/en/publication/84175), published 2026-06-11, covers hardware-in-the-loop, commissioning, and periodic testing for microgrid monitoring, control, and energy-management systems.
