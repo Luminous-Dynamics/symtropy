@@ -99,6 +99,22 @@ jobs:
 
               for service in candidate["services"]:
                   assert service["component_id"] in components, f"{candidate_id}: unknown service component"
+                  assert components[service["component_id"]]["kind"] == "sink", f"{candidate_id}: service must terminate at a sink"
+
+              sources = [component["component_id"] for component in candidate["components"] if component["kind"] == "source"]
+              sinks = {service["component_id"] for service in candidate["services"]}
+              batteries = [component["component_id"] for component in candidate["components"] if component["kind"] == "storage"]
+              assert len(batteries) <= 1, f"{candidate_id}: v0.1 fixture set permits at most one battery"
+              assert all(component["kind"] in ("source", "storage", "sink") for component in candidate["components"]), f"{candidate_id}: unsupported component kind in topology corpus"
+              for source_id in sources:
+                  for sink_id in sinks:
+                      assert any(connection["from_component"] == source_id and connection["to_component"] == sink_id for connection in candidate["connections"]), f"{candidate_id}: source {source_id} lacks direct path to sink {sink_id}"
+                  if batteries:
+                      assert any(connection["from_component"] == source_id and connection["to_component"] == batteries[0] and connection["to_port"] == "charge" for connection in candidate["connections"]), f"{candidate_id}: source {source_id} lacks battery charge path"
+              if batteries:
+                  for sink_id in sinks:
+                      assert any(connection["from_component"] == batteries[0] and connection["from_port"] == "discharge" and connection["to_component"] == sink_id for connection in candidate["connections"]), f"{candidate_id}: battery lacks discharge path to sink {sink_id}"
+
               assert candidate["synthetic"] is True, f"{candidate_id}: fixture must remain synthetic"
               assert candidate["evidence_class"] == "analyst_assumption", f"{candidate_id}: fixture evidence class was promoted"
               assert "synthetic" in candidate["claim_ceiling"].lower()
