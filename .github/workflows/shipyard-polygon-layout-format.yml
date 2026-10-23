@@ -39,7 +39,7 @@ jobs:
             exit 0
           fi
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+actions-bot@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tools/shipyard-polygon-layout-baseline
           git commit -m "style(shipyard): apply pinned rustfmt"
           git push origin "HEAD:${HEAD_REF}"
