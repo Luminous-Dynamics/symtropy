@@ -15,8 +15,8 @@ use crate::transition_residual::{
     LinearTransitionResidual, NominalLinearDynamics, ResidualTargetError,
 };
 
-const INPUT_FEATURES: usize = 18;
-const MODEL_DIM: usize = INPUT_FEATURES + 1; // unregularized intercept
+pub(crate) const INPUT_FEATURES: usize = 18;
+pub(crate) const MODEL_DIM: usize = INPUT_FEATURES + 1; // unregularized intercept
 const OUTPUT_DIM: usize = 3;
 const POSITION_SCALE_M: f64 = 0.25;
 const LINEAR_VELOCITY_SCALE_M_S: f64 = 5.0;
@@ -157,7 +157,7 @@ impl LinearResidualRidge {
     }
 }
 
-fn features(
+pub(crate) fn features(
     state: &FlightState,
     action: &QuadrotorCommand,
     dt_s: f64,
