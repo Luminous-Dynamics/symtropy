@@ -2069,7 +2069,7 @@ pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport 
     measurements.sort_by(|a, b| a.id.cmp(&b.id));
 
     // Sorting makes bit positions stable and ties reproducible for an identical pool.
-    // The base evaluator's one-step optimum is also recorded for comparison.
+    // Record the no-measurement robust-regret baseline if one exists.
     let best_utility: BTreeMap<String, f64> = scenario_ids.iter().map(|scenario| {
         let best = actions.iter().filter(|a| a.feasible_by_scenario[scenario])
             .map(|a| a.utility_by_scenario[scenario]).max_by(f64::total_cmp).unwrap();
