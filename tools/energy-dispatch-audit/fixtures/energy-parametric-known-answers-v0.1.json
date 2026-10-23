@@ -1,0 +1,1060 @@
+{
+  "schema_version": "energy-parametric-known-answers-v0.1",
+  "scope": "Frozen two-interval integer-quantized synthetic electrical model only. The first interval has zero load and PV availability equal to the declared PV kW for one hour; the grid is available with declared grid kW. The second interval has a two-kWh essential load, zero PV, and a grid outage. Battery efficiency is idealized at 1.0, initial SOC and terminal reserve are zero, and synthetic grid cost/carbon factors are explicitly zero.",
+  "derivation": "For each charge c in 0..=min(battery_capacity_kWh,battery_charge_discharge_power_kW), feasible first-interval grid import g is max(0,c-PV)..=min(grid_power,c). For each (c,g), the second interval has min(c,battery_discharge_power,2)+1 withdrawal/service choices. The non-dominated frontier uses maximum feasible charge C=min(capacity,power), with essential unserved 2-w, curtailment max(PV-C,0), and terminal SOC C-w for w=C..0. These are analytical known answers for this declared discrete model, not real-site estimates.",
+  "axes": {
+    "pv_rated_power_kw": [
+      1,
+      2,
+      3
+    ],
+    "battery_capacity_kwh": [
+      1,
+      2,
+      3
+    ],
+    "battery_charge_discharge_power_kw": [
+      1,
+      2
+    ],
+    "grid_import_power_kw": [
+      1,
+      2
+    ]
+  },
+  "case_count": 36,
+  "cases": [
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-2kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-2kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-2kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 8,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-2kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-3kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-3kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-3kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 8,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-1kw-battery-3kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 1,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-1kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-1kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-1kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-1kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-2kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-2kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-2kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-2kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 14,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-3kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-3kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-3kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-2kw-battery-3kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 2,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 14,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 0,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-1kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-1kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-1kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-1kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 1,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-2kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-2kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-2kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-2kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 2,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 14,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-3kwh-battery-power-1kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-3kwh-battery-power-1kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 1,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 5,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 2,
+          "terminal_soc_quanta": 1
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-3kwh-battery-power-2kw-grid-1kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 1,
+      "feasible_complete_schedules": 11,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    },
+    {
+      "candidate_id": "synthetic-parametric-pv-3kw-battery-3kwh-battery-power-2kw-grid-2kw",
+      "pv_rated_power_kw": 3,
+      "battery_capacity_kwh": 3,
+      "battery_charge_discharge_power_kw": 2,
+      "grid_import_power_kw": 2,
+      "feasible_complete_schedules": 14,
+      "pareto_frontier": [
+        {
+          "essential_unserved_quanta": 0,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 0
+        },
+        {
+          "essential_unserved_quanta": 1,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 1
+        },
+        {
+          "essential_unserved_quanta": 2,
+          "flexible_unserved_quanta": 0,
+          "operating_cost_units": 0,
+          "grid_carbon_grams": 0,
+          "curtailed_pv_quanta": 1,
+          "terminal_soc_quanta": 2
+        }
+      ]
+    }
+  ]
+}
