@@ -355,7 +355,7 @@ pub fn validate_manifest_json(input: &str) -> Vec<String> {
     if object(&root).is_none() {
         return vec!["$: expected object".to_owned()];
     }
-    check_allowed(&root, &["schema_version","benchmark_id","title","claim_class","scope","source","generator","protocol","candidate","baselines","oracle","metrics","notes"], "$", &mut errors);
+    check_allowed(&root, &["schema_version","benchmark_id","title","claim_class","scope","source","generator","protocol","candidate","baselines","oracle","metrics","metric_definitions","notes"], "$", &mut errors);
     if string_field(&root, "schema_version", "$", &mut errors) != Some("shipyard-benchmark-manifest/v0") {
         errors.push("$.schema_version: unsupported schema version".to_owned());
     }
@@ -397,7 +397,7 @@ pub fn validate_manifest_json(input: &str) -> Vec<String> {
     }
 
     if let Some(source) = expect_object(field(&root,"source"), "$.source", &mut errors) {
-        check_allowed(source, &["kind","uri","sha256","case_count","license_or_access_basis","notes"], "$.source", &mut errors);
+        check_allowed(source, &["kind","uri","sha256","license_or_access_basis","notes"], "$.source", &mut errors);
         if let Some(v) = field(source,"kind") {
             check_enum(v, &["generated","published","permissioned-industrial","hand-authored"], "$.source.kind", &mut errors);
             if string(v) == Some("generated") && field(&root,"generator").is_none() {
@@ -406,7 +406,6 @@ pub fn validate_manifest_json(input: &str) -> Vec<String> {
         } else { errors.push("$.source.kind: missing required field".to_owned()); }
         check_string_field_nonempty(source,"uri","$.source",&mut errors);
         if let Some(v) = required(source,"sha256","$.source",&mut errors) { check_hash(v,"$.source.sha256",&mut errors); }
-        positive_integer_field(source,"case_count","$.source",false,&mut errors);
         if let Some(v) = field(source,"license_or_access_basis") {
             if string(v).map(|s|!s.trim().is_empty()).unwrap_or(false) {} else {
                 errors.push("$.source.license_or_access_basis: expected non-empty string".to_owned());
@@ -430,9 +429,9 @@ pub fn validate_manifest_json(input: &str) -> Vec<String> {
     }
 
     if let Some(protocol) = expect_object(field(&root,"protocol"),"$.protocol",&mut errors) {
-        check_allowed(protocol,&["hardware_class","wall_clock_budget_ms","candidate_evaluation_budget","repetitions","warmup_runs","random_seed","timeout_policy","notes"],"$.protocol",&mut errors);
+        check_allowed(protocol,&["hardware_class","wall_clock_budget_ms","candidate_evaluation_budget","expected_case_count","repetitions","warmup_runs","random_seed","timeout_policy","notes"],"$.protocol",&mut errors);
         check_string_field_nonempty(protocol,"hardware_class","$.protocol",&mut errors);
-        for (key,zero_ok) in [("wall_clock_budget_ms",false),("candidate_evaluation_budget",false),("repetitions",false),("warmup_runs",true),("random_seed",true)] {
+        for (key,zero_ok) in [("wall_clock_budget_ms",false),("candidate_evaluation_budget",false),("expected_case_count",false),("repetitions",false),("warmup_runs",true),("random_seed",true)] {
             positive_integer_field(protocol,key,"$.protocol",zero_ok,&mut errors);
         }
         if let Some(v)=field(protocol,"timeout_policy") {
@@ -475,16 +474,66 @@ pub fn validate_manifest_json(input: &str) -> Vec<String> {
         if let Some(v)=field(oracle,"limitations") { check_string_array(v,"$.oracle.limitations",&mut errors); }
     } else if field(&root,"oracle").is_none() { errors.push("$.oracle: missing required field".to_owned()); }
 
+    let allowed_metrics=["false_feasible_count","false_infeasible_count","feasible_cases_found","feasible_case_recall","area_time_utilization","vehicle_travel_time","makespan","tardiness","recovery_horizon","unaffected_plan_churn","reservation_changes","rehandles","objective_regret","runtime_ms","peak_memory_bytes","timeout_count","bound_gap","start_deviation_ticks","completion_deviation_ticks","missing_observation_count"];
+    let mut declared_metrics=BTreeSet::new();
     if let Some(metrics)=expect_array(field(&root,"metrics"),"$.metrics",&mut errors) {
         if metrics.is_empty() { errors.push("$.metrics: at least one metric required".to_owned()); }
-        let allowed=["false_feasible_count","false_infeasible_count","feasible_cases_found","feasible_case_recall","area_time_utilization","vehicle_travel_time","makespan","tardiness","recovery_horizon","unaffected_plan_churn","reservation_changes","rehandles","objective_regret","runtime_ms","peak_memory_bytes","timeout_count","bound_gap","start_deviation_ticks","completion_deviation_ticks","missing_observation_count"];
-        let mut seen=BTreeSet::new();
         for (i,m) in metrics.iter().enumerate() {
-            if let Some(name)=check_enum(m,&allowed,&format!("$.metrics[{}]",i),&mut errors) {
-                if !seen.insert(name) { errors.push(format!("$.metrics[{}]: duplicate metric",i)); }
+            if let Some(name)=check_enum(m,&allowed_metrics,&format!("$.metrics[{}]",i),&mut errors) {
+                if !declared_metrics.insert(name) { errors.push(format!("$.metrics[{}]: duplicate metric",i)); }
             }
         }
     } else if field(&root,"metrics").is_none() { errors.push("$.metrics: missing required field".to_owned()); }
+
+    let mut defined_metrics=BTreeSet::new();
+    if let Some(definitions)=expect_array(field(&root,"metric_definitions"),"$.metric_definitions",&mut errors) {
+        if definitions.is_empty() { errors.push("$.metric_definitions: at least one metric definition required".to_owned()); }
+        for (index,definition) in definitions.iter().enumerate() {
+            let path=format!("$.metric_definitions[{}]",index);
+            if let Some(definition)=expect_object(Some(definition),&path,&mut errors) {
+                check_allowed(definition,&["name","unit","definition","aggregation","direction","target_value","weight","notes"],&path,&mut errors);
+                check_string_field_nonempty(definition,"name",&path,&mut errors);
+                check_string_field_nonempty(definition,"unit",&path,&mut errors);
+                check_string_field_nonempty(definition,"definition",&path,&mut errors);
+                if let Some(value)=field(definition,"name").and_then(string) {
+                    if !defined_metrics.insert(value.to_owned()) {
+                        errors.push(format!("{}.name: duplicate metric definition",path));
+                    }
+                }
+                if let Some(value)=field(definition,"aggregation") {
+                    check_enum(value,&["sum","mean","median","min","max","p95","count","per-case","ratio"],&format!("{}.aggregation",path),&mut errors);
+                } else {
+                    errors.push(format!("{}.aggregation: missing required field",path));
+                }
+                if let Some(value)=field(definition,"direction") {
+                    check_enum(value,&["minimize","maximize","target","report-only"],&format!("{}.direction",path),&mut errors);
+                } else {
+                    errors.push(format!("{}.direction: missing required field",path));
+                }
+                if let Some(weight)=field(definition,"weight") {
+                    match is_number(weight) {
+                        Some(value) if value >= 0.0 => {}
+                        _ => errors.push(format!("{}.weight: expected non-negative finite number",path)),
+                    }
+                }
+                if let Some(target)=field(definition,"target_value") {
+                    if is_number(target).is_none() {
+                        errors.push(format!("{}.target_value: expected finite number",path));
+                    }
+                }
+                if let Some(notes)=field(definition,"notes") {
+                    if string(notes).is_none() {
+                        errors.push(format!("{}.notes: expected string",path));
+                    }
+                }
+            }
+        }
+    } else if field(&root,"metric_definitions").is_none() {
+        errors.push("$.metric_definitions: missing required field".to_owned());
+    }
+    if declared_metrics != defined_metrics {
+        errors.push("$.metric_definitions: names must exactly match $.metrics".to_owned());
+    }
     errors.sort();
     errors
 }
@@ -728,7 +777,7 @@ pub fn audit_report_json(manifest_input: &str, report_input: &str) -> Vec<String
         errors.push("$report.case_results: missing required field".to_owned());
     }
 
-    let expected_case_count=field(&manifest,"source").and_then(|s|field(s,"case_count")).and_then(is_integer);
+    let expected_case_count=field(&manifest,"protocol").and_then(|p|field(p,"expected_case_count")).and_then(is_integer);
     if field(&report,"status").and_then(string)==Some("complete") {
         match (expected_case_count,cases) {
             (Some(expected),Some(records)) if i128::try_from(records.len()).ok()==Some(expected) => {},
