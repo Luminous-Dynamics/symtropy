@@ -538,6 +538,58 @@ mod tests {
         assert!((left_arm.transform.translation.0[0] - (-yaw.sin() * 0.19)).abs() < 1.0e-10);
         assert!((left_arm.transform.translation.0[1] - (yaw.cos() * 0.19)).abs() < 1.0e-10);
         assert!((left_arm.transform.translation.0[2] - 0.56).abs() < 1.0e-12);
+        let rotated_x = left_arm
+            .transform
+            .rotation
+            .rotate_vector(&SVector::<f64, 3>::from([1.0, 0.0, 0.0]));
+        assert!((rotated_x[0] - yaw.cos()).abs() < 1.0e-10);
+        assert!((rotated_x[1] - yaw.sin()).abs() < 1.0e-10);
+        assert!(left_arm.transform.rotation.is_proper_rotation(1.0e-8));
+    }
+
+    #[test]
+    fn unknown_fields_and_non_box_shapes_fail_closed() {
+        let mut physics = world();
+        let mut morphology: serde_json::Value =
+            serde_json::from_str(MORPHOLOGY_JSON).expect("morphology parses");
+        morphology["links"][0]["collision"]["unmodeled_shape_mode"] =
+            serde_json::json!("silently-ignore");
+        let invalid_json =
+            serde_json::to_string(&morphology).expect("mutated morphology serializes");
+        let error = spawn_static_collision_assembly(
+            &mut physics,
+            &invalid_json,
+            ZERO_JOINT_STATE_JSON,
+            Point::origin(),
+        )
+        .expect_err("unknown collision fields must reject");
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding.starts_with("MORPHOLOGY_JSON_INVALID")),
+            "{error:?}"
+        );
+        assert_eq!(physics.body_count(), 0);
+
+        let mut morphology: serde_json::Value =
+            serde_json::from_str(MORPHOLOGY_JSON).expect("morphology parses");
+        morphology["links"][0]["collision"]["shape"] = serde_json::json!("capsule");
+        let invalid_json =
+            serde_json::to_string(&morphology).expect("mutated morphology serializes");
+        let error = spawn_static_collision_assembly(
+            &mut physics,
+            &invalid_json,
+            ZERO_JOINT_STATE_JSON,
+            Point::origin(),
+        )
+        .expect_err("only declared box geometry is supported");
+        assert!(
+            error
+                .iter()
+                .any(|finding| finding == "MORPHOLOGY_COLLISION_SHAPE_OR_SOURCE_UNSUPPORTED"),
+            "{error:?}"
+        );
+        assert_eq!(physics.body_count(), 0);
     }
 
     #[test]
