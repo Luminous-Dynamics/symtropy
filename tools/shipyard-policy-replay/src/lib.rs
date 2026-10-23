@@ -435,7 +435,7 @@ fn validate_inventory_coverage(
             push_diagnostic(
                 diagnostics,
                 missing_code,
-                Some(expected_id),
+                Some(*expected_id),
                 None,
                 missing_detail,
             );
@@ -446,7 +446,7 @@ fn validate_inventory_coverage(
             push_diagnostic(
                 diagnostics,
                 unexpected_code,
-                Some(actual_id),
+                Some(*actual_id),
                 None,
                 unexpected_detail,
             );
