@@ -413,6 +413,30 @@ mod tests {
     }
 
     #[test]
+    fn event_observed_at_decision_tick_is_visible_to_that_decision() {
+        let suite = ReplaySuite {
+            decision_ticks: vec![4],
+            scenarios: vec![
+                scenario(
+                    "vehicle-a-fails",
+                    vec![event("vehicle-a-fault", 4)],
+                    vec![action(4, "reroute-a")],
+                ),
+                scenario(
+                    "vehicle-b-fails",
+                    vec![event("vehicle-b-fault", 4)],
+                    vec![action(4, "reroute-b")],
+                ),
+            ],
+        };
+
+        assert_eq!(
+            audit_policy_replay(&suite).status,
+            PolicyReplayStatus::Consistent
+        );
+    }
+
+    #[test]
     fn observation_time_is_part_of_the_information_history() {
         let suite = ReplaySuite {
             decision_ticks: vec![2],
