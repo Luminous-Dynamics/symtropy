@@ -189,7 +189,7 @@ The synthetic fixture contains four scenarios and two crossed binary measurement
 
 The fixture's test target is therefore: pre-measurement worst-case regret 6; two-measurement adaptive regret 0; gross regret reduction 6; maximum two measurements per path; and deterministic branch-specific action choices. One-step budgets of one measurement should choose the no-measurement stop option on a tie, because it achieves equal worst-case regret at lower cost. If the cumulative budget cannot fund the complementary pair, the oracle should retain the safe stop action rather than overspend.
 
-The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Six additional unit tests cover the complementary two-step solution, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
+The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Six adaptive unit tests cover the complementary two-step solution, resolution when no robust pre-measurement action exists, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
 
 ### Next scientific benchmark, once the exact reference is qualified
 
