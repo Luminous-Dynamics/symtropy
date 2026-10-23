@@ -67,7 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             mkdir -p "$work/$candidate"
             cargo run --manifest-path "$work/symthaea/crates/domains/symthaea-engineering/Cargo.toml" \
               --bin energy_architecture_candidates -- \
@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
               --bin energy_candidate_schema_validate -- \
               "$work/energy-system-candidate-v0.1.schema.json" "$work/$candidate/candidate.json"
@@ -93,7 +93,7 @@ jobs:
           work="$RUNNER_TEMP/energy-studio"
           config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
           cd "$work/sol-atlas"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             cargo run --manifest-path sol-atlas-core/Cargo.toml \
               --bin energy_design_dispatch_compile -- \
               "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
@@ -105,7 +105,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
           config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
               --bin energy_compilation_receipt_verify -- \
               "$work/$candidate/candidate.json" "$config" \
@@ -118,7 +118,7 @@ jobs:
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
           cd "$work/sol-atlas"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             cargo run --manifest-path sol-atlas-core/Cargo.toml \
               --bin energy_dispatch_assess -- "$work/$candidate/dispatch-request.json" \
               > "$work/$candidate/dispatch-report.json"
@@ -129,7 +129,7 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw; do
             echo "Auditing $candidate against its frozen objective-frontier known answer"
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
               --bin symtropy-energy-dispatch-audit -- \
@@ -148,5 +148,6 @@ jobs:
             ${{ runner.temp }}/energy-studio/synthetic-grid-only/*.json
             ${{ runner.temp }}/energy-studio/synthetic-pv-grid/*.json
             ${{ runner.temp }}/energy-studio/synthetic-pv-battery-grid/*.json
+            ${{ runner.temp }}/energy-studio/synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-1kw/*.json
           if-no-files-found: ignore
           retention-days: 14
