@@ -1155,11 +1155,15 @@ fn evaluate_kinematics_file(model_path: &str, state_path: &str) {
         "physical_actuation_authorized": false,
         "patient_contact_authorized": false,
         "clinical_use_authorized": false,
-        "claim_ceiling": "Geometry-only forward kinematics on a synthetic tree; not engine or physical validation."
+        "claim_ceiling": concat!(
+            "Geometry-only forward kinematics on a synthetic tree; not engine ",
+            "or physical validation."
+        )
     });
     println!(
         "{}",
-        serde_json::to_string_pretty(&receipt).expect("kinematics receipt serialization cannot fail")
+        serde_json::to_string_pretty(&receipt)
+            .expect("kinematics receipt serialization cannot fail")
     );
     if disposition == "BLOCKED" {
         process::exit(1);
@@ -1261,7 +1265,9 @@ fn main() {
     }
     if first.as_deref() == Some("--evaluate-kinematics") {
         let Some(model_path) = args.next() else {
-            eprintln!("usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
+            eprintln!(
+                "usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON"
+            );
             process::exit(2);
         };
         let Some(state_path) = args.next() else {
