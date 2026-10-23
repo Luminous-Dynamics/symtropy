@@ -1271,7 +1271,9 @@ fn main() {
             process::exit(2);
         };
         let Some(state_path) = args.next() else {
-            eprintln!("usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
+            eprintln!(
+                "usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON"
+            );
             process::exit(2);
         };
         if args.next().is_some() {
