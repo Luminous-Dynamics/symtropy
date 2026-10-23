@@ -603,56 +603,79 @@ mod tests {
         let request: DispatchRequest = serde_json::from_slice(request_bytes).expect("frozen request is valid");
         let inputs = &request.intervals;
         assert_eq!(inputs.len(), 2);
-        let schedule = vec![
-            IntervalDecision {
-                interval_id: inputs[0].interval_id.clone(),
-                start_unix_seconds: inputs[0].start_unix_seconds,
-                duration_seconds: inputs[0].duration_seconds,
-                grid_outage: inputs[0].grid_outage,
-                pv_available_quanta: inputs[0].pv_available_quanta,
-                pv_used_quanta: 2,
-                pv_curtailed_quanta: 0,
-                grid_import_quanta: 0,
-                battery_soc_before_quanta: 0,
-                battery_charge_input_quanta: 2,
-                battery_soc_withdrawal_quanta: 0,
-                battery_discharge_delivered_quanta: 0,
-                battery_soc_after_quanta: 2,
-                essential_demand_quanta: 0,
-                essential_served_quanta: 0,
-                essential_unserved_quanta: 0,
-                flexible_demand_quanta: 0,
-                flexible_served_quanta: 0,
-                flexible_unserved_quanta: 0,
-                grid_cost_units_per_quantum: inputs[0].grid_cost_units_per_quantum,
-                grid_carbon_grams_per_quantum: inputs[0].grid_carbon_grams_per_quantum,
-                bus_energy_balance_residual_quanta: 0,
-            },
-            IntervalDecision {
-                interval_id: inputs[1].interval_id.clone(),
-                start_unix_seconds: inputs[1].start_unix_seconds,
-                duration_seconds: inputs[1].duration_seconds,
-                grid_outage: inputs[1].grid_outage,
-                pv_available_quanta: inputs[1].pv_available_quanta,
-                pv_used_quanta: 0,
-                pv_curtailed_quanta: 0,
-                grid_import_quanta: 0,
-                battery_soc_before_quanta: 2,
-                battery_charge_input_quanta: 0,
-                battery_soc_withdrawal_quanta: 2,
-                battery_discharge_delivered_quanta: 2,
-                battery_soc_after_quanta: 0,
-                essential_demand_quanta: 2,
-                essential_served_quanta: 2,
-                essential_unserved_quanta: 0,
-                flexible_demand_quanta: 0,
-                flexible_served_quanta: 0,
-                flexible_unserved_quanta: 0,
-                grid_cost_units_per_quantum: inputs[1].grid_cost_units_per_quantum,
-                grid_carbon_grams_per_quantum: inputs[1].grid_carbon_grams_per_quantum,
-                bus_energy_balance_residual_quanta: 0,
-            },
-        ];
+
+        let first_step = IntervalDecision {
+            interval_id: inputs[0].interval_id.clone(),
+            start_unix_seconds: inputs[0].start_unix_seconds,
+            duration_seconds: inputs[0].duration_seconds,
+            grid_outage: inputs[0].grid_outage,
+            pv_available_quanta: inputs[0].pv_available_quanta,
+            pv_used_quanta: 2,
+            pv_curtailed_quanta: 0,
+            grid_import_quanta: 0,
+            battery_soc_before_quanta: 0,
+            battery_charge_input_quanta: 2,
+            battery_soc_withdrawal_quanta: 0,
+            battery_discharge_delivered_quanta: 0,
+            battery_soc_after_quanta: 2,
+            essential_demand_quanta: 0,
+            essential_served_quanta: 0,
+            essential_unserved_quanta: 0,
+            flexible_demand_quanta: 0,
+            flexible_served_quanta: 0,
+            flexible_unserved_quanta: 0,
+            grid_cost_units_per_quantum: inputs[0].grid_cost_units_per_quantum,
+            grid_carbon_grams_per_quantum: inputs[0].grid_carbon_grams_per_quantum,
+            bus_energy_balance_residual_quanta: 0,
+        };
+
+        let make_schedule = |discharge: u16| {
+            vec![
+                first_step.clone(),
+                IntervalDecision {
+                    interval_id: inputs[1].interval_id.clone(),
+                    start_unix_seconds: inputs[1].start_unix_seconds,
+                    duration_seconds: inputs[1].duration_seconds,
+                    grid_outage: inputs[1].grid_outage,
+                    pv_available_quanta: inputs[1].pv_available_quanta,
+                    pv_used_quanta: 0,
+                    pv_curtailed_quanta: 0,
+                    grid_import_quanta: 0,
+                    battery_soc_before_quanta: 2,
+                    battery_charge_input_quanta: 0,
+                    battery_soc_withdrawal_quanta: discharge,
+                    battery_discharge_delivered_quanta: discharge,
+                    battery_soc_after_quanta: 2 - discharge,
+                    essential_demand_quanta: 2,
+                    essential_served_quanta: discharge,
+                    essential_unserved_quanta: 2 - discharge,
+                    flexible_demand_quanta: 0,
+                    flexible_served_quanta: 0,
+                    flexible_unserved_quanta: 0,
+                    grid_cost_units_per_quantum: inputs[1].grid_cost_units_per_quantum,
+                    grid_carbon_grams_per_quantum: inputs[1].grid_carbon_grams_per_quantum,
+                    bus_energy_balance_residual_quanta: 0,
+                },
+            ]
+        };
+
+        // Exact reference enumeration yields three non-dominated trade-offs:
+        // serve 2/1/0 quanta and retain 0/1/2 quanta of terminal battery SOC.
+        let alternatives = [2_u16, 1, 0]
+            .into_iter()
+            .map(|discharge| ParetoAlternative {
+                objective: DispatchObjective {
+                    essential_unserved_quanta: u64::from(2 - discharge),
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 0,
+                    grid_carbon_grams: 0,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 2 - discharge,
+                },
+                schedule: make_schedule(discharge),
+            })
+            .collect::<Vec<_>>();
+
         let assessment = DispatchAssessment {
             assessment_schema_version: ASSESSMENT_SCHEMA.to_owned(),
             case_id: request.case_id.clone(),
@@ -664,20 +687,10 @@ mod tests {
             energy_quantum_kwh: request.energy_quantum_kwh,
             search_is_exact: true,
             pareto_frontier_complete: true,
-            evaluated_action_expansions: 20,
-            feasible_complete_schedules: 1,
-            pareto_frontier_count: 1,
-            pareto_alternatives: vec![ParetoAlternative {
-                objective: DispatchObjective {
-                    essential_unserved_quanta: 0,
-                    flexible_unserved_quanta: 0,
-                    operating_cost_units: 0,
-                    grid_carbon_grams: 0,
-                    curtailed_pv_quanta: 0,
-                    terminal_soc_quanta: 0,
-                },
-                schedule,
-            }],
+            evaluated_action_expansions: 203,
+            feasible_complete_schedules: 14,
+            pareto_frontier_count: 3,
+            pareto_alternatives: alternatives,
         };
         let assessment_sha256 = sha256_hex(&serde_json::to_vec(&assessment).expect("assessment serializes"));
         DispatchRunReport {
@@ -708,7 +721,9 @@ mod tests {
         let report = make_valid_report(REQUEST.as_bytes());
         let audited = audit_report(REQUEST.as_bytes(), &report);
         assert_eq!(audited.status, "pass", "{:#?}", audited.checks);
-        assert_eq!(audited.objective_claim_status, "not_independently_verified");
+        assert_eq!(audited.reference_frontier_status, "pass");
+        assert_eq!(audited.reference_feasible_complete_schedules, Some(14));
+        assert_eq!(audited.objective_claim_status, "verified_for_bounded_model_case");
     }
 
     #[test]
@@ -742,7 +757,7 @@ mod tests {
     }
 
     #[test]
-    fn incomplete_solver_claim_does_not_become_a_feasibility_failure_or_optimality_proof() {
+    fn independent_reference_can_verify_small_frontier_even_if_solver_flags_are_incomplete() {
         let mut report = make_valid_report(REQUEST.as_bytes());
         report.assessment.search_is_exact = false;
         report.assessment.pareto_frontier_complete = false;
@@ -750,7 +765,8 @@ mod tests {
         let audited = audit_report(REQUEST.as_bytes(), &report);
         assert_eq!(audited.status, "pass");
         assert_eq!(audited.solver_reported_search_status, "solver_reports_incomplete_or_unknown_search");
-        assert_eq!(audited.objective_claim_status, "not_independently_verified");
+        assert_eq!(audited.reference_frontier_status, "pass");
+        assert_eq!(audited.objective_claim_status, "verified_for_bounded_model_case");
     }
 
     #[test]
