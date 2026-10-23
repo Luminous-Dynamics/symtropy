@@ -1,0 +1,1505 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "multimodal-mission-chain-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_real_world_data_included": false,
+    "notes": "All times, masses, platform/hub capabilities and status values are invented for contract tests. The Afghanistan examples intentionally have unknown route/hazard authorization."
+  },
+  "claim_ceiling": "synthetic_chain_feasibility_is_not_route_authorization_or_real_world_transport_validation",
+  "environments": [
+    {
+      "environment_id": "amazon_basin",
+      "min_ambient_temp_c": 20,
+      "max_ambient_temp_c": 38
+    },
+    {
+      "environment_id": "congo_basin",
+      "min_ambient_temp_c": 18,
+      "max_ambient_temp_c": 35
+    },
+    {
+      "environment_id": "antarctica",
+      "min_ambient_temp_c": -48,
+      "max_ambient_temp_c": -18
+    },
+    {
+      "environment_id": "sahara",
+      "min_ambient_temp_c": 32,
+      "max_ambient_temp_c": 52
+    },
+    {
+      "environment_id": "afghanistan",
+      "min_ambient_temp_c": -12,
+      "max_ambient_temp_c": 38
+    }
+  ],
+  "payload_profiles": [
+    {
+      "payload_id": "bulk_medical_supplies",
+      "payload_class": "bulk_cargo",
+      "mass_kg_max": 80,
+      "temperature_range_c": null,
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "cold_chain_medicine",
+      "payload_class": "cold_chain",
+      "mass_kg_max": 35,
+      "temperature_range_c": {
+        "min": 2,
+        "max": 8
+      },
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "fragile_science_instrument",
+      "payload_class": "fragile_instrument",
+      "mass_kg_max": 32,
+      "temperature_range_c": {
+        "min": 0,
+        "max": 35
+      },
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "contained_water_samples",
+      "payload_class": "contained_liquid",
+      "mass_kg_max": 18,
+      "temperature_range_c": {
+        "min": 2,
+        "max": 12
+      },
+      "securement_required": true,
+      "occupants": 0,
+      "occupant_class": "none",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "seated_passengers",
+      "payload_class": "seated_passengers",
+      "mass_kg_max": 300,
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "securement_required": true,
+      "occupants": 4,
+      "occupant_class": "seated",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": false
+    },
+    {
+      "payload_id": "wheelchair_passenger",
+      "payload_class": "wheelchair_user",
+      "mass_kg_max": 150,
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "securement_required": true,
+      "occupants": 1,
+      "occupant_class": "wheelchair",
+      "accessible_transfer_required": true,
+      "wheelchair_securement_required": true,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "stretcher_patient",
+      "payload_class": "stretcher_patient",
+      "mass_kg_max": 180,
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "securement_required": true,
+      "occupants": 1,
+      "occupant_class": "stretcher_patient",
+      "accessible_transfer_required": true,
+      "wheelchair_securement_required": false,
+      "patient_support_required": true,
+      "caregiver_access_required": true,
+      "privacy_sensitive": true
+    },
+    {
+      "payload_id": "field_crew",
+      "payload_class": "field_crew",
+      "mass_kg_max": 160,
+      "temperature_range_c": {
+        "min": 18,
+        "max": 30
+      },
+      "securement_required": true,
+      "occupants": 2,
+      "occupant_class": "field_crew",
+      "accessible_transfer_required": false,
+      "wheelchair_securement_required": false,
+      "patient_support_required": false,
+      "caregiver_access_required": false,
+      "privacy_sensitive": false
+    }
+  ],
+  "platform_profiles": [
+    {
+      "platform_id": "riverlink_cargo_boat",
+      "mode": "watercraft",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_payload_kg": 500,
+      "ambient_temp_min_c": 5,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "coldchain_lastmile_van",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_payload_kg": 250,
+      "ambient_temp_min_c": 10,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "accessible_ferry",
+      "mode": "watercraft",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "supported_payload_classes": [
+        "seated_passengers",
+        "wheelchair_user"
+      ],
+      "max_payload_kg": 900,
+      "ambient_temp_min_c": 5,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "has_securement": true,
+      "has_occupant_restraints": true,
+      "has_accessible_transfer": true,
+      "has_wheelchair_securement": true,
+      "has_patient_support": false,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "accessible_shuttle",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "supported_payload_classes": [
+        "seated_passengers",
+        "wheelchair_user"
+      ],
+      "max_payload_kg": 600,
+      "ambient_temp_min_c": 0,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "has_securement": true,
+      "has_occupant_restraints": true,
+      "has_accessible_transfer": true,
+      "has_wheelchair_securement": true,
+      "has_patient_support": false,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "congo_low_disturbance_rover",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 90,
+      "ambient_temp_min_c": 10,
+      "ambient_temp_max_c": 40,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 12,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "congo_sample_van",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "supported_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_payload_kg": 250,
+      "ambient_temp_min_c": 5,
+      "ambient_temp_max_c": 42,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 12,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "polar_sled_train",
+      "mode": "sled",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_payload_kg": 900,
+      "ambient_temp_min_c": -55,
+      "ambient_temp_max_c": 5,
+      "controlled_temp_min_c": 0,
+      "controlled_temp_max_c": 15,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "polar_crawler",
+      "mode": "tracked_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_payload_kg": 650,
+      "ambient_temp_min_c": -55,
+      "ambient_temp_max_c": 5,
+      "controlled_temp_min_c": 0,
+      "controlled_temp_max_c": 30,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "dunerunner_cargo_rover",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "sahara"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_payload_kg": 250,
+      "ambient_temp_min_c": 0,
+      "ambient_temp_max_c": 60,
+      "controlled_temp_min_c": 0,
+      "controlled_temp_max_c": 35,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "dune_service_truck",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "sahara"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_payload_kg": 700,
+      "ambient_temp_min_c": 0,
+      "ambient_temp_max_c": 60,
+      "controlled_temp_min_c": 0,
+      "controlled_temp_max_c": 35,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "aidrover_supply",
+      "mode": "wheeled_rover",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_payload_kg": 220,
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "afg_clinic_van",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_payload_kg": 300,
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 2,
+      "controlled_temp_max_c": 8,
+      "has_securement": true,
+      "has_occupant_restraints": false,
+      "has_accessible_transfer": false,
+      "has_wheelchair_securement": false,
+      "has_patient_support": false,
+      "has_caregiver_access": false,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "afg_patient_carrier",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "stretcher_patient"
+      ],
+      "max_payload_kg": 500,
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "has_securement": true,
+      "has_occupant_restraints": true,
+      "has_accessible_transfer": true,
+      "has_wheelchair_securement": false,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    },
+    {
+      "platform_id": "afg_patient_van",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "supported_payload_classes": [
+        "stretcher_patient"
+      ],
+      "max_payload_kg": 600,
+      "ambient_temp_min_c": -15,
+      "ambient_temp_max_c": 45,
+      "controlled_temp_min_c": 18,
+      "controlled_temp_max_c": 30,
+      "has_securement": true,
+      "has_occupant_restraints": true,
+      "has_accessible_transfer": true,
+      "has_wheelchair_securement": false,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_emergency_egress": true,
+      "has_privacy_controls": true,
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
+    }
+  ],
+  "hub_profiles": [
+    {
+      "hub_id": "amz_river_landing",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "amz_cold_depot",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "amz_clinic_delivery",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "amz_accessible_landing",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "seated_passengers",
+        "wheelchair_user"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "amz_passenger_exchange",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "seated_passengers",
+        "wheelchair_user"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "amz_community_clinic",
+      "environment_id": "amazon_basin",
+      "accepted_payload_classes": [
+        "seated_passengers",
+        "wheelchair_user"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "congo_trailhead",
+      "environment_id": "congo_basin",
+      "accepted_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 12
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "congo_field_station",
+      "environment_id": "congo_basin",
+      "accepted_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 12
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "congo_sample_lab",
+      "environment_id": "congo_basin",
+      "accepted_payload_classes": [
+        "fragile_instrument",
+        "contained_liquid"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 12
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "ant_field_cache",
+      "environment_id": "antarctica",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 15
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "ant_relay_station",
+      "environment_id": "antarctica",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 15
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "ant_research_station",
+      "environment_id": "antarctica",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 15
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "sahara_base",
+      "environment_id": "sahara",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 35
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "sahara_tool_depot",
+      "environment_id": "sahara",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 35
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "sahara_sensor_site",
+      "environment_id": "sahara",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "fragile_instrument"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 0,
+          "max": 35
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_logistics_hub",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_distribution_hub",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_clinic",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "bulk_cargo",
+        "cold_chain"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 2,
+          "max": 8
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_patient_staging",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "stretcher_patient"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_patient_transfer",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "stretcher_patient"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    },
+    {
+      "hub_id": "afg_patient_station",
+      "environment_id": "afghanistan",
+      "accepted_payload_classes": [
+        "stretcher_patient"
+      ],
+      "max_handling_mass_kg": 1200,
+      "storage_temperature_zones": [
+        {
+          "min": 18,
+          "max": 30
+        }
+      ],
+      "has_securement": true,
+      "has_condition_control": true,
+      "has_accessible_transfer": true,
+      "has_patient_support": true,
+      "has_caregiver_access": true,
+      "has_privacy_custody": true,
+      "has_operator_staffing": true,
+      "has_recovery_support": true
+    }
+  ],
+  "mission_scenarios": [
+    {
+      "mission_id": "AMZ-COLDCHAIN-CHAIN-01",
+      "mission_class": "medical_cold_chain_delivery",
+      "origin_hub_id": "amz_river_landing",
+      "destination_hub_id": "amz_clinic_delivery",
+      "payload_ids": [
+        "cold_chain_medicine",
+        "bulk_medical_supplies"
+      ],
+      "deadline_minutes": 240,
+      "operating_notes": "Boat-to-cold-van transfer with continuous 2–8 C custody."
+    },
+    {
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGER-CHAIN-01",
+      "mission_class": "accessible_community_passenger_transport",
+      "origin_hub_id": "amz_accessible_landing",
+      "destination_hub_id": "amz_community_clinic",
+      "payload_ids": [
+        "seated_passengers",
+        "wheelchair_passenger"
+      ],
+      "deadline_minutes": 180,
+      "operating_notes": "Accessible ferry-to-shuttle transfer with passenger restraint/egress and wheelchair securement preserved."
+    },
+    {
+      "mission_id": "CONGO-SCIENCE-CHAIN-01",
+      "mission_class": "low_disturbance_instrument_and_sample_transfer",
+      "origin_hub_id": "congo_trailhead",
+      "destination_hub_id": "congo_sample_lab",
+      "payload_ids": [
+        "fragile_science_instrument",
+        "contained_water_samples"
+      ],
+      "deadline_minutes": 180,
+      "operating_notes": "Approved-path rover-to-van transfer with fragile payload and sample condition continuity."
+    },
+    {
+      "mission_id": "ANTARCTIC-SCIENCE-CHAIN-01",
+      "mission_class": "science_instrument_resupply",
+      "origin_hub_id": "ant_field_cache",
+      "destination_hub_id": "ant_research_station",
+      "payload_ids": [
+        "fragile_science_instrument",
+        "bulk_medical_supplies"
+      ],
+      "deadline_minutes": 360,
+      "operating_notes": "Sled-to-crawler transfer in cold conditions with insulated instrument control."
+    },
+    {
+      "mission_id": "SAHARA-TOOLS-CHAIN-01",
+      "mission_class": "remote_tool_and_sensor_delivery",
+      "origin_hub_id": "sahara_base",
+      "destination_hub_id": "sahara_sensor_site",
+      "payload_ids": [
+        "bulk_medical_supplies",
+        "fragile_science_instrument"
+      ],
+      "deadline_minutes": 100,
+      "operating_notes": "Synthetic hot/dust remote delivery; declared deadline is intentionally shorter than worst-case chain duration."
+    },
+    {
+      "mission_id": "AFG-COLDCHAIN-CHAIN-01",
+      "mission_class": "civilian_humanitarian_medical_delivery",
+      "origin_hub_id": "afg_logistics_hub",
+      "destination_hub_id": "afg_clinic",
+      "payload_ids": [
+        "cold_chain_medicine",
+        "bulk_medical_supplies"
+      ],
+      "deadline_minutes": 180,
+      "operating_notes": "Civilian supply chain; route and explosive-hazard evidence intentionally unknown."
+    },
+    {
+      "mission_id": "AFG-PATIENT-CHAIN-01",
+      "mission_class": "civilian_supervised_stretcher_transfer",
+      "origin_hub_id": "afg_patient_staging",
+      "destination_hub_id": "afg_patient_station",
+      "payload_ids": [
+        "stretcher_patient"
+      ],
+      "deadline_minutes": 240,
+      "operating_notes": "Synthetic patient-transfer chain; route/hazard status intentionally unknown and no care/deployment advice is implied."
+    }
+  ],
+  "assessments": [
+    {
+      "assessment_id": "amz-coldchain-good",
+      "mission_id": "AMZ-COLDCHAIN-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "amz-boat-leg",
+          "platform_id": "riverlink_cargo_boat",
+          "origin_hub_id": "amz_river_landing",
+          "destination_hub_id": "amz_cold_depot",
+          "duration_minutes_min": 75,
+          "duration_minutes_max": 100,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "amz-van-leg",
+          "platform_id": "coldchain_lastmile_van",
+          "origin_hub_id": "amz_cold_depot",
+          "destination_hub_id": "amz_clinic_delivery",
+          "duration_minutes_min": 30,
+          "duration_minutes_max": 45,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "amz-cold-depot-transfer",
+          "from_leg_id": "amz-boat-leg",
+          "to_leg_id": "amz-van-leg",
+          "hub_id": "amz_cold_depot",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 30,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-accessible-passenger-good",
+      "mission_id": "AMZ-ACCESSIBLE-PASSENGER-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "amz-ferry-leg",
+          "platform_id": "accessible_ferry",
+          "origin_hub_id": "amz_accessible_landing",
+          "destination_hub_id": "amz_passenger_exchange",
+          "duration_minutes_min": 60,
+          "duration_minutes_max": 90,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "amz-shuttle-leg",
+          "platform_id": "accessible_shuttle",
+          "origin_hub_id": "amz_passenger_exchange",
+          "destination_hub_id": "amz_community_clinic",
+          "duration_minutes_min": 25,
+          "duration_minutes_max": 40,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "amz-accessible-transfer",
+          "from_leg_id": "amz-ferry-leg",
+          "to_leg_id": "amz-shuttle-leg",
+          "hub_id": "amz_passenger_exchange",
+          "duration_minutes_min": 10,
+          "duration_minutes_max": 20,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-sample-good",
+      "mission_id": "CONGO-SCIENCE-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "congo-rover-leg",
+          "platform_id": "congo_low_disturbance_rover",
+          "origin_hub_id": "congo_trailhead",
+          "destination_hub_id": "congo_field_station",
+          "duration_minutes_min": 45,
+          "duration_minutes_max": 70,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "congo-van-leg",
+          "platform_id": "congo_sample_van",
+          "origin_hub_id": "congo_field_station",
+          "destination_hub_id": "congo_sample_lab",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 35,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "congo-sample-transfer",
+          "from_leg_id": "congo-rover-leg",
+          "to_leg_id": "congo-van-leg",
+          "hub_id": "congo_field_station",
+          "duration_minutes_min": 15,
+          "duration_minutes_max": 25,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-sample-temperature-break-negative",
+      "mission_id": "CONGO-SCIENCE-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "congo-rover-leg-neg",
+          "platform_id": "congo_low_disturbance_rover",
+          "origin_hub_id": "congo_trailhead",
+          "destination_hub_id": "congo_field_station",
+          "duration_minutes_min": 45,
+          "duration_minutes_max": 70,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "congo-van-leg-neg",
+          "platform_id": "congo_sample_van",
+          "origin_hub_id": "congo_field_station",
+          "destination_hub_id": "congo_sample_lab",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 35,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "congo-broken-condition-transfer",
+          "from_leg_id": "congo-rover-leg-neg",
+          "to_leg_id": "congo-van-leg-neg",
+          "hub_id": "congo_field_station",
+          "duration_minutes_min": 15,
+          "duration_minutes_max": 25,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "fail",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "ant-science-good",
+      "mission_id": "ANTARCTIC-SCIENCE-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "ant-sled-leg",
+          "platform_id": "polar_sled_train",
+          "origin_hub_id": "ant_field_cache",
+          "destination_hub_id": "ant_relay_station",
+          "duration_minutes_min": 120,
+          "duration_minutes_max": 180,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "ant-crawler-leg",
+          "platform_id": "polar_crawler",
+          "origin_hub_id": "ant_relay_station",
+          "destination_hub_id": "ant_research_station",
+          "duration_minutes_min": 40,
+          "duration_minutes_max": 60,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "ant-relay-transfer",
+          "from_leg_id": "ant-sled-leg",
+          "to_leg_id": "ant-crawler-leg",
+          "hub_id": "ant_relay_station",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 45,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "sahara-deadline-negative",
+      "mission_id": "SAHARA-TOOLS-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "sahara-rover-leg",
+          "platform_id": "dunerunner_cargo_rover",
+          "origin_hub_id": "sahara_base",
+          "destination_hub_id": "sahara_tool_depot",
+          "duration_minutes_min": 50,
+          "duration_minutes_max": 80,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        },
+        {
+          "leg_id": "sahara-truck-leg",
+          "platform_id": "dune_service_truck",
+          "origin_hub_id": "sahara_tool_depot",
+          "destination_hub_id": "sahara_sensor_site",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 35,
+          "route_authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "sahara-tool-transfer",
+          "from_leg_id": "sahara-rover-leg",
+          "to_leg_id": "sahara-truck-leg",
+          "hub_id": "sahara_tool_depot",
+          "duration_minutes_min": 8,
+          "duration_minutes_max": 15,
+          "authorization_status": "pass",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "pass"
+        }
+      ]
+    },
+    {
+      "assessment_id": "afg-medical-route-unknown",
+      "mission_id": "AFG-COLDCHAIN-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "afg-supply-rover-leg",
+          "platform_id": "aidrover_supply",
+          "origin_hub_id": "afg_logistics_hub",
+          "destination_hub_id": "afg_distribution_hub",
+          "duration_minutes_min": 50,
+          "duration_minutes_max": 90,
+          "route_authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        },
+        {
+          "leg_id": "afg-clinic-van-leg",
+          "platform_id": "afg_clinic_van",
+          "origin_hub_id": "afg_distribution_hub",
+          "destination_hub_id": "afg_clinic",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 35,
+          "route_authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "afg-medical-handoff",
+          "from_leg_id": "afg-supply-rover-leg",
+          "to_leg_id": "afg-clinic-van-leg",
+          "hub_id": "afg_distribution_hub",
+          "duration_minutes_min": 15,
+          "duration_minutes_max": 30,
+          "authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        }
+      ]
+    },
+    {
+      "assessment_id": "afg-patient-route-unknown",
+      "mission_id": "AFG-PATIENT-CHAIN-01",
+      "legs": [
+        {
+          "leg_id": "afg-patient-carrier-leg",
+          "platform_id": "afg_patient_carrier",
+          "origin_hub_id": "afg_patient_staging",
+          "destination_hub_id": "afg_patient_transfer",
+          "duration_minutes_min": 60,
+          "duration_minutes_max": 100,
+          "route_authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        },
+        {
+          "leg_id": "afg-patient-van-leg",
+          "platform_id": "afg_patient_van",
+          "origin_hub_id": "afg_patient_transfer",
+          "destination_hub_id": "afg_patient_station",
+          "duration_minutes_min": 25,
+          "duration_minutes_max": 45,
+          "route_authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        }
+      ],
+      "handoffs": [
+        {
+          "handoff_id": "afg-patient-handoff",
+          "from_leg_id": "afg-patient-carrier-leg",
+          "to_leg_id": "afg-patient-van-leg",
+          "hub_id": "afg_patient_transfer",
+          "duration_minutes_min": 20,
+          "duration_minutes_max": 35,
+          "authorization_status": "unknown",
+          "environmental_protection_status": "pass",
+          "securement_status": "pass",
+          "condition_control_status": "pass",
+          "accessibility_status": "pass",
+          "patient_support_status": "pass",
+          "privacy_custody_status": "pass",
+          "operator_status": "pass",
+          "recovery_status": "pass",
+          "hazard_status": "unknown"
+        }
+      ]
+    }
+  ]
+}

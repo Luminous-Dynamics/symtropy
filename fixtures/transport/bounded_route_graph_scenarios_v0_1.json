@@ -1,0 +1,1288 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "bounded-route-graph-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_real_world_data_included": false,
+    "notes": "All nodes, edges, durations, energy consumption, margins, statuses and capacities are invented software regression inputs, not real route evidence or engineering measurements."
+  },
+  "claim_ceiling": "synthetic_route_enumeration_is_not_route_authorization_or_real_world_transport_validation",
+  "missions": [
+    {
+      "mission_id": "amazon-medical-cold-chain",
+      "environment_id": "amazon_basin",
+      "payload_class": "cold_chain",
+      "origin_node": "amz-origin",
+      "destination_node": "amz-destination",
+      "deadline_max_minutes": 180,
+      "initial_energy_reserve_pct": 85,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 1.5,
+      "max_hops": 4,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "congo-fragile-sample",
+      "environment_id": "congo_basin",
+      "payload_class": "fragile_instrument",
+      "origin_node": "congo-origin",
+      "destination_node": "congo-destination",
+      "deadline_max_minutes": 210,
+      "initial_energy_reserve_pct": 85,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 1.5,
+      "max_hops": 4,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "antarctic-accessible-relief",
+      "environment_id": "antarctica",
+      "payload_class": "seated_passengers",
+      "origin_node": "ant-origin",
+      "destination_node": "ant-destination",
+      "deadline_max_minutes": 240,
+      "initial_energy_reserve_pct": 80,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 0.5,
+      "max_hops": 4,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "sahara-water-medical-kit",
+      "environment_id": "sahara",
+      "payload_class": "cold_chain",
+      "origin_node": "sahara-origin",
+      "destination_node": "sahara-destination",
+      "deadline_max_minutes": 300,
+      "initial_energy_reserve_pct": 85,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 1,
+      "max_hops": 4,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "environment_id": "afghanistan",
+      "payload_class": "bulk_cargo",
+      "origin_node": "afg-origin",
+      "destination_node": "afg-destination",
+      "deadline_max_minutes": 300,
+      "initial_energy_reserve_pct": 80,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 0,
+      "max_hops": 4,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "sahara-disconnected-sensor",
+      "environment_id": "sahara",
+      "payload_class": "fragile_instrument",
+      "origin_node": "sh-isolated-origin",
+      "destination_node": "sh-isolated-destination",
+      "deadline_max_minutes": 200,
+      "initial_energy_reserve_pct": 80,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 0,
+      "max_hops": 3,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "node_id": "amz-origin",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "amz-river-hub",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 2,
+      "condition_margin_c": 2.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 15
+    },
+    {
+      "node_id": "amz-destination",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "congo-origin",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "congo-river-hub",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "transfer_energy_consumption_pct_max": 2,
+      "condition_margin_c": 2.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 15
+    },
+    {
+      "node_id": "congo-destination",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "ant-origin",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "ant-transfer-hub",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "transfer_energy_consumption_pct_max": 2,
+      "condition_margin_c": 1.3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 10,
+      "transfer_duration_max_minutes": 20
+    },
+    {
+      "node_id": "ant-destination",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "sahara-origin",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "sahara-night-hub",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 2,
+      "condition_margin_c": 1.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 15,
+      "transfer_duration_max_minutes": 20
+    },
+    {
+      "node_id": "sahara-destination",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "afg-origin",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "afg-aid-hub",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "transfer_energy_consumption_pct_max": 2,
+      "condition_margin_c": 1,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 15,
+      "transfer_duration_max_minutes": 20
+    },
+    {
+      "node_id": "afg-destination",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "sh-isolated-origin",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    },
+    {
+      "node_id": "sh-isolated-destination",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "transfer_energy_consumption_pct_max": 0,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "transfer_duration_min_minutes": 0,
+      "transfer_duration_max_minutes": 0
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "amz-rivercraft",
+      "from_node": "amz-origin",
+      "to_node": "amz-river-hub",
+      "mode": "rivercraft",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 35,
+      "duration_max_minutes": 50,
+      "energy_consumption_pct_max": 18,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "amz-ground-transfer",
+      "from_node": "amz-river-hub",
+      "to_node": "amz-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 45,
+      "duration_max_minutes": 65,
+      "energy_consumption_pct_max": 20,
+      "condition_margin_c": 2.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "amz-aerial-direct",
+      "from_node": "amz-origin",
+      "to_node": "amz-destination",
+      "mode": "aerial_carrier",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 80,
+      "duration_max_minutes": 100,
+      "energy_consumption_pct_max": 60,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "amz-ground-direct",
+      "from_node": "amz-origin",
+      "to_node": "amz-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "amazon_basin"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 120,
+      "duration_max_minutes": 150,
+      "energy_consumption_pct_max": 20,
+      "condition_margin_c": 1.8,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "congo-watercraft",
+      "from_node": "congo-origin",
+      "to_node": "congo-river-hub",
+      "mode": "watercraft",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "duration_min_minutes": 60,
+      "duration_max_minutes": 70,
+      "energy_consumption_pct_max": 18,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "congo-carrier-leg",
+      "from_node": "congo-river-hub",
+      "to_node": "congo-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "duration_min_minutes": 60,
+      "duration_max_minutes": 70,
+      "energy_consumption_pct_max": 22,
+      "condition_margin_c": 2.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "congo-ground-direct",
+      "from_node": "congo-origin",
+      "to_node": "congo-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "duration_min_minutes": 140,
+      "duration_max_minutes": 170,
+      "energy_consumption_pct_max": 20,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "congo-unsecure-direct",
+      "from_node": "congo-origin",
+      "to_node": "congo-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "congo_basin"
+      ],
+      "payload_classes": [
+        "fragile_instrument"
+      ],
+      "duration_min_minutes": 90,
+      "duration_max_minutes": 120,
+      "energy_consumption_pct_max": 12,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": false,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "ant-tracked-direct",
+      "from_node": "ant-origin",
+      "to_node": "ant-destination",
+      "mode": "tracked_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "duration_min_minutes": 120,
+      "duration_max_minutes": 150,
+      "energy_consumption_pct_max": 22,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "ant-sled-first-leg",
+      "from_node": "ant-origin",
+      "to_node": "ant-transfer-hub",
+      "mode": "sled_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "duration_min_minutes": 75,
+      "duration_max_minutes": 85,
+      "energy_consumption_pct_max": 8,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "ant-sled-final-leg",
+      "from_node": "ant-transfer-hub",
+      "to_node": "ant-destination",
+      "mode": "sled_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "duration_min_minutes": 75,
+      "duration_max_minutes": 95,
+      "energy_consumption_pct_max": 8,
+      "condition_margin_c": 1.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "ant-air-direct",
+      "from_node": "ant-origin",
+      "to_node": "ant-destination",
+      "mode": "aerial_carrier",
+      "environment_ids": [
+        "antarctica"
+      ],
+      "payload_classes": [
+        "seated_passengers"
+      ],
+      "duration_min_minutes": 70,
+      "duration_max_minutes": 85,
+      "energy_consumption_pct_max": 10,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "sahara-dune-direct",
+      "from_node": "sahara-origin",
+      "to_node": "sahara-destination",
+      "mode": "dune_carrier",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 100,
+      "duration_max_minutes": 130,
+      "energy_consumption_pct_max": 38,
+      "condition_margin_c": 2.7,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "sahara-night-first-leg",
+      "from_node": "sahara-origin",
+      "to_node": "sahara-night-hub",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 80,
+      "duration_max_minutes": 100,
+      "energy_consumption_pct_max": 10,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "sahara-night-final-leg",
+      "from_node": "sahara-night-hub",
+      "to_node": "sahara-destination",
+      "mode": "night_relay",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 70,
+      "duration_max_minutes": 90,
+      "energy_consumption_pct_max": 12,
+      "condition_margin_c": 1.4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "sahara-aerial-direct",
+      "from_node": "sahara-origin",
+      "to_node": "sahara-destination",
+      "mode": "aerial_carrier",
+      "environment_ids": [
+        "sahara"
+      ],
+      "payload_classes": [
+        "cold_chain"
+      ],
+      "duration_min_minutes": 60,
+      "duration_max_minutes": 80,
+      "energy_consumption_pct_max": 72,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "afg-primary-direct",
+      "from_node": "afg-origin",
+      "to_node": "afg-destination",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "duration_min_minutes": 150,
+      "duration_max_minutes": 190,
+      "energy_consumption_pct_max": 24,
+      "condition_margin_c": 1.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "afg-alternate-first",
+      "from_node": "afg-origin",
+      "to_node": "afg-aid-hub",
+      "mode": "ground_carrier",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "duration_min_minutes": 80,
+      "duration_max_minutes": 100,
+      "energy_consumption_pct_max": 12,
+      "condition_margin_c": 1.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    },
+    {
+      "edge_id": "afg-alternate-final",
+      "from_node": "afg-aid-hub",
+      "to_node": "afg-destination",
+      "mode": "humanitarian_hub",
+      "environment_ids": [
+        "afghanistan"
+      ],
+      "payload_classes": [
+        "bulk_cargo"
+      ],
+      "duration_min_minutes": 90,
+      "duration_max_minutes": 120,
+      "energy_consumption_pct_max": 12,
+      "condition_margin_c": 1,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": true,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      },
+      "available": true
+    }
+  ],
+  "expectations": [
+    {
+      "mission_id": "amazon-medical-cold-chain",
+      "expected_topological_route_count": 3,
+      "expected_eligible_route_count": 3
+    },
+    {
+      "mission_id": "congo-fragile-sample",
+      "expected_topological_route_count": 3,
+      "expected_eligible_route_count": 2
+    },
+    {
+      "mission_id": "antarctic-accessible-relief",
+      "expected_topological_route_count": 3,
+      "expected_eligible_route_count": 2
+    },
+    {
+      "mission_id": "sahara-water-medical-kit",
+      "expected_topological_route_count": 3,
+      "expected_eligible_route_count": 2
+    },
+    {
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "expected_topological_route_count": 2,
+      "expected_eligible_route_count": 0
+    },
+    {
+      "mission_id": "sahara-disconnected-sensor",
+      "expected_topological_route_count": 0,
+      "expected_eligible_route_count": 0
+    }
+  ]
+}

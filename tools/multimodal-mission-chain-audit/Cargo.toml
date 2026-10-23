@@ -1,0 +1,11 @@
+[package]
+name = "multimodal-mission-chain-audit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Fail-closed multimodal mission chain and payload-continuity auditor"
+
+[dependencies]
+serde_json = "1"
+
+[workspace]
