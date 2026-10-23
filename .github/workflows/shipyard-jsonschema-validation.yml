@@ -1,0 +1,40 @@
+name: Shipyard Draft 2020-12 schema validation
+
+on:
+  pull_request:
+    branches: ["research/shipyard-benchmark-audit-v0"]
+    paths:
+      - "tools/shipyard-jsonschema-validator/**"
+      - "tools/shipyard-benchmark-audit/**"
+      - "tools/shipyard-benchmark-contract/**"
+      - ".github/workflows/shipyard-jsonschema-validation.yml"
+  push:
+    branches: ["research/shipyard-jsonschema-validator-v0"]
+    paths:
+      - "tools/shipyard-jsonschema-validator/**"
+      - "tools/shipyard-benchmark-audit/**"
+      - "tools/shipyard-benchmark-contract/**"
+      - ".github/workflows/shipyard-jsonschema-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Full Draft 2020-12 and semantic conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Fetch exact locked dependency graph
+        run: cargo fetch --locked --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml -- --check
+      - name: Run full schema and semantic tests offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml --all-targets -- -D warnings
