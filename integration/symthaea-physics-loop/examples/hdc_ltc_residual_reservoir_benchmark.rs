@@ -345,6 +345,12 @@ fn main() {
             "metrics": overall.metrics(),
             "family_metrics": family_metrics,
             "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
+            "test_episode_seeds": (0..episodes)
+                .map(|episode| 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1))
+                .collect::<Vec<_>>(),
+            "test_episode_scenario_ids": (0..episodes)
+                .map(|episode| scenarios[episode % scenarios.len()].id)
+                .collect::<Vec<_>>(),
             "nominal_model": {
                 "mass_kg": nominal.mass_kg,
                 "gravity_m_s2": nominal.gravity_m_s2,
