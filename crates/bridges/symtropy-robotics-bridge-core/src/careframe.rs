@@ -684,12 +684,14 @@ mod tests {
             assert!(case_ids.insert(case.case_id.clone()), "duplicate {}", case.case_id);
             assert!(!case.rationale.trim().is_empty());
             assert!(case.position_m.iter().all(|value| value.is_finite()));
-            expected_contacts += usize::from(case.expected_contact);
+            if case.expected_contact {
+                expected_contacts += 1;
+            }
         }
         assert_eq!(expected_contacts, 4);
 
         for case in suite.cases {
-            let mut physics = PhysicsWorld::<3>::new(SVector::from(suite.gravity_m_s2));
+            let mut physics = PhysicsWorld::<3>::new(SVector::<f64, 3>::from(suite.gravity_m_s2));
             spawn_static_collision_assembly(
                 &mut physics,
                 MORPHOLOGY_JSON,
