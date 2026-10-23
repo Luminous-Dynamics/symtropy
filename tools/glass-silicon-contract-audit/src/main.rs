@@ -1,7 +1,8 @@
-use glass_silicon_contract_audit::{audit_corpus, audit_mass_balance};
+use glass_silicon_contract_audit::{audit_corpus, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::process::ExitCode;
 
 fn read_json(path: &str) -> Result<Value, String> {
@@ -11,7 +12,7 @@ fn read_json(path: &str) -> Result<Value, String> {
 
 fn usage() {
     eprintln!(
-        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit check-mass <ledger.json>"
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
     );
 }
 
@@ -46,6 +47,26 @@ fn main() -> ExitCode {
                 }
             };
             let report = audit_corpus(&schema, &corpus);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("hash-artifacts") if args.len() == 5 => {
+            let corpus = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "source_artifact_hash_receipt",
+                        "artifact_id": args[3],
+                        "files": [],
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no reuse rights or benchmark admission is established."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = hash_artifact_files(&corpus, &args[3], Path::new(&args[4]));
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
