@@ -185,7 +185,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 "resource kind must be non-empty",
             );
         }
-        if operation_map.insert(operation.id.clone(), operation.clone()).is_some() {
+        if operation_map
+            .insert(operation.id.clone(), operation.clone())
+            .is_some()
+        {
             push(
                 &mut diagnostics,
                 "DUPLICATE_OPERATION_ID",
@@ -206,7 +209,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
             );
             continue;
         }
-        if resource_map.insert(resource.id.clone(), resource.clone()).is_some() {
+        if resource_map
+            .insert(resource.id.clone(), resource.clone())
+            .is_some()
+        {
             push(
                 &mut diagnostics,
                 "DUPLICATE_RESOURCE_ID",
@@ -263,7 +269,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 &mut diagnostics,
                 "UNKNOWN_COMPLETED_RESOURCE",
                 Some(&completion.operation_id),
-                format!("completed work references unknown resource {}", completion.resource_id),
+                format!(
+                    "completed work references unknown resource {}",
+                    completion.resource_id
+                ),
             );
             continue;
         };
@@ -307,7 +316,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
             );
         }
         if completion_map
-            .insert(completion.operation_id.clone(), completion.completed_at_tick)
+            .insert(
+                completion.operation_id.clone(),
+                completion.completed_at_tick,
+            )
             .is_some()
         {
             push(
@@ -535,7 +547,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 &mut diagnostics,
                 "UNKNOWN_EVALUATOR_OUTAGE_RESOURCE",
                 None,
-                format!("evaluator outage {} references unknown resource {}", outage.event_id, outage.resource_id),
+                format!(
+                    "evaluator outage {} references unknown resource {}",
+                    outage.event_id, outage.resource_id
+                ),
             );
         }
         if outage.effective_until_tick <= outage.effective_from_tick {
@@ -563,7 +578,12 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
     for (index, left) in assigned.iter().enumerate() {
         for right in assigned.iter().skip(index + 1) {
             if left.resource_id == right.resource_id
-                && overlaps(left.start_tick, left.end_tick, right.start_tick, right.end_tick)
+                && overlaps(
+                    left.start_tick,
+                    left.end_tick,
+                    right.start_tick,
+                    right.end_tick,
+                )
             {
                 push(
                     &mut diagnostics,
@@ -576,14 +596,10 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                 );
             }
         }
-        for outage in input
-            .evaluator_outages
-            .iter()
-            .filter(|outage| {
-                outage.resource_id == left.resource_id
-                    && outage.effective_until_tick > outage.effective_from_tick
-            })
-        {
+        for outage in input.evaluator_outages.iter().filter(|outage| {
+            outage.resource_id == left.resource_id
+                && outage.effective_until_tick > outage.effective_from_tick
+        }) {
             if overlaps(
                 left.start_tick,
                 left.end_tick,
@@ -605,7 +621,11 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
         let successor_start = assignment_by_operation
             .get(&operation.id)
             .map(|assignment| assignment.start_tick)
-            .or_else(|| completion_intervals.get(&operation.id).map(|item| item.start_tick));
+            .or_else(|| {
+                completion_intervals
+                    .get(&operation.id)
+                    .map(|item| item.start_tick)
+            });
         if let Some(successor_start) = successor_start {
             for predecessor_id in &operation.predecessor_ids {
                 let predecessor_end = assignment_by_operation
@@ -626,7 +646,9 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
                         &mut diagnostics,
                         "PREDECESSOR_MISSING_FROM_REALIZED_STATE",
                         Some(&operation.id),
-                        format!("predecessor {predecessor_id} has neither completion nor assignment"),
+                        format!(
+                            "predecessor {predecessor_id} has neither completion nor assignment"
+                        ),
                     ),
                 }
             }
@@ -685,25 +707,25 @@ pub fn audit_schedule(input: &AuditInput) -> AuditReport {
 mod tests {
     use super::*;
 
-    fn op(
-        id: &str,
-        due: Tick,
-        duration: Tick,
-        kind: &str,
-        predecessors: &[&str],
-    ) -> Operation {
+    fn op(id: &str, due: Tick, duration: Tick, kind: &str, predecessors: &[&str]) -> Operation {
         Operation {
             id: id.to_owned(),
             release_tick: 0,
             due_tick: due,
             duration_ticks: duration,
             resource_kind: kind.to_owned(),
-            predecessor_ids: predecessors.iter().map(|value| (*value).to_owned()).collect(),
+            predecessor_ids: predecessors
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
         }
     }
 
     fn res(id: &str, kind: &str) -> Resource {
-        Resource { id: id.to_owned(), kind: kind.to_owned() }
+        Resource {
+            id: id.to_owned(),
+            kind: kind.to_owned(),
+        }
     }
 
     fn assignment(id: &str, resource: &str, start: Tick, end: Tick) -> Assignment {
@@ -736,7 +758,10 @@ mod tests {
     }
 
     fn has_code(report: &AuditReport, code: &str) -> bool {
-        report.diagnostics.iter().any(|diagnostic| diagnostic.code == code)
+        report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == code)
     }
 
     #[test]
@@ -826,7 +851,10 @@ mod tests {
 
         let mut forged = base_input();
         forged.assignments[0].frozen = true;
-        assert!(has_code(&audit_schedule(&forged), "UNDECLARED_FROZEN_ASSIGNMENT"));
+        assert!(has_code(
+            &audit_schedule(&forged),
+            "UNDECLARED_FROZEN_ASSIGNMENT"
+        ));
     }
 
     #[test]
@@ -862,7 +890,10 @@ mod tests {
             start_tick: 0,
             completed_at_tick: 3,
         });
-        assert!(has_code(&audit_schedule(&violation), "PRECEDENCE_VIOLATION"));
+        assert!(has_code(
+            &audit_schedule(&violation),
+            "PRECEDENCE_VIOLATION"
+        ));
     }
 
     #[test]
