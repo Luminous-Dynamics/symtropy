@@ -285,4 +285,27 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and ([$r.evaluation.episode_details[].scenario_id] == $h.evaluation.test_episode_scenario_ids)
     and ([$r.evaluation.episode_details[].scenario_id] == [$m.evaluation.episode_details[].scenario_id])
   '
+
+  export STFR_RIDGE_OUTPUT_PATH="$ridge_out"
+  export STFR_HDC_OUTPUT_PATH="$hdc_out"
+  export STFR_MLP_OUTPUT_PATH="$mlp_out"
+  comparison_out="${STFR_COMPARISON_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-residual-model-paired-comparison.json}"
+  cargo run --manifest-path "$integration_manifest" --example paired_residual_model_comparison > "$comparison_out"
+  jq -e '
+    .comparison_id == "symtropy-residual-model-paired-comparison-v0.1"
+    and .claim_ceiling == "paired_episode_level_one_step_prediction_comparison_conditional_on_smoke_scenario_families"
+    and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .design.bootstrap_unit == "episode"
+    and .design.bootstrap_replicates == 10000
+    and .design.seed_hex_equality_required == true
+    and .design.scenario_order_equality_required == true
+    and (.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 >= 0)
+    and (.model_summary.compact_mlp_mean_episode_rmse_m_s2 >= 0)
+    and (.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 >= 0)
+    and (.paired_comparisons | length) == 3
+    and all(.paired_comparisons[]; (.stratified_episode_bootstrap_95_ci_m_s2 | length) == 2)
+    and (.family_summary | length) == 3
+    and (.per_episode | length) == .design.episodes
+    and all(.per_episode[]; .raw_state_ridge_rmse_m_s2 >= 0 and .compact_mlp_rmse_m_s2 >= 0 and .hdc_ltc_reservoir_rmse_m_s2 >= 0)
+  ' "$comparison_out"
 fi
