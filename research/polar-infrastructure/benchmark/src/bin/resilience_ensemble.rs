@@ -170,7 +170,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
                 shortfall,
                 gate_pass: p.gate_pass,
                 floor_breach_service_hours: p.floor_breach_service_hours,
-                fuel_intensity: p.fuel_units_per_weighted_delivered_service_unit_hour,
+                fuel_intensity: p.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
         }
 
