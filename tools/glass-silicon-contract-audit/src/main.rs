@@ -1,4 +1,4 @@
-use glass_silicon_contract_audit::{audit_corpus, audit_mass_balance, hash_artifact_files};
+use glass_silicon_contract_audit::{audit_corpus, audit_decision_value_pool, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -67,6 +67,28 @@ fn main() -> ExitCode {
                 }
             };
             let report = hash_artifact_files(&corpus, &args[3], Path::new(&args[4]));
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("audit-decision-value") if args.len() == 3 => {
+            let pool = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "synthetic_decision_value_pool",
+                        "benchmark_id": null,
+                        "pre_measurement_worst_case_regret": null,
+                        "measurements": [],
+                        "pareto_frontier": [],
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no physical, model, or manufacturing claim is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = audit_decision_value_pool(&pool);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
