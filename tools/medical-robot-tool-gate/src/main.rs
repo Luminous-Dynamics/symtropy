@@ -457,10 +457,60 @@ fn load_json(path: &str) -> Result<(Vec<u8>, Value), String> {
     Ok((bytes, parsed))
 }
 
+fn validate_manifest_file(path: &str) {
+    let (bytes, manifest) = match load_json(path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    let findings = validate_tool(&manifest);
+    let blocked = !findings.is_empty();
+    let tested_revision =
+        env::var("CARE_FRAME_TESTED_SHA").unwrap_or_else(|_| "UNBOUND_LOCAL_RUN".to_owned());
+    let receipt = json!({
+        "receipt_schema": "medical-robot-tool-candidate-receipt-v0",
+        "tested_revision": tested_revision,
+        "candidate_tool_id": str_at(&manifest, "tool_id").unwrap_or("<missing>"),
+        "disposition": if blocked { "BLOCKED" } else { "SIMULATION_ONLY" },
+        "findings": findings,
+        "tool_manifest_sha256": sha256_hex(&bytes),
+        "auditor_source_sha256": sha256_hex(AUDITOR_SOURCE),
+        "clinical_use_authorized": false,
+        "patient_contact_authorized": false,
+        "physical_actuation_authorized": false,
+        "claim_ceiling": CLAIM_CEILING
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt).expect("receipt serialization cannot fail")
+    );
+    if blocked {
+        process::exit(1);
+    }
+}
+
 fn main() {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
+    let mut args = env::args().skip(1);
+    let first = args.next();
+    if first.as_deref() == Some("--validate-manifest") {
+        let Some(path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --validate-manifest PATH");
+            process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("unexpected extra argument");
+            process::exit(2);
+        }
+        validate_manifest_file(&path);
+        return;
+    }
+    let path = first.unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
+    if args.next().is_some() {
+        eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH] | --validate-manifest PATH");
+        process::exit(2);
+    }
     let (bytes, root) = match load_json(&path) {
         Ok(value) => value,
         Err(error) => {
