@@ -179,6 +179,7 @@ struct SouthAfricanTariffBenchmark {
     tariff_id: String,
     tariff_schedule_sha256: String,
     known_answer_fixture_sha256: String,
+    source_registry_sha256: String,
     calculator_report_sha256: String,
     qualification_log_sha256: String,
     source_receipts_sha256: String,
@@ -735,12 +736,14 @@ fn benchmark_south_african_tariff_context(
     let dir = root.join("sa-tariff-context");
     let (schedule_bytes, schedule) = read_json(&dir.join("tariff-schedule.json"))?;
     let (known_bytes, known) = read_json(&dir.join("known-answers.json"))?;
+    let (registry_bytes, registry) = read_json(&dir.join("source-registry.json"))?;
     let (report_bytes, report) = read_json(&dir.join("report.json"))?;
     let log_bytes = fs::read(dir.join("qualification.log"))?;
     let receipt_bytes = fs::read(dir.join("source-receipts.sha256"))?;
 
     let schedule_digest = sha256_hex(&schedule_bytes);
     let known_digest = sha256_hex(&known_bytes);
+    let registry_digest = sha256_hex(&registry_bytes);
     let report_digest = sha256_hex(&report_bytes);
     let log_digest = sha256_hex(&log_bytes);
     let receipt_digest = sha256_hex(&receipt_bytes);
@@ -749,7 +752,13 @@ fn benchmark_south_african_tariff_context(
         "high-season-1200kwh-over-50-to-100kva",
     ];
 
-    if required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
+    if required_str(&registry, "schema_version")?
+            != "energy-sa-benchmark-source-registry-v0.1"
+        || required_str(&registry, "registry_status")?
+            != "source_inventory_only_not_site_calibrated"
+        || !registry["site"]["measured_load_profile"].is_null()
+        || !registry["site"]["customer_tariff_code"].is_null()
+        || required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
         || required_str(&schedule, "tariff_id")?
             != "city-power-business-conventional-2026-27-candidate"
         || required_str(&schedule, "source_status")?
@@ -834,7 +843,7 @@ fn benchmark_south_african_tariff_context(
 
     let receipts = String::from_utf8(receipt_bytes)?;
     let log = String::from_utf8(log_bytes)?;
-    for digest in [&schedule_digest, &known_digest, &report_digest] {
+    for digest in [&schedule_digest, &known_digest, &registry_digest, &report_digest] {
         if !receipts.contains(digest) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -860,6 +869,7 @@ fn benchmark_south_african_tariff_context(
         tariff_id: required_str(&schedule, "tariff_id")?.to_owned(),
         tariff_schedule_sha256: schedule_digest,
         known_answer_fixture_sha256: known_digest,
+        source_registry_sha256: registry_digest,
         calculator_report_sha256: report_digest,
         qualification_log_sha256: log_digest,
         source_receipts_sha256: receipt_digest,
