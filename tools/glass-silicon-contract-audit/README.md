@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 53 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, and 7 staged-feasibility-gate tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 54 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, 8 staged-feasibility-gate tests, and 1 integrated feasibility-gated campaign test); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -20,6 +20,12 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
   tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
+
+# Same gate-aware fixture: compare myopic and adaptive decision policies
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
+  tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
+  tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
 
@@ -87,12 +93,18 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The staged feasibility command's current focused workflow run is pending at the latest branch head. A prior exact-head run passed the legacy 45-test suite; do not describe the new full 53-test suite as passing until the current-head run completes successfully.
+The current exact-head run is queued. At an earlier head, all 53 tests passed and the contract corpus passed, but the workflow then stopped at a stale documentation grep; the guard has been corrected and the new integrated campaign is added. Do not describe the full 54-test suite as qualified until the exact-head focused workflow passes.
 
 ## Staged feasibility gate
 
 `audit-feasibility` runs the frozen synthetic staged-gate corpus. Every candidate must declare the same five ordered gates: composition validity, glass formation, process window, joint product qualification, and manufacturing feasibility. A candidate is `FEASIBLE` only when every gate is `PASS`; any evidenced hard-gate `FAIL` makes it `INFEASIBLE`; with no hard failure but any `UNKNOWN`, `NOT_ATTEMPTED`, `CENSORED`, `STALE`, or `OUT_OF_DOMAIN` gate it returns `UNRESOLVED`.
 
-The contract rejects missing/extra gates, unknown statuses, untraceable `PASS`/`FAIL` declarations, and arbitrary fields (including trying to attach a numeric zero to an unknown gate). The six checked-in controls cover a feasible candidate, a confirmed non-forming candidate, a mandatory-property failure, unknown measurement evidence, out-of-domain input and stale process-window evidence. Seven mutation tests check that unsupported passes and incomplete contracts fail closed.
+The contract rejects missing/extra gates, unknown statuses, untraceable `PASS`/`FAIL` declarations, and arbitrary fields (including trying to attach a numeric zero to an unknown gate). The six checked-in controls cover a feasible candidate, a confirmed non-forming candidate, a mandatory-property failure, unknown measurement evidence, out-of-domain input and stale process-window evidence. Eight mutation tests check that unsupported passes, untraceable hard failures and incomplete contracts fail closed.
 
 These controls test contract semantics only. They do not predict glass-forming ability, establish that a recipe can be manufactured, or validate real source data. For the scientific protocol and current GFR baselines, see [GLASS-FEASIBILITY-GATE-001](../../docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md). The protocol separates the March 2026 cross-family XGBoost/SHAP GFR study (DOI 10.1111/jace.70616) from July 2026 GFRI-ML with explicit non-glass-forming oxide negatives (DOI 10.1111/jace.70980), and from PNNL's waste-glass multi-property validation. Reproduce each task/split independently; data/code use still requires rights and digest review.
+
+## Gate-conditioned adaptive campaign
+
+The fixture `adaptive-decision-pool-feasibility-gated.synthetic.json` tests a two-stage decision policy. A cheap formation screen costs 1 synthetic unit / 2 seconds; a downstream route characterization costs 3 units / 10 seconds. The one-step oracle has worst-case regret 10 before and after its best single measurement (gross regret reduction 0). The adaptive oracle screens first, stops with the safe `reject` action for the non-forming case, and pays for route characterization only on the forming branch. Its terminal worst-case regret is 0, with maximum path cost 4 units, duration 12 seconds and two measurements.
+
+There are no scenario probabilities. This is not an expected-cost estimate or a plant-savings claim; it demonstrates that the policy tree can gate expensive follow-up actions on earlier evidence. CI asserts both reports and the exact branch structure. The integrated regression is the 54th test and still requires current exact-head CI qualification.
