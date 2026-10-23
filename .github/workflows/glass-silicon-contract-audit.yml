@@ -60,7 +60,7 @@ jobs:
           test -s "$protocol"
           grep -q 'model the no-go region' "$protocol"
           grep -q 'non-glass-forming' "$protocol"
-          grep -q 'Glass-Forming-Region-Informed ML' "$protocol"
+          grep -q 'GFRI-ML' "$protocol"
           grep -q 'unattempted, unknown or censored' "$protocol"
           grep -q 'false-feasible' "$protocol"
           grep -q 'system/family-held-out' "$protocol"
