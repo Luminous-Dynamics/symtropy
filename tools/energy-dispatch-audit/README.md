@@ -14,7 +14,7 @@ It is intentionally independent of the optimizer's transition/search implementat
 
 The run report is the JSON output emitted by Sol-Atlas's energy_dispatch_assess CLI, including both receipt and assessment. The CLI prints a machine-readable audit report; exit code 0 means receipt integrity, schedule invariants, and applicable bounded-reference checks pass, 2 means audit failure, and 3 is reserved for an unknown status.
 
-The additional Rust binaries `energy_candidate_schema_validate`, `energy_compilation_receipt_verify`, and `energy_audit_report_gate` support the cross-repository workflow. Schema validation uses pinned `jsonschema = 0.60.1` in Rust; request/config digests are checked by reserializing typed Rust structures instead of relying on cross-language JSON re-serialization. The end-to-end workflow covers grid-only, PV+grid, and PV+battery+grid candidate templates, with expected feasible-schedule counts pinned at 1, 1, and 14 for the frozen two-interval fixture.
+The additional Rust binaries `energy_candidate_schema_validate`, `energy_compilation_receipt_verify`, and `energy_audit_report_gate` support the cross-repository workflow. Schema validation uses pinned `jsonschema = 0.60.0` in Rust; request/config digests are checked by reserializing typed Rust structures instead of relying on cross-language JSON re-serialization. The end-to-end workflow covers grid-only, PV+grid, and PV+battery+grid candidate templates, with expected feasible-schedule counts pinned at 1, 1, and 14 for the frozen two-interval fixture.
 
 ## Frozen fixture and tests
 
