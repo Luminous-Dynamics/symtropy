@@ -7,10 +7,12 @@ This crate implements a scenario-complete audit layer for finite disruption reco
 A nominal plan that passes is not a robust plan. A robust acceptance requires:
 1. an immutable, explicitly enumerated scenario set;
 2. exactly one candidate plan for each scenario, with no missing or duplicate cases;
-3. every required block and operation still represented in each applicable plan;
+3. every required block, exact reservation identity, minimum occupancy duration, operation and required resource-use identity still represented in each applicable plan;
 4. no space-time conflicts under the fixed-footprint model;
 5. no overlapping use of the same unary resource;
-6. no use of a resource during a source-declared outage.
+6. no use of a resource during a source-declared outage;
+7. immutable finish-to-start precedence with declared minimum lags is respected;
+8. an empty scenario set is rejected rather than receiving a vacuous robust pass.
 
 Outage definitions are supplied separately from candidate plans, so a candidate cannot make a failed scenario disappear by changing the outage window. Omitting future block or operation commitments is incomplete evidence, not a successful recovery.
 
@@ -30,7 +32,9 @@ The checker supports static polygon footprint occupancy over half-open integer t
 - An omitted declared scenario yields Incomplete.
 - Resource use overlapping a declared crane outage fails.
 - Two overlapping operations reserving the same unary crane fail.
-- Missing required blocks or operations yields Incomplete.
+- Missing required blocks, reservation identities, operations or resource-use commitments yields Incomplete.
+- A recovery that shortens required occupancy or changes a required operation's duration yields Incomplete.
+- A violated finish-to-start dependency yields a scenario-specific counterexample.
 - Half-open endpoint reuse passes when no spatial/resource conflict remains.
 
 All cases are authored conformance fixtures, not industrial validation results. Rust 1.96 formatting, offline tests, and Clippy with warnings denied must pass on the exact head before any robustness claim is reported.
