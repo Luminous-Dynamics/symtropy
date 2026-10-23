@@ -168,6 +168,7 @@ pub struct IndependentAuditReport {
     pub status: String,
     pub solver_reported_search_status: String,
     pub reference_frontier_status: String,
+    pub reference_frontier_objectives: Vec<DispatchObjective>,
     pub reference_expansions: Option<u64>,
     pub reference_feasible_complete_schedules: Option<u64>,
     pub objective_claim_status: String,
@@ -197,6 +198,7 @@ fn invalid_input_report(request_bytes: &[u8], report_bytes: &[u8], id: &str, err
         status: "fail".to_owned(),
         solver_reported_search_status: "unknown".to_owned(),
         reference_frontier_status: "not_run_invalid_input".to_owned(),
+        reference_frontier_objectives: Vec::new(),
         reference_expansions: None,
         reference_feasible_complete_schedules: None,
         objective_claim_status: "not_independently_verified".to_owned(),
@@ -329,6 +331,7 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
     let request_ok = checks.iter().any(|item| item.id == "request_schema_version" && item.status == "pass")
         && checks.iter().any(|item| item.id == "request_internal_invariants" && item.status == "pass");
     let mut reference_frontier_status = "not_run_invalid_request".to_owned();
+    let mut reference_frontier_objectives = Vec::new();
     let mut reference_expansions = None;
     let mut reference_feasible_complete_schedules = None;
     let mut objective_claim_status = "not_independently_verified".to_owned();
@@ -339,6 +342,7 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
                 reference_expansions = Some(reference_result.expansions);
                 reference_feasible_complete_schedules = Some(reference_result.feasible_complete_schedules);
 
+                reference_frontier_objectives = reference_result.frontier.clone();
                 let mut expected_frontier = reference_result.frontier;
                 expected_frontier.sort();
                 let mut reported_frontier = assessment.pareto_alternatives
@@ -436,6 +440,7 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
         status: status.to_owned(),
         solver_reported_search_status: solver_reported_search_status.to_owned(),
         reference_frontier_status,
+        reference_frontier_objectives,
         reference_expansions,
         reference_feasible_complete_schedules,
         objective_claim_status,
