@@ -465,6 +465,135 @@ fn load_json(path: &str) -> Result<(Vec<u8>, Value), String> {
     Ok((bytes, parsed))
 }
 
+fn tool_template(tool_kind: &str) -> Option<Value> {
+    let (
+        task,
+        contact_class,
+        mass_g,
+        payload_g,
+        geometry_bbox_mm,
+        max_object_force_n,
+        max_torque_nm,
+        powered,
+        max_power_w,
+        captures_audio,
+        captures_video,
+    ) = match tool_kind {
+        "sealed_supply_gripper" => (
+            "sealed_supply_transfer",
+            "object_only",
+            1500,
+            1500,
+            [250, 120, 180],
+            15.0,
+            1.5,
+            true,
+            20,
+            false,
+            false,
+        ),
+        "tray_carrier" => (
+            "tray_transfer",
+            "object_only",
+            700,
+            2000,
+            [420, 280, 80],
+            10.0,
+            2.0,
+            false,
+            0,
+            false,
+            false,
+        ),
+        "telepresence_head" => (
+            "telepresence_support",
+            "none",
+            1000,
+            0,
+            [220, 150, 180],
+            0.0,
+            0.0,
+            true,
+            25,
+            true,
+            true,
+        ),
+        "trainer_probe" => (
+            "training_mannequin_measurement",
+            "mannequin_only",
+            500,
+            100,
+            [160, 60, 50],
+            3.0,
+            0.4,
+            true,
+            20,
+            false,
+            false,
+        ),
+        _ => return None,
+    };
+
+    Some(json!({
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": format!("CARE-FRAME-{tool_kind}-CONCEPT-001"),
+        "revision": 1,
+        "tool_kind": tool_kind,
+        "intended_task": task,
+        "contact_class": contact_class,
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+            "mount_interface": "SMF-TOOL-01",
+            "mass_g": mass_g,
+            "payload_g": payload_g,
+            "geometry_bbox_mm": geometry_bbox_mm,
+            "max_object_force_n": max_object_force_n,
+            "max_torque_nm": max_torque_nm,
+            "retention_fail_closed": true
+        },
+        "hygiene": {
+            "surface_materials_declared": true,
+            "cleaning_claim": "not_validated",
+            "single_use": false
+        },
+        "electrical": {
+            "powered": powered,
+            "max_power_w": max_power_w,
+            "protective_isolation_declared": true
+        },
+        "privacy": {
+            "captures_audio": captures_audio,
+            "captures_video": captures_video,
+            "physical_privacy_shutter": true,
+            "default_capture_state": "disabled"
+        },
+        "authority": {
+            "simulation_only": true,
+            "physical_actuation_authorized": false,
+            "patient_contact_authorized": false,
+            "clinical_use_authorized": false
+        }
+    }))
+}
+
+fn write_or_print_template(tool_kind: &str, output_path: Option<&str>) {
+    let Some(manifest) = tool_template(tool_kind) else {
+        eprintln!("unsupported tool template: {tool_kind}");
+        process::exit(2);
+    };
+    let serialized =
+        serde_json::to_string_pretty(&manifest).expect("tool template serialization cannot fail");
+    if let Some(path) = output_path {
+        if let Err(error) = fs::write(path, format!("{serialized}\\n")) {
+            eprintln!("failed to write tool template '{path}': {error}");
+            process::exit(2);
+        }
+    } else {
+        println!("{serialized}");
+    }
+}
+
 fn validate_manifest_file(path: &str) {
     let (bytes, manifest) = match load_json(path) {
         Ok(value) => value,
@@ -502,6 +631,19 @@ fn validate_manifest_file(path: &str) {
 fn main() {
     let mut args = env::args().skip(1);
     let first = args.next();
+    if first.as_deref() == Some("--template") {
+        let Some(tool_kind) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --template TOOL_KIND [OUTPUT_PATH]");
+            process::exit(2);
+        };
+        let output_path = args.next();
+        if args.next().is_some() {
+            eprintln!("usage: medical-robot-tool-gate --template TOOL_KIND [OUTPUT_PATH]");
+            process::exit(2);
+        }
+        write_or_print_template(&tool_kind, output_path.as_deref());
+        return;
+    }
     if first.as_deref() == Some("--validate-manifest") {
         let Some(path) = args.next() else {
             eprintln!("usage: medical-robot-tool-gate --validate-manifest PATH");
@@ -516,7 +658,7 @@ fn main() {
     }
     let path = first.unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
     if args.next().is_some() {
-        eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH] | --validate-manifest PATH");
+        eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH] | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
@@ -576,6 +718,39 @@ mod tests {
             "../../../docs/medical-robotics/medical-robot-tool-corpus-v0.1.json"
         ))
         .expect("tool-design corpus parses")
+    }
+
+    #[test]
+    fn built_in_templates_are_eligible_for_simulation_only() {
+        for kind in [
+            "sealed_supply_gripper",
+            "tray_carrier",
+            "telepresence_head",
+            "trainer_probe",
+        ] {
+            let manifest = tool_template(kind).expect("supported concept template");
+            assert!(
+                validate_tool(&manifest).is_empty(),
+                "{kind}: {:?}",
+                validate_tool(&manifest)
+            );
+            assert_eq!(
+                bool_at(&manifest["authority"], "physical_actuation_authorized"),
+                Some(false)
+            );
+            assert_eq!(
+                bool_at(&manifest["authority"], "patient_contact_authorized"),
+                Some(false)
+            );
+            assert_eq!(
+                bool_at(&manifest["authority"], "clinical_use_authorized"),
+                Some(false)
+            );
+        }
+
+        assert!(tool_template("patient_transfer").is_none());
+        assert!(tool_template("medication_dispenser").is_none());
+        assert!(tool_template("invasive_tool").is_none());
     }
 
     #[test]
