@@ -9390,6 +9390,7 @@ dependencies = [
  "nalgebra 0.34.2",
  "serde",
  "serde_json",
+ "sha2",
  "symtropy-consciousness-physics",
  "symtropy-math",
  "symtropy-physics",
