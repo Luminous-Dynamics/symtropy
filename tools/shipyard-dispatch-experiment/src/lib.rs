@@ -549,6 +549,19 @@ pub fn serialize_result_ledger(
     require_digest("initial_state_sha256", &context.initial_state_sha256)?;
     require_digest("disturbance_tape_sha256", &context.disturbance_tape_sha256)?;
 
+    if results.len() != 4 {
+        return Err(format!(
+            "expected exactly four baseline outcomes, received {}",
+            results.len()
+        ));
+    }
+    let mut seen_rules = std::collections::BTreeSet::new();
+    for result in results {
+        let id = rule_id(result.rule);
+        if !seen_rules.insert(id) {
+            return Err(format!("duplicate baseline outcome for policy {id}"));
+        }
+    }
     let mut ordered: Vec<&EvaluatedRule> = results.iter().collect();
     ordered.sort_by_key(|result| rule_id(result.rule));
     let mut output = String::new();
@@ -671,4 +684,19 @@ mod ledger_tests {
             r#""quote=\"; slash=\\; line=\n; rocket=🚀""#
         );
     }
+
+    #[test]
+    fn ledger_requires_all_four_unique_baseline_outcomes() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        assert!(serialize_result_ledger(&context(), &results[..3])
+            .expect_err("missing policy outcome")
+            .contains("expected exactly four"));
+
+        let mut duplicate = results.clone();
+        duplicate[1].rule = duplicate[0].rule;
+        assert!(serialize_result_ledger(&context(), &duplicate)
+            .expect_err("duplicate policy outcome")
+            .contains("duplicate baseline outcome"));
+    }
+
 }
