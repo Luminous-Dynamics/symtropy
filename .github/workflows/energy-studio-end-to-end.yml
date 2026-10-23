@@ -129,16 +129,14 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          for spec in "synthetic-grid-only:1" "synthetic-pv-grid:1" "synthetic-pv-battery-grid:14"; do
-            candidate="${spec%%:*}"
-            expected="${spec##*:}"
-            echo "Auditing $candidate; expected feasible complete schedules=$expected"
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            echo "Auditing $candidate against its frozen objective-frontier known answer"
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
               --bin symtropy-energy-dispatch-audit -- \
               "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
               > "$work/$candidate/independent-audit.json"
             cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
-              --bin energy_audit_report_gate -- "$work/$candidate/independent-audit.json" "$expected"
+              --bin energy_audit_report_gate -- "$work/$candidate/independent-audit.json" "$candidate"
           done
 
       - name: Preserve candidate, compilation, dispatch and audit evidence
