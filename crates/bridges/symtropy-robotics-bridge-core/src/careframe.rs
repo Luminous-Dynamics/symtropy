@@ -373,7 +373,11 @@ fn validate_joint_state(
 ) -> Result<(), Vec<String>> {
     let mut findings = BTreeSet::new();
     for (joint_id, position) in state {
-        let Some(joint) = model.joints.iter().find(|joint| joint.joint_id == *joint_id) else {
+        let Some(joint) = model
+            .joints
+            .iter()
+            .find(|joint| joint.joint_id.as_str() == joint_id.as_str())
+        else {
             findings.insert("JOINT_STATE_UNKNOWN_ID".to_owned());
             continue;
         };
