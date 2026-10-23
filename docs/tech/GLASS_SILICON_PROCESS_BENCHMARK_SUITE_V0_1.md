@@ -28,6 +28,9 @@ The work must compare fairly with current practice rather than claim novelty for
 
 - A July 2026 glass-discovery study introduces SCALE, integrating molecular dynamics, ML, and robotic synthesis. It reports more than 42,000 simulations, validation against 55 synthesized sodium alumino-borosilicate glasses, density/model bias up to 5%, and composition-dependent correction over three experimental iterations of six measurements each: [npj Computational Materials, DOI 10.1038/s41524-026-02249-w](https://doi.org/10.1038/s41524-026-02249-w). This is a particularly useful matched-budget baseline; its results are chemistry- and property-specific, not a universal glass-model score.
 - Glass Futures announced an AI/physics-informed twin for its multi-fuel pilot furnace in June 2026, reporting 16 sensor points and 11,530 calculations processed at once: [Glass Futures AI-GLASS](https://www.glass-futures.org/news/glass-futures-launches-ai-driven-digital-twin-to-reinvent-glass-manufacturing/). The public announcement does not define a standardized error dataset or an externally reproducible accuracy benchmark. Treat throughput as context, not proof of predictive superiority; compare on held-out campaign predictions, calibration, energy and accepted-product quality.
+- A September 2026 PNNL / Journal of Non-Crystalline Solids study experimentally validated ML-guided low-activity nuclear-waste glass formulations and reports that adding experimental results back to the database improved subsequent formulations; more than half of its first-round ML formulations failed at least one property constraint: [DOI 10.1016/j.jnoncrysol.2026.123990](https://doi.org/10.1016/j.jnoncrysol.2026.123990). This is a high-value **multi-property feasibility** baseline. Nuclear waste glass is not container glass, and the study's data statement says data are available on request; do not claim open-data reproduction without obtaining and admitting the exact data.
+- The Western Australian Minerals Research Institute describes a 2026–2028 project targeting sodium-silicate electrolysis and a 100 kg/day pilot for extracting high-grade silicon from iron-ore waste: [MRIWA Phase 1 project M10625](https://www.mriwa.wa.gov.au/research-projects/project-portfolio/advancing-low-carbon-high-grade-silicon-production-from-iron-ore-waste-phase-1/). Its page describes intended work and target benefits, not a verified completed pilot. This makes a useful prospective scale-up benchmark: distinguish funding/project descriptions, installed capacity, measured sustained throughput, product grade, yield, and independent economic qualification.
+
 
 **Targeted gap:** join source-grounded process models, uncertainty-aware experiment selection, a deterministic process/workcell twin, evidence-bounded manufacturing routes, and lifecycle comparison under one falsifiable decision protocol. Every subsystem remains accountable to its own physical authority.
 
@@ -157,6 +160,9 @@ The corpus and future executable verifier must reject or abstain on:
 10. out-of-domain prediction accepted as feasible without review;
 11. quality or yield regression hidden by weighted aggregate score;
 12. electronic-grade/wafer capability inferred from MG-Si production.
+13. a candidate approved from a favorable single-property score while any required processing, durability, crystallization, chemistry, or grade constraint is failed/unmeasured;
+14. a planned or announced silicon pilot target treated as measured throughput, achieved purity, verified energy intensity, or independent qualification;
+15. a tolerance that has no stated per-element basis or is silently accepted from missing metadata.
 
 The suite must include valid glass and MG-Si contract controls, otherwise reject-everything could pass.
 
@@ -172,6 +178,8 @@ A hardware loop is a separate future phase requiring an explicit, independently 
 ## 10. v0.1 acceptance and next steps
 
 v0.1 is complete when the protocol, schema, synthetic corpus, source limitations, and claim ceiling are reviewable and internally consistent. The initial corpus is **not** a physics validation dataset.
+
+The standalone Rust reference tool lives at `tools/glass-silicon-contract-audit/`; dependency versions are pinned and a dedicated lockfile is checked in. Its contract verifier and mass-ledger arithmetic tests are written, but must be compiled/executed under the pinned toolchain before any runtime-pass claim. Its tolerance-basis field is provenance metadata, not proof that the tolerance is physically justified.
 
 Next sequence:
 1. freeze a source registry and reproduce one container-glass reference plus one MG-Si reference;
