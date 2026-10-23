@@ -9,11 +9,13 @@ use serde_json::json;
 use std::time::Instant;
 use symthaea_core::genesis::GenesisSeed;
 use symthaea_multirotor::{
-    pid_baseline, FlightConfig, FlightController, FlightSetpoint, FlightTrainer, PdGains,
-    PidState, PhysicsSimulator, QuadrotorHdcEncoder,
+    pid_baseline, FlightConfig, FlightController, FlightTrainer, PdGains, PidState,
+    PhysicsSimulator, QuadrotorHdcEncoder,
 };
 use symtropy_real_symthaea_physics_loop::{
-    bounded_residual::ResidualEnvelope, symtropy_flight::SymtropyFlightSimulator,
+    bounded_residual::ResidualEnvelope,
+    scenario_matrix::{scenarios_for_split, training_setpoints, FlightScenario, ScenarioSplit},
+    symtropy_flight::SymtropyFlightSimulator,
 };
 
 const AUTHORITIES: [f32; 6] = [0.0, 0.1, 0.25, 0.5, 0.75, 1.0];
@@ -73,33 +75,17 @@ fn bootstrap_mean_ci(values: &[f64], resamples: usize, seed: u64) -> Option<[f64
     Some([percentile(&means, 0.025), percentile(&means, 0.975)])
 }
 
-/// Matched force pulses: every authority arm receives the same force on a given seed.
-fn disturbance_for_seed(seed: u64, step: usize) -> Option<[f64; 3]> {
-    let first_start = 60 + (seed % 20) as usize;
-    let second_start = 200 + (seed % 20) as usize;
-    if (first_start..first_start + 40).contains(&step)
-        || (second_start..second_start + 40).contains(&step)
-    {
-        let amplitude = 0.001 + (seed % 5) as f64 * 0.0004;
-        let x_sign = if seed % 2 == 0 { 1.0 } else { -1.0 };
-        let y_sign = if seed % 3 == 0 { 1.0 } else { -1.0 };
-        Some([amplitude * x_sign, amplitude * 0.5 * y_sign, 0.0])
-    } else {
-        None
-    }
-}
-
 fn evaluate(
     seed: u64,
     authority: f32,
     steps: usize,
-    setpoint: &FlightSetpoint,
+    scenario: &FlightScenario,
     config: &FlightConfig,
     trained: &FlightController,
     gains: &PdGains,
 ) -> Metrics {
     let mut sim = SymtropyFlightSimulator::new();
-    sim.reset_with_perturbation(setpoint.position[2], 0.08, seed);
+    sim.reset_with_perturbation(scenario.setpoint.position[2], 0.08, seed);
     let genesis = GenesisSeed::from_phrase(&config.genesis_phrase);
     let mut encoder = QuadrotorHdcEncoder::new(&genesis, config.num_levels);
     let mut controller = trained.clone();
@@ -120,7 +106,7 @@ fn evaluate(
 
     for step in 0..steps {
         let state = sim.state().clone();
-        let error = setpoint.position_error_magnitude(&state);
+        let error = scenario.setpoint.position_error_magnitude(&state);
         squared += error * error;
         absolute += error;
         max_error = max_error.max(error);
@@ -129,7 +115,7 @@ fn evaluate(
         }
 
         let started = Instant::now();
-        let nominal = pid_baseline(&state, setpoint, gains, &mut pid_state, dt).clamped();
+        let nominal = pid_baseline(&state, &scenario.setpoint, gains, &mut pid_state, dt).clamped();
         let command = if authority == 0.0 {
             // The zero-authority arm is precisely the PID baseline, without hidden HDC compute.
             nominal
@@ -152,17 +138,21 @@ fn evaluate(
         latencies_us.push(started.elapsed().as_secs_f64() * 1.0e6);
         impulse += command.thrust as f64 * dt;
 
-        if let Some(force) = disturbance_for_seed(seed, step) {
+        let force = scenario.force_at(seed, step, 0.027);
+        if force.iter().any(|component| *component != 0.0) {
             sim.apply_external_force(force);
         }
         sim.step(&command, dt);
+        if authority > 0.0 && step > 0 && step % 100 == 0 {
+            controller.normalize_states();
+        }
     }
 
     Metrics {
         authority,
         rmse_m: (squared / steps.max(1) as f64).sqrt(),
         mean_position_error_m: absolute / steps.max(1) as f64,
-        final_position_error_m: setpoint.position_error_magnitude(sim.state()),
+        final_position_error_m: scenario.setpoint.position_error_magnitude(sim.state()),
         max_position_error_m: max_error,
         within_5cm_fraction: within as f64 / steps.max(1) as f64,
         thrust_impulse_n_s: impulse,
@@ -182,10 +172,6 @@ fn main() {
     let trials = std::env::var("STFR_TRIALS")
         .ok().and_then(|v| v.parse().ok()).unwrap_or(30usize);
 
-    let setpoint = FlightSetpoint {
-        position: [0.04, -0.025, 0.15],
-        yaw: 0.0,
-    };
     let config = FlightConfig {
         num_episodes: train_episodes.max(1),
         steps_per_episode: train_steps.max(1),
@@ -195,81 +181,122 @@ fn main() {
         enable_lr_schedule: true,
         early_termination: true,
         genesis_phrase: "symthaea-symtropy-bounded-residual-v0.1".to_owned(),
-        curriculum: vec![setpoint.clone()],
+        curriculum: training_setpoints(),
+        use_pid: false,
         ..FlightConfig::default()
     };
     let mut trainer = FlightTrainer::new(config.clone());
     let (trained, training_metrics) = trainer.train_returning_controller();
     let gains = PdGains::default();
 
-    let mut trial_rows = Vec::with_capacity(trials.max(1));
-    let mut rmse_deltas: Vec<Vec<f64>> = vec![Vec::with_capacity(trials.max(1)); AUTHORITIES.len()];
-    let mut within_deltas: Vec<Vec<f64>> = vec![Vec::with_capacity(trials.max(1)); AUTHORITIES.len()];
+    let mut evaluation_scenarios = scenarios_for_split(ScenarioSplit::Validation);
+    evaluation_scenarios.extend(scenarios_for_split(ScenarioSplit::Test));
+    let validation_ids = scenarios_for_split(ScenarioSplit::Validation)
+        .iter()
+        .map(|scenario| scenario.id)
+        .collect::<Vec<_>>();
+    let test_ids = scenarios_for_split(ScenarioSplit::Test)
+        .iter()
+        .map(|scenario| scenario.id)
+        .collect::<Vec<_>>();
+    let training_ids = scenarios_for_split(ScenarioSplit::Train)
+        .iter()
+        .map(|scenario| scenario.id)
+        .collect::<Vec<_>>();
 
-    for index in 0..trials.max(1) {
-        let seed = 0x5359_4D52_0000_0000_u64.wrapping_add(index as u64 + 1);
-        let arms: Vec<Metrics> = AUTHORITIES
-            .iter()
-            .map(|authority| evaluate(seed, *authority, eval_steps, &setpoint, &config, &trained, &gains))
-            .collect();
-        let baseline = arms[0];
-        for (i, arm) in arms.iter().enumerate() {
-            rmse_deltas[i].push(arm.rmse_m - baseline.rmse_m);
-            within_deltas[i].push(arm.within_5cm_fraction - baseline.within_5cm_fraction);
+    let mut trial_rows = Vec::with_capacity(evaluation_scenarios.len() * trials.max(1));
+    let mut scenario_summaries = Vec::with_capacity(evaluation_scenarios.len());
+
+    for scenario in &evaluation_scenarios {
+        let mut rmse_deltas: Vec<Vec<f64>> =
+            vec![Vec::with_capacity(trials.max(1)); AUTHORITIES.len()];
+        let mut within_deltas: Vec<Vec<f64>> =
+            vec![Vec::with_capacity(trials.max(1)); AUTHORITIES.len()];
+
+        for index in 0..trials.max(1) {
+            let seed = 0x5359_4D52_0000_0000_u64.wrapping_add(index as u64 + 1);
+            let arms: Vec<Metrics> = AUTHORITIES
+                .iter()
+                .map(|authority| evaluate(seed, *authority, eval_steps, scenario, &config, &trained, &gains))
+                .collect();
+            let baseline = arms[0];
+            for (i, arm) in arms.iter().enumerate() {
+                rmse_deltas[i].push(arm.rmse_m - baseline.rmse_m);
+                within_deltas[i].push(arm.within_5cm_fraction - baseline.within_5cm_fraction);
+            }
+            trial_rows.push(json!({
+                "scenario_id": scenario.id,
+                "scenario_family": scenario.family,
+                "scenario_split": scenario.split,
+                "trial_seed": seed,
+                "evidence_class": "simulator_experiment",
+                "matched_seed_across_authorities": true,
+                "arms": arms
+            }));
         }
-        trial_rows.push(json!({
-            "trial_seed": seed,
-            "evidence_class": "simulator_experiment",
-            "matched_seed_across_authorities": true,
-            "arms": arms
+
+        let arm_summaries: Vec<serde_json::Value> = AUTHORITIES
+            .iter()
+            .enumerate()
+            .map(|(i, authority)| {
+                json!({
+                    "authority": authority,
+                    "paired_trial_count": rmse_deltas[i].len(),
+                    "mean_delta_rmse_vs_pid_m": mean(&rmse_deltas[i]),
+                    "bootstrap_95_ci_delta_rmse_vs_pid_m": bootstrap_mean_ci(
+                        &rmse_deltas[i], 2000, 0x5354_5200_u64.wrapping_add(i as u64)
+                    ),
+                    "mean_delta_within_5cm_fraction_vs_pid": mean(&within_deltas[i]),
+                    "bootstrap_95_ci_delta_within_5cm_fraction_vs_pid": bootstrap_mean_ci(
+                        &within_deltas[i], 2000, 0x5354_5210_u64.wrapping_add(i as u64)
+                    ),
+                    "all_trials_guard_rejections_zero": trial_rows.iter()
+                        .filter(|row| row["scenario_id"] == scenario.id)
+                        .all(|row| row["arms"][i]["guard_rejections"] == 0)
+                })
+            })
+            .collect();
+
+        scenario_summaries.push(json!({
+            "scenario_id": scenario.id,
+            "scenario_family": scenario.family,
+            "scenario_split": scenario.split,
+            "setpoint_m": scenario.setpoint.position,
+            "disturbance_profile": scenario.disturbance,
+            "disturbance_fraction_of_weight": scenario.disturbance_fraction_of_weight,
+            "paired_summary_vs_pid": arm_summaries
         }));
     }
 
-    let summaries: Vec<serde_json::Value> = AUTHORITIES
-        .iter()
-        .enumerate()
-        .map(|(i, authority)| {
-            json!({
-                "authority": authority,
-                "paired_trial_count": rmse_deltas[i].len(),
-                "mean_delta_rmse_vs_pid_m": mean(&rmse_deltas[i]),
-                "bootstrap_95_ci_delta_rmse_vs_pid_m": bootstrap_mean_ci(
-                    &rmse_deltas[i], 2000, 0x5354_5200_u64.wrapping_add(i as u64)
-                ),
-                "mean_delta_within_5cm_fraction_vs_pid": mean(&within_deltas[i]),
-                "bootstrap_95_ci_delta_within_5cm_fraction_vs_pid": bootstrap_mean_ci(
-                    &within_deltas[i], 2000, 0x5354_5210_u64.wrapping_add(i as u64)
-                ),
-                "all_trials_guard_rejections_zero": trial_rows.iter().all(|row| {
-                    row["arms"][i]["guard_rejections"] == 0
-                })
-            })
-        })
-        .collect();
-
     println!("{}", json!({
-        "benchmark_id": "symthaea-symtropy-bounded-residual-v0.1",
-        "claim_ceiling": "bounded_simulator_residual_study_not_a_stability_certificate_or_physical_safety_claim",
+        "benchmark_id": "symthaea-symtropy-bounded-residual-matrix-v0.2",
+        "claim_ceiling": "heldout_simulator_generalization_study_not_a_stability_certificate_or_physical_safety_claim",
         "training": {
             "backend": "Symthaea SimplePhysicsSimulator",
             "episodes_reported_by_trainer": training_metrics.len(),
             "steps_per_episode_configured": train_steps,
+            "training_scenario_ids": training_ids,
+            "configured_training_target_policy": "PD baseline unless FlightFepResult.use_pid_target requests PID; FlightConfig.use_pid=false",
             "policy_genesis": config.genesis_phrase
         },
         "evaluation": {
             "backend": "Symtropy PhysicsWorld",
-            "trials": trials.max(1),
+            "trials_per_scenario": trials.max(1),
+            "scenario_count": evaluation_scenarios.len(),
+            "scenario_trial_pair_count": trial_rows.len(),
             "steps_per_trial": eval_steps,
+            "validation_scenario_ids": validation_ids,
+            "heldout_test_scenario_ids": test_ids,
             "matched_seed_across_authority_arms": true,
             "classical_nominal_controller": "Symthaea pid_baseline with PdGains::default",
             "online_fep": false,
-            "disturbances": "deterministic two-pulse world-frame force schedule, fixed per seed",
+            "disturbance_force_scale": "fraction_of_vehicle_weight",
             "authorities": AUTHORITIES,
             "max_abs_residual": MAX_RESIDUAL,
             "residual_limits_are_airframe_safety_limits": false
         },
-        "metrics_note": "Positive RMSE deltas mean worse tracking; positive within-5cm deltas mean better tracking. Thrust impulse is not electrical energy. Controller p95 is in-process wall time for nominal controller, cognitive forward when enabled, and residual guard; it is hardware/load dependent and excludes full sensor-to-actuator latency. Guard rejection falls back to the nominal controller and is counted. Residual clipping counts steps where any requested cognitive-minus-PID channel exceeds its configured per-channel cap. Bootstrap intervals from the two-trial CI smoke are descriptive only.",
-        "paired_summary_vs_pid": summaries,
+        "metrics_note": "Positive RMSE deltas mean worse tracking; positive within-5cm deltas mean better tracking. Thrust impulse is not electrical energy. Controller p95 is in-process wall time for nominal controller, cognitive forward when enabled, and residual guard; it is hardware/load dependent and excludes full sensor-to-actuator latency. Guard rejection falls back to nominal PID and is counted. Residual clipping counts steps where any requested cognitive-minus-PID channel exceeds its configured per-channel cap. Forces are normalized by vehicle weight. Bootstrap intervals from the two-trial CI smoke are descriptive only and are reported per scenario.",
+        "paired_summary_by_scenario": scenario_summaries,
         "trials": trial_rows
     }));
 }

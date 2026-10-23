@@ -2,7 +2,7 @@ name: Real Symthaea x Symtropy Closed-Loop Smoke
 
 on:
   pull_request:
-    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1"]
+    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1", "research/symtropy-bounded-cognitive-residual-v0-1", "research/symtropy-heldout-scenario-matrix-v0-1", "research/symtropy-tail-risk-evidence-receipt-v0-1"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Cargo.toml"
@@ -71,7 +71,7 @@ jobs:
           STFB_EVAL_STEPS: 320
           STFB_TRIALS: 2
           STFR_RUN_BENCHMARK: "1"
-          STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual.json
+          STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           STFR_TRAIN_EPISODES: 1
           STFR_TRAIN_STEPS: 32
           STFR_EVAL_STEPS: 320
@@ -84,5 +84,5 @@ jobs:
           name: symthaea-symtropy-flight-transfer-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
-            ${{ runner.temp }}/symthaea-symtropy-bounded-residual.json
+            ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           if-no-files-found: error
