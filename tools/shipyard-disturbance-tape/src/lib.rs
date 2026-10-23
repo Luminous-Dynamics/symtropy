@@ -1247,4 +1247,58 @@ mod tests {
                 .contains("64 hexadecimal")
         );
     }
+
+    #[test]
+    fn file_outputs_are_separate_and_source_is_preserved_on_path_collision() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock after epoch")
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "shipyard-disturbance-tape-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&directory).expect("temporary directory");
+        let input_path = directory.join("input.json");
+        let policy_path = directory.join("policy.json");
+        let evaluator_path = directory.join("evaluator.json");
+        fs::write(&input_path, FIXTURE).expect("fixture input");
+        let digest = sha256_hex(FIXTURE.as_bytes());
+
+        let report = validate_file(
+            &input_path,
+            &digest,
+            5,
+            &policy_path,
+            &evaluator_path,
+        )
+        .expect("valid tape writes separate outputs");
+        assert_eq!(
+            fs::read_to_string(&policy_path).expect("policy output"),
+            report.policy_view_json
+        );
+        assert_eq!(
+            fs::read_to_string(&evaluator_path).expect("evaluator output"),
+            report.evaluator_stream_json
+        );
+
+        let collision = validate_file(
+            &input_path,
+            &digest,
+            5,
+            &input_path,
+            &evaluator_path,
+        )
+        .expect_err("input must not be reused as an output path");
+        assert!(collision.contains("paths must be distinct"));
+        assert_eq!(
+            fs::read_to_string(&input_path).expect("original input remains intact"),
+            FIXTURE
+        );
+
+        fs::remove_dir_all(&directory).expect("temporary directory cleanup");
+    }
+
 }
