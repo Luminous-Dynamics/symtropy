@@ -54,6 +54,74 @@ fn expected_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark> {
     Some(value)
 }
 
+
+fn parse_parametric_id(candidate_id: &str) -> Option<(u16, u16, u16, u16)> {
+    let rest = candidate_id.strip_prefix("synthetic-parametric-pv-")?;
+    let (pv, rest) = rest.split_once("kw-battery-")?;
+    let (capacity, rest) = rest.split_once("kwh-battery-power-")?;
+    let (battery_power, grid_power) = rest.split_once("kw-grid-")?;
+    let grid_power = grid_power.strip_suffix("kw")?;
+    let values = (
+        pv.parse::<u16>().ok()?,
+        capacity.parse::<u16>().ok()?,
+        battery_power.parse::<u16>().ok()?,
+        grid_power.parse::<u16>().ok()?,
+    );
+    let (pv, capacity, battery_power, grid_power) = values;
+    if ![1, 2, 3].contains(&pv)
+        || ![1, 2, 3].contains(&capacity)
+        || ![1, 2].contains(&battery_power)
+        || ![1, 2].contains(&grid_power)
+    {
+        return None;
+    }
+    Some(values)
+}
+
+/// Closed-form known answer for this frozen two-interval family.
+///
+/// Let C=min(battery_capacity, charge/discharge_power). Every c in 0..=C
+/// can be charged in interval 1. For each c, grid import g must satisfy
+/// max(0,c-PV)<=g<=min(grid_power,c); each feasible (c,g) allows
+/// min(c,battery_power)+1 terminal withdrawal choices in interval 2.
+/// With explicitly zero synthetic grid cost/carbon, the nondominated
+/// frontier uses maximum feasible charge C and withdrawals C..0.
+fn expected_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark> {
+    let (pv, capacity, battery_power, grid_power) = parse_parametric_id(candidate_id)?;
+    let max_charge = capacity.min(battery_power);
+    let mut feasible_schedules = 0_u64;
+    for charge in 0..=max_charge {
+        let minimum_grid = charge.saturating_sub(pv);
+        let maximum_grid = grid_power.min(charge);
+        if maximum_grid >= minimum_grid {
+            let grid_choices = u64::from(maximum_grid - minimum_grid) + 1;
+            let withdrawal_choices = u64::from(charge.min(battery_power)) + 1;
+            feasible_schedules = feasible_schedules
+                .checked_add(grid_choices.checked_mul(withdrawal_choices)?)?;
+        }
+    }
+
+    let curtailed_pv = u64::from(pv.saturating_sub(max_charge));
+    let frontier = (0..=max_charge)
+        .rev()
+        .map(|withdrawal| {
+            objective(
+                2 - u64::from(withdrawal),
+                0,
+                0,
+                0,
+                curtailed_pv,
+                max_charge - withdrawal,
+            )
+        })
+        .collect();
+
+    Some(ExpectedBenchmark {
+        case_id: Box::leak(format!("candidate:{candidate_id}").into_boxed_str()),
+        feasible_schedules,
+        frontier,
+    })
+}
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -64,9 +132,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         .into());
     }
 
-    let expected = expected_benchmark(&args[2]);
-    let parametric_candidate = args[2].starts_with("synthetic-parametric-");
-    if expected.is_none() && !parametric_candidate {
+    let expected = expected_benchmark(&args[2]).or_else(|| expected_parametric_benchmark(&args[2]));
+    if expected.is_none() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("no frozen benchmark or bounded-search case for candidate ID {}", args[2]),
@@ -107,7 +174,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             feasible_schedules == Some(expected.feasible_schedules)
                 && frontier == expected.frontier
         }
-        None => feasible_schedules.is_some_and(|count| count > 0) && !frontier.is_empty(),
+        None => false,
     };
     let expected_count = expected.as_ref().map(|value| value.feasible_schedules);
     let expected_frontier_count = expected.as_ref().map(|value| value.frontier.len());
