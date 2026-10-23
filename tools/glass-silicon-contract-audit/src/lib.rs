@@ -59,6 +59,25 @@ fn nonempty_string(value: &Value, key: &str) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn schema_enum_set(schema: &Value, pointer: &str) -> BTreeSet<String> {
+    schema.pointer(pointer)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
+fn is_stable_slug(value: &str) -> bool {
+    !value.is_empty()
+        && !value.starts_with('-')
+        && !value.ends_with('-')
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+}
+
 /// Check the frozen benchmark's structural and semantic contract invariants.
 /// This is intentionally a semantic reference checker, not a general JSON Schema engine.
 pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
@@ -73,6 +92,9 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     }
     if schema.pointer("/properties/schema_version/const").and_then(Value::as_u64) != Some(1) {
         report.fail("SCHEMA_VERSION", "schema must pin schema_version=1");
+    }
+    if corpus.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        report.fail("CORPUS_SCHEMA_VERSION", "corpus schema_version must equal 1");
     }
     if object_string(corpus, "benchmark_id") != Some("glass-silicon-process-benchmark-v0.1") {
         report.fail("BENCHMARK_ID", "unexpected or missing benchmark_id");
@@ -100,6 +122,12 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     if fault_classes.is_empty() {
         report.fail("FAULT_TAXONOMY", "schema fault_class enum is absent or empty");
     }
+    let routes = schema_enum_set(schema, "/properties/cases/items/properties/route/enum");
+    let case_types = schema_enum_set(schema, "/properties/cases/items/properties/case_type/enum");
+    let dispositions = schema_enum_set(schema, "/properties/cases/items/properties/expected_disposition/enum");
+    if routes.is_empty() || case_types.is_empty() || dispositions.is_empty() {
+        report.fail("SCHEMA_ENUMS", "route, case_type, and expected_disposition enums must be present");
+    }
 
     let refs = corpus.get("research_references").and_then(Value::as_array);
     let mut seen_reference_ids = BTreeSet::new();
@@ -108,10 +136,14 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     } else {
         for (index, item) in refs.iter().flat_map(|items| items.iter()).enumerate() {
             let rid = nonempty_string(item, "reference_id");
-            if rid.is_none() {
-                report.fail("REFERENCE_ID", format!("reference index {index} has no ID"));
+            if rid.is_none() || !is_stable_slug(rid.as_deref().unwrap_or("")) {
+                report.fail("REFERENCE_ID", format!("reference index {index} has missing or invalid slug ID"));
             } else if !seen_reference_ids.insert(rid.clone().unwrap_or_default()) {
                 report.fail("DUPLICATE_REFERENCE", format!("duplicate reference ID at index {index}"));
+            }
+            let year = nonempty_string(item, "published_or_reviewed");
+            if year.as_deref().map_or(true, |y| y.len() != 4 || !y.chars().all(|ch| ch.is_ascii_digit())) {
+                report.fail("REFERENCE_YEAR", format!("reference index {index} must declare a four-digit year"));
             }
             for field in ["title", "url", "published_or_reviewed", "use", "limitation"] {
                 if nonempty_string(item, field).is_none() {
@@ -158,8 +190,8 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
 
     for (index, case) in cases.iter().flat_map(|items| items.iter()).enumerate() {
         let case_id = nonempty_string(case, "case_id");
-        if case_id.is_none() {
-            report.fail("CASE_ID", format!("case index {index} has no non-empty ID"));
+        if case_id.is_none() || !is_stable_slug(case_id.as_deref().unwrap_or("")) {
+            report.fail("CASE_ID", format!("case index {index} has missing or invalid slug ID"));
         } else if !seen_ids.insert(case_id.clone().unwrap_or_default()) {
             report.fail("DUPLICATE_CASE_ID", format!("duplicate case ID at index {index}"));
         }
@@ -186,6 +218,15 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         let route = object_string(case, "route").unwrap_or("");
         let case_type = object_string(case, "case_type").unwrap_or("");
         let expected = object_string(case, "expected_disposition").unwrap_or("");
+        if !routes.contains(route) {
+            report.fail("CASE_ROUTE", format!("case index {index} has route outside the declared schema enum"));
+        }
+        if !case_types.contains(case_type) {
+            report.fail("CASE_TYPE_ENUM", format!("case index {index} has case_type outside the declared schema enum"));
+        }
+        if !dispositions.contains(expected) {
+            report.fail("CASE_DISPOSITION_ENUM", format!("case index {index} has expected_disposition outside the declared schema enum"));
+        }
         let fault = case.get("fault_class");
         let fault_str = fault.and_then(Value::as_str);
         let fault_is_null = fault.is_some_and(Value::is_null);
@@ -675,5 +716,25 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("RESEARCH_BASELINE_MISSING:")));
+    }
+
+    #[test]
+    fn corpus_wrong_schema_version_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["schema_version"] = json!(2);
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CORPUS_SCHEMA_VERSION:")));
+    }
+
+    #[test]
+    fn corpus_route_outside_schema_enum_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["cases"][0]["route"] = json!("invented-route");
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("CASE_ROUTE:")));
     }
 }
