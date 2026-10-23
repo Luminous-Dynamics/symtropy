@@ -6,12 +6,12 @@
 
 use std::{env, error::Error, fs, io, path::Path};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use symtropy_energy_dispatch_audit::DispatchObjective;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct MappingConfig {
     schema_version: String,
