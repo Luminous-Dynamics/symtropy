@@ -46,6 +46,7 @@ All outputs remain a vector. The crate does not collapse continuity, unmet deman
 
 Industry anchors for protocol design:
 - [IEEE 2030.8-2018: Standard for the Testing of Microgrid Controllers](https://standards.ieee.org/ieee/2030.8/6169/) and the [active P2030.8 revision project](https://standards.ieee.org/ieee/2030.8/12543/).
+- [IEC TS 62898-3-5:2026](https://webstore.iec.ch/en/publication/84175), published 2026-06-11, covers hardware-in-the-loop, commissioning, and periodic testing for microgrid monitoring, control, and energy-management systems.
 - [NREL/NLR, Hardware-in-the-Loop Test Bed and Test Methodology for Microgrid Controller Evaluation](https://www.nrel.gov/docs/fy20osti/71338.pdf).
 - [MLCommons benchmark programme](https://mlcommons.org/benchmarks/) for fair, reproducible comparisons.
 - [UFC 3-130-05 Arctic and Subarctic Utilities (2025)](https://www.wbdg.org/FFC/DOD/UFC/ufc_3_130_05_2025.pdf) for cold-region engineering context.
