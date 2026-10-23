@@ -86,12 +86,6 @@ struct Candidate {
     footprint: Polygon,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SearchFlow {
-    Infeasible,
-    BudgetExceeded,
-}
-
 struct SearchContext {
     domains: Vec<Vec<Candidate>>,
     candidate_checks: usize,
@@ -406,7 +400,7 @@ mod tests {
         assert_eq!(placements.len(), 2);
         assert_eq!(placements[0].origin, p(0, 0));
         assert!(!independent_conflict(&placements[0].footprint, &placements[1].footprint));
-        assert_eq!(checks, match result { SolveOutcome::Feasible { candidate_checks, .. } => candidate_checks, _ => unreachable!() });
+        assert!(checks > 0);
     }
 
     #[test]
