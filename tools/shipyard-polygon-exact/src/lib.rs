@@ -1,5 +1,5 @@
 use shipyard_polygon_geometry::{GeometryError, Point, Polygon};
-use shipyard_polygon_layout_baseline::{BlockRequest, LayoutError, Yard};
+use shipyard_polygon_layout_baseline::{first_fit, BlockRequest, LayoutError, Policy, Yard};
 use std::collections::BTreeSet;
 use std::fmt;
 
@@ -312,6 +312,12 @@ mod tests {
         ]).unwrap()
     }
 
+    fn vertical_bar() -> Polygon {
+        Polygon::new(vec![
+            p(0, 0), p(1, 0), p(1, 3), p(0, 3),
+        ]).unwrap()
+    }
+
     fn request(id: &str, polygon: Polygon) -> BlockRequest {
         BlockRequest::new(id, polygon).unwrap()
     }
@@ -401,6 +407,37 @@ mod tests {
         assert_eq!(placements[0].origin, p(0, 0));
         assert!(!independent_conflict(&placements[0].footprint, &placements[1].footprint));
         assert!(checks > 0);
+    }
+
+    #[test]
+    fn exact_mrv_recovers_layout_missed_by_same_order_first_fit() {
+        let yard = Yard::new(4, 4).unwrap();
+        let requests = vec![
+            request("small-a", square(1)),
+            request("small-b", square(1)),
+            request("tall-c", vertical_bar()),
+        ];
+
+        let greedy = first_fit(yard, &requests, Policy::ExactPolygon).unwrap();
+        assert_eq!(greedy.placements.len(), 2);
+        assert_eq!(greedy.unplaced_ids, vec!["tall-c"]);
+        assert_eq!(greedy.placements[0].origin, p(0, 0));
+        assert_eq!(greedy.placements[1].origin, p(2, 0));
+
+        let result = solve_exact(yard, &requests, 100_000).unwrap();
+        let (placements, checks) = feasible_result(&result);
+        assert_eq!(placements.len(), 3);
+        assert!(checks > 0);
+        for i in 0..placements.len() {
+            for j in (i + 1)..placements.len() {
+                assert!(
+                    !independent_conflict(&placements[i].footprint, &placements[j].footprint),
+                    "independent oracle rejected blocks {} and {}",
+                    placements[i].block_id,
+                    placements[j].block_id
+                );
+            }
+        }
     }
 
     #[test]
