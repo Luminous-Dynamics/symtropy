@@ -104,8 +104,8 @@ fn feasibility_exact_object_keys(value: &Value, allowed: &[&str], required: &[&s
 
 /// Deterministic staged feasibility audit for the synthetic benchmark lane.
 /// A candidate is FEASIBLE only when every required gate is PASS. Any evidenced
-/// hard-gate FAIL makes it INFEASIBLE; otherwise any missing/unknown/stale/
-/*UNRESOLVED*/ out-of-domain/censored/not-attempted gate yields UNRESOLVED. This checks a
+/// hard-gate FAIL makes it INFEASIBLE; otherwise any missing, unknown, stale,
+/// out-of-domain, censored, or not-attempted gate yields UNRESOLVED. This checks a
 /// declared contract; it does not validate physical evidence or source rights.
 pub fn audit_feasibility_corpus(corpus: &Value) -> FeasibilityAuditReport {
     let benchmark_id = object_string(corpus, "benchmark_id").map(ToOwned::to_owned);
