@@ -135,6 +135,14 @@
       "published_or_reviewed": "2026",
       "use": "Negative-region benchmark for glass formation, with non-glass-forming instances, composition-only and physical-descriptor predictors, and independent held-out systems.",
       "limitation": "Reported accuracy is specific to the paper's dataset and splits, is not a manufacturing/process benchmark, and must not substitute for PR-AUC, false-feasible risk, calibration or family-held-out evaluation. Reuse of repository data/code requires file-level terms and rights review."
+    },
+    {
+      "reference_id": "glass-gfr-xgboost-2026",
+      "title": "Interpretable Machine Learning Predicts Glass-Forming Regions Across Diverse Inorganic Systems",
+      "url": "https://doi.org/10.1111/jace.70616",
+      "published_or_reviewed": "2026",
+      "use": "Composition-only XGBoost/SHAP glass-forming-region classification baseline; the paper reports F1-score above 0.89 and validation across oxide, oxyfluoride and metallic-glass systems.",
+      "limitation": "Task and split definitions are specific to the paper. Do not transfer its F1 to process feasibility or compare it directly with GFRI-ML accuracy. Reproduce per-system metrics and splits; repository access does not by itself establish reuse rights, and additional data are reported available on request."
     }
   ],
   "cases": [
