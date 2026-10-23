@@ -61,6 +61,8 @@ No path should exist from a language model directly to motor current, torque com
 
 ## 3. Embodiment: modular humanoid, wheel-first
 
+The initial synthetic articulated model is documented in [the Careframe digital-twin contract](CAREFRAME_DIGITAL_TWIN_CONTRACT_V0.md) and `careframe-wheeled-upper-body-morphology-v0.json`. It specifies a 16-link/15-joint bounding-primitive graph with every joint command disabled. This does not yet mean the generic robotics bridge imports it into the physical engine as an articulated multibody model; a tested kinematic/collider adapter is a separate next gate.
+
 ### Common upper body
 - Head/sensor mast with visible state indicators and a mechanically default-closed privacy shutter.
 - Human-height torso with protected cable routing, redundant physical stop, clear status display, and easy-to-reach operator stop controls.
