@@ -181,6 +181,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         || transform_receipt.get("pv_resource_before_kwh").and_then(Value::as_f64) != Some(2.0)
         || transform_receipt.get("pv_resource_after_kwh").and_then(Value::as_f64) != Some(1.0)
         || string_field(&transform_receipt, "pv_resource_interval_id")? != "pv-surplus"
+        || string_field(&transform_receipt, "mutation_path")?
+            != "scenarios[0].intervals[interval_id=pv-surplus].resource_available_kwh[component_id=pv].available_kwh"
     {
         return Err(reject("PV stress-transform receipt does not bind the exact parent and transformed bytes"));
     }
@@ -215,6 +217,36 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
 
     let typed_config_bytes = serde_json::to_vec(&config)?;
+    let battery = &request["battery"];
+    let battery_contract_ok = battery["capacity_quanta"].as_u64() == Some(2)
+        && battery["initial_soc_quanta"].as_u64() == Some(0)
+        && battery["charge_input_limit_quanta"].as_u64() == Some(2)
+        && battery["discharge_withdrawal_limit_quanta"].as_u64() == Some(2)
+        && battery["charge_efficiency_numerator"].as_u64() == Some(1)
+        && battery["charge_efficiency_denominator"].as_u64() == Some(1)
+        && battery["discharge_efficiency_numerator"].as_u64() == Some(1)
+        && battery["discharge_efficiency_denominator"].as_u64() == Some(1)
+        && battery["terminal_reserve_quanta"].as_u64() == Some(0);
+    let interval_contract_ok = request["intervals"].as_array().is_some_and(|intervals| {
+        if intervals.len() != 2 {
+            return false;
+        }
+        let first = &intervals[0];
+        let outage = &intervals[1];
+        first["interval_id"].as_str() == Some("pv-surplus")
+            && first["duration_seconds"].as_u64() == Some(3_600)
+            && first["grid_outage"].as_bool() == Some(false)
+            && first["pv_available_quanta"].as_u64() == Some(1)
+            && first["grid_import_limit_quanta"].as_u64() == Some(2)
+            && first["essential_demand_quanta"].as_u64() == Some(0)
+            && first["flexible_demand_quanta"].as_u64() == Some(0)
+            && outage["interval_id"].as_str() == Some("grid-outage")
+            && outage["duration_seconds"].as_u64() == Some(3_600)
+            && outage["grid_outage"].as_bool() == Some(true)
+            && outage["pv_available_quanta"].as_u64() == Some(0)
+            && outage["essential_demand_quanta"].as_u64() == Some(2)
+            && outage["flexible_demand_quanta"].as_u64() == Some(0)
+    });
     if string_field(&compilation, "candidate_sha256")? != candidate_digest
         || string_field(&compilation, "candidate_id")? != known.candidate_id
         || string_field(&compilation, "mapping_config_sha256")? != sha256_hex(&typed_config_bytes)
@@ -222,6 +254,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         || request.get("synthetic").and_then(Value::as_bool) != Some(true)
         || request.get("energy_quantum_kwh").and_then(Value::as_f64) != Some(config.energy_quantum_kwh)
         || request.get("max_candidate_expansions").and_then(Value::as_u64) != Some(config.max_candidate_expansions)
+        || !battery_contract_ok
+        || !interval_contract_ok
         || request["intervals"].as_array().is_none_or(|intervals| {
             intervals.iter().any(|interval| {
                 interval.get("grid_cost_units_per_quantum").and_then(Value::as_u64)
