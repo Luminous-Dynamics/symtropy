@@ -762,6 +762,7 @@ fn benchmark_south_african_tariff_context(
         .collect::<Result<Vec<_>, _>>()?;
     let required_source_ids = [
         "joburg-fy2026-27-business-tariff-schedule",
+        "city-of-joburg-approved-tariff-notice-2026-27",
         "augos-city-power-business-conventional-2026-27",
         "dffe-south-africa-2024-grid-emission-factors",
         "ec-jrc-pvgis-v6",
