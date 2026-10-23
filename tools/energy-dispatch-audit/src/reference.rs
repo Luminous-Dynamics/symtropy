@@ -260,6 +260,35 @@ mod tests {
     }
 
     #[test]
+    fn three_interval_stress_case_matches_frozen_known_answer() {
+        const REQUEST: &str = include_str!("../fixtures/three-interval-stress.request.json");
+        const ANSWER: &str =
+            include_str!("../fixtures/three-interval-stress-known-answer-v0.1.json");
+
+        let request: DispatchRequest =
+            serde_json::from_str(REQUEST).expect("three-interval request fixture parses");
+        let answer: serde_json::Value =
+            serde_json::from_str(ANSWER).expect("frozen known-answer fixture parses");
+
+        assert_eq!(request.case_id, "synthetic-three-interval-storage-tradeoff");
+        assert_eq!(request.intervals.len(), 3);
+        assert!(request.intervals[1].grid_outage);
+        assert!(!request.intervals[2].grid_outage);
+
+        let result = enumerate(&request, DEFAULT_REFERENCE_EXPANSION_LIMIT)
+            .expect("three-interval known-answer case must complete within the bound");
+        let expected_schedules = answer["feasible_complete_schedules"]
+            .as_u64()
+            .expect("known answer declares feasible schedule count");
+        let expected_frontier: Vec<DispatchObjective> =
+            serde_json::from_value(answer["pareto_frontier"].clone())
+                .expect("known answer frontier has typed objective vectors");
+
+        assert_eq!(result.feasible_complete_schedules, expected_schedules);
+        assert_eq!(result.frontier, expected_frontier);
+    }
+
+    #[test]
     fn generated_small_case_corpus_is_deterministic_and_frontiers_are_nondominated() {
         for seed in 0..128_u32 {
             let request = generated_request(seed);
