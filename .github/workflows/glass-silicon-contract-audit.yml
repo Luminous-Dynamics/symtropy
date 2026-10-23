@@ -92,6 +92,40 @@ jobs:
             ([.candidates[] | select(.candidate_id == "control-non-forming")][0].blocking_gates == ["glass_formation"])
           ' feasibility-report.json
 
+      - name: Compare feasibility-gated one-step and adaptive policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json"
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value "$fixture" > feasibility-gated-myopic.json
+          grep -q '"status": "PASS"' feasibility-gated-myopic.json
+          jq -e '
+            .pre_measurement_worst_case_regret == 10.0 and
+            .oracle_measurement_id == "a-screen-formation" and
+            .oracle_worst_case_regret_after == 10.0 and
+            .oracle_gross_regret_reduction == 0.0
+          ' feasibility-gated-myopic.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign "$fixture" > feasibility-gated-adaptive.json
+          grep -q '"status": "PASS"' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 10.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 12.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' feasibility-gated-adaptive.json
+          jq -e '
+            .policy_tree.measurement_id == "a-screen-formation" and
+            .policy_tree.observation_branches["non-forming"].node_type == "STOP" and
+            .policy_tree.observation_branches["non-forming"].action_id == "reject" and
+            .policy_tree.observation_branches["forming"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["forming"].measurement_id == "b-characterize-route" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-b"].action_id == "route-b"
+          ' feasibility-gated-adaptive.json
+
       - name: Audit synthetic decision-value pool and exact one-step oracle
         run: >
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
