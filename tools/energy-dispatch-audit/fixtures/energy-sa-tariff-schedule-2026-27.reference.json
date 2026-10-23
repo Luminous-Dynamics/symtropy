@@ -14,7 +14,8 @@
   ],
   "source_notes": [
     "Municipal FY2026/27 budget Annexure B calls its schedule proposed and states that a 6 c/kWh network surcharge, 2% business/large-power-user surcharge, and VAT are excluded.",
-    "Augos secondary machine-readable schedule lists a 0.06 ZAR/kWh DSM levy and seasonal energy rates. The 6 c/kWh surcharge and the 6 c/kWh DSM levy are not assumed to be identical. Their reconciliation and applicability must be resolved before total-bill claims."
+    "Augos secondary machine-readable schedule lists a 0.06 ZAR/kWh DSM levy and seasonal energy rates. The 6 c/kWh surcharge and the 6 c/kWh DSM levy are not assumed to be identical. Their reconciliation and applicability must be resolved before total-bill claims.",
+    "Fixed-charge interpretation conflict: the municipal FY2026/27 schedule presents one charge pair for Business Conventional & Prepaid 400 V up to 100 kVA, and the independent Focal Energy cross-check labels these R890.45/month service plus R853.72/month capacity charge. Augos lists separate <50 kVA and >50-to-100 kVA fixed charge bands, and labels R853.72 as monthly network charge; it lists lower values R816.85/R783.16 for the upper band. Do not use Augos's upper-band values or infer the second component's legal/accounting label until the official schedule/account bill reconciles them."
   ],
   "energy_charge_basis": "progressive monthly usage blocks",
   "blocks": [
@@ -46,14 +47,9 @@
   ],
   "fixed_charges": [
     {
-      "capacity_band": "lt_50_kva",
+      "capacity_band": "le_100_kva",
       "service_microzar_per_month": 890450000,
-      "network_microzar_per_month": 853720000
-    },
-    {
-      "capacity_band": "gt_50_le_100_kva",
-      "service_microzar_per_month": 816850000,
-      "network_microzar_per_month": 783160000
+      "secondary_fixed_component_microzar_per_month": 853720000
     }
   ],
   "deliberately_unapplied_charges": [
@@ -81,7 +77,13 @@
       "charge_id": "demand_capacity_reactive_energy",
       "amount_microzar": null,
       "reason": "Only the stated candidate conventional low-voltage fee structure is represented; account-specific charges require confirmation."
+    },
+    {
+      "charge_id": "secondary_fixed_charge_band_and_label_conflict",
+      "amount_microzar_per_kwh": null,
+      "percent_basis_points": null,
+      "reason": "Augos secondary source splits fixed charges by <50 kVA and >50-to-100 kVA and labels the second component network charge; the municipal schedule and Focal cross-check show one <=100 kVA pair and label it capacity charge. The candidate calculator uses the common <=100 kVA amounts only and does not use the disputed alternative band/label."
     }
   ],
-  "claim_ceiling": "Energy-block arithmetic plus the two candidate monthly fixed-charge fields only; not a complete bill, not an account quote, and not a tariff/legal interpretation."
+  "claim_ceiling": "Exact energy-block arithmetic and two published monthly fixed-amount fields for a candidate <=100 kVA Business Conventional schedule only; the identity/label of the second fixed charge and the Augos upper-capacity bands remain unresolved. Not a complete bill, not an account quote, and not a tariff/legal interpretation."
 }
