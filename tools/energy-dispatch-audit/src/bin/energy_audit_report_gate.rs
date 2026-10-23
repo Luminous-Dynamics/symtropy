@@ -2,12 +2,35 @@
 
 use std::{env, error::Error, fs, io};
 
+use serde::Deserialize;
 use symtropy_energy_dispatch_audit::DispatchObjective;
 
 struct ExpectedBenchmark {
     case_id: String,
     feasible_schedules: u64,
     frontier: Vec<DispatchObjective>,
+}
+
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ParametricKnownAnswers {
+    schema_version: String,
+    axes: serde_json::Value,
+    case_count: usize,
+    cases: Vec<ParametricKnownAnswer>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct ParametricKnownAnswer {
+    candidate_id: String,
+    pv_rated_power_kw: u16,
+    battery_capacity_kwh: u16,
+    battery_charge_discharge_power_kw: u16,
+    grid_import_power_kw: u16,
+    feasible_complete_schedules: u64,
+    pareto_frontier: Vec<DispatchObjective>,
 }
 
 fn objective(
@@ -87,6 +110,31 @@ fn parse_parametric_id(candidate_id: &str) -> Option<(u16, u16, u16, u16)> {
 /// With explicitly zero synthetic grid cost/carbon, the nondominated
 /// frontier uses maximum feasible charge C and withdrawals C..0.
 fn expected_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark> {
+    let fixture: ParametricKnownAnswers = serde_json::from_str(include_str!(
+        "../../fixtures/energy-parametric-known-answers-v0.1.json"
+    ))
+    .expect("frozen parametric known-answer fixture must remain valid JSON");
+
+    if fixture.schema_version != "energy-parametric-known-answers-v0.1"
+        || fixture.case_count != 36
+        || fixture.cases.len() != 36
+        || !fixture.axes.is_object()
+    {
+        return None;
+    }
+
+    let known = fixture.cases.iter().find(|case| case.candidate_id == candidate_id)?;
+    Some(ExpectedBenchmark {
+        case_id: format!("candidate:{candidate_id}"),
+        feasible_schedules: known.feasible_complete_schedules,
+        frontier: known.pareto_frontier.clone(),
+    })
+}
+
+/// Derive the tiny-case answer from the declared integer model independently of
+/// the optimizer and the JSON fixture. Unit tests compare this derivation with
+/// the frozen values consumed by the end-to-end gate.
+fn derive_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark> {
     let (pv, capacity, battery_power, grid_power) = parse_parametric_id(candidate_id)?;
     let max_charge = capacity.min(battery_power);
     let mut feasible_schedules = 0_u64;
@@ -122,6 +170,7 @@ fn expected_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark
         frontier,
     })
 }
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -239,7 +288,11 @@ mod tests {
                             "synthetic-parametric-pv-{pv}kw-battery-{capacity}kwh-battery-power-{battery_power}kw-grid-{grid_power}kw"
                         );
                         let known = expected_parametric_benchmark(&id)
-                            .expect("every axis combination has a known answer");
+                            .expect("every axis combination has a frozen known answer");
+                        let derived = derive_parametric_benchmark(&id)
+                            .expect("every axis combination is derivable");
+                        assert_eq!(known.feasible_schedules, derived.feasible_schedules, "{id}");
+                        assert_eq!(known.frontier, derived.frontier, "{id}");
                         let max_charge = capacity.min(battery_power);
                         assert_eq!(known.frontier.len(), usize::from(max_charge) + 1);
                         assert!(known.feasible_schedules > 0);
@@ -278,6 +331,7 @@ mod tests {
             "synthetic-parametric-pv-xkw-battery-1kwh-battery-power-1kw-grid-1kw",
         ] {
             assert!(expected_parametric_benchmark(id).is_none(), "{id}");
+            assert!(derive_parametric_benchmark(id).is_none(), "{id}");
         }
     }
 }
