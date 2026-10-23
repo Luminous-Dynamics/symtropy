@@ -911,5 +911,4 @@ mod tests {
             "INVALID_EVALUATOR_OUTAGE_INTERVAL"
         ));
     }
-
 }
