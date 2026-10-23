@@ -140,7 +140,12 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .collection.sample_count == (.collection.episodes * .collection.steps_per_episode)
     and .collection.training_randomization.force_values_exported_per_sample == false
     and .collection.training_randomization.force_labels_available_to_target_extractor == false
+    and (.collection.nominal_model_id == "linear-thrust-gravity-linear-drag-v0.1")
+    and (.collection.nominal_model.mass_kg > 0)
+    and (.collection.nominal_model.gravity_m_s2 > 0)
+    and (.collection.nominal_model.linear_drag_n_s_per_m >= 0)
     and (.collection.training_randomization.episode_family_counts | length) == 4
+    and all(.collection.training_randomization.episode_family_counts[]; . >= 1)
     and all(.samples[];
       .split == "train"
       and .dt_s > 0
