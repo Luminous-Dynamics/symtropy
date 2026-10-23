@@ -243,7 +243,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and ($r.evaluation.episodes_requested == $h.evaluation.episodes_requested)
     and ($r.evaluation.steps_per_episode == $h.evaluation.steps_per_episode)
     and ($r.evaluation.scenario_ids == $h.evaluation.test_scenario_ids)
-    and ([$r.evaluation.episode_details[].episode_seed] == $h.evaluation.test_episode_seeds)
+    and ([$r.evaluation.episode_details[].episode_seed_hex] == $h.evaluation.test_episode_seed_hexes)
     and ([$r.evaluation.episode_details[].scenario_id] == $h.evaluation.test_episode_scenario_ids)
   '
 fi
