@@ -943,6 +943,229 @@ fn validate_morphology(model: &Value) -> Vec<String> {
     findings.into_iter().collect()
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct LinkPose {
+    rotation: [[f64; 3]; 3],
+    translation: [f64; 3],
+}
+
+impl LinkPose {
+    fn identity() -> Self {
+        Self {
+            rotation: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            translation: [0.0, 0.0, 0.0],
+        }
+    }
+}
+
+fn rotation_product(a: [[f64; 3]; 3], b: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            (0..3)
+                .map(|index| a[row][index] * b[index][column])
+                .sum()
+        })
+    })
+}
+
+fn rotate_vector(rotation: [[f64; 3]; 3], vector: [f64; 3]) -> [f64; 3] {
+    std::array::from_fn(|row| {
+        (0..3)
+            .map(|column| rotation[row][column] * vector[column])
+            .sum()
+    })
+}
+
+fn axis_angle_rotation(axis: [f64; 3], angle: f64) -> [[f64; 3]; 3] {
+    let [x, y, z] = axis;
+    let cosine = angle.cos();
+    let sine = angle.sin();
+    let one_minus_cosine = 1.0 - cosine;
+    [
+        [
+            cosine + x * x * one_minus_cosine,
+            x * y * one_minus_cosine - z * sine,
+            x * z * one_minus_cosine + y * sine,
+        ],
+        [
+            y * x * one_minus_cosine + z * sine,
+            cosine + y * y * one_minus_cosine,
+            y * z * one_minus_cosine - x * sine,
+        ],
+        [
+            z * x * one_minus_cosine - y * sine,
+            z * y * one_minus_cosine + x * sine,
+            cosine + z * z * one_minus_cosine,
+        ],
+    ]
+}
+
+/// Computes geometry-only forward kinematics for a previously validated tree.
+/// Input is a map from every revolute joint ID to a bounded position in radians.
+/// This function has no actuator, controller, velocity or physics side effects.
+fn compute_forward_kinematics(
+    model: &Value,
+    joint_state: &Value,
+) -> Result<BTreeMap<String, LinkPose>, Vec<String>> {
+    let morphology_findings = validate_morphology(model);
+    if !morphology_findings.is_empty() {
+        return Err(morphology_findings);
+    }
+
+    let mut findings = BTreeSet::new();
+    let Some(states) = joint_state.as_object() else {
+        return Err(vec!["JOINT_STATE_ROOT_MUST_BE_OBJECT".to_owned()]);
+    };
+    let joints = model["joints"]
+        .as_array()
+        .expect("morphology validator checked the joint array");
+    let mut positions = BTreeMap::<String, f64>::new();
+
+    for (joint_id, value) in states {
+        let Some(joint) = joints
+            .iter()
+            .find(|joint| str_at(joint, "joint_id") == Some(joint_id.as_str()))
+        else {
+            push_findings(&mut findings, "JOINT_STATE_UNKNOWN_ID");
+            continue;
+        };
+        if str_at(joint, "joint_type") != Some("revolute") {
+            push_findings(&mut findings, "JOINT_STATE_FOR_FIXED_JOINT");
+            continue;
+        }
+        let Some(position) = value.as_f64().filter(|position| position.is_finite()) else {
+            push_findings(&mut findings, "JOINT_STATE_VALUE_INVALID");
+            continue;
+        };
+        let lower = num_at(joint, "lower_limit_rad").unwrap_or(f64::NAN);
+        let upper = num_at(joint, "upper_limit_rad").unwrap_or(f64::NAN);
+        if position < lower || position > upper {
+            push_findings(&mut findings, "JOINT_STATE_OUT_OF_LIMITS");
+            continue;
+        }
+        positions.insert(joint_id.clone(), position);
+    }
+
+    for joint in joints {
+        if str_at(joint, "joint_type") == Some("revolute") {
+            let joint_id = str_at(joint, "joint_id").unwrap_or("");
+            if !positions.contains_key(joint_id) {
+                push_findings(&mut findings, "JOINT_STATE_MISSING_REVOLUTE_JOINT");
+            }
+        }
+    }
+    if !findings.is_empty() {
+        return Err(findings.into_iter().collect());
+    }
+
+    let root_id = str_at(model, "root_link").expect("morphology validator checked root");
+    let mut poses = BTreeMap::new();
+    poses.insert(root_id.to_owned(), LinkPose::identity());
+    let mut processed = BTreeSet::new();
+
+    while processed.len() < joints.len() {
+        let mut made_progress = false;
+        for (index, joint) in joints.iter().enumerate() {
+            if processed.contains(&index) {
+                continue;
+            }
+            let parent_id = str_at(joint, "parent_link").expect("validated parent link");
+            let child_id = str_at(joint, "child_link").expect("validated child link");
+            let Some(parent_pose) = poses.get(parent_id).cloned() else {
+                continue;
+            };
+            let origin = finite_vec3(&joint["origin_m"]).expect("validated joint origin");
+            let parent_frame_offset = rotate_vector(parent_pose.rotation, origin);
+            let translation = std::array::from_fn(|axis| {
+                parent_pose.translation[axis] + parent_frame_offset[axis]
+            });
+
+            let joint_rotation = if str_at(joint, "joint_type") == Some("revolute") {
+                let axis = finite_vec3(&joint["axis_xyz"]).expect("validated revolute axis");
+                axis_angle_rotation(axis, positions[joint["joint_id"].as_str().unwrap_or("")])
+            } else {
+                LinkPose::identity().rotation
+            };
+            let rotation = rotation_product(parent_pose.rotation, joint_rotation);
+            poses.insert(child_id.to_owned(), LinkPose { rotation, translation });
+            processed.insert(index);
+            made_progress = true;
+        }
+        if !made_progress {
+            return Err(vec!["KINEMATICS_GRAPH_TRAVERSAL_STALLED".to_owned()]);
+        }
+    }
+
+    Ok(poses)
+}
+
+fn link_poses_json(poses: &BTreeMap<String, LinkPose>) -> Value {
+    let links = poses
+        .iter()
+        .map(|(link_id, pose)| {
+            (
+                link_id.clone(),
+                json!({
+                    "translation_m": pose.translation,
+                    "rotation_matrix_row_major": pose.rotation
+                }),
+            )
+        })
+        .collect::<serde_json::Map<String, Value>>();
+    Value::Object(links)
+}
+
+fn evaluate_kinematics_file(model_path: &str, state_path: &str) {
+    let (model_bytes, model) = match load_json(model_path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    if model_path == MORPHOLOGY_PATH && sha256_hex(&model_bytes) != sha256_hex(MORPHOLOGY_SOURCE) {
+        eprintln!("runtime morphology differs from the model embedded in the compiled validator");
+        process::exit(2);
+    }
+    let (state_bytes, state) = match load_json(state_path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    let tested_revision =
+        env::var("CARE_FRAME_TESTED_SHA").unwrap_or_else(|_| "UNBOUND_LOCAL_RUN".to_owned());
+    let result = compute_forward_kinematics(&model, &state);
+    let (disposition, poses, findings) = match result {
+        Ok(poses) => ("KINEMATICS_ONLY", Some(link_poses_json(&poses)), Vec::new()),
+        Err(findings) => ("BLOCKED", None, findings),
+    };
+    let receipt = json!({
+        "receipt_schema": "careframe-forward-kinematics-receipt-v0",
+        "tested_revision": tested_revision,
+        "model_id": str_at(&model, "model_id").unwrap_or("<missing>"),
+        "model_revision": model.get("revision").and_then(Value::as_u64),
+        "disposition": disposition,
+        "morphology_sha256": sha256_hex(&model_bytes),
+        "joint_state_sha256": sha256_hex(&state_bytes),
+        "auditor_source_sha256": sha256_hex(AUDITOR_SOURCE),
+        "link_poses": poses,
+        "findings": findings,
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false,
+        "claim_ceiling": "Geometry-only forward kinematics on a synthetic tree; not engine or physical validation."
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt).expect("kinematics receipt serialization cannot fail")
+    );
+    if disposition == "BLOCKED" {
+        process::exit(1);
+    }
+}
+
 fn validate_morphology_file(path: &str) {
     let (bytes, model) = match load_json(path) {
         Ok(value) => value,
@@ -1036,6 +1259,22 @@ fn main() {
         write_or_print_template(&tool_kind, output_path.as_deref());
         return;
     }
+    if first.as_deref() == Some("--evaluate-kinematics") {
+        let Some(model_path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
+            process::exit(2);
+        };
+        let Some(state_path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
+            process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("unexpected extra argument");
+            process::exit(2);
+        }
+        evaluate_kinematics_file(&model_path, &state_path);
+        return;
+    }
     if first.as_deref() == Some("--validate-morphology") {
         let Some(path) = args.next() else {
             eprintln!("usage: medical-robot-tool-gate --validate-morphology PATH");
@@ -1065,6 +1304,7 @@ fn main() {
         eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH]");
         eprintln!("     | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
         eprintln!("     | --validate-morphology PATH");
+        eprintln!("     | --evaluate-kinematics MODEL_JSON JOINT_STATE_JSON");
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
