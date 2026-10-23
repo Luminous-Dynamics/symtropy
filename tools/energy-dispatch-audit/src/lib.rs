@@ -390,6 +390,16 @@ pub fn audit_bytes(request_bytes: &[u8], run_report_bytes: &[u8]) -> Independent
                     ),
                 });
             }
+            Err(reference::ReferenceError::CaseTooLarge { intervals }) => {
+                reference_frontier_status = "not_run_case_too_large".to_owned();
+                checks.push(AuditCheck {
+                    id: "independent_reference_frontier".to_owned(),
+                    status: "unknown".to_owned(),
+                    detail: format!(
+                        "independent reference enumeration is limited to 64 intervals; request has {intervals}"
+                    ),
+                });
+            }
             Err(reference::ReferenceError::ArithmeticOverflow) => {
                 reference_frontier_status = "not_run_arithmetic_overflow".to_owned();
                 checks.push(AuditCheck {
