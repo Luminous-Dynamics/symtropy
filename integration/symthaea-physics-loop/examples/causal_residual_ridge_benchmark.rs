@@ -410,6 +410,7 @@ fn summarize_split(
                 "scenario_id": episode.scenario_id,
                 "scenario_family": episode.scenario_family,
                 "episode_seed": episode.seed,
+                "episode_seed_hex": format!("{:016x}", episode.seed),
                 "sample_count": episode.sample_count,
                 "invalid_samples": episode.invalid_samples,
                 "max_vector_prediction_error_m_s2": if episode.max_error_norm.is_finite() {
