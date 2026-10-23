@@ -920,7 +920,7 @@ fn validate_morphology(model: &Value) -> Vec<String> {
         push_findings(&mut findings, "MORPHOLOGY_ROOT_HAS_PARENT");
     }
     for link_id in &link_ids {
-        let expected_incoming = if link_id == root_link { 0 } else { 1 };
+        let expected_incoming = if link_id.as_str() == root_link { 0 } else { 1 };
         if incoming.get(link_id).copied().unwrap_or(0) != expected_incoming {
             push_findings(&mut findings, "MORPHOLOGY_PARENT_COUNT_INVALID");
         }
