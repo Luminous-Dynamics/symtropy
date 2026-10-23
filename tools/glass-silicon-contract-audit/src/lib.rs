@@ -264,14 +264,30 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
                 scale_archive_record = true;
                 if source_ref.as_deref() != Some("scale-glass-zenodo-data-2026")
                     || object_string(record, "record_version") != Some("v1")
-                    || record_status != "publicly_listed_not_downloaded"
-                    || rights_status != "unresolved"
-                    || sha256_status != "pending"
-                    || admission_status != "blocked"
                     || artifact_files.map(|items| items.len()) != Some(9)
-                    || every_file_has_sha256
                 {
-                    report.fail("SCALE_ARTIFACT_GATE", "SCALE v1 must remain blocked until file-level rights are resolved and every exact file has a locally computed SHA-256");
+                    report.fail("SCALE_ARTIFACT_IDENTITY", "SCALE archive identity must remain pinned to Zenodo v1 and its nine listed files");
+                }
+                if admission_status == "blocked" {
+                    if record_status != "publicly_listed_not_downloaded"
+                        || rights_status != "unresolved"
+                        || sha256_status != "pending"
+                        || every_file_has_sha256
+                    {
+                        report.fail("SCALE_ARTIFACT_GATE", "blocked SCALE v1 record must truthfully describe unresolved rights and uncomputed hashes");
+                    }
+                } else if admission_status == "admitted" {
+                    if record_status != "downloaded_hashed"
+                        || rights_status != "resolved"
+                        || sha256_status != "complete"
+                        || !every_file_has_sha256
+                        || nonempty_string(record, "rights_evidence_ref").is_none()
+                        || nonempty_string(record, "rights_reviewed_on").is_none()
+                    {
+                        report.fail("SCALE_ARTIFACT_GATE", "SCALE v1 may be admitted only after permitted retrieval, rights evidence/review, and SHA-256 for every exact file");
+                    }
+                } else {
+                    report.fail("SCALE_ARTIFACT_GATE", "SCALE archive must be either blocked or fully admitted, not merely labeled literature_only");
                 }
             }
         }
