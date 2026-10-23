@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
@@ -12,6 +13,7 @@ on:
     branches: ["main"]
     paths:
       - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
