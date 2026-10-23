@@ -31,6 +31,12 @@ All link geometry uses conservative bounding boxes. Every size, mass, joint orig
 - Unknown fields reject rather than being silently ignored.
 - Validator receipt binds to the exact model file digest, validator source digest and tested source revision.
 
+## Forward-kinematics evaluator
+
+The companion [Forward-Kinematics Contract](CAREFRAME_FORWARD_KINEMATICS_CONTRACT_V0.md) now specifies a deterministic, geometry-only evaluation path. The Rust tool accepts a morphology file and an exact state file, rejects missing/unknown/out-of-range revolute-joint state, computes a pose for every link, and emits a receipt bound to the input digests and source revision. The zero-state reference points and a nonzero torso-yaw transform are covered by independent expected-coordinate assertions.
+
+This is **not yet an articulated Symtropy/Bevy physics adapter**. It validates one declared transform convention against synthetic reference points; it does not check collider installation, engine transforms, dynamics, contacts, or real hardware.
+
 ## What the contract does not cover
 
 The current fixture does not contain validated inertias, centre-of-mass measurements, joint friction/backlash, gearbox or tendon models, cable routing, reach maps, self-collision simplification error, thermal/electrical behavior, emergency-stop response, human factors, payload-induced stability, actuator control, cleanability, material compatibility or clinical efficacy. Uniform-density primitive dynamics (if derived later) must be marked an approximation and compared against an independently constructed reference model.
