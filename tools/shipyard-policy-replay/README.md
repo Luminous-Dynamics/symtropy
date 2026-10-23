@@ -6,7 +6,7 @@ This dependency-free Rust crate audits **whether a recovery policy uses only inf
 
 A final schedule can look robust in hindsight while a dispatch policy that chose it could not have known which disruption would occur. V0 therefore treats each scenario as an event-observation trace plus a sequence of decisions. At a declared decision tick, only events with `observed_at_tick <= decision_tick` enter the information history. Scenarios with the same decision tick and identical ordered observable histories must carry the same canonical action key.
 
-This checks a necessary **non-anticipativity** property of adaptive policies. It is not an optimizer and does not determine whether an action is physically or operationally feasible.
+This checks a necessary **non-anticipativity** property of adaptive policies. The source-defined expected scenario ID list is separate from the candidate traces; exact ID-set equality is required, so omitted or unexpected traces are incomplete. Load that list from the immutable benchmark manifest and bind it to the source revision. This crate checks coverage against the list but does not authenticate the manifest itself. It is not an optimizer and does not determine whether an action is physically or operationally feasible.
 
 ## Result semantics
 
