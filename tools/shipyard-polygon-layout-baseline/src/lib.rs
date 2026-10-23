@@ -41,8 +41,18 @@ impl BlockRequest {
         if id.trim().is_empty() {
             return Err(LayoutError::EmptyBlockId);
         }
-        let min_x = footprint.vertices().iter().map(|point| point.x).min().unwrap_or(0);
-        let min_y = footprint.vertices().iter().map(|point| point.y).min().unwrap_or(0);
+        let min_x = footprint
+            .vertices()
+            .iter()
+            .map(|point| point.x)
+            .min()
+            .unwrap_or(0);
+        let min_y = footprint
+            .vertices()
+            .iter()
+            .map(|point| point.y)
+            .min()
+            .unwrap_or(0);
         if min_x != 0 || min_y != 0 {
             return Err(LayoutError::FootprintNotNormalized { min_x, min_y });
         }
@@ -108,7 +118,10 @@ impl fmt::Display for LayoutError {
             Self::EmptyBlockId => write!(f, "block ID must not be empty"),
             Self::DuplicateBlockId(id) => write!(f, "duplicate block ID {id}"),
             Self::FootprintNotNormalized { min_x, min_y } => {
-                write!(f, "local polygon origin must be (0,0), got minimum ({min_x},{min_y})")
+                write!(
+                    f,
+                    "local polygon origin must be (0,0), got minimum ({min_x},{min_y})"
+                )
             }
             Self::BlockTooLarge { id, width, height } => {
                 write!(f, "block {id} footprint {width}x{height} exceeds yard")
@@ -141,8 +154,20 @@ pub fn first_fit(
         if !seen.insert(request.id.clone()) {
             return Err(LayoutError::DuplicateBlockId(request.id.clone()));
         }
-        let max_x = request.footprint.vertices().iter().map(|point| point.x).max().unwrap_or(0);
-        let max_y = request.footprint.vertices().iter().map(|point| point.y).max().unwrap_or(0);
+        let max_x = request
+            .footprint
+            .vertices()
+            .iter()
+            .map(|point| point.x)
+            .max()
+            .unwrap_or(0);
+        let max_y = request
+            .footprint
+            .vertices()
+            .iter()
+            .map(|point| point.y)
+            .max()
+            .unwrap_or(0);
         if max_x > yard.width || max_y > yard.height {
             return Err(LayoutError::BlockTooLarge {
                 id: request.id.clone(),
@@ -160,8 +185,20 @@ pub fn first_fit(
     };
 
     for request in requests {
-        let width = request.footprint.vertices().iter().map(|point| point.x).max().unwrap_or(0);
-        let height = request.footprint.vertices().iter().map(|point| point.y).max().unwrap_or(0);
+        let width = request
+            .footprint
+            .vertices()
+            .iter()
+            .map(|point| point.x)
+            .max()
+            .unwrap_or(0);
+        let height = request
+            .footprint
+            .vertices()
+            .iter()
+            .map(|point| point.y)
+            .max()
+            .unwrap_or(0);
         let mut accepted = None;
 
         for y in 0..=(yard.height - height) {
@@ -209,8 +246,14 @@ fn translate(polygon: &Polygon, origin: Point) -> Result<Polygon, LayoutError> {
         .iter()
         .map(|point| {
             Ok(Point::new(
-                point.x.checked_add(origin.x).ok_or(LayoutError::CoordinateOverflow)?,
-                point.y.checked_add(origin.y).ok_or(LayoutError::CoordinateOverflow)?,
+                point
+                    .x
+                    .checked_add(origin.x)
+                    .ok_or(LayoutError::CoordinateOverflow)?,
+                point
+                    .y
+                    .checked_add(origin.y)
+                    .ok_or(LayoutError::CoordinateOverflow)?,
             ))
         })
         .collect::<Result<Vec<_>, LayoutError>>()?;
@@ -269,8 +312,7 @@ mod tests {
                     if (2 * a.1 > py2) == (2 * b.1 > py2) {
                         continue;
                     }
-                    let cross = (b.0 - a.0) * (py2 - 2 * a.1)
-                        - (b.1 - a.1) * (px2 - 2 * a.0);
+                    let cross = (b.0 - a.0) * (py2 - 2 * a.1) - (b.1 - a.1) * (px2 - 2 * a.0);
                     let right = if b.1 > a.1 { cross > 0 } else { cross < 0 };
                     if right {
                         inside = !inside;
@@ -288,10 +330,7 @@ mod tests {
         a0.min(a1) <= b0.max(b1) && b0.min(b1) <= a0.max(a1)
     }
 
-    fn independent_boundary_contact(
-        first: &[(i64, i64)],
-        second: &[(i64, i64)],
-    ) -> bool {
+    fn independent_boundary_contact(first: &[(i64, i64)], second: &[(i64, i64)]) -> bool {
         for i in 0..first.len() {
             let a = first[i];
             let b = first[(i + 1) % first.len()];
@@ -303,8 +342,7 @@ mod tests {
                 let contact = match (first_horizontal, second_horizontal) {
                     (true, true) => a.1 == c.1 && closed_overlap(a.0, b.0, c.0, d.0),
                     (false, false) => a.0 == c.0 && closed_overlap(a.1, b.1, c.1, d.1),
-                    _ => closed_overlap(a.0, b.0, c.0, d.0)
-                        && closed_overlap(a.1, b.1, c.1, d.1),
+                    _ => closed_overlap(a.0, b.0, c.0, d.0) && closed_overlap(a.1, b.1, c.1, d.1),
                 };
                 if contact {
                     return true;
@@ -316,7 +354,11 @@ mod tests {
 
     fn independent_conflict(first: &Placement, second: &Placement) -> bool {
         let to_tuples = |polygon: &Polygon| {
-            polygon.vertices().iter().map(|point| (point.x, point.y)).collect::<Vec<_>>()
+            polygon
+                .vertices()
+                .iter()
+                .map(|point| (point.x, point.y))
+                .collect::<Vec<_>>()
         };
         let a = to_tuples(&first.footprint);
         let b = to_tuples(&second.footprint);
@@ -340,7 +382,10 @@ mod tests {
         assert_eq!(exact.candidates_examined, 12);
         assert_eq!(exact.placements[0].origin, Point::new(0, 0));
         assert_eq!(exact.placements[1].origin, Point::new(2, 2));
-        assert!(!independent_conflict(&exact.placements[0], &exact.placements[1]));
+        assert!(!independent_conflict(
+            &exact.placements[0],
+            &exact.placements[1]
+        ));
     }
 
     #[test]
@@ -371,15 +416,22 @@ mod tests {
         );
         assert_eq!(
             Yard::new(0, 6),
-            Err(LayoutError::InvalidYard { width: 0, height: 6 })
+            Err(LayoutError::InvalidYard {
+                width: 0,
+                height: 6
+            })
         );
     }
 
     #[test]
     fn non_normalized_polygon_origin_is_rejected() {
         let shifted = Polygon::new(vec![
-            Point::new(1, 0), Point::new(4, 0), Point::new(4, 1),
-            Point::new(2, 1), Point::new(2, 3), Point::new(1, 3),
+            Point::new(1, 0),
+            Point::new(4, 0),
+            Point::new(4, 1),
+            Point::new(2, 1),
+            Point::new(2, 3),
+            Point::new(1, 3),
         ])
         .unwrap();
         assert_eq!(
