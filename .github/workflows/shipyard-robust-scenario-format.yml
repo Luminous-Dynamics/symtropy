@@ -1,0 +1,45 @@
+name: Format shipyard finite-scenario robust audit
+
+on:
+  pull_request:
+    branches: ["research/shipyard-polygon-exact-v0"]
+    paths:
+      - "tools/shipyard-robust-scenario-audit/**"
+      - ".github/workflows/shipyard-robust-scenario-format.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shipyard-robust-scenario-format-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Apply pinned rustfmt without relaxing checks
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Format robust audit crate
+        run: cargo fmt --manifest-path tools/shipyard-robust-scenario-audit/Cargo.toml
+      - name: Commit formatting only
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- tools/shipyard-robust-scenario-audit; then
+            echo "No formatting changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/shipyard-robust-scenario-audit
+          git commit -m "style(shipyard): apply pinned rustfmt"
+          git push origin "HEAD:${HEAD_REF}"
