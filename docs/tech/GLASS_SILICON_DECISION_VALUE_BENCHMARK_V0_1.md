@@ -201,3 +201,39 @@ The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workf
 - Evaluate multi-fidelity acquisition under source-specific costs and fidelity correlations. Recent benchmark guidance warns these properties materially change whether low-fidelity evaluations are worthwhile: [Best practices for multi-fidelity Bayesian optimization](https://www.nature.com/articles/s43588-025-00822-9), and a 2026 cost-aware batch BO paper gives a relevant alternative baseline for heterogeneous query costs: [Alvi et al. (2026)](https://www.nature.com/articles/s41524-026-01981-7).
 
 The current adaptive fixture is a software oracle test only. It does not establish real measurement information gain, glass/silicon process optimization, an industrial cost reduction, or any selector's superiority.
+
+
+## 13. Industry digital-twin comparison — float-glass xDT, October 2026
+
+A material industry reference appeared immediately before this update: on **October 21, 2026**, Snowflake described a Vivix float-glass executable digital twin built with Siemens Simcenter multiphysics and reduced-order models, NVIDIA PhysicsNeMo surrogate models, Snowflake's operational-data platform, and AWS. The system is described as a continuous virtual sensor for internal furnace fields, with initial work on refractory health, combustion efficiency and melting quality. The announcement says the pilot **expects** 3–5% lower furnace energy consumption, one additional year of furnace life, and an 80% shorter data-collection/analytics cycle. These are vendor-reported expectations based on a pilot, not independently reported measured outcomes or a public accuracy benchmark: [Snowflake/Vivix/Siemens/NVIDIA industry announcement, 2026-10-21](https://www.snowflake.com/en/blog/vivix-executable-digital-twin-float-glass/).
+
+This is a meaningful industry comparator, but it is **float glass**, while the v0.1 process benchmark's first physical unit is container glass. Use it as an architecture and evaluation reference—not as a numerically matched baseline or proof that our system can reach the same targets.
+
+| Industry capability as publicly described | Evidence-bounded benchmark we should demand |
+|---|---|
+| High-fidelity multiphysics solver plus reduced-order executable | Pin solver version/domain, model reduction error and runtime; validate against independently measured campaigns, not only solver-generated labels |
+| Surrogate / virtual sensors for hard-to-measure furnace state | Per-field, time-aligned forecast error; interval coverage/width; drift and out-of-domain behavior; sensor calibration and missing-data tests |
+| Refractory health / hotspot lead time | Detection lead time against independently adjudicated events, false-alarm rate, wear-estimation error and campaign-life censoring |
+| Combustion / energy setpoint what-if | Time-blocked and operating-regime holdouts; physically feasible counterfactuals; energy per accepted tonne and emissions boundary; no unsafe control recommendation |
+| Glass melting quality | Chemistry/homogeneity/defect endpoints, reject and rework accounting, measurement repeatability and product-grade gates |
+| Unified OT/IT data plus operator-facing agents | Exact provenance/clock synchronization, permissions, auditability, response latency, human override and outage/degraded-mode behavior |
+| Announced pilot targets | Preregistered, measured results with uncertainty, counterfactual/baseline definition, uptime, product quality and full boundary; retain announced target vs verified outcome as different evidence classes |
+
+### Concrete comparison procedure
+
+1. Freeze the intended functional unit and plant boundary. For any shared plant challenge, align product family, fuel/electricity carriers, furnace campaign, accepted yield, feedstock/cullet and upstream/lifecycle exclusions.
+2. Obtain a rights-cleared sensor/SCADA series and independently measured product/maintenance labels. Split by time and campaign, with at least one held-out operating regime; never random-split adjacent furnace rows across train and test.
+3. Require the xDT owner and candidate team to generate blind predictions on the same time stamps/horizons. Score both specialist/high-fidelity model, industrial xDT/surrogate, simple engineering/persistence baseline and our proposed stack at their actual measured runtimes and hardware costs.
+4. Evaluate forecast accuracy, calibration, event detection, product quality, and **decision value** separately. For each proposed operational or measurement change, charge latency and review cost, enforce feasibility/safety constraints, and compute decision regret against the observed or independently qualified outcome. Virtual counterfactuals remain simulated until tested.
+5. Run the candidate in read-only shadow mode first. Physical trials require site authorization, engineering sign-off, interlocks and a separate safety case; the benchmark itself never grants actuator authority.
+6. For energy and lifecycle claims, compare energy per accepted tonne with matched quality/yield and independently meter energy. Report furnace-life results with censoring, campaign duration and competing maintenance reasons. Cycle-time reductions are separately reported from material/energy improvements.
+
+### Where Symthaea/Symtropy/Mycelix can differentiate
+
+Do not try to replace Simcenter, PhysicsNeMo or industrial domain solvers with a general reasoner. The valuable differentiator is a **solver-neutral, evidence-aware closed loop**:
+- Symthaea proposes the next measurement / calibration / model-discrimination action and gives an explicit stop or abstain option.
+- Specialist process solvers remain authoritative within declared domains; Symtropy replays scenarios, couples equipment/resources and calculates end-to-end costs.
+- Mycelix keeps the provenance, model/version, rights, metrology and approval trail linked to the decision and physical outcome.
+- The evaluator measures whether this orchestration produces more reliable feasible decisions per budget than (a) the incumbent workflow, (b) incumbent twin alone, and (c) incumbent twin plus a simple selector.
+
+That is an achievable and falsifiable comparison. A claim of beating an industrial twin is unavailable until we have its rights-cleared holdout data or conduct a contract-matched independent evaluation. The reported 3–5% energy, one-year life, and 80% analytics-cycle figures remain *pilot expectations* from the announcement, not performance thresholds proved by this repo.
