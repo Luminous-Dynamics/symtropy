@@ -150,13 +150,43 @@ jobs:
           fi
           grep -q 'MORPHOLOGY_GRAPH_DISCONNECTED_OR_CYCLIC' /tmp/careframe-morphology-cycle-receipt.json
 
+          # Forward kinematics is geometry-only: it computes link transforms and emits no controls.
+          state=docs/medical-robotics/careframe-nominal-joint-state-v0.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" "$state" > /tmp/careframe-fk-receipt.json
+          jq -e '
+            .disposition == "KINEMATICS_ONLY" and
+            .physical_actuation_authorized == false and
+            .patient_contact_authorized == false and
+            .clinical_use_authorized == false and
+            (((.link_poses.torso_shell.translation_m[2] - 0.32) | fabs) < 0.000000001) and
+            (((.link_poses.left_tool_mount.translation_m[1] - 0.19) | fabs) < 0.000000001) and
+            (((.link_poses.left_tool_mount.translation_m[2] - 0.28) | fabs) < 0.000000001)
+          ' /tmp/careframe-fk-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-fk-receipt.json
+          grep -Eq '"joint_state_sha256": "[0-9a-f]{64}"' /tmp/careframe-fk-receipt.json
+
+          jq '.torso_yaw = 1.21' "$state" > /tmp/careframe-fk-out-of-range.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" /tmp/careframe-fk-out-of-range.json > /tmp/careframe-fk-blocked-receipt.json
+          fk_blocked_status=$?
+          set -e
+          if [[ "$fk_blocked_status" -ne 1 ]]; then
+            echo "Expected out-of-range joint state to be blocked; got $fk_blocked_status" >&2
+            cat /tmp/careframe-fk-blocked-receipt.json >&2
+            exit 1
+          fi
+          grep -q 'JOINT_STATE_OUT_OF_LIMITS' /tmp/careframe-fk-blocked-receipt.json
+          grep -q '"physical_actuation_authorized": false' /tmp/careframe-fk-blocked-receipt.json
+
           {
             echo ""
             echo "Careframe articulated morphology exact revision: ${CARE_FRAME_TESTED_SHA}"
             echo "Model SHA-256: $(sha256sum "$model" | cut -d' ' -f1)"
             echo "Nominal 16-link / 15-joint synthetic graph admitted for simulation only."
+            echo "Nominal forward-kinematics reference points matched; out-of-range joint state rejected."
             echo "Joint-command and graph-cycle negative controls were rejected."
             echo "No physical or clinical validity is implied."
             echo ""
             cat /tmp/careframe-morphology-receipt.json
+            cat /tmp/careframe-fk-receipt.json
           } >> "$GITHUB_STEP_SUMMARY"
