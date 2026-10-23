@@ -77,11 +77,12 @@ jobs:
             --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
             --bins
 
-      - name: Export three reference architectures and the 36-point sizing manifest
+      - name: Export references and materialize all 36 parametric candidates once
         shell: bash
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          exporter="$work/targets/symthaea/debug/energy_architecture_candidates"
           timed() {
             local timing_path="$1"
             shift
@@ -91,26 +92,15 @@ jobs:
             finished="$(date +%s%N)"
             printf '%s\n' "$((finished - started))" > "$timing_path"
           }
-          exporter="$work/targets/symthaea/debug/energy_architecture_candidates"
 
-          "$exporter" --design-space --output "$work/energy-design-space-manifest.json"
+          timed "$work/manifest-generation.elapsed_ns" "$exporter" --design-space \
+            --candidate-output-dir "$work" \
+            --output "$work/energy-design-space-manifest.json"
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
             mkdir -p "$work/$candidate"
-            timed "$work/$candidate/generation.elapsed_ns" "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
+            timed "$work/$candidate/generation.elapsed_ns" "$exporter" \
+              --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
             sha256sum "$work/$candidate/candidate.json"
-          done
-
-          for pv in 1 2 3; do
-            for capacity in 1 2 3; do
-              for battery_power in 1 2; do
-                for grid_power in 1 2; do
-                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
-                  mkdir -p "$work/$candidate"
-                  timed "$work/$candidate/generation.elapsed_ns" "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
-                  sha256sum "$work/$candidate/candidate.json"
-                done
-              done
-            done
           done
 
           manifest_gate="$work/targets/symtropy/debug/energy_design_space_manifest_gate"
