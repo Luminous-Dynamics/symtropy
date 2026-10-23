@@ -460,9 +460,9 @@ fn benchmark_objective_context(root: &Path) -> Result<ObjectiveContextBenchmark,
         || required_str(&compilation, "candidate_sha256")? != candidate_digest
         || required_str(&compilation, "candidate_id")? != candidate_id
         || required_str(&compilation, "dispatch_request_sha256")? != request_digest
-        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest
-        || required_str(&audit, "request_sha256")? != request_digest
-        || required_str(&audit, "run_report_sha256")? != dispatch_digest
+        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest.as_str()
+        || required_str(&audit, "request_sha256")? != request_digest.as_str()
+        || required_str(&audit, "run_report_sha256")? != dispatch_digest.as_str()
         || required_str(&request, "case_id")? != "candidate:synthetic-pv-limited-battery-grid"
         || !required_bool(&candidate, "synthetic")?
         || !required_bool(&request, "synthetic")?
@@ -785,8 +785,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     let objective_context = benchmark_objective_context(&root)?;
     let multi_interval_context = benchmark_multi_interval_context(&root)?;
     let report = EnergyStudioBenchmarkReport {
-        schema_version: "energy-studio-benchmark-report-v0.1",
-        benchmark_id: "energy-studio-synthetic-sizing-sweep-v0.1".to_owned(),
+        schema_version: "energy-studio-benchmark-report-v0.2",
+        benchmark_id: "energy-studio-multi-context-benchmark-v0.2".to_owned(),
         created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
         git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
         source_heads: SourceHeads {
