@@ -68,6 +68,34 @@ fn parse_frontier(values: &Value) -> Result<Vec<DispatchObjective>, Box<dyn Erro
     Ok(objectives)
 }
 
+fn weakly_dominates(lhs: &DispatchObjective, rhs: &DispatchObjective) -> bool {
+    lhs.essential_unserved_quanta <= rhs.essential_unserved_quanta
+        && lhs.flexible_unserved_quanta <= rhs.flexible_unserved_quanta
+        && lhs.operating_cost_units <= rhs.operating_cost_units
+        && lhs.grid_carbon_grams <= rhs.grid_carbon_grams
+        && lhs.curtailed_pv_quanta <= rhs.curtailed_pv_quanta
+        && lhs.terminal_soc_quanta >= rhs.terminal_soc_quanta
+}
+
+fn derive_frontier_from_complete_schedule_objectives(
+    values: &Value,
+) -> Result<Vec<DispatchObjective>, Box<dyn Error>> {
+    let mut distinct = parse_frontier(values)?;
+    distinct.sort();
+    distinct.dedup();
+    let mut frontier = distinct
+        .iter()
+        .filter(|candidate| {
+            !distinct.iter().any(|other| {
+                other != *candidate && weakly_dominates(other, candidate)
+            })
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    frontier.sort_by_key(objective_order);
+    Ok(frontier)
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 4 {
@@ -154,6 +182,28 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
 
     let expected_frontier = parse_frontier(&known["pareto_frontier"])?;
+    let schedule_objectives = known["feasible_schedule_objectives"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "frozen feasible-schedule objective multiset missing")
+    })?;
+    require(
+        schedule_objectives.len() as u64
+            == required_u64(&known, "feasible_complete_schedules")?,
+        "frozen schedule objective multiset must contain every feasible complete schedule",
+    )?;
+    let mut distinct_schedule_objectives = parse_frontier(&known["feasible_schedule_objectives"])?;
+    distinct_schedule_objectives.sort();
+    distinct_schedule_objectives.dedup();
+    require(
+        distinct_schedule_objectives.len() as u64
+            == required_u64(&known, "distinct_objective_count")?,
+        "frozen distinct objective count does not match its schedule objective multiset",
+    )?;
+    let derived_golden_frontier =
+        derive_frontier_from_complete_schedule_objectives(&known["feasible_schedule_objectives"])?;
+    require(
+        derived_golden_frontier == expected_frontier,
+        "frozen Pareto frontier is inconsistent with the complete feasible-schedule objective multiset",
+    )?;
     let solver_frontier = parse_frontier(
         &Value::Array(
             alternatives
