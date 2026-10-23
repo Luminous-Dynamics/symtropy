@@ -377,15 +377,15 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
             failures.push(format!("{case_id}: expected disposition/findings are malformed"));
             continue;
         }
-        if actual_disposition == expected_disposition.unwrap_or_default()
-            && actual_findings == expected_findings.unwrap_or_default()
+        let expected_disposition = expected_disposition.expect("validated above");
+        let expected_findings = expected_findings.expect("validated above");
+        if actual_disposition == expected_disposition
+            && actual_findings.as_slice() == expected_findings.as_slice()
         {
             matched += 1;
         } else {
             failures.push(format!(
-                "{case_id}: actual={actual_disposition} findings={actual_findings:?}; expected={} findings={:?}",
-                expected_disposition.unwrap_or("<missing>"),
-                expected_findings.unwrap_or_default()
+                "{case_id}: actual={actual_disposition} findings={actual_findings:?}; expected={expected_disposition} findings={expected_findings:?}"
             ));
         }
     }
