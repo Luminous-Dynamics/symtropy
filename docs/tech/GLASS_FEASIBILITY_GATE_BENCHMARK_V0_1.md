@@ -99,3 +99,12 @@ The result packet must distinguish published paper values, local reproduction, r
 A score claim requires reproducing the relevant published baseline on the same task and reporting both its original split and the stricter held-out split. A closed-loop efficiency claim requires paired, multi-seed campaigns on the same candidate pool with identical initial information and fully charged budgets. A manufacturing advantage requires independently qualified, product-boundary-matched physical outcomes; it cannot be inferred from glass-formation accuracy, synthetic regret, literature comparisons or simulator-only counterfactuals.
 
 The differentiator should be a **feasibility-first, auditable loop**: preserve known failures and censored outcomes, predict joint feasibility with calibrated uncertainty, choose measurements that can change a real decision, enforce resource/quality constraints, record provenance and abstain when evidence is inadequate. That is a falsifiable research claim, not a claim of current superiority.
+
+
+## 9. Executable synthetic contract status — 2026-10-24
+
+The standalone Rust tool now exposes `audit-feasibility <corpus.json>`. Its synthetic fixture, `tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json`, covers six known answers: one FEASIBLE control, confirmed non-forming and mandatory-property failures (INFEASIBLE), and unknown measurement, out-of-domain and stale process evidence (UNRESOLVED). Seven Rust tests mutate the fixture to verify that unsupported PASS, unknown-as-zero payloads, missing gates, unrecognized statuses and an overridden disposition fail closed.
+
+The crate now defines 52 tests. The prior 45-test verifier passed on an earlier exact head; the seven new tests and staged evaluator are **not yet qualified as passing** until the current exact-head focused workflow completes successfully. A separate JavaScript reference evaluation of the six checked-in fixture dispositions agreed with all declared outcomes, but that is not Rust execution or materials validation. The authoring environment has no local Rust toolchain.
+
+This executable is still a contract auditor, not a glass-forming predictor, a furnace-process model, product certification, or a physical controller. No external dataset is admitted by the synthetic fixture. The GFRI-ML and PNNL studies are comparison baselines only until exact artifacts, data terms/rights, preprocessing and splits are independently reviewed.
