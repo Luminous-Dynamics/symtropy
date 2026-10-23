@@ -289,6 +289,55 @@ jobs:
             done
           done
 
+      - name: Exercise non-zero economics under a PV-availability stress case
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/objective-context"
+          mkdir -p "$context"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+
+          transformer="$work/targets/symtropy/debug/energy_candidate_pv_stress_transform"
+          validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
+          compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
+          receipt_verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          context_gate="$work/targets/symtropy/debug/energy_objective_context_gate"
+          base_candidate="$work/synthetic-pv-battery-grid/candidate.json"
+          transformed_candidate="$context/candidate.json"
+          transform_receipt="$context/transform-receipt.json"
+          config="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json"
+
+          timed "$context/generation.elapsed_ns" "$transformer" \
+            "$base_candidate" "$transformed_candidate" "$transform_receipt"
+          timed "$context/schema.elapsed_ns" "$validator" \
+            "$work/energy-system-candidate-v0.1.schema.json" "$transformed_candidate"
+          timed "$context/compilation.elapsed_ns" "$compiler" \
+            "$transformed_candidate" "$config" > "$context/compilation.json"
+          timed "$context/receipt.elapsed_ns" "$receipt_verifier" \
+            "$transformed_candidate" "$config" "$context/compilation.json" "$context/dispatch-request.json"
+          timed "$context/dispatch.elapsed_ns" "$dispatch" \
+            "$context/dispatch-request.json" > "$context/dispatch-report.json"
+          timed "$context/audit.elapsed_ns" "$auditor" \
+            "$context/dispatch-request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
+          "$context_gate" \
+            "$base_candidate" "$transformed_candidate" "$transform_receipt" "$config" \
+            "$context/compilation.json" "$context/dispatch-request.json" \
+            "$context/dispatch-report.json" "$context/independent-audit.json" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context"/*.json
+
       - name: Build digest-bound benchmark ledger
         shell: bash
         run: |
@@ -309,10 +358,13 @@ jobs:
             ${{ runner.temp }}/energy-studio/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json
             ${{ runner.temp }}/energy-studio/manifest-generation.elapsed_ns
             ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
+            ${{ runner.temp }}/energy-studio/objective-context/*
             ${{ runner.temp }}/energy-studio/*.Cargo.lock
             ${{ runner.temp }}/energy-studio/synthetic-*/*.json
             ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-parametric-known-answers-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-objective-context-known-answer-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate-v0.1.schema.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate.synthetic.json
             ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic.json
