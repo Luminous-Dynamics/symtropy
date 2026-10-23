@@ -55,40 +55,71 @@
           "winter_cent_per_kwh": 482.28
         }
       ],
-      "monthly_charges_as_reported_by_cross_check": [
+      "usage_constraints": [
+        "The official schedule and independent Focal Energy cross-check support one pair of fixed charges for the business block tariff up to 100 kVA: R890.45/month and R853.72/month; Focal labels the second amount as a capacity charge.",
+        "Augos' secondary JSON instead splits the fixed charges at 50 kVA and labels the second amount as a network charge, with R816.85/R783.16 for the >50-to-100 kVA band. This conflicts with the official schedule representation and must not be used for that band until reconciled.",
+        "The 6 c/kWh network surcharge in the City source and the 6 c/kWh DSM levy in Augos remain an additional unresolved naming/applicability conflict; neither is included in the calculator subtotal.",
+        "All usage remains candidate-only until verified against an approved current tariff and the actual customer's account/bill."
+      ],
+      "claim_ceiling": "Documented candidate tariff input for sensitivity analysis only; not account-verified.",
+      "monthly_charges_by_source": [
         {
-          "charge": "service",
+          "source_id": "joburg-fy2026-27-business-tariff-schedule",
+          "charge_as_published": "service charge",
+          "capacity_band": "<=100 kVA",
+          "unit": "ZAR/month",
+          "value": 890.45
+        },
+        {
+          "source_id": "joburg-fy2026-27-business-tariff-schedule",
+          "charge_as_published": "second monthly fixed charge (column/meaning requiring confirmation)",
+          "capacity_band": "<=100 kVA",
+          "unit": "ZAR/month",
+          "value": 853.72
+        },
+        {
+          "source_id": "focal-energy-city-power-business-tariff-2026-27",
+          "charge_as_published": "service charge",
+          "capacity_band": "<=100 kVA",
+          "unit": "ZAR/month",
+          "value": 890.45
+        },
+        {
+          "source_id": "focal-energy-city-power-business-tariff-2026-27",
+          "charge_as_published": "capacity charge",
+          "capacity_band": "<=100 kVA",
+          "unit": "ZAR/month",
+          "value": 853.72
+        },
+        {
+          "source_id": "augos-city-power-business-conventional-2026-27",
+          "charge_as_published": "monthly service charge",
           "capacity_band": "<50 kVA",
           "unit": "ZAR/month",
           "value": 890.45
         },
         {
-          "charge": "service",
+          "source_id": "augos-city-power-business-conventional-2026-27",
+          "charge_as_published": "monthly service charge",
           "capacity_band": ">50 kVA and <=100 kVA",
           "unit": "ZAR/month",
           "value": 816.85
         },
         {
-          "charge": "network",
+          "source_id": "augos-city-power-business-conventional-2026-27",
+          "charge_as_published": "network charge (monthly)",
           "capacity_band": "<50 kVA",
           "unit": "ZAR/month",
           "value": 853.72
         },
         {
-          "charge": "network",
+          "source_id": "augos-city-power-business-conventional-2026-27",
+          "charge_as_published": "network charge (monthly)",
           "capacity_band": ">50 kVA and <=100 kVA",
           "unit": "ZAR/month",
           "value": 783.16
         }
-      ],
-      "usage_constraints": [
-        "Do not treat these rates as the real tariff for an unidentified customer account.",
-        "Do not mix monthly block charges with time-of-use schedules for larger customers.",
-        "Model seasonal billing periods, the applicable monthly bands and all charges before bill-comparison claims.",
-        "Confirm how the City/City Power applies the network surcharge, the 2% business surcharge, VAT and any service/capacity/demand/reactive-energy charges.",
-        "Keep the official schedule and secondary cross-check separately hashed."
-      ],
-      "claim_ceiling": "Documented candidate tariff input for sensitivity analysis only; not account-verified."
+      ]
     },
     {
       "source_id": "augos-city-power-business-conventional-2026-27",
