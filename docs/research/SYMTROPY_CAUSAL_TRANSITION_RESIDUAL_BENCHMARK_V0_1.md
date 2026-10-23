@@ -10,7 +10,7 @@ The next hypothesis is more testable:
 
 > A compact causal model of the *one-step dynamics residual*, paired with calibrated predictive uncertainty, can improve a nominal controller's predictions and disturbance rejection under held-out dynamics shifts at a measured compute budget.
 
-This is a hypothesis, not a result. This PR adds the initial supervised-target definition, not the learned predictor or an MPC controller.
+This is a hypothesis, not a result. The prior target-collection PR adds the causal supervised-target definition; this follow-on adds a transparent fixed-scale ridge-regression baseline and a held-out one-step smoke evaluator, but not a learned Symthaea residual head, calibrated uncertainty model, or MPC controller.
 
 ## Target definition
 
@@ -30,7 +30,7 @@ The initial implementation is in `integration/symthaea-physics-loop/src/transiti
 
 The companion collector is `integration/symthaea-physics-loop/examples/causal_transition_dataset.rs`. It uses a classical PID baseline only as a data-collection policy, applies deterministic training-only exogenous force families, and writes one-step samples containing prior state, applied command, next state, and derived target. Exact hidden force values are omitted from per-sample records. The smoke workflow gates sample counts, split membership, timestamp order, vector dimensions and source receipt formats, then uploads the dataset as an artifact.
 
-The target is deliberately a model discrepancy bucket. It can include external disturbances, attitude changes during the interval, integration mismatch, actuator/model mismatch, and measurement noise. Do not label it “wind estimate” without a separately identified disturbance-observer design and supporting tests. The currently used nominal model is simple; parameters must be frozen before test evaluation and included in the experiment receipt. The dataset collector does not train a predictor, and a successful schema smoke would demonstrate plumbing only—not residual-model accuracy or control improvement.
+The target is deliberately a model discrepancy bucket. It can include external disturbances, attitude changes during the interval, integration mismatch, actuator/model mismatch, and measurement noise. The linear/ridge model uses fixed, explicit feature scaling and a three-output regularized least-squares solve. Its synthetic unit test checks recovery on a known linear mapping; that does not measure performance on simulator data. The paired evaluator fits from the exported train-only dataset and scores only predeclared test-split transition targets, with zero-residual (physics-only) prediction as a reference. Its smoke thresholds validate provenance and finite metrics, not that ridge wins. Do not label it “wind estimate” without a separately identified disturbance-observer design and supporting tests. The currently used nominal model is simple; parameters must be frozen before test evaluation and included in the experiment receipt. The dataset collector does not train a predictor, and a successful schema smoke would demonstrate plumbing only—not residual-model accuracy or control improvement.
 
 ## Data contract for the next executable increment
 
@@ -57,7 +57,7 @@ The learning API must not see evaluation-only disturbance amplitudes, hidden sim
 ### Prediction benchmark arms
 
 1. Physics-only nominal model (zero residual prediction).
-2. Constant-mean residual and linear/ridge predictor.
+2. Constant-mean residual and linear/ridge predictor (a fixed-scale ridge baseline is implemented in `integration/symthaea-physics-loop/src/linear_residual_ridge.rs`; a held-out test-split smoke evaluator is in `examples/causal_residual_ridge_benchmark.rs`).
 3. Small MLP or TCN with equivalent transition data.
 4. Symthaea HDC encoder + liquid/LTC dynamics-residual head.
 5. HDC/LTC with predictive scale or ensemble disagreement.
@@ -119,6 +119,11 @@ Recent work supports investigating the direction, but its published numbers are 
 - [Physics-informed sparse identification-based tube MPC for aerial vehicles (Engineering Applications of Artificial Intelligence, 1 Oct 2026)](https://doi.org/10.1016/j.engappai.2026.115494) motivates interpretable residuals, adaptive disturbance bounds and feasibility analysis instead of relying on prediction accuracy alone.
 - [Crossing the Sim-to-Real Barrier in RL for Quadrotor Control (IEEE ICCA 2026)](https://doi.org/10.1109/ICCA69928.2026.11618113) reports physical Crazyflie experiments and emphasizes actuator dynamics, delays, attitude representation and more realistic disturbance modeling.
 - [Physics-Based Residual Learning for Actuator Fault Identification and Health Monitoring in Quadrotors (Drones, 9 Oct 2026)](https://doi.org/10.3390/drones10100756) uses real-flight data and is a reminder to compare physics-residual and neural approaches against sensor/actuator bias, false alarms and high-frequency noise—not only tracking RMSE.
+- The public [IDSIA nano-drone benchmark repository](https://github.com/idsia-robotics/nanodrone-sysid-benchmark) makes the external comparison concrete: it provides physics, neural, hybrid physics-plus-residual, and LSTM baselines with a trajectory-level split and multi-step evaluation. Reproduce their protocol and add an HDC/LTC arm only after matching actuator inputs, dynamics fidelity, data split, and inference budget.
+
+A particularly valuable external system-identification target is the open [Nano-Quadrotor System Identification Benchmark](https://github.com/idsia-robotics/nanodrone-sysid-benchmark), accompanying the 2026 paper [Nonlinear System Identification for a Nano-drone Benchmark](https://doi.org/10.1016/j.conengprac.2026.106871). It reports roughly 75,000 real Crazyflie 2.1 Brushless flight samples; motor angular velocity inputs; 13-dimensional state outputs; physics, neural, physics-plus-residual and LSTM reference models; and trajectory-held-out evaluation on the Melon trajectory with multi-step prediction up to 0.5 s at 100 Hz. This is a much more meaningful eventual external comparison than our internal smoke suite.
+
+There is a nontrivial comparability gap: the public benchmark inputs are four motor angular velocities, while the current Symtropy adapter receives aggregate thrust and three body moments and uses a simplified spherical-body model. A fair external comparison requires a validated actuator mixer / motor model, matching state conventions and sampling, and consistent train/test processing. Do not directly compare the current RMSE numbers with their leaderboard.
 
 A credible industry comparison must eventually include a well-tuned conventional controller and a reproducible PX4/ArduPilot or hardware-in-the-loop path at matching dynamics fidelity. The [official PX4 simulation documentation](https://docs.px4.io/main/en/simulation/) distinguishes SITL from HITL and documents Gazebo and a lightweight Simulation-in-Hardware path; its [HITL guide](https://docs.px4.io/main/en/simulation/hitl.html) explains how real flight-controller firmware can run against a simulated vehicle. The fair sequence is: (1) match dynamics, sensor, rate and actuator limits in a higher-fidelity simulator; (2) compare PID/LQR/MPC and the learned residual under paired disturbance seeds; (3) run the PX4 autopilot baseline in SITL against the same scenarios; (4) use HIL before any controlled physical test. A current Symtropy point-body adapter is not a fair proxy for a PX4 autopilot.
 
