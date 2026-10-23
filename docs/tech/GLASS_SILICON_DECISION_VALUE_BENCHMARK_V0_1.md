@@ -1,8 +1,8 @@
-# GLAiS-SILICON-DECISION-VALUE-001 — matched-budget experiment selection protocol v0.1
+# GLASS-SILICON-DECISION-VALUE-001 — matched-budget experiment selection protocol v0.1
 
 Status: **proposed benchmark contract; no policy results are claimed**.
 
-Parent: [GLASS-SILICON-001 issue #2715](https://github.com/Luminous-Dynamics/symtropy/issues/2715) and [draft contract PR #2716](https://github.com/Luminous-Dynamics/symtropy/pull/2716). Material-specific reproductions remain owned by [Symthaea MAT-GLASS-SCALE-001 #8480](https://github.com/Luminous-Dynamics/symthaea/issues/8480) and [MAT-GLASS-MULTI-001 #8481](https://github.com/Luminous-Dynamics/symthaea/issues/8481). Compose [MAT-014 active materials discovery #4345](https://github.com/Luminous-Dynamics/symthaea/issues/4345), [NANO-009 decision value per budget #7679](https://github.com/Luminous-Dynamics/symthaea/issues/7679), and [Symtropy EV-iACTORY-VOI-001 #2524](https://github.com/Luminous-Dynamics/symtropy/issues/2524); do not create a second acquisition framework.
+Parent: [GLASS-SILICON-001 issue #2715](https://github.com/Luminous-Dynamics/symtropy/issues/2715) and [draft contract PR #2716](https://github.com/Luminous-Dynamics/symtropy/pull/2716). Material-specific reproductions remain owned by [Symthaea MAT-GLASS-SCALE-001 #8480](https://github.com/Luminous-Dynamics/symthaea/issues/8480) and [MAT-GLASS-MULTI-001 #8481](https://github.com/Luminous-Dynamics/symthaea/issues/8481). Compose [MAT-014 active materials discovery #4345](https://github.com/Luminous-Dynamics/symthaea/issues/4345), [NANO-009 decision value per budget #7679](https://github.com/Luminous-Dynamics/symthaea/issues/7679), and [Symtropy EV-FACTORY-VOI-001 #2524](https://github.com/Luminous-Dynamics/symtropy/issues/2524); do not create a second acquisition framework.
 
 ## 1. The paradigm shift
 
@@ -189,7 +189,7 @@ The synthetic fixture contains four scenarios and two crossed binary measurement
 
 The fixture's test target is therefore: pre-measurement worst-case regret 6; two-measurement adaptive regret 0; gross regret reduction 6; maximum two measurements per path; and deterministic branch-specific action choices. One-step budgets of one measurement should choose the no-measurement stop option on a tie, because it achieves equal worst-case regret at lower cost. If the cumulative budget cannot fund the complementary pair, the oracle should retain the safe stop action rather than overspend.
 
-The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Five additional unit tests cover the complementary two-step solution, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
+The Rust CLI command is `audit-adaptive-campaign <pool.json>`. Its focused workflow asserts the known answer. Six additional unit tests cover the complementary two-step solution, the one-step cap, the step ceiling, a measurement-count ceiling, and graceful stopping when the joint experiment budget cannot be met.
 
 ### Next scientific benchmark, once the exact reference is qualified
 
