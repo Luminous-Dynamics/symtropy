@@ -284,6 +284,8 @@ fn main() {
             "steps_per_episode": steps_per_episode,
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "confidence_level": CONFIDENCE_LEVEL,
+            "bootstrap_seed_hex": format!("{:016x}", BOOTSTRAP_SEED),
+            "pair_seed_scheme": "bootstrap_seed XOR pair identifiers 1, 2, 3",
             "bootstrap_unit": "episode",
             "stratification": "resample episodes with replacement within each observed scenario family",
             "seed_hex_equality_required": true,
