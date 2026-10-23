@@ -1,0 +1,130 @@
+name: Energy system design contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "schemas/energy-system-candidate-v0.1.schema.json"
+      - "schemas/examples/energy-system-candidate*.synthetic.json"
+      - "docs/ENERGY_SYSTEM_DESIGN_STUDIO_V0_1.md"
+      - ".github/workflows/energy-system-design-contract.yml"
+  pull_request:
+    paths:
+      - "schemas/energy-system-candidate-v0.1.schema.json"
+      - "schemas/examples/energy-system-candidate*.synthetic.json"
+      - "docs/ENERGY_SYSTEM_DESIGN_STUDIO_V0_1.md"
+      - ".github/workflows/energy-system-design-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator (CI tooling only)
+        run: python -m pip install --disable-pip-version-check "jsonschema[format]==4.26.0"
+      - name: Validate all topology fixtures against the shared candidate contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          schema = json.loads(Path("schemas/energy-system-candidate-v0.1.schema.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=FormatChecker())
+          fixture_paths = sorted(Path("schemas/examples").glob("energy-system-candidate*.synthetic.json"))
+          assert len(fixture_paths) == 3, f"expected three topology fixtures, found {len(fixture_paths)}"
+
+          seen_candidate_ids = set()
+          component_counts = {}
+          for fixture_path in fixture_paths:
+              candidate = json.loads(fixture_path.read_text())
+              validator.validate(candidate)
+              candidate_id = candidate["candidate_id"]
+              assert candidate_id not in seen_candidate_ids, f"duplicate candidate ID: {candidate_id}"
+              seen_candidate_ids.add(candidate_id)
+
+              components = {component["component_id"]: component for component in candidate["components"]}
+              assert len(components) == len(candidate["components"]), f"{candidate_id}: duplicate component ID"
+              component_counts[candidate_id] = len(components)
+              services = {service["service_id"]: service for service in candidate["services"]}
+              assert len(services) == len(candidate["services"]), f"{candidate_id}: duplicate service ID"
+
+              ports = {}
+              for component_id, component in components.items():
+                  for port in component["ports"]:
+                      key = (component_id, port["port_id"])
+                      assert key not in ports, f"{candidate_id}: duplicate port: {key}"
+                      ports[key] = port
+
+              connection_ids = set()
+              for connection in candidate["connections"]:
+                  assert connection["connection_id"] not in connection_ids, f"{candidate_id}: duplicate connection ID"
+                  connection_ids.add(connection["connection_id"])
+                  source_key = (connection["from_component"], connection["from_port"])
+                  target_key = (connection["to_component"], connection["to_port"])
+                  assert source_key in ports, f"{candidate_id}: unknown source port: {source_key}"
+                  assert target_key in ports, f"{candidate_id}: unknown target port: {target_key}"
+                  source, target = ports[source_key], ports[target_key]
+                  assert source["direction"] in ("output", "bidirectional"), f"{candidate_id}: source is not output: {source_key}"
+                  assert target["direction"] in ("input", "bidirectional"), f"{candidate_id}: target is not input: {target_key}"
+                  assert source["carrier"] == target["carrier"] == connection["carrier"], f"{candidate_id}: carrier mismatch: {connection['connection_id']}"
+                  assert source["unit"] == target["unit"], f"{candidate_id}: unit mismatch: {connection['connection_id']}"
+                  assert source["temperature_grade_c"] == target["temperature_grade_c"], f"{candidate_id}: heat-grade mismatch: {connection['connection_id']}"
+
+              assert candidate["horizon"]["end_unix_seconds"] > candidate["horizon"]["start_unix_seconds"]
+              for scenario in candidate["scenarios"]:
+                  expected = candidate["horizon"]["start_unix_seconds"]
+                  interval_ids = set()
+                  for interval in scenario["intervals"]:
+                      assert interval["interval_id"] not in interval_ids, f"{candidate_id}: duplicate interval ID in {scenario['scenario_id']}"
+                      interval_ids.add(interval["interval_id"])
+                      assert interval["start_unix_seconds"] == expected, f"{candidate_id}: gap/overlap in {scenario['scenario_id']}"
+                      assert interval["duration_seconds"] > 0, f"{candidate_id}: zero-duration interval"
+                      expected += interval["duration_seconds"]
+                      for availability in interval["resource_available_kwh"]:
+                          assert availability["component_id"] in components, f"{candidate_id}: unknown resource component"
+                          assert components[availability["component_id"]]["kind"] == "source", f"{candidate_id}: resource is not a source"
+                      requested = set()
+                      for demand in interval["service_requested"]:
+                          assert demand["service_id"] in services, f"{candidate_id}: unknown service"
+                          assert demand["service_id"] not in requested, f"{candidate_id}: duplicate service demand"
+                          requested.add(demand["service_id"])
+                      assert requested == set(services), f"{candidate_id}: each service needs exactly one demand sample per interval"
+                  assert expected == candidate["horizon"]["end_unix_seconds"], f"{candidate_id}: scenario fails to cover full horizon"
+
+              for service in candidate["services"]:
+                  assert service["component_id"] in components, f"{candidate_id}: unknown service component"
+                  assert components[service["component_id"]]["kind"] == "sink", f"{candidate_id}: service must terminate at a sink"
+
+              sources = [component["component_id"] for component in candidate["components"] if component["kind"] == "source"]
+              sinks = {service["component_id"] for service in candidate["services"]}
+              batteries = [component["component_id"] for component in candidate["components"] if component["kind"] == "storage"]
+              assert len(batteries) <= 1, f"{candidate_id}: v0.1 fixture set permits at most one battery"
+              assert all(component["kind"] in ("source", "storage", "sink") for component in candidate["components"]), f"{candidate_id}: unsupported component kind in topology corpus"
+              for source_id in sources:
+                  for sink_id in sinks:
+                      assert any(connection["from_component"] == source_id and connection["to_component"] == sink_id for connection in candidate["connections"]), f"{candidate_id}: source {source_id} lacks direct path to sink {sink_id}"
+                  if batteries:
+                      assert any(connection["from_component"] == source_id and connection["to_component"] == batteries[0] and connection["to_port"] == "charge" for connection in candidate["connections"]), f"{candidate_id}: source {source_id} lacks battery charge path"
+              if batteries:
+                  for sink_id in sinks:
+                      assert any(connection["from_component"] == batteries[0] and connection["from_port"] == "discharge" and connection["to_component"] == sink_id for connection in candidate["connections"]), f"{candidate_id}: battery lacks discharge path to sink {sink_id}"
+
+              assert candidate["synthetic"] is True, f"{candidate_id}: fixture must remain synthetic"
+              assert candidate["evidence_class"] == "analyst_assumption", f"{candidate_id}: fixture evidence class was promoted"
+              assert "synthetic" in candidate["claim_ceiling"].lower()
+
+          expected_ids = {"synthetic-grid-only", "synthetic-pv-grid", "synthetic-pv-battery-grid"}
+          assert seen_candidate_ids == expected_ids, f"unexpected topology set: {seen_candidate_ids}"
+          assert component_counts == {
+              "synthetic-grid-only": 2,
+              "synthetic-pv-grid": 3,
+              "synthetic-pv-battery-grid": 4,
+          }, f"topology component counts changed: {component_counts}"
+          print("three architecture topology fixtures pass schema, typed connectivity, provenance and chronology checks")
+          PY
