@@ -3,7 +3,7 @@
 //! This crate checks policy information discipline only. It is deliberately
 //! independent of the schedule-feasibility and polygon-geometry verifiers.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 pub type Tick = u64;
 
@@ -271,14 +271,12 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             // Structural validation above proves exactly one action exists for
             // each declared tick in every trace.
             let action = actions_by_tick[tick];
-            match selected_action_by_information_set.get(&key) {
-                None => {
-                    selected_action_by_information_set.insert(
-                        key,
-                        (action.action_key.clone(), scenario.scenario_id.clone()),
-                    );
+            match selected_action_by_information_set.entry(key) {
+                Entry::Vacant(entry) => {
+                    entry.insert((action.action_key.clone(), scenario.scenario_id.clone()));
                 }
-                Some((prior_action_key, prior_scenario_id)) => {
+                Entry::Occupied(entry) => {
+                    let (prior_action_key, prior_scenario_id) = entry.get();
                     information_set_comparisons += 1;
                     if prior_action_key != &action.action_key {
                         push_diagnostic(
@@ -287,7 +285,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                             Some(&scenario.scenario_id),
                             Some(*tick),
                             &format!(
-                                "scenario '{}' selects a different action than scenario '{}'                                  despite an identical observable history",
+                                "scenario '{}' selects a different action than scenario '{}' despite an identical observable history",
                                 scenario.scenario_id, prior_scenario_id
                             ),
                         );
