@@ -809,8 +809,9 @@ fn benchmark_south_african_tariff_context(
                 != required_u64(case, "expected_network_charge_microzar")?
             || required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")?
                 != required_u64(case, "expected_subtotal_excluding_unapplied_and_tax_microzar")?
-            || result["unapplied_charge_ids"].as_array().map(Vec::len)
-                != Some(expected_unapplied.len())
+            || result["computed_block_use"] != case["expected_block_use"]
+            || result["unapplied_charge_ids"]
+                != Value::Array(expected_unapplied.iter().cloned().map(Value::String).collect())
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
