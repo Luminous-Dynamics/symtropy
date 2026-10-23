@@ -583,7 +583,10 @@ mod tests {
         let right_arm = physics.body(right_arm_handle).expect("right arm body");
         assert!((right_arm.transform.translation.0[0] - yaw.sin() * 0.19).abs() < 1.0e-10);
         assert!((right_arm.transform.translation.0[1] + yaw.cos() * 0.19).abs() < 1.0e-10);
-        assert!((right_arm.transform.translation.0[2] - left_arm.transform.translation.0[2]).abs() < 1.0e-12);
+        assert!(
+            (right_arm.transform.translation.0[2] - left_arm.transform.translation.0[2]).abs()
+                < 1.0e-12
+        );
         assert!(right_arm.transform.rotation.is_proper_rotation(1.0e-8));
     }
 
