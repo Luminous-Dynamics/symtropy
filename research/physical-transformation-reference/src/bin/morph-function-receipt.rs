@@ -35,31 +35,46 @@ fn load_cases() -> [LoadCase; 5] {
     [
         LoadCase {
             id: "symmetric_down_2kN",
-            c_fx_n: 0.0, c_fy_n: -2_000.0, d_fx_n: 0.0, d_fy_n: -2_000.0,
+            c_fx_n: 0.0,
+            c_fy_n: -2_000.0,
+            d_fx_n: 0.0,
+            d_fy_n: -2_000.0,
             expected_ad: [100e-6, -100e-6, 100e-6, -100e-6],
             expected_bc: [-100e-6, -100e-6, -100e-6, -100e-6],
         },
         LoadCase {
             id: "asymmetric_down",
-            c_fx_n: 0.0, c_fy_n: -1_000.0, d_fx_n: 0.0, d_fy_n: -500.0,
+            c_fx_n: 0.0,
+            c_fy_n: -1_000.0,
+            d_fx_n: 0.0,
+            d_fy_n: -500.0,
             expected_ad: [25e-6, -50e-6, 25e-6, -25e-6],
             expected_bc: [-50e-6, -50e-6, -50e-6, -25e-6],
         },
         LoadCase {
             id: "lateral_right_at_C",
-            c_fx_n: 1_000.0, c_fy_n: 0.0, d_fx_n: 0.0, d_fy_n: 0.0,
+            c_fx_n: 1_000.0,
+            c_fy_n: 0.0,
+            d_fx_n: 0.0,
+            d_fy_n: 0.0,
             expected_ad: [241.4213562373096e-6, 0.0, 191.42135623730958e-6, -50e-6],
             expected_bc: [191.4213562373096e-6, 50e-6, 191.42135623730964e-6, 0.0],
         },
         LoadCase {
             id: "lateral_left_at_C",
-            c_fx_n: -1_000.0, c_fy_n: 0.0, d_fx_n: 0.0, d_fy_n: 0.0,
+            c_fx_n: -1_000.0,
+            c_fy_n: 0.0,
+            d_fx_n: 0.0,
+            d_fy_n: 0.0,
             expected_ad: [-241.4213562373096e-6, 0.0, -191.42135623730958e-6, 50e-6],
             expected_bc: [-191.4213562373096e-6, -50e-6, -191.42135623730964e-6, 0.0],
         },
         LoadCase {
             id: "symmetric_uplift_1kN",
-            c_fx_n: 0.0, c_fy_n: 1_000.0, d_fx_n: 0.0, d_fy_n: 1_000.0,
+            c_fx_n: 0.0,
+            c_fy_n: 1_000.0,
+            d_fx_n: 0.0,
+            d_fy_n: 1_000.0,
             expected_ad: [-50e-6, 50e-6, -50e-6, 50e-6],
             expected_bc: [50e-6, 50e-6, 50e-6, 50e-6],
         },
@@ -85,7 +100,13 @@ fn node(
     }
 }
 
-fn bar(id: &str, node_i: &str, node_j: &str, area_m2: f64, youngs_modulus_pa: f64) -> TrussBar {
+fn bar(
+    id: &str,
+    node_i: &str,
+    node_j: &str,
+    area_m2: f64,
+    youngs_modulus_pa: f64,
+) -> TrussBar {
     TrussBar {
         id: id.to_owned(),
         node_i: node_i.to_owned(),
@@ -161,13 +182,21 @@ fn json_escape(value: &str) -> String {
 }
 
 fn get_displacements(result: &PlanarTrussResult) -> Result<[f64; 4], String> {
-    let c = result.node_results.iter().find(|node| node.node_id == "C")
+    let c = result
+        .node_results
+        .iter()
+        .find(|node| node.node_id == "C")
         .ok_or_else(|| "missing node C result".to_owned())?;
-    let d = result.node_results.iter().find(|node| node.node_id == "D")
+    let d = result
+        .node_results
+        .iter()
+        .find(|node| node.node_id == "D")
         .ok_or_else(|| "missing node D result".to_owned())?;
     Ok([
-        c.displacement_x_m, c.displacement_y_m,
-        d.displacement_x_m, d.displacement_y_m,
+        c.displacement_x_m,
+        c.displacement_y_m,
+        d.displacement_x_m,
+        d.displacement_y_m,
     ])
 }
 
@@ -180,7 +209,8 @@ fn append_solver_record(
     expected: [f64; 4],
     displacement_limit: f64,
 ) -> Result<(), String> {
-    let result = solve(input).map_err(|error| format!("{suite}/{case_id}/{topology}: {error}"))?;
+    let result =
+        solve(input).map_err(|error| format!("{suite}/{case_id}/{topology}: {error}"))?;
     let observed = get_displacements(&result)?;
     for (name, actual, expected_value) in [
         ("Cx", observed[0], expected[0]),
@@ -188,7 +218,11 @@ fn append_solver_record(
         ("Dx", observed[2], expected[2]),
         ("Dy", observed[3], expected[3]),
     ] {
-        close_to(actual, expected_value, &format!("{suite}/{case_id}/{topology}/{name}"))?;
+        close_to(
+            actual,
+            expected_value,
+            &format!("{suite}/{case_id}/{topology}/{name}"),
+        )?;
         if !actual.is_finite() || actual.abs() > displacement_limit {
             return Err(format!(
                 "{suite}/{case_id}/{topology}/{name} violates displacement limit: {actual}"
@@ -212,7 +246,10 @@ fn append_solver_record(
     let mut member_results = Vec::new();
     for member in &result.bar_results {
         member_results.push(format!(
-            "{{\"id\":\"{}\",\"axial_force_n\":{:.17e},\"axial_stress_pa\":{:.17e},\"axial_strain\":{:.17e}}}",
+            concat!(
+                "{{\"id\":\"{}\",\"axial_force_n\":{:.17e},",
+                "\"axial_stress_pa\":{:.17e},\"axial_strain\":{:.17e}}}"
+            ),
             json_escape(&member.bar_id),
             member.axial_force_n,
             member.axial_stress_pa,
@@ -223,16 +260,26 @@ fn append_solver_record(
         concat!(
             "{{\"suite\":\"{}\",\"case_id\":\"{}\",\"topology\":\"{}\",",
             "\"disposition\":\"pass\",",
-            "\"displacement_m\":{{\"Cx\":{:.17e},\"Cy\":{:.17e},\"Dx\":{:.17e},\"Dy\":{:.17e}}},",
+            "\"displacement_m\":{{\"Cx\":{:.17e},\"Cy\":{:.17e},",
+            "\"Dx\":{:.17e},\"Dy\":{:.17e}}},",
             "\"member_results\":[{}],",
-            "\"normalized_force_residual\":{:.17e},\"normalized_moment_residual\":{:.17e},",
-            "\"normalized_free_dof_residual\":{:.17e},\"serviceability_limit_m\":{:.17e}}}"
+            "\"normalized_force_residual\":{:.17e},",
+            "\"normalized_moment_residual\":{:.17e},",
+            "\"normalized_free_dof_residual\":{:.17e},",
+            "\"serviceability_limit_m\":{:.17e}}}"
         ),
-        json_escape(suite), json_escape(case_id), json_escape(topology),
-        observed[0], observed[1], observed[2], observed[3],
+        json_escape(suite),
+        json_escape(case_id),
+        json_escape(topology),
+        observed[0],
+        observed[1],
+        observed[2],
+        observed[3],
         member_results.join(","),
-        eq.normalized_force_residual, eq.normalized_moment_residual,
-        eq.normalized_free_dof_residual, displacement_limit
+        eq.normalized_force_residual,
+        eq.normalized_moment_residual,
+        eq.normalized_free_dof_residual,
+        displacement_limit
     ));
     Ok(())
 }
@@ -258,7 +305,9 @@ fn append_mechanism_record(
             "\"disposition\":\"expected_mechanism_rejected\",",
             "\"member_set_iou_vs_braced\":0.8,\"solver_error\":\"{}\"}}"
         ),
-        json_escape(suite), json_escape(case_id), json_escape(&error)
+        json_escape(suite),
+        json_escape(case_id),
+        json_escape(&error)
     ));
     Ok(())
 }
@@ -269,13 +318,18 @@ fn parse_args() -> Result<(String, String), String> {
     let mut tree: Option<String> = None;
     let mut index = 0;
     while index < args.len() {
-        let value = args.get(index + 1)
+        let value = args
+            .get(index + 1)
             .ok_or_else(|| format!("{} requires a value", args[index]))?;
         match args[index].as_str() {
             "--source-commit" if commit.is_none() => commit = Some(value.clone()),
             "--source-tree-sha" if tree.is_none() => tree = Some(value.clone()),
-            "--source-commit" => return Err("--source-commit may be supplied only once".into()),
-            "--source-tree-sha" => return Err("--source-tree-sha may be supplied only once".into()),
+            "--source-commit" => {
+                return Err("--source-commit may be supplied only once".into());
+            }
+            "--source-tree-sha" => {
+                return Err("--source-tree-sha may be supplied only once".into());
+            }
             unknown => return Err(format!("unknown argument: {unknown}")),
         }
         index += 2;
@@ -284,7 +338,9 @@ fn parse_args() -> Result<(String, String), String> {
     let tree = tree.ok_or_else(|| "missing --source-tree-sha".to_owned())?;
     for (label, sha) in [("commit", &commit), ("tree", &tree)] {
         if sha.len() != 40 || !sha.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err(format!("source {label} must be a 40-character hexadecimal Git SHA"));
+            return Err(format!(
+                "source {label} must be a 40-character hexadecimal Git SHA"
+            ));
         }
     }
     Ok((commit.to_ascii_lowercase(), tree.to_ascii_lowercase()))
@@ -303,8 +359,13 @@ fn run() -> Result<(), String> {
         ] {
             let input = truss(diagonal, 1.0, 1.0, 1.0, Some(loads));
             append_solver_record(
-                &mut records, "load_envelope", loads.id, topology,
-                &input, expected, LOAD_DISPLACEMENT_LIMIT_M
+                &mut records,
+                "load_envelope",
+                loads.id,
+                topology,
+                &input,
+                expected,
+                LOAD_DISPLACEMENT_LIMIT_M,
             )?;
             braced_passes += 1;
         }
@@ -321,8 +382,7 @@ fn run() -> Result<(), String> {
         for modulus_scale in VARIATION_FACTORS {
             for load_scale in VARIATION_FACTORS {
                 let case_id = format!(
-                    "area_{:.2}_modulus_{:.2}_load_{:.2}",
-                    area_scale, modulus_scale, load_scale
+                    "area_{area_scale:.2}_modulus_{modulus_scale:.2}_load_{load_scale:.2}"
                 );
                 let displacement = BASE_LOAD_N * load_scale
                     / (YOUNGS_MODULUS_PA * modulus_scale * AREA_M2 * area_scale);
@@ -330,11 +390,21 @@ fn run() -> Result<(), String> {
                     ("A-D", Some(("A", "D")), 1.0_f64),
                     ("B-C", Some(("B", "C")), -1.0_f64),
                 ] {
-                    let expected = [sign * displacement, -displacement, sign * displacement, -displacement];
+                    let expected = [
+                        sign * displacement,
+                        -displacement,
+                        sign * displacement,
+                        -displacement,
+                    ];
                     let input = truss(diagonal, area_scale, modulus_scale, load_scale, None);
                     append_solver_record(
-                        &mut records, "parameter_grid", &case_id, topology,
-                        &input, expected, GRID_DISPLACEMENT_LIMIT_M
+                        &mut records,
+                        "parameter_grid",
+                        &case_id,
+                        topology,
+                        &input,
+                        expected,
+                        GRID_DISPLACEMENT_LIMIT_M,
                     )?;
                     braced_passes += 1;
                 }
@@ -363,7 +433,8 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",\"source_tree_sha\":\"{}\",",
             "\"request_sha256\":\"{}\",\"evidence_class\":\"synthetic\",",
             "\"model_class\":\"2d_small_displacement_linear_elastic_axial_truss\",",
-            "\"case_count\":{},\"braced_pass_count\":{},\"mechanism_rejection_count\":{},",
+            "\"case_count\":{},\"braced_pass_count\":{},",
+            "\"mechanism_rejection_count\":{},",
             "\"claim_ceiling\":\"synthetic_2d_axial_truss_only_no_physical_validation_no_code_compliance\",",
             "\"cases\":[{}]}}"
         ),
