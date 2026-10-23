@@ -1189,7 +1189,8 @@ mod tests {
             .any(|finding| finding == "MORPHOLOGY_PARENT_COUNT_INVALID"));
 
         let mut cycle = morphology();
-        cycle["joints"][2]["parent_link"] = json!("front_caster");
+        cycle["joints"][0]["parent_link"] = json!("right_drive_wheel");
+        cycle["joints"][1]["parent_link"] = json!("left_drive_wheel");
         assert!(validate_morphology(&cycle)
             .iter()
             .any(|finding| finding == "MORPHOLOGY_GRAPH_DISCONNECTED_OR_CYCLIC"));
@@ -1674,6 +1675,14 @@ mod tests {
         assert_eq!(sha256_hex(AUDITOR_SOURCE).len(), 64);
         assert_eq!(sha256_hex(CORPUS_SOURCE).len(), 64);
         let parsed: Value = serde_json::from_slice(CORPUS_SOURCE).expect("embedded corpus");
+        assert_eq!(sha256_hex(MORPHOLOGY_SOURCE).len(), 64);
+        let model: Value =
+            serde_json::from_slice(MORPHOLOGY_SOURCE).expect("embedded morphology");
+        assert_eq!(
+            validate_morphology(&model),
+            Vec::<String>::new(),
+            "embedded morphology should satisfy its declared graph contract"
+        );
         assert_eq!(
             sha256_hex(&serde_json::to_vec(&parsed).expect("canonical test serialization")),
             sha256_hex(
