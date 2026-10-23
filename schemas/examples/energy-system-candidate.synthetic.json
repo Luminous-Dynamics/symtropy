@@ -2,8 +2,8 @@
   "schema_version": "energy-system-candidate-v0.1",
   "candidate_id": "synthetic-pv-battery-grid",
   "generator": {
-    "name": "reference-fixture",
-    "version": "0.1"
+    "name": "symthaea-energy-architecture-reference",
+    "version": "0.1.0"
   },
   "synthetic": true,
   "evidence_class": "analyst_assumption",
@@ -256,7 +256,15 @@
   ],
   "connections": [
     {
-      "connection_id": "pv-to-battery",
+      "connection_id": "pv-to-essential-load",
+      "from_component": "pv",
+      "from_port": "electricity",
+      "to_component": "essential-load",
+      "to_port": "supply",
+      "carrier": "electricity"
+    },
+    {
+      "connection_id": "pv-to-battery-charge",
       "from_component": "pv",
       "from_port": "electricity",
       "to_component": "battery",
@@ -264,7 +272,7 @@
       "carrier": "electricity"
     },
     {
-      "connection_id": "battery-to-load",
+      "connection_id": "battery-to-essential-load",
       "from_component": "battery",
       "from_port": "discharge",
       "to_component": "essential-load",
@@ -272,17 +280,9 @@
       "carrier": "electricity"
     },
     {
-      "connection_id": "grid-to-load",
+      "connection_id": "grid-to-essential-load",
       "from_component": "grid",
       "from_port": "import",
-      "to_component": "essential-load",
-      "to_port": "supply",
-      "carrier": "electricity"
-    },
-    {
-      "connection_id": "pv-to-essential-load",
-      "from_component": "pv",
-      "from_port": "electricity",
       "to_component": "essential-load",
       "to_port": "supply",
       "carrier": "electricity"
@@ -367,16 +367,16 @@
       "verifier_id": "grid_outage_import_guard"
     },
     {
-      "constraint_id": "battery-capacity",
-      "description": "Battery state of charge must remain in [0, declared capacity].",
-      "severity": "hard",
-      "verifier_id": "storage_state_transition"
-    },
-    {
       "constraint_id": "service-reconciliation",
       "description": "Delivered plus unserved service equals requested service in each interval.",
       "severity": "hard",
       "verifier_id": "service_demand_reconciliation"
+    },
+    {
+      "constraint_id": "battery-state-bounds",
+      "description": "Battery state of charge remains between zero and the declared capacity.",
+      "severity": "hard",
+      "verifier_id": "storage-state-transition"
     }
   ],
   "objectives": [
