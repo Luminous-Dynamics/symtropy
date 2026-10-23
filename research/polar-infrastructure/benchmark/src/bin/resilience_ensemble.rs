@@ -1,4 +1,4 @@
-use polar_resilience_score::{score, PolicyScore, ScoreInput};
+use polar_resilience_score::{active_service_ids, score, service_contracts_match, PolicyScore, ScoreInput};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -125,6 +125,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
     let mut probability_sum = 0.0;
     let mut scored_scenarios = Vec::with_capacity(input.scenarios.len());
     let mut expected_policies: Option<BTreeMap<String, (String, String)>> = None;
+    let mut baseline: Option<&ScoreInput> = None;
 
     for scenario in &input.scenarios {
         if scenario.scenario_id.trim().is_empty() || !ids.insert(scenario.scenario_id.clone()) {
@@ -134,6 +135,17 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             return Err(format!("scenario {} probability must be finite and positive", scenario.scenario_id));
         }
         probability_sum += scenario.probability;
+
+        if let Some(first) = baseline {
+            if !service_contracts_match(first, &scenario.score_input) {
+                return Err(format!("scenario {} changes service-contract semantics", scenario.scenario_id));
+            }
+            if active_service_ids(first) != active_service_ids(&scenario.score_input) {
+                return Err(format!("scenario {} changes the active-service set", scenario.scenario_id));
+            }
+        } else {
+            baseline = Some(&scenario.score_input);
+        }
 
         let report = score(&scenario.score_input)?;
         let policies: BTreeMap<String, (String, String)> = report.results.iter()
@@ -307,6 +319,28 @@ mod tests {
         let mut input = fixture();
         input.evidence_class = "domain_validated".to_string();
         assert!(aggregate(&input).unwrap_err().contains("synthetic_only"));
+    }
+
+    #[test]
+    fn rejects_service_contract_drift_between_scenarios() {
+        let mut input = fixture();
+        input.scenarios[1].score_input.episode.service_contracts[0].minimum_service_fraction = 0.5;
+        assert!(aggregate(&input).unwrap_err().contains("service-contract semantics"));
+    }
+
+    #[test]
+    fn rejects_active_service_set_drift_between_scenarios() {
+        let mut input = fixture();
+        let scenario = &mut input.scenarios[1].score_input;
+        for step in &mut scenario.episode.steps {
+            step.demand.insert("communications".to_string(), 0.0);
+        }
+        for policy in &mut scenario.policy_runs {
+            for step in &mut policy.steps {
+                step.delivered.insert("communications".to_string(), 0.0);
+            }
+        }
+        assert!(aggregate(&input).unwrap_err().contains("active-service set"));
     }
 
     #[test]
