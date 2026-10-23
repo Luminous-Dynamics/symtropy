@@ -154,6 +154,10 @@ struct EnergyStudioBenchmarkReport {
     design_space_manifest_sha256: String,
     shared_candidate_schema_sha256: String,
     mapping_config_fixture_sha256: String,
+    parametric_known_answers_sha256: String,
+    symthaea_cargo_lock_sha256: String,
+    sol_atlas_cargo_lock_sha256: String,
+    symtropy_audit_cargo_lock_sha256: String,
     benchmark_summary: BenchmarkSummary,
     candidates: Vec<CandidateBenchmark>,
 }
@@ -380,6 +384,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mapping_config_bytes = fs::read(
         root.join("sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"),
     )?;
+    let symthaea_lock_bytes = fs::read(root.join("symthaea.Cargo.lock"))?;
+    let sol_atlas_lock_bytes = fs::read(root.join("sol-atlas.Cargo.lock"))?;
+    let symtropy_audit_lock_bytes = fs::read(root.join("symtropy-energy-audit.Cargo.lock"))?;
     if manifest.get("requested_candidate_count").and_then(Value::as_u64) != Some(36)
         || manifest.get("candidates").and_then(Value::as_array).map(Vec::len) != Some(36)
         || manifest.get("rejected_candidates").and_then(Value::as_array).map(Vec::len) != Some(0)
@@ -448,6 +455,12 @@ fn run() -> Result<(), Box<dyn Error>> {
         design_space_manifest_sha256: sha256_hex(&manifest_bytes),
         shared_candidate_schema_sha256: sha256_hex(&schema_bytes),
         mapping_config_fixture_sha256: sha256_hex(&mapping_config_bytes),
+        parametric_known_answers_sha256: sha256_hex(include_bytes!(
+            "../../fixtures/energy-parametric-known-answers-v0.1.json"
+        )),
+        symthaea_cargo_lock_sha256: sha256_hex(&symthaea_lock_bytes),
+        sol_atlas_cargo_lock_sha256: sha256_hex(&sol_atlas_lock_bytes),
+        symtropy_audit_cargo_lock_sha256: sha256_hex(&symtropy_audit_lock_bytes),
         benchmark_summary: BenchmarkSummary {
             expected_candidate_count: 39,
             audited_candidate_count: candidates.len(),
