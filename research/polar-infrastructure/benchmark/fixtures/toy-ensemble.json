@@ -66,7 +66,8 @@
                 "communications": 1
               }
             }
-          ]
+          ],
+          "service_value_semantics": "rate_per_hour_integrated_to_unit_hours"
         },
         "policy_runs": [
           {
@@ -102,7 +103,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "transparent_rules",
@@ -137,7 +139,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "candidate_full_service",
@@ -172,7 +175,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "defective_low_fuel_control",
@@ -207,7 +211,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           }
         ]
       }
@@ -273,7 +278,8 @@
                 "communications": 1
               }
             }
-          ]
+          ],
+          "service_value_semantics": "rate_per_hour_integrated_to_unit_hours"
         },
         "policy_runs": [
           {
@@ -309,7 +315,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "transparent_rules",
@@ -344,7 +351,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "candidate_full_service",
@@ -379,7 +387,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           },
           {
             "policy_id": "defective_low_fuel_control",
@@ -414,7 +423,8 @@
                   "communications": 1
                 }
               }
-            ]
+            ],
+            "fuel_unit": "normalized_fuel_units"
           }
         ]
       }
