@@ -55,6 +55,8 @@ Industry anchors for protocol design:
 
 These are method/design references, not evidence that this crate is compliant with them or that any policy is better than state of the art.
 
+Before any real comparison, fill out the [benchmark preregistration template](PREREGISTRATION_TEMPLATE.md) to freeze thresholds, scenario splits, tuning budgets, exclusions, baselines and falsification conditions.
+
 ## Probability-free robust stress-set evaluation (synthetic-only)
 
 Not every remote-infrastructure failure mode has defensible occurrence probabilities. The `robust_set` binary is a second evaluation path for an **explicitly enumerated stress set** that reports:
