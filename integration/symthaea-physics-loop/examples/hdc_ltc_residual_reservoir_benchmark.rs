@@ -351,6 +351,9 @@ fn main() {
             "test_episode_scenario_ids": (0..episodes)
                 .map(|episode| scenarios[episode % scenarios.len()].id)
                 .collect::<Vec<_>>(),
+            "test_episode_seed_hexes": (0..episodes)
+                .map(|episode| format!("{:016x}", 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1)))
+                .collect::<Vec<_>>(),
             "nominal_model": {
                 "mass_kg": nominal.mass_kg,
                 "gravity_m_s2": nominal.gravity_m_s2,
