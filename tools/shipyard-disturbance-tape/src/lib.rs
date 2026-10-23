@@ -300,7 +300,7 @@ impl<'a> Parser<'a> {
                         b'u' => {
                             let first = self.parse_hex_code_unit()?;
                             let scalar = if (0xD800..=0xDBFF).contains(&first) {
-                                if self.bytes.get(self.index..self.index + 2) != Some(b"\\u") {
+                                if self.bytes.get(self.index..self.index + 2) != Some(&b"\\u"[..]) {
                                     return Err(self.error("high surrogate lacks low surrogate"));
                                 }
                                 self.index += 2;
@@ -1100,4 +1100,29 @@ mod tests {
             .expect_err("duplicate nested key")
             .contains("duplicate object key"));
     }
+
+    #[test]
+    fn unicode_escapes_and_surrogate_pairs_round_trip() {
+        let parsed = parse_json(r#"{"rocket":"\ud83d\ude80","line":"a\nb"}"#)
+            .expect("valid Unicode JSON");
+        let serialized = parsed.stringify();
+        assert!(serialized.contains("🚀"));
+        assert_eq!(parse_json(&serialized).expect("serialized JSON"), parsed);
+    }
+
+    #[test]
+    fn oversized_ticks_and_malformed_digests_are_rejected() {
+        let oversized = FIXTURE.replace(
+            "\"effective_tick\": 4",
+            "\"effective_tick\": 18446744073709551616",
+        );
+        assert!(validate_bytes(oversized.as_bytes(), None, 5)
+            .expect_err("overflowing tick")
+            .contains("non-negative integer"));
+
+        assert!(validate_bytes(FIXTURE.as_bytes(), Some(&"z".repeat(64)), 5)
+            .expect_err("non-hex digest")
+            .contains("64 hexadecimal"));
+    }
+}
 }
