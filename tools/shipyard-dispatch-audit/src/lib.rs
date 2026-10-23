@@ -879,8 +879,6 @@ mod tests {
         assert_eq!(accepted.metrics.completed_operation_count, 1);
         assert_eq!(accepted.metrics.assigned_operation_count, 1);
         assert_eq!(accepted.metrics.occupied_resource_ticks, 5);
-
-
     }
 
     #[test]
