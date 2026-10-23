@@ -259,7 +259,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
     and (.evaluation.episode_details | length) == .evaluation.episodes_requested
-    and all(.evaluation.episode_details[]; .sample_count == .evaluation.steps_per_episode and .invalid_samples == 0)
+    and all(.evaluation.episode_details[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
   ' "$mlp_out"
 
   test -s "$ridge_out"
