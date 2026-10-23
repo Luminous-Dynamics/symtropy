@@ -397,6 +397,7 @@ mod tests {
         assert!(schedule.deliberately_unapplied_charges.iter().any(|charge| charge.charge_id == "network_surcharge_6c_per_kwh"));
         assert!(schedule.deliberately_unapplied_charges.iter().any(|charge| charge.charge_id == "dsm_levy_6c_per_kwh"));
         assert!(schedule.deliberately_unapplied_charges.iter().any(|charge| charge.charge_id == "vat"));
+        assert!(schedule.deliberately_unapplied_charges.iter().any(|charge| charge.charge_id == "secondary_fixed_charge_band_and_label_conflict"));
         assert_eq!(
             actual.subtotal_excluding_unapplied_and_tax_microzar,
             actual.energy_charge_microzar
