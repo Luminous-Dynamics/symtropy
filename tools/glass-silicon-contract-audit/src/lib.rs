@@ -78,6 +78,10 @@ fn is_stable_slug(value: &str) -> bool {
             .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
 }
 
+fn is_hex_digest(value: &str, length: usize) -> bool {
+    value.len() == length && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
 /// Check the frozen benchmark's structural and semantic contract invariants.
 /// This is intentionally a semantic reference checker, not a general JSON Schema engine.
 pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
@@ -166,6 +170,107 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
     ] {
         if !seen_reference_ids.contains(required_ref) {
             report.fail("RESEARCH_BASELINE_MISSING", format!("missing required source record {required_ref}"));
+        }
+    }
+
+    let artifact_records = corpus.get("artifact_admission").and_then(Value::as_array);
+    if artifact_records.map_or(true, |items| items.is_empty()) {
+        report.fail("ARTIFACT_ADMISSION_MANIFEST", "at least one explicit source artifact-admission record is required");
+    } else {
+        let mut seen_artifact_ids = BTreeSet::new();
+        let mut scale_archive_record = false;
+        for (index, record) in artifact_records.iter().enumerate() {
+            let artifact_id = nonempty_string(record, "artifact_id");
+            let source_ref = nonempty_string(record, "source_ref");
+            if artifact_id.as_deref().map_or(true, |id| !is_stable_slug(id)) {
+                report.fail("ARTIFACT_ID", format!("artifact record {index} has missing or invalid ID"));
+            } else if !seen_artifact_ids.insert(artifact_id.clone().unwrap_or_default()) {
+                report.fail("DUPLICATE_ARTIFACT_ID", format!("duplicate artifact ID at index {index}"));
+            }
+            if source_ref.as_deref().map_or(true, |id| !seen_reference_ids.contains(id)) {
+                report.fail("ARTIFACT_SOURCE_REF", format!("artifact record {index} must point to a declared research reference"));
+            }
+
+            let record_status = object_string(record, "record_status").unwrap_or("");
+            let rights_status = object_string(record, "rights_status").unwrap_or("");
+            let sha256_status = object_string(record, "sha256_status").unwrap_or("");
+            let admission_status = object_string(record, "benchmark_admission_status").unwrap_or("");
+            if !["publicly_listed_not_downloaded", "downloaded_pending_hash", "downloaded_hashed"].contains(&record_status) {
+                report.fail("ARTIFACT_RECORD_STATUS", format!("artifact record {index} has unknown record_status"));
+            }
+            if !["unresolved", "resolved", "not_applicable"].contains(&rights_status) {
+                report.fail("ARTIFACT_RIGHTS_STATUS", format!("artifact record {index} has unknown rights_status"));
+            }
+            if !["pending", "complete", "not_applicable"].contains(&sha256_status) {
+                report.fail("ARTIFACT_SHA256_STATUS", format!("artifact record {index} has unknown sha256_status"));
+            }
+            if !["blocked", "admitted", "literature_only"].contains(&admission_status) {
+                report.fail("ARTIFACT_ADMISSION_STATUS", format!("artifact record {index} has unknown benchmark_admission_status"));
+            }
+            if nonempty_string(record, "record_version").is_none()
+                || nonempty_string(record, "published_on").map_or(true, |date| date.len() != 10 || date.chars().nth(4) != Some('-') || date.chars().nth(7) != Some('-'))
+                || nonempty_string(record, "claim_ceiling").is_none()
+            {
+                report.fail("ARTIFACT_RECORD_METADATA", format!("artifact record {index} is missing version, date, or claim ceiling"));
+            }
+
+            let artifact_files = record.get("files").and_then(Value::as_array);
+            if artifact_files.map_or(true, |items| items.is_empty()) {
+                report.fail("ARTIFACT_FILES", format!("artifact record {index} has no file records"));
+                continue;
+            }
+            let mut seen_file_names = BTreeSet::new();
+            let mut every_file_has_sha256 = true;
+            for (file_index, file) in artifact_files.iter().flat_map(|items| items.iter()).enumerate() {
+                let filename = nonempty_string(file, "filename");
+                if filename.is_none() {
+                    report.fail("ARTIFACT_FILENAME", format!("artifact {index} file {file_index} has no filename"));
+                } else if !seen_file_names.insert(filename.clone().unwrap_or_default()) {
+                    report.fail("DUPLICATE_ARTIFACT_FILENAME", format!("artifact {index} repeats a filename"));
+                }
+                if nonempty_string(file, "size_display").is_none() {
+                    report.fail("ARTIFACT_FILE_SIZE", format!("artifact {index} file {file_index} has no published size metadata"));
+                }
+                if object_string(file, "published_checksum_algorithm") != Some("MD5")
+                    || object_string(file, "published_checksum").map_or(true, |sum| !is_hex_digest(sum, 32))
+                {
+                    report.fail("PUBLISHED_CHECKSUM", format!("artifact {index} file {file_index} has invalid published MD5 metadata"));
+                }
+                match file.get("sha256") {
+                    Some(Value::String(sum)) if is_hex_digest(sum, 64) => {}
+                    Some(Value::Null) => every_file_has_sha256 = false,
+                    _ => {
+                        every_file_has_sha256 = false;
+                        report.fail("ARTIFACT_SHA256", format!("artifact {index} file {file_index} SHA-256 must be null pending calculation or a 64-digit lowercase hex digest"));
+                    }
+                }
+            }
+
+            if record_status == "downloaded_hashed" && (!every_file_has_sha256 || sha256_status != "complete") {
+                report.fail("ARTIFACT_HASH_STATUS", format!("artifact record {index} claims download/hash completion without SHA-256 for every file"));
+            }
+            if admission_status == "admitted"
+                && (record_status != "downloaded_hashed" || rights_status != "resolved" || sha256_status != "complete" || !every_file_has_sha256)
+            {
+                report.fail("ARTIFACT_ADMISSION_UNPROVEN", format!("artifact record {index} is admitted without downloaded bytes, resolved rights, and SHA-256 for every file"));
+            }
+            if artifact_id.as_deref() == Some("scale-zenodo-18430657-v1") {
+                scale_archive_record = true;
+                if source_ref.as_deref() != Some("scale-glass-zenodo-data-2026")
+                    || object_string(record, "record_version") != Some("v1")
+                    || record_status != "publicly_listed_not_downloaded"
+                    || rights_status != "unresolved"
+                    || sha256_status != "pending"
+                    || admission_status != "blocked"
+                    || artifact_files.map(|items| items.len()) != Some(9)
+                    || every_file_has_sha256
+                {
+                    report.fail("SCALE_ARTIFACT_GATE", "SCALE v1 must remain blocked until file-level rights are resolved and every exact file has a locally computed SHA-256");
+                }
+            }
+        }
+        if !scale_archive_record {
+            report.fail("SCALE_ARTIFACT_GATE", "missing explicit source artifact-admission record for SCALE Zenodo v1");
         }
     }
 
@@ -736,5 +841,26 @@ mod tests {
         let report = audit_corpus(&schema, &corpus);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|v| v.starts_with("CASE_ROUTE:")));
+    }
+
+    #[test]
+    fn corpus_missing_artifact_admission_manifest_fails() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus.as_object_mut().unwrap().remove("artifact_admission");
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_ADMISSION_MANIFEST:")));
+    }
+
+    #[test]
+    fn unhashed_artifact_cannot_be_marked_admitted() {
+        let schema: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.schema.json")).unwrap();
+        let mut corpus: Value = serde_json::from_str(include_str!("../../../docs/tech/glass-silicon-process-benchmark-v0.1.json")).unwrap();
+        corpus["artifact_admission"][0]["benchmark_admission_status"] = json!("admitted");
+        let report = audit_corpus(&schema, &corpus);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("ARTIFACT_ADMISSION_UNPROVEN:")));
+        assert!(report.findings.iter().any(|v| v.starts_with("SCALE_ARTIFACT_GATE:")));
     }
 }
