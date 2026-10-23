@@ -1,0 +1,38 @@
+name: Shipyard exact tiny polygon packing
+
+on:
+  pull_request:
+    branches: ["research/shipyard-polygon-layout-baseline-v0"]
+    paths:
+      - "tools/shipyard-polygon-exact/**"
+      - "tools/shipyard-polygon-layout-baseline/**"
+      - "tools/shipyard-polygon-geometry/**"
+      - ".github/workflows/shipyard-polygon-exact.yml"
+  push:
+    branches: ["research/shipyard-polygon-exact-v0"]
+    paths:
+      - "tools/shipyard-polygon-exact/**"
+      - "tools/shipyard-polygon-layout-baseline/**"
+      - "tools/shipyard-polygon-geometry/**"
+      - ".github/workflows/shipyard-polygon-exact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Pinned Rust exact-oracle conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/shipyard-polygon-exact/Cargo.toml -- --check
+      - name: Exact solver conformance tests offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-polygon-exact/Cargo.toml
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-polygon-exact/Cargo.toml --all-targets -- -D warnings
