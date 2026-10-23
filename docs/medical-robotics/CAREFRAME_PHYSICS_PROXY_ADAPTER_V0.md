@@ -46,7 +46,7 @@ Only static geometry. Even when a revolute joint value changes, the adapter crea
 - Root and torso positions match known reference coordinates.
 - One-radian torso yaw moves the left arm origin to the expected analytic position and produces a proper rotation.
 - A dynamic test sphere overlapping the chassis proxy produces a nonempty physics contact set.
-- An eight-case collision probe matrix covers four expected contacts (chassis, wheel and head-envelope surfaces), one shallow chassis near-miss expected not to contact, and three distant negative controls.
+- An eight-case collision probe matrix covers four expected contacts (chassis, wheel and head-envelope surfaces), one shallow chassis near-miss expected not to contact, and three distant negative controls. An author-time analytic point-to-AABB calculation over all 16 zero-state link boxes matches all eight expected labels; the actual physics-world contact outcomes remain subject to the queued Rust test.
 - A deterministic 32-state boundary-rich sweep checks all 16 imported poses for finite coordinates and proper rotations.
 - Oversized morphology/state inputs reject before the world is mutated.
 - Exact-byte digest checks distinguish byte-different but semantically equivalent morphology/state inputs.
