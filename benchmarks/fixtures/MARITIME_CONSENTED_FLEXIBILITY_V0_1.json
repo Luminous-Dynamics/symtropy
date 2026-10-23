@@ -1,0 +1,476 @@
+{
+  "schema_version": "maritime-consented-flexibility-v0.1",
+  "corpus_id": "SYNTH-MARITIME-FLEX-001",
+  "status": "synthetic_conformance_only_not_operational_data",
+  "effects_enabled": false,
+  "unit_contract": {
+    "time": "integer minutes from T0",
+    "intervals": "[start,end)",
+    "money": "synthetic_currency_unit",
+    "resource_capacity": "concurrent_slots",
+    "claim": "Synthetic test semantics only; not real port capacity or commercial terms."
+  },
+  "states": [
+    "OFFERED",
+    "ACCEPTED_CONDITIONAL",
+    "ACTIVATION_AUTHORIZED",
+    "SCHEDULE_CHANGED",
+    "OBSERVED_OUTCOME",
+    "DISPUTED",
+    "REVOKED",
+    "EXPIRED"
+  ],
+  "cases": [
+    {
+      "case_id": "FLEX-001",
+      "name": "offered but not accepted flexibility is not committed capacity",
+      "inputs": {
+        "demand": {
+          "id": "CALL-A",
+          "baseline_interval": [
+            100,
+            160
+          ],
+          "resource_id": "BERTH-A",
+          "quantity": 1
+        },
+        "offer": {
+          "id": "OFFER-A",
+          "owner": "PARTICIPANT-A",
+          "state": "OFFERED",
+          "allowed_interval": [
+            160,
+            220
+          ],
+          "max_delay_minutes": 60,
+          "expires_at": 90
+        },
+        "decision_time": 80,
+        "resource_demand_peak": 2,
+        "existing_capacity": 1
+      },
+      "expected": {
+        "disposition": "HYPOTHETICAL_ONLY",
+        "offer_counted_as_committed_capacity": false,
+        "hard_violations": 0,
+        "physical_plan_feasible": false
+      }
+    },
+    {
+      "case_id": "FLEX-002",
+      "name": "accepted bounded shift releases a peak slot",
+      "inputs": {
+        "demands": [
+          {
+            "id": "CALL-A",
+            "owner": "PARTICIPANT-A",
+            "baseline_interval": [
+              100,
+              160
+            ],
+            "flexible": true
+          },
+          {
+            "id": "CALL-B",
+            "owner": "PARTICIPANT-B",
+            "baseline_interval": [
+              100,
+              160
+            ],
+            "flexible": false
+          }
+        ],
+        "offer": {
+          "id": "OFFER-A",
+          "owner": "PARTICIPANT-A",
+          "call_id": "CALL-A",
+          "state": "ACCEPTED_CONDITIONAL",
+          "allowed_interval": [
+            160,
+            220
+          ],
+          "max_delay_minutes": 60,
+          "expires_at": 90,
+          "compensation": 2
+        },
+        "resource_windows": [
+          {
+            "id": "BERTH-A",
+            "physical_id": "BERTH-A",
+            "interval": [
+              100,
+              160
+            ],
+            "capacity": 1
+          },
+          {
+            "id": "BERTH-A-LATER",
+            "physical_id": "BERTH-A",
+            "interval": [
+              160,
+              220
+            ],
+            "capacity": 1
+          }
+        ],
+        "decision_time": 80
+      },
+      "expected": {
+        "disposition": "FEASIBLE_PROPOSAL",
+        "shifted_call_ids": [
+          "CALL-A"
+        ],
+        "peak_overload_after": 0,
+        "consent_violations": 0,
+        "actual_schedule_changed": false
+      }
+    },
+    {
+      "case_id": "FLEX-003",
+      "name": "shift beyond a hard service deadline is rejected",
+      "inputs": {
+        "call": {
+          "id": "CALL-PERISHABLE",
+          "baseline_window": [
+            100,
+            130
+          ],
+          "hard_delivery_deadline": 150,
+          "latest_accepted_arrival": 145
+        },
+        "offer": {
+          "id": "OFFER-LATE",
+          "call_id": "CALL-PERISHABLE",
+          "state": "ACCEPTED_CONDITIONAL",
+          "allowed_interval": [
+            140,
+            190
+          ],
+          "max_delay_minutes": 60,
+          "expires_at": 90
+        },
+        "proposed_interval": [
+          160,
+          190
+        ]
+      },
+      "expected": {
+        "disposition": "INFEASIBLE",
+        "reason": "HARD_SERVICE_DEADLINE_VIOLATED",
+        "consent_violations": 0,
+        "hard_violations": 1
+      }
+    },
+    {
+      "case_id": "FLEX-004",
+      "name": "one offer cannot be spent by primary and recovery plans",
+      "inputs": {
+        "offer": {
+          "id": "OFFER-ONE",
+          "call_id": "CALL-A",
+          "owner": "PARTICIPANT-A",
+          "state": "ACCEPTED_CONDITIONAL",
+          "window": [
+            100,
+            160
+          ],
+          "capacity_release": 1
+        },
+        "selected_uses": [
+          {
+            "plan": "PRIMARY",
+            "offer_id": "OFFER-ONE",
+            "resource_id": "BERTH-A",
+            "interval": [
+              100,
+              160
+            ]
+          },
+          {
+            "plan": "RECOVERY",
+            "offer_id": "OFFER-ONE",
+            "resource_id": "BERTH-A",
+            "interval": [
+              100,
+              160
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reason": "FLEX_OPTION_DOUBLE_SPENT",
+        "duplicate_uses": 1,
+        "resource_mutation": false
+      }
+    },
+    {
+      "case_id": "FLEX-005",
+      "name": "graph-edge aliases do not create extra berth capacity",
+      "inputs": {
+        "capacity": {
+          "id": "BERTH-EDGE-1",
+          "physical_id": "BERTH-PHYSICAL-7",
+          "interval": [
+            100,
+            160
+          ],
+          "capacity": 1
+        },
+        "assignments": [
+          {
+            "call_id": "CALL-A",
+            "graph_edge": "E-1",
+            "physical_resource_id": "BERTH-PHYSICAL-7",
+            "interval": [
+              100,
+              160
+            ],
+            "units": 1
+          },
+          {
+            "call_id": "CALL-B",
+            "graph_edge": "E-2",
+            "physical_resource_id": "BERTH-PHYSICAL-7",
+            "interval": [
+              100,
+              160
+            ],
+            "units": 1
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "INFEASIBLE",
+        "reason": "PHYSICAL_RESOURCE_OVERCOMMITTED",
+        "required_slots": 2,
+        "capacity_slots": 1
+      }
+    },
+    {
+      "case_id": "FLEX-006",
+      "name": "revoked or expired offer is not admissible",
+      "inputs": {
+        "decision_time": 200,
+        "offers": [
+          {
+            "id": "OFFER-REVOKED",
+            "state": "REVOKED",
+            "revoked_at": 150,
+            "expires_at": 300
+          },
+          {
+            "id": "OFFER-EXPIRED",
+            "state": "ACCEPTED_CONDITIONAL",
+            "expires_at": 180
+          }
+        ],
+        "proposed_use": [
+          "OFFER-REVOKED",
+          "OFFER-EXPIRED"
+        ]
+      },
+      "expected": {
+        "disposition": "INDETERMINATE_OR_REJECTED",
+        "rejected_reasons": {
+          "OFFER-REVOKED": "REVOKED_BEFORE_DECISION",
+          "OFFER-EXPIRED": "EXPIRED_BEFORE_DECISION"
+        },
+        "counted_capacity": 0
+      }
+    },
+    {
+      "case_id": "FLEX-007",
+      "name": "offer bound to wrong vessel call cannot be reused",
+      "inputs": {
+        "current_call_id": "CALL-B",
+        "offer": {
+          "id": "OFFER-A",
+          "call_id": "CALL-A",
+          "owner": "PARTICIPANT-A",
+          "state": "ACCEPTED_CONDITIONAL",
+          "max_delay_minutes": 90
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reason": "OFFER_SUBJECT_MISMATCH",
+        "counted_capacity": 0
+      }
+    },
+    {
+      "case_id": "FLEX-008",
+      "name": "accepted offer after cutoff cannot inform earlier plan",
+      "inputs": {
+        "decision_time": 100,
+        "offer": {
+          "id": "OFFER-LATE-ACCEPT",
+          "state": "ACCEPTED_CONDITIONAL",
+          "accepted_at": 120,
+          "allowed_interval": [
+            200,
+            260
+          ]
+        },
+        "schedule_decision_time": 100
+      },
+      "expected": {
+        "disposition": "REJECTED_EVIDENCE",
+        "reason": "FUTURE_AUTHORIZATION_LEAKAGE",
+        "offer_admissible_at_decision": false
+      }
+    },
+    {
+      "case_id": "FLEX-009",
+      "name": "compensation transfer is not double-counted as system benefit",
+      "inputs": {
+        "participant_A_cost_change": -5,
+        "participant_B_payment_change": 5,
+        "operator_resource_cost_change": 0,
+        "social_resource_cost_change": 0,
+        "currency": "synthetic_currency_unit"
+      },
+      "expected": {
+        "disposition": "ACCOUNTING_CONTROL",
+        "net_transfer_sum": 0,
+        "system_resource_cost_change": 0,
+        "private_distribution_must_remain_visible": true
+      }
+    },
+    {
+      "case_id": "FLEX-010",
+      "name": "no admissible flexible demand does not fabricate virtual capacity",
+      "inputs": {
+        "peak_demand": 3,
+        "existing_capacity": 2,
+        "offers": [
+          {
+            "id": "OFFER-NONFLEX",
+            "state": "OFFERED",
+            "allowed_interval": [
+              100,
+              130
+            ],
+            "owner": "A"
+          },
+          {
+            "id": "OFFER-UNKNOWN",
+            "state": "INDETERMINATE",
+            "allowed_interval": [
+              140,
+              170
+            ],
+            "owner": "B"
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "INFEASIBLE_OR_INDETERMINATE",
+        "capacity_released": 0,
+        "manufactured_flex_capacity": 0
+      }
+    },
+    {
+      "case_id": "FLEX-011",
+      "name": "flexibility can defer an investment in one scenario but not another",
+      "inputs": {
+        "existing_capacity": 1,
+        "peak_demand": {
+          "LOW": 1,
+          "HIGH": 2
+        },
+        "investment": {
+          "id": "BERTH-EXPANSION",
+          "capacity_delta": 1,
+          "cost": 8,
+          "commission_period": 2
+        },
+        "offer": {
+          "id": "FLEX-LOW",
+          "state": "ACCEPTED_CONDITIONAL",
+          "shifts_one_slot": true,
+          "max_delay_minutes": 30,
+          "expires_at": 90
+        },
+        "costs": {
+          "LOW": {
+            "with_flex": 2,
+            "build": 8
+          },
+          "HIGH": {
+            "with_flex": 14,
+            "build": 8
+          }
+        },
+        "scenario_rule": "Costs include declared delay/service consequence. All values synthetic."
+      },
+      "expected": {
+        "disposition": "SENSITIVITY_CONTROL",
+        "LOW": {
+          "preferred": "FLEX"
+        },
+        "HIGH": {
+          "preferred": "BUILD"
+        },
+        "universal_winner_claim": false
+      }
+    },
+    {
+      "case_id": "FLEX-012",
+      "name": "canonical input permutations produce the same result",
+      "inputs": {
+        "offers": [
+          {
+            "id": "OFFER-B",
+            "call_id": "CALL-B"
+          },
+          {
+            "id": "OFFER-A",
+            "call_id": "CALL-A"
+          }
+        ],
+        "permuted_offers": [
+          {
+            "id": "OFFER-A",
+            "call_id": "CALL-A"
+          },
+          {
+            "id": "OFFER-B",
+            "call_id": "CALL-B"
+          }
+        ],
+        "resource_order": [
+          "BERTH-B",
+          "BERTH-A"
+        ],
+        "permuted_resource_order": [
+          "BERTH-A",
+          "BERTH-B"
+        ],
+        "manifest_seed": "SYNTH-FLEX-001"
+      },
+      "expected": {
+        "disposition": "DETERMINISTIC",
+        "canonical_result_digest_equal": true,
+        "required_replays": 100
+      }
+    }
+  ],
+  "claim_ceiling": {
+    "physical_truth_claim_authorized": false,
+    "schedule_change_authorized": false,
+    "booking_or_rebooking_authorized": false,
+    "payment_or_settlement_authorized": false,
+    "capital_commitment_authorized": false,
+    "synthetic_pass_means": "finite model contract behavior only",
+    "not_established": [
+      "real port demand",
+      "commercially fair compensation",
+      "real cost savings",
+      "investment avoided in a real project",
+      "emissions reduction",
+      "operational safety",
+      "regulatory compliance"
+    ]
+  }
+}
