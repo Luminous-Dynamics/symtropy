@@ -2,7 +2,7 @@
   "schema_version": "energy-dispatch-known-answer-v0.1",
   "case_id": "synthetic-three-interval-storage-tradeoff",
   "scope": "Three-interval synthetic integer-quantized electrical schedule. Interval 1 has one PV quantum and zero load; interval 2 is a grid outage with one essential quantum demanded; interval 3 has one essential quantum demanded and grid import at 5 cost units and 100 carbon grams per quantum. The one-quantum idealized battery can carry PV energy forward. These objective factors are synthetic test constants, not real tariff or emissions data.",
-  "derivation": "The 9 feasible complete schedules are the feasible branches over interval-1 PV curtail/charge; interval-2 outage service using the stored quantum or leaving demand unserved; and interval-3 grid service, battery discharge, charge-from-grid or unserved service, under the one-quantum battery capacity and no simultaneous charge/discharge rule. The full non-dominated objective set retains the trade-offs between essential shortfall, synthetic grid cost/carbon and terminal SOC. Frontier order is essential unserved, flexible unserved, cost, carbon, curtailment ascending, then terminal SOC descending.",
+  "derivation": "The 9 feasible complete schedules are the feasible branches over interval-1 PV curtail/charge; interval-2 outage service using the stored quantum or leaving demand unserved; and interval-3 grid service, battery discharge, charge-from-grid or unserved service, under the one-quantum battery capacity and no simultaneous charge/discharge rule. The full non-dominated objective set retains the trade-offs between essential shortfall, synthetic grid cost/carbon and terminal SOC. Frontier order is essential unserved, flexible unserved, cost, carbon, curtailment ascending, then terminal SOC descending. The frozen feasible-schedule objective multiset lists all 9 leaves (including repeated objective vectors from distinct dispatch schedules); it has 7 distinct objective vectors before Pareto filtering.",
   "feasible_complete_schedules": 9,
   "pareto_frontier": [
     {
@@ -34,6 +34,81 @@
       "flexible_unserved_quanta": 0,
       "operating_cost_units": 0,
       "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 1
+    }
+  ],
+  "distinct_objective_count": 7,
+  "feasible_schedule_objectives": [
+    {
+      "essential_unserved_quanta": 2,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 1,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 1,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 2,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 1,
+      "terminal_soc_quanta": 1
+    },
+    {
+      "essential_unserved_quanta": 2,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 1
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 1
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 0,
+      "grid_carbon_grams": 0,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 0,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
+      "curtailed_pv_quanta": 0,
+      "terminal_soc_quanta": 0
+    },
+    {
+      "essential_unserved_quanta": 1,
+      "flexible_unserved_quanta": 0,
+      "operating_cost_units": 5,
+      "grid_carbon_grams": 100,
       "curtailed_pv_quanta": 0,
       "terminal_soc_quanta": 1
     }
