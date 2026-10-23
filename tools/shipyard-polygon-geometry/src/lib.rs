@@ -1018,6 +1018,49 @@ mod tests {
     }
 
     #[test]
+    fn oblique_polygon_controls_cover_crossings_contact_and_aabb_false_positive() {
+        // The two triangles overlap through proper edge crossings although
+        // none of the six vertices is strictly inside the other triangle.
+        let upward = polygon(&[(0, 0), (4, 0), (2, 4)]);
+        let downward = polygon(&[(0, 3), (4, 3), (2, -1)]);
+        assert_eq!(
+            upward.relation(&downward),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        assert_eq!(
+            downward.relation(&upward),
+            Ok(PolygonRelation::PositiveAreaOverlap)
+        );
+        for point in upward.vertices() {
+            assert_ne!(downward.locate(*point), Ok(PointLocation::Inside));
+        }
+        for point in downward.vertices() {
+            assert_ne!(upward.locate(*point), Ok(PointLocation::Inside));
+        }
+
+        // The axis-aligned bounding boxes overlap, but the small upper-right
+        // triangle is strictly outside the lower-left triangle.
+        let lower_left = polygon(&[(0, 0), (4, 0), (0, 4)]);
+        let upper_right = polygon(&[(3, 3), (4, 3), (3, 4)]);
+        assert_eq!(
+            lower_left.relation(&upper_right),
+            Ok(PolygonRelation::Disjoint)
+        );
+
+        // Two oblique triangles share only their diagonal edge. Contact is
+        // represented separately from positive-area overlap.
+        let upper_left = polygon(&[(4, 0), (4, 4), (0, 4)]);
+        assert_eq!(
+            lower_left.relation(&upper_left),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            upper_left.relation(&lower_left),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+    }
+
+    #[test]
     fn positive_area_overlap_is_symmetric_for_adversarial_concave_shapes() {
         let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
         let bar = rectangle(0, 2, 3, 3);
