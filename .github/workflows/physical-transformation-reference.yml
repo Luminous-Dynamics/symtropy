@@ -119,6 +119,8 @@ jobs:
             and .evidence_class == "synthetic"
             and .model_class == "2d_small_displacement_linear_elastic_axial_truss"
             and .case_count == 96
+            and .load_envelope_case_count == 15
+            and .parameter_grid_case_count == 81
             and .braced_pass_count == 64
             and .mechanism_rejection_count == 32
             and (.cases | length) == 96
