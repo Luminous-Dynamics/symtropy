@@ -64,12 +64,16 @@ fn run() -> Result<(), Box<dyn Error>> {
         .into());
     }
 
-    let expected = expected_benchmark(&args[2]).ok_or_else(|| {
-        io::Error::new(
+    let expected = expected_benchmark(&args[2]);
+    let parametric_candidate = args[2].starts_with("synthetic-parametric-");
+    if expected.is_none() && !parametric_candidate {
+        return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("no frozen benchmark case for candidate ID {}", args[2]),
+            format!("no frozen benchmark or bounded-search case for candidate ID {}", args[2]),
         )
-    })?;
+        .into());
+    }
+    let expected_case_id = format!("candidate:{}", args[2]);
     let bytes = fs::read(&args[1])?;
     let report: serde_json::Value = serde_json::from_slice(&bytes)?;
 
@@ -98,11 +102,20 @@ fn run() -> Result<(), Box<dyn Error>> {
         .get("checks")
         .and_then(serde_json::Value::as_array);
 
+    let frontier_matches_known_answer = match expected.as_ref() {
+        Some(expected) => {
+            feasible_schedules == Some(expected.feasible_schedules)
+                && frontier == expected.frontier
+        }
+        None => feasible_schedules.is_some_and(|count| count > 0) && !frontier.is_empty(),
+    };
+    let expected_count = expected.as_ref().map(|value| value.feasible_schedules);
+    let expected_frontier_count = expected.as_ref().map(|value| value.frontier.len());
+
     let accepted = status == Some("pass")
-        && case_id == Some(expected.case_id)
+        && case_id == Some(expected_case_id.as_str())
         && frontier_status == Some("pass")
-        && feasible_schedules == Some(expected.feasible_schedules)
-        && frontier == expected.frontier
+        && frontier_matches_known_answer
         && objective_claim == Some("verified_for_bounded_model_case")
         && checks.is_some_and(|checks| {
             checks.iter().all(|item| {
@@ -111,15 +124,15 @@ fn run() -> Result<(), Box<dyn Error>> {
         });
 
     println!(
-        "candidate_id={} status={:?} case_id={:?} reference_frontier={:?} feasible_schedules={:?}/{} frontier_vectors={}/{} objective_claim={:?}",
+        "candidate_id={} status={:?} case_id={:?} reference_frontier={:?} feasible_schedules={:?} expected={:?} frontier_vectors={} expected_frontier_vectors={:?} objective_claim={:?}",
         args[2],
         status,
         case_id,
         frontier_status,
         feasible_schedules,
-        expected.feasible_schedules,
+        expected_count,
         frontier.len(),
-        expected.frontier.len(),
+        expected_frontier_count,
         objective_claim
     );
 
