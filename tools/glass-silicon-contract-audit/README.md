@@ -93,7 +93,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-At an earlier head, all 53 tests and the then-current corpus passed, but a stale documentation grep stopped the workflow. After that guard was corrected, the integrated campaign test exposed a non-canonical fixture ID; the fixture now uses the existing pinned benchmark ID. The current exact-head workflow must pass the complete 54-test suite and new branch assertions before qualification.
+The corrected implementation and fixtures passed all 54 Rust tests and the complete focused workflow at `bad4cfae5adb926d87db6fb88f3b376591f9aca9` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40040804830)). Subsequent commits changed documentation/status text only; current head `c1d3a4fc7fc7f0210e1725d880980d2f8f00defb` has a queued rerun. This qualifies the contract mechanics at the prior code head, not physical glass performance or source-data admission.
 
 ## Staged feasibility gate
 
