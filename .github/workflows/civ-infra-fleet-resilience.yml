@@ -1,0 +1,129 @@
+name: CIV-INFRA Fleet Resilience Manifest
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-fleet-resilience/**"
+      - "docs/research/civ-infra-resilience/**"
+      - ".github/workflows/civ-infra-fleet-resilience.yml"
+  pull_request:
+    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1"]
+    paths:
+      - "tools/civ-infra-fleet-resilience/**"
+      - "docs/research/civ-infra-resilience/**"
+      - ".github/workflows/civ-infra-fleet-resilience.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  manifest:
+    name: Manifest contract checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- --check
+
+      - name: Run manifest and adversarial tests
+        run: cargo test --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml
+
+      - name: Emit and inspect fixture validation report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-fleet-resilience-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.fleet_resilience_manifest_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .validation_status == "fixture_schema_valid_and_finite_schedule_oracle_checked" and
+            .benchmark_executed == false and
+            .finite_schedule_oracle_executed == true and
+            .policy_runs_performed == 0 and
+            .counts.policies == 4 and
+            .counts.resources == 9 and
+            .counts.task_nodes == 4 and
+            .counts.tiny_schedule_cases == 3 and
+            .counts.schedule_cases_with_feasible_solution == 2 and
+            .counts.schedule_cases_without_feasible_solution == 1 and
+            .counts.disturbance_cases == 13 and
+            .counts.evidence_vocabulary_items == 32 and
+            .counts.evaluation_rules == 7 and
+            ([.schedule_oracle_results[] | select(.case_id == "O-001-parallel-branches" and .minimum_makespan_ticks == 5 and .status == "feasible_reference_schedule")] | length) == 1 and
+            ([.schedule_oracle_results[] | select(.case_id == "O-002-resource-alternative" and .minimum_makespan_ticks == 4 and .status == "feasible_reference_schedule")] | length) == 1 and
+            ([.schedule_oracle_results[] | select(.case_id == "O-002-resource-alternative") | .optimal_schedule[] | select(.task_id == "prepare-panel" and .alternative_id == "robot-a")] | length) == 1 and
+            ([.schedule_oracle_results[] | select(.case_id == "O-003-horizon-infeasible" and .minimum_makespan_ticks == null and .status == "no_feasible_schedule_within_horizon")] | length) == 1 and
+            ([.disturbance_cases[].status] | unique) == ["declared_not_simulated"] and
+            ([.disturbance_cases[].case_id] | sort) == [
+              "R-001", "R-002", "R-003", "R-004", "R-005", "R-006", "R-007",
+              "R-008", "R-009", "R-010", "R-011", "R-012", "R-013"
+            ]
+          ' "$report"
+
+      - name: Execute bounded recovery-policy microcase
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/policy-rollout-microcase-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-policy-rollout-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin policy-rollout -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.policy_rollout_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .validation_status == "single_synthetic_rollout_and_frozen_outcomes_checked" and
+            .benchmark_executed == true and
+            .simulated_cases == 1 and
+            .policy_runs_performed == 3 and
+            .event_injection_tick == 1 and
+            .event_observable_tick == 2 and
+            .all_expected_outcomes_matched == true and
+            ([.policy_results[] | select(.policy_id == "B0" and .status == "protective_stop_no_accepted_output" and .accepted_synthetic_work == false and .makespan_ticks == null and .completed_task_count == 0 and .interrupted_attempt_count == 1 and .event_observed_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
+            ([.policy_results[] | select(.policy_id == "B1" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 8 and .completed_task_count == 4 and .resource_reassignments == 0 and .event_observed_tick == 2 and .replan_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
+            ([.policy_results[] | select(.policy_id == "B2" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 6 and .completed_task_count == 4 and .resource_reassignments == 1 and .event_observed_tick == 2 and .replan_tick == 2 and .knowledge_leak_detected == false)] | length) == 1
+          ' "$report"
+
+      - name: Audit event queue and observation boundaries
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/event-timeline-audit.rs') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-event-timeline-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin event-timeline-audit -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.event_timeline_audit.v0.1" and
+            .input_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .timeline_status == "canonical_event_queue_timing_audited" and
+            .timeline_audit_executed == true and
+            .policy_simulation_executed == false and
+            .policy_runs_performed == 0 and
+            .counts.disturbance_cases == 13 and
+            .counts.typed_disturbance_kinds == 13 and
+            .counts.delayed_observations == 3 and
+            .counts.total_observation_delay_ticks == 4 and
+            .counts.maximum_observation_delay_ticks == 2 and
+            .counts.timeline_tick_count == 8 and
+            ([.evaluator_timeline[] | select(.tick == 2) | .injected_event_ids[] | select(. == "R-008")] | length) == 1 and
+            ([.evaluator_timeline[] | select(.tick == 2) | .events_injected_but_not_yet_observable[] | select(. == "R-008")] | length) == 1 and
+            ([.policy_timeline[] | select(.tick == 3) | .visible_event_ids[] | select(. == "R-008")] | length) == 0 and
+            ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1 and
+            ([.policy_timeline[4].newly_observed_events[] | select(.case_id == "R-008" and .observed_at_tick == 4 and (has("injection_tick") | not))] | length) == 1
+          ' "$report"

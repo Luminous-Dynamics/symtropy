@@ -1,0 +1,773 @@
+{
+  "schema_version": "civ-infra-fleet-resilience/0.1",
+  "fixture_id": "civ-infra-fleet-resilience-synthetic-001",
+  "classification": "synthetic_only",
+  "claim_ceiling": "Proposed disturbance manifest for deterministic software tests. Not executed benchmark evidence, hardware capability, field-safety evidence, or productivity data.",
+  "warning": "All ticks, time/cost values, states, and events are fictional test parameters.",
+  "evidence_vocabulary": [
+    "admissible-utility-investigation-or-approved-alternative",
+    "as-built-inspection-receipt",
+    "capability-profile-currentness",
+    "compatible-replacement-receipt",
+    "corrective-work-receipt",
+    "current-profile-reference",
+    "energy-estimate-currentness",
+    "fault-diagnosis",
+    "identity-and-condition-inspection",
+    "localization-reacquisition-receipt",
+    "material-receipt",
+    "new-as-built-observation",
+    "new-calibration-epoch",
+    "new-site-observation",
+    "new_authorized_decision_or_task_cancel",
+    "non-overlapping-schedule",
+    "pose-quality-within-profile",
+    "post-repair-function-check",
+    "recharged-state-observation",
+    "recomputed-capability-match",
+    "recomputed-task-admission",
+    "reconnection-session-receipt",
+    "repair-record",
+    "state-reconciliation",
+    "successful-reinspection",
+    "survey-receipt",
+    "tool-frame-check",
+    "tool-identity-receipt",
+    "trench-geometry-observation",
+    "trench-inspection",
+    "updated-schedule-receipt",
+    "verified-material-identity"
+  ],
+  "clock": {
+    "unit": "fixture_tick",
+    "interval_semantics": "half_open"
+  },
+  "policies": [
+    {
+      "policy_id": "B0",
+      "name": "fixed_schedule",
+      "access_to_unobserved_state": false
+    },
+    {
+      "policy_id": "B1",
+      "name": "rule_based_recovery",
+      "access_to_unobserved_state": false
+    },
+    {
+      "policy_id": "B2",
+      "name": "evidence_bounded_replanning",
+      "access_to_unobserved_state": false
+    },
+    {
+      "policy_id": "B3",
+      "name": "finite_instance_exhaustive_oracle",
+      "deployable_policy": false,
+      "purpose": "reference_bound_only"
+    }
+  ],
+  "resources": [
+    {
+      "resource_id": "excavator-01",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "utility-cart-01",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "inspection-rover-01",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "pipe-clamp-a",
+      "capacity": 1,
+      "resource_kind": "tool"
+    },
+    {
+      "resource_id": "survey-rover-01",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "oracle-robot-a",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "oracle-robot-b",
+      "capacity": 1,
+      "resource_kind": "robot"
+    },
+    {
+      "resource_id": "oracle-crane",
+      "capacity": 1,
+      "resource_kind": "machine"
+    },
+    {
+      "resource_id": "oracle-inspector",
+      "capacity": 1,
+      "resource_kind": "robot"
+    }
+  ],
+  "task_graph": [
+    {
+      "task_id": "survey-segment-01",
+      "duration_ticks": 2,
+      "requires": [],
+      "acceptance_evidence": [
+        "survey-receipt"
+      ]
+    },
+    {
+      "task_id": "trench-segment-01",
+      "duration_ticks": 2,
+      "requires": [
+        "survey-segment-01"
+      ],
+      "acceptance_evidence": [
+        "trench-geometry-observation",
+        "trench-inspection"
+      ]
+    },
+    {
+      "task_id": "place-water-pipe-01",
+      "duration_ticks": 2,
+      "requires": [
+        "trench-segment-01"
+      ],
+      "acceptance_evidence": [
+        "as-built-inspection-receipt"
+      ]
+    },
+    {
+      "task_id": "inspect-water-pipe-01",
+      "duration_ticks": 1,
+      "requires": [
+        "place-water-pipe-01"
+      ],
+      "acceptance_evidence": [
+        "as-built-inspection-receipt"
+      ]
+    }
+  ],
+  "disturbance_cases": [
+    {
+      "case_id": "R-001",
+      "name": "localization_lost",
+      "injection_tick": 2,
+      "observable_tick": 2,
+      "event": "localization_quality_out_of_profile",
+      "affected_resources": [
+        "utility-cart-01"
+      ],
+      "affected_tasks": [
+        "place-water-pipe-01"
+      ],
+      "invalidates": [
+        "current-pose-estimate"
+      ],
+      "recovery_evidence": [
+        "localization-reacquisition-receipt",
+        "pose-quality-within-profile"
+      ],
+      "required_invariants": [
+        "no_pose_dependent_action_outside_admitted_localization",
+        "no_task_acceptance_without_inspection"
+      ]
+    },
+    {
+      "case_id": "R-002",
+      "name": "tool_changed_calibration_stale",
+      "injection_tick": 1,
+      "observable_tick": 1,
+      "event": "tool_identity_changed",
+      "affected_resources": [
+        "utility-cart-01",
+        "pipe-clamp-a"
+      ],
+      "affected_tasks": [
+        "place-water-pipe-01"
+      ],
+      "invalidates": [
+        "tool-calibration",
+        "tool-to-frame-transform"
+      ],
+      "recovery_evidence": [
+        "tool-identity-receipt",
+        "new-calibration-epoch",
+        "tool-frame-check"
+      ],
+      "required_invariants": [
+        "stale_calibration_never_admitted",
+        "old_assignment_not_current"
+      ]
+    },
+    {
+      "case_id": "R-003",
+      "name": "communication_outage",
+      "injection_tick": 2,
+      "observable_tick": 3,
+      "event": "communication_link_unavailable",
+      "affected_resources": [
+        "survey-rover-01",
+        "excavator-01"
+      ],
+      "affected_tasks": [
+        "survey-segment-01",
+        "trench-segment-01"
+      ],
+      "invalidates": [
+        "remote-state-currentness"
+      ],
+      "recovery_evidence": [
+        "reconnection-session-receipt",
+        "state-reconciliation"
+      ],
+      "required_invariants": [
+        "no_stale_remote_evidence_as_current",
+        "policy_cannot_observe_event_before_tick_3",
+        "safe_stop_reported_separately_from_productivity"
+      ]
+    },
+    {
+      "case_id": "R-004",
+      "name": "excavator_failure_repairable",
+      "injection_tick": 3,
+      "observable_tick": 3,
+      "event": "excavator_drive_fault",
+      "affected_resources": [
+        "excavator-01"
+      ],
+      "affected_tasks": [
+        "trench-segment-01"
+      ],
+      "recoverability": "repairable_in_declared_fixture",
+      "invalidates": [
+        "robot-availability",
+        "scheduled-occupancy"
+      ],
+      "recovery_evidence": [
+        "fault-diagnosis",
+        "repair-record",
+        "post-repair-function-check",
+        "capability-profile-currentness"
+      ],
+      "required_invariants": [
+        "failed_resource_not_scheduled_as_available",
+        "repair_does_not_auto_restore_qualification",
+        "resume_after_required_reverification"
+      ]
+    },
+    {
+      "case_id": "R-005",
+      "name": "material_arrives_late",
+      "injection_tick": 3,
+      "observable_tick": 3,
+      "event": "water-pipe-delivery_delayed",
+      "affected_resources": [],
+      "affected_tasks": [
+        "place-water-pipe-01",
+        "inspect-water-pipe-01"
+      ],
+      "invalidates": [
+        "material-availability",
+        "dependent-schedule"
+      ],
+      "recovery_evidence": [
+        "material-receipt",
+        "identity-and-condition-inspection"
+      ],
+      "required_invariants": [
+        "absent_material_not_assumed_available",
+        "downstream_tasks_not_accepted_before_prerequisites"
+      ]
+    },
+    {
+      "case_id": "R-006",
+      "name": "wrong_material_delivered",
+      "injection_tick": 3,
+      "observable_tick": 3,
+      "event": "material_class_mismatch",
+      "affected_resources": [],
+      "affected_tasks": [
+        "place-water-pipe-01"
+      ],
+      "invalidates": [
+        "material-task-compatibility"
+      ],
+      "recovery_evidence": [
+        "verified-material-identity",
+        "compatible-replacement-receipt"
+      ],
+      "required_invariants": [
+        "material_mismatch_blocks_installation",
+        "supplier_assertion_alone_not_verified_material"
+      ]
+    },
+    {
+      "case_id": "R-007",
+      "name": "inspection_rejects_installation",
+      "injection_tick": 6,
+      "observable_tick": 7,
+      "event": "as_built_inspection_failed",
+      "affected_resources": [
+        "inspection-rover-01"
+      ],
+      "affected_tasks": [
+        "place-water-pipe-01",
+        "inspect-water-pipe-01"
+      ],
+      "invalidates": [
+        "task-acceptance-candidate",
+        "downstream-closeout"
+      ],
+      "recovery_evidence": [
+        "corrective-work-receipt",
+        "new-as-built-observation",
+        "successful-reinspection"
+      ],
+      "required_invariants": [
+        "failed_inspection_remains_rejected",
+        "repair_requires_reinspection",
+        "no_completion_from_command_success_alone"
+      ]
+    },
+    {
+      "case_id": "R-008",
+      "name": "site_geometry_changed_after_schedule",
+      "injection_tick": 2,
+      "observable_tick": 4,
+      "event": "workface_geometry_revision_changed",
+      "affected_resources": [
+        "excavator-01",
+        "utility-cart-01"
+      ],
+      "affected_tasks": [
+        "trench-segment-01",
+        "place-water-pipe-01"
+      ],
+      "invalidates": [
+        "site-snapshot",
+        "task-frame",
+        "dependent-assignments"
+      ],
+      "recovery_evidence": [
+        "new-site-observation",
+        "recomputed-task-admission",
+        "updated-schedule-receipt"
+      ],
+      "required_invariants": [
+        "no_observation_of_new_revision_before_tick_4",
+        "stale_assignment_not_executable",
+        "historic_receipt_not_rewritten"
+      ]
+    },
+    {
+      "case_id": "R-009",
+      "name": "capacity_one_tool_conflict",
+      "injection_tick": 2,
+      "observable_tick": 2,
+      "event": "two_tasks_require_same_capacity_one_tool",
+      "affected_resources": [
+        "pipe-clamp-a"
+      ],
+      "affected_tasks": [
+        "place-water-pipe-01",
+        "inspect-water-pipe-01"
+      ],
+      "invalidates": [
+        "overlapping-tool-reservations"
+      ],
+      "recovery_evidence": [
+        "non-overlapping-schedule"
+      ],
+      "required_invariants": [
+        "no_capacity_overcommitment",
+        "half_open_interval_boundaries_recomputed"
+      ]
+    },
+    {
+      "case_id": "R-010",
+      "name": "energy_return_reserve_infeasible",
+      "injection_tick": 2,
+      "observable_tick": 2,
+      "event": "remaining_energy_below_task_plus_return_reserve",
+      "affected_resources": [
+        "survey-rover-01"
+      ],
+      "affected_tasks": [
+        "survey-segment-01"
+      ],
+      "invalidates": [
+        "energy-feasibility"
+      ],
+      "recovery_evidence": [
+        "recharged-state-observation",
+        "energy-estimate-currentness"
+      ],
+      "required_invariants": [
+        "infeasible_mission_not_admitted",
+        "recovery_energy_included_in_resource_budget"
+      ]
+    },
+    {
+      "case_id": "R-011",
+      "name": "unbounded_unknown_utility",
+      "injection_tick": 0,
+      "observable_tick": 0,
+      "event": "utility_envelope_unbounded_unknown",
+      "affected_resources": [
+        "excavator-01"
+      ],
+      "affected_tasks": [
+        "trench-segment-01"
+      ],
+      "invalidates": [
+        "positive-clearance-claim"
+      ],
+      "recovery_evidence": [
+        "admissible-utility-investigation-or-approved-alternative"
+      ],
+      "required_invariants": [
+        "unknown_never_means_clear",
+        "required_investigation_gate_not_optimized_away"
+      ]
+    },
+    {
+      "case_id": "R-012",
+      "name": "human_approval_declined",
+      "injection_tick": 1,
+      "observable_tick": 1,
+      "event": "required_operator_approval_declined",
+      "affected_resources": [],
+      "affected_tasks": [
+        "trench-segment-01"
+      ],
+      "invalidates": [
+        "authorization-prerequisite"
+      ],
+      "recovery_evidence": [
+        "new_authorized_decision_or_task_cancel"
+      ],
+      "required_invariants": [
+        "declined_approval_not_overridden_by_planner",
+        "no_authority_minted_by_consensus_or_score"
+      ]
+    },
+    {
+      "case_id": "R-013",
+      "name": "stale_capability_profile",
+      "injection_tick": 1,
+      "observable_tick": 1,
+      "event": "robot_capability_revision_superseded",
+      "affected_resources": [
+        "excavator-01"
+      ],
+      "affected_tasks": [
+        "trench-segment-01"
+      ],
+      "invalidates": [
+        "capability-match-receipt",
+        "assignment"
+      ],
+      "recovery_evidence": [
+        "current-profile-reference",
+        "recomputed-capability-match"
+      ],
+      "required_invariants": [
+        "superseded_profile_not_current",
+        "matcher_recomputes_from_exact_revisions"
+      ]
+    }
+  ],
+  "expected_evaluation_rules": [
+    {
+      "rule_id": "ER-001",
+      "assertion": "all_policies_share_identical_initial_state_and_injected_event_manifest"
+    },
+    {
+      "rule_id": "ER-002",
+      "assertion": "policies_never_observe_events_before_observable_tick"
+    },
+    {
+      "rule_id": "ER-003",
+      "assertion": "accepted_work_requires_every_declared_acceptance_evidence_ref"
+    },
+    {
+      "rule_id": "ER-004",
+      "assertion": "an unknown or stale required fact cannot yield a positive compatibility claim"
+    },
+    {
+      "rule_id": "ER-005",
+      "assertion": "failed_run_missing_output_and_unsupported_state_are_not_scored_as_zero_cost_or_pass"
+    },
+    {
+      "rule_id": "ER-006",
+      "assertion": "replay_of_exact_inputs_config_versions_and_seed_yields_same_normalized_report"
+    },
+    {
+      "rule_id": "ER-007",
+      "assertion": "tiny finite schedule instances agree with independent exhaustive enumeration"
+    }
+  ],
+  "qualification_status": "proposed_not_executed",
+  "required_future_checks": [
+    "strict JSON parsing and schema validation",
+    "all case and resource identifiers unique",
+    "all resource/task references resolve or are explicitly declared external",
+    "observable_tick is greater than or equal to injection_tick",
+    "all referenced acceptance/evidence identifiers resolve under the frozen evidence vocabulary",
+    "policy outputs compared on identical case denominators",
+    "independent exhaustive oracle covers declared tiny cases",
+    "exact-head Rust tests and CI status recorded; queued is not PASS"
+  ],
+  "tiny_schedule_cases": [
+    {
+      "case_id": "O-001-parallel-branches",
+      "horizon_ticks": 6,
+      "expected_min_makespan_ticks": 5,
+      "tasks": [
+        {
+          "task_id": "site-survey",
+          "duration_ticks": 1,
+          "requires": [],
+          "alternatives": [
+            {
+              "alternative_id": "survey-rover",
+              "resource_demands": [
+                {
+                  "resource_id": "survey-rover-01",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "trenching",
+          "duration_ticks": 2,
+          "requires": [
+            "site-survey"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "excavator",
+              "resource_demands": [
+                {
+                  "resource_id": "excavator-01",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "panel-prefab",
+          "duration_ticks": 2,
+          "requires": [
+            "site-survey"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "material-cart",
+              "resource_demands": [
+                {
+                  "resource_id": "utility-cart-01",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "install-panel",
+          "duration_ticks": 1,
+          "requires": [
+            "trenching",
+            "panel-prefab"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "crane-cart",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-crane",
+                  "units": 1
+                },
+                {
+                  "resource_id": "utility-cart-01",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "inspect-panel",
+          "duration_ticks": 1,
+          "requires": [
+            "install-panel"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "inspection-rover",
+              "resource_demands": [
+                {
+                  "resource_id": "inspection-rover-01",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "O-002-resource-alternative",
+      "horizon_ticks": 6,
+      "expected_min_makespan_ticks": 4,
+      "tasks": [
+        {
+          "task_id": "prepare-panel",
+          "duration_ticks": 2,
+          "requires": [],
+          "alternatives": [
+            {
+              "alternative_id": "robot-a",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-robot-a",
+                  "units": 1
+                }
+              ]
+            },
+            {
+              "alternative_id": "robot-b",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-robot-b",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "prefabricate-components",
+          "duration_ticks": 2,
+          "requires": [],
+          "alternatives": [
+            {
+              "alternative_id": "robot-b",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-robot-b",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "install-assembly",
+          "duration_ticks": 1,
+          "requires": [
+            "prepare-panel",
+            "prefabricate-components"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "crane",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-crane",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "inspect-assembly",
+          "duration_ticks": 1,
+          "requires": [
+            "install-assembly"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "inspector",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-inspector",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "O-003-horizon-infeasible",
+      "horizon_ticks": 3,
+      "expected_min_makespan_ticks": null,
+      "tasks": [
+        {
+          "task_id": "foundation-prep",
+          "duration_ticks": 2,
+          "requires": [],
+          "alternatives": [
+            {
+              "alternative_id": "robot-a",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-robot-a",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "assemble",
+          "duration_ticks": 1,
+          "requires": [
+            "foundation-prep"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "crane",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-crane",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "task_id": "inspect",
+          "duration_ticks": 1,
+          "requires": [
+            "assemble"
+          ],
+          "alternatives": [
+            {
+              "alternative_id": "inspector",
+              "resource_demands": [
+                {
+                  "resource_id": "oracle-inspector",
+                  "units": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
