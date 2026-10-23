@@ -58,6 +58,16 @@ Freeze model, source, tool manifest, configuration, scenario generator and seeds
 
 Acceptance: report known sim-to-real differences and failure distributions; don't multiply a simulation success rate by an assumed realism factor.
 
+## Additional sim-to-real and real-to-sim baselines
+
+Recent research gives us a way to benchmark the *transfer method*, not just the robot's in-simulator score:
+
+- **RobotArena∞ (ICLR 2026)** converts real robot demonstrations into simulation counterparts and scales VLA evaluation with environment perturbations and lightweight human preference feedback. It is a useful pattern for scenario coverage and review, but it is not a medical-robot safety certificate. https://proceedings.iclr.cc/paper_files/paper/2026/hash/2aa3da3c1463ee2cdaaee94be4f8ba3f-Abstract-Conference.html
+- **H2RBench (CoRL 2026)** reports simulation-to-real ranking agreement on its specific four-task human-to-robot transfer study (Pearson r=0.89, Spearman rho=0.85, MMRV=0.06). These are results on that benchmark only; they are not transferable estimates of Careframe's future correlation. https://h2rbench.github.io/
+- **RoboDojo (2026)** targets joint sim-and-real evaluation of generalist manipulation policies. It may help identify task/hardware coverage gaps, subject to code/data availability and licensing. https://arxiv.org/abs/2607.04434
+
+Careframe's future experiment should preregister whether simulation candidate rankings predict later **non-clinical guarded bench** outcomes. Report rank correlation, rank reversals, uncertainty and mismatch category, but never infer clinical validity from either simulator success or a high correlation computed on a small selected sample.
+
 ## Proposed Careframe benchmark architecture
 
 The benchmark is a vector of separate scorecards, not one opaque composite score:
