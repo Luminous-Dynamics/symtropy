@@ -2,7 +2,7 @@ name: Real Symthaea x Symtropy Closed-Loop Smoke
 
 on:
   pull_request:
-    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1", "research/symtropy-bounded-cognitive-residual-v0-1", "research/symtropy-heldout-scenario-matrix-v0-1", "research/symtropy-tail-risk-evidence-receipt-v0-1"]
+    branches: ["main", "research/real-symthaea-physics-loop-v0-1", "research/symtropy-flight-transfer-benchmark-v0-1", "research/symtropy-bounded-cognitive-residual-v0-1", "research/symtropy-heldout-scenario-matrix-v0-1", "research/symtropy-tail-risk-evidence-receipt-v0-1", "research/symtropy-causal-transition-residual-v0-1"]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Cargo.toml"
@@ -76,6 +76,9 @@ jobs:
           STFR_TRAIN_STEPS: 32
           STFR_EVAL_STEPS: 320
           STFR_TRIALS: 2
+          STFR_DATASET_OUTPUT_PATH: ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
+          STFR_DATASET_EPISODES: 4
+          STFR_DATASET_STEPS: 32
         run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
 
       - name: Upload paired flight-transfer evidence
@@ -85,4 +88,5 @@ jobs:
           path: |
             ${{ runner.temp }}/symthaea-symtropy-flight-transfer.json
             ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
+            ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
           if-no-files-found: error
