@@ -1,0 +1,57 @@
+name: BUILT-INTEROP-006 Typed Evidence Report
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-006/**"
+      - "tools/built-interop-005/**"
+      - "tools/built-interop-002/fixtures/**"
+      - ".github/workflows/built-interop-006.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-006/**"
+      - "tools/built-interop-005/**"
+      - "tools/built-interop-002/fixtures/**"
+      - ".github/workflows/built-interop-006.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-006-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report-assembler:
+    name: Build, test and lint typed report assembler
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check out pinned IFC schema gate producer
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: 4b8834f8a263f82907cf65f34a72dce74a8a4c68
+          path: interop-005-source
+      - name: Verify committed dependency lock
+        run: echo "53188541833a33eebdf9b51a0c969826058812f72b401e10791fae05bd1a3b0a  tools/built-interop-006/Cargo.lock" | sha256sum -c -
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-interop-006/Cargo.toml -- --check
+      - name: Check integration shell syntax
+        run: bash -n tools/built-interop-006/test-pipeline.sh
+      - name: Run typed-report adversarial tests
+        run: cargo test --locked --manifest-path tools/built-interop-006/Cargo.toml
+      - name: Run IFC schema gate to report assembler integration
+        env:
+          BUILT_INTEROP_005_ROOT: ${{ github.workspace }}/interop-005-source/tools/built-interop-005
+        run: bash tools/built-interop-006/test-pipeline.sh
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-006/Cargo.toml --all-targets -- -D warnings
