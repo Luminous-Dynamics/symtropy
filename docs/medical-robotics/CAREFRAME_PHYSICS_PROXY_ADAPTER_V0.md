@@ -15,7 +15,7 @@ spawn_static_collision_assembly(
 )
 ```
 
-It validates the full morphology and joint-state map, computes all link transforms, then adds each link as a `BodyType::Static` rigid body with an oriented `HyperBox<3>` collision shape. The result maps morphology link IDs to real Symtropy physics body handles.
+It validates the full morphology and joint-state map, computes all link transforms, then adds each link as a `BodyType::Static` rigid body with an oriented `HyperBox<3>` collision shape. The result maps morphology link IDs to real Symtropy physics body handles. The returned assembly also carries SHA-256 digests of the exact morphology JSON bytes and joint-state JSON bytes, so an experiment can distinguish inputs even when model IDs or revision labels are reused.
 
 ## Why this is a useful intermediate step
 
@@ -32,6 +32,7 @@ It gives collision queries a shared geometry representation without claiming the
 - The controller must be kinematics-only; the joint command flags must be false; the authority flags for physical actuation, patient contact and clinical use must all be false.
 - Joint-state input must contain every revolute joint in bounds and may not contain unknown or fixed-joint keys.
 - Morphology and state validation and all FK computation occur before the world is changed. Tests assert invalid input leaves the body count unchanged.
+- Returned source/state digests are fixed-width lowercase SHA-256 hex values over the exact supplied JSON bytes; semantically equivalent but differently formatted input is intentionally a different input artifact.
 
 ## What is actually imported
 
