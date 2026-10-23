@@ -1,0 +1,209 @@
+{
+  "schema_version": "energy-sa-benchmark-source-registry-v0.1",
+  "registry_status": "source_inventory_only_not_site_calibrated",
+  "prepared_on": "2026-10-24",
+  "purpose": "Freeze public source inputs and their applicability boundaries for a future South African facility-resilience benchmark. This registry is not a facility tariff determination, project design, carbon-accounting statement, or live forecast.",
+  "site": {
+    "country": "South Africa",
+    "candidate_municipality": "City of Johannesburg",
+    "site_name": null,
+    "geospatial_coordinates": null,
+    "electricity_distributor_and_account_class": null,
+    "voltage_and_contracted_capacity": null,
+    "customer_tariff_code": null,
+    "measured_load_profile": null,
+    "actual_outage_log": null,
+    "system_topology_and_equipment": null,
+    "status": "unknowns_are_explicit_and_block_site_specific_scoring"
+  },
+  "sources": [
+    {
+      "source_id": "joburg-fy2026-27-business-tariff-schedule",
+      "authority": "municipal_budget_document",
+      "title": "Medium-Term Budget 2026/27–2028/29, Annexure B: schedule of tariffs",
+      "url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
+      "period_start": "2026-07-01",
+      "period_end": "2027-06-30",
+      "document_note": "Annexure B describes the schedule as proposed and says listed tariffs exclude a 6 c/kWh network surcharge, a 2% surcharge on Business and Large Power Users, and VAT. Use as a documented source, not as proof of the tariff on a particular account.",
+      "cross_check_source": "augos-city-power-business-conventional-2026-27",
+      "applicable_candidate_schedule": "Business Conventional & Prepaid 400 V, <=100 kVA, subject to customer-class confirmation",
+      "currency": "ZAR",
+      "energy_rates": [
+        {
+          "monthly_energy_band_kwh": "0-500",
+          "summer_cent_per_kwh": 380.52,
+          "winter_cent_per_kwh": 398.37
+        },
+        {
+          "monthly_energy_band_kwh": "501-1000",
+          "summer_cent_per_kwh": 417.67,
+          "winter_cent_per_kwh": 433.7
+        },
+        {
+          "monthly_energy_band_kwh": "1001-2000",
+          "summer_cent_per_kwh": 437.99,
+          "winter_cent_per_kwh": 453.06
+        },
+        {
+          "monthly_energy_band_kwh": "2001-3000",
+          "summer_cent_per_kwh": 453.96,
+          "winter_cent_per_kwh": 468.71
+        },
+        {
+          "monthly_energy_band_kwh": ">3000",
+          "summer_cent_per_kwh": 468.69,
+          "winter_cent_per_kwh": 482.28
+        }
+      ],
+      "monthly_charges_as_reported_by_cross_check": [
+        {
+          "charge": "service",
+          "capacity_band": "<50 kVA",
+          "unit": "ZAR/month",
+          "value": 890.45
+        },
+        {
+          "charge": "service",
+          "capacity_band": ">50 kVA and <=100 kVA",
+          "unit": "ZAR/month",
+          "value": 816.85
+        },
+        {
+          "charge": "network",
+          "capacity_band": "<50 kVA",
+          "unit": "ZAR/month",
+          "value": 853.72
+        },
+        {
+          "charge": "network",
+          "capacity_band": ">50 kVA and <=100 kVA",
+          "unit": "ZAR/month",
+          "value": 783.16
+        }
+      ],
+      "usage_constraints": [
+        "Do not treat these rates as the real tariff for an unidentified customer account.",
+        "Do not mix monthly block charges with time-of-use schedules for larger customers.",
+        "Model seasonal billing periods, the applicable monthly bands and all charges before bill-comparison claims.",
+        "Confirm how the City/City Power applies the network surcharge, the 2% business surcharge, VAT and any service/capacity/demand/reactive-energy charges.",
+        "Keep the official schedule and secondary cross-check separately hashed."
+      ],
+      "claim_ceiling": "Documented candidate tariff input for sensitivity analysis only; not account-verified."
+    },
+    {
+      "source_id": "augos-city-power-business-conventional-2026-27",
+      "authority": "secondary_tariff_database",
+      "title": "City Power Johannesburg — Business Conventional tariff database",
+      "url": "https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/",
+      "machine_readable_url": "https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json",
+      "tariff_period": "2026/27",
+      "period_start": "2026-07-01",
+      "period_end": "2027-06-30",
+      "generated_at": "2026-10-23T15:21:56.313Z",
+      "currency": "ZAR",
+      "license": "CC BY 4.0",
+      "attribution_required": "Augos Tariff Database, https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/",
+      "notes": "Machine-readable tariff schedule includes 0.06 ZAR/kWh DSM levy; energy levels 3.9837/3.8052, 4.3370/4.1767, 4.5306/4.3799, 4.6871/4.5396 and 4.8228/4.6869 ZAR/kWh for high/low seasons respectively; monthly charge bands are captured in the primary source record. Values are secondary published tariff data; actual account class and tariff application still need confirmation.",
+      "exact_source_artifact_sha256": null,
+      "status": "web_record_identified_not_yet_downloaded_and_hashed_locally",
+      "claim_ceiling": "Secondary source cross-check and candidate inputs only."
+    },
+    {
+      "source_id": "dffe-south-africa-2024-grid-emission-factors",
+      "authority": "national_government_gazette",
+      "title": "South Africa's 2024 Grid Emission Factors Report, Government Gazette notice 7891",
+      "publication_date": "2026-09-11",
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+      "reporting_year": 2024,
+      "factors": [
+        {
+          "factor_id": "NGGEF",
+          "value": 0.96,
+          "unit": "tCO2e/MWh",
+          "intended_use": "Location-based consumer Scope 2 reporting",
+          "boundary": "National generation emissions per end-user consumption; includes imported electricity adjustment; excludes transmission/distribution losses from the Scope 2 factor."
+        },
+        {
+          "factor_id": "DGGEF",
+          "value": 0.994,
+          "unit": "tCO2e/MWh",
+          "intended_use": "Government policy development and international reporting",
+          "boundary": "Domestic generation relationship; not interchangeable with the consumer NGGEF."
+        },
+        {
+          "factor_id": "TLGEF",
+          "value": 0.021,
+          "unit": "tCO2e/MWh",
+          "intended_use": "Transmission-loss Scope 3 accounting where applicable",
+          "boundary": "Transmission losses; applicability depends on supply arrangement."
+        },
+        {
+          "factor_id": "DLGEF",
+          "value": 0.071,
+          "unit": "tCO2e/MWh",
+          "intended_use": "Distribution-loss Scope 3 accounting where applicable",
+          "boundary": "Distribution losses; used with TLGEF for facilities not fed directly by transmission, according to report guidance."
+        }
+      ],
+      "usage_constraints": [
+        "For consumer Scope 2 reporting, use NGGEF only within the reporting boundary described by DFFE.",
+        "These are annual historical location-based factors, not hourly marginal-emissions or dispatch-control signals.",
+        "Do not sum NGGEF, TLGEF and DLGEF unless a compatible Scope 3 accounting boundary specifically requires loss factors.",
+        "Keep the factor's reporting year and source digest attached to computed emissions."
+      ],
+      "claim_ceiling": "Official 2024 calendar-year reporting factors; not real-time/marginal dispatch emissions."
+    },
+    {
+      "source_id": "ec-jrc-pvgis-v6",
+      "authority": "public_meteorological_and_pv_estimation_service",
+      "title": "PVGIS v6 API documentation",
+      "url": "https://photovoltaic-geographic-information-system.ec.europa.eu/api/v6/docs",
+      "documentation_observed": "2026-10-24",
+      "documented_time_range": {
+        "start_year": 2014,
+        "end_year": 2024
+      },
+      "documented_spatial_coverage": "75 degrees north to 60 degrees south; global longitude",
+      "api_change_note": "Documentation reports breaking changes on 2026-07-23: JSON response keys converted to snake_case and CSV headers changed.",
+      "inputs_required_before_site_run": [
+        "confirmed site latitude and longitude",
+        "PV nameplate capacity and technology",
+        "mounting/configuration, tilt and azimuth as applicable",
+        "loss assumptions with evidence class",
+        "requested years or typical meteorological year choice",
+        "exact endpoint version, request URL/parameters, raw response and SHA-256"
+      ],
+      "usage_constraints": [
+        "Historical PVGIS data are not a current weather forecast.",
+        "Do not fill unknown rooftop shading, orientation, soiling or inverter clipping with unlabelled assumptions.",
+        "Preserve raw response bytes and parameter set; canonicalize separately if needed."
+      ],
+      "claim_ceiling": "Historical resource/PV estimate for a specified location and system configuration; not measured plant yield."
+    }
+  ],
+  "benchmark_protocol": {
+    "baseline_fixtures": "Keep the existing synthetic correctness and known-answer fixtures unchanged.",
+    "objective_boundaries": [
+      "critical-service unserved energy",
+      "grid-energy cost with exact account tariff",
+      "location-based annual Scope 2 estimate using NGGEF where appropriate",
+      "PV curtailment and self-consumption",
+      "battery sizing, round-trip losses and degradation only with a supported component model",
+      "outage survivability and longest continuous essential-service deficit"
+    ],
+    "missing_inputs_that_block_site_specific_ranking": [
+      "customer-specific tariff and billed interval data",
+      "at least a documented meter/load time series",
+      "site coordinates and PV system assumptions",
+      "critical-load classification and outage/service requirement",
+      "battery/inverter quotes, performance and lifecycle assumptions if economics include capex"
+    ],
+    "external_comparators": [
+      "REopt for matched facility generation/storage sizing and outage resilience",
+      "SAM for matched PV/battery dispatch and degradation modeling",
+      "PyPSA for scenario-aware capacity planning when time-series/model boundaries match",
+      "GenX only for planning cases with compatible spatial and temporal scope"
+    ],
+    "verification_rule": "This registry does not make a site-real or outperforming-SOTA claim. Each data file must be versioned, source-attributed and digest-bound; unknown inputs remain unknown."
+  }
+}
