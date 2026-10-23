@@ -632,11 +632,32 @@ mod tests {
         }
     }
 
-    fn definition(id: &str, blocks: &[&str], operations: &[&str], outages: Vec<ResourceOutage>) -> ScenarioDefinition {
+    fn definition(
+        id: &str,
+        blocks: &[&str],
+        operations: &[(&str, i64)],
+        outages: Vec<ResourceOutage>,
+    ) -> ScenarioDefinition {
         ScenarioDefinition {
             scenario_id: id.to_owned(),
             required_block_ids: blocks.iter().map(|value| (*value).to_owned()).collect(),
-            required_operation_ids: operations.iter().map(|value| (*value).to_owned()).collect(),
+            required_reservations: blocks
+                .iter()
+                .map(|block_id| RequiredSpaceReservation {
+                    reservation_id: format!("{block_id}-yard"),
+                    block_id: (*block_id).to_owned(),
+                    minimum_duration_ticks: 1,
+                })
+                .collect(),
+            required_operations: operations
+                .iter()
+                .map(|(operation_id, duration_ticks)| RequiredOperation {
+                    operation_id: (*operation_id).to_owned(),
+                    duration_ticks: *duration_ticks,
+                })
+                .collect(),
+            required_resource_uses: Vec::new(),
+            precedence_constraints: Vec::new(),
             resource_outages: outages,
         }
     }
@@ -658,8 +679,8 @@ mod tests {
     #[test]
     fn robust_acceptance_requires_every_declared_scenario() {
         let definitions = vec![
-            definition("nominal", &["a", "b"], &["weld"], vec![]),
-            definition("late-clearance", &["a", "b"], &["weld"], vec![]),
+            definition("nominal", &["a", "b"], &[("weld", 2)], vec![]),
+            definition("late-clearance", &["a", "b"], &[("weld", 2)], vec![]),
         ];
         let plans = vec![
             plan(
@@ -747,7 +768,7 @@ mod tests {
         let definitions = vec![definition(
             "crane-outage",
             &["a"],
-            &["lift"],
+            &[("lift", 7)],
             vec![outage("crane-down", "crane-1", 4, 8)],
         )];
         let plans = vec![plan(
@@ -768,7 +789,7 @@ mod tests {
 
     #[test]
     fn overlapping_unary_uses_fail_even_without_a_spatial_conflict() {
-        let definitions = vec![definition("nominal", &[], &["lift-a", "lift-b"], vec![])];
+        let definitions = vec![definition("nominal", &[], &[("lift-a", 5), ("lift-b", 5)], vec![])];
         let plans = vec![plan(
             "nominal",
             vec![],
@@ -785,7 +806,7 @@ mod tests {
 
     #[test]
     fn missing_required_block_or_operation_is_incomplete() {
-        let definitions = vec![definition("nominal", &["a", "b"], &["weld", "inspect"], vec![])];
+        let definitions = vec![definition("nominal", &["a", "b"], &[("weld", 2), ("inspect", 2)], vec![])];
         let plans = vec![plan(
             "nominal",
             vec![space("a-yard", "a", rectangle(0, 0, 1, 1), 0, 5)],
@@ -802,7 +823,7 @@ mod tests {
 
     #[test]
     fn half_open_resource_and_space_windows_allow_endpoint_reuse() {
-        let definitions = vec![definition("handoff", &["a", "b"], &["first", "second"], vec![outage("down", "crane", 8, 10)])];
+        let definitions = vec![definition("handoff", &["a", "b"], &[("first", 5), ("second", 2)], vec![outage("down", "crane", 8, 10)])];
         let plans = vec![plan(
             "handoff",
             vec![
