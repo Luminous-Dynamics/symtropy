@@ -827,8 +827,24 @@ mod tests {
         }
     }
 
+    fn aabb_conflict(
+        first: &[(i64, i64)],
+        second: &[(i64, i64)],
+    ) -> bool {
+        let first_min_x = first.iter().map(|point| point.0).min().unwrap();
+        let first_max_x = first.iter().map(|point| point.0).max().unwrap();
+        let first_min_y = first.iter().map(|point| point.1).min().unwrap();
+        let first_max_y = first.iter().map(|point| point.1).max().unwrap();
+        let second_min_x = second.iter().map(|point| point.0).min().unwrap();
+        let second_max_x = second.iter().map(|point| point.0).max().unwrap();
+        let second_min_y = second.iter().map(|point| point.1).min().unwrap();
+        let second_max_y = second.iter().map(|point| point.1).max().unwrap();
+        closed_interval_overlap(first_min_x, first_max_x, second_min_x, second_max_x)
+            && closed_interval_overlap(first_min_y, first_max_y, second_min_y, second_max_y)
+    }
+
     #[test]
-    fn concave_orthogonal_polygons_match_independent_raster_and_segment_oracle() {
+    fn concave_orthogonal_corpus_pins_aabb_ablation_against_independent_oracle() {
         let shapes: &[&[(i64, i64)]] = &[
             &[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)],
             &[(0, 0), (4, 0), (4, 4), (3, 4), (3, 1), (1, 1), (1, 4), (0, 4)],
@@ -836,8 +852,8 @@ mod tests {
         ];
         let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
         for shape in shapes {
-            for shift_x in 0..=2 {
-                for shift_y in 0..=2 {
+            for shift_x in 0..=4 {
+                for shift_y in 0..=4 {
                     let mut vertices: Vec<(i64, i64)> = shape
                         .iter()
                         .map(|(x, y)| (*x + shift_x, *y + shift_y))
@@ -858,6 +874,14 @@ mod tests {
             }
         }
 
+        assert_eq!(corpus.len(), 150, "frozen shape-placement corpus changed");
+        let mut positive_area_overlaps = 0usize;
+        let mut boundary_contacts = 0usize;
+        let mut exact_disjoint = 0usize;
+        let mut aabb_conflicts = 0usize;
+        let mut aabb_false_positive = 0usize;
+        let mut aabb_false_negative = 0usize;
+
         for (first_vertices, first_polygon) in &corpus {
             for (second_vertices, second_polygon) in &corpus {
                 let expected = orthogonal_oracle(first_vertices, second_vertices);
@@ -871,10 +895,31 @@ mod tests {
                     second_polygon.relation(first_polygon),
                     "polygon relation must be symmetric"
                 );
+
+                let aabb_says_conflict = aabb_conflict(first_vertices, second_vertices);
+                let exact_says_conflict = expected != PolygonRelation::Disjoint;
+                aabb_conflicts += usize::from(aabb_says_conflict);
+                match expected {
+                    PolygonRelation::PositiveAreaOverlap => positive_area_overlaps += 1,
+                    PolygonRelation::BoundaryContact => boundary_contacts += 1,
+                    PolygonRelation::Disjoint => exact_disjoint += 1,
+                }
+                if aabb_says_conflict && !exact_says_conflict {
+                    aabb_false_positive += 1;
+                }
+                if !aabb_says_conflict && exact_says_conflict {
+                    aabb_false_negative += 1;
+                }
             }
         }
-    }
 
+        assert_eq!(positive_area_overlaps, 12_980, "frozen raster overlap count changed");
+        assert_eq!(boundary_contacts, 6_216, "frozen boundary-contact count changed");
+        assert_eq!(exact_disjoint, 3_304, "frozen disjoint count changed");
+        assert_eq!(aabb_conflicts, 20_180, "frozen AABB candidate count changed");
+        assert_eq!(aabb_false_positive, 984, "AABB conservatism corpus changed");
+        assert_eq!(aabb_false_negative, 0, "AABB broadphase may not reject a real contact/overlap");
+    }
     #[test]
     fn raster_oracle_has_frozen_positive_negative_and_contact_controls() {
         let l_shape = [(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
