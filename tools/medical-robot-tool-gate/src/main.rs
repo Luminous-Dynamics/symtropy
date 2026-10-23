@@ -585,7 +585,7 @@ fn write_or_print_template(tool_kind: &str, output_path: Option<&str>) {
     let serialized =
         serde_json::to_string_pretty(&manifest).expect("tool template serialization cannot fail");
     if let Some(path) = output_path {
-        if let Err(error) = fs::write(path, format!("{serialized}\\n")) {
+        if let Err(error) = fs::write(path, format!("{serialized}\n")) {
             eprintln!("failed to write tool template '{path}': {error}");
             process::exit(2);
         }
@@ -658,7 +658,9 @@ fn main() {
     }
     let path = first.unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
     if args.next().is_some() {
-        eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH] | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
+        eprintln!(
+            "usage: medical-robot-tool-gate [CORPUS_PATH] | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH"
+        );
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
