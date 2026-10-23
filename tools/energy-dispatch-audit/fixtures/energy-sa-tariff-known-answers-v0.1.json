@@ -1,13 +1,13 @@
 {
   "schema_version": "energy-sa-tariff-known-answers-v0.1",
   "schedule_id": "city-power-business-conventional-2026-27-candidate",
-  "answer_basis": "Hand-calculated exact progressive block arithmetic in microZAR using the candidate published season rates. Expected outputs exclude all unresolved surcharges, VAT and any account-specific fees except the two expressly listed monthly fixed-charge values.",
+  "answer_basis": "Hand-calculated exact progressive block arithmetic in microZAR using published seasonal energy rates, plus the one <=100 kVA fixed-amount pair shown in the municipal schedule and cross-checked in a specialist publication. The source disagreements in the second fixed-charge label and Augos capacity bands are explicitly unresolved. Expected subtotals exclude the 6 c/kWh surcharge/DSM label conflict, 2% surcharge, VAT and account-specific charges.",
   "cases": [
     {
       "case_id": "low-season-2600kwh-under-50kva",
       "season": "low_season",
       "monthly_energy_kwh": 2600,
-      "capacity_band": "lt_50_kva",
+      "capacity_band": "le_100_kva",
       "expected_block_use": [
         {
           "block_index": 0,
@@ -42,14 +42,14 @@
       ],
       "expected_energy_charge_microzar": 11094610000,
       "expected_service_charge_microzar": 890450000,
-      "expected_network_charge_microzar": 853720000,
-      "expected_subtotal_excluding_unapplied_and_tax_microzar": 12838780000
+      "expected_subtotal_excluding_unapplied_and_tax_microzar": 12838780000,
+      "expected_secondary_fixed_component_microzar": 853720000
     },
     {
       "case_id": "high-season-1200kwh-over-50-to-100kva",
       "season": "high_season",
       "monthly_energy_kwh": 1200,
-      "capacity_band": "gt_50_le_100_kva",
+      "capacity_band": "le_100_kva",
       "expected_block_use": [
         {
           "block_index": 0,
@@ -83,9 +83,9 @@
         }
       ],
       "expected_energy_charge_microzar": 5066470000,
-      "expected_service_charge_microzar": 816850000,
-      "expected_network_charge_microzar": 783160000,
-      "expected_subtotal_excluding_unapplied_and_tax_microzar": 6666480000
+      "expected_service_charge_microzar": 890450000,
+      "expected_subtotal_excluding_unapplied_and_tax_microzar": 6810640000,
+      "expected_secondary_fixed_component_microzar": 853720000
     }
   ]
 }
