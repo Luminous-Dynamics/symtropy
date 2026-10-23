@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::{env, fs, process};
 
 const DEFAULT_CORPUS: &str = "docs/medical-robotics/medical-robot-tool-corpus-v0.1.json";
