@@ -1075,7 +1075,7 @@ fn compute_forward_kinematics(
             };
             let origin = finite_vec3(&joint["origin_m"]).expect("validated joint origin");
             let parent_frame_offset = rotate_vector(parent_pose.rotation, origin);
-            let translation = std::array::from_fn(|axis| {
+            let translation: [f64; 3] = std::array::from_fn(|axis| {
                 parent_pose.translation[axis] + parent_frame_offset[axis]
             });
 
