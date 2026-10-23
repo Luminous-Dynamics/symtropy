@@ -61,6 +61,14 @@ impl ErrorAccumulator {
         })
     }
 
+    fn rmse(&self) -> f64 {
+        (self.error_squared_sum / (self.samples * 3).max(1) as f64).sqrt()
+    }
+
+    fn zero_rmse(&self) -> f64 {
+        (self.zero_squared_sum / (self.samples * 3).max(1) as f64).sqrt()
+    }
+
     fn merge(&mut self, other: &Self) {
         self.samples += other.samples;
         self.error_squared_sum += other.error_squared_sum;
@@ -282,6 +290,7 @@ fn main() {
     let gains = PdGains::default();
     let mut overall = ErrorAccumulator::default();
     let mut by_family: BTreeMap<String, ErrorAccumulator> = BTreeMap::new();
+    let mut episode_details = Vec::with_capacity(episodes);
 
     for episode in 0..episodes {
         let seed = 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1);
@@ -299,6 +308,18 @@ fn main() {
             .entry(scenario.family.to_owned())
             .or_default()
             .merge(&metrics);
+        episode_details.push(json!({
+            "episode_index": episode,
+            "episode_seed_hex": format!("{seed:016x}"),
+            "scenario_id": scenario.id,
+            "scenario_family": scenario.family,
+            "sample_count": metrics.samples,
+            "rmse_m_s2": metrics.rmse(),
+            "zero_residual_rmse_m_s2": metrics.zero_rmse(),
+            "max_vector_prediction_error_m_s2": metrics.max_vector_error_m_s2,
+            "invalid_samples": metrics.invalid_samples,
+            "inference_p95_us": percentile(&metrics.inference_us, 0.95)
+        }));
     }
 
     let family_metrics = by_family
@@ -344,6 +365,7 @@ fn main() {
             "invalid_samples": overall.invalid_samples,
             "metrics": overall.metrics(),
             "family_metrics": family_metrics,
+            "episode_details": episode_details,
             "test_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
             "test_episode_seeds": (0..episodes)
                 .map(|episode| 0x5359_5445_5354_0000_u64.wrapping_add(episode as u64 + 1))
