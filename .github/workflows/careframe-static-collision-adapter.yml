@@ -54,10 +54,10 @@ jobs:
           set -euo pipefail
           corpus=docs/medical-robotics/careframe-collision-probe-corpus-v0.1.json
           jq -e '
-            .suite_id == "CAREFRAME_STATIC_PROXY_COLLISION_PROBE" and
-            .suite_version == "0.1.0" and
-            .evidence_class == "synthetic_engine_integration" and
-            .claim_ceiling | contains("Static collision proxy")
+            (.suite_id == "CAREFRAME_STATIC_PROXY_COLLISION_PROBE") and
+            (.suite_version == "0.1.0") and
+            (.evidence_class == "synthetic_engine_integration") and
+            (.claim_ceiling | contains("Static collision proxy"))
           ' "$corpus"
           jq -e '
             (.cases | length) == 8 and
