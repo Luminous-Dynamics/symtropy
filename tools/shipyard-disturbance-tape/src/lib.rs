@@ -611,6 +611,26 @@ fn validate_event(value: &Json, index: usize) -> Result<Event, String> {
         return Err(format!("{path}.truth: closure interval is reversed"));
     }
 
+    if event_type == "vehicle_outage" || event_type == "workstation_outage" {
+        let truth_start = tick_field(
+            &truth_object,
+            "unavailable_from_tick",
+            &format!("{path}.truth"),
+        )?;
+        if truth_start != effective_tick {
+            return Err(format!(
+                "{path}: effective_tick must equal truth.unavailable_from_tick"
+            ));
+        }
+    } else if event_type == "yard_closure" {
+        let truth_start = tick_field(&truth_object, "closed_from_tick", &format!("{path}.truth"))?;
+        if truth_start != effective_tick {
+            return Err(format!(
+                "{path}: effective_tick must equal truth.closed_from_tick"
+            ));
+        }
+    }
+
     let observation_value = if policy_visible {
         if matches!(observation, Json::Null) {
             return Err(format!(
@@ -623,6 +643,16 @@ fn validate_event(value: &Json, index: usize) -> Result<Event, String> {
             &["reported_at_tick"],
             &format!("{path}.observation"),
         )?;
+        let reported_at_tick = tick_field(
+            &observation_object,
+            "reported_at_tick",
+            &format!("{path}.observation"),
+        )?;
+        if reported_at_tick != observed_tick {
+            return Err(format!(
+                "{path}: observation.reported_at_tick must equal observed_tick"
+            ));
+        }
         let truth_id = string_field(&truth_object, truth_id_key, &format!("{path}.truth"))?;
         let observation_id = string_field(
             &observation_object,
@@ -1291,4 +1321,20 @@ mod tests {
 
         fs::remove_dir_all(&directory).expect("temporary directory cleanup");
     }
+
+    #[test]
+    fn contradictory_event_effective_and_reported_ticks_are_rejected() {
+        let effective_mismatch =
+            FIXTURE.replace("\"unavailable_from_tick\": 4", "\"unavailable_from_tick\": 3");
+        assert!(validate_bytes(effective_mismatch.as_bytes(), None, 5)
+            .expect_err("event effective time must match truth interval start")
+            .contains("effective_tick must equal truth.unavailable_from_tick"));
+
+        let observed_mismatch =
+            FIXTURE.replace("\"reported_at_tick\": 4", "\"reported_at_tick\": 3");
+        assert!(validate_bytes(observed_mismatch.as_bytes(), None, 5)
+            .expect_err("reported time must match observed time")
+            .contains("reported_at_tick must equal observed_tick"));
+    }
+
 }
