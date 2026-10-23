@@ -106,13 +106,15 @@ jobs:
           mkdir -p "$context"
           schedule_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-schedule-2026-27.reference.json"
           cases_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-known-answers-v0.1.json"
+          registry_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json"
           cp "$schedule_source" "$context/tariff-schedule.json"
           cp "$cases_source" "$context/known-answers.json"
+          cp "$registry_source" "$context/source-registry.json"
           calculator="$work/targets/symtropy/debug/energy_sa_tariff_reference"
           "$calculator" "$context/tariff-schedule.json" "$context/known-answers.json" "$context/report.json" \
             > "$context/qualification.log"
           cat "$context/qualification.log"
-          sha256sum "$context/tariff-schedule.json" "$context/known-answers.json" "$context/report.json" \
+          sha256sum "$context/tariff-schedule.json" "$context/known-answers.json" "$context/source-registry.json" "$context/report.json" \
             > "$context/source-receipts.sha256"
           cat "$context/source-receipts.sha256"
 
