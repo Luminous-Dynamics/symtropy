@@ -272,6 +272,7 @@ mod tests {
         assert_eq!(report.scenario_count, 2);
 
         let rules = report.results.iter().find(|p| p.policy_id == "transparent_rules").unwrap();
+        assert_eq!(rules.fuel_unit.as_deref(), Some("normalized_fuel_units"));
         assert!(rules.cvar_service_shortfall >= rules.expected_service_shortfall);
         assert!(rules.worst_case_service_shortfall + 1e-12 >= rules.cvar_service_shortfall);
         assert!(rules.gate_failure_probability > 0.0);
