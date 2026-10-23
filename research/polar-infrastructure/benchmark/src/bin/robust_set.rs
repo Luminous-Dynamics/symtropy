@@ -285,6 +285,7 @@ mod tests {
     fn low_fuel_control_is_not_promoted_over_service_gates() {
         let report = aggregate(&fixture()).expect("fixture should aggregate");
         let defective = report.policy_results.iter().find(|p| p.policy_id == "defective_low_fuel_control").unwrap();
+        assert_eq!(defective.fuel_unit.as_deref(), Some("normalized_fuel_units"));
         assert!(!defective.passed_all_declared_service_floors);
         assert!(defective.maximum_fuel_intensity_across_scenarios.unwrap()
             < report.policy_results.iter().find(|p| p.policy_id == "candidate_full_service").unwrap()
