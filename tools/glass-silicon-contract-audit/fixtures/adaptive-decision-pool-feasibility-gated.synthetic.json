@@ -1,5 +1,5 @@
 {
-  "benchmark_id": "glass-feasibility-gated-campaign-synthetic-v0.1",
+  "benchmark_id": "glass-silicon-decision-value-synthetic-v0.1",
   "evidence_class": "synthetic",
   "claim_ceiling": "Synthetic planning/control fixture only. It does not validate glass formation, material properties, furnace routes, sensor accuracy, or manufacturing performance.",
   "utility_unit": "synthetic accepted-output utility units",
