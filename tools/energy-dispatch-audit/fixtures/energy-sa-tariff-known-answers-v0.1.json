@@ -4,7 +4,7 @@
   "answer_basis": "Hand-calculated exact progressive block arithmetic in microZAR using published seasonal energy rates, plus the one <=100 kVA fixed-amount pair shown in the municipal schedule and cross-checked in a specialist publication. The source disagreements in the second fixed-charge label and Augos capacity bands are explicitly unresolved. Expected subtotals exclude the 6 c/kWh surcharge/DSM label conflict, 2% surcharge, VAT and account-specific charges.",
   "cases": [
     {
-      "case_id": "low-season-2600kwh-under-50kva",
+      "case_id": "low-season-2600kwh-le-100kva",
       "season": "low_season",
       "monthly_energy_kwh": 2600,
       "capacity_band": "le_100_kva",
