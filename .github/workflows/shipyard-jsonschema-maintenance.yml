@@ -1,0 +1,56 @@
+name: Maintain shipyard Draft 2020-12 validator
+
+on:
+  pull_request:
+    branches: ["research/shipyard-benchmark-audit-v0"]
+    paths:
+      - "tools/shipyard-jsonschema-validator/**"
+      - "tools/shipyard-benchmark-audit/**"
+      - "tools/shipyard-benchmark-contract/**"
+      - ".github/workflows/shipyard-jsonschema-maintenance.yml"
+  push:
+    branches: ["research/shipyard-jsonschema-validator-v0"]
+    paths:
+      - "tools/shipyard-jsonschema-validator/**"
+      - "tools/shipyard-benchmark-audit/**"
+      - "tools/shipyard-benchmark-contract/**"
+      - ".github/workflows/shipyard-jsonschema-maintenance.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shipyard-jsonschema-maintenance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maintain:
+    name: Pin lockfile and apply Rust 1.96 formatting
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Generate a committed dependency lockfile
+        run: cargo generate-lockfile --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Apply pinned rustfmt
+        run: cargo fmt --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Commit lockfile and formatter changes
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- tools/shipyard-jsonschema-validator; then
+            echo "Lockfile and formatting already match."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/shipyard-jsonschema-validator
+          git commit -m "build(shipyard): pin schema validator lockfile and formatting"
+          git push origin "HEAD:${HEAD_REF}"
