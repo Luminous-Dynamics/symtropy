@@ -1,19 +1,24 @@
-//! Held-out one-step residual-prediction smoke for the transparent ridge baseline.
+//! Held-out one-step residual-prediction and episode-block calibration benchmark.
 //!
-//! Reads the training-split artifact from causal_transition_dataset.rs and evaluates
-//! on the predeclared test split. The test generator sees disturbance forces solely to
-//! evolve the simulator; the predictor receives only state-at-t, applied action and dt.
+//! Fits ridge on the training artifact, calibrates a vector-error radius using validation
+//! episodes (each score is the maximum one-step residual-vector error in that episode),
+//! and then reports episode and step coverage on disjoint test scenario families.
+//!
+//! Calibration frames within an episode are NOT treated as independent conformal samples.
+//! Since validation and test scenario families are intentionally shifted, test coverage is
+//! a robustness diagnostic and not a formal guarantee under distribution shift.
 
 use std::collections::BTreeMap;
 use std::fs;
 
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use symthaea_multirotor::{
     pid_baseline, FlightState, PdGains, PidState, PhysicsSimulator, QuadrotorCommand,
 };
 use symtropy_real_symthaea_physics_loop::{
+    episode_conformal::split_conformal_radius,
     linear_residual_ridge::{LinearResidualRidge, ResidualTrainingSample},
-    scenario_matrix::{scenarios_for_split, ScenarioSplit},
+    scenario_matrix::{scenarios_for_split, FlightScenario, ScenarioSplit},
     symtropy_flight::SymtropyFlightSimulator,
     transition_residual::{NominalLinearDynamics, ResidualTargetError},
 };
@@ -22,26 +27,45 @@ const MASS_KG: f64 = 0.027;
 const GRAVITY_M_S2: f64 = 9.81;
 const LINEAR_DRAG_N_S_PER_M: f64 = 0.01;
 const DT_S: f64 = 1.0 / 500.0;
+const CONFORMAL_ALPHA: f64 = 0.10;
 
 #[derive(Debug, Default)]
 struct ErrorAccumulator {
     samples: usize,
     ridge_squared_error_sum: f64,
     zero_squared_error_sum: f64,
-    max_target_norm: f64,
+    max_prediction_error_norm: f64,
     invalid_samples: usize,
+    ground_contact_steps: u64,
 }
 
 impl ErrorAccumulator {
-    fn add(&mut self, target: [f64; 3], prediction: [f64; 3]) {
+    fn add(&mut self, target: [f64; 3], prediction: [f64; 3]) -> f64 {
         self.samples += 1;
+        let mut squared_norm = 0.0;
+        let mut target_squared_norm = 0.0;
         for axis in 0..3 {
-            self.ridge_squared_error_sum += (target[axis] - prediction[axis]).powi(2);
-            self.zero_squared_error_sum += target[axis].powi(2);
+            let error = target[axis] - prediction[axis];
+            squared_norm += error * error;
+            target_squared_norm += target[axis] * target[axis];
+            self.ridge_squared_error_sum += error * error;
+            self.zero_squared_error_sum += target[axis] * target[axis];
         }
-        self.max_target_norm = self.max_target_norm.max(
-            target.iter().map(|value| value * value).sum::<f64>().sqrt(),
-        );
+        let error_norm = squared_norm.sqrt();
+        self.max_prediction_error_norm = self.max_prediction_error_norm.max(error_norm);
+        self.max_prediction_error_norm.max(target_squared_norm.sqrt());
+        error_norm
+    }
+
+    fn merge(&mut self, other: &Self) {
+        self.samples += other.samples;
+        self.ridge_squared_error_sum += other.ridge_squared_error_sum;
+        self.zero_squared_error_sum += other.zero_squared_error_sum;
+        self.max_prediction_error_norm = self
+            .max_prediction_error_norm
+            .max(other.max_prediction_error_norm);
+        self.invalid_samples += other.invalid_samples;
+        self.ground_contact_steps += other.ground_contact_steps;
     }
 
     fn metrics(&self) -> Value {
@@ -57,9 +81,44 @@ impl ErrorAccumulator {
             } else {
                 None
             },
-            "max_target_residual_norm_m_s2": self.max_target_norm,
-            "invalid_samples": self.invalid_samples
+            "max_prediction_error_norm_m_s2": self.max_prediction_error_norm,
+            "invalid_samples": self.invalid_samples,
+            "ground_contact_steps": self.ground_contact_steps
         })
+    }
+}
+
+struct EpisodeEvaluation {
+    scenario_id: &'static str,
+    scenario_family: &'static str,
+    seed: u64,
+    sample_count: usize,
+    error_squared_sum: f64,
+    zero_squared_sum: f64,
+    max_error_norm: f64,
+    step_error_norms: Vec<f64>,
+    invalid_samples: usize,
+    ground_contact_steps: u64,
+}
+
+impl EpisodeEvaluation {
+    fn error_accumulator(&self) -> ErrorAccumulator {
+        ErrorAccumulator {
+            samples: self.sample_count,
+            ridge_squared_error_sum: self.error_squared_sum,
+            zero_squared_error_sum: self.zero_squared_sum,
+            max_prediction_error_norm: self.max_error_norm,
+            invalid_samples: self.invalid_samples,
+            ground_contact_steps: self.ground_contact_steps,
+        }
+    }
+
+    fn calibration_score(&self) -> Option<f64> {
+        if self.sample_count == 0 || self.invalid_samples != 0 {
+            None
+        } else {
+            Some(self.max_error_norm)
+        }
     }
 }
 
@@ -184,6 +243,203 @@ fn parse_training_samples(path: &str) -> Vec<ResidualTrainingSample> {
     samples
 }
 
+fn evaluate_episode(
+    model: &LinearResidualRidge,
+    scenario: &FlightScenario,
+    seed: u64,
+    steps: usize,
+    nominal: NominalLinearDynamics,
+    gains: &PdGains,
+) -> EpisodeEvaluation {
+    let mut simulator = SymtropyFlightSimulator::new();
+    simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
+    let mut pid_state = PidState::default();
+    let mut error_squared_sum = 0.0;
+    let mut zero_squared_sum = 0.0;
+    let mut max_error_norm = 0.0_f64;
+    let mut step_error_norms = Vec::with_capacity(steps);
+    let mut invalid_samples = 0_usize;
+
+    for step in 0..steps {
+        let before = simulator.state().clone();
+        let action = pid_baseline(&before, &scenario.setpoint, gains, &mut pid_state, DT_S)
+            .clamped();
+
+        // Hidden disturbance evolves the held-out plant only; it is not a predictor feature.
+        let force = scenario.force_at(seed, step, MASS_KG);
+        simulator.apply_external_force(force);
+        simulator.step(&action, DT_S);
+        let after = simulator.state().clone();
+
+        match ResidualTrainingSample::from_transition(&before, &action, &after, nominal) {
+            Ok(sample) => match model.predict(&sample.state_t, &sample.applied_action, sample.dt_s) {
+                Ok(prediction) => {
+                    let mut squared_error_norm = 0.0;
+                    for axis in 0..3 {
+                        let error = sample.target_residual_acceleration_world_m_s2[axis]
+                            - prediction[axis];
+                        squared_error_norm += error * error;
+                        error_squared_sum += error * error;
+                        zero_squared_sum +=
+                            sample.target_residual_acceleration_world_m_s2[axis].powi(2);
+                    }
+                    let error_norm = squared_error_norm.sqrt();
+                    max_error_norm = max_error_norm.max(error_norm);
+                    step_error_norms.push(error_norm);
+                }
+                Err(_) => {
+                    invalid_samples = invalid_samples.saturating_add(1);
+                    step_error_norms.push(f64::INFINITY);
+                }
+            },
+            Err(
+                ResidualTargetError::NonFiniteState
+                | ResidualTargetError::InvalidQuaternion
+                | ResidualTargetError::NonIncreasingTimestamp
+                | ResidualTargetError::NonFiniteDerivedTarget
+                | ResidualTargetError::InvalidNominalParameters
+                | ResidualTargetError::NonFiniteCommand,
+            ) => {
+                invalid_samples = invalid_samples.saturating_add(1);
+                step_error_norms.push(f64::INFINITY);
+            }
+        }
+    }
+
+    EpisodeEvaluation {
+        scenario_id: scenario.id,
+        scenario_family: scenario.family,
+        seed,
+        sample_count: step_error_norms.len().saturating_sub(invalid_samples),
+        error_squared_sum,
+        zero_squared_sum,
+        max_error_norm: if invalid_samples == 0 { max_error_norm } else { f64::INFINITY },
+        step_error_norms,
+        invalid_samples,
+        ground_contact_steps: simulator.ground_contact_count(),
+    }
+}
+
+fn summarize_split(
+    episodes: &[EpisodeEvaluation],
+    radius: Option<f64>,
+) -> (Value, Value) {
+    let mut all = ErrorAccumulator::default();
+    let mut by_family: BTreeMap<String, Vec<&EpisodeEvaluation>> = BTreeMap::new();
+    let mut covered_episodes = 0usize;
+    let mut covered_steps = 0usize;
+    let mut valid_steps = 0usize;
+
+    for episode in episodes {
+        all.merge(&episode.error_accumulator());
+        by_family.entry(episode.scenario_family.to_owned()).or_default().push(episode);
+        if let Some(radius) = radius {
+            if episode.invalid_samples == 0 && episode.max_error_norm <= radius {
+                covered_episodes += 1;
+            }
+            for error in &episode.step_error_norms {
+                valid_steps += 1;
+                if error.is_finite() && *error <= radius {
+                    covered_steps += 1;
+                }
+            }
+        }
+    }
+
+    let coverage = if let Some(radius) = radius {
+        json!({
+            "nominal_coverage": 1.0 - CONFORMAL_ALPHA,
+            "radius_euclidean_m_s2": radius,
+            "diameter_euclidean_m_s2": 2.0 * radius,
+            "episode_coverage": covered_episodes as f64 / episodes.len().max(1) as f64,
+            "step_coverage": if valid_steps > 0 {
+                Some(covered_steps as f64 / valid_steps as f64)
+            } else {
+                None
+            },
+            "covered_episodes": covered_episodes,
+            "episode_count": episodes.len(),
+            "covered_steps": covered_steps,
+            "valid_scored_steps": valid_steps,
+            "interpretation": "empirical coverage diagnostic; validation and test scenario families differ, so no distribution-shift guarantee"
+        })
+    } else {
+        json!({
+            "nominal_coverage": 1.0 - CONFORMAL_ALPHA,
+            "radius_euclidean_m_s2": null,
+            "episode_coverage": null,
+            "step_coverage": null,
+            "episode_count": episodes.len(),
+            "interpretation": "unavailable; too few valid independent calibration episodes or invalid calibration data"
+        })
+    };
+
+    let families = by_family
+        .into_iter()
+        .map(|(family, rows)| {
+            let mut accum = ErrorAccumulator::default();
+            let mut episode_covered = 0usize;
+            let mut step_covered = 0usize;
+            let mut total_steps = 0usize;
+            for episode in &rows {
+                accum.merge(&episode.error_accumulator());
+                if let Some(radius) = radius {
+                    if episode.invalid_samples == 0 && episode.max_error_norm <= radius {
+                        episode_covered += 1;
+                    }
+                    for error in &episode.step_error_norms {
+                        total_steps += 1;
+                        if error.is_finite() && *error <= radius {
+                            step_covered += 1;
+                        }
+                    }
+                }
+            }
+            let mut value = accum.metrics();
+            value["episode_count"] = json!(rows.len());
+            value["scenario_id_examples"] = json!(rows.iter().map(|episode| episode.scenario_id).collect::<Vec<_>>());
+            value["episode_coverage"] = radius.map(|_| episode_covered as f64 / rows.len().max(1) as f64).map(Value::from).unwrap_or(Value::Null);
+            value["step_coverage"] = radius.and_then(|_| {
+                if total_steps > 0 {
+                    Some(Value::from(step_covered as f64 / total_steps as f64))
+                } else {
+                    None
+                }
+            }).unwrap_or(Value::Null);
+            (family, value)
+        })
+        .collect::<Map<_, _>>();
+
+    let overall = json!({
+        "metrics": all.metrics(),
+        "conformal_coverage": coverage,
+        "family_metrics": families,
+        "episode_count": episodes.len(),
+        "invalid_episode_count": episodes.iter().filter(|episode| episode.invalid_samples > 0).count()
+    });
+    let episode_rows = episodes
+        .iter()
+        .map(|episode| {
+            let covered = radius.map(|radius| {
+                episode.invalid_samples == 0 && episode.max_error_norm <= radius
+            });
+            json!({
+                "scenario_id": episode.scenario_id,
+                "scenario_family": episode.scenario_family,
+                "episode_seed": episode.seed,
+                "sample_count": episode.sample_count,
+                "invalid_samples": episode.invalid_samples,
+                "max_vector_prediction_error_m_s2": if episode.max_error_norm.is_finite() {
+                    Some(episode.max_error_norm)
+                } else { None },
+                "episode_covered": covered,
+                "ground_contact_steps": episode.ground_contact_steps
+            })
+        })
+        .collect::<Vec<_>>();
+    (overall, json!(episode_rows))
+}
+
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to a verified training-split JSON artifact");
@@ -195,9 +451,12 @@ fn main() {
     let model =
         LinearResidualRidge::fit(&train_samples, ridge_lambda).expect("ridge fit must be valid");
 
-    let episodes = env_usize("STFR_RIDGE_EVAL_EPISODES", 6);
-    let steps_per_episode = env_usize("STFR_RIDGE_EVAL_STEPS", 128);
+    let calibration_episodes = env_usize("STFR_RIDGE_CALIBRATION_EPISODES", 18);
+    let test_episodes = env_usize("STFR_RIDGE_EVAL_EPISODES", 18);
+    let steps_per_episode = env_usize("STFR_RIDGE_EVAL_STEPS", 64);
+    let validation_scenarios = scenarios_for_split(ScenarioSplit::Validation);
     let test_scenarios = scenarios_for_split(ScenarioSplit::Test);
+    assert!(!validation_scenarios.is_empty(), "validation scenario catalogue must not be empty");
     assert!(!test_scenarios.is_empty(), "test scenario catalogue must not be empty");
     let nominal = NominalLinearDynamics {
         mass_kg: MASS_KG,
@@ -205,67 +464,34 @@ fn main() {
         linear_drag_n_s_per_m: LINEAR_DRAG_N_S_PER_M,
     };
     let gains = PdGains::default();
-    let mut simulator = SymtropyFlightSimulator::new();
-    let mut overall = ErrorAccumulator::default();
-    let mut by_family: BTreeMap<String, ErrorAccumulator> = BTreeMap::new();
-    let mut ground_contact_steps = 0_u64;
-    let mut invalid_inputs = 0_u64;
 
-    for episode in 0..episodes {
-        let seed = 0x5359_5249_4447_0000_u64.wrapping_add(episode as u64 + 1);
-        let scenario = &test_scenarios[episode % test_scenarios.len()];
-        simulator.reset_with_perturbation(scenario.setpoint.position[2], 0.06, seed);
-        let mut pid_state = PidState::default();
-        let family_accumulator = by_family
-            .entry(scenario.family.to_owned())
-            .or_default();
-
-        for _step in 0..steps_per_episode {
-            let before = simulator.state().clone();
-            let action = pid_baseline(&before, &scenario.setpoint, &gains, &mut pid_state, DT_S)
-                .clamped();
-            // Hidden disturbance is used only to evolve the held-out simulator.
-            // Neither this force nor scenario labels enter model.predict().
-            let force = scenario.force_at(seed, _step, MASS_KG);
-            simulator.apply_external_force(force);
-            simulator.step(&action, DT_S);
-            let after = simulator.state().clone();
-
-            match ResidualTrainingSample::from_transition(&before, &action, &after, nominal) {
-                Ok(sample) => match model.predict(&sample.state_t, &sample.applied_action, sample.dt_s) {
-                    Ok(prediction) => {
-                        overall.add(sample.target_residual_acceleration_world_m_s2, prediction);
-                        family_accumulator
-                            .add(sample.target_residual_acceleration_world_m_s2, prediction);
-                    }
-                    Err(_) => {
-                        invalid_inputs = invalid_inputs.saturating_add(1);
-                        overall.invalid_samples += 1;
-                        family_accumulator.invalid_samples += 1;
-                    }
-                },
-                Err(ResidualTargetError::NonFiniteState)
-                | Err(ResidualTargetError::InvalidQuaternion)
-                | Err(ResidualTargetError::NonIncreasingTimestamp)
-                | Err(ResidualTargetError::NonFiniteDerivedTarget)
-                | Err(ResidualTargetError::InvalidNominalParameters)
-                | Err(ResidualTargetError::NonFiniteCommand) => {
-                    invalid_inputs = invalid_inputs.saturating_add(1);
-                    overall.invalid_samples += 1;
-                    family_accumulator.invalid_samples += 1;
-                }
-            }
-        }
-        ground_contact_steps += simulator.ground_contact_count();
-    }
-
-    let per_family = by_family
+    let validation_rows = (0..calibration_episodes)
+        .map(|index| {
+            let seed = 0x5359_4341_4C00_0000_u64.wrapping_add(index as u64 + 1);
+            let scenario = &validation_scenarios[index % validation_scenarios.len()];
+            evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
+        })
+        .collect::<Vec<_>>();
+    let calibration_scores = validation_rows
         .iter()
-        .map(|(family, metrics)| (family.clone(), metrics.metrics()))
-        .collect::<serde_json::Map<_, _>>();
+        .filter_map(EpisodeEvaluation::calibration_score)
+        .collect::<Vec<_>>();
+    let radius = split_conformal_radius(&calibration_scores, CONFORMAL_ALPHA);
+
+    let test_rows = (0..test_episodes)
+        .map(|index| {
+            let seed = 0x5359_5445_5354_0000_u64.wrapping_add(index as u64 + 1);
+            let scenario = &test_scenarios[index % test_scenarios.len()];
+            evaluate_episode(&model, scenario, seed, steps_per_episode, nominal, &gains)
+        })
+        .collect::<Vec<_>>();
+
+    let (validation_summary, validation_episode_details) =
+        summarize_split(&validation_rows, None);
+    let (test_summary, test_episode_details) = summarize_split(&test_rows, radius);
     println!("{}", json!({
-        "benchmark_id": "symtropy-causal-transition-residual-ridge-heldout-v0.1",
-        "claim_ceiling": "one_step_heldout_simulator_prediction_comparison_not_control_or_safety_evidence",
+        "benchmark_id": "symtropy-causal-transition-residual-ridge-conformal-v0.1",
+        "claim_ceiling": "one_step_heldout_prediction_and_empirical_episode_block_calibration_not_control_or_safety_evidence",
         "source_receipt": {
             "symtropy_git_sha": std::env::var("STFR_SYMTROPY_SHA").unwrap_or_else(|_| "unset".to_owned()),
             "symthaea_git_sha": std::env::var("STFR_SYMTHAEA_SHA").unwrap_or_else(|_| "unset".to_owned()),
@@ -280,21 +506,31 @@ fn main() {
             "feature_boundary": "state_t, applied_action, dt_s only; residual target is label",
             "hidden_force_labels_used_as_features": false
         },
+        "calibration": {
+            "split": "validation",
+            "alpha": CONFORMAL_ALPHA,
+            "score": "maximum one-step vector residual-prediction error per episode",
+            "score_count_requested": calibration_episodes,
+            "valid_score_count": calibration_scores.len(),
+            "scenario_ids": validation_scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
+            "scores_m_s2": calibration_scores,
+            "conformal_radius_m_s2": radius,
+            "validation_summary": validation_summary,
+            "episode_details": validation_episode_details
+        },
         "evaluation": {
             "split": "test",
-            "episodes": episodes,
+            "episodes_requested": test_episodes,
             "steps_per_episode": steps_per_episode,
-            "test_sample_count": overall.samples,
             "scenario_ids": test_scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
             "nominal_model": {
                 "mass_kg": nominal.mass_kg,
                 "gravity_m_s2": nominal.gravity_m_s2,
                 "linear_drag_n_s_per_m": nominal.linear_drag_n_s_per_m
             },
-            "metrics": overall.metrics(),
-            "per_family": per_family,
-            "invalid_input_count": invalid_inputs,
-            "ground_contact_steps": ground_contact_steps
-        }
+            "summary": test_summary,
+            "episode_details": test_episode_details,
+        },
+        "coverage_caveat": "The conformal radius is calibrated at the episode/block level to avoid treating autocorrelated frames as independent. Classical split-conformal finite-sample coverage requires exchangeability; validation and test scenario families intentionally differ, so reported test coverage is empirical shift robustness only, not a guarantee."
     }));
 }
