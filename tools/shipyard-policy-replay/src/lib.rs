@@ -128,7 +128,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_DUPLICATE_EXPECTED_SCENARIO_ID",
-                Some(expected_id),
+                Some(expected_id.as_str()),
                 None,
                 "the source-defined expected scenario inventory must not duplicate IDs",
             );
@@ -173,7 +173,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_DUPLICATE_SCENARIO_ID",
-                Some(&scenario.scenario_id),
+                Some(scenario.scenario_id.as_str()),
                 None,
                 "scenario IDs must be unique within the replay suite",
             );
@@ -185,7 +185,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_EMPTY_EVENT_ID",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(event.observed_at_tick),
                     "event IDs must be non-empty",
                 );
@@ -193,7 +193,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_DUPLICATE_EVENT_ID",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(event.observed_at_tick),
                     "event IDs must be unique within a scenario trace",
                 );
@@ -208,7 +208,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_ACTION_ORDER",
-                Some(&scenario.scenario_id),
+                Some(scenario.scenario_id.as_str()),
                 None,
                 "actions must be ordered by strictly increasing decision tick",
             );
@@ -221,7 +221,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_UNEXPECTED_DECISION_TICK",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(action.tick),
                     "an action uses a tick not declared by the replay suite",
                 );
@@ -230,7 +230,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_EMPTY_ACTION_KEY",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(action.tick),
                     "action keys must be non-empty canonical identities",
                 );
@@ -242,7 +242,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 0 => push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_MISSING_DECISION",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(*tick),
                     "exactly one explicit action is required at each declared decision tick",
                 ),
@@ -250,7 +250,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 count => push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_DUPLICATE_DECISION",
-                    Some(&scenario.scenario_id),
+                    Some(scenario.scenario_id.as_str()),
                     Some(*tick),
                     &format!("expected one action at this tick, found {count}"),
                 ),
@@ -263,7 +263,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_MISSING_DECLARED_SCENARIO",
-                Some(expected_id),
+                Some(*expected_id),
                 None,
                 "a source-declared scenario has no candidate replay trace",
             );
@@ -274,7 +274,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE",
-                Some(actual_id),
+                Some(*actual_id),
                 None,
                 "a candidate replay trace is not present in the source-defined scenario inventory",
             );
@@ -338,7 +338,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                         push_diagnostic(
                             &mut diagnostics,
                             "NON_ANTICIPATIVE_ACTION_MISMATCH",
-                            Some(&scenario.scenario_id),
+                            Some(scenario.scenario_id.as_str()),
                             Some(*tick),
                             &format!(
                                 "scenario '{}' selects a different action than scenario '{}' despite an identical observable history",
