@@ -192,6 +192,24 @@
       ],
       "limitation": "This announcement confirms the budget approval/effective date and average increase, not the exact billing calculation for a particular tariff/account. Continue to treat the Business Conventional schedule arithmetic as candidate-only pending current approved schedule and account/bill confirmation.",
       "claim_ceiling": "Official confirmation of the municipal budget/tariff effective date and average increase only."
+    },
+    {
+      "source_id": "focal-energy-city-power-business-tariff-2026-27",
+      "authority": "specialist_industry_cross_check",
+      "title": "City Power electricity tariffs 2026/27: what Johannesburg businesses pay",
+      "url": "https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg",
+      "last_updated": "2026-08-31",
+      "relevant_claims": [
+        "Business block tariff applies to standard 400 V connections up to 100 kVA.",
+        "The energy charges are described as a five-step block ladder over cumulative monthly consumption.",
+        "The cited fixed charges are R890.45/month service and R853.72/month capacity, and the network surcharge is separately stated as 6 c/kWh."
+      ],
+      "usage_constraints": [
+        "Secondary source, not an account tariff determination.",
+        "Treat as a cross-check to the municipal schedule, not as a substitute for the official rate table or customer's billed tariff.",
+        "Its fixed-charge labels conflict with the Augos secondary tariff data and the disagreement must remain explicit."
+      ],
+      "claim_ceiling": "Independent industry cross-check for the candidate <=100 kVA business tariff and block semantics; not primary account billing evidence."
     }
   ],
   "benchmark_protocol": {
@@ -217,6 +235,11 @@
       "PyPSA for scenario-aware capacity planning when time-series/model boundaries match",
       "GenX only for planning cases with compatible spatial and temporal scope"
     ],
-    "verification_rule": "This registry does not make a site-real or outperforming-SOTA claim. Each data file must be versioned, source-attributed and digest-bound; unknown inputs remain unknown."
+    "verification_rule": "This registry does not make a site-real or outperforming-SOTA claim. Each data file must be versioned, source-attributed and digest-bound; unknown inputs remain unknown.",
+    "source_conflicts": [
+      "Official budget / Focal cross-check: one fixed pair of R890.45/month and R853.72/month for <=100 kVA business block tariff; Focal calls these service + capacity charges.",
+      "Augos JSON: fixed-charge bands <50 kVA (890.45 and 853.72) and >50-to-100 kVA (816.85 and 783.16), with the second charge called monthly network charge.",
+      "Do not select the Augos upper-band values or decide whether the secondary fixed component is capacity or network without an approved tariff/account bill."
+    ]
   }
 }
