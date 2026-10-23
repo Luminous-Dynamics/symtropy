@@ -81,6 +81,6 @@ fn main() {
     };
     let ledger = serialize_result_ledger(&context, &results)
         .expect("synthetic context satisfies the ledger contract");
-    println!("note=synthetic plumbing test only; not industrial evidence");
+    eprintln!("note=synthetic plumbing test only; not industrial evidence");
     print!("{ledger}");
 }
