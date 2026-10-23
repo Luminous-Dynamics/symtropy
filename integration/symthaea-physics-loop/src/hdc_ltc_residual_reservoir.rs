@@ -327,6 +327,56 @@ mod tests {
         assert!(project_hypervector(&vec![0.0_f32; 4], &mut []).is_none());
     }
 
+    fn synthetic_readout_sample(index: usize) -> ReservoirTrainingSample {
+        let i = index as f64;
+        let mut features = [0.0_f64; FEATURE_DIM];
+        features[0] = 1.0;
+        for feature in 1..FEATURE_DIM {
+            let j = feature as f64;
+            features[feature] =
+                (i * (j + 3.0) * 0.037).sin() + ((i + 5.0) * (j + 1.0) * 0.011).cos();
+        }
+        let target = [
+            0.02 + 0.05 * features[1] - 0.03 * features[17] + 0.04 * features[259],
+            -0.01 + 0.02 * features[5] + 0.03 * features[91],
+            0.03 - 0.04 * features[12] + 0.02 * features[256],
+        ];
+        ReservoirTrainingSample {
+            features,
+            target_residual_acceleration_world_m_s2: target,
+        }
+    }
+
+    #[test]
+    fn ridge_readout_recovers_known_linear_mapping() {
+        let train = (0..320)
+            .map(synthetic_readout_sample)
+            .collect::<Vec<_>>();
+        let heldout = (321..361)
+            .map(synthetic_readout_sample)
+            .collect::<Vec<_>>();
+        let readout = ReservoirRidgeReadout::fit(&train, 1.0e-6)
+            .expect("synthetic ridge readout fit should succeed");
+        let mut squared_error = 0.0;
+        let mut zero_squared_error = 0.0;
+        let mut count = 0usize;
+        for sample in heldout {
+            let predicted = readout
+                .predict(&sample.features)
+                .expect("finite features should yield finite predictions");
+            for axis in 0..3 {
+                let target = sample.target_residual_acceleration_world_m_s2[axis];
+                squared_error += (target - predicted[axis]).powi(2);
+                zero_squared_error += target.powi(2);
+                count += 1;
+            }
+        }
+        let rmse = (squared_error / count as f64).sqrt();
+        let zero_rmse = (zero_squared_error / count as f64).sqrt();
+        assert!(rmse < 1.0e-3, "synthetic ridge RMSE was {rmse}");
+        assert!(rmse < zero_rmse * 0.02, "ridge must beat zero baseline");
+    }
+
     #[test]
     fn readout_fails_closed_on_invalid_training_samples() {
         assert_eq!(
