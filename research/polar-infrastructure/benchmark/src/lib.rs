@@ -18,6 +18,7 @@ pub struct Episode {
     pub id: String,
     pub location_context: String,
     pub time_step_hours: f64,
+    pub service_value_semantics: String,
     pub service_contracts: Vec<ServiceContract>,
     pub steps: Vec<StepDemand>,
 }
@@ -42,6 +43,7 @@ pub struct StepDemand {
 pub struct PolicyRun {
     pub policy_id: String,
     pub method_family: String,
+    pub fuel_unit: String,
     pub fuel_units: f64,
     pub steps: Vec<StepDelivery>,
 }
@@ -76,6 +78,7 @@ pub struct ServiceScore {
 pub struct PolicyScore {
     pub policy_id: String,
     pub method_family: String,
+    pub fuel_unit: String,
     /// Weighted mean of per-service delivered/demanded unit-hours ratios.
     /// Units are normalized within each service before criticality weighting.
     pub weighted_service_fraction: f64,
@@ -125,6 +128,9 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
     }
     if !episode.time_step_hours.is_finite() || episode.time_step_hours <= 0.0 {
         return Err("time_step_hours must be finite and positive".to_string());
+    }
+    if episode.service_value_semantics != "rate_per_hour_integrated_to_unit_hours" {
+        return Err("service_value_semantics must be rate_per_hour_integrated_to_unit_hours".to_string());
     }
     if episode.service_contracts.is_empty() || episode.steps.is_empty() {
         return Err("episode requires at least one service contract and time step".to_string());
@@ -182,6 +188,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
     }
 
     let mut policy_ids = BTreeSet::new();
+    let mut shared_fuel_unit: Option<String> = None;
     let mut results = Vec::with_capacity(input.policy_runs.len());
     for policy in &input.policy_runs {
         if policy.policy_id.trim().is_empty() || !policy_ids.insert(policy.policy_id.clone()) {
@@ -189,6 +196,16 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
         }
         if policy.method_family.trim().is_empty() {
             return Err(format!("policy {}: method_family must be explicit", policy.policy_id));
+        }
+        if policy.fuel_unit.trim().is_empty() {
+            return Err(format!("policy {}: fuel_unit must be explicit", policy.policy_id));
+        }
+        if let Some(expected) = &shared_fuel_unit {
+            if expected != &policy.fuel_unit {
+                return Err("all policies in an episode must declare the same fuel_unit".to_string());
+            }
+        } else {
+            shared_fuel_unit = Some(policy.fuel_unit.clone());
         }
         if !finite_nonnegative(policy.fuel_units) {
             return Err(format!("policy {}: fuel_units must be finite and nonnegative", policy.policy_id));
@@ -294,6 +311,7 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
         results.push(PolicyScore {
             policy_id: policy.policy_id.clone(),
             method_family: policy.method_family.clone(),
+            fuel_unit: policy.fuel_unit.clone(),
             weighted_service_fraction,
             weighted_delivered_service_fraction_hours: weighted_delivered_fraction_hours,
             weighted_unserved_service_fraction_hours: weighted_unserved_fraction_hours,
@@ -333,6 +351,7 @@ mod tests {
         assert_eq!(report.evidence_class, "synthetic_only");
         assert_eq!(report.result_scope, "metric_calculation_only_not_physical_validation");
         assert_eq!(report.results.len(), 4);
+        assert!(report.results.iter().all(|r| r.fuel_unit == "normalized_fuel_units"));
 
         let candidate = report.results.iter()
             .find(|r| r.policy_id == "candidate_full_service")
@@ -399,6 +418,20 @@ mod tests {
         assert_eq!(incumbent.floor_breach_service_hours, 2.0);
         assert_eq!(rules.floor_breach_service_hours, 1.0);
         assert!(rules.weighted_service_fraction > incumbent.weighted_service_fraction);
+    }
+
+    #[test]
+    fn rejects_mixed_fuel_units_between_compared_policies() {
+        let mut input = fixture();
+        input.policy_runs[1].fuel_unit = "litres".to_string();
+        assert!(score(&input).unwrap_err().contains("same fuel_unit"));
+    }
+
+    #[test]
+    fn rejects_unknown_service_value_semantics() {
+        let mut input = fixture();
+        input.episode.service_value_semantics = "unspecified".to_string();
+        assert!(score(&input).unwrap_err().contains("service_value_semantics"));
     }
 
     #[test]
