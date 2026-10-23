@@ -7,15 +7,18 @@ use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 pub type Tick = u64;
 
-/// A uniquely identified source event at the time it became observable.
+/// A source observation, including when it became available to the policy.
 ///
-/// IDs must be canonical and stable across scenario branches for a shared
-/// observation. This crate checks IDs and timing, but cannot authenticate event
-/// truth or the upstream event-log digest.
+/// `id` identifies the underlying event; `observation_key` identifies the
+/// complete policy-visible payload in canonical form (ideally a digest of the
+/// canonical payload). The key must change if visible contents change, and it
+/// should be the same for identical shared observations across scenario
+/// branches. This crate checks non-emptiness/equality, not digest authenticity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayEvent {
     pub id: String,
     pub observed_at_tick: Tick,
+    pub observation_key: String,
 }
 
 /// Immutable source-owned event observations for one declared scenario.
@@ -227,6 +230,15 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                     "source event IDs must be unique within a scenario log",
                 );
             }
+            if event.observation_key.trim().is_empty() {
+                push_diagnostic(
+                    &mut diagnostics,
+                    "INCOMPLETE_EMPTY_OBSERVATION_KEY",
+                    Some(source.scenario_id.as_str()),
+                    Some(event.observed_at_tick),
+                    "source observation keys must identify non-empty canonical visible content",
+                );
+            }
         }
     }
 
@@ -351,7 +363,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
     let mut ordered_traces: Vec<&ScenarioTrace> = suite.candidate_traces.iter().collect();
     ordered_traces.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
-    type InformationSetKey = (Tick, Vec<(String, Tick)>);
+    type InformationSetKey = (Tick, Vec<(String, Tick, String)>);
     let mut selected_action_by_information_set =
         BTreeMap::<InformationSetKey, (String, String)>::new();
     let mut information_sets = BTreeSet::<InformationSetKey>::new();
@@ -372,7 +384,11 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 .events
                 .iter()
                 .filter(|event| event.observed_at_tick <= *tick)
-                .map(|event| (event.id.clone(), event.observed_at_tick))
+                .map(|event| (
+                    event.id.clone(),
+                    event.observed_at_tick,
+                    event.observation_key.clone(),
+                ))
                 .collect();
             visible_history.sort();
 
@@ -504,6 +520,7 @@ mod tests {
         ReplayEvent {
             id: id.to_owned(),
             observed_at_tick,
+            observation_key: format!("observation:{id}"),
         }
     }
 
@@ -595,6 +612,36 @@ mod tests {
             diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
                 && diagnostic.tick == Some(2)
         }));
+    }
+
+    #[test]
+    fn visible_payload_differences_create_distinct_information_sets() {
+        let mut event_a = event("shared-fault-id", 0);
+        event_a.observation_key = "severity-low".to_owned();
+        let mut event_b = event("shared-fault-id", 0);
+        event_b.observation_key = "severity-high".to_owned();
+
+        let replay = suite(
+            &["low-severity", "high-severity"],
+            vec![0],
+            vec![
+                scenario(
+                    "low-severity",
+                    vec![event_a],
+                    vec![action(0, "small-reroute")],
+                ),
+                scenario(
+                    "high-severity",
+                    vec![event_b],
+                    vec![action(0, "large-reroute")],
+                ),
+            ],
+        );
+
+        assert_eq!(
+            audit_policy_replay(&replay).status,
+            PolicyReplayStatus::Consistent
+        );
     }
 
     #[test]
