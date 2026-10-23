@@ -66,6 +66,7 @@ fn cvar_upper_tail(observations: &[(f64, f64)], confidence: f64) -> Result<f64, 
 
     let mut sorted = observations.to_vec();
     sorted.sort_by(|a, b| b.1.total_cmp(&a.1));
+    let maximum_loss = sorted.first().map(|(_, loss)| *loss).unwrap_or(0.0);
 
     let mut remaining = tail_mass;
     let mut tail_loss = 0.0;
@@ -86,7 +87,8 @@ fn cvar_upper_tail(observations: &[(f64, f64)], confidence: f64) -> Result<f64, 
     if remaining > 1e-9 {
         return Err("scenario probability mass does not cover CVaR tail".to_string());
     }
-    Ok(tail_loss / tail_mass)
+    // The upper-tail mean cannot exceed the maximum loss; clamp only floating-point overshoot.
+    Ok((tail_loss / tail_mass).clamp(0.0, maximum_loss))
 }
 
 fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
