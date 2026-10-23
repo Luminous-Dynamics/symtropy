@@ -233,4 +233,17 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
   ' "$hdc_out"
+  test -s "$ridge_out"
+  jq -n --slurpfile ridge "$ridge_out" --slurpfile hdc "$hdc_out" '
+    ($ridge[0]) as $r
+    | ($hdc[0]) as $h
+    | ($r.source_receipt.training_dataset_sha256 == $h.source_receipt.training_dataset_sha256)
+    and ($r.source_receipt.symthaea_git_sha == $h.source_receipt.symthaea_git_sha)
+    and ($r.source_receipt.scenario_matrix_sha256 == $h.source_receipt.scenario_matrix_sha256)
+    and ($r.evaluation.episodes_requested == $h.evaluation.episodes_requested)
+    and ($r.evaluation.steps_per_episode == $h.evaluation.steps_per_episode)
+    and ($r.evaluation.scenario_ids == $h.evaluation.test_scenario_ids)
+    and ([$r.evaluation.episode_details[].episode_seed] == $h.evaluation.test_episode_seeds)
+    and ([$r.evaluation.episode_details[].scenario_id] == $h.evaluation.test_episode_scenario_ids)
+  '
 fi
