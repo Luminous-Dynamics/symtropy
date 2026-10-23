@@ -1363,7 +1363,8 @@ fn decision_invalid(
 
 fn decision_exact_map_keys(value: &Value, expected: &BTreeSet<String>) -> bool {
     let Some(object) = value.as_object() else { return false };
-    object.keys().cloned().collect::<BTreeSet<_>>() == *expected
+    let actual = object.keys().cloned().collect::<BTreeSet<_>>();
+    &actual == expected
 }
 
 fn decision_worst_regret(
@@ -1391,7 +1392,6 @@ fn decision_worst_regret(
 
 fn decision_post_regret(
     actions: &[DecisionAction],
-    scenario_ids: &[String],
     best_utility: &BTreeMap<String, f64>,
     observations: &BTreeMap<String, Vec<String>>,
 ) -> Option<f64> {
@@ -1630,7 +1630,7 @@ pub fn audit_decision_value_pool(pool: &Value) -> DecisionValueReport {
         for scenario in &scenario_ids {
             groups.entry(observation_map[scenario].clone()).or_default().push(scenario.clone());
         }
-        let post = decision_post_regret(&actions, &scenario_ids, &best_utility, &groups);
+        let post = decision_post_regret(&actions, &best_utility, &groups);
         let within_budget = cost <= max_cost && duration <= max_duration;
         let mut findings = Vec::new();
         let reduction = post.map(|after| {
