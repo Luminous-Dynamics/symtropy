@@ -233,17 +233,56 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.evaluation.family_metrics | length) == 3
     and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
   ' "$hdc_out"
+
+  mlp_out="${STFR_MLP_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-compact-mlp-residual-heldout.json}"
+  cargo run --manifest-path "$integration_manifest" --example compact_mlp_residual_benchmark > "$mlp_out"
+  jq -e '
+    .benchmark_id == "symtropy-compact-mlp-residual-heldout-v0.1"
+    and .claim_ceiling == "compact_mlp_one_step_heldout_prediction_only_no_control_or_safety_claim"
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
+    and .representation.input_features == 18
+    and .representation.hidden_units == 16
+    and .representation.parameter_count == 355
+    and .representation.temporal_state == false
+    and .training.sample_count > 0
+    and .training.hidden_force_labels_used_as_features == false
+    and .training.final_training_rmse_m_s2 >= 0
+    and .evaluation.split == "test"
+    and .evaluation.sample_count == (.evaluation.episodes_requested * .evaluation.steps_per_episode)
+    and .evaluation.invalid_samples == 0
+    and .evaluation.metrics.invalid_samples == 0
+    and .evaluation.metrics.compact_mlp_residual_rmse_m_s2 >= 0
+    and .evaluation.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and (.evaluation.family_metrics | length) == 3
+    and all(.evaluation.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .inference_p95_us != null)
+    and (.evaluation.episode_details | length) == .evaluation.episodes_requested
+    and all(.evaluation.episode_details[]; .sample_count == .evaluation.steps_per_episode and .invalid_samples == 0)
+  ' "$mlp_out"
+
   test -s "$ridge_out"
-  jq -n --slurpfile ridge "$ridge_out" --slurpfile hdc "$hdc_out" '
+  test -s "$hdc_out"
+  jq -n --slurpfile ridge "$ridge_out" --slurpfile hdc "$hdc_out" --slurpfile mlp "$mlp_out" '
     ($ridge[0]) as $r
     | ($hdc[0]) as $h
+    | ($mlp[0]) as $m
     | ($r.source_receipt.training_dataset_sha256 == $h.source_receipt.training_dataset_sha256)
+    and ($r.source_receipt.training_dataset_sha256 == $m.source_receipt.training_dataset_sha256)
     and ($r.source_receipt.symthaea_git_sha == $h.source_receipt.symthaea_git_sha)
+    and ($r.source_receipt.symthaea_git_sha == $m.source_receipt.symthaea_git_sha)
     and ($r.source_receipt.scenario_matrix_sha256 == $h.source_receipt.scenario_matrix_sha256)
+    and ($r.source_receipt.scenario_matrix_sha256 == $m.source_receipt.scenario_matrix_sha256)
     and ($r.evaluation.episodes_requested == $h.evaluation.episodes_requested)
+    and ($r.evaluation.episodes_requested == $m.evaluation.episodes_requested)
     and ($r.evaluation.steps_per_episode == $h.evaluation.steps_per_episode)
+    and ($r.evaluation.steps_per_episode == $m.evaluation.steps_per_episode)
     and ($r.evaluation.scenario_ids == $h.evaluation.test_scenario_ids)
+    and ($r.evaluation.scenario_ids == $m.evaluation.test_scenario_ids)
     and ([$r.evaluation.episode_details[].episode_seed_hex] == $h.evaluation.test_episode_seed_hexes)
+    and ([$r.evaluation.episode_details[].episode_seed_hex] == $m.evaluation.test_episode_seed_hexes)
     and ([$r.evaluation.episode_details[].scenario_id] == $h.evaluation.test_episode_scenario_ids)
+    and ([$r.evaluation.episode_details[].scenario_id] == [$m.evaluation.episode_details[].scenario_id])
   '
 fi
