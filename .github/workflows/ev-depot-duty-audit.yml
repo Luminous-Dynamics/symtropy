@@ -1,0 +1,80 @@
+name: EV Depot Duty Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - ".github/workflows/ev-depot-duty-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-duty-audit/**"
+      - ".github/workflows/ev-depot-duty-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+      - name: Run unit and negative-control tests
+        run: cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+      - name: Audit synthetic tables and assert accounting invariants
+        run: |
+          cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+            tools/ev-depot-duty-audit/fixtures/veh_op_days_synthetic_v0_1.csv \
+            tools/ev-depot-duty-audit/fixtures/veh_schedules_synthetic_v0_1.csv \
+            --fleet-id synthetic-example \
+            --dataset-id synthetic-fixture-v0.1 \
+            --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+            --source-revision fixture-v0.1 \
+            --evidence-class synthetic \
+            --kwh-per-mile 1.8 > ev-depot-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 2 and .operation_days_parsed_valid_rows == 2 and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows == 8 and .schedule_parsed_valid_rows_with_known_operation_day_ids == 8 and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == 2 and (.reconciled_operation_day_profiles | length == 2) and (.operation_day_reconciliation_issues | length == 0) and .daily_vmt_miles.p50 == 65 and .daily_vmt_miles.p95 == 90 and .reconciled_vmt_miles_total_across_operation_day_records == 130 and .evidence_class_declared_by_caller == "synthetic" and (.operation_day_csv_sha256 | length == 64) and (.schedule_csv_sha256 | length == 64)' ev-depot-duty-audit-report.json
+      - name: Download pinned NLR operational-summary source (not committed)
+        run: |
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/fleet1-beverage-delivery"
+          curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${RUNNER_TEMP}/nlr-veh_op_days.csv"
+          curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${RUNNER_TEMP}/nlr-veh_schedules.csv"
+      - name: Audit exact pinned NLR source tables
+        run: |
+          cargo run --quiet --manifest-path tools/ev-depot-duty-audit/Cargo.toml -- \
+            "${RUNNER_TEMP}/nlr-veh_op_days.csv" \
+            "${RUNNER_TEMP}/nlr-veh_schedules.csv" \
+            --fleet-id fleet1-beverage-delivery \
+            --dataset-id nlr-hdev-depot-charging-2021 \
+            --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+            --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
+            --evidence-class published_operational_summary \
+            --kwh-per-mile 1.8 > nlr-duty-audit-report.json
+          jq -e '.operation_days_input_rows == 76 and .operation_days_parsed_valid_rows == 76 and (.operation_days_invalid_rows | length == 0) and .schedule_input_rows == 234 and .schedule_parsed_valid_rows_with_known_operation_day_ids == 234 and (.schedule_invalid_rows | length == 0) and .reconciled_operation_day_count == 76 and (.reconciled_operation_day_profiles | length == 76) and (.operation_day_reconciliation_issues | length == 0) and .evidence_class_declared_by_caller == "published_operational_summary" and .source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70" and (.operation_day_csv_sha256 | length == 64) and (.schedule_csv_sha256 | length == 64)' nlr-duty-audit-report.json
+      - name: Hash source fixtures, pinned public source, tool and reports
+        run: |
+          sha256sum tools/ev-depot-duty-audit/Cargo.toml tools/ev-depot-duty-audit/src/main.rs tools/ev-depot-duty-audit/fixtures/veh_op_days_synthetic_v0_1.csv tools/ev-depot-duty-audit/fixtures/veh_schedules_synthetic_v0_1.csv tools/ev-depot-duty-audit/README.md ev-depot-duty-audit-report.json nlr-duty-audit-report.json > ev-depot-duty-audit.sha256
+          (cd "${RUNNER_TEMP}" && sha256sum nlr-veh_op_days.csv nlr-veh_schedules.csv) >> ev-depot-duty-audit.sha256
+      - name: Upload reproducible audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-duty-audit-${{ github.sha }}
+          path: |
+            ev-depot-duty-audit-report.json
+            nlr-duty-audit-report.json
+            ev-depot-duty-audit.sha256
+            tools/ev-depot-duty-audit/Cargo.toml
+            tools/ev-depot-duty-audit/src/main.rs
+            tools/ev-depot-duty-audit/fixtures/veh_op_days_synthetic_v0_1.csv
+            tools/ev-depot-duty-audit/fixtures/veh_schedules_synthetic_v0_1.csv
+            tools/ev-depot-duty-audit/README.md
+          if-no-files-found: error
+          retention-days: 14
