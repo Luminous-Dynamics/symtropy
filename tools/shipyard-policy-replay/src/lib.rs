@@ -80,8 +80,9 @@ pub struct PolicyReplayReport {
 /// (event ID, observation tick) pairs for events observed at or before t. For
 /// each (t, history), every trace must select the same action key.
 ///
-/// The input must already be bound to its intended source revision. This
-/// function does not establish that event logs are truthful, action keys are
+/// The input must already be bound to its intended source revision. Shared
+/// observations across scenarios must reuse canonical event IDs. This function
+/// does not establish that event logs are truthful, action keys are
 /// collision-resistant, or selected actions are feasible.
 pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
     let scenario_count = suite.scenarios.len();
