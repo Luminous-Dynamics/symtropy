@@ -65,13 +65,13 @@ jobs:
               assert source["unit"] == target["unit"], f"unit mismatch: {connection['connection_id']}"
 
           assert candidate["horizon"]["end_unix_seconds"] > candidate["horizon"]["start_unix_seconds"]
-          interval_ids = set()
           for scenario in candidate["scenarios"]:
               expected = candidate["horizon"]["start_unix_seconds"]
-              seen = set()
+              interval_ids = set()
               for interval in scenario["intervals"]:
-                  assert interval["interval_id"] not in interval_ids, "interval IDs must be globally unique in this fixture"
+                  assert interval["interval_id"] not in interval_ids, f"duplicate interval ID in {scenario['scenario_id']}"
                   interval_ids.add(interval["interval_id"])
+                  seen = set()
                   assert interval["start_unix_seconds"] == expected, f"gap/overlap in {scenario['scenario_id']}"
                   expected += interval["duration_seconds"]
                   assert interval["duration_seconds"] > 0
