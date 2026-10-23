@@ -19,7 +19,7 @@ The audit fails closed for empty scenario or decision-epoch sets, duplicate scen
 ## Input assumptions
 
 - Event IDs identify immutable event content. If an ID can refer to different contents, the caller must canonicalize the source events before using this checker.
-- `action_key` must be a canonical identity of the full decision/policy action, ideally a digest of a canonicalized action encoding. This crate checks equality of keys; it does **not** compute or authenticate their digest.
+- `action_key` must canonically identify the **action committed at this decision epoch** (ideally a digest of that action's canonical encoding), not an entire future schedule whose hidden branches differ. If the decision is itself a contingent policy node, compare the node's current committed action here and check later nodes at their own epochs. This crate checks equality of keys; it does **not** compute or authenticate their digest.
 - Every scenario is replayed at the same declared decision epochs. If a system is event-triggered, represent no-op decisions explicitly rather than omitting them.
 - The decision tick is part of the information-set key. The observable history includes both the event identity and its observation tick.
 
