@@ -86,7 +86,7 @@
       "unit": "ratio",
       "definition": "Feasible reference cases found divided by known feasible reference cases.",
       "aggregation": "ratio",
-      "direction": "minimize"
+      "direction": "maximize"
     },
     {
       "name": "runtime_ms",
