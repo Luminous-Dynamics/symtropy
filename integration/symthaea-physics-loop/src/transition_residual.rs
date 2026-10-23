@@ -70,6 +70,11 @@ impl LinearTransitionResidual {
         if !state_is_finite(before) || !state_is_finite(after) {
             return Err(ResidualTargetError::NonFiniteState);
         }
+        if !quaternion_has_valid_norm(&before.quaternion)
+            || !quaternion_has_valid_norm(&after.quaternion)
+        {
+            return Err(ResidualTargetError::InvalidQuaternion);
+        }
 
         if !requested_action.to_ctrl().iter().all(|v| v.is_finite()) {
             return Err(ResidualTargetError::NonFiniteCommand);
@@ -132,6 +137,11 @@ impl LinearTransitionResidual {
             residual_acceleration_world_m_s2: residual,
         })
     }
+}
+
+fn quaternion_has_valid_norm(q: &[f64; 4]) -> bool {
+    let norm = q.iter().map(|v| v * v).sum::<f64>().sqrt();
+    norm.is_finite() && norm >= 1.0e-9
 }
 
 fn state_is_finite(state: &FlightState) -> bool {
@@ -257,6 +267,18 @@ mod tests {
                 &invalid_state,
                 &QuadrotorCommand::hover(),
                 &after,
+                nominal()
+            ),
+            Err(ResidualTargetError::InvalidQuaternion)
+        );
+
+        let mut invalid_next = after.clone();
+        invalid_next.quaternion = [0.0; 4];
+        assert_eq!(
+            LinearTransitionResidual::from_transition(
+                &before,
+                &QuadrotorCommand::hover(),
+                &invalid_next,
                 nominal()
             ),
             Err(ResidualTargetError::InvalidQuaternion)
