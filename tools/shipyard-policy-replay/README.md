@@ -25,7 +25,7 @@ The audit fails closed for empty scenario or decision-epoch sets, duplicate scen
 
 ## Explicit non-claims
 
-This crate does not check geometry, swept movement paths, resource feasibility, precedence, mandatory work, schedule costs, outcome fidelity, event truth, probability calibration, or physical safety. Use the independent polygon / robust-scenario verifier for the declared static constraints, and preserve its receipt separately. A policy can be non-anticipative and still be unsafe, infeasible, poor-quality, or based on fabricated inputs.
+This crate does not check geometry, swept movement paths, resource feasibility, precedence, mandatory work, schedule costs, outcome fidelity, event truth, probability calibration, or physical safety. It checks observed action consistency, not runtime information-flow enforcement: a policy that reads hidden data but coincidentally emits the same action in all matching histories cannot be proven clean from action traces alone. A production evaluation should bind the policy binary/configuration and instrument or sandbox all observation access. Use the independent polygon / robust-scenario verifier for the declared static constraints, and preserve its receipt separately. A policy can be non-anticipative and still be unsafe, infeasible, poor-quality, or based on fabricated inputs.
 
 ## Test strategy
 
