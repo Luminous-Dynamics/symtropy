@@ -156,7 +156,8 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     }
 
     match kind {
-        "sealed_supply_gripper" if task == "sealed_supply_transfer" && contact == "object_only" => {}
+        "sealed_supply_gripper"
+            if task == "sealed_supply_transfer" && contact == "object_only" => {}
         "tray_carrier" if task == "tray_transfer" && contact == "object_only" => {}
         "telepresence_head" if task == "telepresence_support" && contact == "none" => {}
         "trainer_probe"
@@ -258,7 +259,8 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     if powered.is_none()
         || power.is_none_or(|value| !(0.0..=100.0).contains(&value))
         || isolated.is_none()
-        || (powered == Some(true) && (power.is_none_or(|value| value <= 0.0) || isolated != Some(true)))
+        || (powered == Some(true)
+            && (power.is_none_or(|value| value <= 0.0) || isolated != Some(true)))
         || (powered == Some(false) && power != Some(0.0))
     {
         push_findings(&mut findings, "POWER_ENVELOPE_INVALID");
@@ -408,7 +410,12 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
         let expected_findings = case
             .get("expected_findings")
             .and_then(Value::as_array)
-            .and_then(|items| items.iter().map(|item| item.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>());
+            .and_then(|items| {
+                items
+                    .iter()
+                    .map(|item| item.as_str().map(str::to_owned))
+                    .collect::<Option<Vec<_>>>()
+            });
         let expected_disposition = str_at(case, "expected_disposition");
         let actual_disposition = if actual_findings.is_empty() {
             "SIMULATION_ONLY"
@@ -428,7 +435,8 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
             matched += 1;
         } else {
             failures.push(format!(
-                "{case_id}: actual={actual_disposition} findings={actual_findings:?}; expected={expected_disposition} findings={expected_findings:?}"
+                "{case_id}: actual={} findings={:?}; expected={} findings={:?}",
+                actual_disposition, actual_findings, expected_disposition, expected_findings
             ));
         }
     }
@@ -594,7 +602,9 @@ mod tests {
         }
         let mut manifest = base;
         manifest["authority"]["simulation_only"] = Value::Bool(false);
-        assert!(validate_tool(&manifest).iter().any(|finding| finding == "SIMULATION_ONLY_REQUIRED"));
+        assert!(validate_tool(&manifest)
+            .iter()
+            .any(|finding| finding == "SIMULATION_ONLY_REQUIRED"));
     }
 
     #[test]
@@ -646,13 +656,27 @@ mod tests {
         let root = corpus();
         for case in root["cases"].as_array().expect("cases") {
             let findings = validate_tool(&case["manifest"]);
-            assert!(!findings.is_empty() || bool_at(&case["manifest"]["authority"], "patient_contact_authorized") == Some(false));
-            assert!(!findings.is_empty() || bool_at(&case["manifest"]["authority"], "clinical_use_authorized") == Some(false));
-            assert!(!findings.is_empty() || bool_at(&case["manifest"]["authority"], "physical_actuation_authorized") == Some(false));
+            assert!(
+                !findings.is_empty()
+                    || bool_at(&case["manifest"]["authority"], "patient_contact_authorized")
+                        == Some(false)
+            );
+            assert!(
+                !findings.is_empty()
+                    || bool_at(&case["manifest"]["authority"], "clinical_use_authorized")
+                        == Some(false)
+            );
+            assert!(
+                !findings.is_empty()
+                    || bool_at(&case["manifest"]["authority"], "physical_actuation_authorized")
+                        == Some(false)
+            );
         }
         let mut manifest = root["cases"][0]["manifest"].clone();
         manifest["contact_class"] = json!("patient_contact");
-        assert!(validate_tool(&manifest).iter().any(|finding| finding == "PATIENT_CONTACT_NOT_AUTHORIZED"));
+        assert!(validate_tool(&manifest)
+            .iter()
+            .any(|finding| finding == "PATIENT_CONTACT_NOT_AUTHORIZED"));
     }
 
     #[test]
@@ -660,11 +684,15 @@ mod tests {
         let root = corpus();
         let mut no_shutter = root["cases"][2]["manifest"].clone();
         no_shutter["privacy"]["physical_privacy_shutter"] = Value::Bool(false);
-        assert!(validate_tool(&no_shutter).iter().any(|finding| finding == "PRIVACY_FAIL_CLOSED_REQUIRED"));
+        assert!(validate_tool(&no_shutter)
+            .iter()
+            .any(|finding| finding == "PRIVACY_FAIL_CLOSED_REQUIRED"));
 
         let mut live_default = root["cases"][2]["manifest"].clone();
         live_default["privacy"]["default_capture_state"] = json!("enabled");
-        assert!(validate_tool(&live_default).iter().any(|finding| finding == "PRIVACY_FAIL_CLOSED_REQUIRED"));
+        assert!(validate_tool(&live_default)
+            .iter()
+            .any(|finding| finding == "PRIVACY_FAIL_CLOSED_REQUIRED"));
     }
 
     #[test]
@@ -672,7 +700,9 @@ mod tests {
         let root = corpus();
         let mut manifest = root["cases"][0]["manifest"].clone();
         manifest["hygiene"]["cleaning_claim"] = json!("validated");
-        assert!(validate_tool(&manifest).iter().any(|finding| finding == "HYGIENE_VALIDATION_CLAIM_UNSUPPORTED"));
+        assert!(validate_tool(&manifest)
+            .iter()
+            .any(|finding| finding == "HYGIENE_VALIDATION_CLAIM_UNSUPPORTED"));
     }
 
     #[test]
@@ -681,15 +711,21 @@ mod tests {
         let base = root["cases"][0]["manifest"].clone();
         let mut geometry = base.clone();
         geometry["mechanical"]["geometry_bbox_mm"] = json!([200, 0, 100]);
-        assert!(validate_tool(&geometry).iter().any(|finding| finding == "GEOMETRY_OUT_OF_ENVELOPE"));
+        assert!(validate_tool(&geometry)
+            .iter()
+            .any(|finding| finding == "GEOMETRY_OUT_OF_ENVELOPE"));
 
         let mut mount = base.clone();
         mount["mechanical"]["mount_interface"] = json!("UNKEYED_GENERIC_MOUNT");
-        assert!(validate_tool(&mount).iter().any(|finding| finding == "MOUNT_INTERFACE_UNSUPPORTED"));
+        assert!(validate_tool(&mount)
+            .iter()
+            .any(|finding| finding == "MOUNT_INTERFACE_UNSUPPORTED"));
 
         let mut retention = base;
         retention["mechanical"]["retention_fail_closed"] = Value::Bool(false);
-        assert!(validate_tool(&retention).iter().any(|finding| finding == "FAIL_CLOSED_RETENTION_REQUIRED"));
+        assert!(validate_tool(&retention)
+            .iter()
+            .any(|finding| finding == "FAIL_CLOSED_RETENTION_REQUIRED"));
     }
 
     #[test]
