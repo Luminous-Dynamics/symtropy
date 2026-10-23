@@ -131,14 +131,10 @@ pub enum RobustStatus {
     RobustlyFeasible,
     /// The scenario set or one or more candidate plans are incomplete/ambiguous.
     /// This state must never be advertised as robustly feasible.
-    Incomplete {
-        diagnostics: Vec<String>,
-    },
+    Incomplete { diagnostics: Vec<String> },
     /// The scenario set is complete and at least one scenario violates a declared
     /// space-time or unary-resource constraint.
-    NotRobust {
-        failing_scenario_ids: Vec<String>,
-    },
+    NotRobust { failing_scenario_ids: Vec<String> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -202,21 +198,37 @@ pub fn audit_robust_plan(
             &mut global_diagnostics,
         );
         validate_unique_nonempty(
-            &definition.required_reservations.iter().map(|item| item.reservation_id.clone()).collect::<Vec<_>>(),
+            &definition
+                .required_reservations
+                .iter()
+                .map(|item| item.reservation_id.clone())
+                .collect::<Vec<_>>(),
             &format!("scenario {} required_reservations", definition.scenario_id),
             &mut global_diagnostics,
         );
         validate_unique_nonempty(
-            &definition.required_operations.iter().map(|item| item.operation_id.clone()).collect::<Vec<_>>(),
+            &definition
+                .required_operations
+                .iter()
+                .map(|item| item.operation_id.clone())
+                .collect::<Vec<_>>(),
             &format!("scenario {} required_operations", definition.scenario_id),
             &mut global_diagnostics,
         );
         validate_unique_nonempty(
-            &definition.required_resource_uses.iter().map(|item| item.use_id.clone()).collect::<Vec<_>>(),
+            &definition
+                .required_resource_uses
+                .iter()
+                .map(|item| item.use_id.clone())
+                .collect::<Vec<_>>(),
             &format!("scenario {} required_resource_uses", definition.scenario_id),
             &mut global_diagnostics,
         );
-        let required_operation_ids: BTreeSet<String> = definition.required_operations.iter().map(|item| item.operation_id.clone()).collect();
+        let required_operation_ids: BTreeSet<String> = definition
+            .required_operations
+            .iter()
+            .map(|item| item.operation_id.clone())
+            .collect();
         for required in &definition.required_reservations {
             if !definition.required_block_ids.contains(&required.block_id) {
                 global_diagnostics.push(format!(
@@ -246,7 +258,10 @@ pub fn audit_robust_plan(
                     definition.scenario_id, required.use_id, required.operation_id
                 ));
             }
-            if required.use_id.trim().is_empty() || required.resource_id.trim().is_empty() || required.minimum_duration_ticks <= 0 {
+            if required.use_id.trim().is_empty()
+                || required.resource_id.trim().is_empty()
+                || required.minimum_duration_ticks <= 0
+            {
                 global_diagnostics.push(format!(
                     "scenario {} required resource use {} has invalid ID/resource/duration",
                     definition.scenario_id, required.use_id
@@ -262,13 +277,17 @@ pub fn audit_robust_plan(
             {
                 global_diagnostics.push(format!(
                     "scenario {} has invalid precedence {} -> {}",
-                    definition.scenario_id, dependency.predecessor_operation_id, dependency.successor_operation_id
+                    definition.scenario_id,
+                    dependency.predecessor_operation_id,
+                    dependency.successor_operation_id
                 ));
             }
             if !precedence_seen.insert(dependency.clone()) {
                 global_diagnostics.push(format!(
                     "scenario {} has duplicate precedence {} -> {}",
-                    definition.scenario_id, dependency.predecessor_operation_id, dependency.successor_operation_id
+                    definition.scenario_id,
+                    dependency.predecessor_operation_id,
+                    dependency.successor_operation_id
                 ));
             }
         }
@@ -318,7 +337,10 @@ pub fn audit_robust_plan(
 
     let mut scenario_results = Vec::new();
     for definition in definitions {
-        if let Some(plan) = plans.iter().find(|plan| plan.scenario_id == definition.scenario_id) {
+        if let Some(plan) = plans
+            .iter()
+            .find(|plan| plan.scenario_id == definition.scenario_id)
+        {
             scenario_results.push(audit_scenario(definition, plan)?);
         }
     }
@@ -389,7 +411,8 @@ fn audit_scenario(
     let mut block_ids_present = BTreeSet::new();
     for reservation in &plan.space_reservations {
         if reservation.reservation_id.trim().is_empty() || reservation.block_id.trim().is_empty() {
-            diagnostics.push("space reservation has an empty reservation_id or block_id".to_owned());
+            diagnostics
+                .push("space reservation has an empty reservation_id or block_id".to_owned());
         }
         if !reservation_ids.insert(reservation.reservation_id.clone()) {
             diagnostics.push(format!(
@@ -401,11 +424,17 @@ fn audit_scenario(
     }
     for block_id in &definition.required_block_ids {
         if !block_ids_present.contains(block_id) {
-            diagnostics.push(format!("required block {block_id} has no space reservation"));
+            diagnostics.push(format!(
+                "required block {block_id} has no space reservation"
+            ));
         }
     }
     for required in &definition.required_reservations {
-        match plan.space_reservations.iter().find(|item| item.reservation_id == required.reservation_id) {
+        match plan
+            .space_reservations
+            .iter()
+            .find(|item| item.reservation_id == required.reservation_id)
+        {
             Some(actual) => {
                 if actual.block_id != required.block_id {
                     diagnostics.push(format!(
@@ -467,7 +496,10 @@ fn audit_scenario(
     }
     for required in &definition.required_operations {
         match operation_map.get(&required.operation_id) {
-            None => diagnostics.push(format!("required operation {} is missing", required.operation_id)),
+            None => diagnostics.push(format!(
+                "required operation {} is missing",
+                required.operation_id
+            )),
             Some(window) => {
                 let duration = i128::from(window.end()) - i128::from(window.start());
                 if duration != i128::from(required.duration_ticks) {
@@ -485,7 +517,8 @@ fn audit_scenario(
             operation_map.get(&dependency.successor_operation_id),
         ) {
             (Some(predecessor), Some(successor)) => {
-                let required_start = i128::from(predecessor.end()) + i128::from(dependency.minimum_lag_ticks);
+                let required_start =
+                    i128::from(predecessor.end()) + i128::from(dependency.minimum_lag_ticks);
                 if required_start > i128::from(successor.start()) {
                     violations.push(Violation::PrecedenceViolation {
                         predecessor_operation_id: dependency.predecessor_operation_id.clone(),
@@ -527,10 +560,19 @@ fn audit_scenario(
     }
 
     for required in &definition.required_resource_uses {
-        match plan.resource_uses.iter().find(|item| item.use_id == required.use_id) {
-            None => diagnostics.push(format!("required resource use {} is missing", required.use_id)),
+        match plan
+            .resource_uses
+            .iter()
+            .find(|item| item.use_id == required.use_id)
+        {
+            None => diagnostics.push(format!(
+                "required resource use {} is missing",
+                required.use_id
+            )),
             Some(actual) => {
-                if actual.operation_id != required.operation_id || actual.resource_id != required.resource_id {
+                if actual.operation_id != required.operation_id
+                    || actual.resource_id != required.resource_id
+                {
                     diagnostics.push(format!(
                         "required resource use {} changed operation/resource identity",
                         required.use_id
@@ -551,9 +593,7 @@ fn audit_scenario(
         for second_index in (first_index + 1)..plan.resource_uses.len() {
             let first = &plan.resource_uses[first_index];
             let second = &plan.resource_uses[second_index];
-            if first.resource_id == second.resource_id
-                && first.window.overlaps(&second.window)
-            {
+            if first.resource_id == second.resource_id && first.window.overlaps(&second.window) {
                 violations.push(Violation::UnaryResourceOverlap {
                     resource_id: first.resource_id.clone(),
                     first_use_id: first.use_id.clone(),
@@ -599,7 +639,8 @@ mod tests {
             Point::new(x1, y0),
             Point::new(x1, y1),
             Point::new(x0, y1),
-        ]).unwrap()
+        ])
+        .unwrap()
     }
 
     fn outage(id: &str, resource: &str, start: i64, end: i64) -> ResourceOutage {
@@ -626,7 +667,13 @@ mod tests {
         }
     }
 
-    fn use_resource(id: &str, operation: &str, resource: &str, start: i64, end: i64) -> ResourceUse {
+    fn use_resource(
+        id: &str,
+        operation: &str,
+        resource: &str,
+        start: i64,
+        end: i64,
+    ) -> ResourceUse {
         ResourceUse {
             use_id: id.to_owned(),
             operation_id: operation.to_owned(),
@@ -707,7 +754,12 @@ mod tests {
         ];
         let audit = audit_robust_plan(&definitions, &plans).unwrap();
         assert_eq!(audit.status, RobustStatus::RobustlyFeasible);
-        assert!(audit.scenario_results.iter().all(|result| result.violations.is_empty()));
+        assert!(
+            audit
+                .scenario_results
+                .iter()
+                .all(|result| result.violations.is_empty())
+        );
     }
 
     #[test]
@@ -745,7 +797,10 @@ mod tests {
         );
         assert!(audit.scenario_results.iter().any(|result| {
             result.scenario_id == "delayed"
-                && result.violations.iter().any(|violation| matches!(violation, Violation::SpaceTimeConflict { .. }))
+                && result
+                    .violations
+                    .iter()
+                    .any(|violation| matches!(violation, Violation::SpaceTimeConflict { .. }))
         }));
     }
 
@@ -763,7 +818,9 @@ mod tests {
         )];
         let audit = audit_robust_plan(&definitions, &plans).unwrap();
         assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
-        assert!(matches!(&audit.status, RobustStatus::Incomplete { diagnostics } if diagnostics.iter().any(|text| text.contains("missing candidate plan for declared scenario outage"))));
+        assert!(
+            matches!(&audit.status, RobustStatus::Incomplete { diagnostics } if diagnostics.iter().any(|text| text.contains("missing candidate plan for declared scenario outage")))
+        );
     }
 
     #[test]
@@ -787,12 +844,22 @@ mod tests {
                 failing_scenario_ids: vec!["crane-outage".to_owned()]
             }
         );
-        assert!(audit.scenario_results[0].violations.iter().any(|v| matches!(v, Violation::ResourceUnavailable { .. })));
+        assert!(
+            audit.scenario_results[0]
+                .violations
+                .iter()
+                .any(|v| matches!(v, Violation::ResourceUnavailable { .. }))
+        );
     }
 
     #[test]
     fn overlapping_unary_uses_fail_even_without_a_spatial_conflict() {
-        let definitions = vec![definition("nominal", &[], &[("lift-a", 5), ("lift-b", 5)], vec![])];
+        let definitions = vec![definition(
+            "nominal",
+            &[],
+            &[("lift-a", 5), ("lift-b", 5)],
+            vec![],
+        )];
         let plans = vec![plan(
             "nominal",
             vec![],
@@ -804,12 +871,22 @@ mod tests {
         )];
         let audit = audit_robust_plan(&definitions, &plans).unwrap();
         assert!(matches!(audit.status, RobustStatus::NotRobust { .. }));
-        assert!(audit.scenario_results[0].violations.iter().any(|v| matches!(v, Violation::UnaryResourceOverlap { .. })));
+        assert!(
+            audit.scenario_results[0]
+                .violations
+                .iter()
+                .any(|v| matches!(v, Violation::UnaryResourceOverlap { .. }))
+        );
     }
 
     #[test]
     fn missing_required_block_or_operation_is_incomplete() {
-        let definitions = vec![definition("nominal", &["a", "b"], &[("weld", 2), ("inspect", 2)], vec![])];
+        let definitions = vec![definition(
+            "nominal",
+            &["a", "b"],
+            &[("weld", 2), ("inspect", 2)],
+            vec![],
+        )];
         let plans = vec![plan(
             "nominal",
             vec![space("a-yard", "a", rectangle(0, 0, 1, 1), 0, 5)],
@@ -819,19 +896,29 @@ mod tests {
         let audit = audit_robust_plan(&definitions, &plans).unwrap();
         assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
         if let RobustStatus::Incomplete { diagnostics } = &audit.status {
-            assert!(diagnostics.iter().any(|text| text.contains("required block b")));
-            assert!(diagnostics.iter().any(|text| text.contains("required operation inspect")));
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|text| text.contains("required block b"))
+            );
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|text| text.contains("required operation inspect"))
+            );
         }
     }
 
     #[test]
     fn finish_to_start_precedence_is_immutable_and_checked() {
         let mut definition = definition("weld-after-cut", &[], &[("cut", 3), ("weld", 2)], vec![]);
-        definition.precedence_constraints.push(PrecedenceConstraint {
-            predecessor_operation_id: "cut".to_owned(),
-            successor_operation_id: "weld".to_owned(),
-            minimum_lag_ticks: 0,
-        });
+        definition
+            .precedence_constraints
+            .push(PrecedenceConstraint {
+                predecessor_operation_id: "cut".to_owned(),
+                successor_operation_id: "weld".to_owned(),
+                minimum_lag_ticks: 0,
+            });
         definition.required_resource_uses.push(RequiredResourceUse {
             use_id: "weld-station-use".to_owned(),
             operation_id: "weld".to_owned(),
@@ -847,13 +934,18 @@ mod tests {
         );
         let rejected = audit_robust_plan(&[definition.clone()], &[invalid]).unwrap();
         assert!(matches!(rejected.status, RobustStatus::NotRobust { .. }));
-        assert!(rejected.scenario_results[0].violations.iter().any(|value| matches!(
-            value,
-            Violation::PrecedenceViolation {
-                predecessor_operation_id,
-                successor_operation_id
-            } if predecessor_operation_id == "cut" && successor_operation_id == "weld"
-        )));
+        assert!(
+            rejected.scenario_results[0]
+                .violations
+                .iter()
+                .any(|value| matches!(
+                    value,
+                    Violation::PrecedenceViolation {
+                        predecessor_operation_id,
+                        successor_operation_id
+                    } if predecessor_operation_id == "cut" && successor_operation_id == "weld"
+                ))
+        );
 
         let valid = plan(
             "weld-after-cut",
@@ -888,7 +980,11 @@ mod tests {
         let audit = audit_robust_plan(&[definition], &[shortened]).unwrap();
         assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
         if let RobustStatus::Incomplete { diagnostics } = audit.status {
-            assert!(diagnostics.iter().any(|text| text.contains("shortened below minimum duration")));
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|text| text.contains("shortened below minimum duration"))
+            );
         }
     }
 
@@ -910,13 +1006,23 @@ mod tests {
         let audit = audit_robust_plan(&[definition], &[candidate]).unwrap();
         assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
         if let RobustStatus::Incomplete { diagnostics } = audit.status {
-            assert!(diagnostics.iter().any(|text| text.contains("required resource use inspect-station-use is missing")));
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|text| text
+                        .contains("required resource use inspect-station-use is missing"))
+            );
         }
     }
 
     #[test]
     fn half_open_resource_and_space_windows_allow_endpoint_reuse() {
-        let definitions = vec![definition("handoff", &["a", "b"], &[("first", 5), ("second", 2)], vec![outage("down", "crane", 8, 10)])];
+        let definitions = vec![definition(
+            "handoff",
+            &["a", "b"],
+            &[("first", 5), ("second", 2)],
+            vec![outage("down", "crane", 8, 10)],
+        )];
         let plans = vec![plan(
             "handoff",
             vec![
