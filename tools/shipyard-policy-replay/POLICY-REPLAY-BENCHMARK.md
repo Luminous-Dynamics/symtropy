@@ -19,6 +19,23 @@ V0 adds one falsifiable requirement before policy-quality comparisons: scenarios
 - **R6 — scaling and runtime:** scenario count, event count, decisions per scenario, action-comparison count, wall time, peak memory, and time to first valid recovery, with parsing/verifying/reporting time separated from optimizer time.
 - **R7 — industrial replay:** permissioned execution traces, shadow-mode first, predeclared evaluation horizon, baseline frozen before replay, independent reviewer, and documented operational constraints.
 
+## Published numerical baseline — not yet reproduced
+
+Wang, Yin & Khan (2026) report 15 matched repetitions per case for their Case9_50_x comparison. Their Case9_50_4 row contains two workstation and two vehicle disruptions. The table below records the published values; they are not Symtropy measurements.
+
+| Method | Initial-block yard utilization (Aur) | Algorithm time (s) | Vehicle travel time (min) |
+|---|---:|---:|---:|
+| Proposed ABC + ALNS + recovery (PA) | 0.775 | 308.0 | 2,339 |
+| Traditional artificial bee colony (IA) | 0.765 | 398.7 | 2,339 |
+| Genetic algorithm (GA) | 0.760 | 335.6 | 2,386 |
+| Differential evolution (DE) | 0.768 | 352.1 | 2,360 |
+
+The paper also reports footprint-area inflation from shape approximation for 40/50/60-block sets: simplified polygons add 6.21–6.39% and rectangular regularization adds 14.89–17.76% relative to the initial block-shape areas. That is a geometry-representation metric, not an independent yard-utilization gain.
+
+**Reproduction blocker:** the paper's Data Availability Statement says the experimental data and simulation results are available from the corresponding author upon request. Until we obtain the original geometry, scenario generator, travel-time inputs, parameters, and run protocol, these numbers are comparison anchors only. Do not claim a direct performance win from our synthetic fixtures.
+
+For adjacent industry-facing comparison, the AI Port Center's Port-Call Data-Hub publishes separate benchmark material for yard-crane scheduling and yard-vehicle routing. Those datasets can test shared resource/routing subproblems, but they are not a replacement for an irregular shipbuilding block-yard instance.
+
 ## Comparators
 
 Compare under identical event streams, decisions epochs, action encoding, compute budget and independent validator:
