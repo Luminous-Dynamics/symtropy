@@ -208,3 +208,117 @@ pub(crate) fn enumerate(
         frontier: enumerator.frontier,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Battery, DispatchRequest, IntervalInput};
+
+    fn generated_request(seed: u32) -> DispatchRequest {
+        let interval_count = 1 + (seed % 2) as usize;
+        let capacity = (seed % 3) as u16;
+        let mut intervals = Vec::with_capacity(interval_count);
+        for index in 0..interval_count {
+            let n = seed.wrapping_mul(37).wrapping_add((index as u32) * 19);
+            let start = 1_800_000_000_i64 + (index as i64) * 3_600;
+            intervals.push(IntervalInput {
+                interval_id: format!("generated-{seed}-interval-{index}"),
+                start_unix_seconds: start,
+                duration_seconds: 3_600,
+                grid_outage: n % 5 == 0,
+                pv_available_quanta: ((n >> 1) % 2) as u16,
+                grid_import_limit_quanta: ((n >> 2) % 2) as u16,
+                essential_demand_quanta: ((n >> 3) % 2) as u16,
+                flexible_demand_quanta: ((n >> 4) % 2) as u16,
+                grid_cost_units_per_quantum: (n % 3) as u32,
+                grid_carbon_grams_per_quantum: ((n >> 2) % 4) as u32,
+            });
+        }
+
+        DispatchRequest {
+            schema_version: "energy-dispatch-v0.1".to_owned(),
+            case_id: format!("generated-small-case-{seed}"),
+            synthetic: true,
+            evidence_class: "analyst_assumption".to_owned(),
+            evidence_ref: None,
+            evidence_as_of: None,
+            energy_quantum_kwh: 1.0,
+            max_candidate_expansions: 100_000,
+            battery: Battery {
+                capacity_quanta: capacity,
+                initial_soc_quanta: (seed % (u32::from(capacity) + 1)) as u16,
+                charge_input_limit_quanta: ((seed >> 1) % 2) as u16,
+                discharge_withdrawal_limit_quanta: ((seed >> 2) % 3) as u16,
+                charge_efficiency_numerator: 1,
+                charge_efficiency_denominator: if seed % 3 == 0 { 2 } else { 1 },
+                discharge_efficiency_numerator: 1,
+                discharge_efficiency_denominator: if seed % 4 == 0 { 2 } else { 1 },
+                terminal_reserve_quanta: (seed % (u32::from(capacity) + 1)) as u16,
+            },
+            intervals,
+        }
+    }
+
+    #[test]
+    fn generated_small_case_corpus_is_deterministic_and_frontiers_are_nondominated() {
+        for seed in 0..128_u32 {
+            let request = generated_request(seed);
+            let first = enumerate(&request, DEFAULT_REFERENCE_EXPANSION_LIMIT)
+                .expect("bounded generated case completes");
+            let second = enumerate(&request, DEFAULT_REFERENCE_EXPANSION_LIMIT)
+                .expect("same bounded generated case completes again");
+
+            assert_eq!(first.expansions, second.expansions, "seed={seed}");
+            assert_eq!(
+                first.feasible_complete_schedules,
+                second.feasible_complete_schedules,
+                "seed={seed}"
+            );
+            assert_eq!(first.frontier, second.frontier, "seed={seed}");
+            assert!(first.expansions <= DEFAULT_REFERENCE_EXPANSION_LIMIT, "seed={seed}");
+
+            for (left_index, left) in first.frontier.iter().enumerate() {
+                for (right_index, right) in first.frontier.iter().enumerate() {
+                    if left_index != right_index {
+                        assert!(
+                            !weakly_dominates(left, right),
+                            "seed={seed}: retained frontier contains a dominated pair: {left:?} vs {right:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn reference_enumerator_reports_budget_exhaustion_as_unknown_eligible_error() {
+        let request = generated_request(37);
+        assert!(matches!(
+            enumerate(&request, 1),
+            Err(ReferenceError::BudgetExceeded { .. })
+        ));
+    }
+
+    #[test]
+    fn reference_enumerator_refuses_unsafe_recursion_depth() {
+        let mut request = generated_request(1);
+        request.intervals = (0..65)
+            .map(|index| IntervalInput {
+                interval_id: format!("deep-{index}"),
+                start_unix_seconds: 1_800_000_000_i64 + (index as i64) * 3_600,
+                duration_seconds: 3_600,
+                grid_outage: true,
+                pv_available_quanta: 0,
+                grid_import_limit_quanta: 0,
+                essential_demand_quanta: 0,
+                flexible_demand_quanta: 0,
+                grid_cost_units_per_quantum: 0,
+                grid_carbon_grams_per_quantum: 0,
+            })
+            .collect();
+        assert!(matches!(
+            enumerate(&request, DEFAULT_REFERENCE_EXPANSION_LIMIT),
+            Err(ReferenceError::CaseTooLarge { intervals: 65 })
+        ));
+    }
+}
