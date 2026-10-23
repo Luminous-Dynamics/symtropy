@@ -564,8 +564,8 @@ mod tests {
         .expect("synthetic Careframe fixture imports");
         assert!(assembly.handle_for_link("base_chassis").is_some());
 
-        // The probe intentionally overlaps the base-chassis bounding box.
-        let probe = physics.add_sphere(Point::new([0.29, 0.0, 0.0]), 0.05, 1.0);
+        // The probe overlaps the chassis face by 0.02 m (x=0.34, chassis half-width=0.31).
+        let probe = physics.add_sphere(Point::new([0.34, 0.0, 0.0]), 0.05, 1.0);
         physics.step(0.002);
 
         assert!(
