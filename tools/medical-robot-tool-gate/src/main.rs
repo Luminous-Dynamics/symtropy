@@ -658,9 +658,8 @@ fn main() {
     }
     let path = first.unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
     if args.next().is_some() {
-        eprintln!(
-            "usage: medical-robot-tool-gate [CORPUS_PATH] | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH"
-        );
+        eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH]");
+        eprintln!("     | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
