@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 37 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 42 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -15,6 +15,8 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
   docs/tech/glass-silicon-process-benchmark-v0.1.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
   tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
+  tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- check-mass \
   tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
 
@@ -54,3 +56,12 @@ The `audit-decision-value` command evaluates a fully enumerated **synthetic** sc
 The fixture includes an informative measurement, an uninformative measurement and an informative-but-over-budget measurement. Unit mutation tests reject a missing cost, producer-access leakage declarations, feasibility-control bypasses, and incomplete observation maps. The producer-access values are a declared contract, **not proof that a real producer process is isolated**. All utility values, scenarios, costs and feasibility controls in this fixture are synthetic; this command is not a materials model, physical value-of-information estimate, experiment authorization, or evidence of industrial gains.
 
 Exit codes retain the tool convention: 0 = PASS at the declared contract/arithmetic level; 2 = FAIL; 3 = UNRESOLVED; 64 = usage error.
+
+
+## Adaptive multi-step synthetic campaign
+
+The `audit-adaptive-campaign` command runs an exhaustive small-instance oracle over an explicitly synthetic finite pool. Unlike the one-step evaluator, the policy may select a second unused measurement separately within each first-observation branch. The exact planner minimizes worst-case regret, then maximum cumulative measurement cost, duration and measurement count. Each path must obey the same independent cost and duration caps; measurements cannot be reused within a path.
+
+The oracle is deliberately bounded to at most 32 scenarios, 12 available measurements and 8 measurement steps. Exhaustive search is for a tiny correctness reference only, not a production optimizer. The committed fixture has two crossed, ambiguous measurements: neither alone reduces worst-case regret, but both together reveal enough to choose a feasible scenario-specific route. Its known answer is pre-measurement regret 6, terminal regret 0, gross regret reduction 6, maximum path cost 2 units, maximum duration 20 seconds, and two measurements along each worst path.
+
+The planner is deterministic under fixed input and tie-break rules. This remains a synthetic perfect-observation model; it does not represent noisy sensors, measurement failures, posterior beliefs, real material properties or physical experiment cost.
