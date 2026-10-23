@@ -3,3 +3,4 @@ pub mod bounded_residual;
 pub mod risk_metrics;
 pub mod scenario_matrix;
 pub mod symtropy_flight;
+pub mod transition_residual;
