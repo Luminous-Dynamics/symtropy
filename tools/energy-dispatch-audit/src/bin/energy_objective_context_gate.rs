@@ -186,7 +186,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     {
         return Err(reject("PV stress-transform receipt does not bind the exact parent and transformed bytes"));
     }
-    if (candidate["scenarios"][0]["intervals"][0]["resource_available_kwh"]
+    if candidate["scenarios"][0]["intervals"][0]["resource_available_kwh"]
         .as_array()
         .is_none_or(|resources| {
             !resources.iter().any(|resource| {
