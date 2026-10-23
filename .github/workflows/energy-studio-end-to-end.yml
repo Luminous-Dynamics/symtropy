@@ -119,30 +119,12 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
-          cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" -- \
+          cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
+            --bin energy-dispatch-audit -- \
             "$work/dispatch-request.json" "$work/dispatch-report.json" \
             > "$work/independent-audit.json"
-          python3 - "$work/independent-audit.json" <<'PY'
-          import json
-          import sys
-          with open(sys.argv[1], encoding="utf-8") as f:
-              result = json.load(f)
-          print(json.dumps({
-              "status": result.get("status"),
-              "case_id": result.get("case_id"),
-              "reference_frontier_status": result.get("reference_frontier_status"),
-              "reference_feasible_complete_schedules": result.get("reference_feasible_complete_schedules"),
-              "objective_claim_status": result.get("objective_claim_status"),
-          }, indent=2))
-          if result.get("status") != "pass":
-              raise SystemExit("independent schedule/receipt audit did not PASS")
-          if result.get("reference_frontier_status") != "pass":
-              raise SystemExit("bounded independent reference did not verify the objective frontier")
-          if result.get("reference_feasible_complete_schedules") != 14:
-              raise SystemExit("known-answer fixture no longer reports 14 feasible complete schedules")
-          if result.get("objective_claim_status") != "verified_for_bounded_model_case":
-              raise SystemExit("bounded objective result was not independently verified")
-          PY
+          cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
+            --bin energy_audit_report_gate -- "$work/independent-audit.json"
 
       - name: Preserve exact artifacts for review
         if: always()
