@@ -269,6 +269,7 @@ struct MassLedger {
     outputs: Option<BTreeMap<String, f64>>,
     inventory_change: Option<BTreeMap<String, f64>>,
     tolerance: Option<BTreeMap<String, f64>>,
+    tolerance_basis: Option<BTreeMap<String, String>>,
     claim_ceiling: Option<String>,
 }
 
@@ -357,15 +358,16 @@ pub fn audit_mass_balance(ledger: &Value) -> MassBalanceReport {
         report.unresolved("MASS_UNIT", "mass_unit must be one shared supported unit: kg, g, mg, or t");
     }
 
-    let (inputs, outputs, delta, tolerance) = match (
+    let (inputs, outputs, delta, tolerance, tolerance_basis) = match (
         ledger.inputs.as_ref(),
         ledger.outputs.as_ref(),
         ledger.inventory_change.as_ref(),
         ledger.tolerance.as_ref(),
+        ledger.tolerance_basis.as_ref(),
     ) {
-        (Some(i), Some(o), Some(d), Some(t)) => (i, o, d, t),
+        (Some(i), Some(o), Some(d), Some(t), Some(b)) => (i, o, d, t, b),
         _ => {
-            report.unresolved("MISSING_MASS_MAP", "inputs, outputs, inventory_change, and tolerance maps are all required");
+            report.unresolved("MISSING_MASS_MAP", "inputs, outputs, inventory_change, tolerance, and tolerance_basis maps are all required");
             report.finish();
             return report;
         }
@@ -375,8 +377,13 @@ pub fn audit_mass_balance(ledger: &Value) -> MassBalanceReport {
     let output_keys: BTreeSet<&String> = outputs.keys().collect();
     let delta_keys: BTreeSet<&String> = delta.keys().collect();
     let tolerance_keys: BTreeSet<&String> = tolerance.keys().collect();
-    if input_keys != output_keys || input_keys != delta_keys || input_keys != tolerance_keys {
-        report.unresolved("ELEMENT_CENSUS", "all four maps must contain exactly the same element keys");
+    let basis_keys: BTreeSet<&String> = tolerance_basis.keys().collect();
+    if input_keys != output_keys
+        || input_keys != delta_keys
+        || input_keys != tolerance_keys
+        || input_keys != basis_keys
+    {
+        report.unresolved("ELEMENT_CENSUS", "inputs, outputs, inventory_change, tolerance, and tolerance_basis must contain exactly the same element keys");
         report.finish();
         return report;
     }
@@ -391,6 +398,10 @@ pub fn audit_mass_balance(ledger: &Value) -> MassBalanceReport {
         let output = outputs[element];
         let change = delta[element];
         let allowed = tolerance[element];
+        let basis = tolerance_basis[element].trim();
+        if basis.is_empty() {
+            report.unresolved("TOLERANCE_BASIS", format!("missing tolerance justification for element {element}"));
+        }
 
         if !input.is_finite() || !output.is_finite() || !change.is_finite() || !allowed.is_finite() {
             report.fail("NONFINITE_VALUE", format!("non-finite quantity for element {element}"));
@@ -406,6 +417,10 @@ pub fn audit_mass_balance(ledger: &Value) -> MassBalanceReport {
         }
 
         let residual = input - output - change;
+        if !residual.is_finite() {
+            report.fail("NONFINITE_RESIDUAL", format!("non-finite computed residual for element {element}"));
+            continue;
+        }
         report.residuals.insert(element.clone(), residual);
         if residual.abs() > allowed {
             report.fail(
@@ -435,6 +450,7 @@ mod tests {
             "outputs": {"Si": 20.0, "O": 29.5},
             "inventory_change": {"Si": 0.0, "O": 0.5},
             "tolerance": {"Si": 0.01, "O": 0.01},
+            "tolerance_basis": {"Si": "Synthetic contract test tolerance only.", "O": "Synthetic contract test tolerance only."},
             "claim_ceiling": "Synthetic arithmetic fixture only."
         })
     }
