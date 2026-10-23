@@ -265,7 +265,9 @@
           "sha256_status",
           "benchmark_admission_status",
           "claim_ceiling",
-          "files"
+          "files",
+          "rights_evidence_ref",
+          "rights_reviewed_on"
         ],
         "properties": {
           "artifact_id": {
@@ -358,6 +360,28 @@
                 }
               }
             }
+          },
+          "rights_evidence_ref": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "minLength": 1
+              }
+            ]
+          },
+          "rights_reviewed_on": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "format": "date"
+              }
+            ]
           }
         },
         "allOf": [
@@ -392,6 +416,14 @@
                       }
                     }
                   }
+                },
+                "rights_evidence_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rights_reviewed_on": {
+                  "type": "string",
+                  "format": "date"
                 }
               }
             }
