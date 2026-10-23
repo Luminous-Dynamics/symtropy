@@ -164,25 +164,33 @@ pub fn first_fit(
         let height = request.footprint.vertices().iter().map(|point| point.y).max().unwrap_or(0);
         let mut accepted = None;
 
-        'candidate: for y in 0..=(yard.height - height) {
+        for y in 0..=(yard.height - height) {
             for x in 0..=(yard.width - width) {
                 plan.candidates_examined += 1;
                 let candidate = translate(&request.footprint, Point::new(x, y))?;
+                let mut candidate_conflicts = false;
                 for existing in &plan.placements {
                     let conflict = match policy {
                         Policy::ConservativeAabb => aabb_conflicts(&candidate, &existing.footprint),
                         Policy::ExactPolygon => candidate.conflicts_with(&existing.footprint)?,
                     };
                     if conflict {
-                        continue 'candidate;
+                        candidate_conflicts = true;
+                        break;
                     }
+                }
+                if candidate_conflicts {
+                    continue;
                 }
                 accepted = Some(Placement {
                     block_id: request.id.clone(),
                     origin: Point::new(x, y),
                     footprint: candidate,
                 });
-                break 'candidate;
+                break;
+            }
+            if accepted.is_some() {
+                break;
             }
         }
 
