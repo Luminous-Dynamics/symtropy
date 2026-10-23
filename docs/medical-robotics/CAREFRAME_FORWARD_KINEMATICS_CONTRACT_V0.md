@@ -43,6 +43,18 @@ With `torso_yaw = q` and all other revolute joints zero, the left arm origin sho
 
 Negative fixtures reject missing states, unknown IDs, a state assigned to a fixed joint, an out-of-range joint position, invalid morphology, or disconnected/cyclic geometry. The CI step also checks the nominal transform coordinates and an out-of-range negative control.
 
+## URDF 1.0 interchange
+
+The Rust gate can also run:
+
+```text
+medical-robot-tool-gate --export-urdf MORPHOLOGY_JSON OUTPUT_URDF
+```
+
+It exports named links, centered box visual/collision geometry, parent/child joints, origins, revolute axes and limits. A digest-bound receipt labels the output `KINEMATIC_INTERCHANGE_ONLY`. The exporter rejects non-token names and unsupported geometry instead of silently changing the model. The current v0 schema omits joint-origin orientation, so the exporter writes `rpy="0 0 0"` for all joint origins.
+
+The CI workflow independently parses the generated XML and checks link/joint counts and element structure. It does not run ROS or MuJoCo as a runtime, and the URDF intentionally omits inertial parameters, transmissions and controller tags. **This is a kinematic/collision interchange artifact, not a dynamics-ready or physics-validated robot model.**
+
 ## Claim ceiling
 
 A passing result means only that **the declared synthetic tree produced transforms under the specified geometric convention at the recorded revision and joint-state digest**.
