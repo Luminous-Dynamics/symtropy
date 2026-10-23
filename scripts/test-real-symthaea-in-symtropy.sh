@@ -124,3 +124,34 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     )
   ' "$out"
 fi
+
+if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
+  out="${STFR_DATASET_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-transition-residual-dataset.json}"
+  cargo run --manifest-path "$integration_manifest" --example causal_transition_dataset > "$out"
+  jq -e '
+    .benchmark_id == "symtropy-causal-transition-residual-dataset-v0.1"
+    and .claim_ceiling == "training_split_transition_dataset_and_target_plumbing_only"
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.rustc_version | startswith("rustc "))
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and .collection.invalid_target_count == 0
+    and .collection.sample_count == (.samples | length)
+    and .collection.sample_count == (.collection.episodes * .collection.steps_per_episode)
+    and .collection.training_randomization.force_values_exported_per_sample == false
+    and .collection.training_randomization.force_labels_available_to_target_extractor == false
+    and (.collection.nominal_model_id == "linear-thrust-gravity-linear-drag-v0.1")
+    and (.collection.nominal_model.mass_kg > 0)
+    and (.collection.nominal_model.gravity_m_s2 > 0)
+    and (.collection.nominal_model.linear_drag_n_s_per_m >= 0)
+    and (.collection.training_randomization.episode_family_counts | length) == 4
+    and all(.collection.training_randomization.episode_family_counts[]; . >= 1)
+    and all(.samples[];
+      .split == "train"
+      and .dt_s > 0
+      and (.target.residual_acceleration_world_m_s2 | length) == 3
+      and (.applied_action_ctrl | length) == 4
+      and (.state_t.timestamp_s < .state_t1.timestamp_s)
+    )
+  ' "$out"
+fi
