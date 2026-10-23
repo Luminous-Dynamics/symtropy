@@ -144,6 +144,10 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.collection.nominal_model.mass_kg > 0)
     and (.collection.nominal_model.gravity_m_s2 > 0)
     and (.collection.nominal_model.linear_drag_n_s_per_m >= 0)
+    and .collection.training_randomization.design == "crossed_scenario_by_disturbance_family"
+    and .collection.training_randomization.complete_factorial_design == true
+    and (.collection.training_randomization.scenario_by_disturbance_family_episode_counts | length) == 4
+    and all(.collection.training_randomization.scenario_by_disturbance_family_episode_counts[]; all(.[]; . > 0))
     and (.collection.training_randomization.episode_family_counts | length) == 4
     and all(.collection.training_randomization.episode_family_counts[]; . >= 1)
     and all(.samples[];
