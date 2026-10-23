@@ -148,6 +148,11 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and all(.collection.training_randomization.episode_family_counts[]; . >= 1)
     and all(.samples[];
       .split == "train"
+      and .data_schema_version == "causal-transition-residual-row-v0.1"
+      and .residual_target_algorithm_version == "observed-minus-nominal-world-acceleration-v0.1"
+      and .nominal_model_id == "linear-thrust-gravity-linear-drag-v0.1"
+      and .episode_seed != null
+      and .scenario_family != null
       and .dt_s > 0
       and (.target.residual_acceleration_world_m_s2 | length) == 3
       and (.applied_action_ctrl | length) == 4
