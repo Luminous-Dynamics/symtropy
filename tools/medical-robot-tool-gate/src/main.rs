@@ -1512,6 +1512,101 @@ mod tests {
             .any(|finding| finding == "MORPHOLOGY_FIXED_JOINT_ENVELOPE_INVALID"));
     }
 
+    fn zero_joint_state() -> Value {
+        json!({
+            "left_drive": 0.0,
+            "right_drive": 0.0,
+            "torso_yaw": 0.0,
+            "head_yaw": 0.0,
+            "head_pitch": 0.0,
+            "left_shoulder_pitch": 0.0,
+            "left_elbow": 0.0,
+            "right_shoulder_pitch": 0.0,
+            "right_elbow": 0.0
+        })
+    }
+
+    #[test]
+    fn nominal_forward_kinematics_matches_independent_reference_points() {
+        let model = morphology();
+        let poses = compute_forward_kinematics(&model, &zero_joint_state())
+            .expect("nominal bounded joint state must compute");
+        assert_eq!(poses.len(), 16);
+
+        let chassis = &poses["base_chassis"];
+        assert_eq!(chassis.translation, [0.0, 0.0, 0.0]);
+        let torso = &poses["torso_shell"];
+        assert!((torso.translation[0]).abs() < 1.0e-12);
+        assert!((torso.translation[1]).abs() < 1.0e-12);
+        assert!((torso.translation[2] - 0.32).abs() < 1.0e-12);
+
+        let left_mount = &poses["left_tool_mount"];
+        assert!((left_mount.translation[0]).abs() < 1.0e-12);
+        assert!((left_mount.translation[1] - 0.19).abs() < 1.0e-12);
+        assert!((left_mount.translation[2] - 0.28).abs() < 1.0e-12);
+        let right_mount = &poses["right_tool_mount"];
+        assert!((right_mount.translation[0]).abs() < 1.0e-12);
+        assert!((right_mount.translation[1] + 0.19).abs() < 1.0e-12);
+        assert!((right_mount.translation[2] - 0.28).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn forward_kinematics_propagates_rotations_down_the_tree() {
+        let model = morphology();
+        let mut state = zero_joint_state();
+        let yaw = 1.0_f64;
+        state["torso_yaw"] = json!(yaw);
+        let poses = compute_forward_kinematics(&model, &state)
+            .expect("bounded torso rotation must compute");
+        let left_arm = &poses["left_upper_arm"];
+        assert!((left_arm.translation[0] - (-yaw.sin() * 0.19)).abs() < 1.0e-10);
+        assert!((left_arm.translation[1] - (yaw.cos() * 0.19)).abs() < 1.0e-10);
+        assert!((left_arm.translation[2] - 0.56).abs() < 1.0e-12);
+
+        let right_arm = &poses["right_upper_arm"];
+        assert!((right_arm.translation[0] - (yaw.sin() * 0.19)).abs() < 1.0e-10);
+        assert!((right_arm.translation[1] - (-yaw.cos() * 0.19)).abs() < 1.0e-10);
+
+        let rotation = left_arm.rotation;
+        let unit_column = (0..3)
+            .map(|row| rotation[row][0] * rotation[row][0])
+            .sum::<f64>();
+        assert!((unit_column - 1.0).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn forward_kinematics_rejects_missing_unknown_fixed_and_out_of_range_states() {
+        let model = morphology();
+
+        let mut missing = zero_joint_state();
+        missing.as_object_mut().expect("state object").remove("left_elbow");
+        assert!(compute_forward_kinematics(&model, &missing)
+            .expect_err("missing state rejects")
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_MISSING_REVOLUTE_JOINT"));
+
+        let mut unknown = zero_joint_state();
+        unknown["silent_joint"] = json!(0.0);
+        assert!(compute_forward_kinematics(&model, &unknown)
+            .expect_err("unknown state rejects")
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_UNKNOWN_ID"));
+
+        let mut fixed = zero_joint_state();
+        fixed["torso_mount"] = json!(0.0);
+        assert!(compute_forward_kinematics(&model, &fixed)
+            .expect_err("fixed-joint state rejects")
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_FOR_FIXED_JOINT"));
+
+        let mut outside = zero_joint_state();
+        outside["torso_yaw"] = json!(1.21);
+        assert!(compute_forward_kinematics(&model, &outside)
+            .expect_err("out-of-range state rejects")
+            .iter()
+            .any(|finding| finding == "JOINT_STATE_OUT_OF_LIMITS"));
+    }
+
     #[test]
     fn morphology_cannot_enable_joint_commands_or_raise_authority() {
         let mut commands = morphology();
