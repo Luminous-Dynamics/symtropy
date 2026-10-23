@@ -10,7 +10,7 @@ V0 adds one falsifiable requirement before policy-quality comparisons: scenarios
 
 ## Frozen benchmark strata
 
-- **R0 — replay integrity:** unique scenario and event IDs, ordered decision ticks, one action per scenario per epoch, no empty suite, no missing/extra decisions.
+- **R0 — replay integrity:** exact source/candidate coverage of the manifest inventory, unique scenario and event IDs, non-empty canonical visible-payload keys, ordered decision ticks, one action per scenario per epoch, no empty suite, no missing/extra decisions.
 - **R1 — non-anticipativity:** identical observed histories at the same tick imply identical canonical action keys, including negative controls that inject future-scenario leakage.
 - **R2 — independent feasibility:** each chosen action/schedule is audited by the independent geometry and resource/precedence verifier. This crate does not supply this result.
 - **R3 — disruption outcomes:** delayed workstation clearance, vehicle/crane outage, compound outage, delayed arrivals, and clearance-time uncertainty, with every scenario and decision epoch accounted for.
