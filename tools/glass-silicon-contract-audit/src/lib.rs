@@ -259,6 +259,7 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct MassLedger {
     schema_version: Option<u64>,
     record_id: Option<String>,
@@ -533,6 +534,44 @@ mod tests {
         let report = audit_mass_balance(&value);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|v| v.starts_with("MISSING_MASS_MAP:")));
+    }
+
+    #[test]
+    fn missing_tolerance_basis_is_unresolved() {
+        let mut value = ledger();
+        value.as_object_mut().unwrap().remove("tolerance_basis");
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|v| v.starts_with("MISSING_MASS_MAP:")));
+    }
+
+    #[test]
+    fn empty_tolerance_basis_is_unresolved() {
+        let mut value = ledger();
+        value["tolerance_basis"]["Si"] = json!("   ");
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|v| v.starts_with("TOLERANCE_BASIS:"));
+    }
+
+    #[test]
+    fn unknown_mass_ledger_fields_fail() {
+        let mut value = ledger();
+        value["unmodeled_credit"] = json!(0.0);
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("LEDGER_PARSE:")));
+    }
+
+    #[test]
+    fn nonfinite_computed_residual_fails() {
+        let mut value = ledger();
+        value["inputs"]["Si"] = json!(f64::MAX);
+        value["outputs"]["Si"] = json!(0.0);
+        value["inventory_change"]["Si"] = json!(-f64::MAX);
+        let report = audit_mass_balance(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("NONFINITE_RESIDUAL:")));
     }
 
     #[test]
