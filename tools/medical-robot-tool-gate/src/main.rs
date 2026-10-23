@@ -4,10 +4,14 @@ use std::collections::BTreeSet;
 use std::{env, fs, process};
 
 const DEFAULT_CORPUS: &str = "docs/medical-robotics/medical-robot-tool-corpus-v0.1.json";
+const NULL_VALUE: Value = Value::Null;
 const CORPUS_SOURCE: &[u8] =
     include_bytes!("../../../docs/medical-robotics/medical-robot-tool-corpus-v0.1.json");
 const AUDITOR_SOURCE: &[u8] = include_bytes!("main.rs");
-const CLAIM_CEILING: &str = "Synthetic tool-manifest qualification only. No CAD verification, hardware safety, cleaning validation, clinical performance, or regulatory claim.";
+const CLAIM_CEILING: &str = concat!(
+    "Synthetic tool-manifest qualification only. No CAD verification, hardware safety, ",
+    "cleaning validation, clinical performance, or regulatory claim.",
+);
 
 fn str_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
@@ -177,7 +181,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         }
     }
 
-    let mechanical = tool.get("mechanical").unwrap_or(&Value::Null);
+    let mechanical = tool.get("mechanical").unwrap_or(&NULL_VALUE);
     const MECHANICAL_FIELDS: &[&str] = &[
         "mount_interface",
         "mass_g",
@@ -207,7 +211,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
     {
         push_findings(&mut findings, "MECHANICAL_ENVELOPE_INVALID");
     }
-    if !valid_box(mechanical.get("geometry_bbox_mm").unwrap_or(&Value::Null)) {
+    if !valid_box(mechanical.get("geometry_bbox_mm").unwrap_or(&NULL_VALUE)) {
         push_findings(&mut findings, "GEOMETRY_OUT_OF_ENVELOPE");
     }
     if ["sealed_supply_gripper", "tray_carrier"].contains(&kind)
@@ -217,7 +221,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         push_findings(&mut findings, "FAIL_CLOSED_RETENTION_REQUIRED");
     }
 
-    let hygiene = tool.get("hygiene").unwrap_or(&Value::Null);
+    let hygiene = tool.get("hygiene").unwrap_or(&NULL_VALUE);
     const HYGIENE_FIELDS: &[&str] = &[
         "surface_materials_declared",
         "cleaning_claim",
@@ -237,7 +241,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         push_findings(&mut findings, "MANIFEST_INCOMPLETE");
     }
 
-    let electrical = tool.get("electrical").unwrap_or(&Value::Null);
+    let electrical = tool.get("electrical").unwrap_or(&NULL_VALUE);
     const ELECTRICAL_FIELDS: &[&str] = &[
         "powered",
         "max_power_w",
@@ -259,7 +263,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         push_findings(&mut findings, "POWER_ENVELOPE_INVALID");
     }
 
-    let privacy = tool.get("privacy").unwrap_or(&Value::Null);
+    let privacy = tool.get("privacy").unwrap_or(&NULL_VALUE);
     const PRIVACY_FIELDS: &[&str] = &[
         "captures_audio",
         "captures_video",
@@ -286,7 +290,7 @@ fn validate_tool(tool: &Value) -> Vec<String> {
         push_findings(&mut findings, "PRIVACY_FAIL_CLOSED_REQUIRED");
     }
 
-    let authority = tool.get("authority").unwrap_or(&Value::Null);
+    let authority = tool.get("authority").unwrap_or(&NULL_VALUE);
     const AUTHORITY_FIELDS: &[&str] = &[
         "simulation_only",
         "physical_actuation_authorized",
@@ -356,7 +360,7 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
             schema_errors.push(format!("duplicate case_id '{case_id}'"));
             continue;
         }
-        let manifest = case.get("manifest").unwrap_or(&Value::Null);
+        let manifest = case.get("manifest").unwrap_or(&NULL_VALUE);
         let actual_findings = validate_tool(manifest);
         let expected_findings = case
             .get("expected_findings")
