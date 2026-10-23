@@ -174,6 +174,24 @@ struct MultiIntervalBenchmark {
 }
 
 #[derive(Debug, Serialize)]
+struct SouthAfricanTariffBenchmark {
+    context_id: String,
+    tariff_id: String,
+    tariff_schedule_sha256: String,
+    known_answer_fixture_sha256: String,
+    calculator_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    source_status: String,
+    account_verified: bool,
+    case_count: usize,
+    case_results: Vec<Value>,
+    unapplied_charge_ids: Vec<String>,
+    qualification_status: String,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Serialize)]
 struct SourceHeads {
     symthaea: String,
     symtropy_contract: String,
@@ -222,6 +240,7 @@ struct EnergyStudioBenchmarkReport {
     benchmark_summary: BenchmarkSummary,
     objective_context: ObjectiveContextBenchmark,
     multi_interval_context: MultiIntervalBenchmark,
+    south_african_tariff_context: SouthAfricanTariffBenchmark,
     candidates: Vec<CandidateBenchmark>,
 }
 
@@ -710,6 +729,149 @@ fn benchmark_multi_interval_context(
     })
 }
 
+fn benchmark_south_african_tariff_context(
+    root: &Path,
+) -> Result<SouthAfricanTariffBenchmark, Box<dyn Error>> {
+    let dir = root.join("sa-tariff-context");
+    let (schedule_bytes, schedule) = read_json(&dir.join("tariff-schedule.json"))?;
+    let (known_bytes, known) = read_json(&dir.join("known-answers.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("report.json"))?;
+    let log_bytes = fs::read(dir.join("qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("source-receipts.sha256"))?;
+
+    let schedule_digest = sha256_hex(&schedule_bytes);
+    let known_digest = sha256_hex(&known_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let case_id_expected = [
+        "low-season-2600kwh-under-50kva",
+        "high-season-1200kwh-over-50-to-100kva",
+    ];
+
+    if required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
+        || required_str(&schedule, "tariff_id")?
+            != "city-power-business-conventional-2026-27-candidate"
+        || required_str(&schedule, "source_status")?
+            != "candidate_schedule_not_account_verified"
+        || required_bool(&schedule, "account_verified")?
+        || required_str(&known, "schema_version")? != "energy-sa-tariff-known-answers-v0.1"
+        || required_str(&known, "schedule_id")? != required_str(&schedule, "tariff_id")?
+        || required_str(&report, "schema_version")?
+            != "energy-sa-tariff-reference-report-v0.1"
+        || required_str(&report, "tariff_id")? != required_str(&schedule, "tariff_id")?
+        || required_str(&report, "tariff_schedule_sha256")? != schedule_digest.as_str()
+        || required_str(&report, "known_answer_fixture_sha256")? != known_digest.as_str()
+        || required_bool(&report, "account_verified")?
+        || required_str(&report, "source_status")?
+            != "candidate_schedule_not_account_verified"
+        || required_u64(&report, "result_count")? != case_id_expected.len() as u64
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "South African tariff evidence chain, source status or candidate-only claim boundary mismatch",
+        )
+        .into());
+    }
+
+    let cases = known["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "tariff known-answer cases missing")
+    })?;
+    let results = report["results"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "tariff reference results missing")
+    })?;
+    let expected_unapplied = schedule["deliberately_unapplied_charges"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "unapplied-charge declarations missing"))?
+        .iter()
+        .map(|item| required_str(item, "charge_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if cases.len() != case_id_expected.len() || results.len() != cases.len() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected number of South African tariff known-answer cases/results",
+        )
+        .into());
+    }
+
+    for index in 0..case_id_expected.len() {
+        let case = &cases[index];
+        let result = &results[index];
+        if required_str(case, "case_id")? != case_id_expected[index]
+            || required_str(result, "case_id")? != case_id_expected[index]
+            || required_bool(result, "account_verified")?
+            || required_u64(result, "energy_charge_microzar")?
+                != required_u64(case, "expected_energy_charge_microzar")?
+            || required_u64(result, "service_charge_microzar")?
+                != required_u64(case, "expected_service_charge_microzar")?
+            || required_u64(result, "network_charge_microzar")?
+                != required_u64(case, "expected_network_charge_microzar")?
+            || required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")?
+                != required_u64(case, "expected_subtotal_excluding_unapplied_and_tax_microzar")?
+            || result["unapplied_charge_ids"].as_array().map(Vec::len)
+                != Some(expected_unapplied.len())
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("tariff result does not match the frozen arithmetic answer for {}", case_id_expected[index]),
+            )
+            .into());
+        }
+        let sum = required_u64(result, "energy_charge_microzar")?
+            .checked_add(required_u64(result, "service_charge_microzar")?)
+            .and_then(|subtotal| subtotal.checked_add(required_u64(result, "network_charge_microzar").ok()?))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "tariff ledger subtotal overflow"))?;
+        if sum != required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")? {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "tariff subtotal is not the exact sum of represented energy/service/network charges",
+            )
+            .into());
+        }
+    }
+
+    let receipts = String::from_utf8(receipt_bytes)?;
+    let log = String::from_utf8(log_bytes)?;
+    for digest in [&schedule_digest, &known_digest, &report_digest] {
+        if !receipts.contains(digest) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("tariff source receipt does not include digest {digest}"),
+            )
+            .into());
+        }
+    }
+    if !log.contains("PASS: computed 2 exact tariff-reference cases")
+        || !log.contains(&format!("tariff_schedule_sha256={schedule_digest}"))
+        || !log.contains(&format!("known_answer_fixture_sha256={known_digest}"))
+        || !log.contains(&format!("report_sha256={report_digest}"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "tariff qualification log does not bind the exact schedule, answers and calculator report",
+        )
+        .into());
+    }
+
+    Ok(SouthAfricanTariffBenchmark {
+        context_id: "south-africa-city-power-business-conventional-tariff-reference-v0.1".to_owned(),
+        tariff_id: required_str(&schedule, "tariff_id")?.to_owned(),
+        tariff_schedule_sha256: schedule_digest,
+        known_answer_fixture_sha256: known_digest,
+        calculator_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        source_status: required_str(&report, "source_status")?.to_owned(),
+        account_verified: required_bool(&report, "account_verified")?,
+        case_count: results.len(),
+        case_results: results.clone(),
+        unapplied_charge_ids: expected_unapplied,
+        qualification_status: "verified_exact_arithmetic_for_candidate_schedule_only".to_owned(),
+        claim_ceiling: "Not a customer bill, account tariff determination, tariff interpretation or savings claim; unresolved charges and taxes remain unapplied.".to_owned(),
+    })
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -784,9 +946,10 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let objective_context = benchmark_objective_context(&root)?;
     let multi_interval_context = benchmark_multi_interval_context(&root)?;
+    let south_african_tariff_context = benchmark_south_african_tariff_context(&root)?;
     let report = EnergyStudioBenchmarkReport {
-        schema_version: "energy-studio-benchmark-report-v0.2",
-        benchmark_id: "energy-studio-multi-context-benchmark-v0.2".to_owned(),
+        schema_version: "energy-studio-benchmark-report-v0.3",
+        benchmark_id: "energy-studio-source-bounded-multi-context-benchmark-v0.3".to_owned(),
         created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
         git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
         source_heads: SourceHeads {
@@ -828,6 +991,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         },
         objective_context,
         multi_interval_context,
+        south_african_tariff_context,
         candidates,
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
