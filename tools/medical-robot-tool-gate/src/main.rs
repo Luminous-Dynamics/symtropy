@@ -1278,7 +1278,10 @@ fn export_urdf_file(model_path: &str, output_path: &str) {
         "physical_actuation_authorized": false,
         "patient_contact_authorized": false,
         "clinical_use_authorized": false,
-        "claim_ceiling": "URDF kinematic/collision interchange only; no validated dynamics or physical claim."
+        "claim_ceiling": concat!(
+            "URDF kinematic/collision interchange only; no validated dynamics ",
+            "or physical claim."
+        )
     });
     println!(
         "{}",
