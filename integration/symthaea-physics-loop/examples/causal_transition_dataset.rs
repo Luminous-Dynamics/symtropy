@@ -39,7 +39,8 @@ fn signed_unit(mut value: u64) -> f64 {
 /// dataset rows; the target extractor must recover unexplained acceleration from states.
 fn randomized_training_force(seed: u64, step: usize) -> [f64; 3] {
     let weight_n = MASS_KG * GRAVITY_M_S2;
-    let amplitude = (0.02 + ((seed >> 8) % 5) as f64 * 0.02) * weight_n;
+    let amplitude_seed = seed.wrapping_mul(0x9e37_79b9_7f4a_7c15);
+    let amplitude = (0.02 + ((amplitude_seed >> 32) % 5) as f64 * 0.02) * weight_n;
     let onset = 20 + (seed % 31) as usize;
     let t = step as f64 * DT_S;
 
@@ -201,6 +202,7 @@ fn main() {
                 "force_values_exported_per_sample": false,
                 "force_labels_available_to_target_extractor": false
             },
+            "nominal_model_id": "linear-thrust-gravity-linear-drag-v0.1",
             "nominal_model": {
                 "mass_kg": model.mass_kg,
                 "gravity_m_s2": model.gravity_m_s2,
