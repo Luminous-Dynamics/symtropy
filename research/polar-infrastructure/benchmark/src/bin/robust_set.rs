@@ -168,7 +168,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
                 shortfall: (1.0 - policy.weighted_service_fraction).clamp(0.0, 1.0),
                 gate_pass: policy.gate_pass,
                 floor_breach_service_hours: policy.floor_breach_service_hours,
-                fuel_intensity: policy.fuel_units_per_weighted_delivered_service_unit_hour,
+                fuel_intensity: policy.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
         }
 
