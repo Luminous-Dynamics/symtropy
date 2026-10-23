@@ -1,0 +1,10 @@
+[package]
+name = "shipyard-polygon-geometry"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Fail-closed fixed-point polygon predicates for shipyard footprint verification"
+
+[workspace]
