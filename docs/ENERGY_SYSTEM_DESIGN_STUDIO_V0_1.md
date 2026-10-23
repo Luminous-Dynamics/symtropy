@@ -63,6 +63,15 @@ Use one small synthetic service hub—not all energy technologies at once:
 
 The same input digest, time base, scenario, terminal reserve and information boundary must be passed to every baseline. Keep the whole test offline and deterministic.
 
+### Synthetic topology corpus
+
+Three contract fixtures mirror the initial Symthaea template generator and are validated together by the dedicated workflow:
+- `synthetic-grid-only`: utility grid plus essential load;
+- `synthetic-pv-grid`: PV and grid plus essential load;
+- `synthetic-pv-battery-grid`: PV, grid, battery and essential load.
+
+These establish interchange/structural parity only. Their existence does not mean Symthaea already ran at CI time, that a design was dispatched, or that each topology is feasible under every scenario. The adapter and twin are responsible for those later evaluations.
+
 ### Initial known-answer and negative controls
 
 1. Recover the frozen Sol-Atlas PV-surplus → storage → outage service known answer.
