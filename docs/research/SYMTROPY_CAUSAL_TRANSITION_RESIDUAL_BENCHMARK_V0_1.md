@@ -38,7 +38,7 @@ Each transition record should carry:
 
 - `episode_id`, split, scenario ID and family, seed, transition index;
 - prior and next timestamps, prior state, applied action, next state;
-- nominal-model parameter digest and residual-target algorithm version;
+- nominal-model parameter digest or version ID plus exact numeric parameter values, and residual-target algorithm version;
 - simulator and source SHAs, Rust compiler version, and state/action schema version;
 - target vector and explicit invalid-sample reason when rejected.
 
