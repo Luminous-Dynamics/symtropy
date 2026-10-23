@@ -237,3 +237,23 @@ Do not try to replace Simcenter, PhysicsNeMo or industrial domain solvers with a
 - The evaluator measures whether this orchestration produces more reliable feasible decisions per budget than (a) the incumbent workflow, (b) incumbent twin alone, and (c) incumbent twin plus a simple selector.
 
 That is an achievable and falsifiable comparison. A claim of beating an industrial twin is unavailable until we have its rights-cleared holdout data or conduct a contract-matched independent evaluation. The reported 3–5% energy, one-year life, and 80% analytics-cycle figures remain *pilot expectations* from the announcement, not performance thresholds proved by this repo.
+
+
+## 14. Sensor drift, failed measurements and robust multi-step selection
+
+The deterministic adaptive fixture is insufficient by itself: real sensors can drift, misclassify, time out, or return invalid values, and repeated experiments can fail. Before using posterior probabilities, the benchmark must be able to preserve a bounded set of possible worlds without inventing a probability distribution.
+
+The new `adaptive-decision-pool-drift-failure.synthetic.json` stress fixture represents two underlying process regimes crossed with three primary-instrument conditions: clean, drifted/misclassified, and invalid. Its action/feasibility values preserve the latent regime, while measurement outputs encode the possible signals. In this fixture, the primary reading can be misleading or invalid. The secondary test is only decisive on those ambiguous/failure branches; the comprehensive, perfectly discriminating test is excluded because it exceeds the declared resource caps.
+
+Expected oracle behavior:
+- choose the primary test first and the secondary test after every ambiguous or invalid observation;
+- achieve terminal worst-case regret 0 while remaining feasible at each leaf;
+- never exceed total path cost 4 synthetic reference units or 20 synthetic seconds;
+- exclude the over-budget perfect-information test;
+- return UNRESOLVED in the separate negative fixture when there is no robust initial action and the measurement budget cannot pay for the resolving sequence.
+
+No noise probabilities are assigned here. This is a set-valued stress test over declared worlds, not a claim that these modes occur at particular frequencies. The scenario enumeration also assumes the possible joint sensor states are complete. In a real deployment, that completeness needs empirical characterization, calibration/maintenance evidence, or a conservative domain justification; otherwise the result remains unresolved.
+
+The research motivation is current: a 2026 study of multi-variable batch Bayesian optimization reports that noise sensitivity and optimization-landscape shape materially change results, including in synthetic six-variable tasks ([Hsu et al., Journal of Materials Research, 2026](https://doi.org/10.1557/s43578-026-01803-y)). GOLLuM's recent cross-domain result likewise makes uncertainty calibration central to closed-loop experimental optimization, but does not eliminate the need to model task-specific measurement failure ([Nature Machine Intelligence, 2026](https://doi.org/10.1038/s42256-026-01283-z)).
+
+The next real-data lane should record measurement attempts, calibration dates, instrument IDs, quality flags, repeats and time drift. Compare (a) dropping invalid observations, (b) naive imputation, (c) abstention/retest, and (d) cost-aware adaptive follow-up. Missing/invalid data must never silently become a nominal value. Score false-feasible declarations, terminal decision regret, retries and total charged budget as separate outcomes.
