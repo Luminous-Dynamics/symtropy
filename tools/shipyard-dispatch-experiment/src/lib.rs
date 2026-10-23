@@ -313,3 +313,362 @@ mod tests {
         assert!(results.iter().all(|item| item.audit.status == shipyard_dispatch_audit::AuditStatus::Rejected));
     }
 }
+
+
+
+/// Stable episode/replicate identity carried into every append-only result row.
+/// The caller owns these identities and digests; this adapter never guesses them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExperimentLedgerContext {
+    pub benchmark_release_id: String,
+    pub episode_id: String,
+    pub replicate_id: String,
+    pub initial_state_sha256: String,
+    pub disturbance_tape_sha256: String,
+    pub budget_profile_id: String,
+    pub policy_revision: String,
+    pub evaluator_revision: String,
+}
+
+fn require_digest(name: &str, digest: &str) -> Result<(), String> {
+    if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(format!("{name} must be exactly 64 hexadecimal characters"));
+    }
+    Ok(())
+}
+
+fn json_quote(input: &str) -> String {
+    let mut output = String::with_capacity(input.len() + 2);
+    output.push('"');
+    for character in input.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\u{0008}' => output.push_str("\\b"),
+            '\u{000c}' => output.push_str("\\f"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character if character <= '\u{001f}' => {
+                use std::fmt::Write as _;
+                let _ = write!(output, "\\u{:04x}", character as u32);
+            }
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+    output
+}
+
+fn optional_string_json(value: Option<&str>) -> String {
+    value.map(json_quote).unwrap_or_else(|| "null".to_owned())
+}
+
+fn rule_id(rule: DispatchRule) -> &'static str {
+    match rule {
+        DispatchRule::FixedOrder => "fixed_order",
+        DispatchRule::EarliestDueDate => "earliest_due_date",
+        DispatchRule::CriticalRatio => "critical_ratio",
+        DispatchRule::LeastSlack => "least_slack",
+    }
+}
+
+fn policy_status_id(status: PlanStatus) -> &'static str {
+    match status {
+        PlanStatus::Complete => "complete",
+        PlanStatus::Partial => "partial",
+        PlanStatus::InvalidInput => "invalid_input",
+        PlanStatus::FrozenConflict => "frozen_conflict",
+    }
+}
+
+fn terminal_status(result: &EvaluatedRule) -> &'static str {
+    match (result.policy_status, result.audit.status) {
+        (PlanStatus::Complete, shipyard_dispatch_audit::AuditStatus::AbstractFeasible) => {
+            "feasible"
+        }
+        (PlanStatus::Partial, _) => "incomplete",
+        (PlanStatus::InvalidInput | PlanStatus::FrozenConflict, _) => "invalid_input",
+        (_, shipyard_dispatch_audit::AuditStatus::Rejected) => "invalid_candidate",
+    }
+}
+
+fn encode_result(
+    context: &ExperimentLedgerContext,
+    result: &EvaluatedRule,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = String::with_capacity(1024);
+    output.push('{');
+    let mut first = true;
+    macro_rules! field {
+        ($key:literal, $value:expr) => {{
+            if !first {
+                output.push(',');
+            }
+            first = false;
+            output.push_str($key);
+            output.push(':');
+            output.push_str(&$value);
+        }};
+    }
+    field!("\"schema_version\"", json_quote("shipyard-result-ledger-record-v0"));
+    field!("\"benchmark_release_id\"", json_quote(&context.benchmark_release_id));
+    field!("\"episode_id\"", json_quote(&context.episode_id));
+    field!("\"replicate_id\"", json_quote(&context.replicate_id));
+    field!("\"initial_state_sha256\"", json_quote(&context.initial_state_sha256.to_ascii_lowercase()));
+    field!("\"disturbance_tape_sha256\"", json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()));
+    field!("\"budget_profile_id\"", json_quote(&context.budget_profile_id));
+    field!("\"policy_id\"", json_quote(rule_id(result.rule)));
+    field!("\"policy_revision\"", json_quote(&context.policy_revision));
+    field!("\"evaluator_revision\"", json_quote(&context.evaluator_revision));
+    field!("\"terminal_status\"", json_quote(terminal_status(result)));
+    field!("\"feasibility_scope\"", json_quote("abstract-unary-resource-time-v0"));
+    field!("\"policy_status\"", json_quote(policy_status_id(result.policy_status)));
+    field!(
+        "\"audit_status\"",
+        json_quote(match result.audit.status {
+            shipyard_dispatch_audit::AuditStatus::AbstractFeasible => "abstract_feasible",
+            shipyard_dispatch_audit::AuditStatus::Rejected => "rejected",
+        })
+    );
+    field!(
+        "\"makespan_tick\"",
+        result.audit.metrics.makespan_tick.map(|value| value.to_string()).unwrap_or_else(|| "null".to_owned())
+    );
+    field!(
+        "\"total_tardiness_ticks\"",
+        result.audit.metrics.total_tardiness_ticks.to_string()
+    );
+    field!(
+        "\"occupied_resource_ticks\"",
+        result.audit.metrics.occupied_resource_ticks.to_string()
+    );
+    field!(
+        "\"completed_operation_count\"",
+        result.audit.metrics.completed_operation_count.to_string()
+    );
+    field!(
+        "\"assigned_operation_count\"",
+        result.audit.metrics.assigned_operation_count.to_string()
+    );
+    field!(
+        "\"mandatory_operation_count\"",
+        result.audit.metrics.mandatory_operation_count.to_string()
+    );
+
+    let missing = result
+        .audit
+        .metrics
+        .missing_operation_ids
+        .iter()
+        .map(|item| json_quote(item))
+        .collect::<Vec<_>>()
+        .join(",");
+    field!("\"missing_operation_ids\"", format!("[{missing}]"));
+
+    let assignments = result
+        .plan
+        .assignments
+        .iter()
+        .map(|item| {
+            format!(
+                "{{\"operation_id\":{},\"resource_id\":{},\"start_tick\":{},\"end_tick\":{},\"frozen\":{}}}",
+                json_quote(&item.operation_id),
+                json_quote(&item.resource_id),
+                item.start_tick,
+                item.end_tick,
+                item.frozen
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    field!("\"assignments\"", format!("[{assignments}]"));
+
+    let diagnostics = result
+        .audit
+        .diagnostics
+        .iter()
+        .map(|item| {
+            format!(
+                "{{\"code\":{},\"operation_id\":{},\"detail\":{}}}",
+                json_quote(&item.code),
+                optional_string_json(item.operation_id.as_deref()),
+                json_quote(&item.detail)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    field!("\"audit_diagnostics\"", format!("[{diagnostics}]"));
+
+    let policy_diagnostics = result
+        .plan
+        .diagnostics
+        .iter()
+        .map(|item| {
+            format!(
+                "{{\"code\":{},\"operation_id\":{},\"detail\":{}}}",
+                json_quote(&item.code),
+                optional_string_json(item.operation_id.as_deref()),
+                json_quote(&item.detail)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    field!("\"policy_diagnostics\"", format!("[{policy_diagnostics}]"));
+
+    field!("\"decision_tick\"", result.plan.decision_tick.to_string());
+    field!("\"horizon_end_tick\"", result.plan.horizon_end_tick.to_string());
+    let _ = write!(output, "}}");
+    output
+}
+
+/// Produce deterministic JSON Lines, one row per rule outcome, preserving all
+/// rejected and partial results. The caller must append these bytes to the
+/// experiment ledger and retain the exact source/runner receipt separately.
+///
+/// A "feasible" row is explicitly scoped to the current abstract evaluator; it
+/// must not be presented as spatial/physical yard feasibility.
+pub fn serialize_result_ledger(
+    context: &ExperimentLedgerContext,
+    results: &[EvaluatedRule],
+) -> Result<String, String> {
+    for (name, value) in [
+        ("benchmark_release_id", context.benchmark_release_id.as_str()),
+        ("episode_id", context.episode_id.as_str()),
+        ("replicate_id", context.replicate_id.as_str()),
+        ("budget_profile_id", context.budget_profile_id.as_str()),
+        ("policy_revision", context.policy_revision.as_str()),
+        ("evaluator_revision", context.evaluator_revision.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(format!("{name} must not be empty"));
+        }
+    }
+    require_digest("initial_state_sha256", &context.initial_state_sha256)?;
+    require_digest("disturbance_tape_sha256", &context.disturbance_tape_sha256)?;
+
+    let mut ordered: Vec<&EvaluatedRule> = results.iter().collect();
+    ordered.sort_by_key(|result| rule_id(result.rule));
+    let mut output = String::new();
+    for result in ordered {
+        output.push_str(&encode_result(context, result));
+        output.push('\n');
+    }
+    Ok(output)
+}
+
+#[cfg(test)]
+mod ledger_tests {
+    use super::*;
+    use shipyard_dispatch_audit::EvaluatorOutage;
+    use shipyard_observed_dispatch::{Commitment, DispatchInput, Operation, Resource, VisibleOutage};
+
+    fn context() -> ExperimentLedgerContext {
+        ExperimentLedgerContext {
+            benchmark_release_id: "synthetic-dispatch-v0".to_owned(),
+            episode_id: "episode-1".to_owned(),
+            replicate_id: "seed-0001".to_owned(),
+            initial_state_sha256: "a".repeat(64),
+            disturbance_tape_sha256: "b".repeat(64),
+            budget_profile_id: "no-search-deterministic-v0".to_owned(),
+            policy_revision: "policy-revision-sha".to_owned(),
+            evaluator_revision: "evaluator-revision-sha".to_owned(),
+        }
+    }
+
+    fn input() -> DispatchInput {
+        DispatchInput {
+            decision_tick: 0,
+            horizon_end_tick: 10,
+            operations: vec![Operation {
+                id: "weld".to_owned(),
+                order: 0,
+                release_tick: 0,
+                due_tick: 5,
+                duration_ticks: 2,
+                resource_kind: "welder".to_owned(),
+                predecessor_ids: vec![],
+            }],
+            resources: vec![Resource {
+                id: "w-1".to_owned(),
+                kind: "welder".to_owned(),
+            }],
+            completed: vec![],
+            commitments: Vec::<Commitment>::new(),
+            visible_outages: vec![],
+        }
+    }
+
+    #[test]
+    fn ledger_emits_four_stable_rows_with_separate_metrics() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        let rows = serialize_result_ledger(&context(), &results).expect("valid identity");
+        assert_eq!(rows.lines().count(), 4);
+        assert!(rows.contains("\"terminal_status\":\"feasible\""));
+        assert!(rows.contains("\"feasibility_scope\":\"abstract-unary-resource-time-v0\""));
+        assert!(rows.contains("\"total_tardiness_ticks\":0"));
+        assert!(rows.contains("\"occupied_resource_ticks\":2"));
+        assert!(!rows.contains("winner_score"));
+        let keys = rows
+            .lines()
+            .map(|line| {
+                let marker = "\"policy_id\":\"";
+                let start = line.find(marker).expect("policy ID") + marker.len();
+                let end = line[start..].find('"').expect("quote") + start;
+                line[start..end].to_owned()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            keys,
+            vec!["critical_ratio", "earliest_due_date", "fixed_order", "least_slack"]
+        );
+        for line in rows.lines() {
+            assert!(line.starts_with('{') && line.ends_with('}'));
+        }
+    }
+
+    #[test]
+    fn ledger_preserves_rejections_and_every_candidate_assignment() {
+        let mut scenario = input();
+        scenario.visible_outages.push(VisibleOutage {
+            event_id: "known-outage".to_owned(),
+            resource_id: "w-1".to_owned(),
+            effective_from_tick: 0,
+            effective_until_tick: 5,
+            observed_at_tick: 0,
+        });
+        let evaluator = vec![EvaluatorOutage {
+            event_id: "known-outage".to_owned(),
+            resource_id: "w-1".to_owned(),
+            effective_from_tick: 0,
+            effective_until_tick: 5,
+        }];
+        let results = evaluate_four_rules(&scenario, &[], &evaluator).expect("valid history");
+        let rows = serialize_result_ledger(&context(), &results).expect("identity valid");
+        assert_eq!(rows.lines().count(), 4);
+        assert!(rows.contains("\"terminal_status\":\"invalid_candidate\""));
+        assert!(rows.contains("\"ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE\""));
+        assert!(rows.contains("\"assignments\":[{"));
+    }
+
+    #[test]
+    fn ledger_rejects_missing_or_malformed_source_digests() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        let mut identity = context();
+        identity.disturbance_tape_sha256 = "not-a-digest".to_owned();
+        assert!(serialize_result_ledger(&identity, &results)
+            .expect_err("invalid tape digest")
+            .contains("64 hexadecimal"));
+    }
+
+    #[test]
+    fn json_string_encoding_is_valid_for_controls_quotes_and_unicode() {
+        let encoded = json_quote("quote=\"; slash=\\; line=\n; rocket=🚀");
+        assert_eq!(
+            encoded,
+            r#""quote=\"; slash=\\; line=\n; rocket=🚀""#
+        );
+    }
+}
