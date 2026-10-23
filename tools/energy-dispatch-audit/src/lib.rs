@@ -780,6 +780,19 @@ mod tests {
     }
 
     #[test]
+    fn omitted_pareto_tradeoff_is_rejected_even_when_receipt_is_resealed() {
+        let mut report = make_valid_report(REQUEST.as_bytes());
+        report.assessment.pareto_alternatives.pop();
+        report.assessment.pareto_frontier_count = report.assessment.pareto_alternatives.len();
+        report.receipt.assessment_sha256 = sha256_hex(&serde_json::to_vec(&report.assessment).unwrap());
+
+        let audited = audit_report(REQUEST.as_bytes(), &report);
+        assert_eq!(audited.status, "fail");
+        assert_eq!(audited.reference_frontier_status, "fail");
+        assert!(audited.checks.iter().any(|c| c.id == "independent_reference_frontier" && c.status == "fail"));
+    }
+
+    #[test]
     fn mutated_assessment_without_receipt_refresh_is_rejected() {
         let mut report = make_valid_report(REQUEST.as_bytes());
         report.assessment.pareto_alternatives[0].schedule[1].essential_served_quanta = 1;
