@@ -62,6 +62,7 @@ The companion binary `resilience_ensemble` evaluates **the same declared policy 
 - upper-tail conditional value at risk (CVaR) of service shortfall at a declared confidence level;
 - worst-case service shortfall across the included episodes;
 - probability of at least one service-floor breach;
+- per-scenario service fraction, shortfall, gate outcome and breach duration so aggregate metrics never discard which episode failed;
 - expected service-floor breach hours;
 - probability-weighted fuel intensity when defined for every included episode.
 
