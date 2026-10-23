@@ -14,6 +14,7 @@ use symthaea_multirotor::{
 };
 use symtropy_real_symthaea_physics_loop::{
     bounded_residual::ResidualEnvelope,
+    risk_metrics::empirical_upper_tail_mean,
     scenario_matrix::{scenarios_for_split, training_setpoints, FlightScenario, ScenarioSplit},
     symtropy_flight::SymtropyFlightSimulator,
 };
@@ -55,21 +56,6 @@ fn mean(values: &[f64]) -> f64 {
     } else {
         values.iter().sum::<f64>() / values.len() as f64
     }
-}
-
-/// Empirical upper-tail mean: mean of the largest ceil((1-q) * n) observations.
-/// With fewer than ten observations CVaR90 is necessarily coarse; CI smoke output
-/// is diagnostic only and must never be used as a confirmatory tail-risk estimate.
-fn upper_tail_mean(values: &[f64], quantile: f64) -> Option<f64> {
-    if values.is_empty() || !quantile.is_finite() || !(0.0..1.0).contains(&quantile) {
-        return None;
-    }
-    let mut sorted = values.to_vec();
-    sorted.sort_by(f64::total_cmp);
-    let count = (((1.0 - quantile) * sorted.len() as f64).ceil() as usize)
-        .max(1)
-        .min(sorted.len());
-    Some(mean(&sorted[sorted.len() - count..]))
 }
 
 
@@ -311,7 +297,7 @@ fn main() {
                 "scenario_trial_observation_count": rmse_by_authority[i].len(),
                 "mean_rmse_m": mean(&rmse_by_authority[i]),
                 "p95_rmse_m": percentile(&rmse_by_authority[i], 0.95),
-                "empirical_cvar90_rmse_m": upper_tail_mean(&rmse_by_authority[i], 0.90),
+                "empirical_cvar90_rmse_m": empirical_upper_tail_mean(&rmse_by_authority[i], 0.90),
                 "worst_observed_rmse_m": rmse_by_authority[i]
                     .iter().copied().max_by(f64::total_cmp),
                 "ground_contact_episode_rate": mean(&contact_episode_flags_by_authority[i]),
