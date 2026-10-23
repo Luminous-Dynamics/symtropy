@@ -576,6 +576,66 @@ mod tests {
         assert!((rotated_x[0] - yaw.cos()).abs() < 1.0e-10);
         assert!((rotated_x[1] - yaw.sin()).abs() < 1.0e-10);
         assert!(left_arm.transform.rotation.is_proper_rotation(1.0e-8));
+
+        let right_arm_handle = assembly
+            .handle_for_link("right_upper_arm")
+            .expect("right arm");
+        let right_arm = physics.body(right_arm_handle).expect("right arm body");
+        assert!((right_arm.transform.translation.0[0] - yaw.sin() * 0.19).abs() < 1.0e-10);
+        assert!((right_arm.transform.translation.0[1] + yaw.cos() * 0.19).abs() < 1.0e-10);
+        assert!((right_arm.transform.translation.0[2] - left_arm.transform.translation.0[2]).abs() < 1.0e-12);
+        assert!(right_arm.transform.rotation.is_proper_rotation(1.0e-8));
+    }
+
+    #[test]
+    fn bounded_joint_state_sweep_keeps_every_imported_pose_finite_and_proper() {
+        let morphology: CareframeMorphology =
+            serde_json::from_str(MORPHOLOGY_JSON).expect("morphology parses");
+        validate_morphology(&morphology).expect("frozen morphology is valid");
+        let revolute = morphology
+            .joints
+            .iter()
+            .filter(|joint| joint.joint_type == "revolute")
+            .collect::<Vec<_>>();
+        assert_eq!(revolute.len(), 9);
+
+        // Deterministic boundary-rich coverage: no RNG or hidden seed dependency.
+        for sample in 0..32usize {
+            let mut state = BTreeMap::new();
+            for (joint_index, joint) in revolute.iter().enumerate() {
+                let slot = (sample * 17 + joint_index * 29) % 101;
+                let fraction = slot as f64 / 100.0;
+                let position = joint.lower_limit_rad
+                    + fraction * (joint.upper_limit_rad - joint.lower_limit_rad);
+                state.insert(joint.joint_id.clone(), position);
+            }
+            let state_json = serde_json::to_string(&state).expect("state serializes");
+            let mut physics = world();
+            let assembly = spawn_static_collision_assembly(
+                &mut physics,
+                MORPHOLOGY_JSON,
+                &state_json,
+                Point::new([sample as f64 * 0.25, -0.5, 0.25]),
+            )
+            .expect("all generated joint states remain within declared limits");
+            assert_eq!(assembly.len(), 16);
+            assert_eq!(physics.body_count(), 16);
+            assert!(physics.constraints.is_empty());
+
+            for handle in assembly.link_handles.values() {
+                let body = physics.body(*handle).expect("each proxy resolves");
+                assert_eq!(body.body_type, BodyType::Static);
+                assert!(
+                    body.transform.translation.0.iter().all(|value| value.is_finite()),
+                    "non-finite link translation in sample {sample}"
+                );
+                assert!(
+                    body.transform.rotation.is_proper_rotation(1.0e-7),
+                    "improper rotation in sample {sample}"
+                );
+                assert!(body.collider.as_any().downcast_ref::<HyperBox<3>>().is_some());
+            }
+        }
     }
 
     #[test]
