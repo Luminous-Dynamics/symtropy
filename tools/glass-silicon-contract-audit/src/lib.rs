@@ -1,6 +1,11 @@
+use md5::Md5;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, File};
+use std::io::Read;
+use std::path::{Component, Path};
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct AuditReport {
@@ -448,6 +453,267 @@ pub fn audit_corpus(schema: &Value, corpus: &Value) -> AuditReport {
         report.fail("PILOT_MATURITY_CONTROL", "missing planned-pilot qualification abstention control");
     }
 
+    report.finish();
+    report
+}
+
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ArtifactFileHash {
+    pub filename: String,
+    pub size_bytes: Option<u64>,
+    pub published_md5: Option<String>,
+    pub observed_md5: Option<String>,
+    pub md5_matches: Option<bool>,
+    pub expected_sha256: Option<String>,
+    pub observed_sha256: Option<String>,
+    pub sha256_matches: Option<bool>,
+    pub file_status: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ArtifactHashReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub artifact_id: String,
+    pub source_ref: Option<String>,
+    pub source_record_status: Option<String>,
+    pub rights_status: Option<String>,
+    pub manifest_sha256_status: Option<String>,
+    pub manifest_admission_status: Option<String>,
+    pub files: Vec<ArtifactFileHash>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl ArtifactHashReport {
+    fn fail(&mut self, code: &str, detail: impl AsRef<str>) {
+        self.status = "FAIL".to_string();
+        self.findings.push(format!("{code}:{}", detail.as_ref()));
+    }
+
+    fn finish(&mut self) {
+        self.files.sort_by(|a, b| a.filename.cmp(&b.filename));
+        self.findings.sort();
+        self.findings.dedup();
+    }
+
+    /// Exit 0 means local files were read and each published MD5 matched.
+    /// It does not mean the artifact is rights-cleared or admitted as benchmark data.
+    pub fn exit_code(&self) -> i32 {
+        if self.status == "FAIL" { 2 } else { 0 }
+    }
+}
+
+fn is_lower_hex_digest(value: &str, length: usize) -> bool {
+    value.len() == length
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn is_safe_artifact_filename(value: &str) -> bool {
+    if value.trim().is_empty()
+        || value == "."
+        || value == ".."
+        || value.contains('/')
+        || value.contains('\\')
+        || value.contains('\0')
+    {
+        return false;
+    }
+    let path = Path::new(value);
+    !path.is_absolute()
+        && path.components().count() == 1
+        && matches!(path.components().next(), Some(Component::Normal(_)))
+}
+
+fn hash_file_md5_sha256(path: &Path) -> std::io::Result<(u64, String, String)> {
+    let mut file = File::open(path)?;
+    let mut md5 = Md5::new();
+    let mut sha256 = Sha256::new();
+    let mut bytes = 0u64;
+    let mut buffer = [0u8; 64 * 1024];
+
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        bytes = bytes.saturating_add(count as u64);
+        md5.update(&buffer[..count]);
+        sha256.update(&buffer[..count]);
+    }
+
+    Ok((
+        bytes,
+        format!("{:x}", md5.finalize()),
+        format!("{:x}", sha256.finalize()),
+    ))
+}
+
+/// Hashes files already present in a caller-supplied directory against the
+/// manifest's published MD5 values and reports candidate SHA-256 digests.
+/// It never downloads files, changes the manifest, resolves rights, or admits data.
+/// MD5 is used only for legacy source-record corroboration, not as a security primitive.
+pub fn hash_artifact_files(
+    corpus: &Value,
+    artifact_id: &str,
+    directory: &Path,
+) -> ArtifactHashReport {
+    let mut report = ArtifactHashReport {
+        status: "HASHED_PENDING_ADMISSION".to_string(),
+        audit_kind: "source_artifact_hash_receipt".to_string(),
+        artifact_id: artifact_id.to_string(),
+        source_ref: None,
+        source_record_status: None,
+        rights_status: None,
+        manifest_sha256_status: None,
+        manifest_admission_status: None,
+        files: Vec::new(),
+        findings: Vec::new(),
+        claim_ceiling: "Hashes caller-supplied local files only. This receipt does not establish reuse rights, prove a source's authorship, update the corpus manifest, validate scientific results, or admit the archive as benchmark data.".to_string(),
+    };
+
+    let records = corpus.get("artifact_admission").and_then(Value::as_array);
+    let Some(record) = records.and_then(|items| {
+        items.iter().find(|item| item.get("artifact_id").and_then(Value::as_str) == Some(artifact_id))
+    }) else {
+        report.fail("ARTIFACT_RECORD_MISSING", "artifact_id is not present in artifact_admission");
+        report.finish();
+        return report;
+    };
+
+    report.source_ref = object_string(record, "source_ref").map(ToOwned::to_owned);
+    report.source_record_status = object_string(record, "record_status").map(ToOwned::to_owned);
+    report.rights_status = object_string(record, "rights_status").map(ToOwned::to_owned);
+    report.manifest_sha256_status = object_string(record, "sha256_status").map(ToOwned::to_owned);
+    report.manifest_admission_status = object_string(record, "benchmark_admission_status").map(ToOwned::to_owned);
+
+    let Some(manifest_files) = record.get("files").and_then(Value::as_array) else {
+        report.fail("ARTIFACT_FILE_LIST_MISSING", "artifact record has no files array");
+        report.finish();
+        return report;
+    };
+    if manifest_files.is_empty() {
+        report.fail("ARTIFACT_FILE_LIST_EMPTY", "artifact record has an empty files array");
+        report.finish();
+        return report;
+    }
+
+    let canonical_directory = match fs::canonicalize(directory) {
+        Ok(path) if path.is_dir() => path,
+        _ => {
+            report.fail("ARTIFACT_DIRECTORY_UNAVAILABLE", "local artifact directory cannot be resolved");
+            report.finish();
+            return report;
+        }
+    };
+
+    for manifest_file in manifest_files {
+        let filename = nonempty_string(manifest_file, "filename").unwrap_or_default();
+        let expected_md5 = nonempty_string(manifest_file, "published_checksum");
+        let expected_sha256 = match manifest_file.get("sha256") {
+            Some(Value::Null) | None => None,
+            Some(Value::String(value)) => Some(value.clone()),
+            _ => {
+                report.fail("ARTIFACT_SHA256_TYPE", format!("{filename}: sha256 must be a string or null"));
+                None
+            }
+        };
+
+        let mut file_receipt = ArtifactFileHash {
+            filename: filename.clone(),
+            size_bytes: None,
+            published_md5: expected_md5.clone(),
+            observed_md5: None,
+            md5_matches: None,
+            expected_sha256: expected_sha256.clone(),
+            observed_sha256: None,
+            sha256_matches: None,
+            file_status: "UNRESOLVED".to_string(),
+        };
+
+        if !is_safe_artifact_filename(&filename) {
+            report.fail("ARTIFACT_FILENAME_UNSAFE", format!("unsafe artifact filename: {filename}"));
+            file_receipt.file_status = "FAIL".to_string();
+            report.files.push(file_receipt);
+            continue;
+        }
+
+        if object_string(manifest_file, "published_checksum_algorithm") != Some("MD5")
+            || expected_md5.as_deref().map_or(true, |value| !is_lower_hex_digest(value, 32))
+        {
+            report.fail("ARTIFACT_PUBLISHED_MD5_INVALID", format!("{filename}: expected a valid published MD5"));
+        }
+
+        if expected_sha256.as_deref().is_some_and(|value| !is_lower_hex_digest(value, 64)) {
+            report.fail("ARTIFACT_EXPECTED_SHA256_INVALID", format!("{filename}: expected SHA-256 is malformed"));
+        }
+
+        let candidate_path = canonical_directory.join(&filename);
+        let canonical_path = match fs::canonicalize(&candidate_path) {
+            Ok(path) => path,
+            Err(_) => {
+                report.fail("ARTIFACT_FILE_UNAVAILABLE", format!("local artifact file not found or unreadable: {filename}"));
+                file_receipt.file_status = "FAIL".to_string();
+                report.files.push(file_receipt);
+                continue;
+            }
+        };
+
+        if !canonical_path.starts_with(&canonical_directory) || !canonical_path.is_file() {
+            report.fail("ARTIFACT_PATH_ESCAPE", format!("resolved artifact file escapes the supplied directory or is not a file: {filename}"));
+            file_receipt.file_status = "FAIL".to_string();
+            report.files.push(file_receipt);
+            continue;
+        }
+
+        match hash_file_md5_sha256(&canonical_path) {
+            Ok((size, observed_md5, observed_sha256)) => {
+                file_receipt.size_bytes = Some(size);
+                file_receipt.observed_md5 = Some(observed_md5.clone());
+                file_receipt.observed_sha256 = Some(observed_sha256.clone());
+
+                if let Some(expected) = expected_md5.as_deref().filter(|value| is_lower_hex_digest(value, 32)) {
+                    let matches = observed_md5 == expected;
+                    file_receipt.md5_matches = Some(matches);
+                    if !matches {
+                        report.fail("ARTIFACT_PUBLISHED_MD5_MISMATCH", format!("{filename}: locally computed MD5 does not match source record"));
+                    }
+                }
+
+                if let Some(expected) = expected_sha256.as_deref().filter(|value| is_lower_hex_digest(value, 64)) {
+                    let matches = observed_sha256 == expected;
+                    file_receipt.sha256_matches = Some(matches);
+                    if !matches {
+                        report.fail("ARTIFACT_PINNED_SHA256_MISMATCH", format!("{filename}: locally computed SHA-256 differs from the existing manifest pin"));
+                    }
+                }
+
+                if report.status != "FAIL" || report.findings.iter().all(|finding| !finding.contains(&filename)) {
+                    file_receipt.file_status = "HASHED".to_string();
+                } else {
+                    file_receipt.file_status = "FAIL".to_string();
+                }
+                report.files.push(file_receipt);
+            }
+            Err(_) => {
+                report.fail("ARTIFACT_FILE_READ_FAILED", format!("failed while reading artifact file: {filename}"));
+                file_receipt.file_status = "FAIL".to_string();
+                report.files.push(file_receipt);
+            }
+        }
+    }
+
+    if report.status != "FAIL" {
+        report.status = "HASHED_PENDING_ADMISSION".to_string();
+        if report.rights_status.as_deref() != Some("resolved") {
+            report.findings.push("RIGHTS_REVIEW_STILL_REQUIRED".to_string());
+        }
+        report.findings.push("MANIFEST_NOT_MODIFIED".to_string());
+        report.findings.push("HASH_RECEIPT_DOES_NOT_ADMIT_DATA".to_string());
+    }
     report.finish();
     report
 }
