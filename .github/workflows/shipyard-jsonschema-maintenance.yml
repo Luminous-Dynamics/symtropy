@@ -1,0 +1,38 @@
+name: Maintain shipyard Draft 2020-12 validator
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  maintain:
+    name: Manually pin lockfile and apply Rust 1.96 formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Generate dependency lockfile
+        run: cargo generate-lockfile --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Apply pinned formatting
+        run: cargo fmt --manifest-path tools/shipyard-jsonschema-validator/Cargo.toml
+      - name: Commit lockfile and formatting changes
+        env:
+          HEAD_REF: ${{ github.ref_name }}
+        run: |
+          if [ -z "$(git status --porcelain -- tools/shipyard-jsonschema-validator)" ]; then
+            echo "Lockfile and formatting already match."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/shipyard-jsonschema-validator
+          git commit -m "build(shipyard): pin schema validator lockfile and formatting"
+          git push origin "HEAD:${HEAD_REF}"
