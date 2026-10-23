@@ -702,8 +702,7 @@ fn validate_morphology(model: &Value) -> Vec<String> {
     }
     if bool_at(controller, "kinematics_only") != Some(true)
         || bool_at(controller, "commands_enabled") != Some(false)
-        || str_at(controller, "inertia_source")
-            != Some("derived_from_synthetic_bounding_primitives")
+        || str_at(controller, "inertia_source") != Some("not_provided_kinematic_only")
     {
         push_findings(&mut findings, "MORPHOLOGY_CONTROLLER_NOT_DISABLED");
     }
