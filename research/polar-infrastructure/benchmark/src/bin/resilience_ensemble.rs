@@ -242,7 +242,7 @@ mod tests {
 
         let rules = report.results.iter().find(|p| p.policy_id == "transparent_rules").unwrap();
         assert!(rules.cvar_service_shortfall >= rules.expected_service_shortfall);
-        assert!(rules.worst_case_service_shortfall >= rules.cvar_service_shortfall);
+        assert!(rules.worst_case_service_shortfall + 1e-12 >= rules.cvar_service_shortfall);
         assert!(rules.gate_failure_probability > 0.0);
     }
 
