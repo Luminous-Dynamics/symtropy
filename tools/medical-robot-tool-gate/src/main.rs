@@ -1223,6 +1223,12 @@ fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
 }
 
 fn export_urdf_file(model_path: &str, output_path: &str) {
+    if fs::canonicalize(model_path).ok() == fs::canonicalize(output_path).ok()
+        && fs::canonicalize(model_path).is_ok()
+    {
+        eprintln!("input morphology and output URDF must not resolve to the same file");
+        process::exit(2);
+    }
     let (model_bytes, model) = match load_json(model_path) {
         Ok(value) => value,
         Err(error) => {
