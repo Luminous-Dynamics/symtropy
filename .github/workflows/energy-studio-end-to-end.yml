@@ -340,6 +340,27 @@ jobs:
           cat "$context/qualification.log"
           sha256sum "$context"/*.json
 
+      - name: Run actual Sol-Atlas dispatch on three-interval known-answer case
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/multi-interval-context"
+          mkdir -p "$context"
+
+          request="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/three-interval-stress.request.json"
+          cp "$request" "$context/request.json"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+
+          "$dispatch" "$context/request.json" > "$context/dispatch-report.json"
+          "$auditor" "$context/request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
+          "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context"/*.json
+
       - name: Build digest-bound benchmark ledger
         shell: bash
         run: |
@@ -361,6 +382,7 @@ jobs:
             ${{ runner.temp }}/energy-studio/manifest-generation.elapsed_ns
             ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
             ${{ runner.temp }}/energy-studio/objective-context/*
+            ${{ runner.temp }}/energy-studio/multi-interval-context/*
             ${{ runner.temp }}/energy-studio/*.Cargo.lock
             ${{ runner.temp }}/energy-studio/synthetic-*/*.json
             ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
