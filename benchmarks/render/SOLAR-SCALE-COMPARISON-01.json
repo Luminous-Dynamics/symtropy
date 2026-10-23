@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "SOLAR-SCALE-COMPARISON-01",
+  "status": "proposed_unmeasured",
+  "purpose": "Reproducible correctness/performance comparison protocol for scale-aware representations from local detail to solar-system overview. This is a workload contract, not a result.",
+  "source_workload": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "path": "benchmarks/render/SOLAR-SCALE-01.json",
+    "expected_git_blob_sha": "5f247eb0b872938a4013c52e02a729a3fe5c39a9",
+    "pin_rule": "A run must record the exact source commit and SHA-256 of the workload bytes; a changed source workload requires a new receipt and must not inherit previous results."
+  },
+  "comparison_tracks": [
+    {
+      "track_id": "POLICY_CONFORMANCE",
+      "status": "implementable_without_renderer",
+      "objective": "Measure pure-Rust hierarchy/apparent-size decision correctness before comparing graphics backends.",
+      "compared_profiles": [
+        {
+          "profile_id": "reference-high-fidelity",
+          "screen_space_error_px": 8,
+          "reference": "Cesium documents 8–16 as a common higher-fidelity starting range."
+        },
+        {
+          "profile_id": "reference-default",
+          "screen_space_error_px": 16,
+          "reference": "Cesium3DTileset documents maximumScreenSpaceError default 16."
+        },
+        {
+          "profile_id": "reference-performance",
+          "screen_space_error_px": 32,
+          "reference": "Within Cesium's documented 24–64 performance-oriented starting range."
+        },
+        {
+          "profile_id": "reference-high-performance",
+          "screen_space_error_px": 64,
+          "reference": "Within Cesium's documented 24–64 performance-oriented starting range."
+        }
+      ],
+      "note": "These are comparable pixel-error policy settings, not a claim that Symtropy and Cesium implement identical LOD algorithms or have already been compared."
+    },
+    {
+      "track_id": "MATCHED_RENDERER",
+      "status": "blocked_until_common_dataset_adapter_exists",
+      "objective": "Compare actual renderers only when both can consume identical canonical geometry, camera samples, visibility rules and asset-residency scenarios.",
+      "required_controls": [
+        "same source geometry and asset bytes",
+        "same camera path and physical viewport dimensions",
+        "same field of view, clipping/depth configuration and visibility rules where supported",
+        "same target hardware, OS, driver and GPU backend where feasible",
+        "separately reported backend/toolchain versions and supported feature differences",
+        "independent projection/geometry oracle for correctness scoring"
+      ],
+      "non_comparability_rule": "Do not publish a head-to-head performance claim when source geometry, content completeness, camera samples or visual-error definitions differ."
+    }
+  ],
+  "workload_cases": [
+    {
+      "case_id": "LOCAL_DETAIL",
+      "source_stage": "LOCAL-INSPECTION",
+      "risk": "selected feature/contact disappears during coarsening",
+      "mandatory_outcome": "selected content remains visible, or an explicit protected-detail-unavailable result is emitted"
+    },
+    {
+      "case_id": "SURFACE_STREAMING",
+      "source_stage": "PLANET-SURFACE",
+      "risk": "missing child tiles create false empty space",
+      "mandatory_outcome": "retain a ready parent until fully covering replacement content is resident; otherwise fail explicitly"
+    },
+    {
+      "case_id": "ORBIT_TRANSITION",
+      "source_stage": "LOW-ORBIT",
+      "risk": "origin jump or proxy scale discontinuity",
+      "mandatory_outcome": "canonical positions remain unchanged and the camera-relative discontinuity stays within the fixture budget"
+    },
+    {
+      "case_id": "EARTH_MOON",
+      "source_stage": "EARTH-MOON",
+      "risk": "large-world subtraction loses local detail",
+      "mandatory_outcome": "position/projection error remains under the independent oracle limits"
+    },
+    {
+      "case_id": "INNER_OUTER_SYSTEM",
+      "source_stage": "OUTER-SYSTEM",
+      "risk": "absolute f32 coordinate use or excessive size exaggeration",
+      "mandatory_outcome": "no absolute-f32 astronomical placement; actual physical radius remains separate from presentation radius"
+    },
+    {
+      "case_id": "RETURN_ROUND_TRIP",
+      "source_stage": "RETURN-TO-LOCAL",
+      "risk": "selected feature identity lost after scale transitions",
+      "mandatory_outcome": "the same semantic entity and canonical position are restored"
+    },
+    {
+      "case_id": "ADVERSARIAL_RESIDENCY",
+      "source_stage": "MULTI-STAGE",
+      "risk": "loading, unavailable assets, invalid coverage claims or shuffled ECS ordering alter the result",
+      "mandatory_outcome": "fail-closed coverage policy and deterministic semantic selection"
+    }
+  ],
+  "hard_acceptance_gates": [
+    {
+      "gate_id": "G1",
+      "metric": "semantic_identity_loss_count",
+      "limit": 0
+    },
+    {
+      "gate_id": "G2",
+      "metric": "unauthorized_selected_or_task_critical_content_drop_count",
+      "limit": 0
+    },
+    {
+      "gate_id": "G3",
+      "metric": "uncertified_replacement_hole_count",
+      "limit": 0
+    },
+    {
+      "gate_id": "G4",
+      "metric": "coordinate_or_projection_error_budget_violation_count",
+      "limit": 0
+    },
+    {
+      "gate_id": "G5",
+      "metric": "non_deterministic_selection_count_over_100_input_permutations",
+      "limit": 0
+    },
+    {
+      "gate_id": "G6",
+      "metric": "invalid_or_missing_content_silently_treated_as_empty_count",
+      "limit": 0
+    }
+  ],
+  "measurement_protocol": {
+    "correctness": "Run policy conformance and independent-oracle assertions before recording any performance result. Preserve negative controls proving that invalid coverage, wrong frames and missing critical content are rejected.",
+    "rendered_runs": {
+      "warmup_frames": 120,
+      "measured_frames_per_repeat": 1000,
+      "minimum_repeats": 5,
+      "report_each_repeat": true,
+      "aggregate": "median and spread of repeat-level p50/p95/p99; do not pool samples in a way that hides run-to-run variation"
+    },
+    "timing": "Record CPU frame interval and GPU timestamp where supported; do not infer GPU time from CPU wall time.",
+    "deterministic_cases": "Freeze camera waypoints and synthetic asset-residency event streams. Seed any stochastic generator and record its seed.",
+    "build": "Record exact commit SHA, fixture SHA-256, dependency lockfile digest, Rust toolchain, build profile, feature flags and shader/asset digests.",
+    "hardware": "Record CPU, GPU, memory, OS/kernel, graphics driver, API/backend, display/render resolution, power profile and thermal state when available.",
+    "unavailable_measurement": "If the runtime or required instrumentation is unavailable, report null with a reason; never substitute a synthetic estimate for a measurement."
+  },
+  "performance_targets": {
+    "status": "proposed_targets_not_qualified",
+    "frame_interval_targets_ms": [
+      {
+        "profile_id": "interactive-60fps",
+        "p95_max_ms": 16.7,
+        "p99_max_ms": 25
+      },
+      {
+        "profile_id": "interactive-30fps",
+        "p95_max_ms": 33.3,
+        "p99_max_ms": 50
+      }
+    ],
+    "note": "These are engineering targets for measured frame intervals, not assertions about current Symtropy performance. GPU time, correctness and memory must be reported alongside them."
+  },
+  "required_report_fields": [
+    "source_commit_sha",
+    "workload_sha256",
+    "renderer_revision",
+    "baseline_renderer_revision_if_any",
+    "hardware_and_driver_identity",
+    "render_resolution_and_backend",
+    "screen_space_error_profile",
+    "position_and_projection_error_p50_p95_max",
+    "semantic_identity_loss_count",
+    "protected_content_drop_count",
+    "uncertified_hole_count",
+    "temporal_chatter_and_pop_count",
+    "camera_transition_discontinuity_count",
+    "frame_interval_p50_p95_p99",
+    "gpu_timestamp_p50_p95_p99_when_supported",
+    "peak_cpu_memory_bytes",
+    "peak_gpu_memory_bytes_when_supported",
+    "resident_asset_bytes",
+    "assets_requested_and_missing_count",
+    "selected_representation_count",
+    "warmup_and_measured_frame_counts",
+    "per_repeat_results",
+    "claim_ceiling"
+  ],
+  "claim_ceiling": [
+    "Fixture and protocol only; no performance result is implied.",
+    "A screen-space-error setting is not itself evidence of equal visual quality across engines.",
+    "Do not claim SOTA or superiority until a matched renderer track produces reproducible measurements on the same workload.",
+    "Synthetic orbit guides and static illustrative positions are not an astronomical ephemeris.",
+    "No performance improvement may trade away protected-content retention, coordinate correctness, or complete-coverage invariants."
+  ],
+  "references": [
+    {
+      "name": "Cesium3DTileset maximumScreenSpaceError API",
+      "url": "https://cesium.com/learn/cesiumjs/ref-doc/Cesium3DTileset.html?classFilter=cesi",
+      "relevance": "Documents screen-space-error refinement and a default value of 16."
+    },
+    {
+      "name": "Cesium 3D Gaussian Splat LOD guidance",
+      "url": "https://cesium.com/learn/cesiumjs-learn/3d-guassian-splat-tilesets-lods/",
+      "relevance": "Describes common starting ranges of 8–16 for higher fidelity and 24–64 for performance-oriented views."
+    },
+    {
+      "name": "OGC 3D Tiles 1.1",
+      "url": "https://docs.ogc.org/cs/22-025r4/22-025r4.html",
+      "relevance": "Reference for mature hierarchical geospatial content and geometric-error semantics."
+    }
+  ]
+}
