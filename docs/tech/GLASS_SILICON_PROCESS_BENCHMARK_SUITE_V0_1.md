@@ -191,3 +191,12 @@ Next sequence:
 ### Claim ceiling
 
 This benchmark does not establish that any new material recipe works, a model is physically valid, any plant can save 5–10% energy, a lower-carbon route is commercially mature, an industrial facility is safe, or that our stack beats state of the art. Those claims require the corresponding independent evidence.
+
+
+## Follow-on implementation status — 2026-10-23
+
+The standalone Rust verifier now has an additional `audit-decision-value` command for the synthetic finite-pool contract in [GLASS-SILICON-DECISION-VALUE-BENCHMARK-V0_1.md](GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md). This complements corpus-integrity and elemental mass-balance checks with exact minimax-regret arithmetic before and after a candidate measurement. It keeps regret reduction, measurement cost, and duration separate; only budget-eligible options enter its one-step oracle and Pareto frontier.
+
+The synthetic known answer has been independently cross-checked outside Rust: baseline worst-case regret 5; informative in-budget measurement regret 0; uninformative measurement gross reduction 0; informative but over-budget measurement excluded. The fixture includes frozen feasibility controls and producer-access contract declarations. These checks validate the example's arithmetic/declared structure only, not a physical scenario or actual process isolation.
+
+The Rust crate now defines **37 unit tests**, but no local Rust toolchain is available in the authoring environment; the tests have not been compiled or executed locally. The current exact-head CI run is the required runtime qualification gate, and a queued state is not a pass. No real source artifacts have been admitted, no SCALE results reproduced, and no decision-policy superiority or process-performance improvement is claimed.
