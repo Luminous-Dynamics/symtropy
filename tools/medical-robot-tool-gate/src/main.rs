@@ -1129,9 +1129,11 @@ fn urdf_vec3(value: &[f64; 3]) -> String {
 /// Exports only a URDF kinematic/collision representation. It intentionally
 /// omits inertial data, transmissions, controllers and actuator interfaces.
 fn export_urdf(model: &Value) -> Result<String, Vec<String>> {
-    let mut findings = validate_morphology(model)
-        .into_iter()
-        .collect::<BTreeSet<_>>();
+    let morphology_findings = validate_morphology(model);
+    if !morphology_findings.is_empty() {
+        return Err(morphology_findings);
+    }
+    let mut findings = BTreeSet::new();
     let Some(links) = model.get("links").and_then(Value::as_array) else {
         return Err(vec!["MORPHOLOGY_LINKS_REQUIRED".to_owned()]);
     };
@@ -1747,7 +1749,9 @@ mod tests {
         assert!(xml.contains("<joint name=\"torso_yaw\" type=\"revolute\">"));
         assert!(xml.contains("<origin xyz=\"0 0 0.22\" rpy=\"0 0 0\"/>"));
         assert!(xml.contains("<axis xyz=\"0 0 1\"/>"));
-        assert!(xml.contains("<limit lower=\"-1.2\" upper=\"1.2\" effort=\"20\" velocity=\"0.35\"/>"));
+        assert!(xml.contains(
+            "<limit lower=\"-1.2\" upper=\"1.2\" effort=\"20\" velocity=\"0.35\"/>"
+        ));
         assert_eq!(xml.matches("<link name=").count(), 16);
         assert_eq!(xml.matches("<joint name=").count(), 15);
         assert_eq!(xml.matches("<collision>").count(), 16);
@@ -1775,10 +1779,12 @@ mod tests {
 
         let mut unsafe_joint = morphology();
         unsafe_joint["joints"][0]["joint_id"] = json!("wheel<drive>");
-        assert!(export_urdf(&unsafe_joint)
-            .expect_err("non-token joint name blocks export")
-            .iter()
-            .any(|finding| finding == "URDF_JOINT_NAME_UNSUPPORTED"));
+        assert!(
+            export_urdf(&unsafe_joint)
+                .expect_err("non-token joint name blocks export")
+                .iter()
+                .any(|finding| finding == "URDF_JOINT_NAME_UNSUPPORTED")
+        );
     }
 
     #[test]
