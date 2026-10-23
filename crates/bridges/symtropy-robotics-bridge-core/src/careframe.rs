@@ -507,6 +507,42 @@ mod tests {
     const ZERO_JOINT_STATE_JSON: &str = include_str!(
         "../../../../docs/medical-robotics/careframe-nominal-joint-state-v0.json"
     );
+    const COLLISION_PROBE_CORPUS_JSON: &str = include_str!(
+        "../../../../docs/medical-robotics/careframe-collision-probe-corpus-v0.1.json"
+    );
+
+    #[derive(Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct CollisionProbeSuite {
+        suite_id: String,
+        suite_version: String,
+        evidence_class: String,
+        claim_ceiling: String,
+        morphology_path: String,
+        joint_state_path: String,
+        base_position_m: [f64; 3],
+        gravity_m_s2: [f64; 3],
+        timestep_s: f64,
+        probe: CollisionProbeSpec,
+        cases: Vec<CollisionProbeCase>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct CollisionProbeSpec {
+        shape: String,
+        radius_m: f64,
+        mass_kg: f64,
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct CollisionProbeCase {
+        case_id: String,
+        position_m: [f64; 3],
+        expected_contact: bool,
+        rationale: String,
+    }
 
     fn world() -> PhysicsWorld<3> {
         PhysicsWorld::new(SVector::<f64, 3>::zeros())
@@ -619,33 +655,60 @@ mod tests {
     }
 
     #[test]
-    fn deterministic_collision_probe_matrix_matches_contact_expectations() {
-        let cases: [(&str, [f64; 3], bool); 8] = [
-            ("front_chassis_face", [0.34, 0.0, 0.0], true),
-            ("rear_chassis_face", [-0.34, 0.0, 0.0], true),
-            ("drive_wheel_outer_face", [0.0, 0.45, 0.0], true),
-            ("head_shell_top", [0.0, 0.0, 0.97], true),
-            ("one_centimetre_chassis_near_miss", [0.37, 0.0, 0.0], false),
-            ("far_positive_x", [2.0, 0.0, 0.0], false),
-            ("far_negative_y", [0.0, -2.0, 0.0], false),
-            ("far_corner", [2.0, 2.0, 2.0], false),
-        ];
+    fn frozen_collision_probe_corpus_matches_contact_expectations() {
+        let suite: CollisionProbeSuite = serde_json::from_str(COLLISION_PROBE_CORPUS_JSON)
+            .expect("frozen collision-probe corpus parses without unknown fields");
+        assert_eq!(suite.suite_id, "CAREFRAME_STATIC_PROXY_COLLISION_PROBE");
+        assert_eq!(suite.suite_version, "0.1.0");
+        assert_eq!(suite.evidence_class, "synthetic_engine_integration");
+        assert!(suite.claim_ceiling.contains("Static collision proxy"));
+        assert_eq!(
+            suite.morphology_path,
+            "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
+        );
+        assert_eq!(
+            suite.joint_state_path,
+            "docs/medical-robotics/careframe-nominal-joint-state-v0.json"
+        );
+        assert_eq!(suite.probe.shape, "sphere");
+        assert!(suite.probe.radius_m.is_finite() && suite.probe.radius_m > 0.0);
+        assert!(suite.probe.mass_kg.is_finite() && suite.probe.mass_kg > 0.0);
+        assert!(suite.timestep_s.is_finite() && suite.timestep_s > 0.0);
+        assert!(suite.base_position_m.iter().all(|value| value.is_finite()));
+        assert!(suite.gravity_m_s2.iter().all(|value| value.is_finite()));
+        assert_eq!(suite.cases.len(), 8);
+        let mut case_ids = BTreeSet::new();
+        let mut expected_contacts = 0usize;
+        for case in &suite.cases {
+            assert!(!case.case_id.trim().is_empty());
+            assert!(case_ids.insert(case.case_id.clone()), "duplicate {}", case.case_id);
+            assert!(!case.rationale.trim().is_empty());
+            assert!(case.position_m.iter().all(|value| value.is_finite()));
+            expected_contacts += usize::from(case.expected_contact);
+        }
+        assert_eq!(expected_contacts, 4);
 
-        for (case_id, position, expected_contact) in cases {
-            let mut physics = world();
+        for case in suite.cases {
+            let mut physics = PhysicsWorld::<3>::new(SVector::from(suite.gravity_m_s2));
             spawn_static_collision_assembly(
                 &mut physics,
                 MORPHOLOGY_JSON,
                 ZERO_JOINT_STATE_JSON,
-                Point::origin(),
+                Point::new(suite.base_position_m),
             )
             .expect("synthetic morphology imports");
-            physics.add_sphere(Point::new(position), 0.05, 1.0);
-            physics.step(0.002);
+            physics.add_sphere(
+                Point::new(case.position_m),
+                suite.probe.radius_m,
+                suite.probe.mass_kg,
+            );
+            physics.step(suite.timestep_s);
             assert_eq!(
                 !physics.contacts.is_empty(),
-                expected_contact,
-                "{case_id}: expected_contact={expected_contact}, contacts={}",
+                case.expected_contact,
+                "{}: expected_contact={}, contacts={}",
+                case.case_id,
+                case.expected_contact,
                 physics.contacts.len()
             );
         }
