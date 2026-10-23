@@ -1,59 +1,72 @@
 //! Non-anticipativity audit for finite shipyard recovery-policy replay suites.
 //!
-//! This crate checks policy information discipline only. It is deliberately
-//! independent of the schedule-feasibility and polygon-geometry verifiers.
+//! The source event logs and candidate actions are separate inputs: a candidate
+//! cannot rewrite the observation history against which its actions are judged.
 
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 pub type Tick = u64;
 
-/// A uniquely identified immutable event, at the time it became observable.
-/// The event ID must identify the event's canonical content in the source data.
+/// A uniquely identified source event at the time it became observable.
+///
+/// IDs must be canonical and stable across scenario branches for a shared
+/// observation. This crate checks IDs and timing, but cannot authenticate event
+/// truth or the upstream event-log digest.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayEvent {
     pub id: String,
     pub observed_at_tick: Tick,
 }
 
-/// A canonical identity for the action committed at a decision epoch.
+/// Immutable source-owned event observations for one declared scenario.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScenarioEventLog {
+    pub scenario_id: String,
+    pub events: Vec<ReplayEvent>,
+}
+
+/// A canonical identity for the action committed at one decision epoch.
 ///
-/// The caller should supply a digest of that action's canonical encoding, not
-/// a full future schedule whose unobserved branches may differ. This crate
-/// checks equality only; it does not calculate or authenticate digests.
+/// The key should identify the current action only, not a full future schedule
+/// whose as-yet-unobserved branches may differ. This crate checks key equality;
+/// it does not calculate or authenticate action digests.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyAction {
     pub tick: Tick,
     pub action_key: String,
 }
 
-/// One scenario's event-observation stream and policy actions.
+/// Candidate-supplied actions for one scenario. No event history is accepted
+/// from this object; the auditor joins it to the source-owned ScenarioEventLog.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioTrace {
     pub scenario_id: String,
-    pub events: Vec<ReplayEvent>,
     pub actions: Vec<PolicyAction>,
 }
 
-/// A suite uses the same declared decision epochs for each scenario.
-/// Event-triggered systems should encode explicit no-op actions.
+/// The benchmark manifest inventory, source observations, and candidate traces.
+///
+/// `expected_scenario_ids` must be loaded independently from the immutable
+/// benchmark/source manifest. This function checks list coverage but does not
+/// authenticate the manifest or any file digest.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplaySuite {
-    /// Scenario identities loaded from the immutable benchmark/source manifest.
     pub expected_scenario_ids: Vec<String>,
     pub decision_ticks: Vec<Tick>,
-    pub scenarios: Vec<ScenarioTrace>,
+    pub source_scenarios: Vec<ScenarioEventLog>,
+    pub candidate_traces: Vec<ScenarioTrace>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PolicyReplayStatus {
-    /// The supplied complete traces obey non-anticipativity.
+    /// Complete candidate traces obey non-anticipativity for source histories.
     ///
     /// This is not a schedule-feasibility, optimality, or safety result.
     Consistent,
-    /// Complete traces select different actions with identical observable
+    /// Complete traces choose different actions with identical source-visible
     /// histories at the same decision tick.
     AnticipativityViolation,
-    /// The suite is empty or malformed, so no policy-consistency claim is made.
+    /// Source coverage, candidate coverage, or trace structure is malformed.
     Incomplete,
 }
 
@@ -68,43 +81,37 @@ pub struct PolicyReplayDiagnostic {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyReplayReport {
     pub status: PolicyReplayStatus,
-    pub scenario_count: usize,
+    pub source_scenario_count: usize,
+    pub candidate_trace_count: usize,
     pub decision_count: usize,
     pub information_set_count: usize,
-    /// Number of later traces compared with the first action for each shared
-    /// information set. This is deterministic and is not a pairwise n² count.
+    /// Number of later traces compared against the first action in each
+    /// shared information set. Deterministic; not a pairwise n-squared count.
     pub information_set_comparisons: usize,
     pub diagnostics: Vec<PolicyReplayDiagnostic>,
 }
 
-/// Audit structural completeness and the non-anticipativity condition.
+/// Audit scenario inventory, source event histories, candidate decision traces,
+/// and the non-anticipativity condition.
 ///
-/// At decision tick t, the observable history is the sorted sequence of
-/// (event ID, observation tick) pairs for events observed at or before t. For
-/// each (t, history), every trace must select the same action key.
+/// At decision tick t, visible history is the sorted list of source-owned
+/// (event ID, observation tick) pairs whose observation tick is <= t. For each
+/// identical (t, visible history), every candidate trace must select the same
+/// current action key.
 ///
-/// The input must already be bound to its intended source revision. Shared
-/// observations across scenarios must reuse canonical event IDs. This function
-/// does not establish that event logs are truthful, action keys are
-/// collision-resistant, or selected actions are feasible.
+/// The source inventory and logs must be bound by the caller to the intended
+/// immutable revision. This function cannot establish event truth, manifest
+/// authenticity, action-key collision resistance, or action feasibility.
 pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
-    let scenario_count = suite.scenarios.len();
+    let source_scenario_count = suite.source_scenarios.len();
+    let candidate_trace_count = suite.candidate_traces.len();
     let decision_count = suite
-        .scenarios
+        .candidate_traces
         .iter()
-        .map(|scenario| scenario.actions.len())
+        .map(|trace| trace.actions.len())
         .sum();
     let mut diagnostics = Vec::new();
 
-    if suite.scenarios.is_empty() {
-        push_diagnostic(
-            &mut diagnostics,
-            "INCOMPLETE_EMPTY_SCENARIOS",
-            None,
-            None,
-            "the replay suite must contain at least one declared scenario",
-        );
-    }
     if suite.expected_scenario_ids.is_empty() {
         push_diagnostic(
             &mut diagnostics,
@@ -114,7 +121,8 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             "the source-defined expected scenario inventory must be non-empty",
         );
     }
-    let mut expected_scenario_ids = BTreeSet::new();
+
+    let mut expected_ids = BTreeSet::new();
     for expected_id in &suite.expected_scenario_ids {
         if expected_id.trim().is_empty() {
             push_diagnostic(
@@ -124,7 +132,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 None,
                 "expected scenario IDs must be non-empty",
             );
-        } else if !expected_scenario_ids.insert(expected_id.as_str()) {
+        } else if !expected_ids.insert(expected_id.as_str()) {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_DUPLICATE_EXPECTED_SCENARIO_ID",
@@ -134,6 +142,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             );
         }
     }
+
     if suite.decision_ticks.is_empty() {
         push_diagnostic(
             &mut diagnostics,
@@ -157,50 +166,92 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
         );
     }
 
-    let expected_ticks: BTreeSet<Tick> = suite.decision_ticks.iter().copied().collect();
-    let mut scenario_ids = BTreeSet::new();
+    if suite.source_scenarios.is_empty() {
+        push_diagnostic(
+            &mut diagnostics,
+            "INCOMPLETE_EMPTY_SOURCE_SCENARIOS",
+            None,
+            None,
+            "source-owned event logs must cover the declared scenario inventory",
+        );
+    }
+    if suite.candidate_traces.is_empty() {
+        push_diagnostic(
+            &mut diagnostics,
+            "INCOMPLETE_EMPTY_CANDIDATE_TRACES",
+            None,
+            None,
+            "at least one candidate trace is required",
+        );
+    }
 
-    for scenario in &suite.scenarios {
-        if scenario.scenario_id.trim().is_empty() {
+    let expected_ticks: BTreeSet<Tick> = suite.decision_ticks.iter().copied().collect();
+    let mut source_ids = BTreeSet::new();
+
+    // Validate trusted source event logs independently of candidate output.
+    for source in &suite.source_scenarios {
+        if source.scenario_id.trim().is_empty() {
             push_diagnostic(
                 &mut diagnostics,
-                "INCOMPLETE_EMPTY_SCENARIO_ID",
+                "INCOMPLETE_EMPTY_SOURCE_SCENARIO_ID",
                 None,
                 None,
-                "scenario IDs must be non-empty",
+                "source scenario IDs must be non-empty",
             );
-        } else if !scenario_ids.insert(scenario.scenario_id.as_str()) {
+        } else if !source_ids.insert(source.scenario_id.as_str()) {
             push_diagnostic(
                 &mut diagnostics,
-                "INCOMPLETE_DUPLICATE_SCENARIO_ID",
-                Some(scenario.scenario_id.as_str()),
+                "INCOMPLETE_DUPLICATE_SOURCE_SCENARIO_ID",
+                Some(source.scenario_id.as_str()),
                 None,
-                "scenario IDs must be unique within the replay suite",
+                "source event logs must have unique scenario IDs",
             );
         }
 
         let mut event_ids = BTreeSet::new();
-        for event in &scenario.events {
+        for event in &source.events {
             if event.id.trim().is_empty() {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_EMPTY_EVENT_ID",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(source.scenario_id.as_str()),
                     Some(event.observed_at_tick),
-                    "event IDs must be non-empty",
+                    "source event IDs must be non-empty",
                 );
             } else if !event_ids.insert(event.id.as_str()) {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_DUPLICATE_EVENT_ID",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(source.scenario_id.as_str()),
                     Some(event.observed_at_tick),
-                    "event IDs must be unique within a scenario trace",
+                    "source event IDs must be unique within a scenario log",
                 );
             }
         }
+    }
 
-        if scenario
+    // Validate candidate traces independently; they provide no event history.
+    let mut candidate_ids = BTreeSet::new();
+    for trace in &suite.candidate_traces {
+        if trace.scenario_id.trim().is_empty() {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_EMPTY_CANDIDATE_SCENARIO_ID",
+                None,
+                None,
+                "candidate trace scenario IDs must be non-empty",
+            );
+        } else if !candidate_ids.insert(trace.scenario_id.as_str()) {
+            push_diagnostic(
+                &mut diagnostics,
+                "INCOMPLETE_DUPLICATE_CANDIDATE_SCENARIO_ID",
+                Some(trace.scenario_id.as_str()),
+                None,
+                "candidate traces must have unique scenario IDs",
+            );
+        }
+
+        if trace
             .actions
             .windows(2)
             .any(|pair| pair[0].tick >= pair[1].tick)
@@ -208,29 +259,29 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             push_diagnostic(
                 &mut diagnostics,
                 "INCOMPLETE_ACTION_ORDER",
-                Some(scenario.scenario_id.as_str()),
+                Some(trace.scenario_id.as_str()),
                 None,
-                "actions must be ordered by strictly increasing decision tick",
+                "candidate actions must be ordered by strictly increasing decision tick",
             );
         }
 
         let mut counts = BTreeMap::<Tick, usize>::new();
-        for action in &scenario.actions {
+        for action in &trace.actions {
             *counts.entry(action.tick).or_default() += 1;
             if !expected_ticks.contains(&action.tick) {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_UNEXPECTED_DECISION_TICK",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(trace.scenario_id.as_str()),
                     Some(action.tick),
-                    "an action uses a tick not declared by the replay suite",
+                    "a candidate action uses a tick not declared by the replay suite",
                 );
             }
             if action.action_key.trim().is_empty() {
                 push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_EMPTY_ACTION_KEY",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(trace.scenario_id.as_str()),
                     Some(action.tick),
                     "action keys must be non-empty canonical identities",
                 );
@@ -242,7 +293,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 0 => push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_MISSING_DECISION",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(trace.scenario_id.as_str()),
                     Some(*tick),
                     "exactly one explicit action is required at each declared decision tick",
                 ),
@@ -250,7 +301,7 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                 count => push_diagnostic(
                     &mut diagnostics,
                     "INCOMPLETE_DUPLICATE_DECISION",
-                    Some(scenario.scenario_id.as_str()),
+                    Some(trace.scenario_id.as_str()),
                     Some(*tick),
                     &format!("expected one action at this tick, found {count}"),
                 ),
@@ -258,33 +309,30 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
         }
     }
 
-    for expected_id in &expected_scenario_ids {
-        if !scenario_ids.contains(expected_id) {
-            push_diagnostic(
-                &mut diagnostics,
-                "INCOMPLETE_MISSING_DECLARED_SCENARIO",
-                Some(*expected_id),
-                None,
-                "a source-declared scenario has no candidate replay trace",
-            );
-        }
-    }
-    for actual_id in &scenario_ids {
-        if !expected_scenario_ids.contains(actual_id) {
-            push_diagnostic(
-                &mut diagnostics,
-                "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE",
-                Some(*actual_id),
-                None,
-                "a candidate replay trace is not present in the source-defined scenario inventory",
-            );
-        }
-    }
+    validate_inventory_coverage(
+        &mut diagnostics,
+        &expected_ids,
+        &source_ids,
+        "INCOMPLETE_MISSING_SOURCE_SCENARIO",
+        "INCOMPLETE_UNEXPECTED_SOURCE_SCENARIO",
+        "a declared scenario has no source-owned event log",
+        "a source event log is not in the declared scenario inventory",
+    );
+    validate_inventory_coverage(
+        &mut diagnostics,
+        &expected_ids,
+        &candidate_ids,
+        "INCOMPLETE_MISSING_DECLARED_SCENARIO",
+        "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE",
+        "a declared scenario has no candidate replay trace",
+        "a candidate replay trace is not in the declared scenario inventory",
+    );
 
     if !diagnostics.is_empty() {
         return PolicyReplayReport {
             status: PolicyReplayStatus::Incomplete,
-            scenario_count,
+            source_scenario_count,
+            candidate_trace_count,
             decision_count,
             information_set_count: 0,
             information_set_comparisons: 0,
@@ -292,28 +340,35 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
         };
     }
 
-    // Sorting references ensures identical evidence produces identical reports
-    // independent of the input scenario order.
-    let mut ordered_scenarios: Vec<&ScenarioTrace> = suite.scenarios.iter().collect();
-    ordered_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let source_by_id: BTreeMap<&str, &ScenarioEventLog> = suite
+        .source_scenarios
+        .iter()
+        .map(|source| (source.scenario_id.as_str(), source))
+        .collect();
 
-    // The observation tick belongs in the key: observing the same event at
-    // different times represents a different information history.
+    // Sort candidate references so diagnostic ordering is stable if the input
+    // candidate list is permuted.
+    let mut ordered_traces: Vec<&ScenarioTrace> = suite.candidate_traces.iter().collect();
+    ordered_traces.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+
     type InformationSetKey = (Tick, Vec<(String, Tick)>);
     let mut selected_action_by_information_set =
         BTreeMap::<InformationSetKey, (String, String)>::new();
     let mut information_sets = BTreeSet::<InformationSetKey>::new();
     let mut information_set_comparisons = 0;
 
-    for scenario in ordered_scenarios {
-        let actions_by_tick: BTreeMap<Tick, &PolicyAction> = scenario
+    for trace in ordered_traces {
+        // Crucially, this event history is taken from the independent source
+        // map, never from candidate-supplied data.
+        let source = source_by_id[trace.scenario_id.as_str()];
+        let actions_by_tick: BTreeMap<Tick, &PolicyAction> = trace
             .actions
             .iter()
             .map(|action| (action.tick, action))
             .collect();
 
         for tick in &suite.decision_ticks {
-            let mut visible_history: Vec<(String, Tick)> = scenario
+            let mut visible_history: Vec<(String, Tick)> = source
                 .events
                 .iter()
                 .filter(|event| event.observed_at_tick <= *tick)
@@ -323,13 +378,11 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
 
             let key = (*tick, visible_history);
             information_sets.insert(key.clone());
-
-            // Structural validation above proves exactly one action exists for
-            // each declared tick in every trace.
             let action = actions_by_tick[tick];
+
             match selected_action_by_information_set.entry(key) {
                 Entry::Vacant(entry) => {
-                    entry.insert((action.action_key.clone(), scenario.scenario_id.clone()));
+                    entry.insert((action.action_key.clone(), trace.scenario_id.clone()));
                 }
                 Entry::Occupied(entry) => {
                     let (prior_action_key, prior_scenario_id) = entry.get();
@@ -338,11 +391,11 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                         push_diagnostic(
                             &mut diagnostics,
                             "NON_ANTICIPATIVE_ACTION_MISMATCH",
-                            Some(scenario.scenario_id.as_str()),
+                            Some(trace.scenario_id.as_str()),
                             Some(*tick),
                             &format!(
-                                "scenario '{}' selects a different action than scenario '{}' despite an identical observable history",
-                                scenario.scenario_id, prior_scenario_id
+                                "scenario '{}' selects a different action than scenario '{}' despite an identical source-visible history",
+                                trace.scenario_id, prior_scenario_id
                             ),
                         );
                     }
@@ -359,11 +412,45 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
 
     PolicyReplayReport {
         status,
-        scenario_count,
+        source_scenario_count,
+        candidate_trace_count,
         decision_count,
         information_set_count: information_sets.len(),
         information_set_comparisons,
         diagnostics,
+    }
+}
+
+fn validate_inventory_coverage(
+    diagnostics: &mut Vec<PolicyReplayDiagnostic>,
+    expected_ids: &BTreeSet<&str>,
+    actual_ids: &BTreeSet<&str>,
+    missing_code: &str,
+    unexpected_code: &str,
+    missing_detail: &str,
+    unexpected_detail: &str,
+) {
+    for expected_id in expected_ids {
+        if !actual_ids.contains(expected_id) {
+            push_diagnostic(
+                diagnostics,
+                missing_code,
+                Some(expected_id),
+                None,
+                missing_detail,
+            );
+        }
+    }
+    for actual_id in actual_ids {
+        if !expected_ids.contains(actual_id) {
+            push_diagnostic(
+                diagnostics,
+                unexpected_code,
+                Some(actual_id),
+                None,
+                unexpected_detail,
+            );
+        }
     }
 }
 
@@ -386,8 +473,31 @@ fn push_diagnostic(
 mod tests {
     use super::{
         audit_policy_replay, PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite,
-        ScenarioTrace,
+        ScenarioEventLog, ScenarioTrace,
     };
+
+    #[derive(Clone)]
+    struct ScenarioFixture {
+        scenario_id: String,
+        events: Vec<ReplayEvent>,
+        actions: Vec<PolicyAction>,
+    }
+
+    impl ScenarioFixture {
+        fn source(&self) -> ScenarioEventLog {
+            ScenarioEventLog {
+                scenario_id: self.scenario_id.clone(),
+                events: self.events.clone(),
+            }
+        }
+
+        fn candidate(&self) -> ScenarioTrace {
+            ScenarioTrace {
+                scenario_id: self.scenario_id.clone(),
+                actions: self.actions.clone(),
+            }
+        }
+    }
 
     fn event(id: &str, observed_at_tick: u64) -> ReplayEvent {
         ReplayEvent {
@@ -407,23 +517,38 @@ mod tests {
         scenario_id: &str,
         events: Vec<ReplayEvent>,
         actions: Vec<PolicyAction>,
-    ) -> ScenarioTrace {
-        ScenarioTrace {
+    ) -> ScenarioFixture {
+        ScenarioFixture {
             scenario_id: scenario_id.to_owned(),
             events,
             actions,
         }
     }
 
+    fn suite(
+        expected_scenario_ids: &[&str],
+        decision_ticks: Vec<Tick>,
+        fixtures: Vec<ScenarioFixture>,
+    ) -> ReplaySuite {
+        ReplaySuite {
+            expected_scenario_ids: expected_scenario_ids
+                .iter()
+                .map(|id| (*id).to_owned())
+                .collect(),
+            decision_ticks,
+            source_scenarios: fixtures.iter().map(ScenarioFixture::source).collect(),
+            candidate_traces: fixtures.iter().map(ScenarioFixture::candidate).collect(),
+        }
+    }
+
+    use super::Tick;
+
     #[test]
     fn adaptive_policy_may_branch_only_after_disturbance_is_observed() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec![
-                "vehicle-a-fails".to_owned(),
-                "vehicle-b-fails".to_owned(),
-            ],
-            decision_ticks: vec![0, 2, 5],
-            scenarios: vec![
+        let replay = suite(
+            &["vehicle-a-fails", "vehicle-b-fails"],
+            vec![0, 2, 5],
+            vec![
                 scenario(
                     "vehicle-a-fails",
                     vec![event("shared-start", 0), event("vehicle-a-fault", 4)],
@@ -435,11 +560,12 @@ mod tests {
                     vec![action(0, "initial-plan"), action(2, "hold"), action(5, "reroute-b")],
                 ),
             ],
-        };
+        );
 
-        let report = audit_policy_replay(&suite);
+        let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::Consistent);
-        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.source_scenario_count, 2);
+        assert_eq!(report.candidate_trace_count, 2);
         assert_eq!(report.decision_count, 6);
         assert_eq!(report.information_set_comparisons, 2);
         assert!(report.diagnostics.is_empty());
@@ -447,13 +573,10 @@ mod tests {
 
     #[test]
     fn rejects_clairvoyant_action_before_branch_is_observed() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec![
-                "vehicle-a-fails".to_owned(),
-                "vehicle-b-fails".to_owned(),
-            ],
-            decision_ticks: vec![0, 2, 5],
-            scenarios: vec![
+        let replay = suite(
+            &["vehicle-a-fails", "vehicle-b-fails"],
+            vec![0, 2, 5],
+            vec![
                 scenario(
                     "vehicle-a-fails",
                     vec![event("shared-start", 0), event("vehicle-a-fault", 4)],
@@ -465,9 +588,9 @@ mod tests {
                     vec![action(0, "initial-plan"), action(2, "reroute-b"), action(5, "reroute-b")],
                 ),
             ],
-        };
+        );
 
-        let report = audit_policy_replay(&suite);
+        let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::AnticipativityViolation);
         assert!(report.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
@@ -477,13 +600,10 @@ mod tests {
 
     #[test]
     fn event_observed_at_decision_tick_is_visible_to_that_decision() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec![
-                "vehicle-a-fails".to_owned(),
-                "vehicle-b-fails".to_owned(),
-            ],
-            decision_ticks: vec![4],
-            scenarios: vec![
+        let replay = suite(
+            &["vehicle-a-fails", "vehicle-b-fails"],
+            vec![4],
+            vec![
                 scenario(
                     "vehicle-a-fails",
                     vec![event("vehicle-a-fault", 4)],
@@ -495,23 +615,20 @@ mod tests {
                     vec![action(4, "reroute-b")],
                 ),
             ],
-        };
+        );
 
         assert_eq!(
-            audit_policy_replay(&suite).status,
+            audit_policy_replay(&replay).status,
             PolicyReplayStatus::Consistent
         );
     }
 
     #[test]
     fn observation_time_is_part_of_the_information_history() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec![
-                "early-observation".to_owned(),
-                "late-observation".to_owned(),
-            ],
-            decision_ticks: vec![2],
-            scenarios: vec![
+        let replay = suite(
+            &["early-observation", "late-observation"],
+            vec![2],
+            vec![
                 scenario(
                     "early-observation",
                     vec![event("vehicle-fault", 0)],
@@ -523,10 +640,10 @@ mod tests {
                     vec![action(2, "act-after-late-warning")],
                 ),
             ],
-        };
+        );
 
         assert_eq!(
-            audit_policy_replay(&suite).status,
+            audit_policy_replay(&replay).status,
             PolicyReplayStatus::Consistent
         );
     }
@@ -553,13 +670,10 @@ mod tests {
                             .collect()
                     };
 
-                    let suite = ReplaySuite {
-                        expected_scenario_ids: vec![
-                            "branch-a".to_owned(),
-                            "branch-b".to_owned(),
-                        ],
-                        decision_ticks: decision_ticks.clone(),
-                        scenarios: vec![
+                    let replay = suite(
+                        &["branch-a", "branch-b"],
+                        decision_ticks.clone(),
+                        vec![
                             scenario(
                                 "branch-a",
                                 vec![event("common-start", 0), event("fault-a", reveal_a)],
@@ -571,7 +685,7 @@ mod tests {
                                 make_actions("action-b"),
                             ),
                         ],
-                    };
+                    );
 
                     let should_reject = divergence_tick < reveal_a.min(reveal_b);
                     let expected = if should_reject {
@@ -580,7 +694,7 @@ mod tests {
                         PolicyReplayStatus::Consistent
                     };
                     assert_eq!(
-                        audit_policy_replay(&suite).status,
+                        audit_policy_replay(&replay).status,
                         expected,
                         "reveal_a={reveal_a}, reveal_b={reveal_b}, divergence={divergence_tick}"
                     );
@@ -591,13 +705,13 @@ mod tests {
 
     #[test]
     fn missing_action_is_incomplete_not_a_pass() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec!["case-a".to_owned()],
-            decision_ticks: vec![0, 1],
-            scenarios: vec![scenario("case-a", vec![], vec![action(0, "a")])],
-        };
+        let replay = suite(
+            &["case-a"],
+            vec![0, 1],
+            vec![scenario("case-a", vec![], vec![action(0, "a")])],
+        );
 
-        let report = audit_policy_replay(&suite);
+        let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::Incomplete);
         assert!(report.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == "INCOMPLETE_MISSING_DECISION"
@@ -607,17 +721,17 @@ mod tests {
 
     #[test]
     fn duplicate_event_identity_is_incomplete() {
-        let suite = ReplaySuite {
-            expected_scenario_ids: vec!["case-a".to_owned()],
-            decision_ticks: vec![0],
-            scenarios: vec![scenario(
+        let replay = suite(
+            &["case-a"],
+            vec![0],
+            vec![scenario(
                 "case-a",
                 vec![event("same-id", 0), event("same-id", 0)],
                 vec![action(0, "a")],
             )],
-        };
+        );
 
-        let report = audit_policy_replay(&suite);
+        let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::Incomplete);
         assert!(report
             .diagnostics
@@ -626,59 +740,130 @@ mod tests {
     }
 
     #[test]
-    fn declared_scenario_inventory_rejects_missing_and_unexpected_traces() {
-        let missing = ReplaySuite {
+    fn declared_scenario_inventory_rejects_missing_and_unexpected_source_and_candidate_traces() {
+        let a = scenario("a", vec![], vec![action(0, "x")]);
+        let missing_candidate = ReplaySuite {
             expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
             decision_ticks: vec![0],
-            scenarios: vec![scenario("a", vec![], vec![action(0, "x")])],
+            source_scenarios: vec![a.source(), ScenarioEventLog {
+                scenario_id: "b".to_owned(),
+                events: vec![],
+            }],
+            candidate_traces: vec![a.candidate()],
         };
-        let unexpected = ReplaySuite {
+        let unexpected_candidate = ReplaySuite {
             expected_scenario_ids: vec!["a".to_owned()],
             decision_ticks: vec![0],
-            scenarios: vec![
-                scenario("a", vec![], vec![action(0, "x")]),
-                scenario("b", vec![], vec![action(0, "x")]),
+            source_scenarios: vec![a.source()],
+            candidate_traces: vec![
+                a.candidate(),
+                ScenarioTrace {
+                    scenario_id: "b".to_owned(),
+                    actions: vec![action(0, "x")],
+                },
             ],
         };
+        let missing_source = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
+            decision_ticks: vec![0],
+            source_scenarios: vec![a.source()],
+            candidate_traces: vec![
+                a.candidate(),
+                ScenarioTrace {
+                    scenario_id: "b".to_owned(),
+                    actions: vec![action(0, "x")],
+                },
+            ],
+        };
+        let unexpected_source = ReplaySuite {
+            expected_scenario_ids: vec!["a".to_owned()],
+            decision_ticks: vec![0],
+            source_scenarios: vec![
+                a.source(),
+                ScenarioEventLog {
+                    scenario_id: "b".to_owned(),
+                    events: vec![],
+                },
+            ],
+            candidate_traces: vec![a.candidate()],
+        };
 
-        let missing_report = audit_policy_replay(&missing);
-        assert_eq!(missing_report.status, PolicyReplayStatus::Incomplete);
-        assert!(missing_report.diagnostics.iter().any(|diagnostic| {
-            diagnostic.code == "INCOMPLETE_MISSING_DECLARED_SCENARIO"
-        }));
-
-        let unexpected_report = audit_policy_replay(&unexpected);
-        assert_eq!(unexpected_report.status, PolicyReplayStatus::Incomplete);
-        assert!(unexpected_report.diagnostics.iter().any(|diagnostic| {
-            diagnostic.code == "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE"
-        }));
+        assert!(audit_policy_replay(&missing_candidate)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "INCOMPLETE_MISSING_DECLARED_SCENARIO"));
+        assert!(audit_policy_replay(&unexpected_candidate)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE"));
+        assert!(audit_policy_replay(&missing_source)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "INCOMPLETE_MISSING_SOURCE_SCENARIO"));
+        assert!(audit_policy_replay(&unexpected_source)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "INCOMPLETE_UNEXPECTED_SOURCE_SCENARIO"));
+        assert_eq!(
+            audit_policy_replay(&missing_candidate).status,
+            PolicyReplayStatus::Incomplete
+        );
+        assert_eq!(
+            audit_policy_replay(&unexpected_candidate).status,
+            PolicyReplayStatus::Incomplete
+        );
+        assert_eq!(
+            audit_policy_replay(&missing_source).status,
+            PolicyReplayStatus::Incomplete
+        );
+        assert_eq!(
+            audit_policy_replay(&unexpected_source).status,
+            PolicyReplayStatus::Incomplete
+        );
     }
 
     #[test]
-    fn empty_scenario_or_epoch_set_is_incomplete() {
-        let empty_scenarios = ReplaySuite {
+    fn empty_source_candidate_or_epoch_set_is_incomplete() {
+        let no_source = ReplaySuite {
             expected_scenario_ids: vec!["case-a".to_owned()],
             decision_ticks: vec![0],
-            scenarios: vec![],
+            source_scenarios: vec![],
+            candidate_traces: vec![ScenarioTrace {
+                scenario_id: "case-a".to_owned(),
+                actions: vec![action(0, "a")],
+            }],
         };
-        let empty_epochs = ReplaySuite {
+        let no_candidate = ReplaySuite {
             expected_scenario_ids: vec!["case-a".to_owned()],
-            decision_ticks: vec![],
-            scenarios: vec![scenario("case-a", vec![], vec![])],
+            decision_ticks: vec![0],
+            source_scenarios: vec![ScenarioEventLog {
+                scenario_id: "case-a".to_owned(),
+                events: vec![],
+            }],
+            candidate_traces: vec![],
         };
+        let no_epochs = suite(
+            &["case-a"],
+            vec![],
+            vec![scenario("case-a", vec![], vec![])],
+        );
 
         assert_eq!(
-            audit_policy_replay(&empty_scenarios).status,
+            audit_policy_replay(&no_source).status,
             PolicyReplayStatus::Incomplete
         );
         assert_eq!(
-            audit_policy_replay(&empty_epochs).status,
+            audit_policy_replay(&no_candidate).status,
+            PolicyReplayStatus::Incomplete
+        );
+        assert_eq!(
+            audit_policy_replay(&no_epochs).status,
             PolicyReplayStatus::Incomplete
         );
     }
 
     #[test]
-    fn report_is_deterministic_under_scenario_permutation() {
+    fn report_is_deterministic_under_candidate_trace_permutation() {
         let a = scenario(
             "a",
             vec![event("shared", 0), event("only-a", 3)],
@@ -690,17 +875,12 @@ mod tests {
             vec![action(0, "same"), action(4, "b")],
         );
 
-        let forward = ReplaySuite {
-            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
-            decision_ticks: vec![0, 4],
-            scenarios: vec![a.clone(), b.clone()],
-        };
-        let reverse = ReplaySuite {
-            expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
-            decision_ticks: vec![0, 4],
-            scenarios: vec![b, a],
-        };
+        let forward = suite(&["a", "b"], vec![0, 4], vec![a.clone(), b.clone()]);
+        let reverse = suite(&["a", "b"], vec![0, 4], vec![b, a]);
 
-        assert_eq!(audit_policy_replay(&forward), audit_policy_replay(&reverse));
+        assert_eq!(
+            audit_policy_replay(&forward),
+            audit_policy_replay(&reverse)
+        );
     }
 }
