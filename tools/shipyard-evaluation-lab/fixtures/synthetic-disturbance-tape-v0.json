@@ -1,0 +1,64 @@
+{
+  "contract_version": "shipyard-disturbance-tape-v0",
+  "episode_id": "synthetic-yard-001",
+  "tick_duration_ms": 1000,
+  "events": [
+    {
+      "event_id": "evt-vehicle-001",
+      "event_type": "vehicle_outage",
+      "effective_tick": 4,
+      "observed_tick": 4,
+      "delivery_tick": 5,
+      "visibility": "policy_visible",
+      "truth": {
+        "vehicle_id": "veh-02",
+        "unavailable_from_tick": 4,
+        "unavailable_until_tick": 9,
+        "cause": "synthetic_fault"
+      },
+      "observation": {
+        "vehicle_id": "veh-02",
+        "status": "unavailable",
+        "reported_at_tick": 4
+      }
+    },
+    {
+      "event_id": "evt-clearance-hidden-001",
+      "event_type": "clearance_delayed",
+      "effective_tick": 6,
+      "observed_tick": 7,
+      "delivery_tick": 7,
+      "visibility": "evaluator_only",
+      "truth": {
+        "block_id": "blk-03",
+        "clearance_tick": 11,
+        "cause": "synthetic_inspection_delay"
+      },
+      "observation": null
+    },
+    {
+      "event_id": "evt-yard-closure-001",
+      "event_type": "yard_closure",
+      "effective_tick": 10,
+      "observed_tick": 10,
+      "delivery_tick": 12,
+      "visibility": "policy_visible",
+      "truth": {
+        "zone_id": "zone-west",
+        "closed_from_tick": 10,
+        "closed_until_tick": 14,
+        "cause": "synthetic_access_block"
+      },
+      "observation": {
+        "zone_id": "zone-west",
+        "status": "closed",
+        "reported_at_tick": 10
+      }
+    }
+  ],
+  "notes": [
+    "Synthetic illustration only; not calibrated to a real yard.",
+    "Evaluator-only events must not be sent to the policy process.",
+    "The event array order is not semantically significant; consumers must apply the declared sort rules."
+  ]
+}
