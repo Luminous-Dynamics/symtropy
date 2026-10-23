@@ -14,11 +14,20 @@ pub type Tick = u64;
 /// canonical payload). The key must change if visible contents change, and it
 /// should be the same for identical shared observations across scenario
 /// branches. This crate checks non-emptiness/equality, not digest authenticity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservationVisibility {
+    /// The event payload was available to the policy by its observation tick.
+    PolicyVisible,
+    /// The event belongs to evaluator/source truth but was not provided to the policy.
+    EvaluatorOnly,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayEvent {
     pub id: String,
     pub observed_at_tick: Tick,
     pub observation_key: String,
+    pub visibility: ObservationVisibility,
 }
 
 /// Immutable source-owned event observations for one declared scenario.
@@ -380,10 +389,13 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
             .collect();
 
         for tick in &suite.decision_ticks {
-            let mut visible_history: Vec<(String, Tick)> = source
+            let mut visible_history: Vec<(String, Tick, String)> = source
                 .events
                 .iter()
-                .filter(|event| event.observed_at_tick <= *tick)
+                .filter(|event| {
+                    event.visibility == ObservationVisibility::PolicyVisible
+                        && event.observed_at_tick <= *tick
+                })
                 .map(|event| (
                     event.id.clone(),
                     event.observed_at_tick,
@@ -489,8 +501,8 @@ fn push_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::{
-        audit_policy_replay, PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite,
-        ScenarioEventLog, ScenarioTrace, Tick,
+        audit_policy_replay, ObservationVisibility, PolicyAction, PolicyReplayStatus, ReplayEvent,
+        ReplaySuite, ScenarioEventLog, ScenarioTrace, Tick,
     };
 
     #[derive(Clone)]
@@ -521,6 +533,7 @@ mod tests {
             id: id.to_owned(),
             observed_at_tick,
             observation_key: format!("observation:{id}"),
+            visibility: ObservationVisibility::PolicyVisible,
         }
     }
 
@@ -642,6 +655,40 @@ mod tests {
             audit_policy_replay(&replay).status,
             PolicyReplayStatus::Consistent
         );
+    }
+
+    #[test]
+    fn evaluator_only_payload_cannot_change_action_for_same_visible_history() {
+        let mut hidden_a = event("future-outcome", 0);
+        hidden_a.observation_key = "hidden-outcome-a".to_owned();
+        hidden_a.visibility = ObservationVisibility::EvaluatorOnly;
+        let mut hidden_b = event("future-outcome", 0);
+        hidden_b.observation_key = "hidden-outcome-b".to_owned();
+        hidden_b.visibility = ObservationVisibility::EvaluatorOnly;
+
+        let replay = suite(
+            &["branch-a", "branch-b"],
+            vec![0],
+            vec![
+                scenario(
+                    "branch-a",
+                    vec![event("common-start", 0), hidden_a],
+                    vec![action(0, "act-for-future-a")],
+                ),
+                scenario(
+                    "branch-b",
+                    vec![event("common-start", 0), hidden_b],
+                    vec![action(0, "act-for-future-b")],
+                ),
+            ],
+        );
+
+        let report = audit_policy_replay(&replay);
+        assert_eq!(report.status, PolicyReplayStatus::AnticipativityViolation);
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
+                && diagnostic.tick == Some(0)
+        }));
     }
 
     #[test]
