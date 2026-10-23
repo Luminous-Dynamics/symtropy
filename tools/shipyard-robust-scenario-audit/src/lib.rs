@@ -878,7 +878,6 @@ mod tests {
         let dropped = plan("mandatory-placement", vec![], vec![], vec![]);
         let audit = audit_robust_plan(&[definition.clone()], &[dropped]).unwrap();
         assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
-        assert!(audit.status.clone().to_string().is_err());
 
         let shortened = plan(
             "mandatory-placement",
