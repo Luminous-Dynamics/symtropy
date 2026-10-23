@@ -5,20 +5,24 @@
   "stream_census_complete": true,
   "mass_unit": "kg",
   "inputs": {
-    "Si": 20.0,
-    "O": 30.0
+    "Si": 20,
+    "O": 30
   },
   "outputs": {
-    "Si": 20.0,
+    "Si": 20,
     "O": 29.5
   },
   "inventory_change": {
-    "Si": 0.0,
+    "Si": 0,
     "O": 0.5
   },
   "tolerance": {
     "Si": 0.01,
     "O": 0.01
   },
-  "claim_ceiling": "Synthetic arithmetic fixture only."
+  "claim_ceiling": "Synthetic arithmetic fixture only.",
+  "tolerance_basis": {
+    "Si": "Synthetic fixture tolerance; not measurement-derived.",
+    "O": "Synthetic fixture tolerance; not measurement-derived."
+  }
 }
