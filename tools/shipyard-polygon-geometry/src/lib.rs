@@ -887,6 +887,36 @@ mod tests {
     }
 
     #[test]
+    fn concave_footprints_obey_half_open_clearance_and_boundary_contact_rules() {
+        let l_shape = polygon(&[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)]);
+        let same_shape = polygon(&[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)]);
+        let outgoing = TimeWindow::new(0, 5).unwrap();
+        let incoming = TimeWindow::new(5, 10).unwrap();
+        let delayed = TimeWindow::new(4, 10).unwrap();
+        assert_eq!(
+            reservations_conflict(&l_shape, outgoing, &same_shape, incoming),
+            Ok(false)
+        );
+        assert_eq!(
+            reservations_conflict(&l_shape, outgoing, &same_shape, delayed),
+            Ok(true)
+        );
+
+        // Positive-area geometry is disjoint here, but the vertical edges
+        // share a boundary; the V0 policy conservatively treats contact as a
+        // conflict while the reservations overlap in time.
+        let edge_neighbor = rectangle(3, 0, 4, 1);
+        assert_eq!(
+            l_shape.relation(&edge_neighbor),
+            Ok(PolygonRelation::BoundaryContact)
+        );
+        assert_eq!(
+            reservations_conflict(&l_shape, outgoing, &edge_neighbor, TimeWindow::new(1, 4).unwrap()),
+            Ok(true)
+        );
+    }
+
+    #[test]
     fn positive_area_overlap_is_symmetric_for_adversarial_concave_shapes() {
         let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
         let bar = rectangle(0, 2, 3, 3);
