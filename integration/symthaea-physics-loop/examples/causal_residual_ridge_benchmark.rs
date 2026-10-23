@@ -117,6 +117,16 @@ fn parse_training_samples(path: &str) -> Vec<ResidualTrainingSample> {
         "unexpected or unsupported training dataset schema"
     );
     assert_eq!(
+        root["data_schema_version"].as_str(),
+        Some("causal-transition-residual-dataset-v0.1"),
+        "unsupported training dataset schema version"
+    );
+    assert_eq!(
+        root["residual_target_algorithm_version"].as_str(),
+        Some("observed-minus-nominal-world-acceleration-v0.1"),
+        "unsupported residual target algorithm version"
+    );
+    assert_eq!(
         root["claim_ceiling"].as_str(),
         Some("training_split_transition_dataset_and_target_plumbing_only"),
         "dataset claim ceiling must remain explicit"
@@ -133,6 +143,26 @@ fn parse_training_samples(path: &str) -> Vec<ResidualTrainingSample> {
     let mut samples = Vec::with_capacity(rows.len());
     for (index, row) in rows.iter().enumerate() {
         assert_eq!(row["split"].as_str(), Some("train"), "train-only dataset required");
+        assert_eq!(
+            row["data_schema_version"].as_str(),
+            Some("causal-transition-residual-row-v0.1"),
+            "unsupported training row schema"
+        );
+        assert_eq!(
+            row["residual_target_algorithm_version"].as_str(),
+            Some("observed-minus-nominal-world-acceleration-v0.1"),
+            "unsupported training target algorithm"
+        );
+        assert_eq!(
+            row["nominal_model_id"].as_str(),
+            Some("linear-thrust-gravity-linear-drag-v0.1"),
+            "unsupported nominal model"
+        );
+        assert!(
+            row["episode_seed"].as_u64().is_some()
+                && row["scenario_family"].as_str().is_some(),
+            "training row is missing provenance metadata at index {index}"
+        );
         let state_t = parse_state(&row["state_t"]);
         let action = parse_action(&row["applied_action_ctrl"]);
         let dt_s = number(&row["dt_s"], "dt_s");
