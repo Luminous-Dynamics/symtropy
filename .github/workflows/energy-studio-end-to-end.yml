@@ -353,10 +353,19 @@ jobs:
           dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
           auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
           gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
 
-          "$dispatch" "$context/request.json" > "$context/dispatch-report.json"
-          "$auditor" "$context/request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
-          "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" \
+          timed "$context/dispatch.elapsed_ns" "$dispatch" "$context/request.json" > "$context/dispatch-report.json"
+          timed "$context/audit.elapsed_ns" "$auditor" "$context/request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
+          timed "$context/known-answer-gate.elapsed_ns" "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" \
             > "$context/qualification.log"
           cat "$context/qualification.log"
           sha256sum "$context"/*.json
