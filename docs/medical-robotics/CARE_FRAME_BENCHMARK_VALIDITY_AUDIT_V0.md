@@ -10,7 +10,7 @@ Sources:
 - Jiang et al., “What Are We Actually Benchmarking in Robot Manipulation?” (2 June 2026): https://arxiv.org/abs/2606.04233
 - Public audit artifacts: https://ripl.github.io/manipulation_benchmark_audit/
 - NIST, “Mobility Performance of Robotic Systems”: https://www.nist.gov/programs-projects/mobility-performance-robotic-systems
-- Stanford AI Index 2026, Robotics and Autonomous Motion (RLBench / BEHAVIOR-1K overview): https://hai.stanford.edu/ai-index/2026-ai-index-report
+- Stanford AI Index 2026, Robotics and Autonomous Motion (RLBench / BEHAVIOR-1K overview): https://hai.stanford.edu/ai-index/2026-ai-index-report/technical-performance
 - IMBench, 35-task manipulation benchmark (CoRL 2026): https://imbench.org/
 
 ## Four mandatory benchmark-validity diagnostics
@@ -83,9 +83,11 @@ Start against these baselines, not an idealized competitor:
 - Wheeled upper-body humanoid concept.
 - Biped humanoid only if a measured access requirement justifies it.
 
-NIST's mobility metrology work explicitly focuses on common measurements, reference methods and test artifacts for mobile robots, mobile manipulators, humanoids and wearable systems. Careframe should align its locomotion and manipulation measures with the available standardized methods where relevant, then add the unique tool-authority, provenance and revision-invalidation layer. We must not claim a new benchmark supersedes NIST or ASTM methods.
+NIST's mobility metrology work explicitly focuses on common measurements, reference methods and test artifacts for mobile robots, mobile manipulators, humanoids and wearable systems. Published ASTM F45-related references include F3244 for defined-area navigation, F3499 for docking performance, F3218 for environmental-condition documentation, and F3243 for communication impairments. Careframe should align its locomotion and manipulation measures with applicable methods, then add tool-authority, provenance and revision-invalidation scenarios. We must not claim a new benchmark supersedes NIST or ASTM methods.
 
-RLBench and broader task suites such as BEHAVIOR-1K, RoboCasa, RoboTwin and IMBench may be useful for selected capability baselines when the artifact/license/task mapping supports it. They are not a direct measure of safe hospital work. Report native benchmark scores separately from any Careframe adapter score and disclose changes in tasks, observation, action space, simulator, reward, training data and allowed demonstrations.
+Stanford HAI's 2026 AI Index reports 89.4% average success for EquAct on an 18-task RLBench subset (100 demonstrations per task) as of January 2026. The same chapter highlights a large gap between high simulator success and real-world household tasks. These numbers use different tasks and environments, so they are a warning about simulator-to-real transfer—not a direct numerical comparison for Careframe. We should record RLBench results under its native protocol if we evaluate that benchmark, but never claim 89.4% there predicts hospital task performance.
+
+Broader task suites such as BEHAVIOR-1K, RoboCasa, RoboTwin and IMBench may be useful for selected capability baselines when the artifact/license/task mapping supports it. They are not a direct measure of safe hospital work. Report native benchmark scores separately from any Careframe adapter score and disclose changes in tasks, observation, action space, simulator, reward, training data and allowed demonstrations.
 
 ## Frozen synthetic work already in this PR
 
