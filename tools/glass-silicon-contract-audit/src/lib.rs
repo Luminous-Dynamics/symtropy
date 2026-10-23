@@ -1782,3 +1782,420 @@ mod decision_value_tests {
         assert!(report.findings.iter().any(|f| f.starts_with("OBSERVATION_CENSUS:")));
     }
 }
+
+
+// --- GLASS-SILICON-DECISION-VALUE-001: adaptive multi-step campaign oracle ---
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AdaptivePlanNode {
+    pub node_type: String,
+    pub measurement_id: Option<String>,
+    pub action_id: Option<String>,
+    pub observation_branches: BTreeMap<String, AdaptivePlanNode>,
+    pub worst_case_regret: f64,
+    pub max_additional_cost_units: f64,
+    pub max_additional_duration_seconds: f64,
+    pub max_measurements_on_path: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AdaptiveCampaignReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub utility_unit: Option<String>,
+    pub cost_unit: Option<String>,
+    pub max_measurement_steps: Option<usize>,
+    pub pre_measurement_worst_case_regret: Option<f64>,
+    pub adaptive_oracle_worst_case_regret: Option<f64>,
+    pub adaptive_oracle_gross_regret_reduction: Option<f64>,
+    pub adaptive_oracle_max_path_cost_units: Option<f64>,
+    pub adaptive_oracle_max_path_duration_seconds: Option<f64>,
+    pub adaptive_oracle_max_measurements_on_path: Option<usize>,
+    pub policy_tree: Option<AdaptivePlanNode>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl AdaptiveCampaignReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AdaptiveMeasurement {
+    id: String,
+    cost_units: f64,
+    duration_seconds: f64,
+    observation_by_scenario: BTreeMap<String, String>,
+}
+
+struct AdaptiveCampaignSolver {
+    actions: Vec<DecisionAction>,
+    measurements: Vec<AdaptiveMeasurement>,
+    best_utility: BTreeMap<String, f64>,
+    max_cost: f64,
+    max_duration: f64,
+    max_steps: usize,
+    memo: BTreeMap<(Vec<String>, u16), Option<AdaptivePlanNode>>,
+}
+
+fn adaptive_robust_action(
+    actions: &[DecisionAction],
+    scenario_ids: &[String],
+    best_utility: &BTreeMap<String, f64>,
+) -> Option<(String, f64)> {
+    actions.iter()
+        .filter(|action| scenario_ids.iter().all(|scenario| {
+            action.feasible_by_scenario.get(scenario).copied().unwrap_or(false)
+        }))
+        .map(|action| {
+            let regret = scenario_ids.iter()
+                .map(|scenario| (best_utility[scenario] - action.utility_by_scenario[scenario]).max(0.0))
+                .fold(0.0_f64, f64::max);
+            (action.id.clone(), regret)
+        })
+        .min_by(|(id_a, regret_a), (id_b, regret_b)| {
+            regret_a.total_cmp(regret_b).then_with(|| id_a.cmp(id_b))
+        })
+}
+
+impl AdaptiveCampaignSolver {
+    fn used_cost_and_duration(&self, used_mask: u16) -> (f64, f64, usize) {
+        let mut cost = 0.0;
+        let mut duration = 0.0;
+        let mut count = 0;
+        for (index, measurement) in self.measurements.iter().enumerate() {
+            if used_mask & (1_u16 << index) != 0 {
+                cost += measurement.cost_units;
+                duration += measurement.duration_seconds;
+                count += 1;
+            }
+        }
+        (cost, duration, count)
+    }
+
+    fn solve(&mut self, scenario_ids: Vec<String>, used_mask: u16) -> Option<AdaptivePlanNode> {
+        let key = (scenario_ids.clone(), used_mask);
+        if let Some(cached) = self.memo.get(&key) {
+            return cached.clone();
+        }
+
+        let (used_cost, used_duration, used_count) = self.used_cost_and_duration(used_mask);
+        let mut best_plan = adaptive_robust_action(&self.actions, &scenario_ids, &self.best_utility)
+            .map(|(action_id, regret)| AdaptivePlanNode {
+                node_type: "STOP".to_string(),
+                measurement_id: None,
+                action_id: Some(action_id),
+                observation_branches: BTreeMap::new(),
+                worst_case_regret: regret,
+                max_additional_cost_units: 0.0,
+                max_additional_duration_seconds: 0.0,
+                max_measurements_on_path: 0,
+            });
+
+        if used_count < self.max_steps {
+            let candidate_measurements = self.measurements.clone();
+            for (index, measurement) in candidate_measurements.into_iter().enumerate() {
+                let bit = 1_u16 << index;
+                if used_mask & bit != 0 {
+                    continue;
+                }
+                if used_cost + measurement.cost_units > self.max_cost + 1e-9
+                    || used_duration + measurement.duration_seconds > self.max_duration + 1e-9
+                {
+                    continue;
+                }
+
+                let mut partitions: BTreeMap<String, Vec<String>> = BTreeMap::new();
+                for scenario in &scenario_ids {
+                    let observation = measurement.observation_by_scenario.get(scenario)?;
+                    partitions.entry(observation.clone()).or_default().push(scenario.clone());
+                }
+
+                let mut branches = BTreeMap::new();
+                let mut worst_regret = 0.0_f64;
+                let mut child_cost = 0.0_f64;
+                let mut child_duration = 0.0_f64;
+                let mut child_steps = 0_usize;
+                let mut all_branches_solved = true;
+                for (observation, subset) in partitions {
+                    match self.solve(subset, used_mask | bit) {
+                        Some(plan) => {
+                            worst_regret = worst_regret.max(plan.worst_case_regret);
+                            child_cost = child_cost.max(plan.max_additional_cost_units);
+                            child_duration = child_duration.max(plan.max_additional_duration_seconds);
+                            child_steps = child_steps.max(plan.max_measurements_on_path);
+                            branches.insert(observation, plan);
+                        }
+                        None => {
+                            all_branches_solved = false;
+                            break;
+                        }
+                    }
+                }
+                if !all_branches_solved || branches.is_empty() {
+                    continue;
+                }
+
+                let candidate = AdaptivePlanNode {
+                    node_type: "MEASURE".to_string(),
+                    measurement_id: Some(measurement.id.clone()),
+                    action_id: None,
+                    observation_branches: branches,
+                    worst_case_regret: worst_regret,
+                    max_additional_cost_units: measurement.cost_units + child_cost,
+                    max_additional_duration_seconds: measurement.duration_seconds + child_duration,
+                    max_measurements_on_path: 1 + child_steps,
+                };
+                let replace = best_plan.as_ref().map_or(true, |incumbent| {
+                    candidate.worst_case_regret.total_cmp(&incumbent.worst_case_regret).is_lt()
+                        || (candidate.worst_case_regret.total_cmp(&incumbent.worst_case_regret).is_eq()
+                            && (candidate.max_additional_cost_units.total_cmp(&incumbent.max_additional_cost_units).is_lt()
+                                || (candidate.max_additional_cost_units.total_cmp(&incumbent.max_additional_cost_units).is_eq()
+                                    && (candidate.max_additional_duration_seconds.total_cmp(&incumbent.max_additional_duration_seconds).is_lt()
+                                        || (candidate.max_additional_duration_seconds.total_cmp(&incumbent.max_additional_duration_seconds).is_eq()
+                                            && (candidate.max_measurements_on_path < incumbent.max_measurements_on_path
+                                                || (candidate.max_measurements_on_path == incumbent.max_measurements_on_path
+                                                    && candidate.measurement_id < incumbent.measurement_id)))))))
+                });
+                if replace {
+                    best_plan = Some(candidate);
+                }
+            }
+        }
+
+        self.memo.insert(key, best_plan.clone());
+        best_plan
+    }
+}
+
+/// Exhaustively solves small synthetic campaigns with deterministic observations.
+///
+/// At each observation branch, the policy may stop and choose a single action feasible
+/// in every still-possible scenario, or select another unused measurement. The objective
+/// is lexicographic: minimize worst-case regret, then maximum path cost, duration and
+/// measurement count. This is an exact oracle for the declared finite pool, not a
+/// scalable policy and not a real-world value-of-information estimator.
+pub fn audit_adaptive_decision_campaign(pool: &Value) -> AdaptiveCampaignReport {
+    let base = audit_decision_value_pool(pool);
+    let benchmark_id = nonempty_string(pool, "benchmark_id");
+    let utility_unit = nonempty_string(pool, "utility_unit");
+    let cost_unit = nonempty_string(pool, "cost_unit");
+    let steps = pool.get("max_measurement_steps").and_then(Value::as_u64).map(|n| n as usize);
+    let base_failures = base.status != "PASS";
+    let mut findings = Vec::new();
+
+    if base_failures {
+        findings.extend(base.findings.iter().cloned().map(|v| format!("BASE_POOL_{v}")));
+    }
+    if steps.map_or(true, |n| n == 0 || n > 8) {
+        findings.push("MAX_STEPS:max_measurement_steps must be in 1..=8".to_string());
+    }
+    let scenarios_value = pool.get("scenarios").and_then(Value::as_array);
+    if scenarios_value.map_or(true, |s| s.len() > 32) {
+        findings.push("SCENARIO_LIMIT:adaptive exact oracle allows at most 32 scenarios".to_string());
+    }
+    let measurements_value = pool.get("measurements").and_then(Value::as_array);
+    if measurements_value.map_or(true, |m| m.len() > 12) {
+        findings.push("MEASUREMENT_LIMIT:adaptive exact oracle allows at most 12 measurements".to_string());
+    }
+
+    if !findings.is_empty() {
+        findings.sort();
+        findings.dedup();
+        return AdaptiveCampaignReport {
+            status: "FAIL".to_string(),
+            audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
+            benchmark_id, utility_unit, cost_unit,
+            max_measurement_steps: steps,
+            pre_measurement_worst_case_regret: None,
+            adaptive_oracle_worst_case_regret: None,
+            adaptive_oracle_gross_regret_reduction: None,
+            adaptive_oracle_max_path_cost_units: None,
+            adaptive_oracle_max_path_duration_seconds: None,
+            adaptive_oracle_max_measurements_on_path: None,
+            policy_tree: None,
+            findings,
+            claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
+        };
+    }
+
+    let scenario_ids: Vec<String> = scenarios_value.unwrap().iter()
+        .filter_map(|v| nonempty_string(v, "id")).collect();
+    let mut actions = Vec::new();
+    for action in pool.get("actions").and_then(Value::as_array).unwrap() {
+        let id = nonempty_string(action, "id").unwrap();
+        let utilities = scenario_ids.iter().map(|scenario| {
+            (scenario.clone(), action["utility_by_scenario"][scenario].as_f64().unwrap())
+        }).collect();
+        let feasible = scenario_ids.iter().map(|scenario| {
+            (scenario.clone(), action["feasible_by_scenario"][scenario].as_bool().unwrap())
+        }).collect();
+        actions.push(DecisionAction { id, utility_by_scenario: utilities, feasible_by_scenario: feasible });
+    }
+    actions.sort_by(|a, b| a.id.cmp(&b.id));
+
+    let mut measurements = Vec::new();
+    for measurement in pool.get("measurements").and_then(Value::as_array).unwrap() {
+        let id = nonempty_string(measurement, "id").unwrap();
+        let cost_units = measurement["cost_units"].as_f64().unwrap();
+        let duration_seconds = measurement["duration_seconds"].as_f64().unwrap();
+        let observations = scenario_ids.iter().map(|scenario| {
+            (scenario.clone(), measurement["observation_by_scenario"][scenario].as_str().unwrap().to_string())
+        }).collect();
+        measurements.push(AdaptiveMeasurement { id, cost_units, duration_seconds, observation_by_scenario: observations });
+    }
+    measurements.sort_by(|a, b| a.id.cmp(&b.id));
+
+    // Sorting makes bit positions stable and ties reproducible for an identical pool.
+    // The base evaluator's one-step optimum is also recorded for comparison.
+    let best_utility: BTreeMap<String, f64> = scenario_ids.iter().map(|scenario| {
+        let best = actions.iter().filter(|a| a.feasible_by_scenario[scenario])
+            .map(|a| a.utility_by_scenario[scenario]).max_by(f64::total_cmp).unwrap();
+        (scenario.clone(), best)
+    }).collect();
+    let pre_regret = decision_worst_regret(&actions, &scenario_ids, &best_utility);
+    let pre_regret = match pre_regret {
+        Some(v) => v,
+        None => {
+            return AdaptiveCampaignReport {
+                status: "UNRESOLVED".to_string(),
+                audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
+                benchmark_id, utility_unit, cost_unit,
+                max_measurement_steps: steps,
+                pre_measurement_worst_case_regret: None,
+                adaptive_oracle_worst_case_regret: None,
+                adaptive_oracle_gross_regret_reduction: None,
+                adaptive_oracle_max_path_cost_units: None,
+                adaptive_oracle_max_path_duration_seconds: None,
+                adaptive_oracle_max_measurements_on_path: None,
+                policy_tree: None,
+                findings: vec!["NO_PRE_MEASUREMENT_ROBUST_ACTION:no action is feasible across all declared scenarios".to_string()],
+                claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
+            }
+        }
+    };
+
+    let max_cost = pool["max_measurement_cost"].as_f64().unwrap();
+    let max_duration = pool["max_duration_seconds"].as_f64().unwrap();
+    let mut solver = AdaptiveCampaignSolver {
+        actions, measurements, best_utility,
+        max_cost, max_duration, max_steps: steps.unwrap(),
+        memo: BTreeMap::new(),
+    };
+    let plan = solver.solve(scenario_ids, 0);
+    match plan {
+        Some(policy_tree) => {
+            let gross_reduction = (pre_regret - policy_tree.worst_case_regret).max(0.0);
+            AdaptiveCampaignReport {
+                status: "PASS".to_string(),
+                audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
+                benchmark_id, utility_unit, cost_unit,
+                max_measurement_steps: steps,
+                pre_measurement_worst_case_regret: Some(pre_regret),
+                adaptive_oracle_worst_case_regret: Some(policy_tree.worst_case_regret),
+                adaptive_oracle_gross_regret_reduction: Some(gross_reduction),
+                adaptive_oracle_max_path_cost_units: Some(policy_tree.max_additional_cost_units),
+                adaptive_oracle_max_path_duration_seconds: Some(policy_tree.max_additional_duration_seconds),
+                adaptive_oracle_max_measurements_on_path: Some(policy_tree.max_measurements_on_path),
+                policy_tree: Some(policy_tree),
+                findings: Vec::new(),
+                claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
+            }
+        }
+        None => AdaptiveCampaignReport {
+            status: "UNRESOLVED".to_string(),
+            audit_kind: "synthetic_adaptive_decision_campaign".to_string(),
+            benchmark_id, utility_unit, cost_unit,
+            max_measurement_steps: steps,
+            pre_measurement_worst_case_regret: Some(pre_regret),
+            adaptive_oracle_worst_case_regret: None,
+            adaptive_oracle_gross_regret_reduction: None,
+            adaptive_oracle_max_path_cost_units: None,
+            adaptive_oracle_max_path_duration_seconds: None,
+            adaptive_oracle_max_measurements_on_path: None,
+            policy_tree: None,
+            findings: vec!["NO_FEASIBLE_ADAPTIVE_POLICY:no policy satisfies all robust observation branches within the declared caps".to_string()],
+            claim_ceiling: "Synthetic finite-pool arithmetic and planning only; no physical, model, or manufacturing claim is validated.".to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod adaptive_campaign_tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn adaptive_pool() -> Value {
+        serde_json::from_str(include_str!("../fixtures/adaptive-decision-pool.synthetic.json"))
+            .expect("adaptive decision pool must be valid JSON")
+    }
+
+    #[test]
+    fn adaptive_oracle_uses_second_measurement_to_resolve_ambiguous_pairs() {
+        let report = audit_adaptive_decision_campaign(&adaptive_pool());
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.pre_measurement_worst_case_regret, Some(6.0));
+        assert_eq!(report.adaptive_oracle_worst_case_regret, Some(0.0));
+        assert_eq!(report.adaptive_oracle_gross_regret_reduction, Some(6.0));
+        assert_eq!(report.adaptive_oracle_max_path_cost_units, Some(2.0));
+        assert_eq!(report.adaptive_oracle_max_path_duration_seconds, Some(20.0));
+        assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(2));
+        let root = report.policy_tree.unwrap();
+        assert_eq!(root.node_type, "MEASURE");
+        assert_eq!(root.measurement_id.as_deref(), Some("measure-alpha"));
+        assert_eq!(root.observation_branches.len(), 2);
+        assert!(root.observation_branches.values().all(|branch| branch.node_type == "MEASURE"));
+    }
+
+    #[test]
+    fn adaptive_oracle_respects_one_step_cap() {
+        let mut value = adaptive_pool();
+        value["max_measurement_steps"] = json!(1);
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.adaptive_oracle_worst_case_regret, Some(6.0));
+        assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(0));
+        // An equal-regret STOP wins the tie on cost, so the exact one-step cap does not force a probe.
+    }
+
+    #[test]
+    fn adaptive_oracle_rejects_step_limit_overflow() {
+        let mut value = adaptive_pool();
+        value["max_measurement_steps"] = json!(9);
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("MAX_STEPS:")));
+    }
+
+    #[test]
+    fn adaptive_oracle_rejects_more_than_twelve_measurements() {
+        let mut value = adaptive_pool();
+        let extra = value["measurements"][0].clone();
+        for n in 0..10 {
+            let mut measurement = extra.clone();
+            measurement["id"] = json!(format!("extra-{n}"));
+            value["measurements"].as_array_mut().unwrap().push(measurement);
+        }
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|v| v.starts_with("MEASUREMENT_LIMIT:")));
+    }
+
+    #[test]
+    fn adaptive_oracle_finds_no_policy_when_budget_blocks_required_measurement() {
+        let mut value = adaptive_pool();
+        value["max_measurement_cost"] = json!(1.0);
+        value["max_duration_seconds"] = json!(10.0);
+        let report = audit_adaptive_decision_campaign(&value);
+        assert_eq!(report.status, "PASS");
+        assert_eq!(report.adaptive_oracle_worst_case_regret, Some(6.0));
+        assert_eq!(report.adaptive_oracle_max_measurements_on_path, Some(0));
+    }
+}
