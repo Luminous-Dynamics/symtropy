@@ -18,6 +18,8 @@ The unit suite includes 100 grid-aligned rectangle footprints and compares all 1
 
 Pinned expected ablation counts for that synthetic corpus are 12,980 positive-area overlaps, 6,216 boundary contacts, and 3,304 disjoint pairs. A conservative AABB-only conflict predicate flags 20,180 pairs, including 984 pairs whose exact polygon relation is disjoint, with zero AABB false negatives. These are authored count expectations derived from the deterministic corpus; the exact-head Rust tests must confirm them before they are treated as validated results. They are not industrial yard measurements. The result motivates a safe architecture: use AABBs to reject definitely disjoint broadphase pairs, but use exact polygon predicates for every candidate pair whose boxes overlap rather than treating whole envelopes as authoritative geometry.
 
+A frozen two-block counterexample uses two identical L-shaped footprints in a 6×6 yard. With the first fixed at the origin, the independent exact oracle finds four non-overlapping translations for the second block, while the conservative AABB-only conflict policy rejects all 16 translations because the rectangular envelopes overlap or touch. This is a tiny synthetic completeness example, not a yard-wide optimizer benchmark; its acceptance target is four exact-feasible translations and zero AABB-accepted translations.
+
 A separate temporal control uses a concave L-shaped footprint to test endpoint reuse at the exact clearance tick, a one-tick delayed-clearance conflict, and boundary-contact policy under overlapping time intervals.
 
 - Exact integer orientation and segment-relation predicates.
