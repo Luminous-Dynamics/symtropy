@@ -34,13 +34,49 @@ pub struct ResourceOutage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RequiredSpaceReservation {
+    pub reservation_id: String,
+    pub block_id: String,
+    pub minimum_duration_ticks: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RequiredOperation {
+    pub operation_id: String,
+    /// The modeled processing duration is fixed; start time may move during recovery.
+    pub duration_ticks: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RequiredResourceUse {
+    pub use_id: String,
+    pub operation_id: String,
+    pub resource_id: String,
+    pub minimum_duration_ticks: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PrecedenceConstraint {
+    pub predecessor_operation_id: String,
+    pub successor_operation_id: String,
+    pub minimum_lag_ticks: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScenarioDefinition {
     pub scenario_id: String,
     /// Blocks that must still appear in the plan for this scenario. A cancellation
     /// must be represented by a separate, explicit protocol rather than omission.
     pub required_block_ids: Vec<String>,
-    /// Operations whose future commitments cannot disappear from a candidate.
-    pub required_operation_ids: Vec<String>,
+    /// Specific space-reservation identities that cannot disappear. Their start
+    /// times may change, but their minimum occupancy durations cannot be shortened.
+    pub required_reservations: Vec<RequiredSpaceReservation>,
+    /// Operations that cannot disappear or silently change modeled duration.
+    pub required_operations: Vec<RequiredOperation>,
+    /// Specific resource assignments/occupancies that must remain represented.
+    pub required_resource_uses: Vec<RequiredResourceUse>,
+    /// Immutable finish-to-start dependencies from the benchmark.
+    pub precedence_constraints: Vec<PrecedenceConstraint>,
     /// Ground-truth outages supplied by the benchmark, not the candidate.
     pub resource_outages: Vec<ResourceOutage>,
 }
@@ -73,6 +109,10 @@ pub enum Violation {
         resource_id: String,
         use_id: String,
         outage_id: String,
+    },
+    PrecedenceViolation {
+        predecessor_operation_id: String,
+        successor_operation_id: String,
     },
 }
 
@@ -159,10 +199,76 @@ pub fn audit_robust_plan(
             &mut global_diagnostics,
         );
         validate_unique_nonempty(
-            &definition.required_operation_ids,
-            &format!("scenario {} required_operation_ids", definition.scenario_id),
+            &definition.required_reservations.iter().map(|item| item.reservation_id.clone()).collect::<Vec<_>>(),
+            &format!("scenario {} required_reservations", definition.scenario_id),
             &mut global_diagnostics,
         );
+        validate_unique_nonempty(
+            &definition.required_operations.iter().map(|item| item.operation_id.clone()).collect::<Vec<_>>(),
+            &format!("scenario {} required_operations", definition.scenario_id),
+            &mut global_diagnostics,
+        );
+        validate_unique_nonempty(
+            &definition.required_resource_uses.iter().map(|item| item.use_id.clone()).collect::<Vec<_>>(),
+            &format!("scenario {} required_resource_uses", definition.scenario_id),
+            &mut global_diagnostics,
+        );
+        let required_operation_ids: BTreeSet<String> = definition.required_operations.iter().map(|item| item.operation_id.clone()).collect();
+        for required in &definition.required_reservations {
+            if !definition.required_block_ids.contains(&required.block_id) {
+                global_diagnostics.push(format!(
+                    "scenario {} required reservation {} refers to unlisted block {}",
+                    definition.scenario_id, required.reservation_id, required.block_id
+                ));
+            }
+            if required.minimum_duration_ticks <= 0 {
+                global_diagnostics.push(format!(
+                    "scenario {} required reservation {} has non-positive minimum duration",
+                    definition.scenario_id, required.reservation_id
+                ));
+            }
+        }
+        for required in &definition.required_operations {
+            if required.duration_ticks <= 0 {
+                global_diagnostics.push(format!(
+                    "scenario {} required operation {} has non-positive duration",
+                    definition.scenario_id, required.operation_id
+                ));
+            }
+        }
+        for required in &definition.required_resource_uses {
+            if !required_operation_ids.contains(&required.operation_id) {
+                global_diagnostics.push(format!(
+                    "scenario {} required resource use {} refers to unlisted operation {}",
+                    definition.scenario_id, required.use_id, required.operation_id
+                ));
+            }
+            if required.use_id.trim().is_empty() || required.resource_id.trim().is_empty() || required.minimum_duration_ticks <= 0 {
+                global_diagnostics.push(format!(
+                    "scenario {} required resource use {} has invalid ID/resource/duration",
+                    definition.scenario_id, required.use_id
+                ));
+            }
+        }
+        let mut precedence_seen = BTreeSet::new();
+        for dependency in &definition.precedence_constraints {
+            if dependency.predecessor_operation_id == dependency.successor_operation_id
+                || dependency.minimum_lag_ticks < 0
+                || !required_operation_ids.contains(&dependency.predecessor_operation_id)
+                || !required_operation_ids.contains(&dependency.successor_operation_id)
+            {
+                global_diagnostics.push(format!(
+                    "scenario {} has invalid precedence {} -> {}",
+                    definition.scenario_id, dependency.predecessor_operation_id, dependency.successor_operation_id
+                ));
+            }
+            if !precedence_seen.insert(dependency.clone()) {
+                global_diagnostics.push(format!(
+                    "scenario {} has duplicate precedence {} -> {}",
+                    definition.scenario_id, dependency.predecessor_operation_id, dependency.successor_operation_id
+                ));
+            }
+        }
         let mut outage_ids = BTreeSet::new();
         for outage in &definition.resource_outages {
             if outage.outage_id.trim().is_empty() || outage.resource_id.trim().is_empty() {
@@ -295,6 +401,29 @@ fn audit_scenario(
             diagnostics.push(format!("required block {block_id} has no space reservation"));
         }
     }
+    for required in &definition.required_reservations {
+        match plan.space_reservations.iter().find(|item| item.reservation_id == required.reservation_id) {
+            Some(actual) => {
+                if actual.block_id != required.block_id {
+                    diagnostics.push(format!(
+                        "required reservation {} changed block identity from {} to {}",
+                        required.reservation_id, required.block_id, actual.block_id
+                    ));
+                }
+                let duration = i128::from(actual.window.end()) - i128::from(actual.window.start());
+                if duration < i128::from(required.minimum_duration_ticks) {
+                    diagnostics.push(format!(
+                        "required reservation {} was shortened below minimum duration {}",
+                        required.reservation_id, required.minimum_duration_ticks
+                    ));
+                }
+            }
+            None => diagnostics.push(format!(
+                "required space reservation {} is missing",
+                required.reservation_id
+            )),
+        }
+    }
 
     for first_index in 0..plan.space_reservations.len() {
         for second_index in (first_index + 1)..plan.space_reservations.len() {
@@ -333,9 +462,38 @@ fn audit_scenario(
             ));
         }
     }
-    for operation_id in &definition.required_operation_ids {
-        if !operation_map.contains_key(operation_id) {
-            diagnostics.push(format!("required operation {operation_id} is missing"));
+    for required in &definition.required_operations {
+        match operation_map.get(&required.operation_id) {
+            None => diagnostics.push(format!("required operation {} is missing", required.operation_id)),
+            Some(window) => {
+                let duration = i128::from(window.end()) - i128::from(window.start());
+                if duration != i128::from(required.duration_ticks) {
+                    diagnostics.push(format!(
+                        "required operation {} has duration {}, expected {}",
+                        required.operation_id, duration, required.duration_ticks
+                    ));
+                }
+            }
+        }
+    }
+    for dependency in &definition.precedence_constraints {
+        match (
+            operation_map.get(&dependency.predecessor_operation_id),
+            operation_map.get(&dependency.successor_operation_id),
+        ) {
+            (Some(predecessor), Some(successor)) => {
+                let required_start = i128::from(predecessor.end()) + i128::from(dependency.minimum_lag_ticks);
+                if required_start > i128::from(successor.start()) {
+                    violations.push(Violation::PrecedenceViolation {
+                        predecessor_operation_id: dependency.predecessor_operation_id.clone(),
+                        successor_operation_id: dependency.successor_operation_id.clone(),
+                    });
+                }
+            }
+            _ => diagnostics.push(format!(
+                "precedence {} -> {} references a missing operation reservation",
+                dependency.predecessor_operation_id, dependency.successor_operation_id
+            )),
         }
     }
 
@@ -362,6 +520,27 @@ fn audit_scenario(
                 "resource use {} references missing operation {}",
                 resource_use.use_id, resource_use.operation_id
             )),
+        }
+    }
+
+    for required in &definition.required_resource_uses {
+        match plan.resource_uses.iter().find(|item| item.use_id == required.use_id) {
+            None => diagnostics.push(format!("required resource use {} is missing", required.use_id)),
+            Some(actual) => {
+                if actual.operation_id != required.operation_id || actual.resource_id != required.resource_id {
+                    diagnostics.push(format!(
+                        "required resource use {} changed operation/resource identity",
+                        required.use_id
+                    ));
+                }
+                let duration = i128::from(actual.window.end()) - i128::from(actual.window.start());
+                if duration < i128::from(required.minimum_duration_ticks) {
+                    diagnostics.push(format!(
+                        "required resource use {} was shortened below minimum duration {}",
+                        required.use_id, required.minimum_duration_ticks
+                    ));
+                }
+            }
         }
     }
 
