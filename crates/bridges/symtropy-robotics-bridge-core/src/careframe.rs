@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use nalgebra::{SMatrix, SVector};
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use symtropy_math::{HyperBox, Point, Rotor, Transform};
 use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 
@@ -30,6 +31,8 @@ const NO_INERTIA: &str = "not_provided_kinematic_only";
 pub struct CareframeStaticCollisionAssembly {
     pub model_id: String,
     pub revision: u64,
+    pub morphology_sha256: String,
+    pub joint_state_sha256: String,
     pub link_handles: BTreeMap<String, BodyHandle>,
 }
 
@@ -138,6 +141,8 @@ pub fn spawn_static_collision_assembly(
     joint_state_json: &str,
     base_position: Point<3>,
 ) -> Result<CareframeStaticCollisionAssembly, Vec<String>> {
+    let morphology_digest = sha256_hex(morphology_json.as_bytes());
+    let joint_state_digest = sha256_hex(joint_state_json.as_bytes());
     let morphology: CareframeMorphology = serde_json::from_str(morphology_json)
         .map_err(|error| vec![format!("MORPHOLOGY_JSON_INVALID: {error}")])?;
     validate_morphology(&morphology)?;
@@ -174,8 +179,18 @@ pub fn spawn_static_collision_assembly(
     Ok(CareframeStaticCollisionAssembly {
         model_id: morphology.model_id,
         revision: morphology.revision,
+        morphology_sha256: morphology_digest,
+        joint_state_sha256: joint_state_digest,
         link_handles,
     })
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 fn valid_identifier(value: &str) -> bool {
@@ -504,6 +519,16 @@ mod tests {
         assert_eq!(physics.body_count(), 16);
         assert!(physics.constraints.is_empty());
         assert_eq!(assembly.revision, 1);
+        assert_eq!(assembly.morphology_sha256.len(), 64);
+        assert_eq!(assembly.joint_state_sha256.len(), 64);
+        assert!(assembly
+            .morphology_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
+        assert!(assembly
+            .joint_state_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
 
         let torso_handle = assembly.handle_for_link("torso_shell").expect("torso link");
         let torso = physics.body(torso_handle).expect("torso body");
