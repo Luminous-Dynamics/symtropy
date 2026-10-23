@@ -12,6 +12,12 @@ A failed heuristic should be reported as “this heuristic did not find a layout
 
 It uses dynamic minimum-remaining-values (MRV) branching: at every search depth it chooses the not-yet-placed block with the fewest currently compatible positions, with stable input-order tie breaks. Positions are scanned y-major then x-major. This is a reproducible exact reference and small-instance fallback, not a production-scale global optimizer.
 
+## Frozen greedy-failure benchmark
+
+A second known-answer scenario uses a 4×4 yard and three fixed-orientation blocks in the same request order: two 1×1 squares followed by a 1×3 vertical bar. The deterministic exact-polygon first-fit baseline places the squares at (0,0) and (2,0), then reports the bar as unplaced. The exact MRV solver can change the placement order internally and recover a complete layout, for example the bar at (0,0) and the squares at (2,0) and (2,2). This is a constructed counterexample to greedy request-order completeness, not an empirical speed or industrial-quality result.
+
+The test oracle checks every pair in the exact layout using integer-cell occupancy and independent axis-aligned boundary-contact tests. Target: greedy covers 2/3 requests; exact search covers 3/3 and produces zero independent conflicts. The exact head must confirm the scenario and the test fixture before treating the target as verified.
+
 ## Explicit limits
 
 - At most four requests.
