@@ -14,10 +14,10 @@ The service weights and minimum fractions in the fixture are invented for softwa
 
 From the repository root, with a Rust toolchain and dependency access:
 
-\`\`\`sh
+```sh
 cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
 cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- research/polar-infrastructure/benchmark/fixtures/toy-episode.json
-\`\`\`
+```
 
 The CLI emits a JSON report. Invalid input fails closed: unknown service identifiers, incomplete step series, duplicate policy/service identifiers, negative/non-finite measurements, absent demands, and unsupported evidence claims are errors.
 
@@ -67,10 +67,10 @@ Not every remote-infrastructure failure mode has defensible occurrence probabili
 
 Run it with:
 
-\`\`\`sh
+```sh
 cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
 cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json
-\`\`\`
+```
 
 The fixture enumerates three toy scenarios without probabilities. The cases and policy deliveries are deliberately fabricated to test the report contract. The policy IDs are shared across every scenario; the scorer rejects changed service contract semantics, duplicate scenario/episode IDs, mismatched policy sets, unknown JSON fields and evidence-claim escalation. Pareto status means only that no other included option is at least as good on every declared objective and strictly better on one; it is **not** a safety approval or winner label.
 
@@ -89,10 +89,10 @@ The companion binary `resilience_ensemble` evaluates **the same declared policy 
 
 Run it with:
 
-\`\`\`sh
+```sh
 cargo test --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
 cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json
-\`\`\`
+```
 
 The fixture contains only two invented scenarios with artificial probabilities (0.9 and 0.1), just to exercise aggregation and tail calculations. It is not a forecast, an empirical frequency estimate, or an Antarctic/Arctic failure distribution. For a real evidence-backed risk estimate, probabilities must be justified using an explicit data/model basis and uncertainty analysis. If credible probabilities are unavailable, report enumerated scenario outcomes and worst-case results without describing them as event probabilities; CVaR over invented weights is not decision-grade evidence.
 
