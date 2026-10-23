@@ -6,7 +6,7 @@
 
 Published shipyard recovery work often evaluates a proposed schedule/recovery method over a finite set of disruptions. That is valuable but does not by itself rule out a method that implicitly uses future scenario identity when choosing earlier actions. Recent reviews also identify a need to connect disruption propagation, integrated recovery, schedule stability, and operational outcomes rather than focusing narrowly on cost or delay.
 
-V0 adds one falsifiable requirement before policy-quality comparisons: scenarios with the same information available at a decision epoch must use the same action. It is a **causality gate**, not a substitute for exact geometry, feasibility verification, or outcome simulation.
+V0 adds one falsifiable requirement before policy-quality comparisons: scenarios with the same information available at a decision epoch must use the same action. The independent source scenario inventory and source-owned event-observation logs are separate from candidate-generated action traces; the auditor rejects missing or unexpected source logs or candidate traces before checking causality. It is a **causality gate**, not a substitute for exact geometry, feasibility verification, or outcome simulation.
 
 ## Frozen benchmark strata
 
