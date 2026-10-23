@@ -1,0 +1,24 @@
+[package]
+name = "built-interop-ifc-ids"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Narrow synthetic IFC4/IDS 1.0 ingestion and IF CWALL.Name requirement adapter"
+
+[dependencies]
+ifc-model = "=0.3.1"
+ifc-step = "=0.5.0"
+openbim-core = "=0.1.0"
+openbim-ids = "=0.2.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[workspace]
