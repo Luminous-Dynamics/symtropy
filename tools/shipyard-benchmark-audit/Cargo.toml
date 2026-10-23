@@ -1,0 +1,10 @@
+[package]
+name = "shipyard-benchmark-audit"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dependency-free manifest validator and semantic auditor for shipyard benchmark evidence"
+
+[workspace]

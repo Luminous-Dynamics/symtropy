@@ -1,0 +1,45 @@
+name: Format shipyard benchmark auditor
+
+on:
+  pull_request:
+    branches: ["research/shipyard-benchmark-contract-v0"]
+    paths:
+      - "tools/shipyard-benchmark-audit/**"
+      - ".github/workflows/shipyard-benchmark-audit-format.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shipyard-benchmark-audit-format-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Apply pinned rustfmt without relaxing verification
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format auditor crate
+        run: cargo fmt --all --manifest-path tools/shipyard-benchmark-audit/Cargo.toml
+      - name: Commit only rustfmt changes
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- tools/shipyard-benchmark-audit; then
+            echo "No formatting changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/shipyard-benchmark-audit
+          git commit -m "style(shipyard): apply pinned rustfmt"
+          git push origin "HEAD:${HEAD_REF}"

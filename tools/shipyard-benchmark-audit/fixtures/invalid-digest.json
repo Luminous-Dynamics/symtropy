@@ -1,0 +1,99 @@
+{
+  "schema_version": "shipyard-benchmark-manifest/v0",
+  "benchmark_id": "tiny-yard-v0",
+  "title": "Hand-authored tiny yard conformance fixture",
+  "claim_class": "semantic-correctness",
+  "scope": {
+    "models": [
+      "rectangular-space-time"
+    ],
+    "supported_constraints": [
+      "finite bounds",
+      "half-open time windows",
+      "rectangular occupancy"
+    ],
+    "unsupported_constraints": [
+      "irregular polygons",
+      "crane physics"
+    ]
+  },
+  "source": {
+    "kind": "generated",
+    "uri": "fixtures://tiny-yard-v0/corpus.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "license_or_access_basis": "hand-authored synthetic conformance data"
+  },
+  "generator": {
+    "name": "hand-authored-fixture",
+    "version": "1",
+    "seed": 7,
+    "parameters_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "protocol": {
+    "hardware_class": "ci-x86_64",
+    "wall_clock_budget_ms": 1000,
+    "candidate_evaluation_budget": 10000,
+    "repetitions": 1,
+    "warmup_runs": 0,
+    "random_seed": 7,
+    "timeout_policy": "censored-runtime",
+    "expected_case_count": 2
+  },
+  "candidate": {
+    "name": "candidate-portfolio",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "config_sha256": "not-a-digest"
+  },
+  "baselines": [
+    {
+      "name": "caller-order-first-fit",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "config_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "oracle": {
+    "kind": "exact-enumeration",
+    "implementation_id": "independent-cell-set-oracle-v1",
+    "revision": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "source_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "limitations": [
+      "tiny rectangular integer lattice only"
+    ]
+  },
+  "metrics": [
+    "false_feasible_count",
+    "false_infeasible_count",
+    "feasible_case_recall",
+    "runtime_ms"
+  ],
+  "metric_definitions": [
+    {
+      "name": "false_feasible_count",
+      "unit": "cases",
+      "definition": "Count of feasibility claims for cases whose independent reference outcome is infeasible.",
+      "aggregation": "count",
+      "direction": "minimize"
+    },
+    {
+      "name": "false_infeasible_count",
+      "unit": "cases",
+      "definition": "Count of infeasibility proofs for cases whose independent reference outcome is feasible.",
+      "aggregation": "count",
+      "direction": "minimize"
+    },
+    {
+      "name": "feasible_case_recall",
+      "unit": "ratio",
+      "definition": "Feasible reference cases found divided by known feasible reference cases.",
+      "aggregation": "ratio",
+      "direction": "minimize"
+    },
+    {
+      "name": "runtime_ms",
+      "unit": "ms",
+      "definition": "Per-instance optimizer wall time in milliseconds, excluding input parsing and verification.",
+      "aggregation": "median",
+      "direction": "minimize"
+    }
+  ]
+}

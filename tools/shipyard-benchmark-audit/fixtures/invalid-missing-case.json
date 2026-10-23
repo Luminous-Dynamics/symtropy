@@ -1,0 +1,48 @@
+{
+  "schema_version": "shipyard-benchmark-report/v0",
+  "benchmark_id": "tiny-yard-v0",
+  "manifest_sha256": "7945986581c4c7b07b8cdb8e970434c11a8023b19e2b05a3e059607a3bb410cd",
+  "status": "complete",
+  "run_metadata": {
+    "run_id": "fixture-run-001",
+    "git_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "executable_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "hardware_class": "ci-x86_64",
+    "rustc_version": "1.96.0",
+    "os": "linux"
+  },
+  "case_results": [
+    {
+      "case_id": "case-feasible-001",
+      "outcome": "feasible-claim",
+      "runtime_ms": 0.45,
+      "peak_memory_bytes": 4096,
+      "verifier": {
+        "status": "passed",
+        "oracle_outcome": "match",
+        "reference_outcome": "feasible",
+        "violation_count": 0,
+        "oracle_id": "independent-cell-set-oracle-v1",
+        "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    }
+  ],
+  "summary": {
+    "case_count": 1,
+    "unknown_count": 0,
+    "timeout_count": 0,
+    "invalid_output_count": 0,
+    "not_run_count": 0,
+    "false_feasible_count": 0,
+    "false_infeasible_count": 0,
+    "aggregate_metrics": {
+      "feasible_case_recall": 1,
+      "runtime_ms": 1.12
+    },
+    "feasible_claim_count": 1,
+    "infeasibility_proof_count": 0,
+    "no_solution_count": 0,
+    "feasible_reference_cases_found_count": 1,
+    "feasible_reference_cases_missed_count": 0
+  }
+}
