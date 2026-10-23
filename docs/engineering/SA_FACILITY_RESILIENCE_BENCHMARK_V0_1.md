@@ -20,6 +20,7 @@ The City of Johannesburg's FY2026/27 budget book, Annexure B, lists a Business C
 
 Relevant sources:
 - [City of Johannesburg Medium-Term Budget 2026/27–2028/29](https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf)
+- [City of Johannesburg announcement on approved 2026/27 tariffs](https://joburg.org.za/media_/Newsroom/Pages/2026-News-Articles/City-of-Johannesburg-Engages-Stakeholders-on-Approved-20262027-Tariffs.aspx) — confirms Council budget approval, an average electricity tariff increase of 8.63%, and the effective date of 1 July 2026; it does not verify the billing semantics or eligibility of a specific account.
 - [Augos tariff page](https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/)
 - [Augos machine-readable tariff JSON](https://augos.co.za/energy/tariff-database/city-power-johannesburg/business-conventional/2026-2027/tariff.json)
 - [City of Johannesburg tariffs portal](https://joburg.org.za/documents_/Pages/Key%20Documents/other/links/tariffs/Tariffs.aspx)
