@@ -597,7 +597,9 @@ fn write_or_print_template(tool_kind: &str, output_path: Option<&str>) {
 const MORPHOLOGY_PATH: &str =
     "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json";
 const MORPHOLOGY_SOURCE: &[u8] =
-    include_bytes!("../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json");
+    include_bytes!(
+        "../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
+    );
 
 fn finite_vec3(value: &Value) -> Option<[f64; 3]> {
     let items = value.as_array()?;
@@ -888,7 +890,11 @@ fn validate_morphology(model: &Value) -> Vec<String> {
             }
             Some("revolute") => {
                 let unit_axis = axis.is_some_and(|axis| {
-                    let norm = axis.iter().map(|component| component * component).sum::<f64>().sqrt();
+                    let norm = axis
+                        .iter()
+                        .map(|component| component * component)
+                        .sum::<f64>()
+                        .sqrt();
                     (norm - 1.0).abs() <= 1.0e-3
                 });
                 if !unit_axis {
@@ -962,7 +968,10 @@ fn validate_morphology_file(path: &str) {
         "physical_actuation_authorized": false,
         "patient_contact_authorized": false,
         "clinical_use_authorized": false,
-        "claim_ceiling": "Synthetic morphology graph/envelope only; no physical or clinical validity claim."
+        "claim_ceiling": concat!(
+            "Synthetic morphology graph/envelope only; no physical or clinical ",
+            "validity claim."
+        )
     });
     println!(
         "{}",
