@@ -12,6 +12,12 @@ This isolated crate is a fixed-point geometry prototype intended to support late
 
 ## V0 API
 
+## Frozen oracle targets
+
+The unit suite includes 100 grid-aligned rectangle footprints and compares all 10,000 ordered rectangle pairs against a separate unit-cell oracle. It also builds a separate family of 54 translated concave orthogonal polygons (three independently authored shapes, nine integer translations each, both winding directions) and compares all 2,916 ordered polygon pairs against an independent cell-set + inclusive axis-aligned-segment reference. The target is zero relation disagreements across both corpora; these are deterministic semantic controls, not industrial performance measurements. The test target count is authored from the generator loops and must be confirmed by exact-head Rust tests.
+
+A separate temporal control uses a concave L-shaped footprint to test endpoint reuse at the exact clearance tick, a one-tick delayed-clearance conflict, and boundary-contact policy under overlapping time intervals.
+
 - Exact integer orientation and segment-relation predicates.
 - Validated simple polygons, point location and canonical vertex cycles.
 - Polygon relation classification: disjoint, boundary contact or positive-area overlap.
