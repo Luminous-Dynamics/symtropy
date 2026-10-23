@@ -1,0 +1,53 @@
+name: Shipyard dispatch experiment adapter
+
+on:
+  push:
+    paths:
+      - "tools/shipyard-observed-dispatch/**"
+      - "tools/shipyard-dispatch-audit/**"
+      - "tools/shipyard-dispatch-experiment/**"
+      - ".github/workflows/shipyard-dispatch-experiment.yml"
+  pull_request:
+    paths:
+      - "tools/shipyard-observed-dispatch/**"
+      - "tools/shipyard-dispatch-audit/**"
+      - "tools/shipyard-dispatch-experiment/**"
+      - ".github/workflows/shipyard-dispatch-experiment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-dispatch-experiment-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting for all three crates
+        run: |
+          cargo fmt --manifest-path tools/shipyard-observed-dispatch/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-audit/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml -- --check
+
+      - name: Test policy-to-auditor integration offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml
+
+      - name: Check synthetic comparison example
+        run: cargo check --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --examples
+
+      - name: Lint all targets with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-dispatch-experiment/Cargo.toml --all-targets -- -D warnings
