@@ -98,41 +98,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - "$RUNNER_TEMP/energy-studio" <<'PY'
-          import hashlib
-          import json
-          import pathlib
-          import sys
-
-          work = pathlib.Path(sys.argv[1])
-          def sha256(raw: bytes) -> str:
-              return hashlib.sha256(raw).hexdigest()
-          def compact(value) -> bytes:
-              return json.dumps(value, separators=(",", ":"), ensure_ascii=False,
-                                allow_nan=False).encode("utf-8")
-
-          candidate_bytes = (work / "candidate.json").read_bytes()
-          config_path = work / "sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
-          with config_path.open(encoding="utf-8") as f:
-              supplied_config = json.load(f)
-          with (work / "compilation.json").open(encoding="utf-8") as f:
-              compilation = json.load(f)
-
-          if compilation.get("candidate_sha256") != sha256(candidate_bytes):
-              raise SystemExit("compile receipt does not bind exact generated candidate bytes")
-          expected_config_digest = sha256(compact(compilation["mapping_config"]))
-          if compilation.get("mapping_config_sha256") != expected_config_digest:
-              raise SystemExit("compile receipt mapping-config digest mismatch")
-          if compact(supplied_config) != compact(compilation["mapping_config"]):
-              raise SystemExit("compiled mapping config differs from pinned fixture")
-          # Serialize in the same field order exposed by the typed Rust request and
-          # compare to the adapter's own compact request digest before writing bytes.
-          request_bytes = compact(compilation["dispatch_request"])
-          if compilation.get("dispatch_request_sha256") != sha256(request_bytes):
-              raise SystemExit("compile receipt does not bind the exact compiled dispatch request")
-          (work / "dispatch-request.json").write_bytes(request_bytes)
-          print("Candidate, mapping config, and compiled request digests agree.")
-          PY
+          work="$RUNNER_TEMP/energy-studio"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+          cargo run --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
+            --bin energy_compilation_receipt_verify -- \
+            "$work/candidate.json" "$config" "$work/compilation.json" "$work/dispatch-request.json"
 
       - name: Execute Sol-Atlas exact finite dispatch
         shell: bash
