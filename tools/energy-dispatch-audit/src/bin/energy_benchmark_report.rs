@@ -749,7 +749,7 @@ fn benchmark_south_african_tariff_context(
     let log_digest = sha256_hex(&log_bytes);
     let receipt_digest = sha256_hex(&receipt_bytes);
     let case_id_expected = [
-        "low-season-2600kwh-under-50kva",
+        "low-season-2600kwh-le-100kva",
         "high-season-1200kwh-le-100kva",
     ];
     let registry_site = registry.get("site").ok_or_else(|| {
@@ -870,7 +870,7 @@ fn benchmark_south_african_tariff_context(
         if sum != required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")? {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "tariff subtotal is not the exact sum of represented energy/service/network charges",
+                "tariff subtotal is not the exact sum of represented energy and fixed-component charges",
             )
             .into());
         }
