@@ -110,6 +110,9 @@ impl Enumerator {
         for grid_import in 0..=grid_limit {
             for withdrawal in 0..=withdrawal_limit {
                 for charge in 0..=battery.charge_input_limit_quanta {
+                    // Count every visited grid/storage tuple before pruning so
+                    // large invalid action spaces still consume the hard budget.
+                    self.tick()?;
                     if withdrawal > 0 && charge > 0 {
                         continue;
                     }
@@ -128,8 +131,6 @@ impl Enumerator {
 
                     for essential_served in 0..=input.essential_demand_quanta {
                         for flexible_served in 0..=input.flexible_demand_quanta {
-                            self.tick()?;
-
                             let demand_and_charge = u64::from(essential_served)
                                 + u64::from(flexible_served)
                                 + u64::from(charge);
