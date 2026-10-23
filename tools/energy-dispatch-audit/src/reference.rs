@@ -20,6 +20,7 @@ pub(crate) struct ReferenceResult {
 #[derive(Clone, Debug)]
 pub(crate) enum ReferenceError {
     BudgetExceeded { expansions: u64 },
+    CaseTooLarge { intervals: usize },
     ArithmeticOverflow,
 }
 
@@ -182,6 +183,10 @@ pub(crate) fn enumerate(
     request: &DispatchRequest,
     expansion_limit: u64,
 ) -> Result<ReferenceResult, ReferenceError> {
+    // Bound recursion depth independently of action count to avoid stack exhaustion.
+    if request.intervals.len() > 64 {
+        return Err(ReferenceError::CaseTooLarge { intervals: request.intervals.len() });
+    }
     let mut enumerator = Enumerator {
         expansion_limit,
         expansions: 0,
