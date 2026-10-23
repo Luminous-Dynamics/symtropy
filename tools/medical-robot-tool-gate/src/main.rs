@@ -598,7 +598,10 @@ mod tests {
             let mut manifest = base.clone();
             manifest["authority"][field] = Value::Bool(true);
             let findings = validate_tool(&manifest);
-            assert!(findings.iter().any(|finding| finding == expected), "{field}: {findings:?}");
+            assert!(
+                findings.iter().any(|finding| finding == expected),
+                "{field}: {findings:?}"
+            );
         }
         let mut manifest = base;
         manifest["authority"]["simulation_only"] = Value::Bool(false);
@@ -617,7 +620,9 @@ mod tests {
 
         let mut mechanical = base.clone();
         mechanical["mechanical"]["unbounded_force"] = json!(9999);
-        assert!(validate_tool(&mechanical).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&mechanical)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
 
         let mut privacy = base.clone();
         privacy["privacy"]["capture_without_consent"] = json!(true);
@@ -629,7 +634,9 @@ mod tests {
 
         let mut electrical = base.clone();
         electrical["electrical"]["remote_override"] = json!(true);
-        assert!(validate_tool(&electrical).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+        assert!(validate_tool(&electrical)
+            .iter()
+            .any(|finding| finding == "UNKNOWN_FIELD"));
 
         let mut authority = base;
         authority["authority"]["unreviewed_clinical_mode"] = json!(true);
@@ -733,7 +740,9 @@ mod tests {
         let root = corpus();
         let mut manifest = root["cases"][0]["manifest"].clone();
         manifest["electrical"]["protective_isolation_declared"] = Value::Bool(false);
-        assert!(validate_tool(&manifest).iter().any(|finding| finding == "POWER_ENVELOPE_INVALID"));
+        assert!(validate_tool(&manifest)
+            .iter()
+            .any(|finding| finding == "POWER_ENVELOPE_INVALID"));
     }
 
     #[test]
@@ -756,7 +765,13 @@ mod tests {
             "patient_transfer",
             "medication_dispensation",
         ];
-        let contacts = ["none", "object_only", "mannequin_only", "patient_contact", "invasive"];
+        let contacts = [
+            "none",
+            "object_only",
+            "mannequin_only",
+            "patient_contact",
+            "invasive",
+        ];
         let mut combinations = 0usize;
         let mut eligible = 0usize;
 
@@ -804,17 +819,40 @@ mod tests {
         for (field, values, valid) in [
             (
                 "mass_g",
-                vec![json!(-1), json!(0), json!(1), json!(5000), json!(5001), json!("1"), Value::Null],
+                vec![
+                    json!(-1),
+                    json!(0),
+                    json!(1),
+                    json!(5000),
+                    json!(5001),
+                    json!("1"),
+                    Value::Null,
+                ],
                 vec![false, false, true, true, false, false, false],
             ),
             (
                 "payload_g",
-                vec![json!(-1), json!(0), json!(20000), json!(20001), json!("1"), Value::Null],
+                vec![
+                    json!(-1),
+                    json!(0),
+                    json!(20000),
+                    json!(20001),
+                    json!("1"),
+                    Value::Null,
+                ],
                 vec![false, true, true, false, false, false],
             ),
             (
                 "max_object_force_n",
-                vec![json!(-1), json!(0), json!(1), json!(50), json!(51), json!("1"), Value::Null],
+                vec![
+                    json!(-1),
+                    json!(0),
+                    json!(1),
+                    json!(50),
+                    json!(51),
+                    json!("1"),
+                    Value::Null,
+                ],
                 vec![false, false, true, true, false, false, false],
             ),
             (
@@ -877,7 +915,8 @@ mod tests {
                         assert_eq!(
                             findings.is_empty(),
                             allowed,
-                            "audio={captures_audio}, video={captures_video}, shutter={shutter}, enabled={default_enabled}: {findings:?}"
+                            "audio={captures_audio}, video={captures_video}, \
+                             shutter={shutter}, enabled={default_enabled}: {findings:?}"
                         );
                         combinations += 1;
                     }
@@ -898,7 +937,8 @@ mod tests {
                     let mut manifest = base.clone();
                     manifest["electrical"]["powered"] = json!(powered);
                     manifest["electrical"]["max_power_w"] = json!(power);
-                    manifest["electrical"]["protective_isolation_declared"] = json!(isolated);
+                    manifest["electrical"]["protective_isolation_declared"] =
+                        json!(isolated);
                     let allowed = if powered {
                         power > 0.0 && power <= 100.0 && isolated
                     } else {
@@ -908,7 +948,8 @@ mod tests {
                     assert_eq!(
                         findings.is_empty(),
                         allowed,
-                        "powered={powered}, power={power}, isolation={isolated}: {findings:?}"
+                        "powered={powered}, power={power}, \
+                         isolation={isolated}: {findings:?}"
                     );
                     combinations += 1;
                 }
@@ -924,7 +965,9 @@ mod tests {
         let parsed: Value = serde_json::from_slice(CORPUS_SOURCE).expect("embedded corpus");
         assert_eq!(
             sha256_hex(&serde_json::to_vec(&parsed).expect("canonical test serialization")),
-            sha256_hex(&serde_json::to_vec(&corpus()).expect("canonical corpus serialization"))
+            sha256_hex(
+                &serde_json::to_vec(&corpus()).expect("canonical corpus serialization")
+            )
         );
     }
 }
