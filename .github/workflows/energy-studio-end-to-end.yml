@@ -82,12 +82,21 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           exporter="$work/targets/symthaea/debug/energy_architecture_candidates"
 
           "$exporter" --design-space --output "$work/energy-design-space-manifest.json"
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
             mkdir -p "$work/$candidate"
-            "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
+            timed "$work/$candidate/generation.elapsed_ns" "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
             sha256sum "$work/$candidate/candidate.json"
           done
 
@@ -97,7 +106,7 @@ jobs:
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
                   mkdir -p "$work/$candidate"
-                  "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
+                  timed "$work/$candidate/generation.elapsed_ns" "$exporter" --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
                   sha256sum "$work/$candidate/candidate.json"
                 done
               done
@@ -112,18 +121,27 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
           schema="$work/energy-system-candidate-v0.1.schema.json"
 
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
-            "$validator" "$schema" "$work/$candidate/candidate.json"
+            timed "$work/$candidate/schema.elapsed_ns" "$validator" "$schema" "$work/$candidate/candidate.json"
           done
           for pv in 1 2 3; do
             for capacity in 1 2 3; do
               for battery_power in 1 2; do
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
-                  "$validator" "$schema" "$work/$candidate/candidate.json"
+                  timed "$work/$candidate/schema.elapsed_ns" "$validator" "$schema" "$work/$candidate/candidate.json"
                 done
               done
             done
@@ -134,18 +152,27 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
           config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
 
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
-            "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
+            timed "$work/$candidate/compilation.elapsed_ns" "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
           done
           for pv in 1 2 3; do
             for capacity in 1 2 3; do
               for battery_power in 1 2; do
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
-                  "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
+                  timed "$work/$candidate/compilation.elapsed_ns" "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
                 done
               done
             done
@@ -156,11 +183,20 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
           config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
 
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
-            "$verifier" "$work/$candidate/candidate.json" "$config" \
+            timed "$work/$candidate/receipt.elapsed_ns" "$verifier" "$work/$candidate/candidate.json" "$config" \
               "$work/$candidate/compilation.json" "$work/$candidate/dispatch-request.json"
           done
           for pv in 1 2 3; do
@@ -168,7 +204,7 @@ jobs:
               for battery_power in 1 2; do
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
-                  "$verifier" "$work/$candidate/candidate.json" "$config" \
+                  timed "$work/$candidate/receipt.elapsed_ns" "$verifier" "$work/$candidate/candidate.json" "$config" \
                     "$work/$candidate/compilation.json" "$work/$candidate/dispatch-request.json"
                 done
               done
@@ -180,17 +216,26 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
 
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
-            "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
+            timed "$work/$candidate/dispatch.elapsed_ns" "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
           done
           for pv in 1 2 3; do
             for capacity in 1 2 3; do
               for battery_power in 1 2; do
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
-                  "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
+                  timed "$work/$candidate/dispatch.elapsed_ns" "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
                 done
               done
             done
@@ -201,12 +246,21 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
           auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
           gate="$work/targets/symtropy/debug/energy_audit_report_gate"
 
           for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
             echo "Auditing frozen reference candidate: $candidate"
-            "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
+            timed "$work/$candidate/audit.elapsed_ns" "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
               > "$work/$candidate/independent-audit.json"
             "$gate" "$work/$candidate/independent-audit.json" "$candidate"
           done
@@ -217,7 +271,7 @@ jobs:
                 for grid_power in 1 2; do
                   candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
                   echo "Auditing generated sizing candidate: $candidate"
-                  "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
+                  timed "$work/$candidate/audit.elapsed_ns" "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
                     > "$work/$candidate/independent-audit.json"
                   "$gate" "$work/$candidate/independent-audit.json" "$candidate"
                 done
