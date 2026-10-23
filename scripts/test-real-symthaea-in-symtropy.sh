@@ -17,6 +17,12 @@ test -f "$integration_manifest"
 test -f "$SYMTHAEA_PATH/Cargo.toml"
 test -f "$SYMTHAEA_PATH/src/cognitive_loop/mod.rs"
 
+# Embed exact experiment inputs into the machine-readable receipt.
+export STFR_SYMTROPY_SHA="$(git -C "$SYMTROPY_PATH" rev-parse HEAD)"
+export STFR_SYMTHAEA_SHA="$(git -C "$SYMTHAEA_PATH" rev-parse HEAD)"
+export STFR_RUSTC_VERSION="$(rustc --version)"
+export STFR_SCENARIO_MATRIX_SHA256="$(sha256sum "$SYMTROPY_PATH/integration/symthaea-physics-loop/src/scenario_matrix.rs" | awk '{print $1}')"
+
 cp "$brain_manifest" "$backup_dir/brain.toml"
 cp "$robot_manifest" "$backup_dir/robotics.toml"
 if [ -f "$integration_lock" ]; then
@@ -80,6 +86,17 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.matched_seed_across_authority_arms == true
     and .evaluation.scenario_count == 5
     and (.evaluation.authorities | length) == 6
+    and (.source_receipt.symtropy_git_sha | test("^[0-9a-f]{40}$"))
+    and .source_receipt.symthaea_git_sha == "bf787f4d655bd85f084cf75990232f19f7d809a1"
+    and (.source_receipt.rustc_version | startswith("rustc "))
+    and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
+    and (.risk_summary_by_authority | length) == 6
+    and all(.risk_summary_by_authority[];
+      .empirical_cvar90_rmse_m != null
+      and .worst_observed_rmse_m != null
+      and .ground_contact_episode_rate >= 0
+      and .invalid_input_total == 0
+    )
     and (.paired_summary_by_scenario | length) == .evaluation.scenario_count
     and (.trials | length) == .evaluation.scenario_trial_pair_count
     and (.trials | length) == (.evaluation.scenario_count * .evaluation.trials_per_scenario)
@@ -98,6 +115,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
       and .arms[0].residual_clipped_steps == 0
       and all(.arms[];
         .guard_rejections == 0
+        and .invalid_inputs == 0
         and .rmse_m != null
         and .within_5cm_fraction != null
         and .max_position_error_m != null
