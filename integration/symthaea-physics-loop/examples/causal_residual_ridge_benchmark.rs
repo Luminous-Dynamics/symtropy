@@ -413,6 +413,12 @@ fn summarize_split(
                 "episode_seed_hex": format!("{:016x}", episode.seed),
                 "sample_count": episode.sample_count,
                 "invalid_samples": episode.invalid_samples,
+                "rmse_m_s2": if episode.sample_count > 0 && episode.invalid_samples == 0 {
+                    Some((episode.error_squared_sum / (episode.sample_count * 3) as f64).sqrt())
+                } else { None },
+                "zero_residual_rmse_m_s2": if episode.sample_count > 0 && episode.invalid_samples == 0 {
+                    Some((episode.zero_squared_sum / (episode.sample_count * 3) as f64).sqrt())
+                } else { None },
                 "max_vector_prediction_error_m_s2": if episode.max_error_norm.is_finite() {
                     Some(episode.max_error_norm)
                 } else { None },
