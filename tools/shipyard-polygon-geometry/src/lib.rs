@@ -898,7 +898,9 @@ mod tests {
 
                 let aabb_says_conflict = aabb_conflict(first_vertices, second_vertices);
                 let exact_says_conflict = expected != PolygonRelation::Disjoint;
-                aabb_conflicts += usize::from(aabb_says_conflict);
+                if aabb_says_conflict {
+                    aabb_conflicts += 1;
+                }
                 match expected {
                     PolygonRelation::PositiveAreaOverlap => positive_area_overlaps += 1,
                     PolygonRelation::BoundaryContact => boundary_contacts += 1,
