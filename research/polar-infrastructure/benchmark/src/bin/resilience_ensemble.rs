@@ -47,11 +47,24 @@ struct EnsemblePolicyScore {
     gate_failure_probability: f64,
     expected_floor_breach_service_hours: f64,
     expected_fuel_intensity: Option<f64>,
+    scenario_outcomes: Vec<ScenarioPolicyOutcome>,
+}
+
+#[derive(Debug, Serialize)]
+struct ScenarioPolicyOutcome {
+    scenario_id: String,
+    probability: f64,
+    weighted_service_fraction: f64,
+    service_shortfall: f64,
+    gate_pass: bool,
+    floor_breach_service_hours: f64,
 }
 
 #[derive(Debug)]
 struct Observation {
+    scenario_id: String,
     probability: f64,
+    weighted_service_fraction: f64,
     shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
@@ -146,12 +159,14 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
 
     for (policy_id, method_family) in policy_map {
         let mut observations = Vec::with_capacity(scored_scenarios.len());
-        for (_scenario_id, probability, scores) in &scored_scenarios {
+        for (scenario_id, probability, scores) in &scored_scenarios {
             let p: &PolicyScore = scores.iter().find(|s| s.policy_id == policy_id)
                 .ok_or_else(|| format!("policy {policy_id} missing from a scenario"))?;
             let shortfall = (1.0 - p.weighted_service_fraction).clamp(0.0, 1.0);
             observations.push(Observation {
+                scenario_id: scenario_id.clone(),
                 probability: *probability,
+                weighted_service_fraction: p.weighted_service_fraction,
                 shortfall,
                 gate_pass: p.gate_pass,
                 floor_breach_service_hours: p.floor_breach_service_hours,
@@ -183,6 +198,15 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             }
         }
 
+        let scenario_outcomes = observations.iter().map(|o| ScenarioPolicyOutcome {
+            scenario_id: o.scenario_id.clone(),
+            probability: o.probability,
+            weighted_service_fraction: o.weighted_service_fraction,
+            service_shortfall: o.shortfall,
+            gate_pass: o.gate_pass,
+            floor_breach_service_hours: o.floor_breach_service_hours,
+        }).collect();
+
         results.push(EnsemblePolicyScore {
             policy_id,
             method_family,
@@ -193,6 +217,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
             gate_failure_probability,
             expected_floor_breach_service_hours,
             expected_fuel_intensity,
+            scenario_outcomes,
         });
     }
 
@@ -246,6 +271,8 @@ mod tests {
         assert!(rules.cvar_service_shortfall >= rules.expected_service_shortfall);
         assert!(rules.worst_case_service_shortfall + 1e-12 >= rules.cvar_service_shortfall);
         assert!(rules.gate_failure_probability > 0.0);
+        assert_eq!(rules.scenario_outcomes.len(), 2);
+        assert!(rules.scenario_outcomes.iter().any(|o| o.scenario_id == "toy-compound-failure" && !o.gate_pass));
     }
 
     #[test]
