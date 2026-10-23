@@ -383,14 +383,14 @@ mod tests {
     #[test]
     fn physically_different_service_units_are_not_summed() {
         let mut input = fixture();
-        input.episode.service_contracts[0].unit = "kWh".to_string();
-        input.episode.service_contracts[1].unit = "litres".to_string();
+        input.episode.service_contracts[0].unit = "kW".to_string();
+        input.episode.service_contracts[1].unit = "litres_per_hour".to_string();
         input.episode.service_contracts[2].unit = "connected-service-count".to_string();
         let report = score(&input).expect("heterogeneous service units should be supported");
         let candidate = report.results.iter().find(|r| r.policy_id == "candidate_full_service").unwrap();
         assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
-        assert!(candidate.services.iter().any(|s| s.unit == "kWh" && s.delivered_unit_hours > 0.0));
-        assert!(candidate.services.iter().any(|s| s.unit == "litres" && s.delivered_unit_hours > 0.0));
+        assert!(candidate.services.iter().any(|s| s.unit == "kW" && s.delivered_unit_hours > 0.0));
+        assert!(candidate.services.iter().any(|s| s.unit == "litres_per_hour" && s.delivered_unit_hours > 0.0));
     }
 
     #[test]
