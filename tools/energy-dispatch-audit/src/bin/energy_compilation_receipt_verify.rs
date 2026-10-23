@@ -153,7 +153,7 @@ mod tests {
         let encoded = serde_json::to_vec(&config).expect("typed config serializes");
         assert_eq!(
             sha256_hex(&encoded),
-            "71fab3bf5b7a82c4233c3ed2a673165746851fc5"
+            "3979909b299fefa2798d5b1aef2b5abaa97426a55b20b2c1210c8b930453cbc0"
         );
     }
 }
