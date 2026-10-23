@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 43 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 44 Rust unit tests; their count is not a statement that they have been executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -64,4 +64,4 @@ The `audit-adaptive-campaign` command runs an exhaustive small-instance oracle o
 
 The oracle is deliberately bounded to at most 32 scenarios, 12 available measurements and 8 measurement steps. Exhaustive search is for a tiny correctness reference only, not a production optimizer. The committed fixture has two crossed, ambiguous measurements: neither alone reduces worst-case regret, but both together reveal enough to choose a feasible scenario-specific route. Its known answer is pre-measurement regret 6, terminal regret 0, gross regret reduction 6, maximum path cost 2 units, maximum duration 20 seconds, and two measurements along each worst path.
 
-The planner is deterministic under fixed input and tie-break rules. This remains a synthetic perfect-observation model; it does not represent noisy sensors, measurement failures, posterior beliefs, real material properties or physical experiment cost.
+The planner is deterministic under fixed input and tie-break rules. A separate frozen negative fixture proves the solver returns UNRESOLVED when no robust baseline action exists and the budget cannot fund the complementary pair. This remains a synthetic perfect-observation model; it does not represent noisy sensors, measurement failures, posterior beliefs, real material properties or physical experiment cost.
