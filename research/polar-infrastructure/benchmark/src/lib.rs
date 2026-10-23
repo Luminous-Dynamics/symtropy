@@ -29,7 +29,8 @@ pub struct ServiceContract {
     pub id: String,
     pub criticality_weight: f64,
     pub minimum_service_fraction: f64,
-    pub unit: String,
+    pub rate_unit: String,
+    pub integrated_unit: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -67,7 +68,8 @@ pub struct BenchmarkReport {
 #[derive(Debug, Serialize)]
 pub struct ServiceScore {
     pub service_id: String,
-    pub unit: String,
+    pub rate_unit: String,
+    pub integrated_unit: String,
     pub demanded_unit_hours: f64,
     pub delivered_unit_hours: f64,
     pub service_fraction: Option<f64>,
@@ -110,10 +112,10 @@ pub fn service_contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
         return false;
     }
     let left: BTreeMap<&str, (&str, u64, u64)> = a.episode.service_contracts.iter()
-        .map(|s| (s.id.as_str(), (s.unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
+        .map(|s| (s.id.as_str(), (s.rate_unit.as_str(), s.integrated_unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
         .collect();
     let right: BTreeMap<&str, (&str, u64, u64)> = b.episode.service_contracts.iter()
-        .map(|s| (s.id.as_str(), (s.unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
+        .map(|s| (s.id.as_str(), (s.rate_unit.as_str(), s.integrated_unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
         .collect();
     left == right
 }
@@ -179,8 +181,8 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
         {
             return Err(format!("service {}: minimum_service_fraction must be in [0, 1]", service.id));
         }
-        if service.unit.trim().is_empty() {
-            return Err(format!("service {}: unit must be explicit", service.id));
+        if service.rate_unit.trim().is_empty() || service.integrated_unit.trim().is_empty() {
+            return Err(format!("service {}: rate_unit and integrated_unit must both be explicit", service.id));
         }
     }
 
@@ -310,7 +312,8 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             };
             service_results.push(ServiceScore {
                 service_id: service.id.clone(),
-                unit: service.unit.clone(),
+                rate_unit: service.rate_unit.clone(),
+                integrated_unit: service.integrated_unit.clone(),
                 demanded_unit_hours: demanded,
                 delivered_unit_hours: delivered,
                 service_fraction: fraction,
@@ -413,14 +416,17 @@ mod tests {
     #[test]
     fn physically_different_service_units_are_not_summed() {
         let mut input = fixture();
-        input.episode.service_contracts[0].unit = "kW".to_string();
-        input.episode.service_contracts[1].unit = "litres_per_hour".to_string();
-        input.episode.service_contracts[2].unit = "connected-service-count".to_string();
+        input.episode.service_contracts[0].rate_unit = "kW".to_string();
+        input.episode.service_contracts[0].integrated_unit = "kWh".to_string();
+        input.episode.service_contracts[1].rate_unit = "litres_per_hour".to_string();
+        input.episode.service_contracts[1].integrated_unit = "litres".to_string();
+        input.episode.service_contracts[2].rate_unit = "connected-services_per_hour".to_string();
+        input.episode.service_contracts[2].integrated_unit = "connected-services".to_string();
         let report = score(&input).expect("heterogeneous service units should be supported");
         let candidate = report.results.iter().find(|r| r.policy_id == "candidate_full_service").unwrap();
         assert!((candidate.weighted_service_fraction - 1.0).abs() < 1e-12);
-        assert!(candidate.services.iter().any(|s| s.unit == "kW" && s.delivered_unit_hours > 0.0));
-        assert!(candidate.services.iter().any(|s| s.unit == "litres_per_hour" && s.delivered_unit_hours > 0.0));
+        assert!(candidate.services.iter().any(|s| s.rate_unit == "kW" && s.integrated_unit == "kWh" && s.delivered_unit_hours > 0.0));
+        assert!(candidate.services.iter().any(|s| s.rate_unit == "litres_per_hour" && s.integrated_unit == "litres" && s.delivered_unit_hours > 0.0));
     }
 
     #[test]
@@ -430,8 +436,10 @@ mod tests {
         let mut scaled = fixture();
         let service_id = "water";
         let service = scaled.episode.service_contracts.iter_mut().find(|s| s.id == service_id).unwrap();
-        assert_eq!(service.unit, "normalized_service_units");
-        service.unit = "milli_normalized_service_units".to_string();
+        assert_eq!(service.rate_unit, "normalized_service_units_per_hour");
+        assert_eq!(service.integrated_unit, "normalized_service_units");
+        service.rate_unit = "milli_normalized_service_units_per_hour".to_string();
+        service.integrated_unit = "milli_normalized_service_units".to_string();
         for step in &mut scaled.episode.steps {
             *step.demand.get_mut(service_id).unwrap() *= 1000.0;
         }
