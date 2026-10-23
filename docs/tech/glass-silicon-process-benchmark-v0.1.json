@@ -127,6 +127,14 @@
       "published_or_reviewed": "2026",
       "use": "Official project description for a planned 2026–2028 sodium-silicate electrolysis programme and 100 kg/day pilot targeting MG/solar-grade silicon from iron-ore waste.",
       "limitation": "The page describes a project and proposed pilot objectives; it is not evidence that the pilot is built, that claimed grade/throughput has been achieved, or that the process is commercially qualified."
+    },
+    {
+      "reference_id": "glass-gfri-feasibility-2026",
+      "title": "Glass-Forming-Region-Informed Machine Learning Reveals Quantitative Criteria for Network Glass Formation",
+      "url": "https://doi.org/10.1111/jace.70980",
+      "published_or_reviewed": "2026",
+      "use": "Negative-region benchmark for glass formation, with non-glass-forming instances, composition-only and physical-descriptor predictors, and independent held-out systems.",
+      "limitation": "Reported accuracy is specific to the paper's dataset and splits, is not a manufacturing/process benchmark, and must not substitute for PR-AUC, false-feasible risk, calibration or family-held-out evaluation. Reuse of repository data/code requires file-level terms and rights review."
     }
   ],
   "cases": [
