@@ -129,22 +129,24 @@
             "oneOf": [
               {
                 "enum": [
-                  "missing_provenance",
-                  "unknown_as_zero",
-                  "invalid_quantity_or_unit",
-                  "incomplete_or_failed_balance",
-                  "unsupported_product_grade",
-                  "incompatible_functional_unit",
-                  "unverified_coproduct_credit",
-                  "mismatched_process_boundary",
+                  "artifact_manifest_unpinned",
                   "evidence_class_laundering",
-                  "out_of_domain_acceptance",
-                  "train_test_leakage",
-                  "stale_or_unlicensed_source",
                   "hidden_quality_regression",
+                  "incompatible_functional_unit",
+                  "incomplete_or_failed_balance",
+                  "invalid_quantity_or_unit",
+                  "mismatched_process_boundary",
+                  "missing_provenance",
+                  "out_of_domain_acceptance",
+                  "planned_pilot_treated_as_demonstrated",
                   "scenario_fragility_hidden",
+                  "single_property_optimization_bypasses_constraints",
+                  "stale_or_unlicensed_source",
+                  "train_test_leakage",
                   "uncalibrated_model_bias_hidden",
-                  "artifact_manifest_unpinned"
+                  "unknown_as_zero",
+                  "unsupported_product_grade",
+                  "unverified_coproduct_credit"
                 ]
               },
               {
