@@ -180,6 +180,9 @@ pub fn audit_robust_plan(
     plans: &[ScenarioPlan],
 ) -> Result<RobustAudit, AuditError> {
     let mut global_diagnostics = Vec::new();
+    if definitions.is_empty() {
+        global_diagnostics.push("scenario definition set must not be empty".to_owned());
+    }
     let mut definition_ids = BTreeSet::new();
     let mut plan_ids = BTreeSet::new();
 
@@ -818,6 +821,75 @@ mod tests {
         if let RobustStatus::Incomplete { diagnostics } = &audit.status {
             assert!(diagnostics.iter().any(|text| text.contains("required block b")));
             assert!(diagnostics.iter().any(|text| text.contains("required operation inspect")));
+        }
+    }
+
+    #[test]
+    fn finish_to_start_precedence_is_immutable_and_checked() {
+        let mut definition = definition("weld-after-cut", &[], &[("cut", 3), ("weld", 2)], vec![]);
+        definition.precedence_constraints.push(PrecedenceConstraint {
+            predecessor_operation_id: "cut".to_owned(),
+            successor_operation_id: "weld".to_owned(),
+            minimum_lag_ticks: 0,
+        });
+        definition.required_resource_uses.push(RequiredResourceUse {
+            use_id: "weld-station-use".to_owned(),
+            operation_id: "weld".to_owned(),
+            resource_id: "station-1".to_owned(),
+            minimum_duration_ticks: 2,
+        });
+
+        let invalid = plan(
+            "weld-after-cut",
+            vec![],
+            vec![operation("cut", 0, 3), operation("weld", 2, 4)],
+            vec![use_resource("weld-station-use", "weld", "station-1", 2, 4)],
+        );
+        let rejected = audit_robust_plan(&[definition.clone()], &[invalid]).unwrap();
+        assert!(matches!(rejected.status, RobustStatus::NotRobust { .. }));
+        assert!(rejected.scenario_results[0].violations.iter().any(|value| matches!(
+            value,
+            Violation::PrecedenceViolation {
+                predecessor_operation_id,
+                successor_operation_id
+            } if predecessor_operation_id == "cut" && successor_operation_id == "weld"
+        )));
+
+        let valid = plan(
+            "weld-after-cut",
+            vec![],
+            vec![operation("cut", 0, 3), operation("weld", 3, 5)],
+            vec![use_resource("weld-station-use", "weld", "station-1", 3, 5)],
+        );
+        let accepted = audit_robust_plan(&[definition], &[valid]).unwrap();
+        assert_eq!(accepted.status, RobustStatus::RobustlyFeasible);
+    }
+
+    #[test]
+    fn empty_scenario_set_cannot_receive_a_robust_certificate() {
+        let audit = audit_robust_plan(&[], &[]).unwrap();
+        assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
+    }
+
+    #[test]
+    fn mandatory_space_reservation_cannot_be_dropped_or_shortened() {
+        let mut definition = definition("mandatory-placement", &["a"], &[], vec![]);
+        definition.required_reservations[0].minimum_duration_ticks = 3;
+        let dropped = plan("mandatory-placement", vec![], vec![], vec![]);
+        let audit = audit_robust_plan(&[definition.clone()], &[dropped]).unwrap();
+        assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
+        assert!(audit.status.clone().to_string().is_err());
+
+        let shortened = plan(
+            "mandatory-placement",
+            vec![space("a-yard", "a", rectangle(0, 0, 1, 1), 0, 2)],
+            vec![],
+            vec![],
+        );
+        let audit = audit_robust_plan(&[definition], &[shortened]).unwrap();
+        assert!(matches!(audit.status, RobustStatus::Incomplete { .. }));
+        if let RobustStatus::Incomplete { diagnostics } = audit.status {
+            assert!(diagnostics.iter().any(|text| text.contains("shortened below minimum duration")));
         }
     }
 
