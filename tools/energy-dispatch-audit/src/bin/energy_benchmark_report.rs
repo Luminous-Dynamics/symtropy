@@ -152,6 +152,28 @@ struct ObjectiveContextBenchmark {
 }
 
 #[derive(Debug, Serialize)]
+struct MultiIntervalBenchmark {
+    context_id: String,
+    case_id: String,
+    request_sha256: String,
+    dispatch_report_sha256: String,
+    independent_audit_sha256: String,
+    qualification_log_sha256: String,
+    known_answer_sha256: String,
+    solver_feasible_complete_schedules: u64,
+    solver_pareto_frontier: Vec<DispatchObjective>,
+    independent_reference_feasible_complete_schedules: u64,
+    independent_reference_frontier: Vec<DispatchObjective>,
+    independent_audit_status: String,
+    reference_frontier_status: String,
+    objective_claim_status: String,
+    audit_check_count: usize,
+    dispatch_ns: u64,
+    independent_audit_ns: u64,
+    known_answer_gate_ns: u64,
+}
+
+#[derive(Debug, Serialize)]
 struct SourceHeads {
     symthaea: String,
     symtropy_contract: String,
@@ -199,6 +221,7 @@ struct EnergyStudioBenchmarkReport {
     symtropy_audit_cargo_lock_sha256: String,
     benchmark_summary: BenchmarkSummary,
     objective_context: ObjectiveContextBenchmark,
+    multi_interval_context: MultiIntervalBenchmark,
     candidates: Vec<CandidateBenchmark>,
 }
 
@@ -554,6 +577,139 @@ fn benchmark_objective_context(root: &Path) -> Result<ObjectiveContextBenchmark,
     })
 }
 
+fn benchmark_multi_interval_context(
+    root: &Path,
+) -> Result<MultiIntervalBenchmark, Box<dyn Error>> {
+    let dir = root.join("multi-interval-context");
+    let (request_bytes, request) = read_json(&dir.join("request.json"))?;
+    let (dispatch_bytes, dispatch) = read_json(&dir.join("dispatch-report.json"))?;
+    let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
+    let known_bytes = include_bytes!("../../fixtures/three-interval-stress-known-answer-v0.1.json");
+    let known: Value = serde_json::from_slice(known_bytes)?;
+    let qualification_log = fs::read(dir.join("qualification.log"))?;
+
+    let request_digest = sha256_hex(&request_bytes);
+    let dispatch_digest = sha256_hex(&dispatch_bytes);
+    let audit_digest = sha256_hex(&audit_bytes);
+    let known_digest = sha256_hex(known_bytes);
+    let qualification_digest = sha256_hex(&qualification_log);
+    let case_id = "synthetic-three-interval-storage-tradeoff";
+
+    if required_str(&request, "case_id")? != case_id
+        || required_str(&known, "case_id")? != case_id
+        || required_str(&dispatch["assessment"], "case_id")? != case_id
+        || required_str(&dispatch["receipt"], "case_id")? != case_id
+        || required_str(&audit, "case_id")? != case_id
+        || !required_bool(&request, "synthetic")?
+        || !required_bool(&dispatch["assessment"], "synthetic")?
+        || request["intervals"].as_array().map(Vec::len) != Some(3)
+        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest
+        || required_u64(&dispatch["receipt"], "input_bytes")? != request_bytes.len() as u64
+        || required_str(&audit, "request_sha256")? != request_digest
+        || required_str(&audit, "run_report_sha256")? != dispatch_digest
+        || required_u64(&dispatch["assessment"], "feasible_complete_schedules")?
+            != required_u64(&known, "feasible_complete_schedules")?
+        || required_u64(&audit, "reference_feasible_complete_schedules")?
+            != required_u64(&known, "feasible_complete_schedules")?
+        || required_str(&audit, "status")? != "pass"
+        || required_str(&audit, "reference_frontier_status")? != "pass"
+        || required_str(&audit, "objective_claim_status")?
+            != "verified_for_bounded_model_case"
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval benchmark evidence chain or qualification status mismatch",
+        )
+        .into());
+    }
+
+    let alternatives = dispatch["assessment"]["pareto_alternatives"]
+        .as_array()
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "multi-interval dispatch alternatives are missing",
+            )
+        })?;
+    let mut solver_frontier = alternatives
+        .iter()
+        .map(|item| serde_json::from_value::<DispatchObjective>(item["objective"].clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(audit["reference_frontier_objectives"].clone())?;
+    let mut expected_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(known["pareto_frontier"].clone())?;
+    solver_frontier.sort();
+    independent_frontier.sort();
+    expected_frontier.sort();
+
+    if required_u64(&dispatch["assessment"], "pareto_frontier_count")?
+        != solver_frontier.len() as u64
+        || solver_frontier != expected_frontier
+        || independent_frontier != expected_frontier
+        || alternatives.iter().any(|alternative| {
+            alternative["schedule"].as_array().map(Vec::len) != Some(3)
+        })
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval solver/reference frontier differs from the frozen known answer",
+        )
+        .into());
+    }
+
+    let log_text = String::from_utf8(qualification_log)?;
+    if !log_text.contains("PASS: actual Sol-Atlas multi-interval dispatch")
+        || !log_text.contains(&format!("request_sha256={request_digest}"))
+        || !log_text.contains(&format!("dispatch_report_sha256={dispatch_digest}"))
+        || !log_text.contains(&format!("independent_audit_sha256={audit_digest}"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval qualification log does not bind the passing evidence digests",
+        )
+        .into());
+    }
+
+    let audit_checks = audit["checks"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "multi-interval audit checks are missing")
+    })?;
+    if audit_checks.iter().any(|item| item["status"].as_str() != Some("pass")) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval audit contains a non-passing or unknown check",
+        )
+        .into());
+    }
+
+    Ok(MultiIntervalBenchmark {
+        context_id: "three-interval-storage-tradeoff-known-answer-v0.1".to_owned(),
+        case_id: case_id.to_owned(),
+        request_sha256: request_digest,
+        dispatch_report_sha256: dispatch_digest,
+        independent_audit_sha256: audit_digest,
+        qualification_log_sha256: qualification_digest,
+        known_answer_sha256: known_digest,
+        solver_feasible_complete_schedules: required_u64(
+            &dispatch["assessment"],
+            "feasible_complete_schedules",
+        )?,
+        solver_pareto_frontier: solver_frontier,
+        independent_reference_feasible_complete_schedules: required_u64(
+            &audit,
+            "reference_feasible_complete_schedules",
+        )?,
+        independent_reference_frontier: independent_frontier,
+        independent_audit_status: required_str(&audit, "status")?.to_owned(),
+        reference_frontier_status: required_str(&audit, "reference_frontier_status")?.to_owned(),
+        objective_claim_status: required_str(&audit, "objective_claim_status")?.to_owned(),
+        audit_check_count: audit_checks.len(),
+        dispatch_ns: read_elapsed_ns(&dir, "dispatch")?,
+        independent_audit_ns: read_elapsed_ns(&dir, "audit")?,
+        known_answer_gate_ns: read_elapsed_ns(&dir, "known-answer-gate")?,
+    })
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
     if args.len() != 3 {
@@ -627,6 +783,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mean_dispatch = total_dispatch / candidates.len() as u64;
 
     let objective_context = benchmark_objective_context(&root)?;
+    let multi_interval_context = benchmark_multi_interval_context(&root)?;
     let report = EnergyStudioBenchmarkReport {
         schema_version: "energy-studio-benchmark-report-v0.1",
         benchmark_id: "energy-studio-synthetic-sizing-sweep-v0.1".to_owned(),
@@ -670,6 +827,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             mean_dispatch_ns: mean_dispatch,
         },
         objective_context,
+        multi_interval_context,
         candidates,
     };
     let output_bytes = serde_json::to_vec_pretty(&report)?;
