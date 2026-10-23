@@ -247,11 +247,24 @@ jobs:
           fi
           grep -q 'URDF_COLLISION_SHAPE_UNSUPPORTED' /tmp/careframe-unsupported-urdf-shape-receipt.json
           grep -q '"dynamics_ready": false' /tmp/careframe-unsupported-urdf-shape-receipt.json
+
+          # A requested output path that aliases the source model must never overwrite it.
+          source_before="$(sha256sum "$model" | cut -d' ' -f1)"
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf "$model" "$model" > /tmp/careframe-overwrite-guard.stdout 2> /tmp/careframe-overwrite-guard.stderr
+          overwrite_status=$?
+          set -e
+          test "$overwrite_status" -eq 2
+          grep -q 'must not resolve to the same file' /tmp/careframe-overwrite-guard.stderr
+          source_after="$(sha256sum "$model" | cut -d' ' -f1)"
+          test "$source_before" = "$source_after"
+
           {
             echo ""
             echo "URDF 1.0 kinematic/collision interchange parsed successfully."
             echo "Export digest: $(sha256sum "$output" | cut -d' ' -f1)"
             echo "No inertial data, dynamics readiness or physical authority is included."
+            echo "Source-overwrite negative control preserved the morphology file."
             echo ""
             cat /tmp/careframe-urdf-receipt.json
           } >> "$GITHUB_STEP_SUMMARY"
