@@ -1,0 +1,416 @@
+{
+  "schema_version": "energy-system-candidate-v0.1",
+  "candidate_id": "synthetic-pv-battery-grid",
+  "generator": {
+    "name": "symthaea-energy-architecture-reference",
+    "version": "0.1.0"
+  },
+  "synthetic": true,
+  "evidence_class": "analyst_assumption",
+  "evidence_ref": null,
+  "system_boundary": {
+    "site_id": "synthetic-site-001",
+    "description": "Two-interval electric service hub used to test candidate interchange and energy-system handoff semantics.",
+    "included_boundaries": [
+      "PV electrical source",
+      "grid import connection",
+      "single battery storage",
+      "essential electric service"
+    ],
+    "excluded_boundaries": [
+      "AC power flow",
+      "inverter switching",
+      "thermal dynamics",
+      "hardware behavior",
+      "measured site load",
+      "capital cost and lifecycle replacement"
+    ]
+  },
+  "horizon": {
+    "start_unix_seconds": 1800000000,
+    "end_unix_seconds": 1800007200,
+    "timezone": "UTC",
+    "interval_seconds": 3600
+  },
+  "components": [
+    {
+      "component_id": "pv",
+      "kind": "source",
+      "name": "Synthetic PV source",
+      "ports": [
+        {
+          "port_id": "electricity",
+          "direction": "output",
+          "carrier": "electricity",
+          "unit": "kWh",
+          "temperature_grade_c": null
+        }
+      ],
+      "parameter_claims": [
+        {
+          "parameter_id": "interval_available_energy_cap_kwh",
+          "value": 2,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic first interval only; not a PV performance model.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Exact fixture value, not a real forecast."
+          }
+        },
+        {
+          "parameter_id": "rated_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic nameplate value, not validated PV performance.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        }
+      ]
+    },
+    {
+      "component_id": "grid",
+      "kind": "source",
+      "name": "Synthetic utility connection",
+      "ports": [
+        {
+          "port_id": "import",
+          "direction": "output",
+          "carrier": "electricity",
+          "unit": "kWh",
+          "temperature_grade_c": null
+        }
+      ],
+      "parameter_claims": [
+        {
+          "parameter_id": "interval_import_energy_cap_kwh",
+          "value": 2,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Per one-hour interval energy cap in this fixture.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Outage scenario blocks imports regardless of this cap."
+          }
+        },
+        {
+          "parameter_id": "grid_import_power_cap_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic power cap; network and protection constraints are excluded.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        }
+      ]
+    },
+    {
+      "component_id": "battery",
+      "kind": "storage",
+      "name": "Idealized synthetic battery",
+      "ports": [
+        {
+          "port_id": "charge",
+          "direction": "input",
+          "carrier": "electricity",
+          "unit": "kWh",
+          "temperature_grade_c": null
+        },
+        {
+          "port_id": "discharge",
+          "direction": "output",
+          "carrier": "electricity",
+          "unit": "kWh",
+          "temperature_grade_c": null
+        }
+      ],
+      "parameter_claims": [
+        {
+          "parameter_id": "capacity_kwh",
+          "value": 2,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Idealized two-quantum fixture.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Not a real battery specification."
+          }
+        },
+        {
+          "parameter_id": "charge_efficiency",
+          "value": 1,
+          "unit": "unitless",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Set to unity solely for a frozen arithmetic known answer.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Unrealistic idealization; lossy cases are separate tests."
+          }
+        },
+        {
+          "parameter_id": "discharge_efficiency",
+          "value": 1,
+          "unit": "unitless",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Set to unity solely for a frozen arithmetic known answer.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Unrealistic idealization; lossy cases are separate tests."
+          }
+        },
+        {
+          "parameter_id": "initial_soc_kwh",
+          "value": 0,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        },
+        {
+          "parameter_id": "max_charge_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        },
+        {
+          "parameter_id": "max_discharge_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        }
+      ]
+    },
+    {
+      "component_id": "essential-load",
+      "kind": "sink",
+      "name": "Essential electrical load",
+      "ports": [
+        {
+          "port_id": "supply",
+          "direction": "input",
+          "carrier": "electricity",
+          "unit": "kWh",
+          "temperature_grade_c": null
+        }
+      ],
+      "parameter_claims": []
+    }
+  ],
+  "connections": [
+    {
+      "connection_id": "pv-to-essential-load",
+      "from_component": "pv",
+      "from_port": "electricity",
+      "to_component": "essential-load",
+      "to_port": "supply",
+      "carrier": "electricity"
+    },
+    {
+      "connection_id": "pv-to-battery-charge",
+      "from_component": "pv",
+      "from_port": "electricity",
+      "to_component": "battery",
+      "to_port": "charge",
+      "carrier": "electricity"
+    },
+    {
+      "connection_id": "battery-to-essential-load",
+      "from_component": "battery",
+      "from_port": "discharge",
+      "to_component": "essential-load",
+      "to_port": "supply",
+      "carrier": "electricity"
+    },
+    {
+      "connection_id": "grid-to-essential-load",
+      "from_component": "grid",
+      "from_port": "import",
+      "to_component": "essential-load",
+      "to_port": "supply",
+      "carrier": "electricity"
+    }
+  ],
+  "services": [
+    {
+      "service_id": "essential-electricity",
+      "service_kind": "electricity",
+      "component_id": "essential-load",
+      "essential": true,
+      "unit": "kWh",
+      "minimum_delivery_temperature_c": null,
+      "description": "Essential electrical service. Required demand is explicit per scenario interval."
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "synthetic-pv-surplus-then-grid-outage",
+      "evidence_class": "analyst_assumption",
+      "source_ref": null,
+      "description": "PV surplus can charge the battery in interval one; utility import is unavailable in interval two.",
+      "intervals": [
+        {
+          "interval_id": "pv-surplus",
+          "start_unix_seconds": 1800000000,
+          "duration_seconds": 3600,
+          "grid_outage": false,
+          "resource_available_kwh": [
+            {
+              "component_id": "pv",
+              "available_kwh": 2
+            },
+            {
+              "component_id": "grid",
+              "available_kwh": 2
+            }
+          ],
+          "service_requested": [
+            {
+              "service_id": "essential-electricity",
+              "requested_quantity": 0
+            }
+          ]
+        },
+        {
+          "interval_id": "grid-outage",
+          "start_unix_seconds": 1800003600,
+          "duration_seconds": 3600,
+          "grid_outage": true,
+          "resource_available_kwh": [
+            {
+              "component_id": "pv",
+              "available_kwh": 0
+            },
+            {
+              "component_id": "grid",
+              "available_kwh": 0
+            }
+          ],
+          "service_requested": [
+            {
+              "service_id": "essential-electricity",
+              "requested_quantity": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "hard_constraints": [
+    {
+      "constraint_id": "energy-balance",
+      "description": "Every interval must close energy conservation over declared carrier boundaries.",
+      "severity": "hard",
+      "verifier_id": "independent_energy_balance"
+    },
+    {
+      "constraint_id": "outage-grid-import",
+      "description": "No utility grid import is permitted during a scenario interval marked as a grid outage.",
+      "severity": "hard",
+      "verifier_id": "grid_outage_import_guard"
+    },
+    {
+      "constraint_id": "service-reconciliation",
+      "description": "Delivered plus unserved service equals requested service in each interval.",
+      "severity": "hard",
+      "verifier_id": "service_demand_reconciliation"
+    },
+    {
+      "constraint_id": "battery-state-bounds",
+      "description": "Battery state of charge remains between zero and the declared capacity.",
+      "severity": "hard",
+      "verifier_id": "storage-state-transition"
+    }
+  ],
+  "objectives": [
+    {
+      "objective_id": "essential_unserved_energy",
+      "direction": "minimize",
+      "unit": "kWh",
+      "description": "Minimize essential electrical service left unmet."
+    },
+    {
+      "objective_id": "operating_cost",
+      "direction": "minimize",
+      "unit": "currency",
+      "description": "Placeholder objective; no cost data are supplied in this synthetic fixture."
+    },
+    {
+      "objective_id": "emissions",
+      "direction": "minimize",
+      "unit": "kg_CO2e",
+      "description": "Placeholder objective; no emissions factor is supplied in this synthetic fixture."
+    },
+    {
+      "objective_id": "curtailment",
+      "direction": "minimize",
+      "unit": "kWh",
+      "description": "Minimize unused available renewable energy without compromising harder service objectives."
+    }
+  ],
+  "requested_evaluations": [
+    "schema_validation",
+    "conservation_audit",
+    "exact_dispatch_reference",
+    "chronological_reliability",
+    "symtropy_trajectory"
+  ],
+  "claim_ceiling": "Synthetic contract fixture only. Not generated or validated by a running Symthaea agent, not calibrated to hardware, and not a field-operational design."
+}
