@@ -1,0 +1,977 @@
+{
+  "schema_version": "recovery-field-validation-packet-v0.1",
+  "protocol_id": "rights-aware-recovery-field-validation-v0.1",
+  "status": "synthetic-protocol-fixture",
+  "evaluation_day": 12,
+  "decision_profile": {
+    "profile_id": "forest-recovery-v1",
+    "taxonomy_version": "forest-hazard-taxonomy-v1",
+    "criteria_regime": "protect-habitat-and-recover-material-v1",
+    "covered_failure_families": [
+      "access_constraint",
+      "habitat_conflict",
+      "timber_condition",
+      "weather_window",
+      "route_capacity"
+    ],
+    "required_decision_evidence_tags": [
+      "legal_authority",
+      "site_access",
+      "owner_consent",
+      "ecological_review",
+      "safety_review",
+      "qualified_operator",
+      "transport_disposal",
+      "data_rights",
+      "condition_inspection"
+    ],
+    "max_evidence_age_days": 30,
+    "domain": "forestry_recovery"
+  },
+  "protocol_contract": {
+    "decision_inputs_exclude_post_decision_outcomes": true,
+    "zero_is_distinct_from_unmeasured": true,
+    "no_action_and_censored_cases_retained": true,
+    "source_authenticity_must_be_unverified_for_synthetic_records": true
+  },
+  "claim_ceiling": {
+    "all_records_synthetic": true,
+    "real_field_observations": false,
+    "legal_authority_verified": false,
+    "professional_qualifications_verified": false,
+    "expected_actuation": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "evidence_records": [
+    {
+      "evidence_id": "synthetic://field-evidence/legal-authority-check",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 1,
+      "available_day": 1,
+      "source_ref": "synthetic://source/legal-authority-check",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "legal_authority"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/site-access-check",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 1,
+      "available_day": 1,
+      "source_ref": "synthetic://source/site-access-check",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "site_access"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/owner-consent-check",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 1,
+      "available_day": 1,
+      "source_ref": "synthetic://source/owner-consent-check",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "owner_consent"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/ecological-review",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 2,
+      "available_day": 2,
+      "source_ref": "synthetic://source/ecological-review",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "ecological_review"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/safety-review",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 2,
+      "available_day": 2,
+      "source_ref": "synthetic://source/safety-review",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "safety_review"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/operator-qualification",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 2,
+      "available_day": 2,
+      "source_ref": "synthetic://source/operator-qualification",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "qualified_operator"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/transport-disposal-check",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 2,
+      "available_day": 2,
+      "source_ref": "synthetic://source/transport-disposal-check",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "transport_disposal"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/data-rights-record",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 1,
+      "available_day": 1,
+      "source_ref": "synthetic://source/data-rights-record",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "data_rights"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/condition-inspection",
+      "evidence_class": "DECISION_TIME",
+      "observed_day": 2,
+      "available_day": 2,
+      "source_ref": "synthetic://source/condition-inspection",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "condition_inspection"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/outcome-follow-up-complete",
+      "evidence_class": "POST_DECISION_OUTCOME",
+      "observed_day": 10,
+      "available_day": 10,
+      "source_ref": "synthetic://source/outcome-follow-up-complete",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "outcome_follow_up"
+      ]
+    },
+    {
+      "evidence_id": "synthetic://field-evidence/outcome-follow-up-censored",
+      "evidence_class": "POST_DECISION_OUTCOME",
+      "observed_day": 10,
+      "available_day": 10,
+      "source_ref": "synthetic://source/outcome-follow-up-censored",
+      "source_authenticity_status": "UNVERIFIED_SYNTHETIC",
+      "evidence_tags": [
+        "outcome_follow_up",
+        "censoring_event"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "case_id": "field-valid-zero-measurement",
+      "asset_pseudonym": "asset-field-valid-zero-measurement",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "6133d943f6e0c40be60318a3f83fc8dd6dd6d8b0bb039eb65075e3551ce5908c",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "ALLOWED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [
+          "research_validation",
+          "benchmarking"
+        ],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "REVIEW_ONLY_CANDIDATE",
+      "episode_status": "NO_ACTION",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-valid-zero-measurement\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-unknown-legal-authority",
+      "asset_pseudonym": "asset-field-unknown-legal-authority",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "6279c7bcfefc34ecfa3bbd3e8c03542246be4aa2dce4bccc75f4a5e3f3373056",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "ALLOWED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [
+          "research_validation",
+          "benchmarking"
+        ],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "UNKNOWN",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "HOLD_AUTHORITY",
+      "episode_status": "REFERRED",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-unknown-legal-authority\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-blocked-data-rights",
+      "asset_pseudonym": "asset-field-blocked-data-rights",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "41dce7eb544bdcc65897563735e550b207c3ca34c29bb9e34e285c8cde888b63",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "BLOCKED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "BLOCKED_DATA_RIGHTS",
+      "episode_status": "NO_ACTION",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-blocked-data-rights\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-incomplete-hazard-classification",
+      "asset_pseudonym": "asset-field-incomplete-hazard-classification",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "INCOMPLETE",
+      "classification_review_status": "UNREVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "3f5a29af0cd5321c2d79e35215f34f0552e4b9667f548a8df40f44a2c5e3000d",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "ALLOWED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [
+          "research_validation",
+          "benchmarking"
+        ],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "REASSESS_SCOPE",
+      "episode_status": "REFERRED",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-incomplete-hazard-classification\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-ecological-review-block",
+      "asset_pseudonym": "asset-field-ecological-review-block",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "186714837ad570b9425dfe07c8f5cc56a55f34f6ada68d398d5ab76db2cd6327",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "ALLOWED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [
+          "research_validation",
+          "benchmarking"
+        ],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "BLOCK",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "BLOCKED_AUTHORITY",
+      "episode_status": "NO_ACTION",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-ecological-review-block\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-required-metric-not-measured",
+      "asset_pseudonym": "asset-field-required-metric-not-measured",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "bd03e3e1aea1bb12bcf427ebbc67f691dc7c115a16262d14e82fe2c0633c2759",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-censored"
+      ],
+      "data_rights": {
+        "use_status": "ALLOWED",
+        "license_ref": "synthetic://license/research-validation-fixture-v1",
+        "allowed_purposes": [
+          "research_validation",
+          "benchmarking"
+        ],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "retained_deadwood_fraction"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "NOT_ADJUDICATED",
+        "censoring_status": "FOLLOW_UP_CENSORED",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-censored"
+        ]
+      },
+      "expected_audit_disposition": "HOLD_EVIDENCE",
+      "episode_status": "FOLLOW_UP_CENSORED",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-required-metric-not-measured\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    },
+    {
+      "case_id": "field-unknown-data-rights",
+      "asset_pseudonym": "asset-field-unknown-data-rights",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "taxonomy_version": "forest-hazard-taxonomy-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "family_classification": "COMPLETE",
+      "classification_review_status": "REVIEWED",
+      "decision_day": 2,
+      "decision_manifest_sha256": "d79f1f597fe16c403095b294c5d2fcb969231689b8f09857e1be92480e6c44e4",
+      "decision_input_evidence_refs": [
+        "synthetic://field-evidence/condition-inspection",
+        "synthetic://field-evidence/data-rights-record",
+        "synthetic://field-evidence/ecological-review",
+        "synthetic://field-evidence/legal-authority-check",
+        "synthetic://field-evidence/operator-qualification",
+        "synthetic://field-evidence/owner-consent-check",
+        "synthetic://field-evidence/safety-review",
+        "synthetic://field-evidence/site-access-check",
+        "synthetic://field-evidence/transport-disposal-check"
+      ],
+      "post_decision_outcome_evidence_refs": [
+        "synthetic://field-evidence/outcome-follow-up-complete"
+      ],
+      "data_rights": {
+        "use_status": "UNKNOWN",
+        "license_ref": null,
+        "allowed_purposes": [],
+        "retention_until_day": 60,
+        "public_location_disclosed": false
+      },
+      "authority_gates": [
+        {
+          "gate_id": "legal_authority",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/legal-authority-check"
+        },
+        {
+          "gate_id": "site_access",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/site-access-check"
+        },
+        {
+          "gate_id": "owner_consent",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/owner-consent-check"
+        },
+        {
+          "gate_id": "ecological_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/ecological-review"
+        },
+        {
+          "gate_id": "safety_review",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/safety-review"
+        },
+        {
+          "gate_id": "qualified_operator",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/operator-qualification"
+        },
+        {
+          "gate_id": "transport_disposal",
+          "status": "PASS",
+          "evidence_ref": "synthetic://field-evidence/transport-disposal-check"
+        }
+      ],
+      "required_metric_ids": [
+        "recovered_material_mass"
+      ],
+      "measurements": [
+        {
+          "metric_id": "recovered_material_mass",
+          "measurement_state": "MEASURED",
+          "value_scaled": 0,
+          "scale": 1000,
+          "unit": "kg",
+          "observed_day": 2,
+          "available_day": 2,
+          "evidence_ref": "synthetic://field-evidence/condition-inspection",
+          "uncertainty_lower_scaled": 0,
+          "uncertainty_upper_scaled": 0
+        },
+        {
+          "metric_id": "retained_deadwood_fraction",
+          "measurement_state": "NOT_MEASURED",
+          "value_scaled": null,
+          "scale": 1000,
+          "unit": "fraction",
+          "observed_day": null,
+          "available_day": null,
+          "evidence_ref": null,
+          "uncertainty_lower_scaled": null,
+          "uncertainty_upper_scaled": null
+        }
+      ],
+      "ground_truth": {
+        "adjudication_status": "SYNTHETIC_DEMO_ONLY",
+        "censoring_status": "COMPLETE",
+        "outcome_day": 10,
+        "outcome_evidence_refs": [
+          "synthetic://field-evidence/outcome-follow-up-complete"
+        ]
+      },
+      "expected_audit_disposition": "HOLD_DATA_RIGHTS",
+      "episode_status": "REFERRED",
+      "decision_manifest_payload_json": "{\"manifest_version\":\"recovery-decision-manifest-v0.1\",\"case_id\":\"field-unknown-data-rights\",\"profile_version\":\"forest-recovery-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"decision_day\":2,\"decision_input_evidence_refs\":[\"synthetic://field-evidence/condition-inspection\",\"synthetic://field-evidence/data-rights-record\",\"synthetic://field-evidence/ecological-review\",\"synthetic://field-evidence/legal-authority-check\",\"synthetic://field-evidence/operator-qualification\",\"synthetic://field-evidence/owner-consent-check\",\"synthetic://field-evidence/safety-review\",\"synthetic://field-evidence/site-access-check\",\"synthetic://field-evidence/transport-disposal-check\"]}"
+    }
+  ]
+}

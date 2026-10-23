@@ -1,0 +1,541 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/recovery/field-validation-packet-v0.1.schema.json",
+  "title": "Rights-Aware Recovery Field Validation Packet v0.1",
+  "description": "Outer shape contract for a synthetic field-validation packet. Rust semantic validation enforces time cutoffs, evidence linkage, outcome separation, gate precedence, measurement-state rules and the no-actuation ceiling.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "status",
+    "evaluation_day",
+    "decision_profile",
+    "protocol_contract",
+    "claim_ceiling",
+    "evidence_records",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "recovery-field-validation-packet-v0.1"
+    },
+    "protocol_id": {
+      "const": "rights-aware-recovery-field-validation-v0.1"
+    },
+    "status": {
+      "const": "synthetic-protocol-fixture"
+    },
+    "evaluation_day": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_profile": {
+      "$ref": "#/$defs/decisionProfile"
+    },
+    "protocol_contract": {
+      "$ref": "#/$defs/protocolContract"
+    },
+    "claim_ceiling": {
+      "$ref": "#/$defs/claimCeiling"
+    },
+    "evidence_records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidenceRecord"
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fieldRecord"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nullableString": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "BLOCK",
+        "UNKNOWN"
+      ]
+    },
+    "decisionProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "domain",
+        "taxonomy_version",
+        "criteria_regime",
+        "covered_failure_families",
+        "required_decision_evidence_tags",
+        "max_evidence_age_days"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "taxonomy_version": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "criteria_regime": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "covered_failure_families": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "required_decision_evidence_tags": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "max_evidence_age_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "domain": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "protocolContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_inputs_exclude_post_decision_outcomes",
+        "zero_is_distinct_from_unmeasured",
+        "no_action_and_censored_cases_retained",
+        "source_authenticity_must_be_unverified_for_synthetic_records"
+      ],
+      "properties": {
+        "decision_inputs_exclude_post_decision_outcomes": {
+          "const": true
+        },
+        "zero_is_distinct_from_unmeasured": {
+          "const": true
+        },
+        "no_action_and_censored_cases_retained": {
+          "const": true
+        },
+        "source_authenticity_must_be_unverified_for_synthetic_records": {
+          "const": true
+        }
+      }
+    },
+    "claimCeiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_records_synthetic",
+        "real_field_observations",
+        "legal_authority_verified",
+        "professional_qualifications_verified",
+        "expected_actuation",
+        "execution_authority"
+      ],
+      "properties": {
+        "all_records_synthetic": {
+          "const": true
+        },
+        "real_field_observations": {
+          "const": false
+        },
+        "legal_authority_verified": {
+          "const": false
+        },
+        "professional_qualifications_verified": {
+          "const": false
+        },
+        "expected_actuation": {
+          "const": false
+        },
+        "execution_authority": {
+          "const": "NO_ACTUATION_AUTHORIZED"
+        }
+      }
+    },
+    "evidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "evidence_class",
+        "observed_day",
+        "available_day",
+        "source_ref",
+        "source_authenticity_status",
+        "evidence_tags"
+      ],
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "evidence_class": {
+          "enum": [
+            "DECISION_TIME",
+            "POST_DECISION_OUTCOME"
+          ]
+        },
+        "observed_day": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available_day": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_authenticity_status": {
+          "const": "UNVERIFIED_SYNTHETIC"
+        },
+        "evidence_tags": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "authorityGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status",
+        "evidence_ref"
+      ],
+      "properties": {
+        "gate_id": {
+          "enum": [
+            "legal_authority",
+            "site_access",
+            "owner_consent",
+            "ecological_review",
+            "safety_review",
+            "qualified_operator",
+            "transport_disposal"
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "dataRights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "use_status",
+        "license_ref",
+        "allowed_purposes",
+        "retention_until_day",
+        "public_location_disclosed"
+      ],
+      "properties": {
+        "use_status": {
+          "enum": [
+            "ALLOWED",
+            "BLOCKED",
+            "UNKNOWN"
+          ]
+        },
+        "license_ref": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "allowed_purposes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "retention_until_day": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "public_location_disclosed": {
+          "const": false
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "measurement_state",
+        "value_scaled",
+        "scale",
+        "unit",
+        "observed_day",
+        "available_day",
+        "evidence_ref",
+        "uncertainty_lower_scaled",
+        "uncertainty_upper_scaled"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "measurement_state": {
+          "enum": [
+            "MEASURED",
+            "ESTIMATED",
+            "NOT_MEASURED",
+            "INACCESSIBLE",
+            "CENSORED",
+            "CONTRADICTORY",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "value_scaled": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unit": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "observed_day": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "available_day": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "uncertainty_lower_scaled": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "uncertainty_upper_scaled": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "groundTruth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adjudication_status",
+        "censoring_status",
+        "outcome_day",
+        "outcome_evidence_refs"
+      ],
+      "properties": {
+        "adjudication_status": {
+          "enum": [
+            "SYNTHETIC_DEMO_ONLY",
+            "NOT_ADJUDICATED",
+            "DISAGREEMENT",
+            "PENDING"
+          ]
+        },
+        "censoring_status": {
+          "enum": [
+            "COMPLETE",
+            "FOLLOW_UP_CENSORED",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "outcome_day": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outcome_evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "fieldRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "asset_pseudonym",
+        "domain",
+        "profile_version",
+        "taxonomy_version",
+        "criteria_regime",
+        "observed_failure_families",
+        "family_classification",
+        "classification_review_status",
+        "decision_day",
+        "decision_manifest_sha256",
+        "decision_manifest_payload_json",
+        "episode_status",
+        "decision_input_evidence_refs",
+        "post_decision_outcome_evidence_refs",
+        "data_rights",
+        "authority_gates",
+        "required_metric_ids",
+        "measurements",
+        "ground_truth",
+        "expected_audit_disposition"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "asset_pseudonym": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "domain": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "profile_version": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "taxonomy_version": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "criteria_regime": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "observed_failure_families": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "family_classification": {
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE",
+            "UNKNOWN"
+          ]
+        },
+        "classification_review_status": {
+          "enum": [
+            "REVIEWED",
+            "UNREVIEWED",
+            "UNKNOWN"
+          ]
+        },
+        "decision_day": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "decision_input_evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "post_decision_outcome_evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "data_rights": {
+          "$ref": "#/$defs/dataRights"
+        },
+        "authority_gates": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/authorityGate"
+          }
+        },
+        "required_metric_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "ground_truth": {
+          "$ref": "#/$defs/groundTruth"
+        },
+        "expected_audit_disposition": {
+          "enum": [
+            "REVIEW_ONLY_CANDIDATE",
+            "REASSESS_SCOPE",
+            "BLOCKED_DATA_RIGHTS",
+            "HOLD_DATA_RIGHTS",
+            "BLOCKED_AUTHORITY",
+            "HOLD_AUTHORITY",
+            "HOLD_EVIDENCE"
+          ]
+        },
+        "episode_status": {
+          "enum": [
+            "NO_ACTION",
+            "REFERRED",
+            "FOLLOW_UP_CENSORED"
+          ]
+        },
+        "decision_manifest_payload_json": {
+          "type": "string",
+          "minLength": 2,
+          "description": "Compact canonical JSON manifest; Rust semantic audit parses it and checks exact identity/cutoff fields and verifies its SHA-256."
+        }
+      }
+    }
+  }
+}
