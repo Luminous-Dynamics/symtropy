@@ -751,13 +751,31 @@ fn benchmark_south_african_tariff_context(
         "low-season-2600kwh-under-50kva",
         "high-season-1200kwh-over-50-to-100kva",
     ];
+    let registry_site = registry.get("site").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "source registry site boundary is missing")
+    })?;
+    let registry_source_ids = registry["sources"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "source registry public source list is missing"))?
+        .iter()
+        .map(|item| required_str(item, "source_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let required_source_ids = [
+        "joburg-fy2026-27-business-tariff-schedule",
+        "augos-city-power-business-conventional-2026-27",
+        "dffe-south-africa-2024-grid-emission-factors",
+        "ec-jrc-pvgis-v6",
+    ];
 
     if required_str(&registry, "schema_version")?
             != "energy-sa-benchmark-source-registry-v0.1"
         || required_str(&registry, "registry_status")?
             != "source_inventory_only_not_site_calibrated"
-        || !registry["site"]["measured_load_profile"].is_null()
-        || !registry["site"]["customer_tariff_code"].is_null()
+        || registry_site.get("measured_load_profile").is_none()
+        || registry_site.get("customer_tariff_code").is_none()
+        || !registry_site["measured_load_profile"].is_null()
+        || !registry_site["customer_tariff_code"].is_null()
+        || required_source_ids.iter().any(|required| !registry_source_ids.iter().any(|observed| observed == required))
         || required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
         || required_str(&schedule, "tariff_id")?
             != "city-power-business-conventional-2026-27-candidate"
