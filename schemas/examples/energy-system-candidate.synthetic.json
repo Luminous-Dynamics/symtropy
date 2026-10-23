@@ -1,6 +1,6 @@
 {
   "schema_version": "energy-system-candidate-v0.1",
-  "candidate_id": "synthetic-pv-battery-essential-load",
+  "candidate_id": "synthetic-pv-battery-grid",
   "generator": {
     "name": "reference-fixture",
     "version": "0.1"
@@ -39,7 +39,7 @@
       "name": "Synthetic PV source",
       "ports": [
         {
-          "port_id": "dc_or_ac_output",
+          "port_id": "electricity",
           "direction": "output",
           "carrier": "electricity",
           "unit": "kWh",
@@ -48,7 +48,7 @@
       ],
       "parameter_claims": [
         {
-          "parameter_id": "available_energy_cap",
+          "parameter_id": "interval_available_energy_cap_kwh",
           "value": 2,
           "unit": "kWh",
           "evidence_class": "analyst_assumption",
@@ -60,6 +60,21 @@
             "lower": null,
             "upper": null,
             "notes": "Exact fixture value, not a real forecast."
+          }
+        },
+        {
+          "parameter_id": "rated_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic nameplate value, not validated PV performance.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
           }
         }
       ]
@@ -79,7 +94,7 @@
       ],
       "parameter_claims": [
         {
-          "parameter_id": "import_limit",
+          "parameter_id": "interval_import_energy_cap_kwh",
           "value": 2,
           "unit": "kWh",
           "evidence_class": "analyst_assumption",
@@ -91,6 +106,21 @@
             "lower": null,
             "upper": null,
             "notes": "Outage scenario blocks imports regardless of this cap."
+          }
+        },
+        {
+          "parameter_id": "grid_import_power_cap_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic power cap; network and protection constraints are excluded.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
           }
         }
       ]
@@ -117,7 +147,7 @@
       ],
       "parameter_claims": [
         {
-          "parameter_id": "energy_capacity",
+          "parameter_id": "capacity_kwh",
           "value": 2,
           "unit": "kWh",
           "evidence_class": "analyst_assumption",
@@ -160,6 +190,51 @@
             "upper": null,
             "notes": "Unrealistic idealization; lossy cases are separate tests."
           }
+        },
+        {
+          "parameter_id": "initial_soc_kwh",
+          "value": 0,
+          "unit": "kWh",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        },
+        {
+          "parameter_id": "max_charge_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
+        },
+        {
+          "parameter_id": "max_discharge_power_kw",
+          "value": 2,
+          "unit": "kW",
+          "evidence_class": "analyst_assumption",
+          "source_ref": null,
+          "as_of": null,
+          "applicability": "Synthetic reference template only; requires calibration for a real asset.",
+          "uncertainty": {
+            "kind": "none_declared",
+            "lower": null,
+            "upper": null,
+            "notes": "Synthetic reference-template value; not a real component specification."
+          }
         }
       ]
     },
@@ -183,7 +258,7 @@
     {
       "connection_id": "pv-to-battery",
       "from_component": "pv",
-      "from_port": "dc_or_ac_output",
+      "from_port": "electricity",
       "to_component": "battery",
       "to_port": "charge",
       "carrier": "electricity"
@@ -200,6 +275,14 @@
       "connection_id": "grid-to-load",
       "from_component": "grid",
       "from_port": "import",
+      "to_component": "essential-load",
+      "to_port": "supply",
+      "carrier": "electricity"
+    },
+    {
+      "connection_id": "pv-to-essential-load",
+      "from_component": "pv",
+      "from_port": "electricity",
       "to_component": "essential-load",
       "to_port": "supply",
       "carrier": "electricity"
