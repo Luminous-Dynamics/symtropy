@@ -723,6 +723,169 @@ mod tests {
         }
     }
 
+    // Independent raster oracle for orthogonal integer-grid polygons. The
+    // oracle classifies positive-area overlap by shared unit cells and boundary
+    // contact by inclusive axis-aligned segment checks; it does not call any
+    // production orientation, segment, point-location, or polygon-relation API.
+    fn raster_inside(vertices: &[(i64, i64)], cell_x: i64, cell_y: i64) -> bool {
+        let point_x2 = i128::from(cell_x) * 2 + 1;
+        let point_y2 = i128::from(cell_y) * 2 + 1;
+        let mut inside = false;
+        for index in 0..vertices.len() {
+            let a = vertices[index];
+            let b = vertices[(index + 1) % vertices.len()];
+            let ay2 = i128::from(a.1) * 2;
+            let by2 = i128::from(b.1) * 2;
+            if (ay2 > point_y2) == (by2 > point_y2) {
+                continue;
+            }
+            let ax2 = i128::from(a.0) * 2;
+            let bx2 = i128::from(b.0) * 2;
+            let dx = i128::from(b.0) - i128::from(a.0);
+            let dy = i128::from(b.1) - i128::from(a.1);
+            let cross_twice = dx * (point_y2 - ay2) - dy * (point_x2 - ax2);
+            let crosses_right = if b.1 > a.1 {
+                cross_twice > 0
+            } else {
+                cross_twice < 0
+            };
+            if crosses_right {
+                inside = !inside;
+            }
+        }
+        inside
+    }
+
+    fn raster_cells(vertices: &[(i64, i64)]) -> BTreeSet<(i64, i64)> {
+        let min_x = vertices.iter().map(|point| point.0).min().unwrap();
+        let max_x = vertices.iter().map(|point| point.0).max().unwrap();
+        let min_y = vertices.iter().map(|point| point.1).min().unwrap();
+        let max_y = vertices.iter().map(|point| point.1).max().unwrap();
+        let mut cells = BTreeSet::new();
+        for x in min_x..max_x {
+            for y in min_y..max_y {
+                if raster_inside(vertices, x, y) {
+                    cells.insert((x, y));
+                }
+            }
+        }
+        cells
+    }
+
+    fn closed_interval_overlap(a0: i64, a1: i64, b0: i64, b1: i64) -> bool {
+        a0.min(a1) <= b0.max(b1) && b0.min(b1) <= a0.max(a1)
+    }
+
+    fn independent_boundary_contact(
+        first: &[(i64, i64)],
+        second: &[(i64, i64)],
+    ) -> bool {
+        for first_index in 0..first.len() {
+            let a = first[first_index];
+            let b = first[(first_index + 1) % first.len()];
+            for second_index in 0..second.len() {
+                let c = second[second_index];
+                let d = second[(second_index + 1) % second.len()];
+                let first_horizontal = a.1 == b.1;
+                let second_horizontal = c.1 == d.1;
+                let contact = match (first_horizontal, second_horizontal) {
+                    (true, true) => {
+                        a.1 == c.1 && closed_interval_overlap(a.0, b.0, c.0, d.0)
+                    }
+                    (false, false) => {
+                        a.0 == c.0 && closed_interval_overlap(a.1, b.1, c.1, d.1)
+                    }
+                    (true, false) => {
+                        closed_interval_overlap(a.0, b.0, c.0, d.0)
+                            && closed_interval_overlap(a.1, b.1, c.1, d.1)
+                    }
+                    (false, true) => {
+                        closed_interval_overlap(a.0, b.0, c.0, d.0)
+                            && closed_interval_overlap(a.1, b.1, c.1, d.1)
+                    }
+                };
+                if contact {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn orthogonal_oracle(
+        first: &[(i64, i64)],
+        second: &[(i64, i64)],
+    ) -> PolygonRelation {
+        let first_cells = raster_cells(first);
+        let second_cells = raster_cells(second);
+        if !first_cells.is_disjoint(&second_cells) {
+            PolygonRelation::PositiveAreaOverlap
+        } else if independent_boundary_contact(first, second) {
+            PolygonRelation::BoundaryContact
+        } else {
+            PolygonRelation::Disjoint
+        }
+    }
+
+    #[test]
+    fn concave_orthogonal_polygons_match_independent_raster_and_segment_oracle() {
+        let shapes: &[&[(i64, i64)]] = &[
+            &[(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)],
+            &[(0, 0), (4, 0), (4, 4), (3, 4), (3, 1), (1, 1), (1, 4), (0, 4)],
+            &[(0, 0), (3, 0), (3, 1), (2, 1), (2, 2), (1, 2), (1, 3), (0, 3)],
+        ];
+        let mut corpus: Vec<(Vec<(i64, i64)>, Polygon)> = Vec::new();
+        for shape in shapes {
+            for shift_x in 0..=2 {
+                for shift_y in 0..=2 {
+                    let mut vertices: Vec<(i64, i64)> = shape
+                        .iter()
+                        .map(|(x, y)| (x + shift_x, y + shift_y))
+                        .collect();
+                    let polygon = Polygon::new(
+                        vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
+                    )
+                    .expect("authored orthogonal shape should be valid");
+                    corpus.push((vertices.clone(), polygon));
+
+                    vertices.reverse();
+                    let reversed = Polygon::new(
+                        vertices.iter().map(|(x, y)| p(*x, *y)).collect(),
+                    )
+                    .expect("reversed simple shape should remain valid");
+                    corpus.push((vertices, reversed));
+                }
+            }
+        }
+
+        for (first_vertices, first_polygon) in &corpus {
+            for (second_vertices, second_polygon) in &corpus {
+                let expected = orthogonal_oracle(first_vertices, second_vertices);
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    Ok(expected),
+                    "independent oracle mismatch: first={first_vertices:?}, second={second_vertices:?}"
+                );
+                assert_eq!(
+                    first_polygon.relation(second_polygon),
+                    second_polygon.relation(first_polygon),
+                    "polygon relation must be symmetric"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn raster_oracle_has_frozen_positive_negative_and_contact_controls() {
+        let l_shape = [(0, 0), (3, 0), (3, 1), (1, 1), (1, 3), (0, 3)];
+        let disjoint = [(4, 0), (6, 0), (6, 2), (4, 2)];
+        let boundary_touch = [(3, 0), (4, 0), (4, 1), (3, 1)];
+        let overlap = [(0, 2), (1, 2), (1, 3), (0, 3)];
+        assert_eq!(orthogonal_oracle(&l_shape, &disjoint), PolygonRelation::Disjoint);
+        assert_eq!(orthogonal_oracle(&l_shape, &boundary_touch), PolygonRelation::BoundaryContact);
+        assert_eq!(orthogonal_oracle(&l_shape, &overlap), PolygonRelation::PositiveAreaOverlap);
+    }
+
     #[test]
     fn positive_area_overlap_is_symmetric_for_adversarial_concave_shapes() {
         let l_shape = polygon(&[(0, 0), (4, 0), (4, 1), (1, 1), (1, 4), (0, 4)]);
