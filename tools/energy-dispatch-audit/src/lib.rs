@@ -728,9 +728,172 @@ mod tests {
         }
     }
 
+    const MULTI_INTERVAL_REQUEST: &str =
+        include_str!("../fixtures/three-interval-stress.request.json");
+
+    fn make_three_interval_report(request_bytes: &[u8]) -> DispatchRunReport {
+        let request: DispatchRequest =
+            serde_json::from_slice(request_bytes).expect("multi-interval request fixture is valid");
+        let inputs = &request.intervals;
+        assert_eq!(inputs.len(), 3);
+
+        let make_schedule = |choices: [(u16, u16, u16, u16); 3]| {
+            let mut soc = request.battery.initial_soc_quanta;
+            inputs
+                .iter()
+                .zip(choices)
+                .map(|(input, (grid, withdrawal, charge, essential_served))| {
+                    let discharge_delivered = withdrawal; // this fixture uses ideal efficiency
+                    let pv_used = essential_served + charge - grid - discharge_delivered;
+                    assert!(pv_used <= input.pv_available_quanta);
+                    let pv_curtailed = input.pv_available_quanta - pv_used;
+                    let soc_after = soc - withdrawal + charge;
+                    let step = IntervalDecision {
+                        interval_id: input.interval_id.clone(),
+                        start_unix_seconds: input.start_unix_seconds,
+                        duration_seconds: input.duration_seconds,
+                        grid_outage: input.grid_outage,
+                        pv_available_quanta: input.pv_available_quanta,
+                        pv_used_quanta: pv_used,
+                        pv_curtailed_quanta: pv_curtailed,
+                        grid_import_quanta: grid,
+                        battery_soc_before_quanta: soc,
+                        battery_charge_input_quanta: charge,
+                        battery_soc_withdrawal_quanta: withdrawal,
+                        battery_discharge_delivered_quanta: discharge_delivered,
+                        battery_soc_after_quanta: soc_after,
+                        essential_demand_quanta: input.essential_demand_quanta,
+                        essential_served_quanta: essential_served,
+                        essential_unserved_quanta: input.essential_demand_quanta - essential_served,
+                        flexible_demand_quanta: input.flexible_demand_quanta,
+                        flexible_served_quanta: 0,
+                        flexible_unserved_quanta: input.flexible_demand_quanta,
+                        grid_cost_units_per_quantum: input.grid_cost_units_per_quantum,
+                        grid_carbon_grams_per_quantum: input.grid_carbon_grams_per_quantum,
+                        bus_energy_balance_residual_quanta: 0,
+                    };
+                    soc = soc_after;
+                    step
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let alternatives = vec![
+            ParetoAlternative {
+                objective: DispatchObjective {
+                    essential_unserved_quanta: 0,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 5,
+                    grid_carbon_grams: 100,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 0,
+                },
+                schedule: make_schedule([
+                    (0, 0, 1, 0),
+                    (0, 1, 0, 1),
+                    (1, 0, 0, 1),
+                ]),
+            },
+            ParetoAlternative {
+                objective: DispatchObjective {
+                    essential_unserved_quanta: 1,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 0,
+                    grid_carbon_grams: 0,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 0,
+                },
+                schedule: make_schedule([
+                    (0, 0, 1, 0),
+                    (0, 1, 0, 1),
+                    (0, 0, 0, 0),
+                ]),
+            },
+            ParetoAlternative {
+                objective: DispatchObjective {
+                    essential_unserved_quanta: 1,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 5,
+                    grid_carbon_grams: 100,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 1,
+                },
+                schedule: make_schedule([
+                    (0, 0, 1, 0),
+                    (0, 1, 0, 1),
+                    (1, 0, 1, 0),
+                ]),
+            },
+            ParetoAlternative {
+                objective: DispatchObjective {
+                    essential_unserved_quanta: 2,
+                    flexible_unserved_quanta: 0,
+                    operating_cost_units: 0,
+                    grid_carbon_grams: 0,
+                    curtailed_pv_quanta: 0,
+                    terminal_soc_quanta: 1,
+                },
+                schedule: make_schedule([
+                    (0, 0, 1, 0),
+                    (0, 0, 0, 0),
+                    (0, 0, 0, 0),
+                ]),
+            },
+        ];
+
+        let claim_ceiling = "Three-interval synthetic integer-quantized model only.".to_owned();
+        let assessment = DispatchAssessment {
+            assessment_schema_version: ASSESSMENT_SCHEMA.to_owned(),
+            case_id: request.case_id.clone(),
+            synthetic: request.synthetic,
+            evidence_class: request.evidence_class.clone(),
+            evidence_ref: request.evidence_ref.clone(),
+            evidence_as_of: request.evidence_as_of.clone(),
+            claim_ceiling: claim_ceiling.clone(),
+            energy_quantum_kwh: request.energy_quantum_kwh,
+            search_is_exact: true,
+            pareto_frontier_complete: true,
+            evaluated_action_expansions: 1_000,
+            feasible_complete_schedules: 9,
+            pareto_frontier_count: alternatives.len(),
+            pareto_alternatives: alternatives,
+        };
+        let assessment_sha256 =
+            sha256_hex(&serde_json::to_vec(&assessment).expect("assessment serializes"));
+
+        DispatchRunReport {
+            receipt: RunReceipt {
+                receipt_schema_version: RECEIPT_SCHEMA.to_owned(),
+                evaluator_version: "energy-dispatch-v0.1".to_owned(),
+                digest_algorithm: "SHA-256".to_owned(),
+                digest_scope: "exact_input_bytes_and_compact_assessment_json".to_owned(),
+                input_sha256: sha256_hex(request_bytes),
+                assessment_sha256,
+                input_bytes: request_bytes.len(),
+                case_id: request.case_id,
+                synthetic: request.synthetic,
+                claim_ceiling,
+                verification_boundary: "Digest binding only; not evidence truth.".to_owned(),
+            },
+            assessment,
+        }
+    }
+
     fn audit_report(request_bytes: &[u8], report: &DispatchRunReport) -> IndependentAuditReport {
         let bytes = serde_json::to_vec(report).expect("report serializes");
         audit_bytes(request_bytes, &bytes)
+    }
+
+    #[test]
+    fn three_interval_known_answer_passes_full_independent_audit() {
+        let report = make_three_interval_report(MULTI_INTERVAL_REQUEST.as_bytes());
+        let audited = audit_report(MULTI_INTERVAL_REQUEST.as_bytes(), &report);
+
+        assert_eq!(audited.status, "pass", "{:#?}", audited.checks);
+        assert_eq!(audited.reference_frontier_status, "pass");
+        assert_eq!(audited.reference_feasible_complete_schedules, Some(9));
+        assert_eq!(audited.reference_frontier_objectives.len(), 4);
+        assert_eq!(audited.objective_claim_status, "verified_for_bounded_model_case");
     }
 
     #[test]
