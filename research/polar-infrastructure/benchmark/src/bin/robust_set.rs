@@ -37,6 +37,7 @@ struct RobustSetReport {
 struct RobustPolicyScore {
     policy_id: String,
     method_family: String,
+    fuel_unit: Option<String>,
     service_floor_breach_scenario_count: usize,
     passed_all_declared_service_floors: bool,
     worst_case_service_shortfall: f64,
@@ -51,6 +52,7 @@ struct RobustPolicyScore {
 struct ScenarioOutcome {
     scenario_id: String,
     weighted_service_fraction: f64,
+    fuel_unit: String,
     service_shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
@@ -61,6 +63,7 @@ struct ScenarioOutcome {
 struct Observation {
     scenario_id: String,
     weighted_service_fraction: f64,
+    fuel_unit: String,
     shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
@@ -69,6 +72,7 @@ struct Observation {
 
 fn contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
     if a.episode.time_step_hours.to_bits() != b.episode.time_step_hours.to_bits()
+        || a.episode.service_value_semantics != b.episode.service_value_semantics
         || a.episode.service_contracts.len() != b.episode.service_contracts.len()
     {
         return false;
@@ -119,7 +123,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     let mut scenario_ids = BTreeSet::new();
     let mut episode_ids = BTreeSet::new();
     let mut scored: Vec<(String, Vec<PolicyScore>)> = Vec::with_capacity(input.scenarios.len());
-    let mut policy_families: Option<BTreeMap<String, String>> = None;
+    let mut policy_families: Option<BTreeMap<String, (String, String)>> = None;
     let mut baseline: Option<&ScoreInput> = None;
 
     for scenario in &input.scenarios {
@@ -138,15 +142,15 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         }
 
         let report = score(&scenario.score_input)?;
-        let families: BTreeMap<String, String> = report.results.iter()
-            .map(|p| (p.policy_id.clone(), p.method_family.clone()))
+        let families: BTreeMap<String, (String, String)> = report.results.iter()
+            .map(|p| (p.policy_id.clone(), (p.method_family.clone(), p.fuel_unit.clone())))
             .collect();
         if families.len() != report.results.len() {
             return Err(format!("scenario {} contains duplicate policy IDs", scenario.scenario_id));
         }
         if let Some(expected) = &policy_families {
             if expected != &families {
-                return Err(format!("scenario {} does not contain the same policy IDs and method families", scenario.scenario_id));
+                return Err(format!("scenario {} does not contain the same policy IDs, method families and fuel units", scenario.scenario_id));
             }
         } else {
             policy_families = Some(families);
@@ -157,7 +161,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
     let families = policy_families.unwrap_or_default();
     let mut results = Vec::with_capacity(families.len());
 
-    for (policy_id, method_family) in families {
+    for (policy_id, (method_family, fuel_unit)) in families {
         let mut observations = Vec::with_capacity(scored.len());
         for (scenario_id, scores) in &scored {
             let policy = scores.iter().find(|p| p.policy_id == policy_id)
@@ -165,6 +169,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             observations.push(Observation {
                 scenario_id: scenario_id.clone(),
                 weighted_service_fraction: policy.weighted_service_fraction,
+                fuel_unit: policy.fuel_unit.clone(),
                 shortfall: (1.0 - policy.weighted_service_fraction).clamp(0.0, 1.0),
                 gate_pass: policy.gate_pass,
                 floor_breach_service_hours: policy.floor_breach_service_hours,
@@ -190,6 +195,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         let scenario_outcomes = observations.iter().map(|o| ScenarioOutcome {
             scenario_id: o.scenario_id.clone(),
             weighted_service_fraction: o.weighted_service_fraction,
+            fuel_unit: o.fuel_unit.clone(),
             service_shortfall: o.shortfall,
             gate_pass: o.gate_pass,
             floor_breach_service_hours: o.floor_breach_service_hours,
@@ -199,6 +205,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         results.push(RobustPolicyScore {
             policy_id,
             method_family,
+            fuel_unit: if maximum_fuel_intensity.is_some() { Some(fuel_unit) } else { None },
             service_floor_breach_scenario_count: breach_count,
             passed_all_declared_service_floors: breach_count == 0,
             worst_case_service_shortfall: worst_case_shortfall,
@@ -314,6 +321,15 @@ mod tests {
         let mut duplicate_episode = fixture();
         duplicate_episode.scenarios[1].score_input.episode.id = duplicate_episode.scenarios[0].score_input.episode.id.clone();
         assert!(aggregate(&duplicate_episode).unwrap_err().contains("episode IDs"));
+    }
+
+    #[test]
+    fn rejects_fuel_unit_mismatch_between_scenarios() {
+        let mut input = fixture();
+        for policy in &mut input.scenarios[1].score_input.policy_runs {
+            policy.fuel_unit = "litres".to_string();
+        }
+        assert!(aggregate(&input).unwrap_err().contains("fuel units"));
     }
 
     #[test]
