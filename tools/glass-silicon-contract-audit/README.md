@@ -93,7 +93,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The corrected implementation and fixtures passed all 54 Rust tests and the complete focused workflow at `bad4cfae5adb926d87db6fb88f3b376591f9aca9` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40040804830)). Subsequent commits changed documentation/status text only; current head `c1d3a4fc7fc7f0210e1725d880980d2f8f00defb` has a queued rerun. This qualifies the contract mechanics at the prior code head, not physical glass performance or source-data admission.
+The corrected implementation and fixtures passed all 54 Rust tests and the complete focused workflow at `bad4cfae5adb926d87db6fb88f3b376591f9aca9` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40040804830)). Subsequent commits change documentation/status text only; the latest exact-head rerun remains the final qualification check. This qualifies the contract mechanics at the prior code head, not physical glass performance or source-data admission.
 
 ## Staged feasibility gate
 
