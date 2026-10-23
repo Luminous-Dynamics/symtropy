@@ -5,32 +5,89 @@
   "description": "Checks accounting arithmetic only; it cannot prove physical stream completeness or material production.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "record_id", "evidence_status", "stream_census_complete", "mass_unit", "inputs", "outputs", "inventory_change", "tolerance", "claim_ceiling"],
+  "required": [
+    "schema_version",
+    "record_id",
+    "evidence_status",
+    "stream_census_complete",
+    "mass_unit",
+    "inputs",
+    "outputs",
+    "inventory_change",
+    "tolerance",
+    "claim_ceiling",
+    "tolerance_basis"
+  ],
   "properties": {
-    "schema_version": {"const": 1},
-    "record_id": {"type": "string", "minLength": 1},
-    "evidence_status": {"enum": ["measured", "published", "simulated", "synthetic_test", "unknown"]},
-    "stream_census_complete": {"type": "boolean"},
-    "mass_unit": {"enum": ["kg", "g", "mg", "t"]},
-    "inputs": {"$ref": "#/$defs/elementMasses"},
-    "outputs": {"$ref": "#/$defs/elementMasses"},
+    "schema_version": {
+      "const": 1
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_status": {
+      "enum": [
+        "measured",
+        "published",
+        "simulated",
+        "synthetic_test",
+        "unknown"
+      ]
+    },
+    "stream_census_complete": {
+      "type": "boolean"
+    },
+    "mass_unit": {
+      "enum": [
+        "kg",
+        "g",
+        "mg",
+        "t"
+      ]
+    },
+    "inputs": {
+      "$ref": "#/$defs/elementMasses"
+    },
+    "outputs": {
+      "$ref": "#/$defs/elementMasses"
+    },
     "inventory_change": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": {"type": "number"}
+      "additionalProperties": {
+        "type": "number"
+      }
     },
     "tolerance": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": {"type": "number", "minimum": 0}
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
     },
-    "claim_ceiling": {"type": "string", "minLength": 1}
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tolerance_basis": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
   },
   "$defs": {
     "elementMasses": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": {"type": "number", "minimum": 0}
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
     }
   }
 }
