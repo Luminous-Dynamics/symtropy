@@ -90,6 +90,27 @@ jobs:
           grep -q '"measurement_id": "measure-alpha"' adaptive-campaign-report.json
           grep -q '"measurement_id": "measure-beta"' adaptive-campaign-report.json
 
+      - name: Audit adaptive drift and failed-measurement stress fixture
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json
+
+      - name: Assert recovery from drift and invalid primary observations
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
+          grep -q '"status": "PASS"' adaptive-drift-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"observation_branches": {' adaptive-drift-report.json
+
       - name: Abstain when no robust action exists and budget blocks resolution
         shell: bash
         run: |
