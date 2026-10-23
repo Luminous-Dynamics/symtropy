@@ -70,28 +70,28 @@
     {
       "name": "false_feasible_count",
       "unit": "cases",
-      "definition": "Declared benchmark metric false_feasible_count; exact calculation is stated here.",
+      "definition": "Count of feasibility claims for cases whose independent reference outcome is infeasible.",
       "aggregation": "count",
       "direction": "minimize"
     },
     {
       "name": "false_infeasible_count",
       "unit": "cases",
-      "definition": "Declared benchmark metric false_infeasible_count; exact calculation is stated here.",
+      "definition": "Count of infeasibility proofs for cases whose independent reference outcome is feasible.",
       "aggregation": "count",
       "direction": "minimize"
     },
     {
       "name": "feasible_case_recall",
-      "unit": "ms",
-      "definition": "Declared benchmark metric feasible_case_recall; exact calculation is stated here.",
-      "aggregation": "count",
+      "unit": "ratio",
+      "definition": "Feasible reference cases found divided by known feasible reference cases.",
+      "aggregation": "ratio",
       "direction": "minimize"
     },
     {
       "name": "runtime_ms",
       "unit": "ms",
-      "definition": "Declared benchmark metric runtime_ms; exact calculation is stated here.",
+      "definition": "Per-instance optimizer wall time in milliseconds, excluding input parsing and verification.",
       "aggregation": "median",
       "direction": "minimize"
     }
