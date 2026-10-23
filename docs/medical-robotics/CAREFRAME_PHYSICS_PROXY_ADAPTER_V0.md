@@ -33,6 +33,7 @@ It gives collision queries a shared geometry representation without claiming the
 - Joint-state input must contain every revolute joint in bounds and may not contain unknown or fixed-joint keys.
 - Morphology and state validation and all FK computation occur before the world is changed. Tests assert invalid input leaves the body count unchanged.
 - Returned source/state digests are fixed-width lowercase SHA-256 hex values over the exact supplied JSON bytes; semantically equivalent but differently formatted input is intentionally a different input artifact.
+- Input byte sizes are capped before hashing or parsing: 1 MiB for morphology JSON and 16 KiB for joint-state JSON.
 
 ## What is actually imported
 
@@ -44,6 +45,8 @@ Only static geometry. Even when a revolute joint value changes, the adapter crea
 - Root and torso positions match known reference coordinates.
 - One-radian torso yaw moves the left arm origin to the expected analytic position and produces a proper rotation.
 - A dynamic test sphere overlapping the chassis proxy produces a nonempty physics contact set.
+- A deterministic 32-state boundary-rich sweep checks all 16 imported poses for finite coordinates and proper rotations.
+- Oversized morphology/state inputs reject before the world is mutated.
 - Unknown nested fields, unsupported shape, physical-authority escalation, and out-of-range joint state reject.
 - Every rejected request leaves the physics body's count unchanged.
 - Focused exact-head CI runs rustfmt, `cargo test --locked -p symtropy-robotics-bridge-core`, and Clippy with warnings denied.
