@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process};
 
 const DEFAULT_CORPUS: &str = "docs/medical-robotics/medical-robot-tool-corpus-v0.1.json";
@@ -594,6 +594,385 @@ fn write_or_print_template(tool_kind: &str, output_path: Option<&str>) {
     }
 }
 
+const MORPHOLOGY_PATH: &str =
+    "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json";
+const MORPHOLOGY_SOURCE: &[u8] =
+    include_bytes!("../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json");
+
+fn finite_vec3(value: &Value) -> Option<[f64; 3]> {
+    let items = value.as_array()?;
+    if items.len() != 3 {
+        return None;
+    }
+    let x = items[0].as_f64().filter(|value| value.is_finite())?;
+    let y = items[1].as_f64().filter(|value| value.is_finite())?;
+    let z = items[2].as_f64().filter(|value| value.is_finite())?;
+    Some([x, y, z])
+}
+
+fn morphology_unknown_fields(value: &Value, allowed: &[&str], findings: &mut BTreeSet<String>) {
+    match value.as_object() {
+        Some(object) => {
+            if object.keys().any(|key| !allowed.contains(&key.as_str())) {
+                push_findings(findings, "MORPHOLOGY_UNKNOWN_FIELD");
+            }
+        }
+        None => push_findings(findings, "MORPHOLOGY_INCOMPLETE"),
+    }
+}
+
+fn morphology_required_fields(value: &Value, required: &[&str]) -> bool {
+    value
+        .as_object()
+        .is_some_and(|object| required.iter().all(|key| object.contains_key(*key)))
+}
+
+fn validate_morphology(model: &Value) -> Vec<String> {
+    let mut findings = BTreeSet::new();
+    const ROOT_FIELDS: &[&str] = &[
+        "schema_version",
+        "model_id",
+        "revision",
+        "morphology_kind",
+        "evidence_class",
+        "geometry_fidelity",
+        "units",
+        "root_link",
+        "links",
+        "joints",
+        "controller",
+        "authority",
+        "caveats",
+    ];
+    morphology_unknown_fields(model, ROOT_FIELDS, &mut findings);
+    if !morphology_required_fields(model, ROOT_FIELDS) {
+        push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+    }
+    if str_at(model, "schema_version") != Some("careframe-morphology-v0") {
+        push_findings(&mut findings, "MORPHOLOGY_SCHEMA_UNSUPPORTED");
+    }
+    if str_at(model, "model_id").is_none_or(|id| id.trim().is_empty()) {
+        push_findings(&mut findings, "MORPHOLOGY_MODEL_ID_INVALID");
+    }
+    if model.get("revision").and_then(Value::as_u64).is_none_or(|value| value == 0) {
+        push_findings(&mut findings, "MORPHOLOGY_REVISION_INVALID");
+    }
+    if str_at(model, "morphology_kind") != Some("wheeled_upper_body_humanoid") {
+        push_findings(&mut findings, "MORPHOLOGY_KIND_UNSUPPORTED");
+    }
+    if str_at(model, "evidence_class") != Some("synthetic_morphology_proposal") {
+        push_findings(&mut findings, "MORPHOLOGY_EVIDENCE_CLASS_UNSUPPORTED");
+    }
+    if str_at(model, "geometry_fidelity")
+        != Some("bounding_primitives_not_manufacturing_geometry")
+    {
+        push_findings(&mut findings, "MORPHOLOGY_GEOMETRY_FIDELITY_UNSUPPORTED");
+    }
+
+    let units = model.get("units").unwrap_or(&NULL_VALUE);
+    const UNIT_FIELDS: &[&str] = &[
+        "length",
+        "mass",
+        "joint_angle",
+        "joint_effort",
+        "joint_velocity",
+    ];
+    morphology_unknown_fields(units, UNIT_FIELDS, &mut findings);
+    if !morphology_required_fields(units, UNIT_FIELDS)
+        || str_at(units, "length") != Some("m")
+        || str_at(units, "mass") != Some("kg")
+        || str_at(units, "joint_angle") != Some("rad")
+        || str_at(units, "joint_effort") != Some("N_m")
+        || str_at(units, "joint_velocity") != Some("rad_s")
+    {
+        push_findings(&mut findings, "MORPHOLOGY_UNITS_INVALID");
+    }
+
+    let controller = model.get("controller").unwrap_or(&NULL_VALUE);
+    const CONTROLLER_FIELDS: &[&str] = &[
+        "kinematics_only",
+        "commands_enabled",
+        "inertia_source",
+    ];
+    morphology_unknown_fields(controller, CONTROLLER_FIELDS, &mut findings);
+    if !morphology_required_fields(controller, CONTROLLER_FIELDS) {
+        push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+    }
+    if bool_at(controller, "kinematics_only") != Some(true)
+        || bool_at(controller, "commands_enabled") != Some(false)
+        || str_at(controller, "inertia_source")
+            != Some("derived_from_synthetic_bounding_primitives")
+    {
+        push_findings(&mut findings, "MORPHOLOGY_CONTROLLER_NOT_DISABLED");
+    }
+
+    let authority = model.get("authority").unwrap_or(&NULL_VALUE);
+    const AUTHORITY_FIELDS: &[&str] = &[
+        "simulation_only",
+        "physical_actuation_authorized",
+        "patient_contact_authorized",
+        "clinical_use_authorized",
+    ];
+    morphology_unknown_fields(authority, AUTHORITY_FIELDS, &mut findings);
+    if !morphology_required_fields(authority, AUTHORITY_FIELDS) {
+        push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+    }
+    if bool_at(authority, "simulation_only") != Some(true) {
+        push_findings(&mut findings, "MORPHOLOGY_SIMULATION_ONLY_REQUIRED");
+    }
+    if bool_at(authority, "physical_actuation_authorized") != Some(false)
+        || bool_at(controller, "commands_enabled") != Some(false)
+    {
+        push_findings(&mut findings, "MORPHOLOGY_PHYSICAL_AUTHORITY_FORBIDDEN");
+    }
+    if bool_at(authority, "patient_contact_authorized") != Some(false) {
+        push_findings(&mut findings, "MORPHOLOGY_PATIENT_CONTACT_FORBIDDEN");
+    }
+    if bool_at(authority, "clinical_use_authorized") != Some(false) {
+        push_findings(&mut findings, "MORPHOLOGY_CLINICAL_USE_FORBIDDEN");
+    }
+
+    let caveats_valid = model
+        .get("caveats")
+        .and_then(Value::as_array)
+        .is_some_and(|items| {
+            !items.is_empty()
+                && items.iter().all(|item| {
+                    item.as_str()
+                        .is_some_and(|value| !value.trim().is_empty())
+                })
+        });
+    if !caveats_valid {
+        push_findings(&mut findings, "MORPHOLOGY_CAVEATS_REQUIRED");
+    }
+
+    let Some(links) = model.get("links").and_then(Value::as_array) else {
+        push_findings(&mut findings, "MORPHOLOGY_LINKS_REQUIRED");
+        return findings.into_iter().collect();
+    };
+    if links.len() < 2 || links.len() > 64 {
+        push_findings(&mut findings, "MORPHOLOGY_LINK_COUNT_OUT_OF_RANGE");
+    }
+
+    let mut link_ids = BTreeSet::new();
+    for link in links {
+        const LINK_FIELDS: &[&str] = &["link_id", "mass_kg", "collision"];
+        morphology_unknown_fields(link, LINK_FIELDS, &mut findings);
+        if !morphology_required_fields(link, LINK_FIELDS) {
+            push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+        }
+        let Some(link_id) = str_at(link, "link_id") else {
+            push_findings(&mut findings, "MORPHOLOGY_LINK_ID_INVALID");
+            continue;
+        };
+        if link_id.trim().is_empty() || !link_ids.insert(link_id.to_owned()) {
+            push_findings(&mut findings, "MORPHOLOGY_LINK_ID_INVALID");
+        }
+        if num_at(link, "mass_kg").is_none_or(|mass| !(0.001..=250.0).contains(&mass)) {
+            push_findings(&mut findings, "MORPHOLOGY_LINK_MASS_INVALID");
+        }
+        let collision = link.get("collision").unwrap_or(&NULL_VALUE);
+        const COLLISION_FIELDS: &[&str] = &["shape", "dimensions_m", "source"];
+        morphology_unknown_fields(collision, COLLISION_FIELDS, &mut findings);
+        if !morphology_required_fields(collision, COLLISION_FIELDS) {
+            push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+        }
+        if !["box", "capsule"].contains(&str_at(collision, "shape").unwrap_or("")) {
+            push_findings(&mut findings, "MORPHOLOGY_COLLISION_SHAPE_UNSUPPORTED");
+        }
+        let valid_dimensions = collision
+            .get("dimensions_m")
+            .and_then(Value::as_array)
+            .is_some_and(|dimensions| {
+                dimensions.len() == 3
+                    && dimensions.iter().all(|dimension| {
+                        dimension
+                            .as_f64()
+                            .is_some_and(|value| value.is_finite() && value > 0.0 && value <= 2.0)
+                    })
+            });
+        if !valid_dimensions {
+            push_findings(&mut findings, "MORPHOLOGY_COLLISION_DIMENSIONS_INVALID");
+        }
+        if str_at(collision, "source") != Some("synthetic_placeholder") {
+            push_findings(&mut findings, "MORPHOLOGY_GEOMETRY_SOURCE_UNSUPPORTED");
+        }
+    }
+
+    let root_link = str_at(model, "root_link").unwrap_or("");
+    if !link_ids.contains(root_link) {
+        push_findings(&mut findings, "MORPHOLOGY_ROOT_LINK_UNKNOWN");
+    }
+
+    let Some(joints) = model.get("joints").and_then(Value::as_array) else {
+        push_findings(&mut findings, "MORPHOLOGY_JOINTS_REQUIRED");
+        return findings.into_iter().collect();
+    };
+    if joints.len() > 128 || joints.len().saturating_add(1) != links.len() {
+        push_findings(&mut findings, "MORPHOLOGY_EDGE_COUNT_INVALID");
+    }
+
+    let mut joint_ids = BTreeSet::new();
+    let mut incoming = BTreeMap::<String, usize>::new();
+    let mut adjacency = BTreeMap::<String, Vec<String>>::new();
+    for joint in joints {
+        const JOINT_FIELDS: &[&str] = &[
+            "joint_id",
+            "parent_link",
+            "child_link",
+            "joint_type",
+            "origin_m",
+            "axis_xyz",
+            "lower_limit_rad",
+            "upper_limit_rad",
+            "max_effort_nm",
+            "max_velocity_rad_s",
+            "command_enabled",
+            "source",
+        ];
+        morphology_unknown_fields(joint, JOINT_FIELDS, &mut findings);
+        if !morphology_required_fields(joint, JOINT_FIELDS) {
+            push_findings(&mut findings, "MORPHOLOGY_INCOMPLETE");
+        }
+        let joint_id = str_at(joint, "joint_id").unwrap_or("");
+        if joint_id.trim().is_empty() || !joint_ids.insert(joint_id.to_owned()) {
+            push_findings(&mut findings, "MORPHOLOGY_JOINT_ID_INVALID");
+        }
+        let parent = str_at(joint, "parent_link").unwrap_or("");
+        let child = str_at(joint, "child_link").unwrap_or("");
+        if !link_ids.contains(parent) || !link_ids.contains(child) {
+            push_findings(&mut findings, "MORPHOLOGY_JOINT_LINK_UNKNOWN");
+        }
+        if parent == child {
+            push_findings(&mut findings, "MORPHOLOGY_SELF_EDGE");
+        }
+        if link_ids.contains(child) {
+            *incoming.entry(child.to_owned()).or_default() += 1;
+        }
+        if link_ids.contains(parent) && link_ids.contains(child) && parent != child {
+            adjacency
+                .entry(parent.to_owned())
+                .or_default()
+                .push(child.to_owned());
+        }
+
+        let origin = finite_vec3(joint.get("origin_m").unwrap_or(&NULL_VALUE));
+        if origin.is_none_or(|coords| coords.iter().any(|value| value.abs() > 10.0)) {
+            push_findings(&mut findings, "MORPHOLOGY_JOINT_ORIGIN_INVALID");
+        }
+        let axis = finite_vec3(joint.get("axis_xyz").unwrap_or(&NULL_VALUE));
+        let lower = num_at(joint, "lower_limit_rad");
+        let upper = num_at(joint, "upper_limit_rad");
+        let effort = num_at(joint, "max_effort_nm");
+        let velocity = num_at(joint, "max_velocity_rad_s");
+        if bool_at(joint, "command_enabled") != Some(false) {
+            push_findings(&mut findings, "MORPHOLOGY_JOINT_COMMAND_FORBIDDEN");
+        }
+        if str_at(joint, "source") != Some("synthetic_placeholder") {
+            push_findings(&mut findings, "MORPHOLOGY_JOINT_SOURCE_UNSUPPORTED");
+        }
+
+        match str_at(joint, "joint_type") {
+            Some("fixed") => {
+                let zero_axis = axis.is_some_and(|axis| {
+                    axis.iter().all(|component| component.abs() <= 1.0e-8)
+                });
+                if !zero_axis
+                    || lower != Some(0.0)
+                    || upper != Some(0.0)
+                    || effort != Some(0.0)
+                    || velocity != Some(0.0)
+                {
+                    push_findings(&mut findings, "MORPHOLOGY_FIXED_JOINT_ENVELOPE_INVALID");
+                }
+            }
+            Some("revolute") => {
+                let unit_axis = axis.is_some_and(|axis| {
+                    let norm = axis.iter().map(|component| component * component).sum::<f64>().sqrt();
+                    (norm - 1.0).abs() <= 1.0e-3
+                });
+                if !unit_axis {
+                    push_findings(&mut findings, "MORPHOLOGY_REVOLUTE_AXIS_INVALID");
+                }
+                if lower.is_none_or(|value| !(-50.0..=50.0).contains(&value))
+                    || upper.is_none_or(|value| !(-50.0..=50.0).contains(&value))
+                    || lower.zip(upper).is_none_or(|(lo, hi)| lo >= hi)
+                {
+                    push_findings(&mut findings, "MORPHOLOGY_REVOLUTE_LIMITS_INVALID");
+                }
+                if effort.is_none_or(|value| !(0.001..=1000.0).contains(&value))
+                    || velocity.is_none_or(|value| !(0.001..=20.0).contains(&value))
+                {
+                    push_findings(&mut findings, "MORPHOLOGY_JOINT_ENVELOPE_INVALID");
+                }
+            }
+            _ => push_findings(&mut findings, "MORPHOLOGY_JOINT_TYPE_UNSUPPORTED"),
+        }
+    }
+
+    if incoming.get(root_link).copied().unwrap_or(0) != 0 {
+        push_findings(&mut findings, "MORPHOLOGY_ROOT_HAS_PARENT");
+    }
+    for link_id in &link_ids {
+        let expected_incoming = usize::from(link_id != root_link);
+        if incoming.get(link_id).copied().unwrap_or(0) != expected_incoming {
+            push_findings(&mut findings, "MORPHOLOGY_PARENT_COUNT_INVALID");
+        }
+    }
+
+    let mut reached = BTreeSet::new();
+    let mut pending = vec![root_link.to_owned()];
+    while let Some(link_id) = pending.pop() {
+        if !reached.insert(link_id.clone()) {
+            continue;
+        }
+        if let Some(children) = adjacency.get(&link_id) {
+            pending.extend(children.iter().cloned());
+        }
+    }
+    if reached.len() != link_ids.len() || reached.contains("") {
+        push_findings(&mut findings, "MORPHOLOGY_GRAPH_DISCONNECTED_OR_CYCLIC");
+    }
+
+    findings.into_iter().collect()
+}
+
+fn validate_morphology_file(path: &str) {
+    let (bytes, model) = match load_json(path) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    };
+    let findings = validate_morphology(&model);
+    let blocked = !findings.is_empty();
+    let tested_revision =
+        env::var("CARE_FRAME_TESTED_SHA").unwrap_or_else(|_| "UNBOUND_LOCAL_RUN".to_owned());
+    let receipt = json!({
+        "receipt_schema": "careframe-morphology-receipt-v0",
+        "tested_revision": tested_revision,
+        "model_id": str_at(&model, "model_id").unwrap_or("<missing>"),
+        "model_revision": model.get("revision").and_then(Value::as_u64),
+        "disposition": if blocked { "BLOCKED" } else { "SIMULATION_ONLY" },
+        "findings": findings,
+        "morphology_sha256": sha256_hex(&bytes),
+        "embedded_morphology_sha256": sha256_hex(MORPHOLOGY_SOURCE),
+        "auditor_source_sha256": sha256_hex(AUDITOR_SOURCE),
+        "physical_actuation_authorized": false,
+        "patient_contact_authorized": false,
+        "clinical_use_authorized": false,
+        "claim_ceiling": "Synthetic morphology graph/envelope only; no physical or clinical validity claim."
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt).expect("receipt serialization cannot fail")
+    );
+    if blocked {
+        process::exit(1);
+    }
+}
+
 fn validate_manifest_file(path: &str) {
     let (bytes, manifest) = match load_json(path) {
         Ok(value) => value,
@@ -644,6 +1023,18 @@ fn main() {
         write_or_print_template(&tool_kind, output_path.as_deref());
         return;
     }
+    if first.as_deref() == Some("--validate-morphology") {
+        let Some(path) = args.next() else {
+            eprintln!("usage: medical-robot-tool-gate --validate-morphology PATH");
+            process::exit(2);
+        };
+        if args.next().is_some() {
+            eprintln!("unexpected extra argument");
+            process::exit(2);
+        }
+        validate_morphology_file(&path);
+        return;
+    }
     if first.as_deref() == Some("--validate-manifest") {
         let Some(path) = args.next() else {
             eprintln!("usage: medical-robot-tool-gate --validate-manifest PATH");
@@ -660,6 +1051,7 @@ fn main() {
     if args.next().is_some() {
         eprintln!("usage: medical-robot-tool-gate [CORPUS_PATH]");
         eprintln!("     | --template TOOL_KIND [OUTPUT_PATH] | --validate-manifest PATH");
+        eprintln!("     | --validate-morphology PATH");
         process::exit(2);
     }
     let (bytes, root) = match load_json(&path) {
@@ -719,6 +1111,149 @@ mod tests {
             "../../../docs/medical-robotics/medical-robot-tool-corpus-v0.1.json"
         ))
         .expect("tool-design corpus parses")
+    }
+
+    fn morphology() -> Value {
+        serde_json::from_slice(include_bytes!(
+            "../../../docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json"
+        ))
+        .expect("Careframe morphology fixture parses")
+    }
+
+    #[test]
+    fn frozen_careframe_morphology_is_a_connected_kinematic_tree() {
+        let model = morphology();
+        assert_eq!(model["links"].as_array().expect("links").len(), 16);
+        assert_eq!(model["joints"].as_array().expect("joints").len(), 15);
+        let findings = validate_morphology(&model);
+        assert!(findings.is_empty(), "{findings:?}");
+    }
+
+    #[test]
+    fn morphology_unknown_fields_are_rejected_at_each_object_boundary() {
+        let mut root = morphology();
+        root["silent_autonomy"] = json!(true);
+        assert!(validate_morphology(&root)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+
+        let mut link = morphology();
+        link["links"][0]["extra_mass_mode"] = json!("hidden");
+        assert!(validate_morphology(&link)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+
+        let mut collision = morphology();
+        collision["links"][0]["collision"]["sterile"] = json!(true);
+        assert!(validate_morphology(&collision)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+
+        let mut joint = morphology();
+        joint["joints"][0]["direct_motor_command"] = json!(true);
+        assert!(validate_morphology(&joint)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+
+        let mut controller = morphology();
+        controller["controller"]["remote_override"] = json!(true);
+        assert!(validate_morphology(&controller)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+
+        let mut authority = morphology();
+        authority["authority"]["clinical_mode"] = json!(true);
+        assert!(validate_morphology(&authority)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_UNKNOWN_FIELD"));
+    }
+
+    #[test]
+    fn morphology_graph_rejects_duplicate_ids_unknown_links_and_multiple_parents() {
+        let mut duplicate_link = morphology();
+        duplicate_link["links"][1]["link_id"] = json!("base_chassis");
+        assert!(validate_morphology(&duplicate_link)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_LINK_ID_INVALID"));
+
+        let mut unknown_parent = morphology();
+        unknown_parent["joints"][0]["parent_link"] = json!("missing_link");
+        assert!(validate_morphology(&unknown_parent)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_JOINT_LINK_UNKNOWN"));
+
+        let mut multiple_parent = morphology();
+        multiple_parent["joints"][1]["child_link"] = json!("left_drive_wheel");
+        assert!(validate_morphology(&multiple_parent)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_PARENT_COUNT_INVALID"));
+
+        let mut cycle = morphology();
+        cycle["joints"][2]["parent_link"] = json!("front_caster");
+        assert!(validate_morphology(&cycle)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_GRAPH_DISCONNECTED_OR_CYCLIC"));
+    }
+
+    #[test]
+    fn morphology_rejects_invalid_axes_limits_geometry_and_link_masses() {
+        let mut axis = morphology();
+        axis["joints"][0]["axis_xyz"] = json!([0.0, 0.0, 0.0]);
+        assert!(validate_morphology(&axis)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_REVOLUTE_AXIS_INVALID"));
+
+        let mut limits = morphology();
+        limits["joints"][0]["lower_limit_rad"] = json!(1.0);
+        limits["joints"][0]["upper_limit_rad"] = json!(1.0);
+        assert!(validate_morphology(&limits)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_REVOLUTE_LIMITS_INVALID"));
+
+        let mut dimensions = morphology();
+        dimensions["links"][0]["collision"]["dimensions_m"] = json!([0.0, 0.5, 0.5]);
+        assert!(validate_morphology(&dimensions)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_COLLISION_DIMENSIONS_INVALID"));
+
+        let mut mass = morphology();
+        mass["links"][0]["mass_kg"] = json!(-1.0);
+        assert!(validate_morphology(&mass)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_LINK_MASS_INVALID"));
+    }
+
+    #[test]
+    fn morphology_cannot_enable_joint_commands_or_raise_authority() {
+        let mut commands = morphology();
+        commands["joints"][0]["command_enabled"] = json!(true);
+        assert!(validate_morphology(&commands)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_JOINT_COMMAND_FORBIDDEN"));
+
+        let mut controller = morphology();
+        controller["controller"]["commands_enabled"] = json!(true);
+        assert!(validate_morphology(&controller)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_CONTROLLER_NOT_DISABLED"));
+
+        let mut authority = morphology();
+        authority["authority"]["physical_actuation_authorized"] = json!(true);
+        assert!(validate_morphology(&authority)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_PHYSICAL_AUTHORITY_FORBIDDEN"));
+
+        let mut patient = morphology();
+        patient["authority"]["patient_contact_authorized"] = json!(true);
+        assert!(validate_morphology(&patient)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_PATIENT_CONTACT_FORBIDDEN"));
+
+        let mut clinical = morphology();
+        clinical["authority"]["clinical_use_authorized"] = json!(true);
+        assert!(validate_morphology(&clinical)
+            .iter()
+            .any(|finding| finding == "MORPHOLOGY_CLINICAL_USE_FORBIDDEN"));
     }
 
     #[test]
