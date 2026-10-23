@@ -25,26 +25,30 @@ fn env_usize(name: &str, default: usize) -> usize {
         .max(1)
 }
 
-fn signed_unit(mut value: u64) -> f64 {
-    // Fixed integer mixing: reproducible without an additional RNG dependency.
+fn mix_seed(mut value: u64) -> u64 {
+    // SplitMix-style integer mixer: deterministic without an extra RNG dependency.
     value ^= value >> 30;
     value = value.wrapping_mul(0xbf58_476d_1ce4_e5b9);
     value ^= value >> 27;
     value = value.wrapping_mul(0x94d0_49bb_1331_11eb);
     value ^= value >> 31;
-    (value as f64 / u64::MAX as f64) * 2.0 - 1.0
+    value
+}
+
+fn signed_unit(value: u64) -> f64 {
+    (mix_seed(value) as f64 / u64::MAX as f64) * 2.0 - 1.0
 }
 
 /// Training-only exogenous forces. The exact force is deliberately not written into
 /// dataset rows; the target extractor must recover unexplained acceleration from states.
-fn randomized_training_force(seed: u64, step: usize) -> [f64; 3] {
+fn randomized_training_force(seed: u64, step: usize, family_index: usize) -> [f64; 3] {
     let weight_n = MASS_KG * GRAVITY_M_S2;
     let amplitude_seed = seed.wrapping_mul(0x9e37_79b9_7f4a_7c15);
     let amplitude = (0.02 + ((amplitude_seed >> 32) % 5) as f64 * 0.02) * weight_n;
     let onset = 20 + (seed % 31) as usize;
     let t = step as f64 * DT_S;
 
-    match seed % 4 {
+    match family_index % 4 {
         0 => {
             if (onset..onset + 45).contains(&step) {
                 [amplitude, 0.0, 0.0]
@@ -90,8 +94,8 @@ fn state_json(state: &symthaea_multirotor::FlightState) -> serde_json::Value {
 }
 
 fn main() {
-    let episodes = env_usize("STFR_DATASET_EPISODES", 4);
-    let steps_per_episode = env_usize("STFR_DATASET_STEPS", 512);
+    let episodes = env_usize("STFR_DATASET_EPISODES", 16);
+    let steps_per_episode = env_usize("STFR_DATASET_STEPS", 256);
     let scenarios = scenarios_for_split(ScenarioSplit::Train);
     assert!(!scenarios.is_empty(), "training scenario catalogue must not be empty");
 
@@ -108,18 +112,25 @@ fn main() {
     let mut contact_steps = 0_u64;
     let mut invalid_targets = 0_u64;
     let mut disturbance_family_counts = [0_u64; 4];
+    let mut scenario_by_disturbance_counts = vec![[0_u64; 4]; scenarios.len()];
 
     for episode in 0..episodes {
         let seed = 0x5359_4D54_5252_0000_u64
             .wrapping_add(episode as u64 + 1);
-        let scenario = &scenarios[episode % scenarios.len()];
+        let scenario_index = episode % scenarios.len();
+        let scenario = &scenarios[scenario_index];
+        // Rotate the disturbance family once per full pass over scenarios. Over
+        // 4 × scenario_count episodes this creates a crossed design instead of
+        // permanently pairing each target with one force family.
+        let disturbance_family = (episode + episode / scenarios.len()) % 4;
         simulator.reset_with_perturbation(
             scenario.setpoint.position[2],
             0.06,
             seed,
         );
         let mut pid_state = PidState::default();
-        disturbance_family_counts[(seed % 4) as usize] += 1;
+        disturbance_family_counts[disturbance_family] += 1;
+        scenario_by_disturbance_counts[scenario_index][disturbance_family] += 1;
 
         for step in 0..steps_per_episode {
             let before = simulator.state().clone();
@@ -132,7 +143,7 @@ fn main() {
             )
             .clamped();
             let applied_action = requested.clamped();
-            let force = randomized_training_force(seed, step);
+            let force = randomized_training_force(seed, step, disturbance_family);
             simulator.apply_external_force(force);
             simulator.step(&applied_action, DT_S);
             let after = simulator.state().clone();
@@ -199,6 +210,11 @@ fn main() {
             "dt_s": DT_S,
             "training_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
             "training_randomization": {
+                "design": "crossed_scenario_by_disturbance_family",
+                "complete_factorial_design": scenario_by_disturbance_counts
+                    .iter()
+                    .all(|counts| counts.iter().all(|count| *count > 0)),
+                "scenario_by_disturbance_family_episode_counts": scenario_by_disturbance_counts,
                 "families": [
                     "seeded_lateral_pulse",
                     "correlated_sinusoid",
