@@ -44,7 +44,7 @@ jobs:
       - name: Detect bootstrap changes
         id: prep
         run: |
-          if git diff --quiet -- tools/shipyard-jsonschema-validator; then
+          if [ -z "$(git status --porcelain -- tools/shipyard-jsonschema-validator)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
