@@ -325,6 +325,25 @@ struct CorpusReport {
 
 fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
     let mut schema_errors = Vec::new();
+    let allowed_root_fields = [
+        "suite_id",
+        "suite_version",
+        "evidence_class",
+        "purpose",
+        "claim_ceiling",
+        "execution_mode",
+        "expected_case_count",
+        "cases",
+    ];
+    let Some(root_object) = root.as_object() else {
+        return Err(vec!["corpus root must be a JSON object".to_owned()]);
+    };
+    if root_object
+        .keys()
+        .any(|key| !allowed_root_fields.contains(&key.as_str()))
+    {
+        schema_errors.push("unknown corpus root field".to_owned());
+    }
     if str_at(root, "suite_id") != Some("MEDICAL_ROBOT_TOOL_GATE") {
         schema_errors.push("suite_id missing or unsupported".to_owned());
     }
@@ -355,6 +374,23 @@ fn run_corpus(root: &Value) -> Result<CorpusReport, Vec<String>> {
     let mut matched = 0;
     let mut failures = Vec::new();
     for case in cases {
+        let allowed_case_fields = [
+            "case_id",
+            "manifest",
+            "expected_disposition",
+            "expected_findings",
+        ];
+        let Some(case_object) = case.as_object() else {
+            schema_errors.push("case entry must be a JSON object".to_owned());
+            continue;
+        };
+        if case_object
+            .keys()
+            .any(|key| !allowed_case_fields.contains(&key.as_str()))
+        {
+            schema_errors.push("unknown case field".to_owned());
+            continue;
+        }
         let case_id = str_at(case, "case_id").unwrap_or("<missing-case-id>");
         if !ids.insert(case_id.to_owned()) {
             schema_errors.push(format!("duplicate case_id '{case_id}'"));
@@ -516,9 +552,36 @@ mod tests {
         mechanical["mechanical"]["unbounded_force"] = json!(9999);
         assert!(validate_tool(&mechanical).iter().any(|finding| finding == "UNKNOWN_FIELD"));
 
-        let mut privacy = base;
+        let mut privacy = base.clone();
         privacy["privacy"]["capture_without_consent"] = json!(true);
         assert!(validate_tool(&privacy).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+
+        let mut hygiene = base.clone();
+        hygiene["hygiene"]["sterility_claim"] = json!("validated");
+        assert!(validate_tool(&hygiene).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+
+        let mut electrical = base.clone();
+        electrical["electrical"]["remote_override"] = json!(true);
+        assert!(validate_tool(&electrical).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+
+        let mut authority = base;
+        authority["authority"]["unreviewed_clinical_mode"] = json!(true);
+        assert!(validate_tool(&authority).iter().any(|finding| finding == "UNKNOWN_FIELD"));
+    }
+
+    #[test]
+    fn corpus_schema_rejects_unknown_fields_and_count_drift() {
+        let mut root = corpus();
+        root["unreviewed_autonomy"] = json!(true);
+        assert!(run_corpus(&root).is_err());
+
+        let mut root = corpus();
+        root["cases"][0]["new_capability"] = json!("silent");
+        assert!(run_corpus(&root).is_err());
+
+        let mut root = corpus();
+        root["expected_case_count"] = json!(15);
+        assert!(run_corpus(&root).is_err());
     }
 
     #[test]
