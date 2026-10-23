@@ -5,7 +5,7 @@ use std::{env, error::Error, fs, io};
 use symtropy_energy_dispatch_audit::DispatchObjective;
 
 struct ExpectedBenchmark {
-    case_id: &'static str,
+    case_id: String,
     feasible_schedules: u64,
     frontier: Vec<DispatchObjective>,
 }
@@ -31,17 +31,17 @@ fn objective(
 fn expected_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark> {
     let value = match candidate_id {
         "synthetic-grid-only" => ExpectedBenchmark {
-            case_id: "candidate:synthetic-grid-only",
+            case_id: "candidate:synthetic-grid-only".to_owned(),
             feasible_schedules: 1,
             frontier: vec![objective(2, 0, 0, 0, 0, 0)],
         },
         "synthetic-pv-grid" => ExpectedBenchmark {
-            case_id: "candidate:synthetic-pv-grid",
+            case_id: "candidate:synthetic-pv-grid".to_owned(),
             feasible_schedules: 1,
             frontier: vec![objective(2, 0, 0, 0, 2, 0)],
         },
         "synthetic-pv-battery-grid" => ExpectedBenchmark {
-            case_id: "candidate:synthetic-pv-battery-grid",
+            case_id: "candidate:synthetic-pv-battery-grid".to_owned(),
             feasible_schedules: 14,
             frontier: vec![
                 objective(0, 0, 0, 0, 0, 0),
@@ -117,7 +117,7 @@ fn expected_parametric_benchmark(candidate_id: &str) -> Option<ExpectedBenchmark
         .collect();
 
     Some(ExpectedBenchmark {
-        case_id: Box::leak(format!("candidate:{candidate_id}").into_boxed_str()),
+        case_id: format!("candidate:{candidate_id}"),
         feasible_schedules,
         frontier,
     })
@@ -180,6 +180,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let expected_frontier_count = expected.as_ref().map(|value| value.frontier.len());
 
     let accepted = status == Some("pass")
+        && case_id == expected.as_ref().map(|value| value.case_id.as_str())
         && case_id == Some(expected_case_id.as_str())
         && frontier_status == Some("pass")
         && frontier_matches_known_answer
@@ -219,5 +220,64 @@ fn main() {
     if let Err(error) = run() {
         eprintln!("energy benchmark gate failed: {error}");
         std::process::exit(2);
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_36_parameter_combinations_have_analytical_frontiers() {
+        let mut ids = Vec::new();
+        for pv in [1, 2, 3] {
+            for capacity in [1, 2, 3] {
+                for battery_power in [1, 2] {
+                    for grid_power in [1, 2] {
+                        let id = format!(
+                            "synthetic-parametric-pv-{pv}kw-battery-{capacity}kwh-battery-power-{battery_power}kw-grid-{grid_power}kw"
+                        );
+                        let known = expected_parametric_benchmark(&id)
+                            .expect("every axis combination has a known answer");
+                        let max_charge = capacity.min(battery_power);
+                        assert_eq!(known.frontier.len(), usize::from(max_charge) + 1);
+                        assert!(known.feasible_schedules > 0);
+                        assert_eq!(known.case_id, format!("candidate:{id}"));
+                        ids.push(id);
+                    }
+                }
+            }
+        }
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), 36);
+    }
+
+    #[test]
+    fn analytical_baseline_matches_frozen_reference_case() {
+        let known = expected_benchmark("synthetic-pv-battery-grid").unwrap();
+        assert_eq!(known.feasible_schedules, 14);
+        assert_eq!(known.frontier.len(), 3);
+        assert_eq!(
+            known.frontier,
+            vec![
+                objective(0, 0, 0, 0, 0, 0),
+                objective(1, 0, 0, 0, 0, 1),
+                objective(2, 0, 0, 0, 0, 2),
+            ]
+        );
+    }
+
+    #[test]
+    fn malformed_or_out_of_range_parametric_ids_are_rejected() {
+        for id in [
+            "synthetic-parametric-pv-4kw-battery-1kwh-battery-power-1kw-grid-1kw",
+            "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-3kw-grid-1kw",
+            "synthetic-parametric-pv-1kw-battery-1kwh-battery-power-1kw-grid-3kw",
+            "synthetic-parametric-pv-xkw-battery-1kwh-battery-power-1kw-grid-1kw",
+        ] {
+            assert!(expected_parametric_benchmark(id).is_none(), "{id}");
+        }
     }
 }
