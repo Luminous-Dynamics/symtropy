@@ -170,7 +170,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
   test -s "$dataset_input"
   export STFR_DATASET_INPUT_PATH="$dataset_input"
   export STFR_TRAIN_DATASET_SHA256="$(sha256sum "$dataset_input" | awk '{print $1}')"
-  ridge_out="${STFR_RIDGE_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-residual-ridge-heldout.json}"
+  ridge_out="${STFR_RIDGE_OUTPUT_PATH:-$SYMTROPY_PATH/symtropy-causal-residual-ridge-conformal-heldout.json}"
   cargo run --manifest-path "$integration_manifest" --example causal_residual_ridge_benchmark > "$ridge_out"
   jq -e '
     .benchmark_id == "symtropy-causal-transition-residual-ridge-conformal-v0.1"
