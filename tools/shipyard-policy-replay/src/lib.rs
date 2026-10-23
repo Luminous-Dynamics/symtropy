@@ -394,7 +394,8 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                             Some(trace.scenario_id.as_str()),
                             Some(*tick),
                             &format!(
-                                "scenario '{}' selects a different action than scenario '{}' despite an identical source-visible history",
+                                "scenario '{}' selects a different action than scenario '{}' \
+                                 despite an identical source-visible history",
                                 trace.scenario_id, prior_scenario_id
                             ),
                         );
@@ -473,7 +474,7 @@ fn push_diagnostic(
 mod tests {
     use super::{
         audit_policy_replay, PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite,
-        ScenarioEventLog, ScenarioTrace,
+        ScenarioEventLog, ScenarioTrace, Tick,
     };
 
     #[derive(Clone)]
@@ -540,8 +541,6 @@ mod tests {
             candidate_traces: fixtures.iter().map(ScenarioFixture::candidate).collect(),
         }
     }
-
-    use super::Tick;
 
     #[test]
     fn adaptive_policy_may_branch_only_after_disturbance_is_observed() {
