@@ -351,6 +351,8 @@ fn run() -> Result<(), String> {
     let mut records = Vec::new();
     let mut braced_passes = 0_u32;
     let mut mechanism_rejections = 0_u32;
+    let mut load_envelope_cases = 0_u32;
+    let mut parameter_grid_cases = 0_u32;
 
     for loads in load_cases() {
         for (topology, diagonal, expected) in [
@@ -376,6 +378,7 @@ fn run() -> Result<(), String> {
             &truss(None, 1.0, 1.0, 1.0, Some(loads)),
         )?;
         mechanism_rejections += 1;
+        load_envelope_cases += 3;
     }
 
     for area_scale in VARIATION_FACTORS {
@@ -415,11 +418,17 @@ fn run() -> Result<(), String> {
                     &truss(None, area_scale, modulus_scale, load_scale, None),
                 )?;
                 mechanism_rejections += 1;
+                parameter_grid_cases += 3;
             }
         }
     }
 
-    if records.len() != 96 || braced_passes != 64 || mechanism_rejections != 32 {
+    if records.len() != 96
+        || load_envelope_cases != 15
+        || parameter_grid_cases != 81
+        || braced_passes != 64
+        || mechanism_rejections != 32
+    {
         return Err(format!(
             "unexpected case census: total={}, braced_passes={braced_passes}, mechanism_rejections={mechanism_rejections}",
             records.len()
@@ -433,7 +442,8 @@ fn run() -> Result<(), String> {
             "\"source_commit\":\"{}\",\"source_tree_sha\":\"{}\",",
             "\"request_sha256\":\"{}\",\"evidence_class\":\"synthetic\",",
             "\"model_class\":\"2d_small_displacement_linear_elastic_axial_truss\",",
-            "\"case_count\":{},\"braced_pass_count\":{},",
+            "\"case_count\":{},\"load_envelope_case_count\":{},",
+            "\"parameter_grid_case_count\":{},\"braced_pass_count\":{},",
             "\"mechanism_rejection_count\":{},",
             "\"claim_ceiling\":\"synthetic_2d_axial_truss_only_no_physical_validation_no_code_compliance\",",
             "\"cases\":[{}]}}"
@@ -442,6 +452,8 @@ fn run() -> Result<(), String> {
         source_tree_sha,
         REQUEST_SHA256,
         records.len(),
+        load_envelope_cases,
+        parameter_grid_cases,
         braced_passes,
         mechanism_rejections,
         records.join(",")
