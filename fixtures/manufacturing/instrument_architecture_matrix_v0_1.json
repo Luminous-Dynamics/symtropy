@@ -1,0 +1,2031 @@
+{
+  "manifest_version": "instrument-architecture-matrix/0.1",
+  "workstream_id": "MUS-OPT-001",
+  "status": "SYNTHETIC_UNQUALIFIED_NOT_RANKABLE",
+  "evidence_note": "Every scenario is a policy fixture. No supplier quotation, physical build, yield trial, repair study, cost estimate or performance result is included.",
+  "architectures": [
+    "acoustic_resonator_replaceable_sensor",
+    "low_voltage_electronic_instrument",
+    "modular_electro_acoustic_hybrid"
+  ],
+  "manufacturing_routes": [
+    "hand_workshop_assembly",
+    "maker_digital_fabrication_commodity_electronics",
+    "qualified_contract_manufacturing"
+  ],
+  "objective_definitions": {
+    "bom_cost": {
+      "unit": "currency_per_unit",
+      "direction": "minimize"
+    },
+    "assembly_time": {
+      "unit": "minute_per_unit",
+      "direction": "minimize"
+    },
+    "calibration_time": {
+      "unit": "minute_per_unit",
+      "direction": "minimize"
+    },
+    "first_pass_yield": {
+      "unit": "fraction_0_to_1",
+      "direction": "maximize"
+    },
+    "material_waste": {
+      "unit": "gram_per_unit",
+      "direction": "minimize"
+    },
+    "energy_use": {
+      "unit": "watt_hour_per_unit",
+      "direction": "minimize"
+    },
+    "median_repair_time": {
+      "unit": "minute_per_repair",
+      "direction": "minimize"
+    },
+    "p90_repair_time": {
+      "unit": "minute_per_repair",
+      "direction": "minimize"
+    },
+    "critical_part_lead_time": {
+      "unit": "calendar_day",
+      "direction": "minimize"
+    }
+  },
+  "baseline_coverage_required": 9,
+  "scenarios": [
+    {
+      "scenario_id": "BASE-001",
+      "scenario_type": "baseline",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-002",
+      "scenario_type": "baseline",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-003",
+      "scenario_type": "baseline",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-004",
+      "scenario_type": "baseline",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-005",
+      "scenario_type": "baseline",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-006",
+      "scenario_type": "baseline",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-007",
+      "scenario_type": "baseline",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-008",
+      "scenario_type": "baseline",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "BASE-009",
+      "scenario_type": "baseline",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "UNRANKED_MISSING_EVIDENCE",
+      "rationale": "Baseline cell exists for coverage only; cost, lead time, yield, process effort and repair metrics remain unresolved until dated source or observed trial evidence is attached."
+    },
+    {
+      "scenario_id": "STRESS-001",
+      "scenario_type": "stress_test",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "critical_part_unavailable",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCKED_UNVERIFIED",
+      "rationale": "A critical sensor or component is unavailable; candidate eligibility and alternative lead time remain unresolved."
+    },
+    {
+      "scenario_id": "STRESS-002",
+      "scenario_type": "stress_test",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "fx_and_lead_time_shock",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCKED_UNVERIFIED",
+      "rationale": "Imported-part price and lead-time risk is introduced as a qualitative stress; no numeric multiplier or forecast is assumed."
+    },
+    {
+      "scenario_id": "STRESS-003",
+      "scenario_type": "stress_test",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "tightened_tolerance_requirement",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCKED_UNVERIFIED",
+      "rationale": "A tighter tolerance may affect process capability, calibration effort and yield; effects require measurement."
+    },
+    {
+      "scenario_id": "STRESS-004",
+      "scenario_type": "stress_test",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "failed_build_and_rework",
+      "challenge": "none",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCKED_UNVERIFIED",
+      "rationale": "A failed build and rework event must be retained in the denominator and lifecycle cost rather than silently dropped."
+    },
+    {
+      "scenario_id": "NEG-001",
+      "scenario_type": "negative_control",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "unknown_cost_treated_as_zero",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "An unresolved BOM cost is asserted as zero or as free supply."
+    },
+    {
+      "scenario_id": "NEG-002",
+      "scenario_type": "negative_control",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "unapproved_substitute_treated_as_qualified",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "A substitute is treated as qualified without exact compatibility evidence for this design revision."
+    },
+    {
+      "scenario_id": "NEG-003",
+      "scenario_type": "negative_control",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "reference",
+      "challenge": "simulation_metric_treated_as_physical",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "A simulated performance or yield estimate is labeled as physical observation."
+    },
+    {
+      "scenario_id": "NEG-004",
+      "scenario_type": "negative_control",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "failed_builds_omitted",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "Failed builds, scrapped parts or rework are omitted from the denominator."
+    },
+    {
+      "scenario_id": "NEG-005",
+      "scenario_type": "negative_control",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "repair_success_without_post_test",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "Repair success is declared without a post-repair functional test."
+    },
+    {
+      "scenario_id": "NEG-006",
+      "scenario_type": "negative_control",
+      "architecture": "modular_electro_acoustic_hybrid",
+      "manufacturing_route": "hand_workshop_assembly",
+      "condition": "reference",
+      "challenge": "rank_without_required_evidence",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCK_RANKING",
+      "rationale": "A candidate with unresolved hard constraints or missing critical evidence is placed on the eligible Pareto frontier."
+    },
+    {
+      "scenario_id": "NEG-007",
+      "scenario_type": "negative_control",
+      "architecture": "acoustic_resonator_replaceable_sensor",
+      "manufacturing_route": "maker_digital_fabrication_commodity_electronics",
+      "condition": "reference",
+      "challenge": "license_missing_but_release_allowed",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "BLOCK_RELEASE",
+      "rationale": "Required design, firmware or audio-asset redistribution rights are not resolved before release."
+    },
+    {
+      "scenario_id": "NEG-008",
+      "scenario_type": "negative_control",
+      "architecture": "low_voltage_electronic_instrument",
+      "manufacturing_route": "qualified_contract_manufacturing",
+      "condition": "reference",
+      "challenge": "stale_design_revision_accepted",
+      "objective_evidence": {
+        "bom_cost": {
+          "value": null,
+          "unit": "currency_per_unit",
+          "currency_code": null,
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "assembly_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "calibration_time": {
+          "value": null,
+          "unit": "minute_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "first_pass_yield": {
+          "value": null,
+          "unit": "fraction_0_to_1",
+          "direction": "maximize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "material_waste": {
+          "value": null,
+          "unit": "gram_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "energy_use": {
+          "value": null,
+          "unit": "watt_hour_per_unit",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "median_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "p90_repair_time": {
+          "value": null,
+          "unit": "minute_per_repair",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        },
+        "critical_part_lead_time": {
+          "value": null,
+          "unit": "calendar_day",
+          "direction": "minimize",
+          "evidence_status": "unresolved",
+          "source_ref": null,
+          "as_of_date": null,
+          "uncertainty_absolute": null
+        }
+      },
+      "expected_disposition": "REJECT_CLAIM",
+      "rationale": "Measurements or BOM quotes attached to a different design revision are reused without applicability review."
+    }
+  ]
+}
