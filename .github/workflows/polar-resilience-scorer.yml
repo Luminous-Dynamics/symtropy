@@ -42,7 +42,7 @@ jobs:
             (.results | length == 4) and
             ([.results[] | select(.policy_id == "defective_low_fuel_control") | .gate_pass] == [false]) and
             ([.results[] | select(.policy_id == "candidate_full_service") |
-              (.services | length == 3 and all(.[]; (.unit | length > 0) and (.service_fraction == null or (.service_fraction >= 0 and .service_fraction <= 1))))] | length == 1)
+              (.services | length == 3 and all(.[]; ((.rate_unit | length > 0) and (.integrated_unit | length > 0) and (.service_fraction == null or (.service_fraction >= 0 and .service_fraction <= 1))))] | length == 1)
           ' /tmp/polar-score-report.json
 
       - name: Exercise weighted scenario-tail evaluator
