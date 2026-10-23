@@ -1,5 +1,5 @@
 use shipyard_polygon_geometry::{GeometryError, Point, Polygon};
-use shipyard_polygon_layout_baseline::{first_fit, BlockRequest, LayoutError, Policy, Yard};
+use shipyard_polygon_layout_baseline::{BlockRequest, LayoutError, Policy, Yard, first_fit};
 use std::collections::BTreeSet;
 use std::fmt;
 
@@ -52,7 +52,10 @@ impl fmt::Display for ExactError {
                 "exact oracle only supports yards up to {MAX_YARD_DIMENSION}x{MAX_YARD_DIMENSION}, got {width}x{height}"
             ),
             Self::TooManyRequests { count, maximum } => {
-                write!(f, "exact oracle received {count} requests; maximum is {maximum}")
+                write!(
+                    f,
+                    "exact oracle received {count} requests; maximum is {maximum}"
+                )
             }
             Self::ZeroBudget => write!(f, "candidate-check budget must be positive"),
             Self::DuplicateBlockId(id) => write!(f, "duplicate block ID {id}"),
@@ -140,8 +143,18 @@ pub fn solve_exact(
             return Err(ExactError::DuplicateBlockId(request.id().to_owned()));
         }
         let footprint = request.footprint();
-        let width = footprint.vertices().iter().map(|point| point.x).max().unwrap_or(0);
-        let height = footprint.vertices().iter().map(|point| point.y).max().unwrap_or(0);
+        let width = footprint
+            .vertices()
+            .iter()
+            .map(|point| point.x)
+            .max()
+            .unwrap_or(0);
+        let height = footprint
+            .vertices()
+            .iter()
+            .map(|point| point.y)
+            .max()
+            .unwrap_or(0);
         if width > yard.width() || height > yard.height() {
             return Err(ExactError::BlockTooLarge {
                 id: request.id().to_owned(),
@@ -284,8 +297,14 @@ fn translate(polygon: &Polygon, origin: Point) -> Result<Polygon, ExactError> {
         .iter()
         .map(|point| {
             Ok(Point::new(
-                point.x.checked_add(origin.x).ok_or(ExactError::CoordinateOverflow)?,
-                point.y.checked_add(origin.y).ok_or(ExactError::CoordinateOverflow)?,
+                point
+                    .x
+                    .checked_add(origin.x)
+                    .ok_or(ExactError::CoordinateOverflow)?,
+                point
+                    .y
+                    .checked_add(origin.y)
+                    .ok_or(ExactError::CoordinateOverflow)?,
             ))
         })
         .collect::<Result<Vec<_>, ExactError>>()?;
@@ -301,21 +320,15 @@ mod tests {
     }
 
     fn l_shape() -> Polygon {
-        Polygon::new(vec![
-            p(0, 0), p(3, 0), p(3, 1), p(1, 1), p(1, 3), p(0, 3),
-        ]).unwrap()
+        Polygon::new(vec![p(0, 0), p(3, 0), p(3, 1), p(1, 1), p(1, 3), p(0, 3)]).unwrap()
     }
 
     fn square(size: i64) -> Polygon {
-        Polygon::new(vec![
-            p(0, 0), p(size, 0), p(size, size), p(0, size),
-        ]).unwrap()
+        Polygon::new(vec![p(0, 0), p(size, 0), p(size, size), p(0, size)]).unwrap()
     }
 
     fn vertical_bar() -> Polygon {
-        Polygon::new(vec![
-            p(0, 0), p(1, 0), p(1, 3), p(0, 3),
-        ]).unwrap()
+        Polygon::new(vec![p(0, 0), p(1, 0), p(1, 3), p(0, 3)]).unwrap()
     }
 
     fn request(id: &str, polygon: Polygon) -> BlockRequest {
@@ -341,8 +354,7 @@ mod tests {
                     if (2 * a.y > py2) == (2 * b.y > py2) {
                         continue;
                     }
-                    let cross = (b.x - a.x) * (py2 - 2 * a.y)
-                        - (b.y - a.y) * (px2 - 2 * a.x);
+                    let cross = (b.x - a.x) * (py2 - 2 * a.y) - (b.y - a.y) * (px2 - 2 * a.x);
                     let right = if b.y > a.y { cross > 0 } else { cross < 0 };
                     if right {
                         inside = !inside;
@@ -372,8 +384,7 @@ mod tests {
                 let contact = match (first_horizontal, second_horizontal) {
                     (true, true) => a.y == c.y && overlap_1d(a.x, b.x, c.x, d.x),
                     (false, false) => a.x == c.x && overlap_1d(a.y, b.y, c.y, d.y),
-                    _ => overlap_1d(a.x, b.x, c.x, d.x)
-                        && overlap_1d(a.y, b.y, c.y, d.y),
+                    _ => overlap_1d(a.x, b.x, c.x, d.x) && overlap_1d(a.y, b.y, c.y, d.y),
                 };
                 if contact {
                     return true;
@@ -392,7 +403,10 @@ mod tests {
 
     fn feasible_result(result: &SolveOutcome) -> (&[ExactPlacement], usize) {
         match result {
-            SolveOutcome::Feasible { placements, candidate_checks } => (placements, *candidate_checks),
+            SolveOutcome::Feasible {
+                placements,
+                candidate_checks,
+            } => (placements, *candidate_checks),
             other => panic!("expected feasible result, got {other:?}"),
         }
     }
@@ -405,7 +419,10 @@ mod tests {
         let (placements, checks) = feasible_result(&result);
         assert_eq!(placements.len(), 2);
         assert_eq!(placements[0].origin, p(0, 0));
-        assert!(!independent_conflict(&placements[0].footprint, &placements[1].footprint));
+        assert!(!independent_conflict(
+            &placements[0].footprint,
+            &placements[1].footprint
+        ));
         assert!(checks > 0);
     }
 
@@ -451,10 +468,7 @@ mod tests {
         let yard = Yard::new(2, 2).unwrap();
         let requests = vec![request("a", square(2)), request("b", square(2))];
         let result = solve_exact(yard, &requests, 100).unwrap();
-        assert!(matches!(
-            result,
-            SolveOutcome::ProvenInfeasible { .. }
-        ));
+        assert!(matches!(result, SolveOutcome::ProvenInfeasible { .. }));
     }
 
     #[test]
@@ -475,17 +489,25 @@ mod tests {
         let too_large = Yard::new(6, 5).unwrap();
         assert_eq!(
             solve_exact(too_large, &[], 100),
-            Err(ExactError::YardOutsideTinyModel { width: 6, height: 5 })
+            Err(ExactError::YardOutsideTinyModel {
+                width: 6,
+                height: 5
+            })
         );
         let yard = Yard::new(5, 5).unwrap();
         let requests = vec![
-            request("a", l_shape()), request("b", l_shape()),
-            request("c", l_shape()), request("d", l_shape()),
+            request("a", l_shape()),
+            request("b", l_shape()),
+            request("c", l_shape()),
+            request("d", l_shape()),
             request("e", l_shape()),
         ];
         assert_eq!(
             solve_exact(yard, &requests, 100),
-            Err(ExactError::TooManyRequests { count: 5, maximum: 4 })
+            Err(ExactError::TooManyRequests {
+                count: 5,
+                maximum: 4
+            })
         );
     }
 
@@ -497,9 +519,6 @@ mod tests {
             solve_exact(yard, &duplicate, 100),
             Err(ExactError::DuplicateBlockId("same".to_owned()))
         );
-        assert_eq!(
-            solve_exact(yard, &[], 0),
-            Err(ExactError::ZeroBudget)
-        );
+        assert_eq!(solve_exact(yard, &[], 0), Err(ExactError::ZeroBudget));
     }
 }
