@@ -2841,6 +2841,17 @@ mod grouped_split_manifest_tests {
     }
 
     #[test]
+    fn declared_evidence_class_is_preserved_without_certifying_data_admission() {
+        let mut value = manifest();
+        value["evidence_class"] = json!("retrospective_admitted_data");
+        value["claim_ceiling"] = json!("Assignment-split contract only; evidence class is caller-declared and not independently verified.");
+        let report = audit_grouped_split_manifest(&value);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.evidence_class.as_deref(), Some("retrospective_admitted_data"));
+        assert!(report.claim_ceiling.contains("not independently verified"));
+    }
+
+    #[test]
     fn composition_family_cannot_cross_train_and_test() {
         let mut value = manifest();
         value["records"][5]["group_keys"]["composition_family_id"] = json!("family-a");
