@@ -609,12 +609,19 @@
     {
       "if": {
         "properties": {
-          "completeness": {
-            "const": "complete"
+          "observation": {
+            "properties": {
+              "completeness": {
+                "const": "complete"
+              }
+            },
+            "required": [
+              "completeness"
+            ]
           }
         },
         "required": [
-          "completeness"
+          "observation"
         ]
       },
       "then": {
@@ -633,18 +640,28 @@
               "samples"
             ]
           }
-        }
+        },
+        "required": [
+          "observation"
+        ]
       }
     },
     {
       "if": {
         "properties": {
-          "completeness": {
-            "const": "none"
+          "observation": {
+            "properties": {
+              "completeness": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "completeness"
+            ]
           }
         },
         "required": [
-          "completeness"
+          "observation"
         ]
       },
       "then": {
@@ -663,7 +680,10 @@
               "samples"
             ]
           }
-        }
+        },
+        "required": [
+          "observation"
+        ]
       }
     },
     {
