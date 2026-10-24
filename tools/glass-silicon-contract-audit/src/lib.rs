@@ -3800,6 +3800,13 @@ fn relationship_canonical_sha256(graph: &Value) -> Option<String> {
                     .cmp(&right.get("edge_type").and_then(Value::as_str)))
                 .then_with(|| left.get("state").and_then(Value::as_str)
                     .cmp(&right.get("state").and_then(Value::as_str)))
+                .then_with(|| {
+                    let left_refs = left.get("evidence_refs")
+                        .map(|value| serde_json::to_string(value).unwrap_or_default());
+                    let right_refs = right.get("evidence_refs")
+                        .map(|value| serde_json::to_string(value).unwrap_or_default());
+                    left_refs.cmp(&right_refs)
+                })
         });
     }
     if let Some(assignments) = normalized.get_mut("assignments").and_then(Value::as_array_mut) {
@@ -4237,7 +4244,7 @@ mod relationship_graph_tests {
     }
 
     #[test]
-    fn unknown_relationship_state_is_not_accepted_as_verified() {
+    fn unknown_relationship_without_cross_split_path_does_not_invent_leakage() {
         let mut graph = valid_graph();
         graph["edges"][0]["state"] = json!("unknown");
         graph["edges"][0]["evidence_refs"] = json!([]);
