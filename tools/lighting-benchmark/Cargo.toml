@@ -13,3 +13,5 @@ path = "src/lib.rs"
 [[bin]]
 name = "lighting-benchmark-demo"
 path = "src/main.rs"
+
+[workspace]
