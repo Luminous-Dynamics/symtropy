@@ -906,7 +906,7 @@ fn sha256_hex(input: &[u8]) -> String {
 mod ledger_tests {
     use super::*;
     use shipyard_dispatch_audit::EvaluatorOutage;
-    use shipyard_observed_dispatch::{Commitment, DispatchInput, Operation, Resource, VisibleOutage};
+    use shipyard_observed_dispatch::{Commitment, DispatchInput, Operation, Resource};
 
     fn context() -> ExperimentLedgerContext {
         ExperimentLedgerContext {
@@ -915,7 +915,7 @@ mod ledger_tests {
             replicate_id: "seed-0001".to_owned(),
             initial_state_sha256: "a".repeat(64),
             disturbance_tape_sha256: "b".repeat(64),
-            method_config_sha256: "c".repeat(64),
+            base_method_config_sha256: "c".repeat(64),
             budget_profile_id: "no-search-deterministic-v0".to_owned(),
             wall_time_limit_ms: 1000,
             decision_compute_budget_units: 100,
@@ -949,70 +949,73 @@ mod ledger_tests {
         }
     }
 
-    #[test]
-    fn sha256_matches_published_empty_and_abc_vectors() {
-        assert_eq!(
-            sha256_hex(b""),
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        );
-        assert_eq!(
-            sha256_hex(b"abc"),
-            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-        );
+    fn json_string_field(line: &str, key: &str) -> String {
+        let marker = format!("\"{key}\":\"");
+        let start = line.find(&marker).expect("string field exists") + marker.len();
+        let end = line[start..].find('"').expect("field closing quote") + start;
+        line[start..end].to_owned()
     }
 
     #[test]
-    fn ledger_emits_four_stable_rows_with_separate_metrics() {
+    fn ledger_emits_four_stable_v0_records_and_separate_metrics() {
         let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
         let rows = serialize_result_ledger(&context(), &results).expect("valid identity");
         assert_eq!(rows.lines().count(), 4);
-        assert!(rows.contains("\"status\":\"incomplete\""));
         assert!(rows.contains("\"ledger_contract_version\":\"shipyard-result-ledger-v0\""));
+        assert!(rows.contains("\"record_kind\":\"raw_run_record\""));
+        // Resource/time-only pass is not promoted to full physical feasibility.
+        assert!(rows.contains("\"status\":\"incomplete\""));
+        assert!(rows.contains("\"geometry\":\"not_evaluated\""));
         assert!(rows.contains("\"causality\":\"not_evaluated\""));
-        assert!(rows.contains("\"method_config_sha256\":"));
         assert!(rows.contains("\"metric_id\":\"total_tardiness\",\"value\":0"));
         assert!(rows.contains("\"metric_id\":\"occupied_resource_ticks\",\"value\":2"));
+        assert!(!rows.contains("\"adapter_detail\""));
         assert!(!rows.contains("winner_score"));
-        let keys = rows
-            .lines()
-            .map(|line| {
-                let marker = "\"method_id\":\"";
-                let start = line.find(marker).expect("policy ID") + marker.len();
-                let end = line[start..].find('"').expect("quote") + start;
-                line[start..end].split("::").next().expect("policy prefix").to_owned()
-            })
+
+        let lines = rows.lines().collect::<Vec<_>>();
+        let method_ids = lines
+            .iter()
+            .map(|line| json_string_field(line, "method_id").split("::").next().unwrap().to_owned())
             .collect::<Vec<_>>();
         assert_eq!(
-            keys,
+            method_ids,
             vec!["critical_ratio", "earliest_due_date", "fixed_order", "least_slack"]
         );
-        for line in rows.lines() {
-            assert!(line.starts_with('{') && line.ends_with('}'));
-        }
+        let config_digests = lines
+            .iter()
+            .map(|line| {
+                let begin = line.find("\"method_config_sha256\":\"").unwrap()
+                    + "\"method_config_sha256\":\"".len();
+                let end = line[begin..].find('"').unwrap() + begin;
+                line[begin..end].to_owned()
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(config_digests.len(), 4, "each rule has its own method digest");
     }
 
     #[test]
-    fn ledger_preserves_rejections_and_every_candidate_assignment() {
-        let mut scenario = input();
-        // Evaluator truth is deliberately absent from the policy snapshot.
-        scenario.visible_outages.clear();
+    fn ledger_preserves_evaluator_only_outage_rejections_in_sidecars() {
+        let policy_input = input(); // no outage is delivered to the policy
         let evaluator = vec![EvaluatorOutage {
-            event_id: "known-outage".to_owned(),
+            event_id: "evaluator-only-surprise".to_owned(),
             resource_id: "w-1".to_owned(),
             effective_from_tick: 0,
             effective_until_tick: 5,
         }];
-        let results = evaluate_four_rules(&scenario, &[], &evaluator).expect("valid history");
-        let rows = serialize_result_ledger(&context(), &results).expect("identity valid");
-        assert_eq!(rows.lines().count(), 4);
-        assert!(rows.contains("\"status\":\"invalid_candidate\""));
+        let results = evaluate_four_rules(&policy_input, &[], &evaluator)
+            .expect("empty source histories align");
         let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
-        assert!(bundle.artifacts.iter().any(|artifact| artifact.contents.contains("\"assignments\":[{")));
-        assert!(bundle.artifacts.iter().any(|artifact| artifact.contents.contains("ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE")));
-        for artifact in bundle.artifacts {
-            assert_eq!(sha256_hex(artifact.contents.as_bytes()), artifact.sha256);
-            assert!(artifact.file_name.contains(&artifact.sha256));
-        }
+        assert_eq!(bundle.ledger_jsonl.lines().count(), 4);
+        assert!(bundle.ledger_jsonl.contains("\"status\":\"invalid_candidate\""));
+        assert!(bundle.artifacts.iter().any(|artifact| {
+            artifact.contents.contains("ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE")
+        }));
+        assert!(bundle.artifacts.iter().any(|artifact| {
+            artifact.contents.contains("\"assignments\":[{")
+        }));
+        assert!(bundle.artifacts.iter().any(|artifact| {
+            artifact.contents.contains("\"geometry_gate\":\"not_evaluated\"")
+        }));
     }
 
     #[test]
@@ -1023,33 +1026,12 @@ mod ledger_tests {
         assert!(serialize_result_ledger(&identity, &results)
             .expect_err("invalid tape digest")
             .contains("64 hexadecimal"));
-    }
 
-    #[test]
-    fn evidence_bundle_is_content_addressed_and_references_sidecar_bytes() {
-        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
-        let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
-        assert_eq!(bundle.ledger_jsonl.lines().count(), 4);
-        assert_eq!(bundle.artifacts.len(), 8);
-        for line in bundle.ledger_jsonl.lines() {
-            assert!(line.contains("\"candidate_schedule_sha256\":\""));
-            assert!(line.contains("\"independent_audit_sha256\":\""));
-            assert!(!line.contains("\"adapter_detail\""));
-        }
-        assert!(bundle.artifacts.iter().all(|artifact| {
-            artifact.file_name.ends_with(".json")
-                && artifact.media_type == "application/json"
-                && sha256_hex(artifact.contents.as_bytes()) == artifact.sha256
-        }));
-    }
-
-    #[test]
-    fn json_string_encoding_is_valid_for_controls_quotes_and_unicode() {
-        let encoded = json_quote("quote=\"; slash=\\; line=\n; rocket=🚀");
-        assert_eq!(
-            encoded,
-            r#""quote=\"; slash=\\; line=\n; rocket=🚀""#
-        );
+        let mut identity = context();
+        identity.base_method_config_sha256 = "x".repeat(64);
+        assert!(serialize_result_ledger(&identity, &results)
+            .expect_err("non-hex config digest")
+            .contains("64 hexadecimal"));
     }
 
     #[test]
@@ -1066,4 +1048,58 @@ mod ledger_tests {
             .contains("duplicate baseline outcome"));
     }
 
+    #[test]
+    fn bundle_sidecars_are_content_addressed_and_exactly_referenced() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
+        assert_eq!(bundle.ledger_jsonl.lines().count(), 4);
+        assert_eq!(bundle.artifacts.len(), 8);
+        for line in bundle.ledger_jsonl.lines() {
+            let candidate = json_string_field(
+                &line.replace("\\\"", "\""),
+                "candidate_schedule_sha256",
+            );
+            let audit = json_string_field(
+                &line.replace("\\\"", "\""),
+                "independent_audit_sha256",
+            );
+            assert!(bundle.artifacts.iter().any(|item| item.sha256 == candidate));
+            assert!(bundle.artifacts.iter().any(|item| item.sha256 == audit));
+        }
+        for artifact in &bundle.artifacts {
+            assert_eq!(sha256_hex(artifact.contents.as_bytes()), artifact.sha256);
+            assert!(artifact.file_name.contains(&artifact.sha256));
+            assert_eq!(artifact.media_type, "application/json");
+        }
+    }
+
+    #[test]
+    fn record_identity_changes_when_tape_digest_changes() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        let first = serialize_result_ledger(&context(), &results).expect("first run");
+        let mut second_context = context();
+        second_context.disturbance_tape_sha256 = "d".repeat(64);
+        let second = serialize_result_ledger(&second_context, &results).expect("second run");
+        let first_id = json_string_field(first.lines().next().unwrap(), "record_id");
+        let second_id = json_string_field(second.lines().next().unwrap(), "record_id");
+        assert_ne!(first_id, second_id);
+    }
+
+    #[test]
+    fn sha256_matches_published_empty_and_abc_vectors() {
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn json_string_encoding_handles_controls_quotes_and_unicode() {
+        let encoded = json_quote("quote=\"; slash=\\; line=\n; rocket=🚀");
+        assert_eq!(encoded, r#""quote=\"; slash=\\; line=\n; rocket=🚀""#);
+    }
 }
