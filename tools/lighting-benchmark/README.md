@@ -14,7 +14,7 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 - Emits energy per compliant task-hour only for a compliant, positive-duration observation.
 - Provides a small Pareto-dominance helper for already normalized minimization vectors.
 - Includes a deterministic experiment selector that ranks externally supplied expected decision-loss reduction against cost, while rejecting malformed estimates and excluding unsafe or over-budget options. It does not infer or calibrate value-of-information estimates itself.
-- Includes a deterministic synthetic-only evaluator CLI, a 27-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 30-test suite covering the evaluator, robust interval logic and evidence provenance, selector, and stress-corpus contract.
+- Includes a deterministic synthetic-only evaluator CLI, a 30-case synthetic stress matrix spanning task-plane optics, adaptive control and off-grid resilience, family-level development/held-out isolation checks, and a 30-test suite covering the evaluator, robust interval logic and evidence provenance, selector, and stress-corpus contract.
 
 ## Run
 
