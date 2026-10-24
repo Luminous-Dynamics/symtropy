@@ -194,10 +194,6 @@ fn json_quote(input: &str) -> String {
     output
 }
 
-fn optional_u64(value: Option<u64>) -> String {
-    value.map(|item| item.to_string()).unwrap_or_else(|| "null".to_owned())
-}
-
 fn serialize_initial_state(input: &DispatchInput, episode_id: &str) -> String {
     let operations = input
         .operations
@@ -416,21 +412,16 @@ fn make_episode(
         }
     }
 
-    let mut resources = vec![Resource {
-        id: "welder-01".to_owned(),
-        kind: "welder".to_owned(),
-    }];
-    if family != ScenarioFamily::KnownResourceOutage {
-        resources.push(Resource {
+    let mut resources = vec![
+        Resource {
+            id: "welder-01".to_owned(),
+            kind: "welder".to_owned(),
+        },
+        Resource {
             id: "welder-02".to_owned(),
             kind: "welder".to_owned(),
-        });
-    } else {
-        resources.push(Resource {
-            id: "welder-02".to_owned(),
-            kind: "welder".to_owned(),
-        });
-    }
+        },
+    ];
     resources.push(Resource {
         id: "paint-01".to_owned(),
         kind: "paint".to_owned(),
