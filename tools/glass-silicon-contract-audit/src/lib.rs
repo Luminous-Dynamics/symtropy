@@ -3909,6 +3909,7 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
     let nodes_value = graph.get("nodes").and_then(Value::as_array);
     let nodes_checked = nodes_value.map_or(0, Vec::len);
     let mut node_ids = BTreeSet::new();
+    let mut split_required_nodes = BTreeSet::new();
     if nodes_value.map_or(true, Vec::is_empty) {
         findings.push("RELATION_NODES:at least one node is required".to_string());
         hard_failure = true;
@@ -3919,13 +3920,22 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
     }
     if let Some(nodes) = nodes_value {
         for (index, node) in nodes.iter().enumerate() {
-            if !relationship_exact_keys(node, &["node_id", "node_kind"]) {
+            if !relationship_exact_keys(node, &["node_id", "node_kind", "split_required"]) {
                 findings.push(format!("RELATION_NODE_KEYS:index {index} has missing or unknown fields"));
                 hard_failure = true;
                 continue;
             }
             let node_id = node.get("node_id").and_then(Value::as_str).unwrap_or("");
             let node_kind = node.get("node_kind").and_then(Value::as_str).unwrap_or("");
+            let split_required = node.get("split_required").and_then(Value::as_bool);
+            match split_required {
+                Some(true) => { split_required_nodes.insert(node_id.to_string()); },
+                Some(false) => {},
+                None => {
+                    findings.push(format!("RELATION_NODE_SPLIT_REQUIRED:{node_id} must declare a boolean split_required"));
+                    hard_failure = true;
+                }
+            }
             if !relationship_stable_id(node_id) || !node_ids.insert(node_id.to_string()) {
                 findings.push(format!("RELATION_NODE_ID:index {index} has invalid or duplicate node_id"));
                 hard_failure = true;
@@ -4017,6 +4027,11 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
                 hard_failure = true;
                 continue;
             }
+            if !split_required_nodes.contains(node_id) {
+                findings.push(format!("RELATION_ASSIGNMENT_NOT_REQUIRED:{node_id} is provenance-only and must not be assigned to a data split"));
+                hard_failure = true;
+                continue;
+            }
             if !RELATIONSHIP_SPLITS.contains(&split) {
                 findings.push(format!("RELATION_ASSIGNMENT_SPLIT:{node_id} has invalid split"));
                 hard_failure = true;
@@ -4028,6 +4043,12 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
                 continue;
             }
             *split_counts.entry(split.to_string()).or_default() += 1;
+        }
+    }
+    for node_id in &split_required_nodes {
+        if !assignments.contains_key(node_id) {
+            findings.push(format!("RELATION_ASSIGNMENT_MISSING:{node_id} requires a train/validation/test assignment"));
+            hard_failure = true;
         }
     }
     for split in RELATIONSHIP_SPLITS {
@@ -4229,6 +4250,24 @@ mod relationship_graph_tests {
         let report = audit_relationship_graph(&graph);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGES:")));
+    }
+
+    #[test]
+    fn missing_assignment_for_split_required_sample_fails_closed() {
+        let mut graph = valid_graph();
+        graph["assignments"].as_array_mut().unwrap().retain(|a| a["node_id"] != "sample-b");
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_ASSIGNMENT_MISSING:sample-b")));
+    }
+
+    #[test]
+    fn provenance_only_intermediate_cannot_be_assigned_as_a_data_row() {
+        let mut graph = valid_graph();
+        graph["assignments"].as_array_mut().unwrap().push(json!({"node_id": "feature-a", "split": "train"}));
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_ASSIGNMENT_NOT_REQUIRED:feature-a")));
     }
 
     #[test]
