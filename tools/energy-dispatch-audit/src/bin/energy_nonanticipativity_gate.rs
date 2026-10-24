@@ -92,6 +92,21 @@ fn canonical_prefix_signature(prefix: &Value) -> Result<String, Box<dyn Error>> 
     // Only policy-visible context participates. A prefix ID and information-set
     // label are deliberately excluded so neither can vouch for itself.
     let available_forecast = prefix.get("available_forecast").cloned().unwrap_or(Value::Null);
+    if !available_forecast.is_null() {
+        let forecasts = available_forecast.as_object()
+            .ok_or_else(|| invalid("available_forecast must be an object"))?;
+        for (forecast_name, forecast) in forecasts {
+            let available_at = required_u64(forecast, "available_at_time_index")?;
+            if available_at > time_index {
+                return Err(invalid(format!(
+                    "forecast {forecast_name} was not available at decision time {time_index}"
+                )));
+            }
+            if forecast.get("value").is_none() {
+                return Err(invalid(format!("forecast {forecast_name} has no value")));
+            }
+        }
+    }
     let canonical = json!({
         "time_index": time_index,
         "observable_state": observable_state,
@@ -173,6 +188,7 @@ fn evaluate_policy(
     expected_scenario_ids: &BTreeSet<String>,
     known_actions: &BTreeSet<String>,
     expected_time_indices: &BTreeSet<u64>,
+    expected_architecture_digest: &str,
 ) -> Result<PolicyVerdict, Box<dyn Error>> {
     let policy_id = required_str(policy, "policy_id")?.to_owned();
     let reference_only = policy["reference_only"].as_bool()
@@ -198,6 +214,12 @@ fn evaluate_policy(
     let mut total_steps = 0_usize;
 
     for trace in traces {
+        let architecture_digest = required_str(trace, "architecture_sha256")?;
+        if architecture_digest != expected_architecture_digest {
+            return Err(invalid(format!(
+                "policy {policy_id} has an architecture digest inconsistent with the frozen candidate"
+            )));
+        }
         let scenario_id = required_str(trace, "scenario_id")?.to_owned();
         if !expected_scenario_ids.contains(&scenario_id) || !seen_scenarios.insert(scenario_id.clone()) {
             return Err(invalid(format!("policy {policy_id} has unknown or duplicate scenario trace {scenario_id}")));
@@ -306,6 +328,18 @@ fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, B
         return Err(invalid("fixture is missing the synthetic-only claim ceiling"));
     }
 
+    let model = fixture.get("model").ok_or_else(|| invalid("model object is missing"))?;
+    let architecture_manifest = model.get("architecture_manifest")
+        .ok_or_else(|| invalid("architecture_manifest is missing"))?;
+    if !architecture_manifest.is_object() {
+        return Err(invalid("architecture_manifest must be an object"));
+    }
+    let expected_architecture_digest = required_str(model, "architecture_sha256")?;
+    let computed_architecture_digest = sha256_hex(&serde_json::to_vec(architecture_manifest)?);
+    if expected_architecture_digest != computed_architecture_digest {
+        return Err(invalid("architecture manifest SHA-256 mismatch"));
+    }
+
     let scenario_ids = expected_scenarios(fixture)?;
     let prefixes = build_prefix_index(fixture)?;
     let expected_time_indices = prefixes.values().map(|prefix| prefix.time_index).collect::<BTreeSet<_>>();
@@ -333,6 +367,7 @@ fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, B
         }
         policy_verdicts.push(evaluate_policy(
             policy, &prefixes, &scenario_ids, &known_actions, &expected_time_indices,
+            expected_architecture_digest,
         )?);
     }
 
@@ -525,13 +560,29 @@ mod tests {
     }
 
     #[test]
-    fn modified_fixture_is_bound_to_a_different_source_digest() {
+    fn architecture_digest_mismatch_fails_closed() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        policy["traces"][0]["architecture_sha256"] = Value::String("0".repeat(64));
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn future_forecast_is_rejected_at_the_decision_boundary() {
+        let mut f = fixture();
+        f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["prefix_id"].as_str() == Some("common-before-reveal")).unwrap()
+            ["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn reported_source_digest_changes_when_fixture_bytes_change() {
         let original = fixture();
-        let original_digest = sha256_hex(&serde_json::to_vec(&original).unwrap());
+        let original_report = report_for(&original).unwrap();
         let mut changed = original;
-        changed["claim_ceiling"] = Value::String("changed".to_owned());
-        let changed_digest = sha256_hex(&serde_json::to_vec(&changed).unwrap());
-        assert_ne!(original_digest, changed_digest);
-        assert!(report_for(&changed).is_err());
+        changed["status"] = Value::String("same schema, revised provenance note".to_owned());
+        let changed_report = report_for(&changed).unwrap();
+        assert_ne!(original_report.source_fixture_sha256, changed_report.source_fixture_sha256);
     }
 }
