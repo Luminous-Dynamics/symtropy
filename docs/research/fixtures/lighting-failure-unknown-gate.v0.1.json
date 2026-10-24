@@ -1,0 +1,116 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_kind": "failure",
+  "case_id": "TASKLIGHT-FIXED-ROOM-001",
+  "run_id": "synthetic-failure-fixture-unknown-gate-v0-1",
+  "evidence_tier": "synthetic_contract",
+  "run_status": "unknown",
+  "failure_class": "evidence_failure",
+  "failure_code": "unknown_required_gate",
+  "failure_detail": "Synthetic contract example only. A required flicker-evidence gate is unknown, so scoring is withheld before optical optimization.",
+  "inputs": {
+    "case": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle case bytes."
+    },
+    "design": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle design bytes."
+    },
+    "scene": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle generated scene bytes."
+    },
+    "property_data": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle property-data bytes."
+    },
+    "adapter_config": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Example does not bundle adapter configuration bytes."
+    }
+  },
+  "toolchain": {
+    "engine_name": "Radiance (intended backend; not invoked)",
+    "engine_version": "not-invoked",
+    "source_revision": "not-invoked",
+    "executable": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped before executable bytes were needed."
+    },
+    "environment": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped before runtime environment was captured."
+    },
+    "settings": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped before solver settings were captured."
+    },
+    "command_argv": [
+      "rtrace",
+      "-I",
+      "scene.oct"
+    ]
+  },
+  "process": {
+    "invocation_attempted": false,
+    "executable_availability": "available",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": null
+  },
+  "artifacts": {
+    "stdout": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped before stdout existed."
+    },
+    "stderr": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped before stderr existed."
+    },
+    "normalized_samples": {
+      "availability": "unavailable",
+      "sha256": null,
+      "reason": "Preflight stopped because required gate evidence was unknown."
+    }
+  },
+  "observation": {
+    "expected_sample_count": 104,
+    "observed_sample_count": 0,
+    "completeness": "none",
+    "samples": [],
+    "parser_diagnostics": [
+      "Required gate `flicker` lacks evidence; no candidate result was evaluated."
+    ]
+  },
+  "summary": null,
+  "power_observation": null,
+  "integrity_findings": [],
+  "gate_results": [
+    {
+      "name": "flicker",
+      "status": "unknown",
+      "evidence_id": "missing-flicker-evidence"
+    }
+  ],
+  "scoring": {
+    "eligible": false,
+    "service_energy_metric_wh_per_compliant_task_hour": null,
+    "non_rankable_reason": "unknown_gate"
+  },
+  "evaluator": {
+    "name": "lighting-failure-receipt-fixture",
+    "source_revision": "synthetic-fixture-only",
+    "receipt_format_version": "0.1.0"
+  }
+}
