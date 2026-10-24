@@ -41,11 +41,12 @@ struct RobustPolicyScore {
     method_family: String,
     fuel_unit: Option<String>,
     service_floor_breach_scenario_count: usize,
+    maximum_system_floor_breach_episode_count_across_scenarios: usize,
     passed_all_declared_service_floors: bool,
     worst_case_service_shortfall: f64,
     unweighted_mean_shortfall_across_stress_suite: f64,
     worst_floor_breach_service_hours: f64,
-    worst_consecutive_system_floor_breach_hours: f64,
+    worst_case_longest_consecutive_system_floor_breach_hours: f64,
     maximum_fuel_intensity_across_scenarios: Option<f64>,
     /// None means the frontier is incomplete because some fuel-intensity data is missing.
     pareto_nondominated: Option<bool>,
@@ -60,6 +61,7 @@ struct ScenarioOutcome {
     service_shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
+    system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
     fuel_intensity: Option<f64>,
 }
@@ -72,6 +74,7 @@ struct Observation {
     shortfall: f64,
     gate_pass: bool,
     floor_breach_service_hours: f64,
+    system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
     fuel_intensity: Option<f64>,
 }
@@ -89,14 +92,16 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         a.service_floor_breach_scenario_count as f64,
         a.worst_case_service_shortfall,
         a.worst_floor_breach_service_hours,
-        a.worst_consecutive_system_floor_breach_hours,
+        a.maximum_system_floor_breach_episode_count_across_scenarios as f64,
+        a.worst_case_longest_consecutive_system_floor_breach_hours,
         af,
     ];
     let bv = [
         b.service_floor_breach_scenario_count as f64,
         b.worst_case_service_shortfall,
         b.worst_floor_breach_service_hours,
-        b.worst_consecutive_system_floor_breach_hours,
+        b.maximum_system_floor_breach_episode_count_across_scenarios as f64,
+        b.worst_case_longest_consecutive_system_floor_breach_hours,
         bf,
     ];
     let eps = 1e-12;
@@ -173,23 +178,26 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
                 shortfall: (1.0 - policy.weighted_service_fraction).clamp(0.0, 1.0),
                 gate_pass: policy.gate_pass,
                 floor_breach_service_hours: policy.floor_breach_service_hours,
+                system_floor_breach_episode_count: policy.system_floor_breach_episode_count,
                 longest_consecutive_system_floor_breach_hours: policy.longest_consecutive_system_floor_breach_hours,
                 fuel_intensity: policy.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
         }
 
         let breach_count = observations.iter().filter(|o| !o.gate_pass).count();
+        let maximum_system_floor_breach_episode_count_across_scenarios = observations.iter()
+            .map(|o| o.system_floor_breach_episode_count).max().unwrap_or(0);
         let worst_case_shortfall = observations.iter().map(|o| o.shortfall).fold(0.0_f64, f64::max);
         let unweighted_mean_shortfall = observations.iter().map(|o| o.shortfall).sum::<f64>() / observations.len() as f64;
         let worst_floor_breach_hours = observations.iter().map(|o| o.floor_breach_service_hours).fold(0.0_f64, f64::max);
-        let worst_consecutive_system_floor_breach_hours = observations.iter()
+        let worst_case_longest_consecutive_system_floor_breach_hours = observations.iter()
             .map(|o| o.longest_consecutive_system_floor_breach_hours).fold(0.0_f64, f64::max);
         let maximum_fuel_intensity = if observations.iter().all(|o| o.fuel_intensity.is_some()) {
             observations.iter().filter_map(|o| o.fuel_intensity).reduce(f64::max)
         } else {
             None
         };
-        for value in [worst_case_shortfall, unweighted_mean_shortfall, worst_floor_breach_hours, worst_consecutive_system_floor_breach_hours] {
+        for value in [worst_case_shortfall, unweighted_mean_shortfall, worst_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours] {
             if !value.is_finite() {
                 return Err(format!("policy {policy_id} produced non-finite robust-set metrics"));
             }
@@ -202,6 +210,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             service_shortfall: o.shortfall,
             gate_pass: o.gate_pass,
             floor_breach_service_hours: o.floor_breach_service_hours,
+            system_floor_breach_episode_count: o.system_floor_breach_episode_count,
             longest_consecutive_system_floor_breach_hours: o.longest_consecutive_system_floor_breach_hours,
             fuel_intensity: o.fuel_intensity,
         }).collect();
@@ -211,11 +220,12 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             method_family,
             fuel_unit: if maximum_fuel_intensity.is_some() { Some(fuel_unit) } else { None },
             service_floor_breach_scenario_count: breach_count,
+            maximum_system_floor_breach_episode_count_across_scenarios,
             passed_all_declared_service_floors: breach_count == 0,
             worst_case_service_shortfall: worst_case_shortfall,
             unweighted_mean_shortfall_across_stress_suite: unweighted_mean_shortfall,
             worst_floor_breach_service_hours: worst_floor_breach_hours,
-            worst_consecutive_system_floor_breach_hours,
+            worst_case_longest_consecutive_system_floor_breach_hours,
             maximum_fuel_intensity_across_scenarios: maximum_fuel_intensity,
             pareto_nondominated: None,
             scenario_outcomes,
@@ -321,9 +331,9 @@ mod tests {
         let scenario = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
         assert!(scenario.longest_consecutive_system_floor_breach_hours >= 2.0);
-        assert!(result.worst_consecutive_system_floor_breach_hours >= 2.0);
+        assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
         assert_eq!(
-            result.worst_consecutive_system_floor_breach_hours,
+            result.worst_case_longest_consecutive_system_floor_breach_hours,
             result.scenario_outcomes.iter()
                 .map(|outcome| outcome.longest_consecutive_system_floor_breach_hours)
                 .fold(0.0_f64, f64::max)
