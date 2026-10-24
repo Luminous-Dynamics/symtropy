@@ -74,6 +74,7 @@ jobs:
           STFR_RUN_BENCHMARK: "1"
           STFR_CHECK_ACTUATOR_SUMMARY: "1"
           STFR_CHECK_NANODRONE_ADAPTER: "1"
+          STFR_CHECK_NANODRONE_METRICS: "1"
           STFR_OUTPUT_PATH: ${{ runner.temp }}/symthaea-symtropy-bounded-residual-matrix.json
           STFR_TRAIN_EPISODES: 1
           STFR_TRAIN_STEPS: 32
