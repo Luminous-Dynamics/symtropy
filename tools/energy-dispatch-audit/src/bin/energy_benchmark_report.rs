@@ -221,6 +221,14 @@ struct CandidateScenarioMatrixBenchmark {
     passing_row_count: usize,
     failed_or_unknown_row_count: usize,
     all_passed: bool,
+    robustness_report_sha256: String,
+    robustness_qualification_log_sha256: String,
+    robustness_source_matrix_sha256: String,
+    robustness_candidate_count: usize,
+    robustness_scenario_count: usize,
+    robustness_strict_dominance_pair_count: usize,
+    robustness_equal_envelope_pair_count: usize,
+    robustness_incomparable_pair_count: usize,
     rows: Vec<Value>,
 }
 
@@ -1069,6 +1077,70 @@ fn validate_matrix_frontier_vectors(row: &Value) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct AxisBestForLedger {
+    essential_unserved_quanta: u64,
+    flexible_unserved_quanta: u64,
+    operating_cost_units: u64,
+    grid_carbon_grams: u64,
+    curtailed_pv_quanta: u64,
+    terminal_soc_quanta: u16,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RobustnessScenarioForLedger {
+    scenario_id: String,
+    frontier_count: usize,
+    frontier_objectives: Vec<DispatchObjective>,
+    axis_best: AxisBestForLedger,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RobustnessCandidateForLedger {
+    candidate_id: String,
+    scenario_profiles: Vec<RobustnessScenarioForLedger>,
+    worst_case_of_per_scenario_best_axis_value: AxisBestForLedger,
+    envelope_dominates: Vec<String>,
+    envelope_dominated_by: Vec<String>,
+    envelope_equal_to: Vec<String>,
+    envelope_incomparable_with: Vec<String>,
+}
+
+fn recompute_axis_best_for_ledger(frontier: &[DispatchObjective]) -> Result<AxisBestForLedger, Box<dyn Error>> {
+    if frontier.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness scenario frontier is empty").into());
+    }
+    Ok(AxisBestForLedger {
+        essential_unserved_quanta: frontier.iter().map(|x| x.essential_unserved_quanta).min().unwrap(),
+        flexible_unserved_quanta: frontier.iter().map(|x| x.flexible_unserved_quanta).min().unwrap(),
+        operating_cost_units: frontier.iter().map(|x| x.operating_cost_units).min().unwrap(),
+        grid_carbon_grams: frontier.iter().map(|x| x.grid_carbon_grams).min().unwrap(),
+        curtailed_pv_quanta: frontier.iter().map(|x| x.curtailed_pv_quanta).min().unwrap(),
+        terminal_soc_quanta: frontier.iter().map(|x| x.terminal_soc_quanta).max().unwrap(),
+    })
+}
+
+fn recompute_robust_envelope_for_ledger(
+    scenarios: &[RobustnessScenarioForLedger],
+) -> Result<AxisBestForLedger, Box<dyn Error>> {
+    if scenarios.len() != 5 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness candidate must contain five scenario profiles").into());
+    }
+    let mut result = scenarios[0].axis_best.clone();
+    for scenario in &scenarios[1..] {
+        result.essential_unserved_quanta = result.essential_unserved_quanta.max(scenario.axis_best.essential_unserved_quanta);
+        result.flexible_unserved_quanta = result.flexible_unserved_quanta.max(scenario.axis_best.flexible_unserved_quanta);
+        result.operating_cost_units = result.operating_cost_units.max(scenario.axis_best.operating_cost_units);
+        result.grid_carbon_grams = result.grid_carbon_grams.max(scenario.axis_best.grid_carbon_grams);
+        result.curtailed_pv_quanta = result.curtailed_pv_quanta.max(scenario.axis_best.curtailed_pv_quanta);
+        result.terminal_soc_quanta = result.terminal_soc_quanta.min(scenario.axis_best.terminal_soc_quanta);
+    }
+    Ok(result)
+}
+
 fn benchmark_candidate_scenario_matrix_context(
     root: &Path,
     design_manifest_bytes: &[u8],
@@ -1079,6 +1151,8 @@ fn benchmark_candidate_scenario_matrix_context(
     let (report_bytes, report) = read_json(&dir.join("matrix-report.json"))?;
     let log_bytes = fs::read(dir.join("matrix-qualification.log"))?;
     let receipt_bytes = fs::read(dir.join("matrix-sha256sums.txt"))?;
+    let (robustness_bytes, robustness) = read_json(&dir.join("robustness-report.json"))?;
+    let robustness_log_bytes = fs::read(dir.join("robustness-qualification.log"))?;
     let mapping_config: MappingConfigForLedger = serde_json::from_slice(mapping_config_bytes)?;
     let typed_config_bytes = serde_json::to_vec(&mapping_config)?;
 
@@ -1086,6 +1160,8 @@ fn benchmark_candidate_scenario_matrix_context(
     let report_digest = sha256_hex(&report_bytes);
     let log_digest = sha256_hex(&log_bytes);
     let receipt_digest = sha256_hex(&receipt_bytes);
+    let robustness_digest = sha256_hex(&robustness_bytes);
+    let robustness_log_digest = sha256_hex(&robustness_log_bytes);
     let config_file_digest = sha256_hex(mapping_config_bytes);
     let config_typed_digest = sha256_hex(&typed_config_bytes);
     let design_manifest_digest = sha256_hex(design_manifest_bytes);
@@ -1107,6 +1183,18 @@ fn benchmark_candidate_scenario_matrix_context(
         || required_u64(&report, "passing_row_count")? != 195
         || required_u64(&report, "failed_or_unknown_row_count")? != 0
         || report["all_passed"].as_bool() != Some(true)
+        || required_str(&robustness, "schema_version")? != "energy-candidate-robustness-report-v0.1"
+        || required_str(&robustness, "status")? != "pass"
+        || required_str(&robustness, "matrix_id")? != required_str(&report, "matrix_id")?
+        || required_str(&robustness, "source_matrix_sha256")? != report_digest.as_str()
+        || required_str(&robustness, "source_scenario_profile_sha256")? != profile_digest.as_str()
+        || required_str(&robustness, "source_design_space_manifest_sha256")? != design_manifest_digest.as_str()
+        || required_u64(&robustness, "candidate_count")? != 39
+        || required_u64(&robustness, "scenario_count")? != 5
+        || required_u64(&robustness, "expected_row_count")? != 195
+        || required_u64(&robustness, "observed_row_count")? != 195
+        || required_u64(&robustness, "passed_row_count")? != 195
+        || required_u64(&robustness, "failed_or_unknown_row_count")? != 0
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -1131,6 +1219,7 @@ fn benchmark_candidate_scenario_matrix_context(
     let mut pairs = BTreeSet::new();
     let mut observed_candidates = BTreeSet::new();
     let mut observed_scenarios = BTreeSet::new();
+    let mut matrix_frontiers = std::collections::BTreeMap::<(String, String), Vec<DispatchObjective>>::new();
     for row in rows {
         let candidate_id = required_str(row, "candidate_id")?;
         let scenario_id = required_str(row, "scenario_id")?;
@@ -1154,6 +1243,7 @@ fn benchmark_candidate_scenario_matrix_context(
                 format!("candidate-scenario matrix row failed its ledger gate: {candidate_id}/{scenario_id}"),
             ).into());
         }
+        matrix_frontiers.insert((candidate_id.to_owned(), scenario_id.to_owned()), solver_frontier);
         if !expected_candidates.iter().any(|expected| expected.as_str() == candidate_id)
             || !scenario_ids.iter().any(|expected| expected.as_str() == scenario_id)
             || !pairs.insert((candidate_id.to_owned(), scenario_id.to_owned()))
@@ -1171,6 +1261,99 @@ fn benchmark_candidate_scenario_matrix_context(
         || observed_scenarios.len() != 5
     {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "matrix candidate/scenario Cartesian coverage is incomplete").into());
+    }
+
+    let expected_robust_candidates: BTreeSet<String> = expected_candidates.iter().cloned().collect();
+    let robustness_candidates: Vec<RobustnessCandidateForLedger> =
+        serde_json::from_value(robustness["candidates"].clone())?;
+    if robustness_candidates.len() != 39 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report must contain 39 candidate profiles").into());
+    }
+    let scenario_id_set: BTreeSet<String> = scenario_ids.iter().cloned().collect();
+    let mut seen_robust_candidates = BTreeSet::<String>::new();
+    let mut relations = std::collections::BTreeMap::<String, RobustnessCandidateForLedger>::new();
+    for mut candidate in robustness_candidates {
+        if !expected_robust_candidates.contains(&candidate.candidate_id)
+            || !seen_robust_candidates.insert(candidate.candidate_id.clone())
+            || candidate.scenario_profiles.len() != 5
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report has an unexpected/duplicate candidate or incomplete scenario set").into());
+        }
+        let mut seen_scenario_ids = BTreeSet::new();
+        candidate.scenario_profiles.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+        for scenario in &mut candidate.scenario_profiles {
+            if !scenario_id_set.contains(&scenario.scenario_id)
+                || !seen_scenario_ids.insert(scenario.scenario_id.clone())
+                || scenario.frontier_count != scenario.frontier_objectives.len()
+            {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report has an unexpected/duplicate scenario or wrong frontier count").into());
+            }
+            let expected_frontier = matrix_frontiers.get(&(candidate.candidate_id.clone(), scenario.scenario_id.clone()))
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "robustness frontier has no source matrix row"))?;
+            let mut observed_frontier = scenario.frontier_objectives.clone();
+            observed_frontier.sort();
+            if &observed_frontier != expected_frontier
+                || scenario.axis_best != recompute_axis_best_for_ledger(&observed_frontier)?
+            {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report frontier or per-scenario axis envelope differs from the source matrix").into());
+            }
+        }
+        if seen_scenario_ids != scenario_id_set
+            || candidate.worst_case_of_per_scenario_best_axis_value
+                != recompute_robust_envelope_for_ledger(&candidate.scenario_profiles)?
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report scenario coverage or worst-case envelope is incorrect").into());
+        }
+        relations.insert(candidate.candidate_id.clone(), candidate);
+    }
+    if seen_robust_candidates != expected_robust_candidates {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report candidate Cartesian coverage is incomplete").into());
+    }
+
+    let relation_names = |values: &[String]| -> Result<BTreeSet<String>, Box<dyn Error>> {
+        let unique = values.iter().cloned().collect::<BTreeSet<_>>();
+        if unique.len() != values.len() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "duplicate candidate in robustness relation list").into());
+        }
+        Ok(unique)
+    };
+    let mut strict_dominance_pairs = 0_usize;
+    let mut equal_envelope_pairs_directed = 0_usize;
+    let mut incomparable_pairs_directed = 0_usize;
+    for (candidate_id, candidate) in &relations {
+        let dominates = relation_names(&candidate.envelope_dominates)?;
+        let dominated_by = relation_names(&candidate.envelope_dominated_by)?;
+        let equal_to = relation_names(&candidate.envelope_equal_to)?;
+        let incomparable = relation_names(&candidate.envelope_incomparable_with)?;
+        for set in [&dominates, &dominated_by, &equal_to, &incomparable] {
+            if set.contains(candidate_id) || set.iter().any(|other| !relations.contains_key(other)) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid self/unknown candidate in robustness relation").into());
+            }
+        }
+        if dominates.iter().any(|other| !relations[other].envelope_dominated_by.contains(candidate_id))
+            || dominated_by.iter().any(|other| !relations[other].envelope_dominates.contains(candidate_id))
+            || equal_to.iter().any(|other| !relations[other].envelope_equal_to.contains(candidate_id))
+            || incomparable.iter().any(|other| !relations[other].envelope_incomparable_with.contains(candidate_id))
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness candidate relations are not reciprocal").into());
+        }
+        let mut all = BTreeSet::new();
+        for set in [&dominates, &dominated_by, &equal_to, &incomparable] {
+            if set.iter().any(|other| !all.insert(other.clone())) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "candidate appears in multiple robustness relation classes").into());
+            }
+        }
+        strict_dominance_pairs += dominates.len();
+        equal_envelope_pairs_directed += equal_to.len();
+        incomparable_pairs_directed += incomparable.len();
+    }
+
+    let robustness_log = String::from_utf8(robustness_log_bytes)?;
+    if !robustness_log.contains("PASS: derived robustness report for 39 candidates × 5 scenarios")
+        || !robustness_log.contains(&format!("source_matrix_sha256={report_digest}"))
+        || !robustness_log.contains(&format!("report_sha256={robustness_digest}"))
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness qualification log does not bind the matrix and derived report").into());
     }
 
     let log = String::from_utf8(log_bytes)?;
@@ -1201,6 +1384,14 @@ fn benchmark_candidate_scenario_matrix_context(
         passing_row_count: required_u64(&report, "passing_row_count")? as usize,
         failed_or_unknown_row_count: required_u64(&report, "failed_or_unknown_row_count")? as usize,
         all_passed: report["all_passed"].as_bool().unwrap_or(false),
+        robustness_report_sha256: robustness_digest,
+        robustness_qualification_log_sha256: robustness_log_digest,
+        robustness_source_matrix_sha256: required_str(&robustness, "source_matrix_sha256")?.to_owned(),
+        robustness_candidate_count: required_u64(&robustness, "candidate_count")? as usize,
+        robustness_scenario_count: required_u64(&robustness, "scenario_count")? as usize,
+        robustness_strict_dominance_pair_count: strict_dominance_pairs,
+        robustness_equal_envelope_pair_count: equal_envelope_pairs_directed / 2,
+        robustness_incomparable_pair_count: incomparable_pairs_directed / 2,
         rows: rows.clone(),
     })
 }
