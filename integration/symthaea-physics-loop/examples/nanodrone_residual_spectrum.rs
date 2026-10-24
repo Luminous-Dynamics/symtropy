@@ -33,7 +33,6 @@ const ANGULAR_RATE_FIELDS: [&str; 3] = ["wx", "wy", "wz"];
 struct JoinedRun {
     filename: String,
     sha256: String,
-    headers: HashMap<String, usize>,
     rows: Vec<HashMap<String, f64>>,
 }
 
@@ -201,7 +200,15 @@ fn load_joined_run(path: &Path) -> Result<JoinedRun, Box<dyn Error>> {
         )).into());
     }
 
-    Ok(JoinedRun { filename, sha256: digest, headers, rows })
+    let lower_name = filename.to_ascii_lowercase();
+    if !lower_name.starts_with("melon_")
+        || !["_run1.csv", "_run2.csv", "_run3.csv"].iter().any(|suffix| lower_name.ends_with(suffix))
+    {
+        return Err(invalid_input(format!(
+            "'{filename}' must be one of the held-out Melon run1/run2/run3 files"
+        )).into());
+    }
+    Ok(JoinedRun { filename, sha256: digest, rows })
 }
 
 fn validate_conditioning_row(row: &HashMap<String, f64>, row_number: usize) -> Result<(), io::Error> {
