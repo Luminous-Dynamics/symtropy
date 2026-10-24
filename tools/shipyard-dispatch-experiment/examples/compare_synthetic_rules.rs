@@ -1,5 +1,5 @@
 use shipyard_dispatch_audit::EvaluatorOutage;
-use shipyard_dispatch_experiment::{evaluate_four_rules, serialize_result_ledger, ExperimentLedgerContext};
+use shipyard_dispatch_experiment::{build_result_ledger_bundle, evaluate_four_rules, ExperimentLedgerContext};
 use shipyard_observed_dispatch::{
     Commitment, DispatchInput, Operation, Resource, VisibleOutage,
 };
@@ -84,8 +84,19 @@ fn main() {
         evaluator_revision: "synthetic-evaluator-bundle-revision".to_owned(),
         synthetic_example: true,
     };
-    let ledger = serialize_result_ledger(&context, &results)
+    let bundle = build_result_ledger_bundle(&context, &results)
         .expect("synthetic context satisfies the ledger contract");
+    let evidence_dir = std::env::var_os("SHIPYARD_EVIDENCE_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            std::env::temp_dir().join(format!("shipyard-dispatch-evidence-{}", std::process::id()))
+        });
+    std::fs::create_dir_all(&evidence_dir).expect("create evidence directory");
+    for artifact in &bundle.artifacts {
+        std::fs::write(evidence_dir.join(&artifact.file_name), &artifact.contents)
+            .expect("persist content-addressed artifact");
+    }
     eprintln!("note=synthetic plumbing test only; not industrial evidence");
-    print!("{ledger}");
+    eprintln!("evidence_dir={}", evidence_dir.display());
+    print!("{}", bundle.ledger_jsonl);
 }
