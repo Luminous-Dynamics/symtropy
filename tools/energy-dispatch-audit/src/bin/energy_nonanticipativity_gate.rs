@@ -571,7 +571,7 @@ fn run_negative_control_suite(
         scope: "nonanticipativity_gate".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: "same policy-visible history assigned two information-set IDs".to_owned(),
     });
 
@@ -585,7 +585,7 @@ fn run_negative_control_suite(
         scope: "nonanticipativity_gate".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: "different observable histories merged into one information set".to_owned(),
     });
 
@@ -600,7 +600,7 @@ fn run_negative_control_suite(
         scope: "nonanticipativity_gate".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: "forecast availability moved past the t=0 action boundary".to_owned(),
     });
 
@@ -639,7 +639,7 @@ fn run_negative_control_suite(
         scope: "nonanticipativity_gate".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: "one scenario trace architecture digest was corrupted".to_owned(),
     });
 
@@ -655,7 +655,7 @@ fn run_negative_control_suite(
         scope: "sha256_receipt_primitive".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: "stale receipt was rejected after the exact input bytes changed".to_owned(),
     });
 
