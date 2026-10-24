@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/built-interop-001/semantic-loss-v0.1.schema.json",
+  "title": "BUILT-INTEROP-001 Synthetic Semantic-Loss Manifest v0.1",
+  "description": "Requirements-versus-observations comparator fixtures only. Passing is not IFC conformance, structural approval, or construction authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "exchange_profile",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "Synthetic"
+    },
+    "exchange_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "decision": {
+      "enum": [
+        "Conformant",
+        "Blocked",
+        "Unresolved"
+      ]
+    },
+    "criticality": {
+      "enum": [
+        "Hard",
+        "Advisory"
+      ]
+    },
+    "lossDisposition": {
+      "enum": [
+        "Preserved",
+        "TransformedWithDeclaredRule",
+        "Unsupported",
+        "Missing",
+        "Changed",
+        "NotEvaluated"
+      ]
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "object_id",
+        "property_key",
+        "expected_value",
+        "unit",
+        "criticality"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_value": {
+          "type": "string"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "criticality": {
+          "$ref": "#/$defs/criticality"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "object_id",
+        "disposition",
+        "observed_value",
+        "unit",
+        "transform_id"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "$ref": "#/$defs/lossDisposition"
+        },
+        "observed_value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transform_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "transformRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_id",
+        "from_unit",
+        "to_unit",
+        "scale",
+        "offset",
+        "absolute_tolerance"
+      ],
+      "properties": {
+        "transform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "offset": {
+          "type": "number"
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "expected_decision",
+        "requirements",
+        "observations",
+        "transforms"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_decision": {
+          "$ref": "#/$defs/decision"
+        },
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "transforms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transformRule"
+          }
+        }
+      }
+    }
+  }
+}

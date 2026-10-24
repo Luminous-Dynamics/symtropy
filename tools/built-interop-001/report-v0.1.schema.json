@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/built-interop-001/report-v0.1.schema.json",
+  "title": "BUILT-INTEROP-001 Semantic-Loss Report v0.1",
+  "description": "Machine-readable comparison report from the synthetic semantic-loss auditor. A Conformant result is not construction approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "exchange_profile",
+    "raw_input_sha256",
+    "canonical_input_sha256",
+    "result_sha256",
+    "scenario_results",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string"
+    },
+    "exchange_profile": {
+      "type": "string"
+    },
+    "raw_input_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "canonical_input_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "result_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "scenario_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenarioResult"
+      }
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    }
+  },
+  "$defs": {
+    "decision": {
+      "enum": [
+        "Conformant",
+        "Blocked",
+        "Unresolved"
+      ]
+    },
+    "criticality": {
+      "enum": [
+        "Hard",
+        "Advisory"
+      ]
+    },
+    "disposition": {
+      "enum": [
+        "Preserved",
+        "TransformedWithDeclaredRule",
+        "Unsupported",
+        "Missing",
+        "Changed",
+        "NotEvaluated"
+      ]
+    },
+    "requirementOutcome": {
+      "enum": [
+        "Preserved",
+        "Transformed",
+        "Blocked",
+        "Unresolved"
+      ]
+    },
+    "requirementResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "source_object_id",
+        "property_key",
+        "criticality",
+        "expected_value",
+        "expected_unit",
+        "observed_object_id",
+        "observed_value",
+        "observed_unit",
+        "disposition",
+        "transform_id",
+        "outcome",
+        "diagnostic_codes"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string"
+        },
+        "source_object_id": {
+          "type": "string"
+        },
+        "property_key": {
+          "type": "string"
+        },
+        "criticality": {
+          "$ref": "#/$defs/criticality"
+        },
+        "expected_value": {
+          "type": "string"
+        },
+        "expected_unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_object_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "disposition": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/disposition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transform_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outcome": {
+          "$ref": "#/$defs/requirementOutcome"
+        },
+        "diagnostic_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagnosticCode"
+          }
+        }
+      }
+    },
+    "scenarioResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "computed_decision",
+        "expected_decision",
+        "oracle_match",
+        "requirement_results",
+        "issues"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "computed_decision": {
+          "$ref": "#/$defs/decision"
+        },
+        "expected_decision": {
+          "$ref": "#/$defs/decision"
+        },
+        "oracle_match": {
+          "type": "boolean"
+        },
+        "requirement_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirementResult"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "oracle_matches",
+        "suite_passed"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "oracle_matches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suite_passed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "diagnosticCode": {
+      "enum": [
+        "NO_TARGET_OBSERVATION",
+        "DUPLICATE_TARGET_OBSERVATION",
+        "OBJECT_IDENTITY_MISMATCH",
+        "PRESERVED_CARRIES_TRANSFORM",
+        "PRESERVED_VALUE_OR_UNIT_MISMATCH",
+        "MISSING_OR_DUPLICATE_TRANSFORM_RULE",
+        "DECLARED_TRANSFORM_RESULT_MISMATCH",
+        "DECLARED_TRANSFORM_SCOPE_OR_NUMERIC_VALUE_INVALID",
+        "UNSUPPORTED_TARGET_PROPERTY",
+        "MISSING_TARGET_PROPERTY",
+        "CHANGED_TARGET_PROPERTY",
+        "TARGET_PROPERTY_NOT_EVALUATED",
+        "DUPLICATE_SOURCE_REQUIREMENT_ID"
+      ]
+    }
+  }
+}
