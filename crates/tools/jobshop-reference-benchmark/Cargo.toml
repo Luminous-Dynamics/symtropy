@@ -1,0 +1,16 @@
+[package]
+name = "jobshop-reference-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Pinned job-shop fixtures, fail-closed parser, and bounded exact reference oracle"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "jobshop-reference-benchmark"
+path = "src/main.rs"
