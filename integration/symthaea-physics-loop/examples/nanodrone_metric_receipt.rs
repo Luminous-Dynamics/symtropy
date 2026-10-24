@@ -793,6 +793,11 @@ mod tests {
         for horizon in 1..=HORIZON {
             headers.extend(fields.iter().map(|field| target_key(field, horizon)));
         }
+        headers.push("x0_t".to_owned());
+        headers.extend(fields.iter().map(|field| input_state_key(field)));
+        headers.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+            (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+        ));
 
         {
             let mut writer = csv::Writer::from_path(&path).unwrap();
@@ -807,6 +812,11 @@ mod tests {
                 for _ in 1..=HORIZON {
                     row.extend(fields.iter().map(|_| "0".to_owned()));
                 }
+                row.push("0".to_owned());
+                row.extend(fields.iter().map(|_| "0".to_owned()));
+                for _ in 0..HORIZON {
+                    row.extend(MOTOR_INPUT_FIELDS.iter().map(|_| "100".to_owned()));
+                }
                 writer.write_record(&row).unwrap();
             }
             writer.flush().unwrap();
@@ -814,6 +824,8 @@ mod tests {
 
         let run = load_run(&path).unwrap();
         assert!(run.has_complete_window_truth);
+        assert!(run.ground_truth_window_sha256.is_some());
+        assert!(run.conditioning_window_sha256.is_some());
         let shifted = score_run(&run, false);
         let complete = score_run(&run, true);
         assert_eq!(shifted["per_horizon"][0]["sample_count"], 50);
