@@ -1,0 +1,33 @@
+name: HarmonyField Manifest Tool
+
+on:
+  pull_request:
+    paths:
+      - "scripts/research/harmony_field_ablation.py"
+      - "scripts/research/README.md"
+      - ".github/workflows/harmony-field-manifest.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/research/harmony_field_ablation.py"
+      - "scripts/research/README.md"
+      - ".github/workflows/harmony-field-manifest.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  manifest-tool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile script
+        run: python3 -m py_compile scripts/research/harmony_field_ablation.py
+      - name: Run dependency-free manifest tests
+        run: python3 scripts/research/harmony_field_ablation.py self-test
