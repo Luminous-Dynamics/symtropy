@@ -40,6 +40,8 @@ jobs:
         run: cargo fmt --manifest-path tools/lighting-benchmark/Cargo.toml -- --check
       - name: Run evaluator contract tests
         run: cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
+      - name: Audit lighting receipt and negative controls
+        run: bash tools/lighting-benchmark/tests/receipt-audit-smoke.sh
       - name: Run synthetic demonstration
         run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
       - name: Emit and count stress corpus

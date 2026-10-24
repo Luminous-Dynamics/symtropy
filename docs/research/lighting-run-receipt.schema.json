@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/lighting-run-receipt.schema.json",
-  "title": "Lighting simulation or measurement run receipt v0.1",
-  "description": "Evidence-carrying output contract for future pinned optical simulation and physical measurement adapters. Schema validity alone is not evidence of optical accuracy.",
+  "title": "Lighting simulation or measurement run receipt v0.2",
+  "description": "Evidence-carrying output contract for future pinned optical simulation and physical measurement adapters. Version 0.2 binds a normalized ordered-sample artifact separately from native solver stdout. Schema validity alone is not evidence of optical accuracy.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,7 +22,7 @@
     "evaluator"
   ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
+    "schema_version": { "const": "0.2.0" },
     "case_id": { "type": "string", "minLength": 1 },
     "run_id": { "type": "string", "minLength": 1 },
     "evidence_tier": {
@@ -97,6 +97,7 @@
         "exit_code",
         "timed_out",
         "duration_ms",
+        "normalized_samples_sha256",
         "raw_output_sha256",
         "stderr_sha256"
       ],
@@ -104,6 +105,7 @@
         "exit_code": { "type": "integer" },
         "timed_out": { "type": "boolean" },
         "duration_ms": { "type": "number", "minimum": 0 },
+        "normalized_samples_sha256": { "$ref": "#/$defs/sha256" },
         "raw_output_sha256": { "$ref": "#/$defs/sha256" },
         "stderr_sha256": { "$ref": "#/$defs/sha256" }
       }
@@ -211,7 +213,7 @@
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "source_revision": { "type": "string", "minLength": 1 },
-        "receipt_format_version": { "const": "0.1.0" }
+        "receipt_format_version": { "const": "0.2.0" }
       }
     },
     "measurement": {
