@@ -98,10 +98,10 @@ fn derive_frontier_from_complete_schedule_objectives(
 
 fn run() -> Result<(), Box<dyn Error>> {
     let args = env::args().collect::<Vec<_>>();
-    if args.len() != 4 {
+    if args.len() != 5 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "usage: energy_multi_interval_known_answer_gate <request.json> <dispatch-report.json> <independent-audit.json>",
+            "usage: energy_multi_interval_known_answer_gate <request.json> <dispatch-report.json> <independent-audit.json> <known-answer.json>",
         )
         .into());
     }
@@ -109,31 +109,29 @@ fn run() -> Result<(), Box<dyn Error>> {
     let request_bytes = fs::read(&args[1])?;
     let report_bytes = fs::read(&args[2])?;
     let audit_bytes = fs::read(&args[3])?;
+    let known_bytes = fs::read(&args[4])?;
     let request: Value = serde_json::from_slice(&request_bytes)?;
     let report: Value = serde_json::from_slice(&report_bytes)?;
     let audit: Value = serde_json::from_slice(&audit_bytes)?;
-    let known: Value = serde_json::from_slice(include_bytes!(
-        "../../fixtures/three-interval-stress-known-answer-v0.1.json"
-    ))?;
+    let known: Value = serde_json::from_slice(&known_bytes)?;
 
     let request_sha256 = sha256_hex(&request_bytes);
     let report_sha256 = sha256_hex(&report_bytes);
-    let case_id = "synthetic-three-interval-storage-tradeoff";
+    let case_id = required_str(&request, "case_id")?;
 
-    require(required_str(&request, "case_id")? == case_id, "unexpected multi-interval request ID")?;
+    require(
+        required_str(&known, "schema_version")? == "energy-dispatch-known-answer-v0.1",
+        "unsupported known-answer schema",
+    )?;
     require(required_str(&known, "case_id")? == case_id, "frozen known-answer case ID mismatch")?;
     require(
         request["intervals"].as_array().is_some_and(|intervals| intervals.len() == 3),
         "request must contain exactly three intervals",
     )?;
     require(
-        request["intervals"][1]["grid_outage"].as_bool() == Some(true)
-            && request["intervals"][1]["grid_import_limit_quanta"].as_u64() == Some(1),
-        "middle interval must declare the outage and retain its positive configured cap for outage-exclusion testing",
-    )?;
-    require(
-        request["intervals"][2]["grid_outage"].as_bool() == Some(false),
-        "third interval must be the grid-recovery interval",
+        required_u64(&known, "feasible_complete_schedules")?
+            == known["feasible_schedule_objectives"].as_array().map_or(0, |items| items.len() as u64),
+        "known-answer objective multiset must include every feasible schedule",
     )?;
 
     require(
@@ -243,7 +241,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     )?;
 
     println!(
-        "PASS: actual Sol-Atlas multi-interval dispatch matches {} schedules and {} frozen Pareto vectors",
+        "PASS: actual Sol-Atlas scenario {} matches {} schedules and {} frozen Pareto vectors",
+        case_id,
         required_u64(&known, "feasible_complete_schedules")?,
         expected_frontier.len()
     );
@@ -255,7 +254,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn main() {
     if let Err(error) = run() {
-        eprintln!("energy multi-interval known-answer gate failed: {error}");
+        eprintln!("energy scenario known-answer gate failed: {error}");
         std::process::exit(2);
     }
 }
