@@ -204,6 +204,10 @@ fn motor_sequence_key(field: &str, input_step: usize) -> String {
     format!("{field}_input_t{input_step}")
 }
 
+fn motor_sequence_time_key(input_step: usize) -> String {
+    format!("input_time_t{input_step}")
+}
+
 fn input_state_value(row: &HashMap<String, f64>, field: &str, mode: OrientationMode) -> f64 {
     match field {
         "rx" | "ry" | "rz" => {
@@ -516,6 +520,7 @@ fn join_files_internal(
     conditioning_columns.extend(
         fields_for_mode(mode).into_iter().map(input_state_key),
     );
+    conditioning_columns.extend((0..HORIZON).map(motor_sequence_time_key));
     conditioning_columns.extend(
         MOTOR_INPUT_FIELDS.iter().flat_map(|field|
             (0..HORIZON).map(move |step| motor_sequence_key(field, step))
@@ -563,6 +568,9 @@ fn join_files_internal(
             out.push_field(&format!("{:.17}", initial_state["t"]));
             for field in fields_for_mode(mode) {
                 out.push_field(&format!("{:.17}", input_state_value(initial_state, field, mode)));
+            }
+            for input_step in 0..HORIZON {
+                out.push_field(&format!("{:.17}", raw.rows[window_index + input_step]["t"]));
             }
             for field in MOTOR_INPUT_FIELDS {
                 for input_step in 0..HORIZON {
@@ -649,7 +657,8 @@ fn join_files_internal(
             "motor_input_sequence_columns": MOTOR_INPUT_FIELDS.iter()
                 .flat_map(|field| (0..HORIZON).map(move |step| motor_sequence_key(field, step)))
                 .collect::<Vec<_>>(),
-            "motor_input_alignment": "the complete four-channel motor input sequence is attached from raw rows i..i+49; pre-existing one-step motor columns, when supplied, are verified against raw row i",
+            "motor_input_timestamp_columns": (0..HORIZON).map(motor_sequence_time_key).collect::<Vec<_>>(),
+            "motor_input_alignment": "the complete four-channel motor input sequence and each sample timestamp are attached from raw rows i..i+49; pre-existing one-step motor columns, when supplied, are verified against raw row i",
             "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; x0 is raw state i; motor inputs are raw rows i..i+49; true state at horizon h is raw row i+h",
             "all_available_prediction_windows_scored_at_each_horizon": true,
             "target_columns_written": target_columns.len(),
@@ -898,6 +907,7 @@ mod tests {
         let index_m1_t49 = headers.iter().position(|header| header == "m1_rads_input_t49").unwrap();
         let index_x0_x = headers.iter().position(|header| header == "x0_x").unwrap();
         let index_x0_t = headers.iter().position(|header| header == "x0_t").unwrap();
+        let index_input_t49 = headers.iter().position(|header| header == "input_time_t49").unwrap();
         let index_x_h1 = headers.iter().position(|header| header == "x_true_h1").unwrap();
         let index_x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
         let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
@@ -910,6 +920,7 @@ mod tests {
         assert_eq!(rows[49].get(index_x0_x).unwrap().parse::<f64>().unwrap(), 49.0);
         assert_eq!(rows[0].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.0);
         assert_eq!(rows[49].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.49);
+        assert_eq!(rows[0].get(index_input_t49).unwrap().parse::<f64>().unwrap(), 0.49);
         assert_eq!(rows[0].get(index_x_h1).unwrap().parse::<f64>().unwrap(), 1.0);
         assert_eq!(rows[0].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         assert_eq!(rows[49].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 99.0);
