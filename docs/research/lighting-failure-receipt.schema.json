@@ -18,6 +18,7 @@
     "inputs",
     "toolchain",
     "process",
+    "integrity_findings",
     "artifacts",
     "observation",
     "summary",
@@ -356,6 +357,43 @@
           "const": "0.1.0"
         }
       }
+    },
+    "integrity_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "claimed_sha256",
+          "observed_sha256",
+          "finding"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claimed_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "observed_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "finding": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   },
   "allOf": [
@@ -626,6 +664,39 @@
             ]
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "artifact_digest_mismatch"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "integrity_findings": {
+            "minItems": 1
+          },
+          "scoring": {
+            "properties": {
+              "non_rankable_reason": {
+                "const": "integrity_failure"
+              }
+            },
+            "required": [
+              "non_rankable_reason"
+            ]
+          }
+        },
+        "required": [
+          "integrity_findings",
+          "scoring"
+        ]
       }
     }
   ],
