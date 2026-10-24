@@ -323,3 +323,20 @@ The synthetic fixture `tools/glass-silicon-contract-audit/fixtures/adaptive-deci
 The resource claims are **path bounds over the explicitly enumerated synthetic worlds**. No world probabilities exist, so do not report expected cost, average savings, return on investment or a real-world plant improvement. The example specifically tests the architectural hypothesis that inexpensive feasibility screening can prevent spending property/route-characterization budget on a candidate already known not to form glass.
 
 The focused workflow compares the one-step policy and adaptive tree and asserts the root screen, early stop on the non-forming branch, conditional characterization on the forming branch, and the route-specific leaves. The fixture was first rejected for using a benchmark ID inconsistent with the existing decision-value contract; that ID was corrected rather than weakening the verifier. Current exact-head execution remains the qualification gate.
+
+
+## New research direction: uncertainty is not acquisition value (2026-10-24)
+
+The new follow-on [GLASS-OOD-VOI-001 issue #2778](https://github.com/Luminous-Dynamics/symtropy/issues/2778) makes a critical distinction explicit: better calibration or larger uncertainty is not automatically a better next-measurement policy.
+
+Dale et al., *When active learning fails, uncalibrated out of distribution uncertainty quantification might be the problem*, published in *npj Computational Materials* on 2026-10-24, compare uncertainty estimation/calibration methods across ALIGNN ensembles, XGBoost, Random Forest and neural networks for solubility, band-gap and formation-energy tasks. They report that calibrated uncertainty varied in its generalization from in-distribution to OOD data and was generally unsuccessful at reducing the data needed for OOD improvement compared with random sampling and uncalibrated uncertainty. These are their materials tasks, not glass-furnace outcomes. [DOI 10.1038/s41524-026-02368-4](https://doi.org/10.1038/s41524-026-02368-4).
+
+NIST's materials-data redundancy study reports that up to 95% of records could be removed on studied datasets with little effect on in-distribution accuracy, while redundancy did not solve severe OOD degradation; it also found uncertainty-based active learning could construct smaller informative datasets. This motivates measuring information gained per *fully charged budget*, not dataset size. [DOI 10.1038/s41467-023-42992-y](https://doi.org/10.1038/s41467-023-42992-y).
+
+### Mandatory acquisition controls
+
+On identical starting data, candidate pools, label access, and total budgets, compare random selection; DOE/space-filling; uncalibrated uncertainty; uncertainty calibrated only on training/validation data; feature-space novelty/density-aware sampling; query-by-committee; cost-aware multi-fidelity value of information; feasibility-aware selection with abstention; and the incumbent engineering workflow where available.
+
+Split by relationship graph, family, campaign/source study, and time/site where those splits match distinct deployment claims. Fit preprocessing, calibration, and thresholds without test-set information. Count assay setup, measurement failures, retries, wall-clock delay, compute, and human review. Report OOD performance gain per cost, cost to first independently qualified feasible candidate, false-feasible risk, abstention, and uncertainty/calibration metrics separately.
+
+**Do not claim policy improvement from calibration alone.** The preregistered primary endpoint must demonstrate improvement over random sampling under the same total budget and compare against the strongest compatible DOE/novelty/cost-aware baseline. If uncertainty does not improve acquisition, report that result and prefer the simpler policy when decision value is equivalent. A synthetic replay can validate evaluator arithmetic; only admitted, rights-cleared empirical or prospective data can support empirical superiority claims.
