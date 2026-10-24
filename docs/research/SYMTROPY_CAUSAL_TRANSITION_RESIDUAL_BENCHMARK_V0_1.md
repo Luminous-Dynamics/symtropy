@@ -28,7 +28,7 @@ The initial implementation is in `integration/symthaea-physics-loop/src/transiti
 - records observed acceleration, nominal acceleration, and residual separately;
 - does not consume simulator-only wind / force labels.
 
-The companion collector is `integration/symthaea-physics-loop/examples/causal_transition_dataset.rs`. It uses a classical PID baseline only as a data-collection policy, applies deterministic training-only exogenous force families, and writes one-step samples containing prior state, applied command, next state, and derived target. Exact hidden force values are omitted from per-sample records. Collection uses a crossed design: each of the four training setpoint scenarios is run under each of the four disturbance families. The CI smoke uses 16 episodes to exercise the full 4×4 factorial rather than permanently confounding one setpoint with one disturbance. A jq gate checks that every scenario/family cell has representation, alongside sample counts, split membership, timestamp order, vector dimensions, model/target schema versions and source receipt formats; the dataset and held-out ridge receipt are uploaded as artifacts.
+The companion collector is `integration/symthaea-physics-loop/examples/causal_transition_dataset.rs`. It uses a classical PID baseline only as a data-collection policy, applies deterministic training-only exogenous force families, and writes one-step samples containing prior state, applied command, next state, and derived target. Exact hidden force values are omitted from per-sample records. The raw-state ridge and frozen HDC/LTC reservoir evaluators consume the same training artifact and share the held-out test seed/scenario convention, enabling a first representation comparison without changing the plant or controller. Collection uses a crossed design: each of the four training setpoint scenarios is run under each of the four disturbance families. The CI smoke uses 16 episodes to exercise the full 4×4 factorial rather than permanently confounding one setpoint with one disturbance. A jq gate checks that every scenario/family cell has representation, alongside sample counts, split membership, timestamp order, vector dimensions, model/target schema versions and source receipt formats; the dataset and held-out ridge receipt are uploaded as artifacts.
 
 The target is deliberately a model discrepancy bucket. It can include external disturbances, attitude changes during the interval, integration mismatch, actuator/model mismatch, and measurement noise. The linear/ridge model uses fixed, explicit feature scaling and a three-output regularized least-squares solve. Its synthetic unit test checks recovery on a known linear mapping; that does not measure performance on simulator data. The paired evaluator fits from the exported train-only dataset and scores only predeclared test-split transition targets, with zero-residual (physics-only) prediction as a reference. Its smoke thresholds validate provenance and finite metrics, not that ridge wins. Do not label it “wind estimate” without a separately identified disturbance-observer design and supporting tests. The currently used nominal model is simple; parameters must be frozen before test evaluation and included in the experiment receipt. The dataset collector does not train a predictor, and a successful schema smoke would demonstrate plumbing only—not residual-model accuracy or control improvement.
 
@@ -61,12 +61,13 @@ Important boundary: split conformal's finite-sample guarantee requires exchangea
 ### Prediction benchmark arms
 
 1. Physics-only nominal model (zero residual prediction).
-2. Constant-mean residual and linear/ridge predictor (a fixed-scale ridge baseline is implemented in `integration/symthaea-physics-loop/src/linear_residual_ridge.rs`; a held-out test-split smoke evaluator is in `examples/causal_residual_ridge_benchmark.rs`).
-3. Small MLP or TCN with equivalent transition data.
-4. Symthaea HDC encoder + liquid/LTC dynamics-residual head.
-5. HDC/LTC with predictive scale or ensemble disagreement.
-6. Residual-target shuffle / time-offset placebo as a negative control.
-7. Simulator-ground-truth disturbance/oracle model as an upper-bound diagnostic only (never a deployable competitor).
+2. Constant-mean residual and linear/ridge predictor (a fixed-scale ridge baseline is implemented in `integration/symthaea-physics-loop/src/linear_residual_ridge.rs`; its held-out test-split evaluator is `examples/causal_residual_ridge_benchmark.rs`).
+3. Frozen HDC/LTC temporal reservoir + ridge readout (implemented in `src/hdc_ltc_residual_reservoir.rs` and `examples/hdc_ltc_residual_reservoir_benchmark.rs`). The Genesis-seeded HDC encoder and small HdcLtcUnifiedNetwork remain frozen; a fixed seeded CountSketch projects the 16,384D reservoir state to 256 dimensions and only a ridge readout is learned. This is a reservoir-computing ablation, not end-to-end HDC/LTC training.
+4. Small MLP or TCN with equivalent transition data.
+5. End-to-end trained Symthaea HDC/LTC residual head.
+6. HDC/LTC with predictive scale or ensemble disagreement.
+7. Residual-target shuffle / time-offset placebo as a negative control.
+8. Simulator-ground-truth disturbance/oracle model as an upper-bound diagnostic only (never a deployable competitor).
 
 Keep train data, total transition count, tuning budget, and inference hardware comparable. Report parameter count, memory, training time, p50/p95/p99 inference latency, and CPU/GPU energy where measurable. Preserve a frozen test split that is not used for authority or hyperparameter selection.
 
@@ -111,7 +112,7 @@ These are initial engineering gates to power and refine before confirmatory runs
 | Compute | Meet a declared control-loop deadline on the target hardware at p99, including sensor/state preparation, inference, guard and controller work. Report worst observed latency and deadline misses. |
 | Integrity | Source/model/scenario/data/config digests, frozen splits, baseline gains, seeds, invalid samples, and negative-control results must be included in a machine-readable receipt. |
 
-The current exact-head smoke config uses 18 validation episodes and 18 test episodes (64 steps each) to exercise the conformal path; this is pipeline validation only. Use a powered, independently seeded episode-block calibration/evaluation design for any confirmatory interval coverage claim.
+The current exact-head smoke config uses 18 validation episodes and 18 test episodes (64 steps each) to exercise episode-block calibration, and runs the frozen HDC/LTC reservoir on the same 18 test episodes for a matched one-step prediction comparison. The machine-readable gate verifies identical dataset digest, Symthaea/source/scenario digests, test episodes, seed order and scenario order between the raw-state ridge and HDC/LTC reservoir arms; it deliberately does not require either model to win. This is pipeline validation only. Use a powered, independently seeded episode-block calibration/evaluation design for any confirmatory interval coverage claim.
 
 The 10% targets are proposed research gates, not an industry standard or a performance estimate. Do a power analysis using pilot variance before choosing the confirmatory episode count; two-trial CI runs are schema/plumbing smoke tests only.
 
