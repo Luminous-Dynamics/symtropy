@@ -57,6 +57,7 @@ struct RunInput {
     filename: String,
     run_id: String,
     sha256: String,
+    ground_truth_window_sha256: Option<String>,
     orientation_mode: OrientationMode,
     rows: Vec<HashMap<String, f64>>,
     has_complete_window_truth: bool,
@@ -499,10 +500,30 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         return Err(invalid_input(format!("{filename}: expected at least {HORIZON} prediction rows; found {}", rows.len())).into());
     }
 
+    let ground_truth_window_sha256 = if has_complete_window_truth {
+        // Hash canonical numeric values rather than CSV spellings so "1" and "1.0"
+        // match, while any changed timestamp or target value invalidates the pair.
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy-nanodrone-ground-truth-windows-v1\\0");
+        hasher.update((rows.len() as u64).to_le_bytes());
+        for row in &rows {
+            hasher.update(row["t"].to_bits().to_le_bytes());
+            for horizon in 1..=HORIZON {
+                for field in state_fields(orientation_mode) {
+                    hasher.update(row[&target_key(field, horizon)].to_bits().to_le_bytes());
+                }
+            }
+        }
+        Some(format!("{:x}", hasher.finalize()))
+    } else {
+        None
+    };
+
     Ok(RunInput {
         filename,
         run_id,
         sha256,
+        ground_truth_window_sha256,
         orientation_mode,
         rows,
         has_complete_window_truth,
@@ -573,6 +594,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "file": run.filename,
         "run_id": run.run_id,
         "sha256": run.sha256,
+        "ground_truth_window_sha256": run.ground_truth_window_sha256,
         "row_count": run.rows.len(),
         "orientation_representation": run.orientation_mode.label(),
         "legacy_shifted_truth_metric": score_run(run, false),
@@ -602,6 +624,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "required_horizons": [1, 5, 10, 20, 50],
             "evaluated_horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
+            "ground_truth_pairing": "SHA-256 over each row timestamp and all h=1..50 target state values in fixed state-field/horizon order, hashing parsed IEEE-754 f64 bits in little-endian order; exact match required for cross-model pairing",
             "metric_definitions": {
                 "position": "mean Euclidean norm of 3D position error, metres",
                 "linear_velocity": "mean Euclidean norm of 3D world-frame velocity error, metres/second",
