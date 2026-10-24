@@ -97,8 +97,9 @@ fn main() -> ExitCode {
                 Err(error) => {
                     println!("{}", serde_json::json!({
                         "status": "FAIL",
-                        "audit_kind": "synthetic_grouped_split_manifest",
+                        "audit_kind": "grouped_split_manifest",
                         "benchmark_id": null,
+                        "evidence_class": null,
                         "records_checked": 0,
                         "grouping_fields": [],
                         "split_counts": {},
