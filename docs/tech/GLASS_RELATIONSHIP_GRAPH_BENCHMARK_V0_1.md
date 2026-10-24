@@ -37,6 +37,12 @@ The initial contract should allow, at minimum:
 
 Every node has a stable identifier, node kind, source references, evidence class, admission/rights state, and any relevant valid-time or measurement-time interval. Missing metadata remains missing; it must not be synthesized as a default value.
 
+### 2.1.1 Split-eligible records versus lineage artifacts
+
+Every node must declare `split_required: true|false`. Set it to `true` for every dataset observation/record that belongs to the evaluation population and must be assigned exactly once to train, validation, or test. Set it to `false` for lineage-only artifacts (for example a derived table, calibration document, source artifact, or model object) that belong in the evidence graph but are not independent rows in the evaluation split.
+
+The Rust audit must fail if a split-required node is unassigned, if a provenance-only node is assigned as a data row, or if the graph attempts to hide an evaluation record merely by omitting its assignment. The explicit marker avoids the opposite error of requiring every intermediate provenance artifact to be a training row. This contract does not prove that the caller correctly classified a real-world node; that semantic declaration needs provenance review and adversarial controls.
+
 ### 2.2 Relationship records
 
 A relationship record includes:
