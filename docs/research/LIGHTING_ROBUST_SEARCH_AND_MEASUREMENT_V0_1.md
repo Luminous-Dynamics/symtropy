@@ -117,6 +117,8 @@ Any hypothesis can be rejected. If uncertainty is poorly calibrated or does not 
 
 ## 7. Evidence and provenance contract
 
+The structural receipt contract is now drafted at docs/research/lighting-run-receipt.schema.json. It requires case/design/scene/property/config hashes, solver identity/digests, command arguments, exit/timeout state, raw output/stderr digests, ordered grid points and samples, an independent-summary derivation label, power/task-hour bounds, interval basis/source, gate evidence and evaluator revision. It also conditions a compliant status on exit code zero, no timeout and passing gates, and requires a measurement record for calibrated/physical evidence tiers. JSON Schema cannot by itself verify that a digest matches bytes, samples are in the declared coordinate order, intervals are ordered, or summaries equal raw samples; the verifier must perform those checks.
+
 Each candidate report should bind:
 - case ID and immutable scenario/input digest;
 - raw grid samples and their position/order mapping;
