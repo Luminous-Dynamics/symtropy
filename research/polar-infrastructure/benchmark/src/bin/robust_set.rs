@@ -461,6 +461,27 @@ mod tests {
     }
 
     #[test]
+    fn service_specific_stress_metrics_expose_water_failure_separately_from_system_average() {
+        let report = aggregate(&fixture()).expect("synthetic stress set should aggregate");
+        let candidate = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let water = candidate.service_results.iter()
+            .find(|service| service.service_id == "water").unwrap();
+
+        assert_eq!(candidate.service_results.len(), 3);
+        assert!(water.active_in_all_scenarios);
+        assert!(water.service_floor_breach_scenario_count > 0);
+        assert!(!water.passed_all_declared_service_floors);
+        assert!(water.worst_case_service_shortfall.unwrap() > candidate.worst_case_service_shortfall);
+        assert_eq!(water.scenario_outcomes.len(), 3);
+        assert!(water.scenario_outcomes.iter().any(|outcome| {
+            outcome.scenario_id == "compound_supply_and_communications"
+                && outcome.floor_breach
+                && outcome.service_shortfall.unwrap() > 0.0
+        }));
+    }
+
+    #[test]
     fn reports_longest_contiguous_service_failure_across_stress_scenarios() {
         let mut input = fixture();
         let scenario_id = input.scenarios[0].scenario_id.clone();
