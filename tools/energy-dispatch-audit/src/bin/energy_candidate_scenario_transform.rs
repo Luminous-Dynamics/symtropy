@@ -225,12 +225,27 @@ fn apply_transform(
             )?;
         }
         "essential_demand_2x" => {
+            let essential_ids = candidate["services"].as_array()
+                .ok_or_else(|| invalid("candidate service catalog missing"))?
+                .iter()
+                .filter(|service| service["essential"].as_bool() == Some(true))
+                .map(|service| service["service_id"].as_str().map(str::to_owned)
+                    .ok_or_else(|| invalid("essential service ID missing")))
+                .collect::<Result<Vec<_>, _>>()?;
+            if essential_ids.is_empty() {
+                return Err(invalid("demand surge scenario requires at least one explicitly essential service"));
+            }
             let mut found = 0_usize;
             for interval_index in 0..2 {
                 let services = candidate["scenarios"][0]["intervals"][interval_index]["service_requested"]
                     .as_array()
                     .ok_or_else(|| invalid("candidate interval service_requested list missing"))?;
                 for (service_index, service) in services.iter().enumerate() {
+                    let service_id = service["service_id"].as_str()
+                        .ok_or_else(|| invalid("requested service ID missing"))?;
+                    if !essential_ids.iter().any(|id| id == service_id) {
+                        continue;
+                    }
                     let amount_f64 = service["requested_quantity"].as_f64().ok_or_else(|| {
                         invalid("requested essential service quantity must be numeric")
                     })?;
@@ -253,7 +268,7 @@ fn apply_transform(
                 }
             }
             if found == 0 {
-                return Err(invalid("demand surge scenario found no explicit requested service"));
+                return Err(invalid("demand surge scenario found no requested essential service quantity"));
             }
         }
         "terminal_reserve_1" => {
