@@ -1,0 +1,61 @@
+name: Shipyard disturbance tape validator
+
+on:
+  push:
+    paths:
+      - "tools/shipyard-disturbance-tape/**"
+      - "tools/shipyard-evaluation-lab/DISTURBANCE-TAPE-CONTRACT.md"
+      - "tools/shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json"
+      - ".github/workflows/shipyard-disturbance-tape.yml"
+  pull_request:
+    paths:
+      - "tools/shipyard-disturbance-tape/**"
+      - "tools/shipyard-evaluation-lab/DISTURBANCE-TAPE-CONTRACT.md"
+      - "tools/shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json"
+      - ".github/workflows/shipyard-disturbance-tape.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-disturbance-tape-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/shipyard-disturbance-tape/Cargo.toml -- --check
+
+      - name: Test strict parser, digest and causal controls offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-disturbance-tape/Cargo.toml
+
+      - name: Check binary
+        run: cargo check --locked --offline --manifest-path tools/shipyard-disturbance-tape/Cargo.toml
+
+      - name: Lint with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-disturbance-tape/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify CLI contract against synthetic fixture
+        shell: bash
+        run: |
+          digest="$(sha256sum tools/shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json | cut -d ' ' -f 1)"
+          cargo run --locked --offline --manifest-path tools/shipyard-disturbance-tape/Cargo.toml -- validate tools/shipyard-evaluation-lab/fixtures/synthetic-disturbance-tape-v0.json "$digest" 5 /tmp/shipyard-policy-snapshot.json /tmp/shipyard-evaluator-stream.json
+          grep -q 'evt-vehicle-001' /tmp/shipyard-policy-snapshot.json
+          ! grep -q 'evt-yard-closure-001' /tmp/shipyard-policy-snapshot.json
+          ! grep -q 'evt-clearance-hidden-001' /tmp/shipyard-policy-snapshot.json
+          ! grep -q 'synthetic_inspection_delay' /tmp/shipyard-policy-snapshot.json
+          grep -q 'synthetic_inspection_delay' /tmp/shipyard-evaluator-stream.json
