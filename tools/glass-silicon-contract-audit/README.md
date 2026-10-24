@@ -2,7 +2,7 @@
 
 A small Rust reference verifier (dependency versions pinned and lockfile included) for the GLASS-SILICON-001 benchmark.
 
-It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 63 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, 8 staged-feasibility-gate tests, 1 integrated feasibility-gated campaign test, and 9 grouped-split leakage tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
+It audits the **evidence contract** for the checked-in synthetic benchmark corpus and checks elemental mass-balance arithmetic on an explicitly declared boundary. It currently defines 71 Rust unit tests (31 original contract/material/hash tests, 6 one-step decision-value tests, 8 adaptive-campaign tests, 8 staged-feasibility-gate tests, 1 integrated feasibility-gated campaign test, 9 grouped-split leakage tests, and 8 false-feasible bound tests); their count is not a statement that the current exact-head suite has executed. It is not a glass-property predictor, thermochemical solver, furnace digital twin, lifecycle assessor, product certification tool, or hardware controller.
 
 ## Commands
 
@@ -19,6 +19,9 @@ cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
 
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-grouped-split \
   tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json
+
+cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-false-feasible-bound \
+  tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-decision-value \
   tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
 cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-adaptive-campaign \
@@ -96,7 +99,7 @@ The standalone verifier is tested with the repository-pinned Rust toolchain (1.9
 
 
 
-The 54-test implementation and feasibility-gated campaign passed the complete focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds an executable grouped-split manifest auditor and nine tests; the full 63-test suite remains unqualified until the latest exact-head workflow passes. Earlier passing runs do not qualify later code. This tooling checks declared split assignments, not the full training pipeline or physical glass performance.
+The 54-test implementation and feasibility-gated campaign passed the complete focused workflow at `784d02cc0be13519e467da455b3236cad779643a` ([run](https://github.com/Luminous-Dynamics/symtropy/actions/runs/40041754485)). The branch now adds a grouped-split manifest auditor (9 tests) and a statistical false-feasible bound gate (8 tests); the full 71-test suite remains unqualified until the latest exact-head workflow passes. Earlier passing runs do not qualify later code. These tools check declared inputs and arithmetic, not the full training pipeline or physical glass performance.
 
 ## Staged feasibility gate
 
@@ -110,10 +113,16 @@ These controls test contract semantics only. They do not predict glass-forming a
 
 The fixture `adaptive-decision-pool-feasibility-gated.synthetic.json` tests a two-stage decision policy. A cheap formation screen costs 1 synthetic unit / 2 seconds; a downstream route characterization costs 3 units / 10 seconds. The one-step oracle has worst-case regret 10 before and after its best single measurement (gross regret reduction 0). The adaptive oracle screens first, stops with the safe `reject` action for the non-forming case, and pays for route characterization only on the forming branch. Its terminal worst-case regret is 0, with maximum path cost 4 units, duration 12 seconds and two measurements.
 
-There are no scenario probabilities. This is not an expected-cost estimate or a plant-savings claim; it demonstrates that the policy tree can gate expensive follow-up actions on earlier evidence. CI asserts both reports and the exact branch structure. The integrated feasibility-gated campaign is test 54; grouped-split auditing adds nine tests, including evidence-class preservation, for a current total of 63. See the exact-head run before describing the current 63-test suite as qualified.
+There are no scenario probabilities. This is not an expected-cost estimate or a plant-savings claim; it demonstrates that the policy tree can gate expensive follow-up actions on earlier evidence. CI asserts both reports and the exact branch structure. The integrated feasibility-gated campaign is test 54; grouped-split auditing adds nine tests, including evidence-class preservation. The false-feasible confidence-bound gate adds eight more, for a current total of 71. See the exact-head run before describing the current 71-test suite as qualified.
 
 ## Grouped split leakage audit
 
 `audit-grouped-split` checks an assignment-only manifest whose records contain only a stable record ID, split name and declared grouping keys. The fixture uses composition-family and synthesis-campaign IDs and must keep every group inside exactly one of train/validation/test. It fails on group overlap across splits, duplicated IDs, missing group keys, unknown splits, missing partitions, non-string grouping-field declarations, or a label/feature field added to the assignment manifest. It preserves the declared evidence class but does not independently validate that class, data rights, or data admission. Sharing a group inside one split is allowed.
 
 The command reports the SHA-256 fingerprint of the exact raw manifest bytes; CI independently checks it against `sha256sum`. This identifies the assignment file but is not an authenticity proof or evidence of data rights/admission. The auditor is a leakage-contract preflight, not proof that downstream feature engineering, embeddings, preprocessing, tuning or model selection are leakage-free. Choose grouping variables appropriate to each lane and retain the digest in the external result packet.
+
+## False-feasible risk bound
+
+The `audit-false-feasible-bound` command calculates a one-sided Hoeffding upper confidence bound for the false-feasible rate: `min(1, observed_rate + sqrt(ln(1/(1-confidence))/(2*n)))`. The denominator is the caller-declared count of independent, independently adjudicated negative groups—not raw correlated rows. The manifest must cite the independent-unit definition and negative-label source, and must declare preregistration plus a frozen test set. Missing/invalid metadata fails closed; valid data whose upper bound exceeds target is `UNRESOLVED`.
+
+The synthetic known-answer uses 600 units, zero false-feasible errors, 95% one-sided confidence and a 5% upper-bound target. The upper bound is approximately 4.996%; the 599-unit negative fixture remains `UNRESOLVED`, and one error among 600 also misses the target. This is a conservative arithmetic gate only. A PASS assumes the caller's independence, label and representativeness claims are correct; it does not establish actual model reliability or industrial performance.
