@@ -1130,8 +1130,8 @@ fn benchmark_candidate_scenario_matrix_context(
                 format!("candidate-scenario matrix row failed its ledger gate: {candidate_id}/{scenario_id}"),
             ).into());
         }
-        if !expected_candidates.iter().any(|expected| expected == candidate_id)
-            || !scenario_ids.iter().any(|expected| expected == scenario_id)
+        if !expected_candidates.iter().any(|expected| expected.as_str() == candidate_id)
+            || !scenario_ids.iter().any(|expected| expected.as_str() == scenario_id)
             || !pairs.insert((candidate_id.to_owned(), scenario_id.to_owned()))
         {
             return Err(io::Error::new(
