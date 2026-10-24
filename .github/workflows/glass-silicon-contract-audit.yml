@@ -126,7 +126,7 @@ jobs:
           grep -q 'connected components' "$protocol"
           grep -q 'transitive-leak' "$protocol"
           grep -q 'not-reject-all' "$protocol"
-          grep -q 'downstream dependency testing' "$protocol"
+          grep -qi 'downstream dependency testing' "$protocol"
           grep -q 'UNRESOLVED' "$protocol"
           grep -q 'raw and canonical graph hashes' "$protocol"
           echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
