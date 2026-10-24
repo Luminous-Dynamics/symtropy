@@ -452,7 +452,15 @@ fn main() {
         "training": {
             "split": "train",
             "sample_count": train_samples.len(),
+            "dataset_parse_seconds": training_data.dataset_parse_seconds,
+            "reservoir_initialization_seconds": training_data.persistent_reservoir_init_seconds,
+            "feature_generation_seconds": training_data.persistent_feature_generation_seconds,
             "readout_fit_seconds": readout_fit_seconds,
+            "training_pipeline_seconds": training_data.dataset_parse_seconds
+                + training_data.persistent_reservoir_init_seconds
+                + training_data.persistent_feature_generation_seconds
+                + readout_fit_seconds,
+            "trainable_readout_parameter_count": 262 * 3,
             "ridge_lambda": readout.ridge_lambda(),
             "hidden_force_labels_used_as_features": false
         },
@@ -487,7 +495,15 @@ fn main() {
             "training": {
                 "split": "train",
                 "sample_count": reset_each_step_train_samples.len(),
+                "dataset_parse_seconds": training_data.dataset_parse_seconds,
+                "reservoir_initialization_seconds": training_data.reset_each_step_reservoir_init_seconds,
+                "feature_generation_seconds": training_data.reset_each_step_feature_generation_seconds,
                 "readout_fit_seconds": stateless_readout_fit_seconds,
+                "training_pipeline_seconds": training_data.dataset_parse_seconds
+                    + training_data.reset_each_step_reservoir_init_seconds
+                    + training_data.reset_each_step_feature_generation_seconds
+                    + stateless_readout_fit_seconds,
+                "trainable_readout_parameter_count": 262 * 3,
                 "ridge_lambda": stateless_readout.ridge_lambda(),
                 "hidden_force_labels_used_as_features": false,
                 "same_transition_targets_as_persistent_arm": true
