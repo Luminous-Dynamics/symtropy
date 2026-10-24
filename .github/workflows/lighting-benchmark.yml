@@ -49,6 +49,10 @@ jobs:
         run: bash tools/lighting-benchmark/tests/receipt-audit-smoke.sh
       - name: Check failure receipt examples and score gating
         run: bash tools/lighting-benchmark/tests/failure-receipt-contract.sh
+      - name: Install pinned JSON Schema test dependency
+        run: python3 -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+      - name: Validate failure receipt JSON Schemas and negative controls
+        run: python3 tools/lighting-benchmark/tests/validate_failure_receipts.py
       - name: Run synthetic demonstration
         run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
       - name: Emit and count stress corpus
