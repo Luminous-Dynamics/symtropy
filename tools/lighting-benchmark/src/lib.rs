@@ -631,7 +631,9 @@ pub fn evaluate_robust(
     } else {
         gate_status
     };
-    let status = if status == EvaluationStatus::Compliant && candidate.compliant_task_hours_lower_bound <= 0.0 {
+    let status = if status == EvaluationStatus::Compliant
+        && candidate.compliant_task_hours_lower_bound <= 0.0
+    {
         reasons.push("zero_compliant_task_hours_lower_bound".to_owned());
         EvaluationStatus::NotEvaluated
     } else {
