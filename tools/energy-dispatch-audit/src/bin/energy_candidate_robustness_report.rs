@@ -104,7 +104,7 @@ struct CandidateProfile {
     envelope_incomparable_with: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct RobustnessReport {
     schema_version: &'static str,
     status: &'static str,
