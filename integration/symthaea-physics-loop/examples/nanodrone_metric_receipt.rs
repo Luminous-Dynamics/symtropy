@@ -179,6 +179,28 @@ fn check_quaternion_norm(q: [f64; 4], label: &str) -> Result<(), io::Error> {
     Ok(())
 }
 
+fn validate_conditioning_timestamps(row: &HashMap<String, f64>, label: &str) -> Result<(), io::Error> {
+    let x0_time = row["x0_t"];
+    let first_input_time = row[&motor_sequence_time_key(0)];
+    if (x0_time - first_input_time).abs() > 1.0e-9 {
+        return Err(invalid_input(format!(
+            "{label}: x0_t={x0_time} does not match first motor input timestamp {first_input_time}"
+        )));
+    }
+    let mut previous = first_input_time;
+    for step in 1..HORIZON {
+        let current = row[&motor_sequence_time_key(step)];
+        let dt = current - previous;
+        if !dt.is_finite() || dt <= 0.0 || (dt - EXPECTED_DT_S).abs() > MAX_DT_DEVIATION_S {
+            return Err(invalid_input(format!(
+                "{label}: motor input timestamp step {step} has dt={dt:.9}s outside 100 Hz tolerance"
+            )));
+        }
+        previous = current;
+    }
+    Ok(())
+}
+
 fn rotvec_to_quaternion(r: [f64; 3]) -> [f64; 4] {
     let angle = (r[0] * r[0] + r[1] * r[1] + r[2] * r[2]).sqrt();
     if angle <= f64::EPSILON {
@@ -525,6 +547,14 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
                 [row["qx"], row["qy"], row["qz"], row["qw"]],
                 &format!("{filename} row {} truth", row_index + 2),
             )?;
+            if has_complete_conditioning_signals {
+                check_quaternion_norm(
+                    [
+                        row["x0_qx"], row["x0_qy"], row["x0_qz"], row["x0_qw"],
+                    ],
+                    &format!("{filename} row {} initial-state orientation", row_index + 2),
+                )?;
+            }
             for horizon in 1..=HORIZON {
                 let q = [
                     row[&prediction_key("qx", horizon)],
@@ -545,6 +575,9 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
                     check_quaternion_norm(q, &format!("{filename} row {} target h={horizon}", row_index + 2))?;
                 }
             }
+        }
+        if has_complete_conditioning_signals {
+            validate_conditioning_timestamps(&row, &format!("{filename} row {}", row_index + 2))?;
         }
         rows.push(row);
     }
@@ -726,6 +759,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn conditioning_timestamps_reject_gaps_and_x0_mismatch() {
+        let mut row = HashMap::new();
+        row.insert("x0_t".to_owned(), 0.0);
+        for step in 0..HORIZON {
+            row.insert(
+                motor_sequence_time_key(step),
+                step as f64 * EXPECTED_DT_S,
+            );
+        }
+        assert!(validate_conditioning_timestamps(&row, "regular fixture").is_ok());
+
+        row.insert(motor_sequence_time_key(49), 0.9);
+        assert!(validate_conditioning_timestamps(&row, "gapped fixture").is_err());
+
+        row.insert(motor_sequence_time_key(49), 0.49);
+        row.insert("x0_t".to_owned(), 0.001);
+        assert!(validate_conditioning_timestamps(&row, "x0 mismatch fixture").is_err());
+    }
 
     #[test]
     fn rotation_vector_maps_to_expected_quarter_turn_quaternion() {
