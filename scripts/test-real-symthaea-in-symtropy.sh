@@ -57,6 +57,13 @@ grep -q 'path = "../../../../symthaea/crates/domains/symthaea-consciousness-equa
 if [ "${STFR_SKIP_UNIT_TESTS:-0}" != "1" ]; then
   cargo test --manifest-path "$integration_manifest" --lib --tests -- --nocapture
 fi
+
+# The actuator-lag transfer aggregator is a separate Rust example. Compile it on the
+# exact integration checkout even in the normal smoke workflow, without requiring the
+# four-profile benchmark outputs to exist.
+if [ "${STFR_CHECK_ACTUATOR_SUMMARY:-0}" = "1" ]; then
+  cargo check --manifest-path "$integration_manifest" --example actuator_lag_transfer_summary
+fi
 if [ "${STFB_RUN_BENCHMARK:-0}" = "1" ]; then
   out="${STFB_OUTPUT_PATH:-$SYMTROPY_PATH/symthaea-symtropy-flight-transfer.json}"
   cargo run --manifest-path "$integration_manifest" --example paired_flight_transfer > "$out"
