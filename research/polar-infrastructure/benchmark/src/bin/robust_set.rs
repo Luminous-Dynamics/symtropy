@@ -146,7 +146,9 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     let mut av = vec![
         a.service_floor_breach_scenario_count as f64,
         a.worst_case_service_shortfall,
+        a.unweighted_mean_shortfall_across_stress_suite,
         a.worst_case_weighted_unserved_service_fraction_hours,
+        a.unweighted_mean_weighted_unserved_service_fraction_hours,
         a.worst_floor_breach_service_hours,
         a.maximum_system_floor_breach_episode_count_across_scenarios as f64,
         a.worst_case_longest_consecutive_system_floor_breach_hours,
@@ -155,7 +157,9 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
     let mut bv = vec![
         b.service_floor_breach_scenario_count as f64,
         b.worst_case_service_shortfall,
+        b.unweighted_mean_shortfall_across_stress_suite,
         b.worst_case_weighted_unserved_service_fraction_hours,
+        b.unweighted_mean_weighted_unserved_service_fraction_hours,
         b.worst_floor_breach_service_hours,
         b.maximum_system_floor_breach_episode_count_across_scenarios as f64,
         b.worst_case_longest_consecutive_system_floor_breach_hours,
@@ -183,9 +187,11 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         if !a_service.active_in_all_scenarios {
             continue;
         }
-        let (Some(a_shortfall), Some(b_shortfall)) = (
+        let (Some(a_shortfall), Some(b_shortfall), Some(a_mean_shortfall), Some(b_mean_shortfall)) = (
             a_service.worst_case_service_shortfall,
             b_service.worst_case_service_shortfall,
+            a_service.unweighted_mean_service_shortfall_across_stress_suite,
+            b_service.unweighted_mean_service_shortfall_across_stress_suite,
         ) else {
             return false;
         };
@@ -199,6 +205,7 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         av.extend([
             a_service.service_floor_breach_scenario_count as f64,
             a_shortfall,
+            a_mean_shortfall,
             a_service.worst_floor_breach_service_hours,
             a_service.maximum_floor_breach_episode_count_across_scenarios as f64,
             a_service.worst_case_longest_consecutive_floor_breach_hours,
@@ -206,6 +213,7 @@ fn dominates(a: &RobustPolicyScore, b: &RobustPolicyScore) -> bool {
         bv.extend([
             b_service.service_floor_breach_scenario_count as f64,
             b_shortfall,
+            b_mean_shortfall,
             b_service.worst_floor_breach_service_hours,
             b_service.maximum_floor_breach_episode_count_across_scenarios as f64,
             b_service.worst_case_longest_consecutive_floor_breach_hours,
@@ -744,6 +752,25 @@ mod tests {
 
         assert!(!dominates(&higher_water_loss, &lower_water_loss));
         assert!(dominates(&lower_water_loss, &higher_water_loss));
+    }
+
+    #[test]
+    fn pareto_frontier_preserves_mean_vs_worst_case_tradeoffs() {
+        let report = aggregate(&fixture()).expect("fixture should aggregate");
+        let template = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let mut strong_worst_case = template.clone();
+        let mut strong_mean = template.clone();
+
+        // All other objectives stay equal. A better worst case must not hide
+        // a worse unweighted stress-suite mean.
+        strong_worst_case.worst_case_service_shortfall = 0.1;
+        strong_worst_case.unweighted_mean_shortfall_across_stress_suite = 0.4;
+        strong_mean.worst_case_service_shortfall = 0.2;
+        strong_mean.unweighted_mean_shortfall_across_stress_suite = 0.3;
+
+        assert!(!dominates(&strong_worst_case, &strong_mean));
+        assert!(!dominates(&strong_mean, &strong_worst_case));
     }
 
     #[test]
