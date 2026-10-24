@@ -3652,6 +3652,7 @@ pub struct RelationshipGraphAuditReport {
     pub evidence_class: Option<String>,
     pub relation_profile: Option<String>,
     pub graph_sha256: Option<String>,
+    pub canonical_graph_sha256: Option<String>,
     pub nodes_checked: usize,
     pub edges_checked: usize,
     pub assignments_checked: usize,
@@ -3772,6 +3773,48 @@ fn relationship_add_edge(
 ) {
     adjacency.entry(source_id.to_string()).or_default().push(target_id.to_string());
     adjacency.entry(target_id.to_string()).or_default().push(source_id.to_string());
+}
+
+fn relationship_canonical_sha256(graph: &Value) -> Option<String> {
+    let mut normalized = graph.clone();
+    if let Some(nodes) = normalized.get_mut("nodes").and_then(Value::as_array_mut) {
+        nodes.sort_by(|left, right| {
+            left.get("node_id").and_then(Value::as_str)
+                .cmp(&right.get("node_id").and_then(Value::as_str))
+                .then_with(|| left.get("node_kind").and_then(Value::as_str)
+                    .cmp(&right.get("node_kind").and_then(Value::as_str)))
+        });
+    }
+    if let Some(edges) = normalized.get_mut("edges").and_then(Value::as_array_mut) {
+        for edge in edges.iter_mut() {
+            if let Some(references) = edge.get_mut("evidence_refs").and_then(Value::as_array_mut) {
+                references.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+            }
+        }
+        edges.sort_by(|left, right| {
+            left.get("source_id").and_then(Value::as_str)
+                .cmp(&right.get("source_id").and_then(Value::as_str))
+                .then_with(|| left.get("target_id").and_then(Value::as_str)
+                    .cmp(&right.get("target_id").and_then(Value::as_str)))
+                .then_with(|| left.get("edge_type").and_then(Value::as_str)
+                    .cmp(&right.get("edge_type").and_then(Value::as_str)))
+                .then_with(|| left.get("state").and_then(Value::as_str)
+                    .cmp(&right.get("state").and_then(Value::as_str)))
+        });
+    }
+    if let Some(assignments) = normalized.get_mut("assignments").and_then(Value::as_array_mut) {
+        assignments.sort_by(|left, right| {
+            left.get("node_id").and_then(Value::as_str)
+                .cmp(&right.get("node_id").and_then(Value::as_str))
+                .then_with(|| left.get("split").and_then(Value::as_str)
+                    .cmp(&right.get("split").and_then(Value::as_str)))
+        });
+    }
+    if let Some(edge_types) = normalized.get_mut("leakage_edge_types").and_then(Value::as_array_mut) {
+        edge_types.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+    }
+    let bytes = serde_json::to_vec(&normalized).ok()?;
+    Some(format!("{:x}", Sha256::digest(&bytes)))
 }
 
 /// Audits a typed evidence graph and checks split isolation under an explicitly selected
@@ -4096,6 +4139,7 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
         evidence_class,
         relation_profile,
         graph_sha256: None,
+        canonical_graph_sha256: relationship_canonical_sha256(graph),
         nodes_checked,
         edges_checked,
         assignments_checked,
@@ -4177,6 +4221,19 @@ mod relationship_graph_tests {
         let report = audit_relationship_graph(&graph);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGES:")));
+    }
+
+    #[test]
+    fn canonical_graph_digest_is_invariant_to_unordered_record_order() {
+        let graph = valid_graph();
+        let first = audit_relationship_graph(&graph).canonical_graph_sha256;
+        let mut reordered = graph;
+        reordered["nodes"].as_array_mut().unwrap().reverse();
+        reordered["edges"].as_array_mut().unwrap().reverse();
+        reordered["assignments"].as_array_mut().unwrap().reverse();
+        reordered["leakage_edge_types"].as_array_mut().unwrap().reverse();
+        let second = audit_relationship_graph(&reordered).canonical_graph_sha256;
+        assert_eq!(first, second);
     }
 
     #[test]
