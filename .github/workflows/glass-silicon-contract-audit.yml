@@ -131,6 +131,50 @@ jobs:
           grep -q 'raw and canonical graph hashes' "$protocol"
           echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
 
+      - name: Audit relationship graph known-answer controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="tools/glass-silicon-contract-audit/fixtures/relationship-graph-valid.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph "$manifest" > relationship-graph-valid-report.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "relationship_graph_split_isolation" and
+            .schema_version == 1 and
+            .graph_sha256 == $digest and
+            .nodes_checked == 6 and
+            .edges_checked == 3 and
+            .assignments_checked == 3 and
+            .split_counts.train == 1 and
+            .split_counts.validation == 1 and
+            .split_counts.test == 1 and
+            (.witness_paths | length) == 0
+          ' relationship-graph-valid-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-transitive-leak.synthetic.json > relationship-graph-leak-report.json
+          leak_status=$?
+          set -e
+          test "$leak_status" -eq 2
+          jq -e '
+            .status == "FAIL" and
+            (.findings | any(startswith("RELATION_LEAKAGE:"))) and
+            (.witness_paths | length) > 0
+          ' relationship-graph-leak-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-uncertain-link.synthetic.json > relationship-graph-uncertain-report.json
+          uncertain_status=$?
+          set -e
+          test "$uncertain_status" -eq 3
+          jq -e '
+            .status == "UNRESOLVED" and
+            (.findings | any(startswith("RELATION_UNCERTAIN_CROSS_SPLIT:")))
+          ' relationship-graph-uncertain-report.json
+
       - name: Audit grouped-split leakage manifest
         run: >
           cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
