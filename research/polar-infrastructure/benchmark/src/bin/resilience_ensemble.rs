@@ -468,6 +468,26 @@ mod tests {
     }
 
     #[test]
+    fn service_specific_tail_metrics_expose_critical_service_loss_hidden_by_system_average() {
+        let report = aggregate(&fixture()).expect("synthetic ensemble should aggregate");
+        let candidate = report.results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let water = candidate.service_results.iter()
+            .find(|service| service.service_id == "water").unwrap();
+
+        assert_eq!(candidate.service_results.len(), 3);
+        assert!((water.floor_breach_probability - 0.1).abs() < 1e-12);
+        assert!(water.cvar_service_shortfall.unwrap() > candidate.cvar_service_shortfall);
+        assert!(water.cvar_service_shortfall.unwrap() >= water.expected_service_shortfall.unwrap());
+        let compound = water.scenario_outcomes.iter()
+            .find(|outcome| outcome.scenario_id == "toy-compound-failure").unwrap();
+        assert!(compound.floor_breach);
+        assert!(compound.service_shortfall.unwrap() > 0.0);
+        assert_eq!(compound.delivered_unit_hours, 15.0);
+        assert_eq!(compound.demanded_unit_hours, 20.0);
+    }
+
+    #[test]
     fn reports_temporal_persistence_of_compound_service_failures() {
         let mut input = fixture();
         let scenario_id = input.scenarios[0].scenario_id.clone();
