@@ -95,7 +95,7 @@ cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
   results/windowed --pooled --state-units-si
 ```
 
-The output directory contains one joined CSV for each Melon run. Pass those files to `nanodrone_metric_receipt` in run1/run2/run3 order. For already separated prediction tables, the CLI also supports one raw run + one matching prediction CSV + one output path.
+The output directory must be a fresh path that does not already exist; the tool stages all three files and atomically renames the completed directory only after every run passes. The output directory contains one joined CSV for each Melon run. Pass those files to `nanodrone_metric_receipt` in run1/run2/run3 order. For already separated prediction tables, the CLI also supports one raw run + one matching prediction CSV + one output path.
 
 Before writing each output, the joiner checks exact run identity, raw schema and quaternion norms, finite values, timestamp increments, each prediction horizon, and the upstream `N-50` row-count rule. It then verifies that the prediction CSV's one-step truth agrees with raw row `i+1` for position, velocity and angular rate, and compares the orientation under a sign-invariant SO(3) tolerance. Those checks catch off-by-one alignment, normalized-value mistakes and incorrect row slices before they can produce a score.
 
