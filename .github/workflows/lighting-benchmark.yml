@@ -25,5 +25,13 @@ jobs:
         run: cargo fmt --manifest-path tools/lighting-benchmark/Cargo.toml -- --check
       - name: Run evaluator contract tests
         run: cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
+      - name: Run synthetic demonstration
+        run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
+      - name: Emit and count stress corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-stress-matrix > lighting-stress-matrix.csv
+          test "$(wc -l < lighting-stress-matrix.csv)" -eq 28
       - name: Run Clippy
         run: cargo clippy --manifest-path tools/lighting-benchmark/Cargo.toml --locked -- -D warnings
