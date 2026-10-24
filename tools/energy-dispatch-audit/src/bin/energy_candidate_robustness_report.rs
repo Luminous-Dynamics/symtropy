@@ -10,7 +10,6 @@ use std::{
     error::Error,
     fs,
     io,
-    path::Path,
 };
 
 use serde::{Deserialize, Serialize};
