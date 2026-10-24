@@ -59,6 +59,8 @@ Run distinct lanes; do not blur their evidence classes.
 
 A result must be labeled with exactly one highest achieved evidence stage. Promotion requires new evidence, not merely a more polished report.
 
+A frozen split manifest and a `producer_access=false` declaration are not proof of blinded evaluation. Use the [evaluation receipt schema](./GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json) and `audit-eval-receipt` for the current structural contract. The current verifier intentionally returns UNRESOLVED for a `SEALED_CONFIRMATORY` claim because it does not yet verify external custody/isolation signatures or enforce hidden-label isolation; until [GLASS-SEALED-EVAL-001 #2766](https://github.com/Luminous-Dynamics/symtropy/issues/2766) is implemented, results may be described as unsealed retrospective evidence only.
+
 ## 4. Matched comparison arms
 
 Where the method is applicable and can be executed faithfully, compare:
