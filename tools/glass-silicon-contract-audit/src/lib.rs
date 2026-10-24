@@ -3692,8 +3692,9 @@ fn relationship_exact_keys(value: &Value, keys: &[&str]) -> bool {
 }
 
 fn relationship_stable_id(value: &str) -> bool {
-    !value.is_empty()
-        && value.chars().all(|ch| {
+    let mut chars = value.chars();
+    matches!(chars.next(), Some(ch) if ch.is_ascii_lowercase() || ch.is_ascii_digit())
+        && chars.all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-' || ch == '_'
         })
 }
@@ -4228,6 +4229,16 @@ mod relationship_graph_tests {
         let report = audit_relationship_graph(&graph);
         assert_eq!(report.status, "UNRESOLVED");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_EDGES:")));
+    }
+
+    #[test]
+    fn relation_outside_selected_profile_does_not_over_group_partitions() {
+        let mut graph = valid_graph();
+        graph["edges"][0]["target_id"] = json!("sample-b");
+        graph["edges"][0]["edge_type"] = json!("published_with");
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert!(!report.findings.iter().any(|finding| finding.starts_with("RELATION_LEAKAGE:")));
     }
 
     #[test]
