@@ -1,0 +1,63 @@
+name: Polar Resilience Boundary Analyzer
+
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-boundary.yml"
+  push:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polar-resilience-boundary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boundary-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+      - name: Run Rust unit and negative-control tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+      - name: Exercise boundary frontier CLI on synthetic fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_boundary -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-boundary-search.json > /tmp/polar-boundary-report.json
+          jq -e '
+            .report_kind == "polar-resilience-boundary-search-report" and
+            .schema_version == "0.1.0" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "observed_enumerated_cases_only_not_a_safety_certificate_or_probability_estimate" and
+            .case_count == 9 and
+            .pass_count == 1 and
+            .gate_breach_case_count == 6 and
+            .invalid_case_count == 1 and
+            .not_evaluated_case_count == 1 and
+            .frontier_completeness_status == "incomplete_invalid_or_not_evaluated_cases" and
+            ([.frontiers[] | select(.gate_id == "heat_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              [.minimal_observed_failing_points[].case_id]] == [["heat_short_low_a", "heat_short_low_b"]]) and
+            ([.frontiers[] | select(.gate_id == "water_floor" and .comparison_group_id == "supply_cold_low_reserve") |
+              [.minimal_observed_failing_points[].case_id]] == [["water_short_low"]]) and
+            ([.frontiers[] | select(.gate_id == "communications_floor" and .comparison_group_id == "telemetry_restart_high_reserve") |
+              .initial_state_id] == ["reserve_high"]) and
+            .gates_without_observed_breach == ["sanitation_floor"]
+          ' /tmp/polar-boundary-report.json
