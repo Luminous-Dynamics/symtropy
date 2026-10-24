@@ -79,6 +79,30 @@ This is an implementation-level audit finding, not a claim that published scores
 
 The receipt deliberately does not claim an official leaderboard submission or a numerical improvement. It provides the run isolation, metric implementation and explicit sample accounting needed before that comparison can be trusted.
 
+## Implemented third gate: attach complete future-state windows
+
+The integration package now includes `examples/nanodrone_truth_window_join.rs`. It attaches the actual raw trajectory state at row `i+h` to prediction window row `i` for every horizon `h=1..50`. It supports both independent per-run prediction files and the **pooled CSV emitted by the current upstream test script**.
+
+Because the upstream `test_lstm.py` currently concatenates Melon runs 1–3 and writes `melon_multistep.csv`, the pooled mode partitions its rows by each raw trajectory's exact `N-50` window count, then joins and validates each run separately:
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_truth_window_join -- \
+  "$NANODRONE_PATH/out/predictions/lstm_random_square_chirp_model_multistep/melon_multistep.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run2.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run3.csv" \
+  results/windowed --pooled --state-units-si
+```
+
+The output directory must be a fresh path that does not already exist; the tool stages all three files and atomically renames the completed directory only after every run passes. The output directory contains one joined CSV for each Melon run. Pass those files to `nanodrone_metric_receipt` in run1/run2/run3 order. For already separated prediction tables, the CLI also supports one raw run + one matching prediction CSV + one output path.
+
+Before writing each output, the joiner checks exact run identity, raw schema and quaternion norms, finite values, timestamp increments, each prediction horizon, and the upstream `N-50` row-count rule. The current explicit thresholds are ±2 ms about the 10 ms sample period, quaternion norm 0.95–1.05, absolute tolerance 0.005 for base position/velocity/angular-rate agreement, and 0.01 rad for orientation agreement; the real published files still need to confirm these thresholds are appropriate. It then verifies that the prediction CSV's one-step truth agrees with raw row `i+1` for position, velocity and angular rate, and compares the orientation under a sign-invariant SO(3) tolerance. Those checks catch off-by-one alignment, normalized-value mistakes and incorrect row slices before they can produce a score.
+
+The joiner appends complete `{state}_true_h{h}` columns, writes each output atomically, and emits a batch receipt with source hashes, per-run row offsets, counts, orientation convention and output hashes. The required `--state-units-si` flag explicitly asserts that prediction state values have been denormalized into physical units; the receipt records this assertion but cannot prove the scaler history from CSV contents alone.
+
+Synthetic tests cover exact h=1/h=50 target attachment, deliberate one-step mismatch rejection, and pooled splitting when the three raw runs have unequal lengths. These are regression tests, not evidence yet that the published CSVs pass the declared timestamp, quaternion and alignment tolerances. The result is an alignment receipt, not model-performance or safety evidence.
+
 ## Model arms
 
 Compare on identical rows, scalers, motor input sequences, horizons, and hardware budgets:
