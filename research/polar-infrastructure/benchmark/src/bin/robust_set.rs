@@ -47,6 +47,8 @@ struct RobustPolicyScore {
     unweighted_mean_shortfall_across_stress_suite: f64,
     worst_floor_breach_service_hours: f64,
     worst_case_longest_consecutive_system_floor_breach_hours: f64,
+    /// Earliest observed breach onset across scenarios; None means no scenario breached within its trace.
+    earliest_observed_time_to_first_system_floor_breach_hours: Option<f64>,
     maximum_fuel_intensity_across_scenarios: Option<f64>,
     /// None means the frontier is incomplete because some fuel-intensity data is missing.
     pareto_nondominated: Option<bool>,
@@ -63,6 +65,7 @@ struct ScenarioOutcome {
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
+    time_to_first_system_floor_breach_hours: Option<f64>,
     fuel_intensity: Option<f64>,
 }
 
@@ -76,6 +79,7 @@ struct Observation {
     floor_breach_service_hours: f64,
     system_floor_breach_episode_count: usize,
     longest_consecutive_system_floor_breach_hours: f64,
+    time_to_first_system_floor_breach_hours: Option<f64>,
     fuel_intensity: Option<f64>,
 }
 
@@ -180,6 +184,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
                 floor_breach_service_hours: policy.floor_breach_service_hours,
                 system_floor_breach_episode_count: policy.system_floor_breach_episode_count,
                 longest_consecutive_system_floor_breach_hours: policy.longest_consecutive_system_floor_breach_hours,
+                time_to_first_system_floor_breach_hours: policy.time_to_first_system_floor_breach_hours,
                 fuel_intensity: policy.fuel_units_per_weighted_delivered_service_fraction_hour,
             });
         }
@@ -192,12 +197,14 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
         let worst_floor_breach_hours = observations.iter().map(|o| o.floor_breach_service_hours).fold(0.0_f64, f64::max);
         let worst_case_longest_consecutive_system_floor_breach_hours = observations.iter()
             .map(|o| o.longest_consecutive_system_floor_breach_hours).fold(0.0_f64, f64::max);
+        let earliest_observed_time_to_first_system_floor_breach_hours = observations.iter()
+            .filter_map(|o| o.time_to_first_system_floor_breach_hours).reduce(f64::min);
         let maximum_fuel_intensity = if observations.iter().all(|o| o.fuel_intensity.is_some()) {
             observations.iter().filter_map(|o| o.fuel_intensity).reduce(f64::max)
         } else {
             None
         };
-        for value in [worst_case_shortfall, unweighted_mean_shortfall, worst_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours] {
+        for value in [worst_case_shortfall, unweighted_mean_shortfall, worst_floor_breach_hours, worst_case_longest_consecutive_system_floor_breach_hours, earliest_observed_time_to_first_system_floor_breach_hours.unwrap_or(0.0)] {
             if !value.is_finite() {
                 return Err(format!("policy {policy_id} produced non-finite robust-set metrics"));
             }
@@ -212,6 +219,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             floor_breach_service_hours: o.floor_breach_service_hours,
             system_floor_breach_episode_count: o.system_floor_breach_episode_count,
             longest_consecutive_system_floor_breach_hours: o.longest_consecutive_system_floor_breach_hours,
+            time_to_first_system_floor_breach_hours: o.time_to_first_system_floor_breach_hours,
             fuel_intensity: o.fuel_intensity,
         }).collect();
 
@@ -226,6 +234,7 @@ fn aggregate(input: &RobustSetInput) -> Result<RobustSetReport, String> {
             unweighted_mean_shortfall_across_stress_suite: unweighted_mean_shortfall,
             worst_floor_breach_service_hours: worst_floor_breach_hours,
             worst_case_longest_consecutive_system_floor_breach_hours,
+            earliest_observed_time_to_first_system_floor_breach_hours,
             maximum_fuel_intensity_across_scenarios: maximum_fuel_intensity,
             pareto_nondominated: None,
             scenario_outcomes,
@@ -332,9 +341,11 @@ mod tests {
         let scenario = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
         assert!(scenario.system_floor_breach_episode_count > 0);
+        assert_eq!(scenario.time_to_first_system_floor_breach_hours, Some(0.0));
         assert!(scenario.longest_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.maximum_system_floor_breach_episode_count_across_scenarios > 0);
         assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
+        assert_eq!(result.earliest_observed_time_to_first_system_floor_breach_hours, Some(0.0));
         assert_eq!(
             result.worst_case_longest_consecutive_system_floor_breach_hours,
             result.scenario_outcomes.iter()
