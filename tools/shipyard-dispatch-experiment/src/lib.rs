@@ -336,6 +336,23 @@ pub struct ExperimentLedgerContext {
     pub synthetic_example: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LedgerArtifact {
+    pub file_name: String,
+    pub sha256: String,
+    pub media_type: String,
+    /// Exact bytes represented as UTF-8 JSON text.
+    pub contents: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExperimentLedgerBundle {
+    /// JSON Lines, exactly one raw-run record per dispatch rule.
+    pub ledger_jsonl: String,
+    /// Immutable content-addressed candidate and independent-audit sidecars.
+    pub artifacts: Vec<LedgerArtifact>,
+}
+
 fn require_digest(name: &str, digest: &str) -> Result<(), String> {
     if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(format!("{name} must be exactly 64 hexadecimal characters"));
@@ -386,6 +403,13 @@ fn policy_status_id(status: PlanStatus) -> &'static str {
         PlanStatus::Partial => "partial",
         PlanStatus::InvalidInput => "invalid_input",
         PlanStatus::FrozenConflict => "frozen_conflict",
+    }
+}
+
+fn audit_status_id(result: &EvaluatedRule) -> &'static str {
+    match result.audit.status {
+        shipyard_dispatch_audit::AuditStatus::AbstractFeasible => "abstract_feasible",
+        shipyard_dispatch_audit::AuditStatus::Rejected => "rejected",
     }
 }
 
@@ -446,8 +470,8 @@ fn precedence_gate_status(result: &EvaluatedRule) -> &'static str {
 
 fn terminal_status(result: &EvaluatedRule) -> &'static str {
     match (result.policy_status, result.audit.status) {
-        // Full geometry, causal replay, and receipt-integrity gates are not run
-        // here, so an abstract-model pass is deliberately recorded as incomplete.
+        // Geometry, causal replay, and receipt-integrity gates are not executed
+        // by this adapter; an abstract-model pass is not a full feasible result.
         (PlanStatus::Complete, shipyard_dispatch_audit::AuditStatus::AbstractFeasible) => {
             "incomplete"
         }
@@ -460,7 +484,7 @@ fn terminal_status(result: &EvaluatedRule) -> &'static str {
 fn status_reason(result: &EvaluatedRule) -> &'static str {
     match (result.policy_status, result.audit.status) {
         (PlanStatus::Complete, shipyard_dispatch_audit::AuditStatus::AbstractFeasible) => {
-            "abstract unary-resource/time audit passed; spatial geometry, causality, and receipt integrity were not evaluated by this adapter"
+            "abstract unary-resource/time audit passed; spatial geometry, causal replay, and receipt integrity were not evaluated"
         }
         (PlanStatus::Partial, _) => {
             "dispatch policy left mandatory work unscheduled; no infeasibility proof is implied"
@@ -472,9 +496,101 @@ fn status_reason(result: &EvaluatedRule) -> &'static str {
             "source frozen commitments conflict with the declared abstract model; they were not rewritten"
         }
         (_, shipyard_dispatch_audit::AuditStatus::Rejected) => {
-            "independent abstract evaluator rejected the candidate; inspect hard gates and diagnostics"
+            "independent abstract evaluator rejected the candidate; inspect the content-addressed audit artifact"
         }
     }
+}
+
+fn json_diagnostics(
+    diagnostics: impl Iterator<Item = (String, Option<String>, String)>,
+) -> String {
+    diagnostics
+        .map(|(code, operation_id, detail)| {
+            format!(
+                "{{\"code\":{},\"operation_id\":{},\"detail\":{}}}",
+                json_quote(&code),
+                optional_string_json(operation_id.as_deref()),
+                json_quote(&detail)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn candidate_artifact(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> String {
+    let assignments = result
+        .plan
+        .assignments
+        .iter()
+        .map(|item| {
+            format!(
+                "{{\"operation_id\":{},\"resource_id\":{},\"start_tick\":{},\"end_tick\":{},\"frozen\":{}}}",
+                json_quote(&item.operation_id),
+                json_quote(&item.resource_id),
+                item.start_tick,
+                item.end_tick,
+                item.frozen
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let unscheduled = result
+        .plan
+        .unscheduled_operation_ids
+        .iter()
+        .map(|item| json_quote(item))
+        .collect::<Vec<_>>()
+        .join(",");
+    let diagnostics = json_diagnostics(result.plan.diagnostics.iter().map(|item| {
+        (
+            item.code.clone(),
+            item.operation_id.clone(),
+            item.detail.clone(),
+        )
+    }));
+    format!(
+        "{{\"artifact_kind\":\"shipyard-candidate-schedule-v0\",\"episode_id\":{},\"replicate_id\":{},\"method_id\":{},\"policy_status\":{},\"decision_tick\":{},\"horizon_end_tick\":{},\"assignments\":[{}],\"unscheduled_operation_ids\":[{}],\"policy_diagnostics\":[{}]}}",
+        json_quote(&context.episode_id),
+        json_quote(&context.replicate_id),
+        json_quote(&format!("{}::{}", rule_id(result.rule), context.policy_revision)),
+        json_quote(policy_status_id(result.policy_status)),
+        result.plan.decision_tick,
+        result.plan.horizon_end_tick,
+        assignments,
+        unscheduled,
+        diagnostics
+    )
+}
+
+fn audit_artifact(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> String {
+    let diagnostics = json_diagnostics(result.audit.diagnostics.iter().map(|item| {
+        (
+            item.code.clone(),
+            item.operation_id.clone(),
+            item.detail.clone(),
+        )
+    }));
+    let metrics = format!(
+        "{{\"makespan_tick\":{},\"total_tardiness_ticks\":{},\"occupied_resource_ticks\":{},\"completed_operation_count\":{},\"assigned_operation_count\":{},\"mandatory_operation_count\":{},\"missing_operation_ids\":[{}]}}",
+        result.audit.metrics.makespan_tick.map(|value| value.to_string()).unwrap_or_else(|| "null".to_owned()),
+        result.audit.metrics.total_tardiness_ticks,
+        result.audit.metrics.occupied_resource_ticks,
+        result.audit.metrics.completed_operation_count,
+        result.audit.metrics.assigned_operation_count,
+        result.audit.metrics.mandatory_operation_count,
+        result.audit.metrics.missing_operation_ids.iter().map(|item| json_quote(item)).collect::<Vec<_>>().join(",")
+    );
+    format!(
+        "{{\"artifact_kind\":\"shipyard-independent-audit-v0\",\"episode_id\":{},\"replicate_id\":{},\"method_id\":{},\"audit_status\":{},\"feasibility_scope\":\"abstract-unary-resource-time-v0\",\"metrics\":{},\"resource_gate\":{},\"precedence_gate\":{},\"geometry_gate\":\"not_evaluated\",\"causality_gate\":\"not_evaluated\",\"receipt_integrity_gate\":\"not_evaluated\",\"diagnostics\":[{}]}}",
+        json_quote(&context.episode_id),
+        json_quote(&context.replicate_id),
+        json_quote(&format!("{}::{}", rule_id(result.rule), context.policy_revision)),
+        json_quote(audit_status_id(result)),
+        metrics,
+        json_quote(resource_gate_status(result)),
+        json_quote(precedence_gate_status(result)),
+        diagnostics
+    )
 }
 
 fn metric_record(
@@ -499,7 +615,12 @@ fn metric_record(
     )
 }
 
-fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> String {
+fn encode_result(
+    context: &ExperimentLedgerContext,
+    result: &EvaluatedRule,
+    candidate_digest: &str,
+    audit_digest: &str,
+) -> String {
     let method_id = format!("{}::{}", rule_id(result.rule), context.policy_revision);
     let identity_tuple = format!(
         "[{},{},{},{}]",
@@ -508,7 +629,7 @@ fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> S
         json_quote(&context.replicate_id),
         json_quote(&method_id)
     );
-    let record_id = json_quote(&identity_tuple);
+    let record_id = format!("sha256:{}", sha256_hex(identity_tuple.as_bytes()));
     let makespan_value = result
         .audit
         .metrics
@@ -533,61 +654,6 @@ fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> S
         ),
     ]
     .join(",");
-
-    let missing = result
-        .audit
-        .metrics
-        .missing_operation_ids
-        .iter()
-        .map(|item| json_quote(item))
-        .collect::<Vec<_>>()
-        .join(",");
-    let assignments = result
-        .plan
-        .assignments
-        .iter()
-        .map(|item| {
-            format!(
-                "{{\"operation_id\":{},\"resource_id\":{},\"start_tick\":{},\"end_tick\":{},\"frozen\":{}}}",
-                json_quote(&item.operation_id),
-                json_quote(&item.resource_id),
-                item.start_tick,
-                item.end_tick,
-                item.frozen
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
-    let diagnostics = result
-        .audit
-        .diagnostics
-        .iter()
-        .map(|item| {
-            format!(
-                "{{\"code\":{},\"operation_id\":{},\"detail\":{}}}",
-                json_quote(&item.code),
-                optional_string_json(item.operation_id.as_deref()),
-                json_quote(&item.detail)
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
-    let policy_diagnostics = result
-        .plan
-        .diagnostics
-        .iter()
-        .map(|item| {
-            format!(
-                "{{\"code\":{},\"operation_id\":{},\"detail\":{}}}",
-                json_quote(&item.code),
-                optional_string_json(item.operation_id.as_deref()),
-                json_quote(&item.detail)
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
-    let status = terminal_status(result);
-    let reason = status_reason(result);
     let budget_contract = format!("{}: {}", context.budget_profile_id, context.budget_contract);
 
     format!(
@@ -622,34 +688,21 @@ fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> S
                 "\"receipt_integrity\":\"not_evaluated\"",
             "},",
             "\"metrics\":[{}],",
-            "\"artifact_digests\":{},",
-            "\"supersedes_record_id\":null,",
-            "\"adapter_detail\":{",
-                "\"policy_status\":{},",
-                "\"abstract_audit_status\":{},",
-                "\"abstract_feasibility_scope\":\"unary_resource_time_v0\",",
-                "\"makespan_tick\":{},",
-                "\"total_tardiness_ticks\":{},",
-                "\"occupied_resource_ticks\":{},",
-                "\"completed_operation_count\":{},",
-                "\"assigned_operation_count\":{},",
-                "\"mandatory_operation_count\":{},",
-                "\"missing_operation_ids\":[{}],",
-                "\"assignments\":[{}],",
-                "\"audit_diagnostics\":[{}],",
-                "\"policy_diagnostics\":[{}],",
-                "\"abstract_audit_passed\":{}",
-            "}",
+            "\"artifact_digests\":{",
+                "\"candidate_schedule_sha256\":{},",
+                "\"independent_audit_sha256\":{}",
+            "},",
+            "\"supersedes_record_id\":null",
             "}"
         ),
-        record_id,
+        json_quote(&record_id),
         context.synthetic_example,
         json_quote(&context.benchmark_release_id),
         json_quote(&method_id),
         json_quote(&context.episode_id),
         json_quote(&context.replicate_id),
-        json_quote(status),
-        json_quote(reason),
+        json_quote(terminal_status(result)),
+        json_quote(status_reason(result)),
         json_quote(&context.initial_state_sha256.to_ascii_lowercase()),
         json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()),
         json_quote(&context.method_config_sha256.to_ascii_lowercase()),
@@ -660,34 +713,19 @@ fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> S
         json_quote(resource_gate_status(result)),
         json_quote(precedence_gate_status(result)),
         metrics,
-        json_quote(policy_status_id(result.policy_status)),
-        json_quote(match result.audit.status {
-            shipyard_dispatch_audit::AuditStatus::AbstractFeasible => "abstract_feasible",
-            shipyard_dispatch_audit::AuditStatus::Rejected => "rejected",
-        }),
-        makespan_value,
-        result.audit.metrics.total_tardiness_ticks,
-        result.audit.metrics.occupied_resource_ticks,
-        result.audit.metrics.completed_operation_count,
-        result.audit.metrics.assigned_operation_count,
-        result.audit.metrics.mandatory_operation_count,
-        missing,
-        assignments,
-        diagnostics,
-        policy_diagnostics,
-        result.audit.status == shipyard_dispatch_audit::AuditStatus::AbstractFeasible
+        json_quote(candidate_digest),
+        json_quote(audit_digest)
     )
 }
 
-/// Produce deterministic JSON Lines, one raw-run record per baseline outcome.
-/// The row uses the result-ledger v0 envelope. Because this adapter does not
-/// execute full geometry, causal replay, or receipt-integrity gates, even an
-/// abstract-model pass is terminally incomplete, never a physical feasible claim.
-/// The caller must append these rows and retain exact runner receipts separately.
-pub fn serialize_result_ledger(
+/// Build a result-ledger v0 bundle and the exact sidecar bytes referenced by
+/// each row's artifact digests. Persist the returned sidecars before publishing
+/// the JSONL ledger. Full physical feasibility remains incomplete until geometry,
+/// causal replay, and receipt-integrity gates are independently executed.
+pub fn build_result_ledger_bundle(
     context: &ExperimentLedgerContext,
     results: &[EvaluatedRule],
-) -> Result<String, String> {
+) -> Result<ExperimentLedgerBundle, String> {
     for (name, value) in [
         ("benchmark_release_id", context.benchmark_release_id.as_str()),
         ("episode_id", context.episode_id.as_str()),
@@ -718,15 +756,141 @@ pub fn serialize_result_ledger(
             return Err(format!("duplicate baseline outcome for policy {id}"));
         }
     }
+
     let mut ordered: Vec<&EvaluatedRule> = results.iter().collect();
     ordered.sort_by_key(|result| rule_id(result.rule));
-    let mut output = String::new();
+    let mut ledger_jsonl = String::new();
+    let mut artifacts = Vec::with_capacity(ordered.len() * 2);
     for result in ordered {
-        output.push_str(&encode_result(context, result));
-        output.push('\n');
+        let candidate = candidate_artifact(context, result);
+        let candidate_sha256 = sha256_hex(candidate.as_bytes());
+        artifacts.push(LedgerArtifact {
+            file_name: format!("candidate-schedule-{}.json", candidate_sha256),
+            sha256: candidate_sha256.clone(),
+            media_type: "application/json".to_owned(),
+            contents: candidate,
+        });
+
+        let audit = audit_artifact(context, result);
+        let audit_sha256 = sha256_hex(audit.as_bytes());
+        artifacts.push(LedgerArtifact {
+            file_name: format!("independent-audit-{}.json", audit_sha256),
+            sha256: audit_sha256.clone(),
+            media_type: "application/json".to_owned(),
+            contents: audit,
+        });
+
+        ledger_jsonl.push_str(&encode_result(
+            context,
+            result,
+            &candidate_sha256,
+            &audit_sha256,
+        ));
+        ledger_jsonl.push('\n');
     }
-    Ok(output)
+    Ok(ExperimentLedgerBundle {
+        ledger_jsonl,
+        artifacts,
+    })
 }
+
+/// Convenience for callers that need only JSONL preview. Benchmark harnesses
+/// should use build_result_ledger_bundle and persist the sidecar bytes too.
+pub fn serialize_result_ledger(
+    context: &ExperimentLedgerContext,
+    results: &[EvaluatedRule],
+) -> Result<String, String> {
+    Ok(build_result_ledger_bundle(context, results)?.ledger_jsonl)
+}
+
+fn sha256_hex(input: &[u8]) -> String {
+    const K: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
+    ];
+    let mut state: [u32; 8] = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
+    ];
+
+    let bit_length = (input.len() as u64).wrapping_mul(8);
+    let mut padded = input.to_vec();
+    padded.push(0x80);
+    while padded.len() % 64 != 56 {
+        padded.push(0);
+    }
+    padded.extend_from_slice(&bit_length.to_be_bytes());
+
+    for chunk in padded.chunks_exact(64) {
+        let mut words = [0u32; 64];
+        for (index, word_bytes) in chunk.chunks_exact(4).take(16).enumerate() {
+            words[index] =
+                u32::from_be_bytes([word_bytes[0], word_bytes[1], word_bytes[2], word_bytes[3]]);
+        }
+        for index in 16..64 {
+            let x = words[index - 15];
+            let y = words[index - 2];
+            let sigma0 = x.rotate_right(7) ^ x.rotate_right(18) ^ (x >> 3);
+            let sigma1 = y.rotate_right(17) ^ y.rotate_right(19) ^ (y >> 10);
+            words[index] = words[index - 16]
+                .wrapping_add(sigma0)
+                .wrapping_add(words[index - 7])
+                .wrapping_add(sigma1);
+        }
+
+        let mut a = state[0];
+        let mut b = state[1];
+        let mut c = state[2];
+        let mut d = state[3];
+        let mut e = state[4];
+        let mut f = state[5];
+        let mut g = state[6];
+        let mut h = state[7];
+        for index in 0..64 {
+            let sigma1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let choice = (e & f) ^ ((!e) & g);
+            let temporary1 = h
+                .wrapping_add(sigma1)
+                .wrapping_add(choice)
+                .wrapping_add(K[index])
+                .wrapping_add(words[index]);
+            let sigma0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let majority = (a & b) ^ (a & c) ^ (b & c);
+            let temporary2 = sigma0.wrapping_add(majority);
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temporary1);
+            d = c;
+            c = b;
+            b = a;
+            a = temporary1.wrapping_add(temporary2);
+        }
+        state[0] = state[0].wrapping_add(a);
+        state[1] = state[1].wrapping_add(b);
+        state[2] = state[2].wrapping_add(c);
+        state[3] = state[3].wrapping_add(d);
+        state[4] = state[4].wrapping_add(e);
+        state[5] = state[5].wrapping_add(f);
+        state[6] = state[6].wrapping_add(g);
+        state[7] = state[7].wrapping_add(h);
+    }
+
+    let mut output = String::with_capacity(64);
+    for word in state {
+        let _ = write!(output, "{word:08x}");
+    }
+    output
+}
+
 
 #[cfg(test)]
 mod ledger_tests {
