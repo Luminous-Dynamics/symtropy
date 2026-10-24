@@ -7,6 +7,7 @@ on:
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
       - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
@@ -20,6 +21,7 @@ on:
       - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
       - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
       - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
       - "tools/glass-silicon-contract-audit/**"
@@ -115,6 +117,20 @@ jobs:
           grep -q 'SEALED_CONFIRMATORY' "$protocol"
           echo "Feasibility-gate and held-out evaluation trust-boundary controls: PASS"
 
+      - name: Audit relationship graph JSON schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-relationship-graph-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.allowed_splits.const == ["train", "validation", "test"] and
+            .properties.edges.items.properties.state.enum == ["verified", "candidate", "contradicted", "unknown"] and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+          echo "Relationship graph schema and relationship-state contract: PASS"
+
       - name: Audit relationship-aware evidence protocol contract
         shell: bash
         run: |
@@ -129,6 +145,7 @@ jobs:
           grep -qi 'downstream dependency testing' "$protocol"
           grep -q 'UNRESOLVED' "$protocol"
           grep -q 'raw and canonical graph hashes' "$protocol"
+          grep -q 'glass-relationship-graph-v0.1.schema.json' "$protocol"
           echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
 
       - name: Audit relationship graph known-answer controls
