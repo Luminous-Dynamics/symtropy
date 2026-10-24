@@ -325,9 +325,15 @@ pub struct ExperimentLedgerContext {
     pub replicate_id: String,
     pub initial_state_sha256: String,
     pub disturbance_tape_sha256: String,
+    pub method_config_sha256: String,
     pub budget_profile_id: String,
+    pub wall_time_limit_ms: u64,
+    pub decision_compute_budget_units: u64,
+    /// State explicitly whether the outer harness enforces the declared limits.
+    pub budget_contract: String,
     pub policy_revision: String,
     pub evaluator_revision: String,
+    pub synthetic_example: bool,
 }
 
 fn require_digest(name: &str, digest: &str) -> Result<(), String> {
@@ -338,6 +344,8 @@ fn require_digest(name: &str, digest: &str) -> Result<(), String> {
 }
 
 fn json_quote(input: &str) -> String {
+    use std::fmt::Write as _;
+
     let mut output = String::with_capacity(input.len() + 2);
     output.push('"');
     for character in input.chars() {
@@ -350,7 +358,6 @@ fn json_quote(input: &str) -> String {
             '\r' => output.push_str("\\r"),
             '\t' => output.push_str("\\t"),
             character if character <= '\u{001f}' => {
-                use std::fmt::Write as _;
                 let _ = write!(output, "\\u{:04x}", character as u32);
             }
             character => output.push(character),
@@ -382,10 +389,67 @@ fn policy_status_id(status: PlanStatus) -> &'static str {
     }
 }
 
+fn has_any_audit_code(result: &EvaluatedRule, codes: &[&str]) -> bool {
+    result
+        .audit
+        .diagnostics
+        .iter()
+        .any(|diagnostic| codes.contains(&diagnostic.code.as_str()))
+}
+
+fn resource_gate_status(result: &EvaluatedRule) -> &'static str {
+    if has_any_audit_code(
+        result,
+        &[
+            "UNKNOWN_COMPLETED_RESOURCE",
+            "COMPLETED_RESOURCE_KIND_MISMATCH",
+            "UNKNOWN_EXPECTED_FROZEN_RESOURCE",
+            "UNKNOWN_ASSIGNED_RESOURCE",
+            "RESOURCE_KIND_MISMATCH",
+            "UNARY_RESOURCE_OVERLAP",
+            "UNKNOWN_EVALUATOR_OUTAGE_RESOURCE",
+            "INVALID_EVALUATOR_OUTAGE_INTERVAL",
+            "ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE",
+            "INVALID_ASSIGNMENT_INTERVAL",
+            "DURATION_MISMATCH",
+            "STARTS_BEFORE_RELEASE",
+            "NEW_ASSIGNMENT_BEFORE_DECISION",
+            "ASSIGNMENT_AFTER_HORIZON",
+            "FROZEN_COMMITMENT_CHANGED",
+            "FROZEN_COMMITMENT_DROPPED",
+            "UNDECLARED_FROZEN_ASSIGNMENT",
+            "MANDATORY_OPERATION_OMITTED",
+        ],
+    ) {
+        "failed"
+    } else {
+        "passed"
+    }
+}
+
+fn precedence_gate_status(result: &EvaluatedRule) -> &'static str {
+    if has_any_audit_code(
+        result,
+        &[
+            "UNKNOWN_PREDECESSOR",
+            "SELF_PRECEDENCE",
+            "DUPLICATE_PREDECESSOR",
+            "PRECEDENCE_VIOLATION",
+            "PREDECESSOR_MISSING_FROM_REALIZED_STATE",
+        ],
+    ) {
+        "failed"
+    } else {
+        "passed"
+    }
+}
+
 fn terminal_status(result: &EvaluatedRule) -> &'static str {
     match (result.policy_status, result.audit.status) {
+        // Full geometry, causal replay, and receipt-integrity gates are not run
+        // here, so an abstract-model pass is deliberately recorded as incomplete.
         (PlanStatus::Complete, shipyard_dispatch_audit::AuditStatus::AbstractFeasible) => {
-            "feasible"
+            "incomplete"
         }
         (PlanStatus::Partial, _) => "incomplete",
         (PlanStatus::InvalidInput | PlanStatus::FrozenConflict, _) => "invalid_input",
@@ -393,70 +457,82 @@ fn terminal_status(result: &EvaluatedRule) -> &'static str {
     }
 }
 
-fn encode_result(
-    context: &ExperimentLedgerContext,
+fn status_reason(result: &EvaluatedRule) -> &'static str {
+    match (result.policy_status, result.audit.status) {
+        (PlanStatus::Complete, shipyard_dispatch_audit::AuditStatus::AbstractFeasible) => {
+            "abstract unary-resource/time audit passed; spatial geometry, causality, and receipt integrity were not evaluated by this adapter"
+        }
+        (PlanStatus::Partial, _) => {
+            "dispatch policy left mandatory work unscheduled; no infeasibility proof is implied"
+        }
+        (PlanStatus::InvalidInput, _) => {
+            "dispatch policy rejected the supplied input; candidate was not admitted"
+        }
+        (PlanStatus::FrozenConflict, _) => {
+            "source frozen commitments conflict with the declared abstract model; they were not rewritten"
+        }
+        (_, shipyard_dispatch_audit::AuditStatus::Rejected) => {
+            "independent abstract evaluator rejected the candidate; inspect hard gates and diagnostics"
+        }
+    }
+}
+
+fn metric_record(
+    metric_id: &str,
+    value_json: &str,
+    unit: &str,
+    direction: &str,
     result: &EvaluatedRule,
 ) -> String {
-    use std::fmt::Write as _;
+    let validity = if result.audit.status == shipyard_dispatch_audit::AuditStatus::AbstractFeasible {
+        "valid_under_abstract_model"
+    } else {
+        "descriptive_candidate_metric"
+    };
+    format!(
+        "{{\"metric_id\":{},\"value\":{},\"unit\":{},\"aggregation_boundary\":\"one_episode_including_completed_history\",\"direction\":{},\"hard_gate\":false,\"recomputed_by\":\"shipyard-dispatch-audit\",\"validity_status\":{},\"quality_qualifier\":\"abstract unary-resource/time model only; not a physical-yard metric\"}}",
+        json_quote(metric_id),
+        value_json,
+        json_quote(unit),
+        json_quote(direction),
+        json_quote(validity)
+    )
+}
 
-    let mut output = String::with_capacity(1024);
-    output.push('{');
-    let mut first = true;
-    macro_rules! field {
-        ($key:literal, $value:expr) => {{
-            if !first {
-                output.push(',');
-            }
-            first = false;
-            output.push_str($key);
-            output.push(':');
-            output.push_str(&$value);
-        }};
-    }
-    field!("\"schema_version\"", json_quote("shipyard-result-ledger-record-v0"));
-    field!("\"benchmark_release_id\"", json_quote(&context.benchmark_release_id));
-    field!("\"episode_id\"", json_quote(&context.episode_id));
-    field!("\"replicate_id\"", json_quote(&context.replicate_id));
-    field!("\"initial_state_sha256\"", json_quote(&context.initial_state_sha256.to_ascii_lowercase()));
-    field!("\"disturbance_tape_sha256\"", json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()));
-    field!("\"budget_profile_id\"", json_quote(&context.budget_profile_id));
-    field!("\"policy_id\"", json_quote(rule_id(result.rule)));
-    field!("\"policy_revision\"", json_quote(&context.policy_revision));
-    field!("\"evaluator_revision\"", json_quote(&context.evaluator_revision));
-    field!("\"terminal_status\"", json_quote(terminal_status(result)));
-    field!("\"feasibility_scope\"", json_quote("abstract-unary-resource-time-v0"));
-    field!("\"policy_status\"", json_quote(policy_status_id(result.policy_status)));
-    field!(
-        "\"audit_status\"",
-        json_quote(match result.audit.status {
-            shipyard_dispatch_audit::AuditStatus::AbstractFeasible => "abstract_feasible",
-            shipyard_dispatch_audit::AuditStatus::Rejected => "rejected",
-        })
+fn encode_result(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> String {
+    let method_id = format!("{}::{}", rule_id(result.rule), context.policy_revision);
+    let identity_tuple = format!(
+        "[{},{},{},{}]",
+        json_quote(&context.benchmark_release_id),
+        json_quote(&context.episode_id),
+        json_quote(&context.replicate_id),
+        json_quote(&method_id)
     );
-    field!(
-        "\"makespan_tick\"",
-        result.audit.metrics.makespan_tick.map(|value| value.to_string()).unwrap_or_else(|| "null".to_owned())
-    );
-    field!(
-        "\"total_tardiness_ticks\"",
-        result.audit.metrics.total_tardiness_ticks.to_string()
-    );
-    field!(
-        "\"occupied_resource_ticks\"",
-        result.audit.metrics.occupied_resource_ticks.to_string()
-    );
-    field!(
-        "\"completed_operation_count\"",
-        result.audit.metrics.completed_operation_count.to_string()
-    );
-    field!(
-        "\"assigned_operation_count\"",
-        result.audit.metrics.assigned_operation_count.to_string()
-    );
-    field!(
-        "\"mandatory_operation_count\"",
-        result.audit.metrics.mandatory_operation_count.to_string()
-    );
+    let record_id = json_quote(&identity_tuple);
+    let makespan_value = result
+        .audit
+        .metrics
+        .makespan_tick
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "null".to_owned());
+    let metrics = [
+        metric_record("makespan", &makespan_value, "tick", "minimize", result),
+        metric_record(
+            "total_tardiness",
+            &result.audit.metrics.total_tardiness_ticks.to_string(),
+            "tick",
+            "minimize",
+            result,
+        ),
+        metric_record(
+            "occupied_resource_ticks",
+            &result.audit.metrics.occupied_resource_ticks.to_string(),
+            "tick",
+            "minimize",
+            result,
+        ),
+    ]
+    .join(",");
 
     let missing = result
         .audit
@@ -466,8 +542,6 @@ fn encode_result(
         .map(|item| json_quote(item))
         .collect::<Vec<_>>()
         .join(",");
-    field!("\"missing_operation_ids\"", format!("[{missing}]"));
-
     let assignments = result
         .plan
         .assignments
@@ -484,8 +558,6 @@ fn encode_result(
         })
         .collect::<Vec<_>>()
         .join(",");
-    field!("\"assignments\"", format!("[{assignments}]"));
-
     let diagnostics = result
         .audit
         .diagnostics
@@ -500,8 +572,6 @@ fn encode_result(
         })
         .collect::<Vec<_>>()
         .join(",");
-    field!("\"audit_diagnostics\"", format!("[{diagnostics}]"));
-
     let policy_diagnostics = result
         .plan
         .diagnostics
@@ -516,20 +586,104 @@ fn encode_result(
         })
         .collect::<Vec<_>>()
         .join(",");
-    field!("\"policy_diagnostics\"", format!("[{policy_diagnostics}]"));
+    let status = terminal_status(result);
+    let reason = status_reason(result);
+    let budget_contract = format!("{}: {}", context.budget_profile_id, context.budget_contract);
 
-    field!("\"decision_tick\"", result.plan.decision_tick.to_string());
-    field!("\"horizon_end_tick\"", result.plan.horizon_end_tick.to_string());
-    let _ = write!(output, "}}");
-    output
+    format!(
+        concat!(
+            "{",
+            "\"ledger_contract_version\":\"shipyard-result-ledger-v0\",",
+            "\"record_id\":{},",
+            "\"record_kind\":\"raw_run_record\",",
+            "\"synthetic_example\":{},",
+            "\"benchmark_release\":{},",
+            "\"method_id\":{},",
+            "\"episode_id\":{},",
+            "\"replicate_id\":{},",
+            "\"status\":{},",
+            "\"status_reason\":{},",
+            "\"input_digests\":{",
+                "\"initial_state_sha256\":{},",
+                "\"disturbance_tape_sha256\":{},",
+                "\"method_config_sha256\":{}",
+            "},",
+            "\"evaluator_revision\":{},",
+            "\"budget_profile\":{",
+                "\"wall_time_limit_ms\":{},",
+                "\"decision_compute_budget_units\":{},",
+                "\"budget_contract\":{}",
+            "},",
+            "\"hard_gates\":{",
+                "\"geometry\":\"not_evaluated\",",
+                "\"resource\":{},",
+                "\"precedence\":{},",
+                "\"causality\":\"not_evaluated\",",
+                "\"receipt_integrity\":\"not_evaluated\"",
+            "},",
+            "\"metrics\":[{}],",
+            "\"artifact_digests\":{},",
+            "\"supersedes_record_id\":null,",
+            "\"adapter_detail\":{",
+                "\"policy_status\":{},",
+                "\"abstract_audit_status\":{},",
+                "\"abstract_feasibility_scope\":\"unary_resource_time_v0\",",
+                "\"makespan_tick\":{},",
+                "\"total_tardiness_ticks\":{},",
+                "\"occupied_resource_ticks\":{},",
+                "\"completed_operation_count\":{},",
+                "\"assigned_operation_count\":{},",
+                "\"mandatory_operation_count\":{},",
+                "\"missing_operation_ids\":[{}],",
+                "\"assignments\":[{}],",
+                "\"audit_diagnostics\":[{}],",
+                "\"policy_diagnostics\":[{}],",
+                "\"abstract_audit_passed\":{}",
+            "}",
+            "}"
+        ),
+        record_id,
+        context.synthetic_example,
+        json_quote(&context.benchmark_release_id),
+        json_quote(&method_id),
+        json_quote(&context.episode_id),
+        json_quote(&context.replicate_id),
+        json_quote(status),
+        json_quote(reason),
+        json_quote(&context.initial_state_sha256.to_ascii_lowercase()),
+        json_quote(&context.disturbance_tape_sha256.to_ascii_lowercase()),
+        json_quote(&context.method_config_sha256.to_ascii_lowercase()),
+        json_quote(&context.evaluator_revision),
+        context.wall_time_limit_ms,
+        context.decision_compute_budget_units,
+        json_quote(&budget_contract),
+        json_quote(resource_gate_status(result)),
+        json_quote(precedence_gate_status(result)),
+        metrics,
+        json_quote(policy_status_id(result.policy_status)),
+        json_quote(match result.audit.status {
+            shipyard_dispatch_audit::AuditStatus::AbstractFeasible => "abstract_feasible",
+            shipyard_dispatch_audit::AuditStatus::Rejected => "rejected",
+        }),
+        makespan_value,
+        result.audit.metrics.total_tardiness_ticks,
+        result.audit.metrics.occupied_resource_ticks,
+        result.audit.metrics.completed_operation_count,
+        result.audit.metrics.assigned_operation_count,
+        result.audit.metrics.mandatory_operation_count,
+        missing,
+        assignments,
+        diagnostics,
+        policy_diagnostics,
+        result.audit.status == shipyard_dispatch_audit::AuditStatus::AbstractFeasible
+    )
 }
 
-/// Produce deterministic JSON Lines, one row per rule outcome, preserving all
-/// rejected and partial results. The caller must append these bytes to the
-/// experiment ledger and retain the exact source/runner receipt separately.
-///
-/// A "feasible" row is explicitly scoped to the current abstract evaluator; it
-/// must not be presented as spatial/physical yard feasibility.
+/// Produce deterministic JSON Lines, one raw-run record per baseline outcome.
+/// The row uses the result-ledger v0 envelope. Because this adapter does not
+/// execute full geometry, causal replay, or receipt-integrity gates, even an
+/// abstract-model pass is terminally incomplete, never a physical feasible claim.
+/// The caller must append these rows and retain exact runner receipts separately.
 pub fn serialize_result_ledger(
     context: &ExperimentLedgerContext,
     results: &[EvaluatedRule],
@@ -539,6 +693,7 @@ pub fn serialize_result_ledger(
         ("episode_id", context.episode_id.as_str()),
         ("replicate_id", context.replicate_id.as_str()),
         ("budget_profile_id", context.budget_profile_id.as_str()),
+        ("budget_contract", context.budget_contract.as_str()),
         ("policy_revision", context.policy_revision.as_str()),
         ("evaluator_revision", context.evaluator_revision.as_str()),
     ] {
@@ -548,6 +703,7 @@ pub fn serialize_result_ledger(
     }
     require_digest("initial_state_sha256", &context.initial_state_sha256)?;
     require_digest("disturbance_tape_sha256", &context.disturbance_tape_sha256)?;
+    require_digest("method_config_sha256", &context.method_config_sha256)?;
 
     if results.len() != 4 {
         return Err(format!(
