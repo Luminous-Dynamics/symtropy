@@ -192,7 +192,7 @@ fn verify_scenario_semantics(
                     if !amount.is_finite() || amount < 0.0 || amount.fract() != 0.0 {
                         return Err(invalid("parent requested service quantity must be an integral non-negative value"));
                     }
-                    if essential_ids.iter().any(|id| id == service_id) {
+                    if essential_ids.iter().any(|id| id.as_str() == service_id) {
                         if observed != amount * 2.0 {
                             return Err(invalid("essential demand surge is not exactly 2x the parent load"));
                         }
