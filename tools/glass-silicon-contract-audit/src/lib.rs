@@ -264,6 +264,166 @@ pub fn audit_feasibility_corpus(corpus: &Value) -> FeasibilityAuditReport {
     }
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct GroupedSplitAuditReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub records_checked: usize,
+    pub grouping_fields: Vec<String>,
+    pub split_counts: BTreeMap<String, usize>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl GroupedSplitAuditReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+const GROUPED_SPLIT_NAMES: [&str; 3] = ["train", "validation", "test"];
+
+fn is_stable_group_field(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|ch| {
+            ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-' || ch == '_'
+        })
+}
+
+/// Audits an assignment-only manifest for group leakage across train/validation/test.
+/// No outcome labels or predictor features are accepted in this manifest: it contains
+/// record identity, split assignment and the declared grouping keys only.
+pub fn audit_grouped_split_manifest(manifest: &Value) -> GroupedSplitAuditReport {
+    let mut findings = Vec::new();
+    let benchmark_id = object_string(manifest, "benchmark_id").map(ToOwned::to_owned);
+    let claim_ceiling = object_string(manifest, "claim_ceiling")
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("Synthetic split-manifest control only; no model performance or leakage-free training pipeline is validated.")
+        .to_string();
+    if !feasibility_exact_object_keys(
+        manifest,
+        &["benchmark_id", "evidence_class", "claim_ceiling", "required_group_fields", "allowed_splits", "records"],
+        &["benchmark_id", "evidence_class", "claim_ceiling", "required_group_fields", "allowed_splits", "records"],
+    ) {
+        findings.push("SPLIT_ROOT_KEYS:missing or unknown top-level fields".to_string());
+    }
+    if benchmark_id.as_deref().map_or(true, |value| !is_stable_slug(value)) {
+        findings.push("SPLIT_BENCHMARK_ID:missing or invalid benchmark_id".to_string());
+    }
+    if object_string(manifest, "evidence_class") != Some("synthetic") {
+        findings.push("SPLIT_EVIDENCE_CLASS:contract fixture must be explicitly synthetic".to_string());
+    }
+    if object_string(manifest, "claim_ceiling").map_or(true, |value| value.trim().is_empty()) {
+        findings.push("SPLIT_CLAIM_CEILING:claim ceiling must be non-empty".to_string());
+    }
+
+    let required_fields = manifest.get("required_group_fields")
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect::<Vec<_>>());
+    let mut group_fields = required_fields.unwrap_or_default();
+    let mut unique_fields = BTreeSet::new();
+    if group_fields.is_empty()
+        || group_fields.iter().any(|field| !is_stable_group_field(field) || !unique_fields.insert(field.clone()))
+    {
+        findings.push("SPLIT_GROUP_FIELDS:required grouping fields must be non-empty, stable, unique keys".to_string());
+    }
+    group_fields.sort();
+    group_fields.dedup();
+
+    let allowed = manifest.get("allowed_splits")
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).collect::<Vec<_>>());
+    if allowed.as_deref() != Some(GROUPED_SPLIT_NAMES.as_slice()) {
+        findings.push("SPLIT_NAMES:split names must be exactly train, validation, test in that order".to_string());
+    }
+
+    let mut split_counts = GROUPED_SPLIT_NAMES.iter()
+        .map(|split| (split.to_string(), 0usize))
+        .collect::<BTreeMap<_, _>>();
+    let records = manifest.get("records").and_then(Value::as_array);
+    let records_checked = records.map_or(0, Vec::len);
+    if records.map_or(true, |items| items.is_empty()) {
+        findings.push("SPLIT_RECORDS:at least one assigned record is required".to_string());
+    }
+
+    let mut seen_record_ids = BTreeSet::new();
+    let mut group_splits: BTreeMap<(String, String), String> = BTreeMap::new();
+    if let Some(records) = records {
+        for (index, record) in records.iter().enumerate() {
+            let record_id = object_string(record, "record_id").unwrap_or("").to_string();
+            let split = object_string(record, "split").unwrap_or("");
+            let mut record_valid = true;
+            if !feasibility_exact_object_keys(record, &["record_id", "split", "group_keys"], &["record_id", "split", "group_keys"]) {
+                findings.push(format!("SPLIT_RECORD_KEYS:index {index} has missing or unknown fields (labels and predictor features do not belong in the split manifest)"));
+                record_valid = false;
+            }
+            if !is_stable_slug(&record_id) || !seen_record_ids.insert(record_id.clone()) {
+                findings.push(format!("SPLIT_RECORD_ID:index {index} has missing, invalid or duplicate record_id"));
+                record_valid = false;
+            }
+            if !GROUPED_SPLIT_NAMES.contains(&split) {
+                findings.push(format!("SPLIT_ASSIGNMENT:{record_id} has unknown or missing split"));
+                record_valid = false;
+            } else if let Some(count) = split_counts.get_mut(split) {
+                *count += 1;
+            }
+
+            let group_keys = record.get("group_keys").and_then(Value::as_object);
+            let expected_keys: BTreeSet<String> = group_fields.iter().cloned().collect();
+            let actual_keys: BTreeSet<String> = group_keys
+                .into_iter()
+                .flat_map(|object| object.keys().cloned())
+                .collect();
+            if group_keys.is_none() || actual_keys != expected_keys {
+                findings.push(format!("SPLIT_GROUP_CENSUS:{record_id} must have exactly the required group keys"));
+                record_valid = false;
+            }
+            if record_valid {
+                if let Some(group_keys) = group_keys {
+                    for field in &group_fields {
+                        let value = group_keys.get(field).and_then(Value::as_str).unwrap_or("");
+                        if value.trim().is_empty() {
+                            findings.push(format!("SPLIT_GROUP_VALUE:{record_id}/{field} is empty or not a string"));
+                            continue;
+                        }
+                        let key = (field.clone(), value.to_string());
+                        if let Some(first_split) = group_splits.get(&key) {
+                            if first_split != split {
+                                findings.push(format!("GROUP_LEAKAGE:{field}={value} crosses {first_split} and {split}"));
+                            }
+                        } else {
+                            group_splits.insert(key, split.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for split in GROUPED_SPLIT_NAMES {
+        if split_counts.get(split).copied().unwrap_or(0) == 0 {
+            findings.push(format!("SPLIT_EMPTY:{split} has no assigned records"));
+        }
+    }
+
+    findings.sort();
+    findings.dedup();
+    GroupedSplitAuditReport {
+        status: if findings.is_empty() { "PASS".to_string() } else { "FAIL".to_string() },
+        audit_kind: "synthetic_grouped_split_manifest".to_string(),
+        benchmark_id,
+        records_checked,
+        grouping_fields: group_fields,
+        split_counts,
+        findings,
+        claim_ceiling,
+    }
+}
+
 fn object_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.as_object()?.get(key)?.as_str()
 }
