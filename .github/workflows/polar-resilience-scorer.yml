@@ -99,6 +99,7 @@ jobs:
                .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
                .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
+               (.service_results | length == 3) and
                (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1) and
             ([.policy_results[] | select(.policy_id == "candidate_full_service") | .service_results[] | select(.service_id == "water" and .active_in_all_scenarios and .service_floor_breach_scenario_count > 0 and .worst_case_service_shortfall > 0 and (.scenario_outcomes | length == 3))] | length == 1)
           ' /tmp/polar-robust-set-report.json
