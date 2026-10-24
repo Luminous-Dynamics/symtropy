@@ -74,7 +74,7 @@ jobs:
           grep -q 'SHA-256 fingerprint of the raw manifest bytes' "$protocol"
           grep -q 'audit-false-feasible-bound <summary.json>' "$protocol"
           grep -q 'Hoeffding upper confidence bound' "$protocol"
-          grep -q '600 independent negative units' "$protocol"
+          grep -q '600 independent negative groups' "$protocol"
           echo "Feasibility-gate protocol structural controls: PASS"
 
       - name: Audit grouped-split leakage manifest
