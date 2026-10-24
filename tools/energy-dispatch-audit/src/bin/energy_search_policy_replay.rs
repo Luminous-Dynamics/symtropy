@@ -271,8 +271,8 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         || required_str(&robustness, "schema_version")? != ROBUSTNESS_SCHEMA
         || required_str(&robustness, "status")? != "pass"
         || required_str(&robustness, "matrix_id")? != "energy-candidate-scenario-matrix-v0.1"
-        || required_str(&robustness, "source_matrix_sha256")? != matrix_digest
-        || required_str(&robustness, "source_design_space_manifest_sha256")? != manifest_digest
+        || required_str(&robustness, "source_matrix_sha256")? != matrix_digest.as_str()
+        || required_str(&robustness, "source_design_space_manifest_sha256")? != manifest_digest.as_str()
         || required_str(&matrix, "design_space_manifest_sha256")? != manifest_digest
         || matrix["all_passed"].as_bool() != Some(true)
         || required_u64(&matrix, "expected_row_count")? != 195
@@ -288,9 +288,12 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         || required_u64(&robustness, "scenario_count")? != 5
         || required_u64(&robustness, "observed_row_count")? != 195
         || required_u64(&robustness, "failed_or_unknown_row_count")? != 0
-        || required_str(&ledger["candidate_scenario_matrix"], "robustness_report_sha256")? != robustness_digest
-        || required_str(&ledger["candidate_scenario_matrix"], "matrix_report_sha256")? != matrix_digest
+        || required_str(&ledger["candidate_scenario_matrix"], "robustness_report_sha256")? != robustness_digest.as_str()
+        || required_str(&ledger["candidate_scenario_matrix"], "matrix_report_sha256")? != matrix_digest.as_str()
+        || required_str(&ledger["candidate_scenario_matrix"], "robustness_source_matrix_sha256")? != matrix_digest.as_str()
         || ledger["candidate_scenario_matrix"]["all_passed"].as_bool() != Some(true)
+        || required_u64(&ledger["candidate_scenario_matrix"], "expected_row_count")? != 195
+        || required_u64(&ledger["candidate_scenario_matrix"], "passing_row_count")? != 195
         || required_u64(&ledger["candidate_scenario_matrix"], "failed_or_unknown_row_count")? != 0
         || required_u64(&ledger["candidate_scenario_matrix"], "robustness_candidate_count")? != 39
         || required_u64(&ledger["candidate_scenario_matrix"], "robustness_scenario_count")? != 5
