@@ -24,7 +24,8 @@ serde_json = "1"
 # Give it an explicit workspace root so Cargo doesn't reject the excluded package.
 [workspace]
 
-# Ensure all transitive dependants use the same real Symthaea crate as the robotics
-# bridge; otherwise duplicate registry/path copies define incompatible Rust types.
+# Use one source checkout for shared Symthaea types in this dual-checkout integration.
+# Otherwise Cargo can compile registry and path copies of ConsciousnessInputs as
+# distinct Rust types, causing E0308 at cross-crate API boundaries.
 [patch.crates-io]
 symthaea-consciousness-equation = { path = "../../../symthaea/crates/domains/symthaea-consciousness-equation" }
