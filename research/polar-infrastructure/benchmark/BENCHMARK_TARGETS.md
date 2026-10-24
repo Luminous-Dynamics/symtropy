@@ -45,6 +45,20 @@ These are goals for a future preregistered experiment—not current results. Fre
 
 Compare against the strongest *eligible* baseline, never a selectively weak one. Report absolute values beside percentages. A 10% relative gain may be trivial at low absolute risk; owners must also set absolute service minima. Use episode/block-level uncertainty methods that preserve temporal correlation; do not treat each timestep as an independent sample. If too few independent sites or severe events exist, state that limitation rather than manufacture statistical power.
 
+## Long-horizon resilience: benchmark the trajectory, not just the storm
+
+A further paradigm shift is to evaluate a **continuous operating trajectory across seasons and repeated hazards**, not just one representative outage at a time. Recent research argues that event-by-event resilience can be hard to interpret for climate risks that evolve across decades; the benchmark should therefore keep event-specific tests, while also measuring system performance across long horizons and multiple plausible futures ([Nature Reviews Electrical Engineering, 2026](https://www.nature.com/articles/s44287-026-00322-6)). Related resilience-curve research emphasizes event-level outage volume, nadir, duration, and restoration dynamics that time-averaged statistics can conceal ([2026 review](https://pmc.ncbi.nlm.nih.gov/articles/PMC12905357/)).
+
+Protocol requirements for a future trajectory-capable simulator:
+- Carry state continuously across events: battery state of charge, thermal storage, fuel, water reserves, equipment wear, repair queues, spare inventory, and forecast/telemetry state. Never silently reset resources between storms.
+- Separate seasonal weather sequences from independent stress-injection tests. Label whether the sequence is observed, calibrated, generated, or adversarially constructed.
+- Score the whole horizon and each event window: critical-service shortfall, total and longest consecutive breach duration, breach-window counts, time to first breach, recovery, reserve exhaustion, lifecycle fuel/resupply, and maintenance backlog.
+- Use multiple climate/resource futures and sensitivity bounds. Do not claim future occurrence probabilities unless their estimation is justified; use probability-free scenario envelopes where they are not.
+- Preserve cold-start, black-start, and replenishment transitions between windows. A later storm should encounter whatever state the earlier event leaves behind.
+- Freeze the scenario generator and seeds before final evaluation; separately report coverage of hazard families and compound dependencies rather than assuming a finite scenario list is exhaustive.
+
+This protocol is a proposed next step, not a feature already implemented by this trace scorer. The current scorer preserves temporal ordering in provided traces, but it neither generates weather nor simulates equipment state or multi-year asset degradation.
+
 ## Frozen hazard and fault matrix
 
 Start from `../STRESSOR_MEASUREMENT_MATRIX.md`. Use traceable cases and compound event sequences, not only isolated faults:
