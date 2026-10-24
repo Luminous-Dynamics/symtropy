@@ -9,7 +9,6 @@ use symthaea_multirotor::{pid_baseline, PdGains, PidState, PhysicsSimulator};
 use symtropy_real_symthaea_physics_loop::{
     scenario_matrix::{scenarios_for_split, ScenarioSplit},
     plant_config::PlantConfiguration,
-    symtropy_flight::SymtropyFlightSimulator,
     transition_residual::{LinearTransitionResidual, NominalLinearDynamics},
 };
 
