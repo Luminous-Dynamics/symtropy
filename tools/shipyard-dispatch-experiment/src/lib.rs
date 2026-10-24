@@ -615,6 +615,15 @@ fn metric_record(
     )
 }
 
+fn method_config_artifact(context: &ExperimentLedgerContext, result: &EvaluatedRule) -> String {
+    format!(
+        "{{\"artifact_kind\":\"shipyard-method-config-v0\",\"base_config_sha256\":{},\"dispatch_rule\":{},\"policy_revision\":{},\"policy_input_boundary\":\"delivered_observations_at_decision_tick\",\"resource_model\":\"unary_capacity_by_kind\",\"interval_semantics\":\"[start_tick,end_tick)\",\"partial_is_infeasible_proof\":false}}",
+        json_quote(&context.base_method_config_sha256.to_ascii_lowercase()),
+        json_quote(rule_id(result.rule)),
+        json_quote(&context.policy_revision)
+    )
+}
+
 fn encode_result(
     context: &ExperimentLedgerContext,
     result: &EvaluatedRule,
@@ -697,6 +706,7 @@ fn encode_result(
             "}},",
             "\"metrics\":[{}],",
             "\"artifact_digests\":{{",
+                "\"method_config_sha256\":{},",
                 "\"candidate_schedule_sha256\":{},",
                 "\"independent_audit_sha256\":{}",
             "}},",
@@ -721,6 +731,7 @@ fn encode_result(
         json_quote(resource_gate_status(result)),
         json_quote(precedence_gate_status(result)),
         metrics,
+        json_quote(method_config_digest),
         json_quote(candidate_digest),
         json_quote(audit_digest)
     )
@@ -768,8 +779,17 @@ pub fn build_result_ledger_bundle(
     let mut ordered: Vec<&EvaluatedRule> = results.iter().collect();
     ordered.sort_by_key(|result| rule_id(result.rule));
     let mut ledger_jsonl = String::new();
-    let mut artifacts = Vec::with_capacity(ordered.len() * 2);
+    let mut artifacts = Vec::with_capacity(ordered.len() * 3);
     for result in ordered {
+        let method_config = method_config_artifact(context, result);
+        let method_config_digest = sha256_hex(method_config.as_bytes());
+        artifacts.push(LedgerArtifact {
+            file_name: format!("method-config-{method_config_digest}.json"),
+            sha256: method_config_digest.clone(),
+            media_type: "application/json".to_owned(),
+            contents: method_config,
+        });
+
         let candidate = candidate_artifact(context, result);
         let candidate_sha256 = sha256_hex(candidate.as_bytes());
         artifacts.push(LedgerArtifact {
@@ -791,6 +811,7 @@ pub fn build_result_ledger_bundle(
         ledger_jsonl.push_str(&encode_result(
             context,
             result,
+            &method_config_digest,
             &candidate_sha256,
             &audit_sha256,
         ));
