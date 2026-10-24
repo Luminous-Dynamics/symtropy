@@ -619,6 +619,24 @@ mod tests {
         assert_eq!(fragmented_policy.system_floor_breach_episode_count, 2);
         assert_eq!(contiguous_policy.longest_consecutive_system_floor_breach_hours, 2.0);
         assert_eq!(fragmented_policy.longest_consecutive_system_floor_breach_hours, 1.0);
+        assert_eq!(contiguous_policy.time_to_first_system_floor_breach_hours, Some(0.0));
+        assert_eq!(fragmented_policy.time_to_first_system_floor_breach_hours, Some(0.0));
+
+        let mut delayed = fixture();
+        set_heat_trace(&mut delayed, [10.0, 10.0, 0.0, 0.0]);
+        let delayed_report = score(&delayed).expect("delayed breach trace should score");
+        let delayed_policy = delayed_report.results.iter()
+            .find(|p| p.policy_id == "candidate_full_service").unwrap();
+        assert_eq!(delayed_policy.time_to_first_system_floor_breach_hours, Some(2.0));
+        let delayed_heat = delayed_policy.services.iter()
+            .find(|service| service.service_id == "heat").unwrap();
+        assert_eq!(delayed_heat.time_to_first_floor_breach_hours, Some(2.0));
+
+        let no_breach_report = score(&fixture()).expect("nominal trace should score");
+        let no_breach = no_breach_report.results.iter()
+            .find(|p| p.policy_id == "candidate_full_service").unwrap();
+        assert_eq!(no_breach.time_to_first_system_floor_breach_hours, None);
+        assert!(no_breach.services.iter().all(|service| service.time_to_first_floor_breach_hours.is_none()));
     }
 
     #[test]
