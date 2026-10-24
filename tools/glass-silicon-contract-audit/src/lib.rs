@@ -3682,6 +3682,8 @@ struct RelationshipGraphEdge {
 
 const RELATIONSHIP_SPLITS: [&str; 3] = ["train", "validation", "test"];
 const RELATIONSHIP_STATES: [&str; 4] = ["verified", "candidate", "contradicted", "unknown"];
+const PROVENANCE_IDENTITY_V0_EDGE_TYPES: [&str; 3] =
+    ["derived_from", "replicate_of", "same_record"];
 
 fn relationship_exact_keys(value: &Value, keys: &[&str]) -> bool {
     let Some(object) = value.as_object() else {
@@ -3904,6 +3906,21 @@ pub fn audit_relationship_graph(graph: &Value) -> RelationshipGraphAuditReport {
     if leakage_types.is_empty() {
         findings.push("RELATION_EDGE_PROFILE:at least one leakage edge type is required".to_string());
         hard_failure = true;
+    }
+    match relation_profile.as_deref() {
+        Some("provenance_identity_v0") => {
+            let registered = PROVENANCE_IDENTITY_V0_EDGE_TYPES
+                .iter().map(|edge_type| edge_type.to_string()).collect::<BTreeSet<_>>();
+            if leakage_types != registered {
+                findings.push("RELATION_PROFILE_EDGE_MISMATCH:provenance_identity_v0 requires the registered derived_from, replicate_of, and same_record edge types".to_string());
+                hard_failure = true;
+            }
+        }
+        Some(profile) if relationship_stable_id(profile) => {
+            findings.push(format!("RELATION_PROFILE_UNREGISTERED:{profile} has no frozen v0.1 edge contract"));
+            unresolved = true;
+        }
+        _ => {}
     }
 
     let nodes_value = graph.get("nodes").and_then(Value::as_array);
@@ -4268,6 +4285,24 @@ mod relationship_graph_tests {
         let report = audit_relationship_graph(&graph);
         assert_eq!(report.status, "FAIL");
         assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_ASSIGNMENT_NOT_REQUIRED:feature-a")));
+    }
+
+    #[test]
+    fn registered_profile_cannot_drop_a_required_leakage_edge_type() {
+        let mut graph = valid_graph();
+        graph["leakage_edge_types"] = json!(["same_record"]);
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_PROFILE_EDGE_MISMATCH:")));
+    }
+
+    #[test]
+    fn unregistered_relation_profile_is_unresolved() {
+        let mut graph = valid_graph();
+        graph["relation_profile"] = json!("custom_profile_v9");
+        let report = audit_relationship_graph(&graph);
+        assert_eq!(report.status, "UNRESOLVED");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RELATION_PROFILE_UNREGISTERED:")));
     }
 
     #[test]
