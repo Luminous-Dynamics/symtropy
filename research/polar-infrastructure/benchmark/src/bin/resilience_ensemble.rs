@@ -60,6 +60,7 @@ struct EnsemblePolicyScore {
 struct ScenarioPolicyOutcome {
     scenario_id: String,
     probability: f64,
+    scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     service_shortfall: f64,
     gate_pass: bool,
@@ -73,6 +74,7 @@ struct ScenarioPolicyOutcome {
 struct Observation {
     scenario_id: String,
     probability: f64,
+    scenario_duration_hours: f64,
     weighted_service_fraction: f64,
     shortfall: f64,
     gate_pass: bool,
@@ -172,7 +174,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
         } else {
             expected_policies = Some(policies);
         }
-        scored_scenarios.push((scenario.scenario_id.clone(), scenario.probability, report.results));
+        scored_scenarios.push((scenario.scenario_id.clone(), scenario.probability, report.episode_duration_hours, report.results));
     }
 
     if (probability_sum - 1.0).abs() > 1e-9 {
@@ -184,13 +186,14 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
 
     for (policy_id, (method_family, fuel_unit)) in policy_map {
         let mut observations = Vec::with_capacity(scored_scenarios.len());
-        for (scenario_id, probability, scores) in &scored_scenarios {
+        for (scenario_id, probability, scenario_duration_hours, scores) in &scored_scenarios {
             let p: &PolicyScore = scores.iter().find(|s| s.policy_id == policy_id)
                 .ok_or_else(|| format!("policy {policy_id} missing from a scenario"))?;
             let shortfall = (1.0 - p.weighted_service_fraction).clamp(0.0, 1.0);
             observations.push(Observation {
                 scenario_id: scenario_id.clone(),
                 probability: *probability,
+                scenario_duration_hours: *scenario_duration_hours,
                 weighted_service_fraction: p.weighted_service_fraction,
                 shortfall,
                 gate_pass: p.gate_pass,
@@ -238,6 +241,7 @@ fn aggregate(input: &EnsembleInput) -> Result<EnsembleReport, String> {
         let scenario_outcomes = observations.iter().map(|o| ScenarioPolicyOutcome {
             scenario_id: o.scenario_id.clone(),
             probability: o.probability,
+            scenario_duration_hours: o.scenario_duration_hours,
             weighted_service_fraction: o.weighted_service_fraction,
             service_shortfall: o.shortfall,
             gate_pass: o.gate_pass,
