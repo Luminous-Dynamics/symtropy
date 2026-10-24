@@ -543,14 +543,16 @@ fn run_negative_control_suite(
     let p = find_policy_position(&mutant, "wait_and_see_oracle_noncausal_reference")?;
     let first_action = mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"].clone();
     let second_action = mutant["known_answer_traces"][p]["traces"][1]["steps"][0]["action"].clone();
-    mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"] = second_action;
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"] = second_action.clone();
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][1]["observable_prefix_id"] = Value::String("early-outage-revealed-soc0".to_owned());
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][1]["information_set_id"] = Value::String("early-outage-revealed-soc0-t1".to_owned());
     let detected = mutation_is_rejected(&mutant);
     results.push(NegativeControlResult {
         control_id: GATE_OWNED_NEGATIVE_CONTROLS[0].to_owned(),
         scope: "nonanticipativity_gate".to_owned(),
         status: if detected { "detected".to_owned() } else { "missed".to_owned() },
         mutation_variants: 1,
-        detected_variants: usize::from(detected),
+        detected_variants: if detected { 1 } else { 0 },
         note: format!("wait-and-see initial action was changed from {first_action} to {second_action}"),
     });
 
@@ -609,7 +611,7 @@ fn run_negative_control_suite(
     let normal_t = find_trace_position(&omitted["known_answer_traces"][hold_p], "no_outage")?;
     omitted["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
         .ok_or_else(|| invalid("steps must be an array"))?.pop();
-    variants_detected += usize::from(mutation_is_rejected(&omitted));
+    variants_detected += if mutation_is_rejected(&omitted) { 1 } else { 0 };
 
     let mut duplicated = fixture.clone();
     let hold_p = find_policy_position(&duplicated, "causal_policy_hold_for_critical")?;
@@ -617,7 +619,7 @@ fn run_negative_control_suite(
     let repeated = duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"][0].clone();
     duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
         .ok_or_else(|| invalid("steps must be an array"))?.push(repeated);
-    variants_detected += usize::from(mutation_is_rejected(&duplicated));
+    variants_detected += if mutation_is_rejected(&duplicated) { 1 } else { 0 };
     results.push(NegativeControlResult {
         control_id: GATE_OWNED_NEGATIVE_CONTROLS[4].to_owned(),
         scope: "nonanticipativity_gate".to_owned(),
