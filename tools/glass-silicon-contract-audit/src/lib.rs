@@ -4789,6 +4789,15 @@ mod acquisition_policy_comparison_tests {
     }
 
     #[test]
+    fn unsupported_acquisition_policy_protocol_version_fails_closed() {
+        let mut value = fixture();
+        value["acquisition_policy_comparison"]["protocol_version"] = json!(2);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("POLICY_PROTOCOL_VERSION:")));
+    }
+
+    #[test]
     fn insufficient_random_seed_count_fails_closed() {
         let mut value = fixture();
         value["acquisition_policy_comparison"]["random_seeds"] = json!([7, 11, 13, 17, 19, 23, 29, 31, 37]);
@@ -4800,10 +4809,12 @@ mod acquisition_policy_comparison_tests {
     #[test]
     fn all_policies_must_obey_cost_and_duration_caps() {
         let mut value = fixture();
-        value["max_duration_seconds"] = json!(15.0);
+        value["max_duration_seconds"] = json!(25.0);
         let report = audit_acquisition_policy_comparison(&value);
-        assert_eq!(report.status, "FAIL");
-        assert!(report.findings.iter().any(|finding| finding.starts_with("NO_BUDGET_ELIGIBLE_MEASUREMENTS:")));
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.budget_eligible_measurements, 1);
+        assert!(report.policies.iter().flat_map(|policy| policy.runs.iter())
+            .all(|run| run.selected_measurement_id.as_deref() == Some("measure-regime")));
     }
 
     #[test]
