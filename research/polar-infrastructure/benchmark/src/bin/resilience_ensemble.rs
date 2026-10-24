@@ -291,8 +291,8 @@ mod tests {
     #[test]
     fn reports_temporal_persistence_of_compound_service_failures() {
         let mut input = fixture();
-        let scenario = &mut input.scenarios[0];
-        let candidate = scenario.score_input.policy_runs.iter_mut()
+        let scenario_id = input.scenarios[0].scenario_id.clone();
+        let candidate = input.scenarios[0].score_input.policy_runs.iter_mut()
             .find(|p| p.policy_id == "candidate_full_service").unwrap();
         candidate.steps[0].delivered.insert("heat".to_string(), 0.0);
         candidate.steps[1].delivered.insert("heat".to_string(), 0.0);
@@ -303,7 +303,7 @@ mod tests {
         assert!(result.worst_case_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.expected_consecutive_system_floor_breach_hours > 0.0);
         let first = result.scenario_outcomes.iter()
-            .find(|outcome| outcome.scenario_id == scenario.scenario_id).unwrap();
+            .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
         assert!(first.longest_consecutive_system_floor_breach_hours >= 2.0);
     }
 
