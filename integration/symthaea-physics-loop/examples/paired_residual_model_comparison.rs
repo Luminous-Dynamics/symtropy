@@ -125,12 +125,25 @@ fn ensure_receipts_match(ridge: &Value, hdc: &Value, mlp: &Value, history: &Valu
         assert_eq!(required_usize(&mlp_eval[field], &format!("mlp.evaluation.{field}")), expected, "test horizon mismatch");
         assert_eq!(required_usize(&history_eval[field], &format!("history.evaluation.{field}")), expected, "test horizon mismatch");
     }
+    let stateless_eval = &hdc["stateless_state_ablation"]["evaluation"];
+    assert_eq!(required_string(&stateless_eval["split"], "stateless HDC split"), "test");
+    assert_eq!(required_string(&hdc["stateless_state_ablation"]["claim_ceiling"], "stateless HDC claim ceiling"),
+        "HDC_encoder_with_encoder_derivative_history_but_no_persistent_LTC_recurrent_state_one_step_prediction_only");
+    assert_eq!(required_string(&hdc["stateless_state_ablation"]["state_policy"], "stateless HDC state policy"),
+        "reset LTC network immediately before each transition; preserve HDC encoder derivative history within episode");
+    assert_eq!(hdc["stateless_state_ablation"]["training"]["same_transition_targets_as_persistent_arm"], true);
+    for field in ["episodes_requested", "steps_per_episode"] {
+        assert_eq!(required_usize(&stateless_eval[field], &format!("stateless.evaluation.{field}")),
+            required_usize(&ridge_eval[field], &format!("ridge.evaluation.{field}")), "stateless horizon mismatch");
+    }
     assert_eq!(ridge_eval["scenario_ids"], hdc_eval["test_scenario_ids"], "HDC test scenario catalogue mismatch");
     assert_eq!(ridge_eval["scenario_ids"], mlp_eval["test_scenario_ids"], "MLP test scenario catalogue mismatch");
     assert_eq!(ridge_eval["scenario_ids"], history_eval["test_scenario_ids"], "history test scenario catalogue mismatch");
+    assert_eq!(ridge_eval["scenario_ids"], stateless_eval["test_scenario_ids"], "stateless HDC scenario catalogue mismatch");
     assert_eq!(ridge_eval["nominal_model"], hdc_eval["nominal_model"], "HDC nominal-model parameters mismatch");
     assert_eq!(ridge_eval["nominal_model"], mlp_eval["nominal_model"], "MLP nominal-model parameters mismatch");
     assert_eq!(ridge_eval["nominal_model"], history_eval["nominal_model"], "history nominal-model parameters mismatch");
+    assert_eq!(ridge_eval["nominal_model"], stateless_eval["nominal_model"], "stateless HDC nominal-model parameters mismatch");
 }
 
 fn grouped_indices(episodes: &[EpisodeScore]) -> BTreeMap<&str, Vec<usize>> {
@@ -263,9 +276,12 @@ fn main() {
     let history_root = read_json_env("STFR_HISTORY_MLP_OUTPUT_PATH");
     ensure_receipts_match(&ridge_root, &hdc_root, &mlp_root, &history_root);
 
+    let mut stateless_hdc_root = hdc_root.clone();
+    stateless_hdc_root["evaluation"] = hdc_root["stateless_state_ablation"]["evaluation"].clone();
+
     let episodes_requested = required_usize(&ridge_root["evaluation"]["episodes_requested"], "ridge episodes");
     let steps_per_episode = required_usize(&ridge_root["evaluation"]["steps_per_episode"], "ridge steps");
-    for (label, root) in [("hdc", &hdc_root), ("mlp", &mlp_root), ("history", &history_root)] {
+    for (label, root) in [("hdc", &hdc_root), ("mlp", &mlp_root), ("history", &history_root), ("stateless_hdc", &stateless_hdc_root)] {
         assert_eq!(episodes_requested, required_usize(&root["evaluation"]["episodes_requested"], &format!("{label} episodes")));
     }
 
@@ -273,7 +289,8 @@ fn main() {
     let hdc = read_episodes(&hdc_root, "hdc", steps_per_episode);
     let mlp = read_episodes(&mlp_root, "mlp", steps_per_episode);
     let history = read_episodes(&history_root, "history", steps_per_episode);
-    for (label, rows) in [("ridge", &ridge), ("hdc", &hdc), ("mlp", &mlp), ("history", &history)] {
+    let stateless_hdc = read_episodes(&stateless_hdc_root, "stateless_hdc", steps_per_episode);
+    for (label, rows) in [("ridge", &ridge), ("hdc", &hdc), ("mlp", &mlp), ("history", &history), ("stateless_hdc", &stateless_hdc)] {
         assert_eq!(rows.len(), episodes_requested, "{label} episode count mismatch");
     }
 
@@ -282,6 +299,7 @@ fn main() {
             ("hdc", &hdc[index]),
             ("mlp", &mlp[index]),
             ("history", &history[index]),
+            ("stateless_hdc", &stateless_hdc[index]),
         ] {
             assert_eq!(ridge[index].seed_hex, other.seed_hex, "seed mismatch in {label} episode {index}");
             assert_eq!(ridge[index].scenario_id, other.scenario_id, "scenario mismatch in {label} episode {index}");
