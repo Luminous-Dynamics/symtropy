@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Relationship Graph v0.1",
+  "description": "Typed evidence relationships and split assignments for synthetic, offline benchmark audits. Schema validity does not certify source truth or rights.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "relation_profile",
+    "leakage_edge_types",
+    "allowed_splits",
+    "nodes",
+    "edges",
+    "assignments"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "evidence_class": {"type": "string", "minLength": 1},
+    "claim_ceiling": {"type": "string", "minLength": 1},
+    "relation_profile": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "leakage_edge_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      }
+    },
+    "allowed_splits": {
+      "const": ["train", "validation", "test"]
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "node_kind"],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "node_kind": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "target_id", "edge_type", "state", "evidence_refs"],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "edge_type": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "state": {
+            "enum": ["verified", "candidate", "contradicted", "unknown"]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"state": {"const": "verified"}},
+              "required": ["state"]
+            },
+            "then": {
+              "properties": {"evidence_refs": {"minItems": 1}}
+            }
+          }
+        ]
+      }
+    },
+    "assignments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "split"],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "split": {
+            "enum": ["train", "validation", "test"]
+          }
+        }
+      }
+    }
+  }
+}
