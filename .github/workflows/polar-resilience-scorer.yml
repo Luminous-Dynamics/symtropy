@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- \
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- \
             research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json > /tmp/polar-ensemble-report.json
           jq -e '
             .report_kind == "polar-resilience-ensemble-report" and
@@ -67,12 +67,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- \
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- \
             research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json > /tmp/polar-robust-set-report.json
           jq -e '
             .report_kind == "polar-resilience-robust-set-report" and
             .evidence_class == "synthetic_only" and
             .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
+            .pareto_comparison_status == "complete" and
             .scenario_count == 3 and
             (.policy_results | length == 4) and
             ([.policy_results[] | select(.policy_id == "candidate_full_service") |
