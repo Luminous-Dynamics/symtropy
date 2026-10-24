@@ -348,6 +348,18 @@ The first comparator harness is now present in the standalone Rust tool:
 
 `cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json`
 
+Input contract: [glass-acquisition-policy-comparison-v0.1.schema.json](./glass-acquisition-policy-comparison-v0.1.schema.json). The fixture gives every candidate four explicit, non-negative *synthetic selection proxies*: uncalibrated uncertainty, calibrated uncertainty, feature-space novelty, and estimated VOI. Sixteen predeclared seeds produce a reproducible random-selection reference. Every policy is filtered through the same cost and duration caps; the evaluator uses scenario-to-observation mappings only to score post-selection regret.
+
+The hand-built known answer intentionally demonstrates a failure mode: the calibrated-uncertainty proxy selects `measure-noise`, whose observations do not distinguish scenarios and reduce worst-case regret by **0 synthetic units**. Novelty and cost-aware estimated VOI select `measure-regime`, which reduces worst-case regret by **5 synthetic utility units** in this finite fixture. The high-scored `measure-expensive` option is excluded by the shared budget cap. This is a constructed arithmetic control—not measured policy performance, not a trained calibrated model, and not evidence that novelty or VOI will outperform uncertainty on real data.
+
+The command emits a raw-input SHA-256 and per-policy results: selected measurement, seed (for random), cost, duration, observation-group count, post-measurement regret, regret reduction, and unresolved status. It does not sandbox arbitrary selector code against a malicious producer. Empirical comparisons still require frozen OOD splits, rights-cleared data, and the policy-specific evaluation protocol above.
+
+
+
+The first comparator harness is now present in the standalone Rust tool:
+
+`cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-policies tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json`
+
 Input contract: [glass-acquisition-policy-comparison-v0.1.schema.json](./glass-acquisition-policy-comparison-v0.1.schema.json). The fixture gives every candidate four explicit, non-negative *synthetic selection proxies*: uncalibrated uncertainty, calibrated uncertainty, feature-space novelty, and estimated VOI. Sixteen predeclared seeds produce a reproducible random-selection reference. Every policy is filtered through the exact same cost and duration caps; the evaluator then uses hidden scenario-to-observation mappings only to score post-selection regret.
 
 The hand-built known answer intentionally demonstrates a failure mode: the calibrated-uncertainty proxy selects `measure-noise`, whose observations do not distinguish scenarios and reduce worst-case regret by **0 synthetic units**. Novelty and cost-aware estimated VOI select `measure-regime`, which reduces worst-case regret by **5 synthetic utility units** in this finite fixture. The high-scored `measure-expensive` option is excluded by the shared budget cap. This is a deliberately constructed arithmetic control—not measured policy performance, not a trained calibrated model, and not evidence that novelty or VOI will outperform uncertainty on a real dataset.
