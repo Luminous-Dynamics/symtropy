@@ -61,7 +61,7 @@ jobs:
 
       - name: Validate published aggregate fixture is not mislabeled as reproduced
         run: |
-          jq -e '.record_contract_version == "shipyard-published-baseline-anchor-v0" and .evidence_status == "published_aggregate_reference_only" and .reproduced_by_this_repository == false and .raw_per_run_outputs_available == false and .repetitions_per_case_reported == 15 and (.cases | length) == 6 and .cases[] | select(.case_id == "Case9_50_4") | .values.PA.Aur == 0.775 and .values.PA.Act_s == 308.0 and .values.PA.Vt_min == 2339' tools/shipyard-dispatch-benchmark/fixtures/published-case9-50-anchor-v0.json
+          jq -e '. as $root | ($root.record_contract_version == "shipyard-published-baseline-anchor-v0" and $root.evidence_status == "published_aggregate_reference_only" and $root.reproduced_by_this_repository == false and $root.raw_per_run_outputs_available == false and $root.repetitions_per_case_reported == 15 and ($root.cases | length) == 6) and any($root.cases[]; .case_id == "Case9_50_4" and .values.PA.Aur == 0.775 and .values.PA.Act_s == 308.0 and .values.PA.Vt_min == 2339)' tools/shipyard-dispatch-benchmark/fixtures/published-case9-50-anchor-v0.json
 
       - name: Generate paired corpus and verify all evidence digests
         shell: bash
