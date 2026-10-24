@@ -1,0 +1,160 @@
+name: VIS-MEM-002 Relational Memory Diagnostic
+
+on:
+  push:
+    branches: ["research/vis-relational-memory-v0-1"]
+    paths:
+      - "tools/vision-relational-memory-bench.rs"
+      - "tools/vision-active-query-bench.rs"
+      - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
+      - "docs/research/VIS_EXTERNAL_BENCHMARK_MATRIX_V0_1.md"
+      - ".github/workflows/vision-relational-memory-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-relational-memory-bench.rs"
+      - "tools/vision-active-query-bench.rs"
+      - "docs/research/VIS_RELATIONAL_MEMORY_BENCH_V0_1.md"
+      - "docs/research/VIS_ACTIVE_QUERY_BENCH_V0_1.md"
+      - "docs/research/VIS_EXTERNAL_BENCHMARK_MATRIX_V0_1.md"
+      - ".github/workflows/vision-relational-memory-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-002-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Compile and run memory tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-tests
+          /tmp/vis-mem-tests
+
+      - name: Execute memory report and validate determinism/schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-relational-memory-bench.rs -o /tmp/vis-mem-bench
+          /tmp/vis-mem-bench > vis-relational-memory.tsv
+          /tmp/vis-mem-bench > vis-relational-memory-repeat.tsv
+          cmp vis-relational-memory.tsv vis-relational-memory-repeat.tsv
+          grep -Fq "query_keyed_latest" vis-relational-memory.tsv
+          grep -Fq "query_keyed_selective" vis-relational-memory.tsv
+          grep -Fq "query_keyed_hazard_aware" vis-relational-memory.tsv
+          grep -Fq "query_keyed_gap_aware" vis-relational-memory.tsv
+          grep -Fq "query_keyed_joint_noise" vis-relational-memory.tsv
+          grep -Fq "gap_aware_minus_hazard_aware" vis-relational-memory.tsv
+          grep -Fq "joint_noise_minus_hazard_aware" vis-relational-memory.tsv
+          grep -Fq "joint_noise_minus_gap_aware" vis-relational-memory.tsv
+          grep -Fq "joint_minus_uniform_grid_prior" vis-relational-memory.tsv
+          grep -Fq "mean_logical_state_bytes" vis-relational-memory.tsv
+          grep -Fq "mean_hazard_mae" vis-relational-memory.tsv
+          grep -Fq "root_mean_hazard_mse" vis-relational-memory.tsv
+          grep -Fq "mean_sensor_base_mae" vis-relational-memory.tsv
+          grep -Fq "root_mean_sensor_base_mse" vis-relational-memory.tsv
+          grep -Fq "prior_sensor_base_mae" vis-relational-memory.tsv
+          grep -Fq "root_mean_prior_sensor_base_mse" vis-relational-memory.tsv
+          grep -Fq "confidence is sampled independently" vis-relational-memory.tsv
+          grep -Fq "conditional corruption p per tier" vis-relational-memory.tsv
+          grep -Fq "selective threshold calibrated on 256 separate development episodes" vis-relational-memory.tsv
+          test "$(grep -c '^held_out' vis-relational-memory.tsv)" -eq 35
+          awk -F '\t' '$1 == "family" { if (NF != 19) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 19) exit 1; rows++ } END { if (header != 1 || rows != 70) exit 1 }' vis-relational-memory.tsv
+          awk -F '\t' '/^CALIBRATION/ { if (NF != 10) exit 1; n++ } END { if (n != 211) exit 1 }' vis-relational-memory.tsv
+          sha256sum vis-relational-memory.tsv > vis-relational-memory.sha256
+          sha256sum -c vis-relational-memory.sha256
+          cat vis-relational-memory.tsv
+
+      - name: Compile and run active-query tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-query-bench.rs -o /tmp/vis-active-query-tests
+          /tmp/vis-active-query-tests
+
+      - name: Execute active-query report and validate determinism/schema
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-active-query-bench.rs -o /tmp/vis-active-query-bench
+          /tmp/vis-active-query-bench > vis-active-query.tsv
+          /tmp/vis-active-query-bench > vis-active-query-repeat.tsv
+          cmp vis-active-query.tsv vis-active-query-repeat.tsv
+          grep -Fq "value_of_information" vis-active-query.tsv
+          grep -Fq "marginal_value_stop" vis-active-query.tsv
+          grep -Fq "online_adaptive_value" vis-active-query.tsv
+          grep -Fq "expected_task_loss_reduction" vis-active-query.tsv
+          grep -Fq "risk_threshold_stop" vis-active-query.tsv
+          grep -Fq "Risk-threshold stop baseline" vis-active-query.tsv
+          grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
+          grep -Fq "estimated_scoring_work_units_per_episode" vis-active-query.tsv
+          grep -Fq "round_robin" vis-active-query.tsv
+          grep -Fq "uniform_random" vis-active-query.tsv
+          grep -Fq "world_query_claim_changed_last_8_ticks" vis-active-query.tsv
+          grep -Fq "query_evidence_arrived_out_of_order" vis-active-query.tsv
+          grep -Fq "query_observation_delay_gt_2" vis-active-query.tsv
+          grep -Fq "profile_high_claim_flip_rate" vis-active-query.tsv
+          grep -Fq "profile_high_corruption_rate" vis-active-query.tsv
+          grep -Fq "profile_high_distractor_rate" vis-active-query.tsv
+          test "$(grep -c '^family' vis-active-query.tsv)" -eq 1
+          test "$(grep -c '^development' vis-active-query.tsv)" -eq 10
+          test "$(grep -c '^held_out' vis-active-query.tsv)" -eq 10
+          awk -F '\t' '$1 == "family" { if (NF != 15) exit 1; header++ } ($1 == "development" || $1 == "held_out") { if (NF != 15) exit 1; rows++ } END { if (header != 1 || rows != 20) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "STRATUM" { if (NF != 12) exit 1; n++ } END { if (n < 12) exit 1 }' vis-active-query.tsv
+          grep -Fq "PAIRWISE" vis-active-query.tsv
+          grep -Fq "expected_task_loss_reduction_minus_value_of_information" vis-active-query.tsv
+          awk -F '\t' '$1 == "PAIRWISE" { if (NF != 7) exit 1; n++ } END { if (n != 5) exit 1 }' vis-active-query.tsv
+          grep -Fq "sensing-budget Pareto frontier" vis-active-query.tsv
+          grep -Fq "Requests are evenly scheduled across the fixed 48-tick horizon" vis-active-query.tsv
+          awk -F '\t' '$1 == "BUDGET" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "BUDGET" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 100 || seen[8] != 20 || seen[16] != 20 || seen[24] != 20 || seen[32] != 20 || seen[48] != 20) exit 1 }' vis-active-query.tsv
+          grep -Fq "STOP_SENSITIVITY" vis-active-query.tsv
+          awk -F '\t' '$1 == "STOP_SENSITIVITY" && $2 == "family" { if (NF != 14) exit 1; header++ } $1 == "STOP_SENSITIVITY" && ($2 == "development" || $2 == "held_out") { if (NF != 14) exit 1; rows++; seen[$3]++ } END { if (header != 1 || rows != 8 || seen["0.010"] != 2 || seen["0.040"] != 2 || seen["0.080"] != 2 || seen["0.120"] != 2) exit 1 }' vis-active-query.tsv
+          grep -Fq "MARGINAL_STOP_CALIBRATION" vis-active-query.tsv
+          awk -F '\t' '$1 == "MARGINAL_STOP" && $2 == "family" { if (NF != 16) exit 1; header++ } $1 == "MARGINAL_STOP" && ($2 == "development" || $2 == "held_out") { if (NF != 16) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
+          awk -F '\t' '$1 == "MARGINAL_STOP_CALIBRATION" { if (NF != 15) exit 1; rows++ } END { if (rows != 2) exit 1 }' vis-active-query.tsv
+          sha256sum vis-active-query.tsv > vis-active-query.sha256
+          sha256sum -c vis-active-query.sha256
+          cat vis-active-query.tsv
+
+          grep -Fq "VALUE_CALIBRATION" vis-active-query.tsv
+          awk -F '\t' '$1 == "VALUE_CALIBRATION" && $2 == "family" { if (NF != 12) exit 1; header++ } $1 == "VALUE_CALIBRATION" && ($2 == "development" || $2 == "held_out") { if (NF != 12) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 2 || seen["development"] != 1 || seen["held_out"] != 1) exit 1 }' vis-active-query.tsv
+          grep -Fq "VALUE_REALIZED_STRATA" vis-active-query.tsv
+          awk -F '\t' '$1 == "VALUE_REALIZED_STRATA" && $2 == "family" { if (NF != 8) exit 1; header++ } $1 == "VALUE_REALIZED_STRATA" && ($2 == "development" || $2 == "held_out") { if (NF != 8) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 14 || seen["development"] != 7 || seen["held_out"] != 7) exit 1 }' vis-active-query.tsv
+          grep -Fq "VALUE_RANKING" vis-active-query.tsv
+          awk -F '\t' '$1 == "VALUE_RANKING" && $2 == "family" { if (NF != 13) exit 1; header++ } $1 == "VALUE_RANKING" && ($2 == "development" || $2 == "held_out") { if (NF != 13) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 2 || seen["development"] != 1 || seen["held_out"] != 1) exit 1 }' vis-active-query.tsv
+          grep -Fq "NUISANCE_ADAPTATION" vis-active-query.tsv
+          awk -F '\t' '$1 == "NUISANCE_ADAPTATION" && $2 == "family" { if (NF != 14) exit 1; header++ } $1 == "NUISANCE_ADAPTATION" && ($2 == "development" || $2 == "held_out") { if (NF != 14) exit 1; rows++; seen[$2]++ } END { if (header != 1 || rows != 2 || seen["development"] != 1 || seen["held_out"] != 1) exit 1 }' vis-active-query.tsv
+      - name: Upload both reproducible reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-relational-memory-report
+          path: |
+            vis-relational-memory.tsv
+            vis-relational-memory.sha256
+            vis-active-query.tsv
+            vis-active-query.sha256
+          if-no-files-found: error
+          retention-days: 14
