@@ -60,6 +60,12 @@ Frozen finite-model expectations:
 
 The latest end-to-end run was still queued when this protocol was last updated; these values are frozen answers and static reference calculations, **not** a successful actual-Sol-Atlas run or site-resilience evidence. The next step is the full 39 candidate × 5 scenario matrix (195 candidate/scenario pairs) with explicit failed/unknown rows.
 
+## Candidate-level robustness matrix
+
+The new candidate-scenario profile defines five transforms for all three reference topologies and 36 sizing candidates: nominal, total PV loss, early outage, doubled essential demand, and a 1 kWh terminal reserve where a battery exists. The transform tool records exact parent/child hashes and each declared mutation. Designs without batteries are marked not applicable for the reserve scenario.
+
+The end-to-end workflow now runs schema validation, Sol-Atlas compilation, compilation-receipt verification, dispatch, and independent audit for every pair. The expected matrix is 39 candidates × 5 scenarios = 195 rows. The gate preserves failed or unknown rows, checks exact coverage and digest bindings, and fails the aggregate result if any pair is absent or unqualified. Benchmark-ledger schema v0.5 requires this matrix report. This remains a two-interval synthetic robustness test, not a site-real or long-duration-outage result.
+
 ## Fair search comparison
 
 Use one shared candidate contract, scenario panel, exact evaluator, auditor, objective definitions, and provenance rules for each arm:
