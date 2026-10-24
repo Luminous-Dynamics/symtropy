@@ -26,6 +26,7 @@ const COMMON_FIELDS: [&str; 9] = [
 ];
 const QUATERNION_FIELDS: [&str; 4] = ["qx", "qy", "qz", "qw"];
 const ROTVEC_FIELDS: [&str; 3] = ["rx", "ry", "rz"];
+const MOTOR_INPUT_FIELDS: [&str; 4] = ["m1_rads", "m2_rads", "m3_rads", "m4_rads"];
 const POSITION_FIELDS: [&str; 3] = ["x", "y", "z"];
 const VELOCITY_FIELDS: [&str; 3] = ["vx", "vy", "vz"];
 const ANGULAR_RATE_FIELDS: [&str; 3] = ["wx", "wy", "wz"];
@@ -57,6 +58,8 @@ struct RunInput {
     filename: String,
     run_id: String,
     sha256: String,
+    ground_truth_window_sha256: Option<String>,
+    conditioning_window_sha256: Option<String>,
     orientation_mode: OrientationMode,
     rows: Vec<HashMap<String, f64>>,
     has_complete_window_truth: bool,
@@ -129,6 +132,28 @@ fn prediction_key(field: &str, horizon: usize) -> String {
     format!("{field}_pred_h{horizon}")
 }
 
+fn input_state_key(field: &str) -> String {
+    format!("x0_{field}")
+}
+
+fn motor_sequence_key(field: &str, input_step: usize) -> String {
+    format!("{field}_input_t{input_step}")
+}
+
+fn motor_sequence_time_key(input_step: usize) -> String {
+    format!("input_time_t{input_step}")
+}
+
+fn conditioning_column_names(mode: OrientationMode) -> Vec<String> {
+    let mut columns = vec!["x0_t".to_owned()];
+    columns.extend(state_fields(mode).iter().map(|field| input_state_key(field)));
+    columns.extend((0..HORIZON).map(motor_sequence_time_key));
+    columns.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+        (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+    ));
+    columns
+}
+
 fn required_numeric_columns(mode: OrientationMode, complete_targets: bool) -> HashSet<String> {
     let mut columns = HashSet::new();
     columns.insert("t".to_owned());
@@ -150,6 +175,34 @@ fn check_quaternion_norm(q: [f64; 4], label: &str) -> Result<(), io::Error> {
         return Err(invalid_input(format!(
             "{label}: quaternion norm {norm} outside [{QUATERNION_NORM_MIN}, {QUATERNION_NORM_MAX}]"
         )));
+    }
+    Ok(())
+}
+
+fn validate_conditioning_timestamps(row: &HashMap<String, f64>, label: &str) -> Result<(), io::Error> {
+    let x0_time = row["x0_t"];
+    let prediction_time = row["t"];
+    if (prediction_time - x0_time).abs() > 1.0e-9 {
+        return Err(invalid_input(format!(
+            "{label}: prediction-row t={prediction_time} does not match source x0_t={x0_time}"
+        )));
+    }
+    let first_input_time = row[&motor_sequence_time_key(0)];
+    if (x0_time - first_input_time).abs() > 1.0e-9 {
+        return Err(invalid_input(format!(
+            "{label}: x0_t={x0_time} does not match first motor input timestamp {first_input_time}"
+        )));
+    }
+    let mut previous = first_input_time;
+    for step in 1..HORIZON {
+        let current = row[&motor_sequence_time_key(step)];
+        let dt = current - previous;
+        if !dt.is_finite() || dt <= 0.0 || (dt - EXPECTED_DT_S).abs() > MAX_DT_DEVIATION_S {
+            return Err(invalid_input(format!(
+                "{label}: motor input timestamp step {step} has dt={dt:.9}s outside 100 Hz tolerance"
+            )));
+        }
+        previous = current;
     }
     Ok(())
 }
@@ -422,7 +475,36 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         )).into());
     };
 
+    let motor_input_count = MOTOR_INPUT_FIELDS.iter()
+        .filter(|field| header_indices.contains_key(**field))
+        .count();
+    if motor_input_count != 0 && motor_input_count != MOTOR_INPUT_FIELDS.len() {
+        return Err(invalid_input(format!(
+            "{filename}: partial base motor-input schema ({motor_input_count}/{} columns); provide all four or none",
+            MOTOR_INPUT_FIELDS.len()
+        )).into());
+    }
+    let has_base_motor_inputs = motor_input_count == MOTOR_INPUT_FIELDS.len();
+
+    let conditioning_columns = conditioning_column_names(orientation_mode);
+    let conditioning_count = conditioning_columns.iter()
+        .filter(|column| header_indices.contains_key(column.as_str()))
+        .count();
+    if conditioning_count != 0 && conditioning_count != conditioning_columns.len() {
+        return Err(invalid_input(format!(
+            "{filename}: partial full-conditioning schema ({conditioning_count}/{} x0/input-sequence columns); provide all or none",
+            conditioning_columns.len()
+        )).into());
+    }
+    let has_complete_conditioning_signals = conditioning_count == conditioning_columns.len();
+
     let mut required = required_numeric_columns(orientation_mode, has_complete_window_truth);
+    if has_base_motor_inputs {
+        required.extend(MOTOR_INPUT_FIELDS.iter().map(|field| (*field).to_owned()));
+    }
+    if has_complete_conditioning_signals {
+        required.extend(conditioning_columns.iter().cloned());
+    }
     // In quaternion mode, also require the selected true quaternion and predictions.
     // In rotation-vector mode the metric conversion is mathematical and needs only rotvecs.
     for key in [
@@ -471,6 +553,14 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
                 [row["qx"], row["qy"], row["qz"], row["qw"]],
                 &format!("{filename} row {} truth", row_index + 2),
             )?;
+            if has_complete_conditioning_signals {
+                check_quaternion_norm(
+                    [
+                        row["x0_qx"], row["x0_qy"], row["x0_qz"], row["x0_qw"],
+                    ],
+                    &format!("{filename} row {} initial-state orientation", row_index + 2),
+                )?;
+            }
             for horizon in 1..=HORIZON {
                 let q = [
                     row[&prediction_key("qx", horizon)],
@@ -492,6 +582,20 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
                 }
             }
         }
+        if has_complete_conditioning_signals {
+            validate_conditioning_timestamps(&row, &format!("{filename} row {}", row_index + 2))?;
+            for field in MOTOR_INPUT_FIELDS {
+                for input_step in 0..HORIZON {
+                    let motor = row[&motor_sequence_key(field, input_step)];
+                    if motor < 0.0 {
+                        return Err(invalid_input(format!(
+                            "{filename} row {}: motor input {field} at step {input_step} must be non-negative",
+                            row_index + 2
+                        )).into());
+                    }
+                }
+            }
+        }
         rows.push(row);
     }
 
@@ -499,10 +603,55 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         return Err(invalid_input(format!("{filename}: expected at least {HORIZON} prediction rows; found {}", rows.len())).into());
     }
 
+    let ground_truth_window_sha256 = if has_complete_window_truth {
+        // Hash canonical numeric values rather than CSV spellings so "1" and "1.0"
+        // match, while any changed timestamp or target value invalidates the pair.
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy-nanodrone-ground-truth-windows-v1\0");
+        hasher.update((rows.len() as u64).to_le_bytes());
+        for row in &rows {
+            hasher.update(row["t"].to_bits().to_le_bytes());
+            for horizon in 1..=HORIZON {
+                for field in state_fields(orientation_mode) {
+                    hasher.update(row[&target_key(field, horizon)].to_bits().to_le_bytes());
+                }
+            }
+        }
+        Some(format!("{:x}", hasher.finalize()))
+    } else {
+        None
+    };
+
+    let conditioning_window_sha256 = if has_complete_conditioning_signals {
+        // Match QuadDataset exactly: each horizon prediction is conditioned on x0
+        // at raw row i and the entire u_seq of 50 four-motor samples i..i+49.
+        // The old one-step motor columns alone are not enough to certify pairing.
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy-nanodrone-conditioning-windows-v2\0");
+        hasher.update((rows.len() as u64).to_le_bytes());
+        for row in &rows {
+            hasher.update(row["x0_t"].to_bits().to_le_bytes());
+            for field in state_fields(orientation_mode) {
+                hasher.update(row[&input_state_key(field)].to_bits().to_le_bytes());
+            }
+            for input_step in 0..HORIZON {
+                hasher.update(row[&motor_sequence_time_key(input_step)].to_bits().to_le_bytes());
+                for field in MOTOR_INPUT_FIELDS {
+                    hasher.update(row[&motor_sequence_key(field, input_step)].to_bits().to_le_bytes());
+                }
+            }
+        }
+        Some(format!("{:x}", hasher.finalize()))
+    } else {
+        None
+    };
+
     Ok(RunInput {
         filename,
         run_id,
         sha256,
+        ground_truth_window_sha256,
+        conditioning_window_sha256,
         orientation_mode,
         rows,
         has_complete_window_truth,
@@ -573,6 +722,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "file": run.filename,
         "run_id": run.run_id,
         "sha256": run.sha256,
+        "ground_truth_window_sha256": run.ground_truth_window_sha256,
+        "conditioning_window_sha256": run.conditioning_window_sha256,
         "row_count": run.rows.len(),
         "orientation_representation": run.orientation_mode.label(),
         "legacy_shifted_truth_metric": score_run(run, false),
@@ -602,6 +753,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             "required_horizons": [1, 5, 10, 20, 50],
             "evaluated_horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
+            "ground_truth_pairing": "SHA-256 over each row timestamp and all h=1..50 target state values in fixed state-field/horizon order, hashing parsed IEEE-754 f64 bits in little-endian order; exact match required for cross-model pairing",
+            "conditioning_pairing": "SHA-256 over raw input state x0, each of the 50 source timestamps, and the complete four-channel 50-step motor-input sequence u_seq for every prediction window; scalar motor columns cannot certify identical conditioning",
             "metric_definitions": {
                 "position": "mean Euclidean norm of 3D position error, metres",
                 "linear_velocity": "mean Euclidean norm of 3D world-frame velocity error, metres/second",
@@ -623,6 +776,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn conditioning_timestamps_reject_gaps_and_x0_mismatch() {
+        let mut row = HashMap::new();
+        row.insert("t".to_owned(), 0.0);
+        row.insert("x0_t".to_owned(), 0.0);
+        for step in 0..HORIZON {
+            row.insert(
+                motor_sequence_time_key(step),
+                step as f64 * EXPECTED_DT_S,
+            );
+        }
+        assert!(validate_conditioning_timestamps(&row, "regular fixture").is_ok());
+
+        row.insert(motor_sequence_time_key(49), 0.9);
+        assert!(validate_conditioning_timestamps(&row, "gapped fixture").is_err());
+
+        row.insert(motor_sequence_time_key(49), 0.49);
+        row.insert("x0_t".to_owned(), 0.001);
+        assert!(validate_conditioning_timestamps(&row, "x0 mismatch fixture").is_err());
+    }
 
     #[test]
     fn rotation_vector_maps_to_expected_quarter_turn_quaternion() {
@@ -696,6 +870,12 @@ mod tests {
         for horizon in 1..=HORIZON {
             headers.extend(fields.iter().map(|field| target_key(field, horizon)));
         }
+        headers.push("x0_t".to_owned());
+        headers.extend(fields.iter().map(|field| input_state_key(field)));
+        headers.extend((0..HORIZON).map(motor_sequence_time_key));
+        headers.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+            (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+        ));
 
         {
             let mut writer = csv::Writer::from_path(&path).unwrap();
@@ -710,6 +890,16 @@ mod tests {
                 for _ in 1..=HORIZON {
                     row.extend(fields.iter().map(|_| "0".to_owned()));
                 }
+                row.push(format!("{:.8}", row_index as f64 * EXPECTED_DT_S));
+                row.extend(fields.iter().map(|_| "0".to_owned()));
+                for input_step in 0..HORIZON {
+                    row.push(format!("{:.8}", (row_index + input_step) as f64 * EXPECTED_DT_S));
+                }
+                for (field_index, _) in MOTOR_INPUT_FIELDS.iter().enumerate() {
+                    for input_step in 0..HORIZON {
+                        row.push(format!("{}", field_index * 100 + input_step));
+                    }
+                }
                 writer.write_record(&row).unwrap();
             }
             writer.flush().unwrap();
@@ -717,6 +907,35 @@ mod tests {
 
         let run = load_run(&path).unwrap();
         assert!(run.has_complete_window_truth);
+        assert!(run.ground_truth_window_sha256.is_some());
+        assert!(run.conditioning_window_sha256.is_some());
+
+        // Change one motor sample while preserving targets and x0. The conditioning
+        // digest must change, otherwise model-input parity would not be attested.
+        let altered_path = directory.join("melon_20251017_run2.csv");
+        {
+            let bytes = fs::read(&path).unwrap();
+            let mut reader = ReaderBuilder::new().has_headers(true).from_reader(bytes.as_slice());
+            let headers = reader.headers().unwrap().clone();
+            let changed_column = headers.iter()
+                .position(|header| header == motor_sequence_key("m2_rads", 17))
+                .unwrap();
+            let records = reader.records().collect::<Result<Vec<_>, _>>().unwrap();
+            let mut writer = csv::Writer::from_path(&altered_path).unwrap();
+            writer.write_record(&headers).unwrap();
+            for (row_index, record) in records.iter().enumerate() {
+                let mut values = record.iter().map(str::to_owned).collect::<Vec<_>>();
+                if row_index == 0 {
+                    values[changed_column] = "999.0".to_owned();
+                }
+                writer.write_record(&values).unwrap();
+            }
+            writer.flush().unwrap();
+        }
+        let altered = load_run(&altered_path).unwrap();
+        assert_ne!(run.conditioning_window_sha256, altered.conditioning_window_sha256);
+        assert_eq!(run.ground_truth_window_sha256, altered.ground_truth_window_sha256);
+
         let shifted = score_run(&run, false);
         let complete = score_run(&run, true);
         assert_eq!(shifted["per_horizon"][0]["sample_count"], 50);

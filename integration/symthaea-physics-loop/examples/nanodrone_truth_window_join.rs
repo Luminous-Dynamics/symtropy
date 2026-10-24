@@ -26,6 +26,8 @@ const ORIENTATION_ALIGNMENT_ATOL_RAD: f64 = 1.0e-2;
 const COMMON_FIELDS: [&str; 9] = ["x", "y", "z", "vx", "vy", "vz", "wx", "wy", "wz"];
 const QUATERNION_FIELDS: [&str; 4] = ["qx", "qy", "qz", "qw"];
 const ROTVEC_FIELDS: [&str; 3] = ["rx", "ry", "rz"];
+const MOTOR_INPUT_FIELDS: [&str; 4] = ["m1_rads", "m2_rads", "m3_rads", "m4_rads"];
+const MOTOR_INPUT_ALIGNMENT_ATOL: f64 = 1.0e-3;
 const RAW_REQUIRED: [&str; 18] = [
     "t", "x", "y", "z", "vx", "vy", "vz", "qx", "qy", "qz", "qw", "wx", "wy", "wz",
     "m1_rads", "m2_rads", "m3_rads", "m4_rads",
@@ -194,6 +196,32 @@ fn prediction_key(field: &str, horizon: usize) -> String {
     format!("{field}_pred_h{horizon}")
 }
 
+fn input_state_key(field: &str) -> String {
+    format!("x0_{field}")
+}
+
+fn motor_sequence_key(field: &str, input_step: usize) -> String {
+    format!("{field}_input_t{input_step}")
+}
+
+fn motor_sequence_time_key(input_step: usize) -> String {
+    format!("input_time_t{input_step}")
+}
+
+fn input_state_value(row: &HashMap<String, f64>, field: &str) -> f64 {
+    match field {
+        "rx" | "ry" | "rz" => {
+            let rotation = quaternion_to_rotvec([row["qx"], row["qy"], row["qz"], row["qw"]]);
+            match field {
+                "rx" => rotation[0],
+                "ry" => rotation[1],
+                _ => rotation[2],
+            }
+        }
+        _ => row[field],
+    }
+}
+
 fn detect_prediction_mode(indices: &HashMap<String, usize>, label: &str) -> Result<OrientationMode, io::Error> {
     let has_quaternion = QUATERNION_FIELDS.iter().all(|field| {
         indices.contains_key(*field) && (1..=HORIZON).all(|h| indices.contains_key(&prediction_key(field, h)))
@@ -318,6 +346,16 @@ fn join_files_internal(
     let prediction_headers = reader.headers()?.clone();
     let prediction_indices = name_index(&prediction_headers, "prediction table")?;
     let mode = detect_prediction_mode(&prediction_indices, "prediction table")?;
+    let motor_input_count = MOTOR_INPUT_FIELDS.iter()
+        .filter(|field| prediction_indices.contains_key(**field))
+        .count();
+    if motor_input_count != 0 && motor_input_count != MOTOR_INPUT_FIELDS.len() {
+        return Err(invalid_input(format!(
+            "prediction table has a partial motor-input schema ({motor_input_count}/{} columns); provide all four motor inputs or none",
+            MOTOR_INPUT_FIELDS.len()
+        )).into());
+    }
+    let prediction_has_motor_inputs = motor_input_count == MOTOR_INPUT_FIELDS.len();
 
     let mut base_state_fields = fields_for_mode(mode);
     base_state_fields.push("t");
@@ -442,6 +480,22 @@ fn join_files_internal(
                 }
             }
         }
+
+        // A transition window i uses motor inputs recorded at raw row i. If upstream
+        // output already carries these channels, verify them against raw data; otherwise
+        // attach them before writing so comparisons can prove identical conditioning.
+        for field in MOTOR_INPUT_FIELDS {
+            if prediction_has_motor_inputs {
+                let observed = row_value(record, &prediction_indices, field, row_number, "prediction table run slice")?;
+                let expected = raw.rows[index][field];
+                if (observed - expected).abs() > MOTOR_INPUT_ALIGNMENT_ATOL {
+                    return Err(invalid_input(format!(
+                        "motor-input alignment failed for {raw_run_id} at prediction row {row_number}: '{field}'={observed} does not match raw row {} value {expected} within {MOTOR_INPUT_ALIGNMENT_ATOL}",
+                        index + 2
+                    )).into());
+                }
+            }
+        }
     }
 
     for index in 1..segment_rows.len() {
@@ -454,7 +508,33 @@ fn join_files_internal(
         .flat_map(|field| (1..=HORIZON).map(move |horizon| target_key(field, horizon)))
         .collect::<Vec<_>>();
     let mut output_headers = prediction_headers.clone();
-    let existing = output_headers.iter().map(str::to_owned).collect::<HashSet<_>>();
+    if !prediction_has_motor_inputs {
+        for field in MOTOR_INPUT_FIELDS {
+            output_headers.push_field(field);
+        }
+    }
+
+    let mut conditioning_columns = vec!["x0_t".to_owned()];
+    conditioning_columns.extend(
+        fields_for_mode(mode).into_iter().map(input_state_key),
+    );
+    conditioning_columns.extend((0..HORIZON).map(motor_sequence_time_key));
+    conditioning_columns.extend(
+        MOTOR_INPUT_FIELDS.iter().flat_map(|field|
+            (0..HORIZON).map(move |step| motor_sequence_key(field, step))
+        ),
+    );
+
+    let mut existing = output_headers.iter().map(str::to_owned).collect::<HashSet<_>>();
+    for column in &conditioning_columns {
+        if existing.contains(column) {
+            return Err(invalid_input(format!(
+                "prediction table already contains conditioning column '{column}'; refusing to overwrite or mix provenance"
+            )).into());
+        }
+        output_headers.push_field(column);
+        existing.insert(column.clone());
+    }
     for target in &target_columns {
         if existing.contains(target) {
             return Err(invalid_input(format!("prediction table already contains target column '{target}'")).into());
@@ -473,7 +553,40 @@ fn join_files_internal(
         let mut writer = WriterBuilder::new().has_headers(false).from_writer(file);
         writer.write_record(&output_headers)?;
         for (window_index, prediction_record) in segment_rows.iter().enumerate() {
-            let mut out = prediction_record.clone();
+            // Upstream test scripts can synthesize a flattened t=np.arange(N)*dt
+            // vector across concatenated runs. Preserve its digest above, but rewrite
+            // the exported timestamp to the validated source time for this window.
+            let initial_state = &raw.rows[window_index];
+            let mut out = StringRecord::new();
+            for (column_index, value) in prediction_record.iter().enumerate() {
+                if column_index == prediction_indices["t"] {
+                    out.push_field(&format!("{:.17}", initial_state["t"]));
+                } else {
+                    out.push_field(value);
+                }
+            }
+            if !prediction_has_motor_inputs {
+                for field in MOTOR_INPUT_FIELDS {
+                    out.push_field(&format!("{:.17}", initial_state[field]));
+                }
+            }
+
+            // Match the real model contract: x0 is raw state i and u_seq contains
+            // the 50 motor rows i..i+49, while target h is raw state i+h.
+            out.push_field(&format!("{:.17}", initial_state["t"]));
+            for field in fields_for_mode(mode) {
+                out.push_field(&format!("{:.17}", input_state_value(initial_state, field)));
+            }
+            for input_step in 0..HORIZON {
+                out.push_field(&format!("{:.17}", raw.rows[window_index + input_step]["t"]));
+            }
+            for field in MOTOR_INPUT_FIELDS {
+                for input_step in 0..HORIZON {
+                    let value = raw.rows[window_index + input_step][field];
+                    out.push_field(&format!("{value:.17}"));
+                }
+            }
+
             for horizon in 1..=HORIZON {
                 // The upstream QuadDataset window i predicts x_(i+1) ... x_(i+H).
                 // Therefore horizon h maps to raw trajectory row i+h.
@@ -547,7 +660,15 @@ fn join_files_internal(
             "sample_period_s": EXPECTED_DT_S,
             "prediction_state_units": "caller_asserted_denormalized_SI_units",
             "orientation_representation": mode.label(),
-            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; true state at horizon h is raw row i+h",
+            "motor_input_columns_present": true,
+            "conditioning_state_columns": fields_for_mode(mode).into_iter().map(input_state_key).collect::<Vec<_>>(),
+            "motor_input_sequence_columns": MOTOR_INPUT_FIELDS.iter()
+                .flat_map(|field| (0..HORIZON).map(move |step| motor_sequence_key(field, step)))
+                .collect::<Vec<_>>(),
+            "motor_input_timestamp_columns": (0..HORIZON).map(motor_sequence_time_key).collect::<Vec<_>>(),
+            "motor_input_alignment": "the complete four-channel motor input sequence and each sample timestamp are attached from raw rows i..i+49; pre-existing one-step motor columns, when supplied, are verified against raw row i",
+            "output_timestamp_policy": "replace upstream synthetic/flattened t with the validated raw timestamp at window-start row i; retain the original prediction-file hash",
+            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; x0 is raw state i; motor inputs are raw rows i..i+49; true state at horizon h is raw row i+h",
             "all_available_prediction_windows_scored_at_each_horizon": true,
             "target_columns_written": target_columns.len(),
             "column_name_mapping": "append {state}_true_h{horizon} columns; preserve all prediction columns and rows"
@@ -713,7 +834,8 @@ mod tests {
                 "0".into(), "0".into(), "0".into(),
                 "0".into(), "0".into(), "0".into(), "1".into(),
                 "0".into(), "0".into(), "0".into(),
-                "100".into(), "100".into(), "100".into(), "100".into(),
+                format!("{}", 100 + i), format!("{}", 200 + i),
+                format!("{}", 300 + i), format!("{}", 400 + i),
             ]).unwrap();
         }
         writer.flush().unwrap();
@@ -785,13 +907,32 @@ mod tests {
         assert_eq!(receipt["design"]["source_row_count"], 100);
         assert_eq!(receipt["design"]["prediction_window_count"], 50);
         assert_eq!(receipt["design"]["target_columns_written"], 13 * HORIZON);
+        assert_eq!(receipt["design"]["motor_input_columns_present"], true);
 
         let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
         let headers = joined.headers().unwrap().clone();
+        let index_m1 = headers.iter().position(|header| header == "m1_rads").unwrap();
+        let index_m1_t0 = headers.iter().position(|header| header == "m1_rads_input_t0").unwrap();
+        let index_m1_t49 = headers.iter().position(|header| header == "m1_rads_input_t49").unwrap();
+        let index_x0_x = headers.iter().position(|header| header == "x0_x").unwrap();
+        let index_t = headers.iter().position(|header| header == "t").unwrap();
+        let index_x0_t = headers.iter().position(|header| header == "x0_t").unwrap();
+        let index_input_t49 = headers.iter().position(|header| header == "input_time_t49").unwrap();
         let index_x_h1 = headers.iter().position(|header| header == "x_true_h1").unwrap();
         let index_x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
         let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
         assert_eq!(rows.len(), 50);
+        assert_eq!(rows[0].get(index_t).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_t).unwrap().parse::<f64>().unwrap(), 0.49);
+        assert_eq!(rows[0].get(index_m1).unwrap().parse::<f64>().unwrap(), 100.0);
+        assert_eq!(rows[49].get(index_m1).unwrap().parse::<f64>().unwrap(), 149.0);
+        assert_eq!(rows[0].get(index_m1_t0).unwrap().parse::<f64>().unwrap(), 100.0);
+        assert_eq!(rows[0].get(index_m1_t49).unwrap().parse::<f64>().unwrap(), 149.0);
+        assert_eq!(rows[0].get(index_x0_x).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_x0_x).unwrap().parse::<f64>().unwrap(), 49.0);
+        assert_eq!(rows[0].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.0);
+        assert_eq!(rows[49].get(index_x0_t).unwrap().parse::<f64>().unwrap(), 0.49);
+        assert_eq!(rows[0].get(index_input_t49).unwrap().parse::<f64>().unwrap(), 0.49);
         assert_eq!(rows[0].get(index_x_h1).unwrap().parse::<f64>().unwrap(), 1.0);
         assert_eq!(rows[0].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         assert_eq!(rows[49].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 99.0);
@@ -813,10 +954,11 @@ mod tests {
         }
         let mut writer = csv::Writer::from_path(path).unwrap();
         writer.write_record(&headers).unwrap();
+        let mut global_index = 0usize;
         for &run_rows in window_counts {
             for i in 0..run_rows {
                 let mut row = vec![
-                    format!("{:.8}", i as f64 * EXPECTED_DT_S),
+                    format!("{:.8}", global_index as f64 * EXPECTED_DT_S),
                     format!("{}", i + 1), "0".into(), "0".into(),
                     "0".into(), "0".into(), "0".into(), "0".into(), "0".into(), "0".into(),
                     "0".into(), "0".into(), "0".into(), "1".into(),
@@ -827,6 +969,7 @@ mod tests {
                     }
                 }
                 writer.write_record(&row).unwrap();
+                global_index += 1;
             }
         }
         writer.flush().unwrap();
@@ -864,9 +1007,11 @@ mod tests {
             let output_path = output_dir.join(format!("melon_20251017_run{}.csv", run_index + 1));
             let mut joined = ReaderBuilder::new().has_headers(true).from_path(&output_path).unwrap();
             let headers = joined.headers().unwrap().clone();
+            let time_index = headers.iter().position(|header| header == "t").unwrap();
             let x_h50 = headers.iter().position(|header| header == "x_true_h50").unwrap();
             let rows = joined.records().collect::<Result<Vec<_>, _>>().unwrap();
             assert_eq!(rows.len(), *expected_rows);
+            assert_eq!(rows[0].get(time_index).unwrap().parse::<f64>().unwrap(), 0.0);
             assert_eq!(rows[0].get(x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         }
 

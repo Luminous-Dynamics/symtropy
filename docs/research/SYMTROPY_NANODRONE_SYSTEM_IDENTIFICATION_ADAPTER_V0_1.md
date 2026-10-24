@@ -162,3 +162,56 @@ Relevant references:
 - IDSIA public dataset and model/evaluation scripts: https://github.com/idsia-robotics/nanodrone-sysid-benchmark
 - Published benchmark: https://doi.org/10.1016/j.conengprac.2026.106871
 - Official PX4 HITL/SITL distinction: https://docs.px4.io/main/en/simulation/hitl.html
+
+
+## Paired model-comparison receipt v0.1
+
+The metric receipt computes `ground_truth_window_sha256` per run when complete `*_true_h1` through `*_true_h50` columns are present. It separately computes `conditioning_window_sha256` only when the full conditioning schema is present. The conditioning schema includes `x0_t`, every `x0_*` state channel, timestamps `input_time_t0..t49`, and the four motor-speed channels for all 50 input steps (`m1_rads_input_t0..t49` through `m4_rads_input_t0..t49`). The joiner derives `x0` from raw row i, appends timestamps and the full motor sequence from rows i..i+49, and joins future target h to raw state row i+h. This matches the released `QuadDataset` contract (initial state plus a 50-step motor-input sequence); a single scalar motor sample is not enough to certify equivalent conditioning. The upstream test helper may write a synthetic flattened time vector over concatenated windows, so the joiner validates its step cadence and rewrites the joined `t` to raw timestamp `t_i` after alignment; the original prediction CSV hash is retained for provenance.
+
+Both digests domain-separate their formats and hash row counts and parsed IEEE-754 `f64` bits in little-endian order in fixed field order; the target digest covers timestamps and every future target h=1..50, while the conditioning digest covers `x0_t`, the initial state, every motor-sample timestamp, and every motor input in the sequence. Numeric hashing makes `1` and `1.0` match while any changed target or input invalidates pairing. Orientation representation is part of the pairing contract: quaternion receipts and rotation-vector receipts are not silently mixed. Both digests are unkeyed reproducibility identifiers, not signatures; the comparator proves receipt-to-receipt equality of the encoded targets and conditioning values, but does not authenticate how models were trained or normalized. Preserve source prediction CSVs, raw data, and join receipts for independent review. The digest domain-separates this format and hashes (1) the row count, (2) each row timestamp, and (3) every target field for horizons 1–50 in fixed field/horizon order, using parsed IEEE-754 `f64` bits in little-endian order. This deliberately hashes numeric values rather than CSV text spellings, so `1` and `1.0` pair identically while a changed timestamp or target invalidates the pairing. Orientation representation is part of the pairing contract: quaternion receipts and rotation-vector receipts are not silently mixed. The digest is an unkeyed reproducibility identifier, not a signature; the comparator establishes receipt-to-receipt target identity, but does not authenticate how either model was trained or normalized. Preserve the source prediction CSVs and join receipts for independent review.
+
+For each model output, first join it to the exact same raw Melon run files so the receipt can bind the model's full input sequence as well as its targets. Example for the released LSTM output (use a fresh output directory):
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_truth_window_join -- \
+  "$NANODRONE_PATH/out/predictions/lstm_random_square_chirp_model_multistep/melon_multistep.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run2.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run3.csv" \
+  results/lstm-joined --pooled --state-units-si
+
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_metric_receipt -- \
+  results/lstm-joined/melon_20251017_run1.csv \
+  results/lstm-joined/melon_20251017_run2.csv \
+  results/lstm-joined/melon_20251017_run3.csv \
+  > results/lstm-metric-receipt.json
+```
+
+Repeat with the candidate model's pooled output and a different fresh join directory, then provide the two JSON receipts to the comparator below. Confirm the predictions are denormalized SI before passing `--state-units-si`; the flag records a caller assertion, not an independently proved scaler receipt. Preserve both joined outputs, JSON receipts, raw files, and model/scaler provenance. Do not change the held-out test protocol after looking at the results.
+
+The new Rust example `nanodrone_model_compare` consumes two metric JSON receipts (reference baseline first, candidate second) and a **new** output path:
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_model_compare -- \
+  results/lstm-metric-receipt.json \
+  results/symthaea-metric-receipt.json \
+  results/lstm-vs-symthaea-comparison.json
+```
+
+It refuses to compare receipts unless both use the same benchmark version, 100 Hz sample period, held-out Melon runs 1–3, 50 horizons, orientation representation, row count, and exact per-run ground-truth and full conditioning-window digests. It requires complete per-horizon target windows; the legacy shifted-truth metric alone is not accepted. The comparison emits all 50 horizons, selected h=1/5/10/20/50 summaries, per-run paired deltas, and separate channels for position, linear velocity, sign-invariant SO(3) orientation, the source-compatible orientation formula, and body angular rate. It does not invent a unit-mixed aggregate score. A negative `relative_error_change_pct` means the candidate has lower error.
+
+**Statistical ceiling:** three Melon runs are three fixed held-out trajectories, not hundreds or thousands of independent trials. Per-timestep windows overlap and must not be treated as independent samples for a confidence interval. This comparison receipt does not claim significance, broad generalization, controller quality, or flight safety. To make a strong SOTA claim, expand evaluation to independently collected trajectories / flight sessions and pre-register the analysis before looking at candidate results.
+
+## Proposed comparison gates (targets, not current results)
+
+- **Parity gate:** first reproduce each official baseline using the same raw trajectory split, state representation, normalizer fit scope, full-window alignment, units, and source metric. Preserve an explicitly labelled source-compatible score alongside the sign-invariant orientation diagnostic.
+- **Accuracy gate:** pre-register per-channel results at all 50 horizons, with headline reporting at 1, 5, 10, 20 and 50 steps. A candidate target is at least 10% lower macro error than the strongest reproduced baseline in at least three of the four core physical channels (position, velocity, orientation, angular rate), while avoiding a regression above 5% in any predeclared headline channel/horizon or on any held-out run. These are proposed thresholds, not measured performance.
+- **Evidence gate:** after enough independent flights exist, report paired effect sizes and uncertainty clustered at the flight/trajectory level; never bootstrap individual overlapping windows as if they were independent. With only the three released Melon runs, report paired run deltas without calling a win statistically significant.
+- **Systems gate:** separately report inference p50/p95/p99, peak memory, model size, and deadline-miss rate on a declared target device. An accuracy gain is not a practical win if it misses the control deadline or exceeds the memory envelope.
+- **Transfer gate:** evaluate unseen trajectories, actuator lag, battery-voltage variation, payload changes, and sensor/noise shifts only after the held-out benchmark protocol is frozen. Report each shift as a separate condition and include worst-condition results; do not average away safety-relevant failures.
+- **Safety gate:** prediction error is not closed-loop safety evidence. Before physical use, evaluate constraint violations, tracking error, recovery time, loss-of-control events, and predeclared tail-risk limits in simulation and hardware-in-the-loop; physical testing requires separate risk controls.
+
+Baseline families to reproduce include the benchmark's physics-based, neural, hybrid physics-plus-residual, and LSTM models. For Symthaea, compare persistent HDC/LTC against current-state and explicit-history learned models, plus a reset-each-step ablation. The persistent-state claim only survives if its gains persist on held-out data under matched parameter/runtime budgets.
