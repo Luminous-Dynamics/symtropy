@@ -1,16 +1,16 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Networked components — the ECS state that Lightyear replicates.
+//! Candidate ECS components for future Lightyear replication.
 //!
-//! These are Bevy components that mirror Symtropy's physics state.
-//! Lightyear handles serialization, prediction, rollback, and
-//! interpolation for these automatically.
+//! These mirror part of Symtropy's physics/agent state, but they are not
+//! currently wired to Lightyear replication rules. Defining/reflect-registering
+//! a component does not make it replicated, predicted, or interpolated.
 
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
-/// Replicated position (3D). Lightyear syncs this across peers.
+/// Candidate 3D position component; not replicated until protocol wiring exists.
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct NetPosition {
     pub x: f64,
@@ -18,7 +18,7 @@ pub struct NetPosition {
     pub z: f64,
 }
 
-/// Replicated velocity. Used for prediction extrapolation.
+/// Candidate velocity component; prediction policy is not wired yet.
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct NetVelocity {
     pub x: f64,
@@ -26,7 +26,7 @@ pub struct NetVelocity {
     pub z: f64,
 }
 
-/// Replicated rotation (quaternion).
+/// Candidate replicated rotation (quaternion); not wired yet.
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct NetRotation {
     pub w: f64,
@@ -35,7 +35,7 @@ pub struct NetRotation {
     pub z: f64,
 }
 
-/// Replicated consciousness state for an entity.
+/// Candidate consciousness-state component; not replicated yet.
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct NetConsciousness {
     /// Phi score (0.0 - 1.0).
@@ -62,7 +62,7 @@ pub struct PlayerInput {
     pub tick: u64,
 }
 
-/// Authority marker — which peer is simulating this entity's physics.
+/// Candidate authority metadata; this component alone does not enforce ownership.
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct NetAuthority {
     /// Peer ID of the authority.
@@ -75,7 +75,7 @@ pub struct NetAuthority {
 #[derive(Component, Clone, Debug, Serialize, Deserialize, PartialEq, Reflect)]
 pub struct SpatialZone(pub u64);
 
-/// Update spatial authority and zones based on Morton codes.
+/// Update coarse spatial-zone labels using Morton codes; does not assign peer authority.
 pub fn update_spatial_authority<const D: usize>(
     mut query: Query<(&NetPosition, &NetAuthority, Option<&mut SpatialZone>)>,
 ) {
@@ -103,7 +103,7 @@ pub fn update_spatial_authority<const D: usize>(
             z.0 = prefix;
         }
 
-        // 4. In a real p2p setup, authority would follow the prefix
-        // (e.g. peer_id = prefix % num_peers)
+        // This computes a zone label only. A real authority protocol must be explicit,
+        // versioned, authenticated, and protected against simultaneous ownership.
     }
 }

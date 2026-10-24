@@ -1,36 +1,20 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Lightyear integration for Symtropy.
+//! Symtropy's Lightyear integration scaffold.
 //!
-//! Bridges Symtropy's consciousness-coupled physics engine with Lightyear's
-//! production netcode (prediction, rollback, interpolation, interest management).
+//! **Qualification status: not end-to-end multiplayer.**
 //!
-//! # Architecture
+//! This crate depends on Lightyear, but the current plugin does not configure
+//! Lightyear ClientPlugins/ServerPlugins, register actual replication rules,
+//! or connect its adapter queues to Lightyear's `Link` buffers. The
+//! `symtropy_net::iroh_transport::IrohTransport` used by the adapter is an
+//! in-memory stub with no QUIC endpoint. Reflected components and passing local
+//! queue tests do not establish replication, P2P connectivity, or latency.
 //!
-//! ```text
-//! Lightyear                          Symtropy
-//! ┌─────────────────────┐           ┌─────────────────────────┐
-//! │ Prediction + Rollback│ ◄──────► │ PhysicsWorld<D>          │
-//! │ Snapshot Interpolation│          │ ConsciousnessField<D>    │
-//! │ Delta Compression    │          │ ThermodynamicLedger      │
-//! │ Interest Management  │          │ SpatialAuthority         │
-//! └──────────┬──────────┘           └─────────────────────────┘
-//!            │
-//!     ┌──────▼──────┐
-//!     │  IrohIo     │  ← ~100 LOC bridge
-//!     │  (QUIC P2P) │
-//!     └─────────────┘
-//! ```
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! use symtropy_lightyear::SymtropyNetPlugin;
-//!
-//! App::new()
-//!     .add_plugins(SymtropyNetPlugin)
-//!     .run();
-//! ```
+//! `SymtropyNetPlugin` currently registers candidate component reflection
+//! metadata and installs scaffold I/O and spatial-zone systems. Keep capability
+//! claims bounded until exact-head CI and multi-process real-transport tests
+//! demonstrate the end-to-end path.
 
 pub mod components;
 pub mod iroh_io;

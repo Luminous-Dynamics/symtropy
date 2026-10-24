@@ -9242,6 +9242,7 @@ name = "symtropy-multiplayer-demo"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lightyear",
  "serde",
  "symtropy-lightyear",
 ]
