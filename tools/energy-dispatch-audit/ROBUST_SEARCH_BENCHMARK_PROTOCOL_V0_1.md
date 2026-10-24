@@ -1,6 +1,6 @@
 # Energy design search: robustness and fair-comparison protocol v0.1
 
-**Status:** protocol proposal; not yet an executed multi-scenario benchmark.  
+**Status:** benchmark protocol; five-case synthetic panel and actual-dispatch CI step are implemented, but the latest end-to-end run has not yet completed successfully.  
 **Applies to:** Symthaea candidate generation, Symtropy contracts/scenarios, Sol-Atlas compilation/dispatch, and the independent Symtropy auditor.  
 **Claim ceiling:** finite-model benchmark until calibrated site inputs, validated component models, and independent reference comparisons exist.
 
@@ -40,9 +40,25 @@ The first panel should be **deterministic and non-probabilistic**. Each row is a
 9. **evidence_unknown_grid_factors**: cost/carbon factors absent; expected outcome is *unrankable for those objectives*, never silently scored as zero.
 10. **mutation_attack variants**: tampered receipts, objective vectors, stale parent hash, hidden extra mutations, altered outage limits, forged reserve, omitted scenario rows.
 
-The current two-interval contract cannot express a convincing delayed renewable window, long outage chronology, or realistic reserve policy. Those rows must remain marked **not executable on v0.1** until the time-series/scenario contract supports them. Do not simulate a multi-interval feature by relabeling two intervals. First implement a versioned scenario envelope and typed transform receipt, then freeze a matching model and golden case.
+The currently frozen five-case panel is three hourly intervals at 1-kWh energy quantum. It can test total PV loss, outage shift by one interval, doubled essential demand and a one-quantum terminal reserve, but cannot support meaningful 25/50/75% PV derates or a rich solar-window/outage-duration sweep. Those cases need a finer declared energy quantum and more intervals, plus new frozen known answers and an independent reference check. Do not describe the current panel as a delayed/shortened solar-window or long-outage benchmark.
 
 If scenario probabilities are not evidence-backed, publish deterministic envelopes only: worst-case essential unserved energy, worst-case reserve shortfall, longest continuous deficit, maximum import/cost/carbon among explicitly known values, and per-scenario feasibility. Do not report expected values or CVaR based on invented probabilities.
+
+## First frozen panel implemented (not yet CI-qualified)
+
+`fixtures/energy-scenario-panel-v0.1.json` now contains five deterministic synthetic cases. Each scenario declares its parent and exact JSON-pointer mutation list, embeds its request, and freezes the full feasible-schedule objective multiset plus expected Pareto frontier. The independent Rust reference test enumerates each case and derives the frontier from the complete objective multiset. The E2E workflow is configured to execute the actual Sol-Atlas CLI, audit every output and emit a digest-bound panel report.
+
+Frozen finite-model expectations:
+
+| Scenario | Feasible complete schedules | Pareto vectors |
+|---|---:|---:|
+| Nominal | 9 | 4 |
+| Total PV loss | 3 | 3 |
+| Outage shifted to final interval | 9 | 4 |
+| Essential demand doubled in outage/recovery | 10 | 4 |
+| Terminal reserve raised to one quantum | 4 | 2 |
+
+The latest end-to-end run was still queued when this protocol was last updated; these values are frozen answers and static reference calculations, **not** a successful actual-Sol-Atlas run or site-resilience evidence. The next step is the full 39 candidate × 5 scenario matrix (195 candidate/scenario pairs) with explicit failed/unknown rows.
 
 ## Fair search comparison
 
@@ -97,12 +113,12 @@ These tools solve overlapping but non-identical problems. A small Rust integer s
 
 1. Fix all observed compile/test blockers before using outputs; keep tests and end-to-end runs separate.
 2. Freeze the current v0.1 candidate/request/report golden answers unchanged.
-3. Specify and schema-validate a typed multi-interval scenario bundle and mutation receipt.
-4. Add 1–2 hand-computable multi-interval known-answer scenarios, with independently derived frontier and malicious-receipt controls.
-5. Add a deterministic scenario-panel runner and coverage gate; archive per-scenario raw artifacts.
-6. Add matched-budget baseline runners (templates, exhaustive tiny oracle, seeded random, constraint-guided, Symthaea-assisted).
-7. Run held-out robustness panels; publish a digest-bound ledger with budgets, per-objective results, uncertainties, failure cases and scope limitations.
-8. Only then add real-site evidence and external REopt/SAM/PyPSA/GenX comparisons.
+3. Keep the frozen five-case panel and source-bound mutation receipts; complete the pending CI qualification.
+4. Run the 39 × 5 candidate/scenario matrix through actual Sol-Atlas dispatch and the independent audit; require exactly 195 accounted-for rows.
+5. Add sound constraint-pruning, seeded-random, and Symthaea-assisted policy arms using the same evaluator, starting with the 36-tuple oracle space.
+6. Expand the design domain before measuring 128/512/10,000 unique-proposal tiers; separate tuning, validation and held-out scenario families.
+7. Publish the digest-bound ledger with budgets, per-objective results, failures, and scope limitations.
+8. Only then add calibrated site evidence and matched REopt/SAM/PyPSA/GenX comparisons.
 
 ## References
 
