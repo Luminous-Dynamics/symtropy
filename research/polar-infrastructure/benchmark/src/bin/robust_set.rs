@@ -35,7 +35,7 @@ struct RobustSetReport {
     policy_results: Vec<RobustPolicyScore>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct RobustPolicyScore {
     policy_id: String,
     method_family: String,
@@ -56,7 +56,7 @@ struct RobustPolicyScore {
     scenario_outcomes: Vec<ScenarioOutcome>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct RobustServiceScore {
     service_id: String,
     rate_unit: String,
@@ -73,7 +73,7 @@ struct RobustServiceScore {
     scenario_outcomes: Vec<ScenarioServiceOutcome>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct ScenarioServiceOutcome {
     scenario_id: String,
     scenario_duration_hours: f64,
@@ -88,7 +88,7 @@ struct ScenarioServiceOutcome {
     time_to_first_floor_breach_hours: Option<f64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct ScenarioOutcome {
     scenario_id: String,
     scenario_duration_hours: f64,
@@ -632,6 +632,34 @@ mod tests {
         assert!(report.policy_results.iter().any(|p| p.pareto_nondominated == Some(true)));
         // Eligibility is a separate boolean; Pareto status is not safety approval.
         assert!(report.policy_results.iter().any(|p| p.pareto_nondominated == Some(true) && !p.passed_all_declared_service_floors));
+    }
+
+    #[test]
+    fn pareto_dominance_cannot_hide_a_per_service_shortfall_regression() {
+        let report = aggregate(&fixture()).expect("fixture should aggregate");
+        let template = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let mut higher_water_loss = template.clone();
+        let mut lower_water_loss = template.clone();
+
+        for policy in [&mut higher_water_loss, &mut lower_water_loss] {
+            policy.service_floor_breach_scenario_count = 1;
+            policy.worst_case_service_shortfall = 0.1;
+            policy.worst_floor_breach_service_hours = 1.0;
+            policy.maximum_system_floor_breach_episode_count_across_scenarios = 1;
+            policy.worst_case_longest_consecutive_system_floor_breach_hours = 1.0;
+            policy.maximum_fuel_intensity_across_scenarios = Some(1.0);
+        }
+        lower_water_loss.service_results = higher_water_loss.service_results.clone();
+        higher_water_loss.service_results.iter_mut()
+            .find(|service| service.service_id == "water").unwrap()
+            .worst_case_service_shortfall = Some(0.4);
+        lower_water_loss.service_results.iter_mut()
+            .find(|service| service.service_id == "water").unwrap()
+            .worst_case_service_shortfall = Some(0.2);
+
+        assert!(!dominates(&higher_water_loss, &lower_water_loss));
+        assert!(dominates(&lower_water_loss, &higher_water_loss));
     }
 
     #[test]
