@@ -60,8 +60,9 @@ jobs:
               (.cvar_service_shortfall >= .expected_service_shortfall and
                .gate_failure_probability > 0 and
                (.scenario_outcomes | length == 2) and
-               (.expected_consecutive_system_floor_breach_hours >= 0) and
-               (.worst_case_consecutive_system_floor_breach_hours >= 0) and
+               (.expected_system_floor_breach_episode_count >= 0) and
+               (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
+               (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
                ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .longest_consecutive_system_floor_breach_hours >= 0)] | length == 1))] | length == 1)
           ' /tmp/polar-ensemble-report.json
 
@@ -81,6 +82,7 @@ jobs:
             ([.policy_results[] | select(.policy_id == "candidate_full_service") |
               (.passed_all_declared_service_floors == false and
                .service_floor_breach_scenario_count > 0 and
-               .worst_consecutive_system_floor_breach_hours >= 0 and
-               (.scenario_outcomes | length == 3 and all(.[]; .longest_consecutive_system_floor_breach_hours >= 0)))] | length == 1)
+               .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
+               .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
+               (.scenario_outcomes | length == 3 and all(.[]; (.system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0))))] | length == 1)
           ' /tmp/polar-robust-set-report.json
