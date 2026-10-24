@@ -26,6 +26,8 @@ const ORIENTATION_ALIGNMENT_ATOL_RAD: f64 = 1.0e-2;
 const COMMON_FIELDS: [&str; 9] = ["x", "y", "z", "vx", "vy", "vz", "wx", "wy", "wz"];
 const QUATERNION_FIELDS: [&str; 4] = ["qx", "qy", "qz", "qw"];
 const ROTVEC_FIELDS: [&str; 3] = ["rx", "ry", "rz"];
+const MOTOR_INPUT_FIELDS: [&str; 4] = ["m1_rads", "m2_rads", "m3_rads", "m4_rads"];
+const MOTOR_INPUT_ALIGNMENT_ATOL: f64 = 1.0e-3;
 const RAW_REQUIRED: [&str; 18] = [
     "t", "x", "y", "z", "vx", "vy", "vz", "qx", "qy", "qz", "qw", "wx", "wy", "wz",
     "m1_rads", "m2_rads", "m3_rads", "m4_rads",
@@ -318,6 +320,16 @@ fn join_files_internal(
     let prediction_headers = reader.headers()?.clone();
     let prediction_indices = name_index(&prediction_headers, "prediction table")?;
     let mode = detect_prediction_mode(&prediction_indices, "prediction table")?;
+    let motor_input_count = MOTOR_INPUT_FIELDS.iter()
+        .filter(|field| prediction_indices.contains_key(**field))
+        .count();
+    if motor_input_count != 0 && motor_input_count != MOTOR_INPUT_FIELDS.len() {
+        return Err(invalid_input(format!(
+            "prediction table has a partial motor-input schema ({motor_input_count}/{} columns); provide all four motor inputs or none",
+            MOTOR_INPUT_FIELDS.len()
+        )).into());
+    }
+    let prediction_has_motor_inputs = motor_input_count == MOTOR_INPUT_FIELDS.len();
 
     let mut base_state_fields = fields_for_mode(mode);
     base_state_fields.push("t");
@@ -442,6 +454,22 @@ fn join_files_internal(
                 }
             }
         }
+
+        // A transition window i uses motor inputs recorded at raw row i. If upstream
+        // output already carries these channels, verify them against raw data; otherwise
+        // attach them before writing so comparisons can prove identical conditioning.
+        for field in MOTOR_INPUT_FIELDS {
+            if prediction_has_motor_inputs {
+                let observed = row_value(record, &prediction_indices, field, row_number, "prediction table run slice")?;
+                let expected = raw.rows[index][field];
+                if (observed - expected).abs() > MOTOR_INPUT_ALIGNMENT_ATOL {
+                    return Err(invalid_input(format!(
+                        "motor-input alignment failed for {raw_run_id} at prediction row {row_number}: '{field}'={observed} does not match raw row {} value {expected} within {MOTOR_INPUT_ALIGNMENT_ATOL}",
+                        index + 2
+                    )).into());
+                }
+            }
+        }
     }
 
     for index in 1..segment_rows.len() {
@@ -454,6 +482,11 @@ fn join_files_internal(
         .flat_map(|field| (1..=HORIZON).map(move |horizon| target_key(field, horizon)))
         .collect::<Vec<_>>();
     let mut output_headers = prediction_headers.clone();
+    if !prediction_has_motor_inputs {
+        for field in MOTOR_INPUT_FIELDS {
+            output_headers.push_field(field);
+        }
+    }
     let existing = output_headers.iter().map(str::to_owned).collect::<HashSet<_>>();
     for target in &target_columns {
         if existing.contains(target) {
@@ -474,6 +507,11 @@ fn join_files_internal(
         writer.write_record(&output_headers)?;
         for (window_index, prediction_record) in segment_rows.iter().enumerate() {
             let mut out = prediction_record.clone();
+            if !prediction_has_motor_inputs {
+                for field in MOTOR_INPUT_FIELDS {
+                    out.push_field(&format!("{:.17}", raw.rows[window_index][field]));
+                }
+            }
             for horizon in 1..=HORIZON {
                 // The upstream QuadDataset window i predicts x_(i+1) ... x_(i+H).
                 // Therefore horizon h maps to raw trajectory row i+h.
@@ -547,7 +585,9 @@ fn join_files_internal(
             "sample_period_s": EXPECTED_DT_S,
             "prediction_state_units": "caller_asserted_denormalized_SI_units",
             "orientation_representation": mode.label(),
-            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; true state at horizon h is raw row i+h",
+            "motor_input_columns_present": true,
+            "motor_input_alignment": "m1_rads through m4_rads are checked against or attached from raw row i for prediction window i",
+            "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; motor inputs come from raw row i; true state at horizon h is raw row i+h",
             "all_available_prediction_windows_scored_at_each_horizon": true,
             "target_columns_written": target_columns.len(),
             "column_name_mapping": "append {state}_true_h{horizon} columns; preserve all prediction columns and rows"
