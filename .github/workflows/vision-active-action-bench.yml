@@ -1,0 +1,193 @@
+name: Visual Active Action Diagnostic Pilot
+
+on:
+  push:
+    branches: ["feat/vis-act-evaluator-main-20261020"]
+    paths:
+      - "tools/vision-active-action-reference.rs"
+      - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-world.rs"
+      - "tools/vision-active-memory-world.rs"
+      - "tools/vision-active-pixel-world.rs"
+      - "docs/vision/active-perception-benchmark-bridge.md"
+      - "tools/vision-active-action-reference/**"
+      - "tools/vision-active-action-benchmark/**"
+      - "tools/vision-active-action-world/**"
+      - ".github/workflows/vision-active-action-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-active-action-reference.rs"
+      - "tools/vision-active-action-benchmark.rs"
+      - "tools/vision-active-action-world.rs"
+      - "tools/vision-active-memory-world.rs"
+      - "tools/vision-active-pixel-world.rs"
+      - "docs/vision/active-perception-benchmark-bridge.md"
+      - "tools/vision-active-action-reference/**"
+      - "tools/vision-active-action-benchmark/**"
+      - "tools/vision-active-action-world/**"
+      - ".github/workflows/vision-active-action-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vision-active-action-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Compile and run reference plus synthetic negative-control tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-action-benchmark.rs -o /tmp/vis-act-tests
+          /tmp/vis-act-tests
+
+      - name: Compile and execute the diagnostic pilot
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-action-benchmark.rs -o /tmp/vis-act-bench
+          /tmp/vis-act-bench | tee vis-act-pilot.tsv
+          grep -Fq "always_cheap" vis-act-pilot.tsv
+          grep -Fq "always_escalate" vis-act-pilot.tsv
+          grep -Fq "confidence_threshold" vis-act-pilot.tsv
+          grep -Fq "surprise_only" vis-act-pilot.tsv
+          grep -Fq "deterministic_random" vis-act-pilot.tsv
+          grep -Fq "sequential_evidence" vis-act-pilot.tsv
+
+      - name: Compile and run causal-world tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-action-world.rs -o /tmp/vis-act-world-tests
+          /tmp/vis-act-world-tests
+
+      - name: Compile and execute causal-world diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-action-world.rs -o /tmp/vis-act-world
+          /tmp/vis-act-world | tee causal-world-pilot.tsv
+          grep -Fq "development_levels" causal-world-pilot.tsv
+          grep -Fq "held_out_severity_levels" causal-world-pilot.tsv
+          grep -Fq "high_occlusion_loss" causal-world-pilot.tsv
+          grep -Fq "high_blur_loss" causal-world-pilot.tsv
+          grep -Fq "high_distractor_loss" causal-world-pilot.tsv
+          grep -Fq "high_novelty_loss" causal-world-pilot.tsv
+          grep -Fq "always_cheap" causal-world-pilot.tsv
+          grep -Fq "sequential_evidence" causal-world-pilot.tsv
+          grep -Fq "nuisance_matched" causal-world-pilot.tsv
+
+      - name: Upload causal-world diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-causal-world-diagnostic
+          path: causal-world-pilot.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compile and run multi-round memory tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-memory-world.rs -o /tmp/vis-act-memory-tests
+          /tmp/vis-act-memory-tests
+
+      - name: Execute multi-round active-memory diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-memory-world.rs -o /tmp/vis-act-memory
+          /tmp/vis-act-memory | tee multi-round-memory.tsv
+          grep -Fq "no_memory" multi-round-memory.tsv
+          grep -Fq "bounded_fifo" multi-round-memory.tsv
+          grep -Fq "confidence_gated" multi-round-memory.tsv
+          grep -Fq "provenance_memory_passive" multi-round-memory.tsv
+          grep -Fq "active_revision" multi-round-memory.tsv
+          grep -Fq "removed_false_persistence_rate" multi-round-memory.tsv
+          grep -Fq "budget_violations" multi-round-memory.tsv
+
+      - name: Upload multi-round memory diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-multi-round-memory-diagnostic
+          path: multi-round-memory.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compile and run rendered-pixel world tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixel-tests
+          /tmp/vis-act-pixel-tests
+
+      - name: Execute rendered-pixel active-vision diagnostic
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 tools/vision-active-pixel-world.rs -o /tmp/vis-act-pixels
+          /tmp/vis-act-pixels | tee rendered-pixel-world.tsv
+          grep -Fq "development_scene_family" rendered-pixel-world.tsv
+          grep -Fq "held_out_scene_family" rendered-pixel-world.tsv
+          grep -Fq "no_memory" rendered-pixel-world.tsv
+          grep -Fq "bounded_fifo" rendered-pixel-world.tsv
+          grep -Fq "confidence_gated" rendered-pixel-world.tsv
+          grep -Fq "active_revision" rendered-pixel-world.tsv
+          grep -Fq "removed_false_persistence_rate" rendered-pixel-world.tsv
+          grep -Fq "fresh_evidence_rate_given_view" rendered-pixel-world.tsv
+          grep -Fq "views_without_fresh_evidence" rendered-pixel-world.tsv
+          grep -Fq "budget_violations" rendered-pixel-world.tsv
+          grep -Fq "VIS-ACT-005 randomized-timing" rendered-pixel-world.tsv
+          grep -Fq "fixed_sweep" rendered-pixel-world.tsv
+          grep -Fq "passive_no_view" rendered-pixel-world.tsv
+          grep -Fq "fresh_evidence_rate_per_executed_view" rendered-pixel-world.tsv
+          grep -Fq "recovery_rate" rendered-pixel-world.tsv
+          grep -Fq "mean_recovery_steps_when_recovered" rendered-pixel-world.tsv
+          grep -Fq "view_attributable_recovery_rate" rendered-pixel-world.tsv
+          grep -Fq "mean_view_recovery_steps_when_attributed" rendered-pixel-world.tsv
+          grep -Fq "bootstrap95_lo_vs_passive" rendered-pixel-world.tsv
+          grep -Fq "random_legal_view" rendered-pixel-world.tsv
+          grep -Fq "uniform_reservoir_2" rendered-pixel-world.tsv
+          grep -Fq "recency_protected_reservoir_2" rendered-pixel-world.tsv
+          grep -Fq "timing-stratum diagnostics" rendered-pixel-world.tsv
+          grep -Fq "early_onset" rendered-pixel-world.tsv
+          grep -Fq "late_onset" rendered-pixel-world.tsv
+          grep -Fq "acquisition-stratum diagnostics" rendered-pixel-world.tsv
+          grep -Fq "view_available_and_successful" rendered-pixel-world.tsv
+          grep -Fq "view_available_but_failed" rendered-pixel-world.tsv
+          grep -Fq "view_unavailable" rendered-pixel-world.tsv
+          grep -Fq "short_view_delay_le_2" rendered-pixel-world.tsv
+          grep -Fq "long_view_delay_gt_2" rendered-pixel-world.tsv
+
+      - name: Upload rendered-pixel world diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-rendered-pixel-diagnostic
+          path: rendered-pixel-world.tsv
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload synthetic diagnostic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-act-synthetic-diagnostic
+          path: vis-act-pilot.tsv
+          if-no-files-found: error
+          retention-days: 14
