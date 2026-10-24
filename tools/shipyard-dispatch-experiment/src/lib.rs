@@ -950,6 +950,18 @@ mod ledger_tests {
     }
 
     #[test]
+    fn sha256_matches_published_empty_and_abc_vectors() {
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
     fn ledger_emits_four_stable_rows_with_separate_metrics() {
         let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
         let rows = serialize_result_ledger(&context(), &results).expect("valid identity");
