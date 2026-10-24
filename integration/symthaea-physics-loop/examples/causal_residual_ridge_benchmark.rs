@@ -10,6 +10,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::time::Instant;
 
 use serde_json::{json, Map, Value};
 use symthaea_multirotor::{
@@ -37,6 +38,7 @@ struct ErrorAccumulator {
     max_prediction_error_norm: f64,
     invalid_samples: usize,
     ground_contact_steps: u64,
+    inference_us: Vec<f64>,
 }
 
 impl ErrorAccumulator {
@@ -49,6 +51,7 @@ impl ErrorAccumulator {
             .max(other.max_prediction_error_norm);
         self.invalid_samples += other.invalid_samples;
         self.ground_contact_steps += other.ground_contact_steps;
+        self.inference_us.extend(other.inference_us.iter().copied());
     }
 
     fn metrics(&self) -> Value {
@@ -66,7 +69,10 @@ impl ErrorAccumulator {
             },
             "max_prediction_error_norm_m_s2": self.max_prediction_error_norm,
             "invalid_samples": self.invalid_samples,
-            "ground_contact_steps": self.ground_contact_steps
+            "ground_contact_steps": self.ground_contact_steps,
+            "inference_p50_us": percentile(&self.inference_us, 0.50),
+            "inference_p95_us": percentile(&self.inference_us, 0.95),
+            "inference_p99_us": percentile(&self.inference_us, 0.99)
         })
     }
 }
@@ -82,6 +88,7 @@ struct EpisodeEvaluation {
     step_error_norms: Vec<f64>,
     invalid_samples: usize,
     ground_contact_steps: u64,
+    inference_us: Vec<f64>,
 }
 
 impl EpisodeEvaluation {
@@ -93,6 +100,7 @@ impl EpisodeEvaluation {
             max_prediction_error_norm: self.max_error_norm,
             invalid_samples: self.invalid_samples,
             ground_contact_steps: self.ground_contact_steps,
+            inference_us: self.inference_us.clone(),
         }
     }
 
@@ -103,6 +111,16 @@ impl EpisodeEvaluation {
             Some(self.max_error_norm)
         }
     }
+}
+
+fn percentile(values: &[f64], p: f64) -> Option<f64> {
+    if values.is_empty() || !p.is_finite() || !(0.0..=1.0).contains(&p) {
+        return None;
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let index = ((sorted.len() - 1) as f64 * p).ceil() as usize;
+    sorted.get(index).copied()
 }
 
 fn env_usize(name: &str, default: usize) -> usize {
@@ -242,47 +260,40 @@ fn evaluate_episode(
     let mut max_error_norm = 0.0_f64;
     let mut step_error_norms = Vec::with_capacity(steps);
     let mut invalid_samples = 0_usize;
+    let mut inference_us = Vec::with_capacity(steps);
 
     for step in 0..steps {
         let before = simulator.state().clone();
         let action = pid_baseline(&before, &scenario.setpoint, gains, &mut pid_state, DT_S)
             .clamped();
 
+        // Time only causal feature preparation and predictor inference. dt is known before
+        // the transition and comes from the fixed simulator tick; no target/next state leaks in.
+        let started = Instant::now();
+        let prediction = model.predict(&before, &action, DT_S);
+        inference_us.push(started.elapsed().as_secs_f64() * 1.0e6);
+
         // Hidden disturbance evolves the held-out plant only; it is not a predictor feature.
         let force = scenario.force_at(seed, step, MASS_KG);
         simulator.apply_external_force(force);
         simulator.step(&action, DT_S);
         let after = simulator.state().clone();
+        let target = LinearTransitionResidual::from_transition(&before, &action, &after, nominal);
 
-        match ResidualTrainingSample::from_transition(&before, &action, &after, nominal) {
-            Ok(sample) => match model.predict(&sample.state_t, &sample.applied_action, sample.dt_s) {
-                Ok(prediction) => {
-                    let mut squared_error_norm = 0.0;
-                    for axis in 0..3 {
-                        let error = sample.target_residual_acceleration_world_m_s2[axis]
-                            - prediction[axis];
-                        squared_error_norm += error * error;
-                        error_squared_sum += error * error;
-                        zero_squared_sum +=
-                            sample.target_residual_acceleration_world_m_s2[axis].powi(2);
-                    }
-                    let error_norm = squared_error_norm.sqrt();
-                    max_error_norm = max_error_norm.max(error_norm);
-                    step_error_norms.push(error_norm);
+        match (prediction, target) {
+            (Ok(prediction), Ok(target)) => {
+                let mut squared_error_norm = 0.0;
+                for axis in 0..3 {
+                    let error = target.residual_acceleration_world_m_s2[axis] - prediction[axis];
+                    squared_error_norm += error * error;
+                    error_squared_sum += error * error;
+                    zero_squared_sum += target.residual_acceleration_world_m_s2[axis].powi(2);
                 }
-                Err(_) => {
-                    invalid_samples = invalid_samples.saturating_add(1);
-                    step_error_norms.push(f64::INFINITY);
-                }
-            },
-            Err(
-                ResidualTargetError::NonFiniteState
-                | ResidualTargetError::InvalidQuaternion
-                | ResidualTargetError::NonIncreasingTimestamp
-                | ResidualTargetError::NonFiniteDerivedTarget
-                | ResidualTargetError::InvalidNominalParameters
-                | ResidualTargetError::NonFiniteCommand,
-            ) => {
+                let error_norm = squared_error_norm.sqrt();
+                max_error_norm = max_error_norm.max(error_norm);
+                step_error_norms.push(error_norm);
+            }
+            _ => {
                 invalid_samples = invalid_samples.saturating_add(1);
                 step_error_norms.push(f64::INFINITY);
             }
@@ -300,6 +311,7 @@ fn evaluate_episode(
         step_error_norms,
         invalid_samples,
         ground_contact_steps: simulator.ground_contact_count(),
+        inference_us,
     }
 }
 
@@ -423,7 +435,10 @@ fn summarize_split(
                     Some(episode.max_error_norm)
                 } else { None },
                 "episode_covered": covered,
-                "ground_contact_steps": episode.ground_contact_steps
+                "ground_contact_steps": episode.ground_contact_steps,
+                "inference_p50_us": percentile(&episode.inference_us, 0.50),
+                "inference_p95_us": percentile(&episode.inference_us, 0.95),
+                "inference_p99_us": percentile(&episode.inference_us, 0.99)
             })
         })
         .collect::<Vec<_>>();
@@ -438,8 +453,10 @@ fn main() {
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or(1.0e-3);
+    let training_started = Instant::now();
     let model =
         LinearResidualRidge::fit(&train_samples, ridge_lambda).expect("ridge fit must be valid");
+    let training_seconds = training_started.elapsed().as_secs_f64();
 
     let calibration_episodes = env_usize("STFR_RIDGE_CALIBRATION_EPISODES", 18);
     let test_episodes = env_usize("STFR_RIDGE_EVAL_EPISODES", 18);
@@ -491,6 +508,7 @@ fn main() {
         },
         "training": {
             "sample_count": train_samples.len(),
+            "training_seconds": training_seconds,
             "fit_method": "fixed_scale_ridge_normal_equations_partial_pivoting",
             "ridge_lambda": model.ridge_lambda(),
             "feature_boundary": "state_t, applied_action, dt_s only; residual target is label",
