@@ -1,0 +1,60 @@
+name: Semantic LOD Policy Benchmark
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/bridges/symtropy-render-bridge/src/lod.rs"
+      - "crates/apps/symtropy-lod-benchmark/**"
+      - "benchmarks/render/SEMANTIC-LOD-01.json"
+      - ".github/workflows/semantic-lod-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semantic-lod-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Run benchmark harness and invariant checks
+        run: cargo run --locked -p symtropy-lod-benchmark -- --samples 30 --output target/semantic-lod-report.json
+      - name: Verify report is complete and comparable
+        run: |
+          test -s target/semantic-lod-report.json
+          grep -q '"status": "measured_policy_only_no_rendering"' target/semantic-lod-report.json
+          grep -q '"workload_id": "SEMANTIC-LOD-100"' target/semantic-lod-report.json
+          grep -q '"workload_id": "SEMANTIC-LOD-1000"' target/semantic-lod-report.json
+          grep -q '"workload_id": "SEMANTIC-LOD-10000"' target/semantic-lod-report.json
+          grep -q '"reference_matches_heap": true' target/semantic-lod-report.json
+          if grep -q '"protected_demotion_count": [1-9]' target/semantic-lod-report.json; then
+            echo "protected entity was downgraded" >&2
+            exit 1
+          fi
+          if grep -q '"screen_error_violations": [1-9]' target/semantic-lod-report.json; then
+            echo "screen-error ceiling was violated" >&2
+            exit 1
+          fi
+          if grep -q '"repeat_outputs_identical": false' target/semantic-lod-report.json; then
+            echo "repeated allocation outputs differed" >&2
+            exit 1
+          fi
+      - name: Upload policy-only benchmark receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-lod-policy-benchmark-${{ github.sha }}
+          path: target/semantic-lod-report.json
+          if-no-files-found: error
+          retention-days: 30
