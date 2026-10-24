@@ -1109,6 +1109,22 @@ struct RobustnessCandidateForLedger {
     envelope_incomparable_with: Vec<String>,
 }
 
+fn envelope_dominates_for_ledger(left: &AxisBestForLedger, right: &AxisBestForLedger) -> bool {
+    let no_worse = left.essential_unserved_quanta <= right.essential_unserved_quanta
+        && left.flexible_unserved_quanta <= right.flexible_unserved_quanta
+        && left.operating_cost_units <= right.operating_cost_units
+        && left.grid_carbon_grams <= right.grid_carbon_grams
+        && left.curtailed_pv_quanta <= right.curtailed_pv_quanta
+        && left.terminal_soc_quanta >= right.terminal_soc_quanta;
+    let strict = left.essential_unserved_quanta < right.essential_unserved_quanta
+        || left.flexible_unserved_quanta < right.flexible_unserved_quanta
+        || left.operating_cost_units < right.operating_cost_units
+        || left.grid_carbon_grams < right.grid_carbon_grams
+        || left.curtailed_pv_quanta < right.curtailed_pv_quanta
+        || left.terminal_soc_quanta > right.terminal_soc_quanta;
+    no_worse && strict
+}
+
 fn recompute_axis_best_for_ledger(frontier: &[DispatchObjective]) -> Result<AxisBestForLedger, Box<dyn Error>> {
     if frontier.is_empty() {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness scenario frontier is empty").into());
@@ -1348,6 +1364,45 @@ fn benchmark_candidate_scenario_matrix_context(
         incomparable_pairs_directed += incomparable.len();
     }
 
+    let relation_ids = relations.keys().cloned().collect::<Vec<_>>();
+    for left_index in 0..relation_ids.len() {
+        for right_index in (left_index + 1)..relation_ids.len() {
+            let left_id = &relation_ids[left_index];
+            let right_id = &relation_ids[right_index];
+            let left = &relations[left_id];
+            let right = &relations[right_id];
+            let left_envelope = &left.worst_case_of_per_scenario_best_axis_value;
+            let right_envelope = &right.worst_case_of_per_scenario_best_axis_value;
+            let left_dominates = envelope_dominates_for_ledger(left_envelope, right_envelope);
+            let right_dominates = envelope_dominates_for_ledger(right_envelope, left_envelope);
+            let equal = left_envelope == right_envelope;
+            let expected = if left_dominates {
+                ("dominates", "dominated_by")
+            } else if right_dominates {
+                ("dominated_by", "dominates")
+            } else if equal {
+                ("equal_to", "equal_to")
+            } else {
+                ("incomparable_with", "incomparable_with")
+            };
+            let left_has = |kind: &str| match kind {
+                "dominates" => left.envelope_dominates.contains(right_id),
+                "dominated_by" => left.envelope_dominated_by.contains(right_id),
+                "equal_to" => left.envelope_equal_to.contains(right_id),
+                _ => left.envelope_incomparable_with.contains(right_id),
+            };
+            let right_has = |kind: &str| match kind {
+                "dominates" => right.envelope_dominates.contains(left_id),
+                "dominated_by" => right.envelope_dominated_by.contains(left_id),
+                "equal_to" => right.envelope_equal_to.contains(left_id),
+                _ => right.envelope_incomparable_with.contains(left_id),
+            };
+            if !left_has(expected.0) || !right_has(expected.1) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "reported envelope relation disagrees with independently recomputed objective comparison").into());
+            }
+        }
+    }
+
     let robustness_log = String::from_utf8(robustness_log_bytes)?;
     if !robustness_log.contains("PASS: derived robustness report for 39 candidates × 5 scenarios")
         || !robustness_log.contains(&format!("source_matrix_sha256={report_digest}"))
@@ -1475,8 +1530,8 @@ fn run() -> Result<(), Box<dyn Error>> {
     let candidate_scenario_matrix =
         benchmark_candidate_scenario_matrix_context(&root, &manifest_bytes, &mapping_config_bytes)?;
     let report = EnergyStudioBenchmarkReport {
-        schema_version: "energy-studio-benchmark-report-v0.5",
-        benchmark_id: "energy-studio-candidate-scenario-matrix-benchmark-v0.5".to_owned(),
+        schema_version: "energy-studio-benchmark-report-v0.6",
+        benchmark_id: "energy-studio-candidate-robustness-envelope-benchmark-v0.6".to_owned(),
         created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
         git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
         source_heads: SourceHeads {
