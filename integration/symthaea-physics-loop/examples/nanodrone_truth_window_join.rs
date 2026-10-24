@@ -553,16 +553,26 @@ fn join_files_internal(
         let mut writer = WriterBuilder::new().has_headers(false).from_writer(file);
         writer.write_record(&output_headers)?;
         for (window_index, prediction_record) in segment_rows.iter().enumerate() {
-            let mut out = prediction_record.clone();
+            // Upstream test scripts can synthesize a flattened t=np.arange(N)*dt
+            // vector across concatenated runs. Preserve its digest above, but rewrite
+            // the exported timestamp to the validated source time for this window.
+            let initial_state = &raw.rows[window_index];
+            let mut out = StringRecord::new();
+            for (column_index, value) in prediction_record.iter().enumerate() {
+                if column_index == prediction_indices["t"] {
+                    out.push_field(&format!("{:.17}", initial_state["t"]));
+                } else {
+                    out.push_field(value);
+                }
+            }
             if !prediction_has_motor_inputs {
                 for field in MOTOR_INPUT_FIELDS {
-                    out.push_field(&format!("{:.17}", raw.rows[window_index][field]));
+                    out.push_field(&format!("{:.17}", initial_state[field]));
                 }
             }
 
             // Match the real model contract: x0 is raw state i and u_seq contains
             // the 50 motor rows i..i+49, while target h is raw state i+h.
-            let initial_state = &raw.rows[window_index];
             out.push_field(&format!("{:.17}", initial_state["t"]));
             for field in fields_for_mode(mode) {
                 out.push_field(&format!("{:.17}", input_state_value(initial_state, field)));
@@ -657,6 +667,7 @@ fn join_files_internal(
                 .collect::<Vec<_>>(),
             "motor_input_timestamp_columns": (0..HORIZON).map(motor_sequence_time_key).collect::<Vec<_>>(),
             "motor_input_alignment": "the complete four-channel motor input sequence and each sample timestamp are attached from raw rows i..i+49; pre-existing one-step motor columns, when supplied, are verified against raw row i",
+            "output_timestamp_policy": "replace upstream synthetic/flattened t with the validated raw timestamp at window-start row i; retain the original prediction-file hash",
             "raw_state_to_prediction_row_alignment": "prediction row i is window starting at raw row i; x0 is raw state i; motor inputs are raw rows i..i+49; true state at horizon h is raw row i+h",
             "all_available_prediction_windows_scored_at_each_horizon": true,
             "target_columns_written": target_columns.len(),
