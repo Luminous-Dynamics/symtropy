@@ -462,7 +462,7 @@ fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateRepo
         negative_control_results: Vec::new(),
         negative_controls_executed: false,
         physical_feasibility_audit: "NOT_RUN_BY_THIS_BINARY; accepted causal traces require the independent dispatch audit",
-        measurement_scope: "Frozen synthetic information-consistency fixture. The binary verifies that its known-answer causal traces pass and its explicitly non-causal wait-and-see reference is detected; it does not evaluate energy dispatch or physical feasibility.",
+        measurement_scope: "Frozen synthetic information-consistency fixture. The binary executes seven gate-owned mutation controls across eight variants and verifies the causal traces plus rejection of the wait-and-see reference. Physical feasibility remains delegated to the independent dispatch audit.",
         claim_ceiling: "Synthetic finite counterexample only. No site resilience, calibrated forecast skill, safety certification, or industry outperformance claim.",
     })
 }
@@ -700,6 +700,13 @@ fn run_report(input: &Path, output: &Path) -> Result<GateReport, Box<dyn Error>>
     println!("gate_negative_controls={}/{}", report.gate_owned_negative_controls_detected, report.gate_owned_negative_control_count);
     println!("negative_controls_executed={}", report.negative_controls_executed);
     println!("external_negative_controls_delegated={}", report.external_negative_control_ids.len());
+    for control in &report.negative_control_results {
+        println!("negative_control={}: status={} variants={}/{} scope={}",
+            control.control_id, control.status, control.detected_variants, control.mutation_variants, control.scope);
+    }
+    for control_id in &report.external_negative_control_ids {
+        println!("negative_control={}: status=delegated_to_independent_dispatch_audit", control_id);
+    }
     println!("physical_feasibility_audit=NOT_RUN_BY_THIS_BINARY");
     println!("report_sha256={}", sha256_hex(&output_bytes));
     Ok(report)
