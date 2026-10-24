@@ -21,6 +21,8 @@ const EXPECTED_DT_S: f64 = 0.010;
 const MAX_DT_DEVIATION_S: f64 = 0.002;
 const QUATERNION_NORM_MIN: f64 = 0.95;
 const QUATERNION_NORM_MAX: f64 = 1.05;
+const STATE_ALIGNMENT_ATOL: f64 = 5.0e-3;
+const ORIENTATION_ALIGNMENT_ATOL_RAD: f64 = 1.0e-2;
 const COMMON_FIELDS: [&str; 9] = ["x", "y", "z", "vx", "vy", "vz", "wx", "wy", "wz"];
 const QUATERNION_FIELDS: [&str; 4] = ["qx", "qy", "qz", "qw"];
 const ROTVEC_FIELDS: [&str; 3] = ["rx", "ry", "rz"];
@@ -111,6 +113,13 @@ fn check_dt(dt: f64, label: &str, row_number: usize) -> Result<(), io::Error> {
         )));
     }
     Ok(())
+}
+
+fn quaternion_distance_sign_invariant(a: [f64; 4], b: [f64; 4]) -> f64 {
+    let norm_a = a.iter().map(|value| value * value).sum::<f64>().sqrt();
+    let norm_b = b.iter().map(|value| value * value).sum::<f64>().sqrt();
+    let dot = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum::<f64>() / (norm_a * norm_b);
+    2.0 * dot.abs().clamp(0.0, 1.0).acos()
 }
 
 fn check_quaternion(q: [f64; 4], label: &str) -> Result<(), io::Error> {
@@ -302,10 +311,7 @@ fn join_files(
         previous_prediction_time = Some(timestamp);
 
         for field in fields_for_mode(mode) {
-            let value = row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
-            if !value.is_finite() {
-                return Err(invalid_input(format!("prediction table row {row_number}: invalid base state '{field}'")).into());
-            }
+            row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
         }
         for field in fields_for_mode(mode) {
             for horizon in 1..=HORIZON {
@@ -318,13 +324,40 @@ fn join_files(
                 )?;
             }
         }
+
+        // Independently verify row alignment against the raw trajectory's first
+        // future state. The upstream result table's base truth columns represent x_(i+1),
+        // while prediction row i starts at raw row i and horizon h targets raw row i+h.
+        let one_step_truth = &raw.rows[index + 1];
+        for field in COMMON_FIELDS {
+            let observed = row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
+            let expected = one_step_truth[field];
+            if (observed - expected).abs() > STATE_ALIGNMENT_ATOL {
+                return Err(invalid_input(format!(
+                    "row alignment failed at prediction row {row_number}: base truth '{field}'={observed} does not match raw row {} value {expected} within {STATE_ALIGNMENT_ATOL}",
+                    index + 3
+                )).into());
+            }
+        }
+
+        let raw_q = [
+            one_step_truth["qx"], one_step_truth["qy"],
+            one_step_truth["qz"], one_step_truth["qw"],
+        ];
         if mode == OrientationMode::Quaternion {
-            check_quaternion([
+            let observed_q = [
                 row_value(&record, &prediction_indices, "qx", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qy", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qz", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qw", row_number, "prediction table")?,
-            ], &format!("prediction table row {row_number} base orientation"))?;
+            ];
+            check_quaternion(observed_q, &format!("prediction table row {row_number} base orientation"))?;
+            let orientation_error = quaternion_distance_sign_invariant(raw_q, observed_q);
+            if orientation_error > ORIENTATION_ALIGNMENT_ATOL_RAD {
+                return Err(invalid_input(format!(
+                    "row alignment failed at prediction row {row_number}: base orientation error {orientation_error} rad exceeds {ORIENTATION_ALIGNMENT_ATOL_RAD}"
+                )).into());
+            }
             for horizon in 1..=HORIZON {
                 check_quaternion([
                     row_value(&record, &prediction_indices, &prediction_key("qx", horizon), row_number, "prediction table")?,
@@ -332,6 +365,17 @@ fn join_files(
                     row_value(&record, &prediction_indices, &prediction_key("qz", horizon), row_number, "prediction table")?,
                     row_value(&record, &prediction_indices, &prediction_key("qw", horizon), row_number, "prediction table")?,
                 ], &format!("prediction table row {row_number} prediction h={horizon}"))?;
+            }
+        } else {
+            let raw_rotvec = quaternion_to_rotvec(raw_q);
+            for (field, expected) in ["rx", "ry", "rz"].iter().zip(raw_rotvec) {
+                let observed = row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
+                if (observed - expected).abs() > ORIENTATION_ALIGNMENT_ATOL_RAD {
+                    return Err(invalid_input(format!(
+                        "row alignment failed at prediction row {row_number}: base orientation '{field}'={observed} does not match raw row {} value {expected}",
+                        index + 3
+                    )).into());
+                }
             }
         }
         prediction_rows.push(record);
@@ -475,7 +519,7 @@ mod tests {
         writer.flush().unwrap();
     }
 
-    fn write_predictions(path: &Path, rows: usize) {
+    fn write_predictions(path: &Path, rows: usize, base_x_offset: f64) {
         let mut headers = vec![
             "t".to_owned(), "x".into(), "y".into(), "z".into(),
             "vx".into(), "vy".into(), "vz".into(), "wx".into(), "wy".into(), "wz".into(),
@@ -492,7 +536,7 @@ mod tests {
         for i in 0..rows {
             let mut row = vec![
                 format!("{:.8}", i as f64 * EXPECTED_DT_S),
-                "0".into(), "0".into(), "0".into(),
+                format!("{}", i as f64 + base_x_offset), "0".into(), "0".into(),
                 "0".into(), "0".into(), "0".into(), "0".into(), "0".into(), "0".into(),
                 "0".into(), "0".into(), "0".into(), "1".into(),
             ];
@@ -524,7 +568,7 @@ mod tests {
         let prediction_path = prediction_dir.join("melon_20251017_run1.csv");
         let output_path = output_dir.join("melon_20251017_run1.csv");
         write_raw(&raw_path, 100);
-        write_predictions(&prediction_path, 50);
+        write_predictions(&prediction_path, 50, 1.0);
 
         let receipt = join_files(&raw_path, &prediction_path, &output_path, true).unwrap();
         assert_eq!(receipt["design"]["source_row_count"], 100);
@@ -541,6 +585,26 @@ mod tests {
         assert_eq!(rows[0].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 50.0);
         assert_eq!(rows[49].get(index_x_h50).unwrap().parse::<f64>().unwrap(), 99.0);
 
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn refuses_prediction_rows_that_do_not_match_raw_one_step_truth() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("symtropy-nanodrone-join-misaligned-{nonce}"));
+        let raw_dir = root.join("data").join("test");
+        let prediction_dir = root.join("predictions");
+        fs::create_dir_all(&raw_dir).unwrap();
+        fs::create_dir_all(&prediction_dir).unwrap();
+        let raw_path = raw_dir.join("melon_20251017_run1.csv");
+        let prediction_path = prediction_dir.join("melon_20251017_run1.csv");
+        let output_path = root.join("joined").join("melon_20251017_run1.csv");
+        write_raw(&raw_path, 100);
+        write_predictions(&prediction_path, 50, 0.0);
+        assert!(join_files(&raw_path, &prediction_path, &output_path, true).is_err());
         fs::remove_dir_all(&root).unwrap();
     }
 
