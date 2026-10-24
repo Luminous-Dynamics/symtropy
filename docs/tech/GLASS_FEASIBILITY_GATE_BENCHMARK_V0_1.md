@@ -124,7 +124,7 @@ The fixture `tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-
 - The downstream route-characterization step costs 3 synthetic units / 10 seconds. Either measurement by itself leaves worst-case regret at 10 synthetic units; the one-step selector's gross regret reduction is 0.
 - The adaptive policy screens first, stops with the safe `reject` action on the non-forming branch, and only characterizes the route on the forming branch. It reaches synthetic terminal regret 0, with maximum path cost 4 units, duration 12 seconds and two measurements.
 
-No scenario probabilities are assigned, so the result is **not an expected-cost estimate** and yields no industrial savings claim. It tests whether a policy conditions expensive follow-up work on a cheap feasibility signal while remaining correct on every declared branch. The focused workflow runs both the one-step comparator and adaptive tree and asserts the full branch structure. Its regression is test 54; the grouped-split auditor adds nine tests for a current total of 63, pending exact-head CI.
+No scenario probabilities are assigned, so the result is **not an expected-cost estimate** and yields no industrial savings claim. It tests whether a policy conditions expensive follow-up work on a cheap feasibility signal while remaining correct on every declared branch. The focused workflow runs both the one-step comparator and adaptive tree and asserts the full branch structure. Its regression is test 54; the grouped-split auditor adds nine tests and the false-feasible-bound evaluator adds eight, for 71 defined tests in the current branch. The expanded suite requires exact-head CI; earlier 54-test success does not qualify these additions.
 
 ## 11. Executable grouped-split leakage contract
 
@@ -155,14 +155,35 @@ For a 5% target at one-sided 95% confidence, 600 independent negative units with
 
 The current fixtures are synthetic arithmetic controls only. A `PASS` means the bound is met **if** the input counts, independent-unit definition, negative labels and frozen test protocol are valid; the command cannot verify those assertions or certify the model. Do not report an industrial false-feasible rate from these fixtures.
 
-## 14. Statistical gate for false-feasible risk
+## 14. Risk-proportionate model credibility and standards crosswalk
 
-A zero-error test set does not imply zero true false-feasible risk. The Rust command `audit-false-feasible-bound <summary.json>` calculates a one-sided Hoeffding upper confidence bound for the rate of infeasible candidates falsely declared feasible:
+The benchmark should scale verification, validation and uncertainty quantification (VVUQ) to the **consequence of a wrong decision**, not merely model complexity or average prediction error. A composition-only screen that abstains from downstream claims is not equivalent in risk to a furnace recommendation affecting refractory life, product acceptance or operator safety. The NIST 2026 report on harmonizing computational-model uncertainty with metrology argues for risk-based credibility assessment tied to model influence and decision consequence ([NIST AMS 100-85, 2026-10-05](https://doi.org/10.6028/NIST.AMS.100-85)). NIST's manufacturing-digital-twin report identifies VVUQ, interoperability and cybersecurity as continuing industry barriers ([NISTIR 8620, 2026-07-21](https://doi.org/10.6028/NIST.IR.8620)).
 
-`upper = min(1, observed_rate + sqrt(ln(1 / (1 - confidence)) / (2 * n)))`
+ISO/AWI 23247-8, titled *Verification, Validation, and Uncertainty Quantification (VVUQ) for Digital Twins*, is an **approved work item under development**; a draft has been prepared. It is not yet a published international standard, so this project must not claim ISO 23247-8 conformity. Its current scope is a useful design reference for lifetime VVUQ across requirements, development, commissioning, operation, maintenance and decommissioning ([ISO/AWI 23247-8 status page](https://committee.iso.org/standard/94858.html)).
 
-Here (n) is the declared count of independent, independently adjudicated negative groups and `observed_rate = false_feasible_count / n`. A result cannot pass if the count fields are malformed, references for the independent-unit definition or negative-label adjudication are missing, the protocol was not pre-registered, or the test set was not frozen. A valid summary whose upper bound exceeds the target returns `UNRESOLVED`, not a pass.
+| Risk / benchmark stage | Minimum credibility evidence | Fail-closed behavior |
+|---|---|---|
+| Schema, ledger and contract (B0) | Independently exercised valid and negative controls; unit, boundary and provenance invariants; pinned code and dependency digests | FAIL on contradiction; UNRESOLVED on absent supporting evidence |
+| Retrospective classifier / property model (B1–B2) | Reproduced target definition, grouped/time-held-out test, per-property calibration and bias, operating-domain definition, independent label provenance | Do not promote a paper score or random-split score as external validity |
+| Sequential selector / adaptive campaign (B3) | Frozen candidate pool, equal initial information and full budget accounting, evaluator-only oracle, sensitivity to missingness/drift, abstention and regret-versus-budget | UNRESOLVED when the world set, cost model or constraint support is insufficient |
+| Process twin / operational recommendation | Time-aligned measured validation, uncertainty coverage, model-form discrepancy, metrology/calibration, OOD detection, outage/override/degraded-mode tests, model-change controls | No plant-facing recommendation beyond independently validated operating envelope |
+| Physical intervention / impact | Independent meters and accepted-product outcomes, preregistered comparator, causal identification strategy, safety review, audit trail and measured uncertainty | Simulator-only counterfactuals remain simulated; unidentifiable impact remains UNRESOLVED |
 
-For a 5% target at one-sided 95% confidence, **600 independent negative groups with zero false-feasible errors** give an upper bound of approximately 4.996%. The 599-group/zero-error control remains UNRESOLVED; one false-feasible error among 600 also misses the target. This is intentionally conservative and distribution-free. Count independent family/campaign units, not correlated rows. The independent-unit, representativeness and label-quality references are caller declarations that require review; the command cannot independently verify them or guarantee performance under distribution shift.
+For each model and operating envelope, record: intended use and prohibited uses; consequences of false-positive/false-feasible decisions; model influence on downstream action; verification and validation evidence; uncertainty type and propagation method; calibration and traceability of measurements; accepted operating range; known model-form discrepancies; update/change triggers; and an explicit abstention/degraded-mode policy. Propagate full distributions when nonlinear thresholds or asymmetric consequences matter; variance-only summaries may hide tail risks relevant to hard constraints.
 
-The positive and underpowered fixtures are synthetic arithmetic controls. A PASS means only that the reported bound meets the declared target under the supplied assumptions; it is not a claim that a real glass model has this false-feasible rate.
+This crosswalk is a proposed local benchmark requirement, not a declaration of standards compliance or product certification.
+
+## 15. Held-out evaluation integrity: declarations are not isolation
+
+The current synthetic fixtures include fields such as `producer_access.ground_truth=false`. These fields are **test declarations only**. The public evaluator does not prove that a producer is unable to read hidden labels, query future outcomes, repeatedly probe a test oracle or tune against returned metrics. Likewise, a split-manifest hash proves which assignment file was used; it does not prove the assigned labels/features were kept secret or the downstream training pipeline respected the split.
+
+Before using any real held-out result for a state-of-the-art or industrial superiority claim, require a distinct evaluation trust boundary:
+
+1. A data custodian pins the licensed, exact-byte dataset, group assignments, label-adjudication protocol and hidden-test commitment; raw labels remain outside the producer's accessible workspace.
+2. The producer submits a frozen predictor/selector, model and code digests, environment lock, decision thresholds, candidate policy, resource budget and abstention rules **before** the test is opened.
+3. An isolated evaluator runs the submitted artifact against the committed test data, records all attempts and resource consumption, and emits a signed or otherwise independently attestable result packet containing the test commitment, artifact digests, metrics and exclusions—but not reusable hidden labels.
+4. The protocol limits submissions and oracle feedback, logs access, declares every evaluated test version, and retires a holdout after its detailed results are disclosed or used for tuning.
+5. A verifier independently checks the receipt and test commitment. If operational isolation or custody cannot be established, label the result `UNSEALED_RETROSPECTIVE`; it may be exploratory but cannot substantiate a blind confirmation claim.
+
+The repository can implement receipt formats and deterministic checks without hosting secret data. Custody, access control and isolated execution are external operational controls and must not be implied by synthetic tests. This distinction is required for fair comparison with industry twins: otherwise one system may have tuned on its test campaigns while another is evaluated blind.
+
