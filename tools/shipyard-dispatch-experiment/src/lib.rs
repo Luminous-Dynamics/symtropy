@@ -804,6 +804,8 @@ pub fn serialize_result_ledger(
 }
 
 fn sha256_hex(input: &[u8]) -> String {
+    use std::fmt::Write as _;
+
     const K: [u32; 64] = [
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
         0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
@@ -988,9 +990,14 @@ mod ledger_tests {
         let results = evaluate_four_rules(&scenario, &[], &evaluator).expect("valid history");
         let rows = serialize_result_ledger(&context(), &results).expect("identity valid");
         assert_eq!(rows.lines().count(), 4);
-        assert!(rows.contains("\"terminal_status\":\"invalid_candidate\""));
-        assert!(rows.contains("\"ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE\""));
-        assert!(rows.contains("\"assignments\":[{"));
+        assert!(rows.contains("\"status\":\"invalid_candidate\""));
+        let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
+        assert!(bundle.artifacts.iter().any(|artifact| artifact.contents.contains("\"assignments\":[{")));
+        assert!(bundle.artifacts.iter().any(|artifact| artifact.contents.contains("ASSIGNMENT_OVERLAPS_EFFECTIVE_OUTAGE")));
+        for artifact in bundle.artifacts {
+            assert_eq!(sha256_hex(artifact.contents.as_bytes()), artifact.sha256);
+            assert!(artifact.file_name.contains(&artifact.sha256));
+        }
     }
 
     #[test]
@@ -1001,6 +1008,24 @@ mod ledger_tests {
         assert!(serialize_result_ledger(&identity, &results)
             .expect_err("invalid tape digest")
             .contains("64 hexadecimal"));
+    }
+
+    #[test]
+    fn evidence_bundle_is_content_addressed_and_references_sidecar_bytes() {
+        let results = evaluate_four_rules(&input(), &[], &[]).expect("input aligns");
+        let bundle = build_result_ledger_bundle(&context(), &results).expect("bundle");
+        assert_eq!(bundle.ledger_jsonl.lines().count(), 4);
+        assert_eq!(bundle.artifacts.len(), 8);
+        for line in bundle.ledger_jsonl.lines() {
+            assert!(line.contains("\"candidate_schedule_sha256\":\""));
+            assert!(line.contains("\"independent_audit_sha256\":\""));
+            assert!(!line.contains("\"adapter_detail\""));
+        }
+        assert!(bundle.artifacts.iter().all(|artifact| {
+            artifact.file_name.ends_with(".json")
+                && artifact.media_type == "application/json"
+                && sha256_hex(artifact.contents.as_bytes()) == artifact.sha256
+        }));
     }
 
     #[test]
