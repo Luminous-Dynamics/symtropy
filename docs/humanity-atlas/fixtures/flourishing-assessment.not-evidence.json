@@ -1,0 +1,120 @@
+{
+  "contract_version": "0.1",
+  "assessment_id": "essential-service-demo-not-evidence",
+  "declared_at": "2026-10-13T09:00:00Z",
+  "analysis_started_at": "2026-10-13T11:00:00Z",
+  "decision": {
+    "question": "Which service plan protects essential-service reliability?",
+    "intended_use": "exploratory_simulation",
+    "decision_owner": "example steward",
+    "affected_population": "synthetic example population",
+    "jurisdiction": "synthetic jurisdiction",
+    "time_horizon": "12 months",
+    "baseline_alternative_id": "baseline"
+  },
+  "metrics": [
+    {
+      "metric_id": "outage_hours",
+      "definition": "Total service interruption hours per month",
+      "unit": "hours/month",
+      "direction": "lower_is_better",
+      "role": "outcome",
+      "measurement_method": "interval telemetry aggregation",
+      "scope": "service-area aggregate",
+      "missingness_policy": "report unknown when required telemetry is unavailable",
+      "privacy_classification": "aggregated"
+    },
+    {
+      "metric_id": "critical_outage_hours",
+      "definition": "Critical interruption hours per month",
+      "unit": "hours/month",
+      "direction": "lower_is_better",
+      "role": "hard_constraint",
+      "measurement_method": "interval telemetry aggregation",
+      "scope": "service-area aggregate",
+      "missingness_policy": "unknown evidence never satisfies this constraint",
+      "privacy_classification": "aggregated"
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_id": "critical-outage-limit",
+      "metric_id": "critical_outage_hours",
+      "comparator": "<=",
+      "threshold": 1,
+      "scope": "overall",
+      "non_compensable": true,
+      "predeclared_at": "2026-10-13T10:00:00Z",
+      "preregistration_artifact_id": null
+    }
+  ],
+  "artifacts": [],
+  "alternatives": [
+    {
+      "alternative_id": "baseline",
+      "label": "Current service",
+      "kind": "baseline",
+      "outcomes": [
+        {
+          "metric_id": "outage_hours",
+          "status": "UNKNOWN",
+          "value": null,
+          "unit": "hours/month",
+          "uncertainty": null,
+          "missing_reason": "no qualifying measurements supplied",
+          "artifact_ids": [],
+          "subgroups": []
+        },
+        {
+          "metric_id": "critical_outage_hours",
+          "status": "UNKNOWN",
+          "value": null,
+          "unit": "hours/month",
+          "uncertainty": null,
+          "missing_reason": "no qualifying measurements supplied",
+          "artifact_ids": [],
+          "subgroups": []
+        }
+      ]
+    },
+    {
+      "alternative_id": "candidate",
+      "label": "Candidate service plan",
+      "kind": "intervention",
+      "outcomes": [
+        {
+          "metric_id": "outage_hours",
+          "status": "UNKNOWN",
+          "value": null,
+          "unit": "hours/month",
+          "uncertainty": null,
+          "missing_reason": "no qualifying measurements supplied",
+          "artifact_ids": [],
+          "subgroups": []
+        },
+        {
+          "metric_id": "critical_outage_hours",
+          "status": "UNKNOWN",
+          "value": null,
+          "unit": "hours/month",
+          "uncertainty": null,
+          "missing_reason": "no qualifying measurements supplied",
+          "artifact_ids": [],
+          "subgroups": []
+        }
+      ]
+    }
+  ],
+  "limitations": {
+    "assumptions": [
+      "This fixture demonstrates contract shape only."
+    ],
+    "known_data_gaps": [
+      "No observed or simulated measurements have been supplied."
+    ],
+    "excluded_impacts": [
+      "Household affordability and environmental impacts are not measured."
+    ],
+    "reviewer_conflicts": []
+  }
+}

@@ -1,0 +1,692 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/humanity-atlas/flourishing-assessment-v0.1.schema.json",
+  "title": "Humanity Atlas Flourishing Assessment v0.1",
+  "description": "An evidence-first outcome vector; not a composite welfare score or authorization to deploy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "assessment_id",
+    "declared_at",
+    "analysis_started_at",
+    "decision",
+    "metrics",
+    "constraints",
+    "artifacts",
+    "alternatives",
+    "limitations"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "0.1"
+    },
+    "assessment_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "declared_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "analysis_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "intended_use",
+        "decision_owner",
+        "affected_population",
+        "jurisdiction",
+        "time_horizon",
+        "baseline_alternative_id"
+      ],
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 12
+        },
+        "intended_use": {
+          "enum": [
+            "exploratory_simulation",
+            "retrospective_evaluation",
+            "pilot_decision_support"
+          ]
+        },
+        "decision_owner": {
+          "type": "string",
+          "minLength": 2
+        },
+        "affected_population": {
+          "type": "string",
+          "minLength": 2
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 2
+        },
+        "time_horizon": {
+          "type": "string",
+          "minLength": 2
+        },
+        "baseline_alternative_id": {
+          "type": "string"
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "definition",
+          "unit",
+          "direction",
+          "role",
+          "measurement_method",
+          "scope",
+          "missingness_policy",
+          "privacy_classification"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+          },
+          "definition": {
+            "type": "string",
+            "minLength": 12
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "higher_is_better",
+              "lower_is_better",
+              "target_range",
+              "not_ranked"
+            ]
+          },
+          "role": {
+            "enum": [
+              "outcome",
+              "hard_constraint"
+            ]
+          },
+          "measurement_method": {
+            "type": "string",
+            "minLength": 3
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 3
+          },
+          "missingness_policy": {
+            "type": "string",
+            "minLength": 8
+          },
+          "privacy_classification": {
+            "enum": [
+              "public",
+              "aggregated",
+              "sensitive",
+              "restricted"
+            ]
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "constraint_id",
+          "metric_id",
+          "comparator",
+          "threshold",
+          "scope",
+          "non_compensable",
+          "predeclared_at",
+          "preregistration_artifact_id"
+        ],
+        "properties": {
+          "constraint_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+          },
+          "metric_id": {
+            "type": "string"
+          },
+          "comparator": {
+            "enum": [
+              "<=",
+              ">=",
+              "between"
+            ]
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "threshold_upper": {
+            "type": "number"
+          },
+          "scope": {
+            "enum": [
+              "overall",
+              "overall_and_subgroups"
+            ]
+          },
+          "non_compensable": {
+            "const": true
+          },
+          "predeclared_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preregistration_artifact_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "comparator": {
+                  "const": "between"
+                }
+              },
+              "required": [
+                "comparator"
+              ]
+            },
+            "then": {
+              "required": [
+                "threshold_upper"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "threshold_upper"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "path",
+          "sha256",
+          "role",
+          "purpose",
+          "collected_at"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 3
+          },
+          "collected_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "pre-registration",
+              "outcome-evidence",
+              "source-dataset",
+              "model-output",
+              "calibration-record",
+              "transformation-log",
+              "provenance-record",
+              "other"
+            ],
+            "description": "Machine-readable evidence role; purpose remains a human-readable description."
+          }
+        }
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "alternative_id",
+          "label",
+          "kind",
+          "outcomes"
+        ],
+        "properties": {
+          "alternative_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 2
+          },
+          "kind": {
+            "enum": [
+              "baseline",
+              "intervention"
+            ]
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "metric_id",
+                "status",
+                "value",
+                "unit",
+                "uncertainty",
+                "missing_reason",
+                "artifact_ids",
+                "subgroups"
+              ],
+              "properties": {
+                "metric_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "KNOWN",
+                    "UNKNOWN"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uncertainty": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "status",
+                        "method"
+                      ],
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "QUANTIFIED",
+                            "NOT_QUANTIFIED"
+                          ]
+                        },
+                        "method": {
+                          "type": "string",
+                          "minLength": 3
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 8
+                        },
+                        "lower": {
+                          "type": "number"
+                        },
+                        "upper": {
+                          "type": "number"
+                        },
+                        "interpretation": {
+                          "enum": [
+                            "coverage_interval",
+                            "plausible_bounds",
+                            "scenario_envelope",
+                            "sensitivity_range",
+                            "measurement_tolerance"
+                          ]
+                        },
+                        "coverage_probability": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 1
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "status": {
+                                "const": "QUANTIFIED"
+                              }
+                            },
+                            "required": [
+                              "status"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "lower",
+                              "upper",
+                              "interpretation"
+                            ],
+                            "properties": {
+                              "reason": {
+                                "not": {}
+                              }
+                            }
+                          },
+                          "else": {
+                            "required": [
+                              "reason"
+                            ],
+                            "not": {
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "lower"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "upper"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "interpretation"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "coverage_probability"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "interpretation": {
+                                "const": "coverage_interval"
+                              }
+                            },
+                            "required": [
+                              "interpretation"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "coverage_probability"
+                            ]
+                          },
+                          "else": {
+                            "not": {
+                              "required": [
+                                "coverage_probability"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "missing_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "artifact_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                "subgroups": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "group_id",
+                      "status",
+                      "value",
+                      "uncertainty",
+                      "missing_reason",
+                      "artifact_ids"
+                    ],
+                    "properties": {
+                      "group_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "enum": [
+                          "KNOWN",
+                          "UNKNOWN"
+                        ]
+                      },
+                      "value": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "uncertainty": {
+                        "$ref": "#/properties/alternatives/items/properties/outcomes/items/properties/uncertainty"
+                      },
+                      "missing_reason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "artifact_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "uniqueItems": true
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "status": {
+                              "const": "KNOWN"
+                            }
+                          },
+                          "required": [
+                            "status"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "value": {
+                              "type": "number"
+                            },
+                            "missing_reason": {
+                              "type": "null"
+                            },
+                            "artifact_ids": {
+                              "minItems": 1
+                            },
+                            "uncertainty": {
+                              "type": "object",
+                              "required": [
+                                "status"
+                              ],
+                              "properties": {
+                                "status": {
+                                  "enum": [
+                                    "QUANTIFIED",
+                                    "NOT_QUANTIFIED"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "else": {
+                          "properties": {
+                            "value": {
+                              "type": "null"
+                            },
+                            "uncertainty": {
+                              "type": "null"
+                            },
+                            "missing_reason": {
+                              "type": "string",
+                              "minLength": 4
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "KNOWN"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "missing_reason": {
+                        "type": "null"
+                      },
+                      "artifact_ids": {
+                        "minItems": 1
+                      },
+                      "uncertainty": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "enum": [
+                              "QUANTIFIED",
+                              "NOT_QUANTIFIED"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "uncertainty": {
+                        "type": "null"
+                      },
+                      "missing_reason": {
+                        "type": "string",
+                        "minLength": 4
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumptions",
+        "known_data_gaps",
+        "excluded_impacts",
+        "reviewer_conflicts"
+      ],
+      "properties": {
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "known_data_gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_impacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewer_conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
