@@ -407,6 +407,18 @@ jobs:
           cat "$context/matrix-sha256sums.txt"
           exit "$gate_status"
 
+      - name: Derive the digest-bound multi-scenario robustness envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          report="$work/targets/symtropy/debug/energy_candidate_robustness_report"
+          "$report" "$context/matrix-report.json" "$context/robustness-report.json" > "$context/robustness-qualification.log"
+          sha256sum "$context/matrix-report.json" "$context/robustness-report.json" > "$context/robustness-sha256sums.txt"
+          cat "$context/robustness-qualification.log"
+          cat "$context/robustness-sha256sums.txt"
+
       - name: Exercise non-zero economics under a PV-availability stress case
         shell: bash
         run: |
