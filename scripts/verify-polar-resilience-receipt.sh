@@ -98,7 +98,12 @@ verify_bundle() {
       .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
       .pareto_comparison_status == "complete" and
       (.scenario_count | type == "number" and . > 0) and
-      ([.policy_results[] | select(.policy_id == "candidate_full_service" and (.service_results | length == 3))] | length == 1)
+      ([.policy_results[] | select(.policy_id == "candidate_full_service" and (.service_results | length == 3))] | length == 1) and
+      all(.policy_results[].service_results[];
+        if .active_in_all_scenarios
+        then (.passed_all_declared_service_floors == (.service_floor_breach_scenario_count == 0))
+        else (.passed_all_declared_service_floors == null)
+        end)
     ' reports/robust-set-report.json >/dev/null || { printf 'robust-set report contract is invalid\n' >&2; exit 1; }
 
     printf 'Verified integrity and synthetic report contracts for commit %s\n' "$expected_commit"
@@ -121,7 +126,7 @@ make_test_bundle() {
   printf '{"schema_version":"0.1.0"}\n' > "$dir/inputs/toy-robust-set.json"
   jq -n '{report_kind:"polar-resilience-score-report", schema_version:"0.2.0", evidence_class:"synthetic_only", result_scope:"metric_calculation_only_not_physical_validation", episode_duration_hours:4, results:[{policy_id:"candidate_full_service",gate_pass:true},{policy_id:"incumbent_reference",gate_pass:true},{policy_id:"transparent_rules",gate_pass:true},{policy_id:"defective_low_fuel_control",gate_pass:false}]}' > "$dir/reports/score-report.json"
   jq -n '{report_kind:"polar-resilience-ensemble-report", schema_version:"0.4.0", evidence_class:"synthetic_only", result_scope:"weighted_synthetic_scenario_aggregation_not_physical_validation", scenario_count:2, results:[{policy_id:"candidate_full_service",service_results:[{},{},{}]}]}' > "$dir/reports/ensemble-report.json"
-  jq -n '{report_kind:"polar-resilience-robust-set-report", schema_version:"0.4.0", evidence_class:"synthetic_only", result_scope:"unweighted_enumerated_stress_set_not_probability_estimate", pareto_comparison_status:"complete", scenario_count:3, policy_results:[{policy_id:"candidate_full_service",service_results:[{},{},{}]}]}' > "$dir/reports/robust-set-report.json"
+  jq -n '{report_kind:"polar-resilience-robust-set-report", schema_version:"0.4.0", evidence_class:"synthetic_only", result_scope:"unweighted_enumerated_stress_set_not_probability_estimate", pareto_comparison_status:"complete", scenario_count:3, policy_results:[{policy_id:"candidate_full_service",service_results:[{service_id:"heat",active_in_all_scenarios:true,service_floor_breach_scenario_count:0,passed_all_declared_service_floors:true},{service_id:"water",active_in_all_scenarios:true,service_floor_breach_scenario_count:1,passed_all_declared_service_floors:false},{service_id:"communications",active_in_all_scenarios:false,service_floor_breach_scenario_count:0,passed_all_declared_service_floors:null}]}]}' > "$dir/reports/robust-set-report.json"
   printf '%s\n' '0123456789abcdef0123456789abcdef01234567' > "$dir/TESTED_COMMIT"
   cp "$0" "$dir/verify-polar-resilience-receipt.sh"
   (
