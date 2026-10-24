@@ -212,6 +212,8 @@ fn main() {
             "sample_count": samples.len(),
             "simulator": "Symtropy PhysicsWorld simplified spherical-body backend",
             "plant_configuration": training_plant.to_json(),
+            "command_channel_semantics": "applied_action_ctrl is the clamped command sent to the plant; under actuator lag it is not the hidden filtered physical output",
+            "residual_semantics": "observed-minus-nominal-direct-actuation acceleration; actuator-response mismatch remains in the residual target",
             "controller": "PdGains::default with pid_baseline; data-collection policy only",
             "dt_s": DT_S,
             "training_scenario_ids": scenarios.iter().map(|scenario| scenario.id).collect::<Vec<_>>(),
