@@ -4338,3 +4338,482 @@ mod relationship_graph_tests {
         assert!(report.witness_paths.is_empty());
     }
 }
+
+
+// --- GLASS-OOD-VOI-001: matched-budget acquisition-policy comparison ---
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AcquisitionPolicyRun {
+    pub policy: String,
+    pub seed: Option<u64>,
+    pub status: String,
+    pub selected_measurement_id: Option<String>,
+    pub cost_units: Option<f64>,
+    pub duration_seconds: Option<f64>,
+    pub observation_groups: Option<usize>,
+    pub post_measurement_worst_case_regret: Option<f64>,
+    pub gross_worst_case_regret_reduction: Option<f64>,
+    pub findings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AcquisitionPolicySummary {
+    pub policy: String,
+    pub runs: Vec<AcquisitionPolicyRun>,
+    pub mean_cost_units: Option<f64>,
+    pub mean_duration_seconds: Option<f64>,
+    pub mean_gross_worst_case_regret_reduction: Option<f64>,
+    pub unresolved_runs: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AcquisitionPolicyComparisonReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub benchmark_id: Option<String>,
+    pub evidence_class: Option<String>,
+    pub random_seed_count: usize,
+    pub available_measurements: usize,
+    pub budget_eligible_measurements: usize,
+    pub max_measurement_cost: Option<f64>,
+    pub max_duration_seconds: Option<f64>,
+    pub pre_measurement_worst_case_regret: Option<f64>,
+    pub policies: Vec<AcquisitionPolicySummary>,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl AcquisitionPolicyComparisonReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AcquisitionCandidate {
+    id: String,
+    cost_units: f64,
+    duration_seconds: f64,
+    observations: BTreeMap<String, String>,
+    features: BTreeMap<String, f64>,
+}
+
+const ACQUISITION_FEATURES: [&str; 4] = [
+    "uncalibrated_uncertainty",
+    "calibrated_uncertainty",
+    "novelty",
+    "estimated_voi",
+];
+
+fn acquisition_policy_invalid(
+    pool: &Value,
+    findings: Vec<String>,
+    status: &str,
+    random_seed_count: usize,
+    available_measurements: usize,
+    budget_eligible_measurements: usize,
+    pre_regret: Option<f64>,
+) -> AcquisitionPolicyComparisonReport {
+    let mut findings = findings;
+    findings.sort();
+    findings.dedup();
+    AcquisitionPolicyComparisonReport {
+        status: status.to_string(),
+        audit_kind: "synthetic_acquisition_policy_comparison".to_string(),
+        benchmark_id: object_string(pool, "benchmark_id").map(ToOwned::to_owned),
+        evidence_class: object_string(pool, "evidence_class").map(ToOwned::to_owned),
+        random_seed_count,
+        available_measurements,
+        budget_eligible_measurements,
+        max_measurement_cost: pool.get("max_measurement_cost").and_then(Value::as_f64),
+        max_duration_seconds: pool.get("max_duration_seconds").and_then(Value::as_f64),
+        pre_measurement_worst_case_regret: pre_regret,
+        policies: Vec::new(),
+        findings,
+        claim_ceiling: "Synthetic policy-selection and regret arithmetic only; selector scores are fixture-declared proxies, not trained uncertainty models or measured acquisition performance.".to_string(),
+    }
+}
+
+fn acquisition_run_for(
+    policy: &str,
+    seed: Option<u64>,
+    candidate: &AcquisitionCandidate,
+    scenario_ids: &[String],
+    actions: &[DecisionAction],
+    best_utility: &BTreeMap<String, f64>,
+    pre_regret: f64,
+) -> AcquisitionPolicyRun {
+    let mut groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for scenario in scenario_ids {
+        if let Some(observation) = candidate.observations.get(scenario) {
+            groups.entry(observation.clone()).or_default().push(scenario.clone());
+        }
+    }
+    let post = decision_post_regret(actions, best_utility, &groups);
+    let mut findings = Vec::new();
+    if groups.is_empty() || groups.values().map(Vec::len).sum::<usize>() != scenario_ids.len() {
+        findings.push("OBSERVATION_CENSUS:selected measurement does not cover every scenario".to_string());
+    }
+    if let Some(after) = post {
+        if after > pre_regret + 1e-9 {
+            findings.push("INFORMATION_MONOTONICITY:observed post-measurement regret exceeds pre-measurement regret".to_string());
+        }
+    } else {
+        findings.push("NO_ROBUST_ACTION_FOR_OBSERVATION:at least one observation group has no action feasible across that group".to_string());
+    }
+    let unresolved = !findings.is_empty() || post.is_none();
+    AcquisitionPolicyRun {
+        policy: policy.to_string(),
+        seed,
+        status: if unresolved { "UNRESOLVED".to_string() } else { "EVALUATED".to_string() },
+        selected_measurement_id: Some(candidate.id.clone()),
+        cost_units: Some(candidate.cost_units),
+        duration_seconds: Some(candidate.duration_seconds),
+        observation_groups: Some(groups.len()),
+        post_measurement_worst_case_regret: post,
+        gross_worst_case_regret_reduction: post.map(|after| (pre_regret - after).max(0.0)),
+        findings,
+    }
+}
+
+fn acquisition_mean(values: impl Iterator<Item = f64>) -> Option<f64> {
+    let values: Vec<f64> = values.collect();
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        None
+    } else {
+        Some(values.iter().sum::<f64>() / values.len() as f64)
+    }
+}
+
+fn acquisition_summary(policy: &str, runs: Vec<AcquisitionPolicyRun>) -> AcquisitionPolicySummary {
+    let unresolved_runs = runs.iter().filter(|run| run.status == "UNRESOLVED").count();
+    let all_resolved = unresolved_runs == 0;
+    let mean_cost_units = if all_resolved {
+        acquisition_mean(runs.iter().filter_map(|run| run.cost_units))
+    } else { None };
+    let mean_duration_seconds = if all_resolved {
+        acquisition_mean(runs.iter().filter_map(|run| run.duration_seconds))
+    } else { None };
+    let mean_gross_worst_case_regret_reduction = if all_resolved {
+        acquisition_mean(runs.iter().filter_map(|run| run.gross_worst_case_regret_reduction))
+    } else { None };
+    AcquisitionPolicySummary {
+        policy: policy.to_string(),
+        runs,
+        mean_cost_units,
+        mean_duration_seconds,
+        mean_gross_worst_case_regret_reduction,
+        unresolved_runs,
+    }
+}
+
+/// Compares fixed, fixture-declared acquisition policies on the same synthetic finite pool.
+/// Policy ranking only sees per-measurement selection features and costs; the scenario-to-
+/// observation map is evaluator-side and used after selection to score the consequence.
+/// This is an arithmetic contract harness, not sandboxing against a malicious selector.
+pub fn audit_acquisition_policy_comparison(pool: &Value) -> AcquisitionPolicyComparisonReport {
+    let base = audit_decision_value_pool(pool);
+    if base.status != "PASS" {
+        return acquisition_policy_invalid(
+            pool,
+            vec![format!("BASE_DECISION_POOL:{}", base.status), "BASE_DECISION_POOL:finite-pool contract did not pass".to_string()],
+            if base.status == "FAIL" { "FAIL" } else { "UNRESOLVED" },
+            0, 0, 0, base.pre_measurement_worst_case_regret,
+        );
+    }
+
+    let mut errors = Vec::new();
+    let benchmark_id = object_string(pool, "benchmark_id");
+    if benchmark_id != Some("glass-silicon-decision-value-synthetic-v0.1") {
+        errors.push("BENCHMARK_ID:expected existing synthetic decision-value pool".to_string());
+    }
+    if pool.get("evidence_class").and_then(Value::as_str) != Some("synthetic") {
+        errors.push("EVIDENCE_CLASS:policy comparison must be explicitly synthetic".to_string());
+    }
+
+    let seed_values = pool.get("acquisition_policy_comparison")
+        .and_then(|value| value.get("random_seeds"))
+        .and_then(Value::as_array);
+    let mut seeds = Vec::new();
+    if let Some(values) = seed_values {
+        for (index, value) in values.iter().enumerate() {
+            match value.as_u64() {
+                Some(seed) => seeds.push(seed),
+                None => errors.push(format!("RANDOM_SEED:index {index} must be a non-negative integer")),
+            }
+        }
+    } else {
+        errors.push("RANDOM_SEEDS:acquisition_policy_comparison.random_seeds must be an array".to_string());
+    }
+    let unique_seeds = seeds.iter().copied().collect::<BTreeSet<_>>();
+    if seeds.len() < 10 {
+        errors.push("RANDOM_SEEDS:at least 10 distinct predeclared random seeds are required".to_string());
+    }
+    if unique_seeds.len() != seeds.len() {
+        errors.push("RANDOM_SEEDS:seed values must be unique".to_string());
+    }
+
+    let scenario_ids = pool.get("scenarios").and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(|item| nonempty_string(item, "id").map(ToOwned::to_owned)).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let scenarios: BTreeSet<String> = scenario_ids.iter().cloned().collect();
+    let mut actions = Vec::new();
+    if let Some(items) = pool.get("actions").and_then(Value::as_array) {
+        for action in items {
+            let Some(id) = nonempty_string(action, "id") else { continue; };
+            let mut utilities = BTreeMap::new();
+            let mut feasibility = BTreeMap::new();
+            for scenario in &scenario_ids {
+                if let Some(utility) = action.get("utility_by_scenario").and_then(|value| value.get(scenario)).and_then(Value::as_f64) {
+                    utilities.insert(scenario.clone(), utility);
+                }
+                if let Some(value) = action.get("feasible_by_scenario").and_then(|value| value.get(scenario)).and_then(Value::as_bool) {
+                    feasibility.insert(scenario.clone(), value);
+                }
+            }
+            if utilities.len() == scenarios.len() && feasibility.len() == scenarios.len() {
+                actions.push(DecisionAction { id: id.to_string(), utility_by_scenario: utilities, feasible_by_scenario: feasibility });
+            }
+        }
+    }
+    let mut best_utility = BTreeMap::new();
+    for scenario in &scenario_ids {
+        match actions.iter().filter(|action| action.feasible_by_scenario[scenario])
+            .map(|action| action.utility_by_scenario[scenario]).max_by(f64::total_cmp) {
+            Some(value) => { best_utility.insert(scenario.clone(), value); }
+            None => errors.push(format!("NO_FEASIBLE_ACTION:scenario {scenario} has no feasible action")),
+        }
+    }
+    let pre_regret = decision_worst_regret(&actions, &scenario_ids, &best_utility);
+    if pre_regret.is_none() {
+        errors.push("NO_PRE_OBSERVATION_ROBUST_ACTION:no action is feasible in every scenario".to_string());
+    }
+
+    let max_cost = pool.get("max_measurement_cost").and_then(Value::as_f64).unwrap_or(-1.0);
+    let max_duration = pool.get("max_duration_seconds").and_then(Value::as_f64).unwrap_or(-1.0);
+    let measurements = pool.get("measurements").and_then(Value::as_array);
+    let available_measurements = measurements.map_or(0, Vec::len);
+    let mut candidates = Vec::new();
+    if let Some(items) = measurements {
+        for (index, measurement) in items.iter().enumerate() {
+            let Some(id) = nonempty_string(measurement, "id") else {
+                errors.push(format!("MEASUREMENT_ID:index {index} missing id"));
+                continue;
+            };
+            let cost = measurement.get("cost_units").and_then(Value::as_f64).unwrap_or(-1.0);
+            let duration = measurement.get("duration_seconds").and_then(Value::as_f64).unwrap_or(-1.0);
+            let feature_value = measurement.get("selection_features");
+            let mut features = BTreeMap::new();
+            for feature in ACQUISITION_FEATURES {
+                match feature_value.and_then(|value| value.get(feature)).and_then(Value::as_f64) {
+                    Some(score) if score.is_finite() && score >= 0.0 => { features.insert(feature.to_string(), score); }
+                    _ => errors.push(format!("SELECTION_FEATURE:{id}/{feature} must be finite and non-negative")),
+                }
+            }
+            let observation_value = measurement.get("observation_by_scenario");
+            if !decision_exact_map_keys(observation_value.unwrap_or(&Value::Null), &scenarios) {
+                errors.push(format!("OBSERVATION_CENSUS:{id} must have exactly one evaluator-side observation per scenario"));
+                continue;
+            }
+            let mut observations = BTreeMap::new();
+            for scenario in &scenario_ids {
+                if let Some(observation) = observation_value.and_then(|value| value.get(scenario)).and_then(Value::as_str).filter(|value| !value.trim().is_empty()) {
+                    observations.insert(scenario.clone(), observation.to_string());
+                }
+            }
+            if !cost.is_finite() || cost <= 0.0 {
+                errors.push(format!("MEASUREMENT_COST:{id} must have finite positive cost for per-cost acquisition ranking"));
+            }
+            if !duration.is_finite() || duration < 0.0 {
+                errors.push(format!("MEASUREMENT_DURATION:{id} must have finite non-negative duration"));
+            }
+            if observations.len() == scenario_ids.len() && features.len() == ACQUISITION_FEATURES.len() && cost.is_finite() && cost > 0.0 && duration.is_finite() && duration >= 0.0 {
+                candidates.push(AcquisitionCandidate { id: id.to_string(), cost_units: cost, duration_seconds: duration, observations, features });
+            }
+        }
+    } else {
+        errors.push("MEASUREMENTS:measurements must be an array".to_string());
+    }
+    let eligible: Vec<AcquisitionCandidate> = candidates.into_iter()
+        .filter(|candidate| candidate.cost_units <= max_cost && candidate.duration_seconds <= max_duration)
+        .collect();
+    if eligible.is_empty() {
+        errors.push("NO_BUDGET_ELIGIBLE_MEASUREMENTS:no measurement satisfies both cost and duration caps".to_string());
+    }
+
+    if !errors.is_empty() {
+        return acquisition_policy_invalid(
+            pool, errors, "FAIL", seeds.len(), available_measurements, eligible.len(), pre_regret,
+        );
+    }
+    let pre_regret = pre_regret.unwrap();
+    let mut summaries = Vec::new();
+
+    let mut random_runs = Vec::new();
+    for seed in &seeds {
+        let selected = eligible.iter().min_by(|left, right| {
+            let left_key = format!("{:x}", Sha256::digest(format!("{seed}:{}", left.id).as_bytes()));
+            let right_key = format!("{:x}", Sha256::digest(format!("{seed}:{}", right.id).as_bytes()));
+            left_key.cmp(&right_key).then_with(|| left.id.cmp(&right.id))
+        }).expect("eligible set checked non-empty");
+        random_runs.push(acquisition_run_for("random", Some(*seed), selected, &scenario_ids, &actions, &best_utility, pre_regret));
+    }
+    summaries.push(acquisition_summary("random", random_runs));
+
+    for (policy, feature) in [
+        ("uncalibrated_uncertainty", "uncalibrated_uncertainty"),
+        ("calibrated_uncertainty", "calibrated_uncertainty"),
+        ("novelty", "novelty"),
+        ("cost_aware_voi", "estimated_voi"),
+    ] {
+        let selected = eligible.iter().max_by(|left, right| {
+            let left_score = left.features[feature] / left.cost_units;
+            let right_score = right.features[feature] / right.cost_units;
+            left_score.total_cmp(&right_score)
+                .then_with(|| right.duration_seconds.total_cmp(&left.duration_seconds))
+                .then_with(|| right.id.cmp(&left.id))
+        }).expect("eligible set checked non-empty");
+        summaries.push(acquisition_summary(
+            policy,
+            vec![acquisition_run_for(policy, None, selected, &scenario_ids, &actions, &best_utility, pre_regret)],
+        ));
+    }
+
+    AcquisitionPolicyComparisonReport {
+        status: "PASS".to_string(),
+        audit_kind: "synthetic_acquisition_policy_comparison".to_string(),
+        benchmark_id: benchmark_id.map(ToOwned::to_owned),
+        evidence_class: pool.get("evidence_class").and_then(Value::as_str).map(ToOwned::to_owned),
+        random_seed_count: seeds.len(),
+        available_measurements,
+        budget_eligible_measurements: eligible.len(),
+        max_measurement_cost: Some(max_cost),
+        max_duration_seconds: Some(max_duration),
+        pre_measurement_worst_case_regret: Some(pre_regret),
+        policies: summaries,
+        findings: Vec::new(),
+        claim_ceiling: "Synthetic policy-selection and regret arithmetic only; selector scores are fixture-declared proxies, not trained uncertainty models or measured acquisition performance.".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod acquisition_policy_comparison_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!("../fixtures/acquisition-policy-comparison.synthetic.json"))
+            .expect("synthetic acquisition policy fixture must parse")
+    }
+
+    fn policy<'a>(report: &'a AcquisitionPolicyComparisonReport, name: &str) -> &'a AcquisitionPolicySummary {
+        report.policies.iter().find(|item| item.policy == name).expect("policy report exists")
+    }
+
+    #[test]
+    fn matched_budget_comparison_exposes_uncertainty_failure_and_stronger_proxies() {
+        let report = audit_acquisition_policy_comparison(&fixture());
+        assert_eq!(report.status, "PASS", "{:?}", report.findings);
+        assert_eq!(report.random_seed_count, 16);
+        assert_eq!(report.budget_eligible_measurements, 2);
+        assert_eq!(report.policies.len(), 5);
+        let calibrated = policy(&report, "calibrated_uncertainty");
+        assert_eq!(calibrated.runs[0].selected_measurement_id.as_deref(), Some("measure-noise"));
+        assert_eq!(calibrated.runs[0].gross_worst_case_regret_reduction, Some(0.0));
+        let novelty = policy(&report, "novelty");
+        assert_eq!(novelty.runs[0].selected_measurement_id.as_deref(), Some("measure-regime"));
+        assert_eq!(novelty.runs[0].gross_worst_case_regret_reduction, Some(5.0));
+        let voi = policy(&report, "cost_aware_voi");
+        assert_eq!(voi.runs[0].selected_measurement_id.as_deref(), Some("measure-regime"));
+        assert_eq!(voi.runs[0].gross_worst_case_regret_reduction, Some(5.0));
+        assert!(report.policies.iter().all(|item| item.unresolved_runs == 0));
+    }
+
+    #[test]
+    fn random_policy_uses_all_unique_predeclared_seeds_and_is_reproducible() {
+        let value = fixture();
+        let first = audit_acquisition_policy_comparison(&value);
+        let second = audit_acquisition_policy_comparison(&value);
+        let random = policy(&first, "random");
+        let second_random = policy(&second, "random");
+        assert_eq!(random.runs.len(), 16);
+        assert_eq!(random.runs, second_random.runs);
+        assert_eq!(random.runs.iter().map(|run| run.seed).collect::<BTreeSet<_>>().len(), 16);
+    }
+
+    #[test]
+    fn expensive_measurement_never_exceeds_the_frozen_budget() {
+        let report = audit_acquisition_policy_comparison(&fixture());
+        assert!(report.policies.iter().flat_map(|p| p.runs.iter())
+            .all(|run| run.selected_measurement_id.as_deref() != Some("measure-expensive")));
+        assert_eq!(report.budget_eligible_measurements, 2);
+    }
+
+    #[test]
+    fn missing_acquisition_feature_fails_closed() {
+        let mut value = fixture();
+        value["measurements"][0]["selection_features"].as_object_mut().unwrap().remove("novelty");
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("SELECTION_FEATURE:")));
+    }
+
+    #[test]
+    fn negative_or_non_finite_acquisition_feature_fails_closed() {
+        let mut value = fixture();
+        value["measurements"][0]["selection_features"]["estimated_voi"] = json!(-0.1);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("SELECTION_FEATURE:")));
+    }
+
+    #[test]
+    fn repeated_random_seed_fails_closed() {
+        let mut value = fixture();
+        value["acquisition_policy_comparison"]["random_seeds"][1] =
+            value["acquisition_policy_comparison"]["random_seeds"][0].clone();
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RANDOM_SEEDS:seed values must be unique")));
+    }
+
+    #[test]
+    fn insufficient_random_seed_count_fails_closed() {
+        let mut value = fixture();
+        value["acquisition_policy_comparison"]["random_seeds"] = json!([7, 11, 13, 17, 19, 23, 29, 31, 37]);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("RANDOM_SEEDS:at least 10")));
+    }
+
+    #[test]
+    fn all_policies_must_obey_cost_and_duration_caps() {
+        let mut value = fixture();
+        value["max_duration_seconds"] = json!(15.0);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("NO_BUDGET_ELIGIBLE_MEASUREMENTS:")));
+    }
+
+    #[test]
+    fn base_pool_leakage_contract_cannot_be_bypassed() {
+        let mut value = fixture();
+        value["producer_access"]["future_outcomes"] = json!(true);
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("BASE_DECISION_POOL:")));
+    }
+
+    #[test]
+    fn random_repeated_measurements_are_reported_without_hiding_failed_policies() {
+        let mut value = fixture();
+        value["measurements"][0]["observation_by_scenario"]["s4"] = json!("");
+        let report = audit_acquisition_policy_comparison(&value);
+        assert_eq!(report.status, "FAIL");
+        assert!(report.findings.iter().any(|finding| finding.starts_with("BASE_DECISION_POOL:")));
+    }
+}
