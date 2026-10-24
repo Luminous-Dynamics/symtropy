@@ -243,7 +243,7 @@ fn apply_transform(
                 for (service_index, service) in services.iter().enumerate() {
                     let service_id = service["service_id"].as_str()
                         .ok_or_else(|| invalid("requested service ID missing"))?;
-                    if !essential_ids.iter().any(|id| id == service_id) {
+                    if !essential_ids.iter().any(|id| id.as_str() == service_id) {
                         continue;
                     }
                     let amount_f64 = service["requested_quantity"].as_f64().ok_or_else(|| {
@@ -459,6 +459,35 @@ mod tests {
         let old = child["scenarios"][0]["intervals"][1]["service_requested"][0]["requested_quantity"]
             .as_f64().unwrap();
         assert_eq!(old, 4.0);
+    }
+
+    #[test]
+    fn demand_surge_leaves_nonessential_service_unchanged() {
+        let profile: Value = serde_json::from_str(PROFILE).unwrap();
+        let mut source: Value = serde_json::from_str(CANDIDATE).unwrap();
+        source["services"].as_array_mut().unwrap().push(json!({
+            "service_id": "flexible-electricity",
+            "service_kind": "electricity",
+            "component_id": "essential-load",
+            "essential": false,
+            "unit": "kWh",
+            "minimum_delivery_temperature_c": null,
+            "description": "Synthetic flexible service for mutation-control testing."
+        }));
+        source["scenarios"][0]["intervals"][0]["service_requested"].as_array_mut().unwrap().push(json!({
+            "service_id": "flexible-electricity", "requested_quantity": 3
+        }));
+        source["scenarios"][0]["intervals"][1]["service_requested"].as_array_mut().unwrap().push(json!({
+            "service_id": "flexible-electricity", "requested_quantity": 4
+        }));
+
+        let (child, _, _) = apply_transform(source, "essential_demand_2x", &profile).unwrap();
+        for interval in child["scenarios"][0]["intervals"].as_array().unwrap() {
+            let flexible = interval["service_requested"].as_array().unwrap()
+                .iter().find(|service| service["service_id"] == "flexible-electricity").unwrap();
+            let expected = if interval["interval_id"] == "pv-surplus" { 3.0 } else { 4.0 };
+            assert_eq!(flexible["requested_quantity"].as_f64(), Some(expected));
+        }
     }
 
     #[test]
