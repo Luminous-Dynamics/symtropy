@@ -1,4 +1,4 @@
-use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_evaluation_receipt, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_relationship_graph, audit_mass_balance, hash_artifact_files};
+use glass_silicon_contract_audit::{audit_acquisition_policy_comparison, audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_evaluation_receipt, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_relationship_graph, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -13,7 +13,7 @@ fn read_json(path: &str) -> Result<Value, String> {
 
 fn usage() {
     eprintln!(
-        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-relationship-graph <graph.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-eval-receipt <receipt.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-relationship-graph <graph.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-eval-receipt <receipt.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit audit-acquisition-policies <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
     );
 }
 
@@ -239,6 +239,59 @@ fn main() -> ExitCode {
             let graph_sha256 = format!("{:x}", Sha256::digest(&raw));
             let mut report = audit_relationship_graph(&graph);
             report.graph_sha256 = Some(graph_sha256);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("audit-acquisition-policies") if args.len() == 3 => {
+            // Hash the exact raw input bytes that are parsed and evaluated.
+            let raw = match fs::read(&args[2]) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "synthetic_acquisition_policy_comparison",
+                        "benchmark_id": null,
+                        "evidence_class": null,
+                        "input_sha256": null,
+                        "random_seed_count": 0,
+                        "available_measurements": 0,
+                        "budget_eligible_measurements": 0,
+                        "max_measurement_cost": null,
+                        "max_duration_seconds": null,
+                        "pre_measurement_worst_case_regret": null,
+                        "policies": [],
+                        "findings": [format!("INPUT_BYTES:{error}")],
+                        "claim_ceiling": "Input parsing only; no selector or manufacturing performance is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let pool: Value = match serde_json::from_slice(&raw) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "synthetic_acquisition_policy_comparison",
+                        "benchmark_id": null,
+                        "evidence_class": null,
+                        "input_sha256": null,
+                        "random_seed_count": 0,
+                        "available_measurements": 0,
+                        "budget_eligible_measurements": 0,
+                        "max_measurement_cost": null,
+                        "max_duration_seconds": null,
+                        "pre_measurement_worst_case_regret": null,
+                        "policies": [],
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; no selector or manufacturing performance is validated."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let input_sha256 = format!("{:x}", Sha256::digest(&raw));
+            let mut report = audit_acquisition_policy_comparison(&pool);
+            report.input_sha256 = Some(input_sha256);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
