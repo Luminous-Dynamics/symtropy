@@ -170,6 +170,27 @@ The metric receipt computes `ground_truth_window_sha256` per run when complete `
 
 Both digests domain-separate their formats and hash row counts and parsed IEEE-754 `f64` bits in little-endian order in fixed field order; the target digest covers timestamps and every future target h=1..50, while the conditioning digest covers `x0_t`, the initial state, every motor-sample timestamp, and every motor input in the sequence. Numeric hashing makes `1` and `1.0` match while any changed target or input invalidates pairing. Orientation representation is part of the pairing contract: quaternion receipts and rotation-vector receipts are not silently mixed. Both digests are unkeyed reproducibility identifiers, not signatures; the comparator proves receipt-to-receipt equality of the encoded targets and conditioning values, but does not authenticate how models were trained or normalized. Preserve source prediction CSVs, raw data, and join receipts for independent review. The digest domain-separates this format and hashes (1) the row count, (2) each row timestamp, and (3) every target field for horizons 1–50 in fixed field/horizon order, using parsed IEEE-754 `f64` bits in little-endian order. This deliberately hashes numeric values rather than CSV text spellings, so `1` and `1.0` pair identically while a changed timestamp or target invalidates the pairing. Orientation representation is part of the pairing contract: quaternion receipts and rotation-vector receipts are not silently mixed. The digest is an unkeyed reproducibility identifier, not a signature; the comparator establishes receipt-to-receipt target identity, but does not authenticate how either model was trained or normalized. Preserve the source prediction CSVs and join receipts for independent review.
 
+For each model output, first join it to the exact same raw Melon run files so the receipt can bind the model's full input sequence as well as its targets. Example for the released LSTM output (use a fresh output directory):
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_truth_window_join -- \
+  "$NANODRONE_PATH/out/predictions/lstm_random_square_chirp_model_multistep/melon_multistep.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run1.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run2.csv" \
+  "$NANODRONE_PATH/data/test/melon_20251017_run3.csv" \
+  results/lstm-joined --pooled --state-units-si
+
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_metric_receipt -- \
+  results/lstm-joined/melon_20251017_run1.csv \
+  results/lstm-joined/melon_20251017_run2.csv \
+  results/lstm-joined/melon_20251017_run3.csv \
+  > results/lstm-metric-receipt.json
+```
+
+Repeat with the candidate model's pooled output and a different fresh join directory, then provide the two JSON receipts to the comparator below. Confirm the predictions are denormalized SI before passing `--state-units-si`; the flag records a caller assertion, not an independently proved scaler receipt. Preserve both joined outputs, JSON receipts, raw files, and model/scaler provenance. Do not change the held-out test protocol after looking at the results.
+
 The new Rust example `nanodrone_model_compare` consumes two metric JSON receipts (reference baseline first, candidate second) and a **new** output path:
 
 ```bash
