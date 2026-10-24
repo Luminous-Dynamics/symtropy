@@ -23,8 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out exact commit
+      - name: Check out exact PR head (or exact pushed commit)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run unit and negative-control tests
@@ -92,3 +94,63 @@ jobs:
                (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
                (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1)
           ' /tmp/polar-robust-set-report.json
+
+      - name: Package digest-pinned synthetic run evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/polar-resilience
+          tested_commit="$(git rev-parse HEAD)"
+          cp /tmp/polar-score-report.json artifacts/polar-resilience/score-report.json
+          cp /tmp/polar-ensemble-report.json artifacts/polar-resilience/ensemble-report.json
+          cp /tmp/polar-robust-set-report.json artifacts/polar-resilience/robust-set-report.json
+          printf '%s\n' "$tested_commit" > artifacts/polar-resilience/TESTED_COMMIT
+          sha256sum \
+            research/polar-infrastructure/benchmark/Cargo.toml \
+            research/polar-infrastructure/benchmark/Cargo.lock \
+            research/polar-infrastructure/benchmark/fixtures/toy-episode.json \
+            research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json \
+            research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json \
+            artifacts/polar-resilience/score-report.json \
+            artifacts/polar-resilience/ensemble-report.json \
+            artifacts/polar-resilience/robust-set-report.json \
+            > artifacts/polar-resilience/SHA256SUMS
+          jq -n \
+            --arg tested_commit "$tested_commit" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg event "$GITHUB_EVENT_NAME" \
+            '{
+              receipt_schema_version: "0.1.0",
+              evidence_class: "synthetic_only",
+              receipt_status: "checks_completed",
+              tested_commit: $tested_commit,
+              workflow_run_id: $workflow_run_id,
+              workflow_attempt: $workflow_attempt,
+              workflow_event: $event,
+              input_schema_version: "0.1.0",
+              report_schema_version: "0.2.0",
+              input_paths: [
+                "research/polar-infrastructure/benchmark/fixtures/toy-episode.json",
+                "research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json",
+                "research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json",
+                "research/polar-infrastructure/benchmark/Cargo.toml",
+                "research/polar-infrastructure/benchmark/Cargo.lock"
+              ],
+              report_paths: [
+                "score-report.json",
+                "ensemble-report.json",
+                "robust-set-report.json"
+              ],
+              checksums_file: "SHA256SUMS",
+              caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
+            }' > artifacts/polar-resilience/run-receipt.json
+          printf 'tested_commit=%s\n' "$tested_commit"
+
+      - name: Upload digest-pinned synthetic run receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: polar-resilience-synthetic-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/polar-resilience/
+          if-no-files-found: error
+          retention-days: 30
