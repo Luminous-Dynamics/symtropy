@@ -74,6 +74,8 @@ pub struct ServiceScore {
     pub delivered_unit_hours: f64,
     pub service_fraction: Option<f64>,
     pub floor_breach_service_hours: f64,
+    pub floor_breach_episode_count: usize,
+    pub longest_consecutive_floor_breach_hours: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -90,6 +92,10 @@ pub struct PolicyScore {
     pub weighted_unserved_service_fraction_hours: f64,
     /// Sum of timestep hours for each service below its declared floor.
     pub floor_breach_service_hours: f64,
+    /// Number of contiguous time windows where at least one active service breaches its floor.
+    pub system_floor_breach_episode_count: usize,
+    /// Duration of the longest contiguous window with any active service-floor breach.
+    pub longest_consecutive_system_floor_breach_hours: f64,
     pub gate_pass: bool,
     /// Fuel units divided by weighted delivered service-fraction-hours; comparable only under a shared fuel unit and service contract.
     pub fuel_units_per_weighted_delivered_service_fraction_hour: Option<f64>,
@@ -118,6 +124,66 @@ pub fn service_contracts_match(a: &ScoreInput, b: &ScoreInput) -> bool {
         .map(|s| (s.id.as_str(), (s.rate_unit.as_str(), s.integrated_unit.as_str(), s.criticality_weight.to_bits(), s.minimum_service_fraction.to_bits())))
         .collect();
     left == right
+}
+
+
+/// Count contiguous runs of service-floor breach for a single service.
+/// A zero-demand step is not a breach and terminates the current run.
+fn service_floor_breach_stats(
+    episode: &Episode,
+    policy: &PolicyRun,
+    service: &ServiceContract,
+) -> (usize, f64) {
+    let mut episode_count = 0_usize;
+    let mut current_steps = 0_usize;
+    let mut longest_steps = 0_usize;
+
+    for (demand_step, delivery_step) in episode.steps.iter().zip(&policy.steps) {
+        let demand = demand_step.demand[&service.id];
+        let delivered = delivery_step.delivered[&service.id].min(demand);
+        let breached = demand > 0.0
+            && delivered / demand < service.minimum_service_fraction;
+
+        if breached {
+            if current_steps == 0 {
+                episode_count += 1;
+            }
+            current_steps += 1;
+            longest_steps = longest_steps.max(current_steps);
+        } else {
+            current_steps = 0;
+        }
+    }
+
+    (episode_count, longest_steps as f64 * episode.time_step_hours)
+}
+
+/// Count contiguous system-level breach windows. Simultaneous service breaches in one
+/// timestep count as one system window, while per-service counters remain separate.
+fn system_floor_breach_stats(episode: &Episode, policy: &PolicyRun) -> (usize, f64) {
+    let mut episode_count = 0_usize;
+    let mut current_steps = 0_usize;
+    let mut longest_steps = 0_usize;
+
+    for (demand_step, delivery_step) in episode.steps.iter().zip(&policy.steps) {
+        let any_breach = episode.service_contracts.iter().any(|service| {
+            let demand = demand_step.demand[&service.id];
+            let delivered = delivery_step.delivered[&service.id].min(demand);
+            demand > 0.0 && delivered / demand < service.minimum_service_fraction
+        });
+
+        if any_breach {
+            if current_steps == 0 {
+                episode_count += 1;
+            }
+            current_steps += 1;
+            longest_steps = longest_steps.max(current_steps);
+        } else {
+            current_steps = 0;
+        }
+    }
+
+    (episode_count, longest_steps as f64 * episode.time_step_hours)
 }
 
 /// Services with positive integrated demand in an episode. Cross-scenario
@@ -310,6 +376,17 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             } else {
                 None
             };
+            let floor_breach_service_hours = episode.steps.iter().zip(&policy.steps).fold(0.0, |sum, (demand_step, delivery_step)| {
+                let demand = demand_step.demand[&service.id];
+                let delivered = delivery_step.delivered[&service.id].min(demand);
+                if demand > 0.0 && delivered / demand < service.minimum_service_fraction {
+                    sum + episode.time_step_hours
+                } else {
+                    sum
+                }
+            });
+            let (floor_breach_episode_count, longest_consecutive_floor_breach_hours) =
+                service_floor_breach_stats(episode, policy, service);
             service_results.push(ServiceScore {
                 service_id: service.id.clone(),
                 rate_unit: service.rate_unit.clone(),
@@ -317,15 +394,9 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
                 demanded_unit_hours: demanded,
                 delivered_unit_hours: delivered,
                 service_fraction: fraction,
-                floor_breach_service_hours: episode.steps.iter().zip(&policy.steps).fold(0.0, |sum, (demand_step, delivery_step)| {
-                    let demand = demand_step.demand[&service.id];
-                    let delivered = delivery_step.delivered[&service.id].min(demand);
-                    if demand > 0.0 && delivered / demand < service.minimum_service_fraction {
-                        sum + episode.time_step_hours
-                    } else {
-                        sum
-                    }
-                }),
+                floor_breach_service_hours,
+                floor_breach_episode_count,
+                longest_consecutive_floor_breach_hours,
             });
         }
         weighted_service_fraction /= total_active_weight;
@@ -341,6 +412,8 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             }
         }
 
+        let (system_floor_breach_episode_count, longest_consecutive_system_floor_breach_hours) =
+            system_floor_breach_stats(episode, policy);
         results.push(PolicyScore {
             policy_id: policy.policy_id.clone(),
             method_family: policy.method_family.clone(),
@@ -349,6 +422,8 @@ pub fn score(input: &ScoreInput) -> Result<BenchmarkReport, String> {
             weighted_delivered_service_fraction_hours: weighted_delivered_fraction_hours,
             weighted_unserved_service_fraction_hours: weighted_unserved_fraction_hours,
             floor_breach_service_hours: floor_breach_hours,
+            system_floor_breach_episode_count,
+            longest_consecutive_system_floor_breach_hours,
             gate_pass: floor_breach_hours == 0.0,
             fuel_units_per_weighted_delivered_service_fraction_hour: if weighted_delivered_fraction_hours > 0.0 {
                 Some(policy.fuel_units / weighted_delivered_fraction_hours)
@@ -457,6 +532,44 @@ mod tests {
             let after = scaled_policy.services.iter().find(|s| s.service_id == service_id).unwrap();
             assert!((after.demanded_unit_hours / before.demanded_unit_hours - 1000.0).abs() < 1e-9);
         }
+    }
+
+    #[test]
+    fn temporal_metrics_distinguish_fragmented_from_contiguous_service_gaps() {
+        let set_heat_trace = |input: &mut ScoreInput, values: [f64; 4]| {
+            let candidate = input.policy_runs.iter_mut()
+                .find(|p| p.policy_id == "candidate_full_service").unwrap();
+            for (step, value) in candidate.steps.iter_mut().zip(values) {
+                step.delivered.insert("heat".to_string(), value);
+            }
+        };
+
+        let mut contiguous = fixture();
+        let mut fragmented = fixture();
+        set_heat_trace(&mut contiguous, [0.0, 0.0, 10.0, 10.0]);
+        set_heat_trace(&mut fragmented, [0.0, 10.0, 0.0, 10.0]);
+
+        let contiguous_report = score(&contiguous).expect("contiguous trace should score");
+        let fragmented_report = score(&fragmented).expect("fragmented trace should score");
+        let contiguous_policy = contiguous_report.results.iter()
+            .find(|p| p.policy_id == "candidate_full_service").unwrap();
+        let fragmented_policy = fragmented_report.results.iter()
+            .find(|p| p.policy_id == "candidate_full_service").unwrap();
+        let contiguous_heat = contiguous_policy.services.iter()
+            .find(|s| s.service_id == "heat").unwrap();
+        let fragmented_heat = fragmented_policy.services.iter()
+            .find(|s| s.service_id == "heat").unwrap();
+
+        assert_eq!(contiguous_policy.floor_breach_service_hours, fragmented_policy.floor_breach_service_hours);
+        assert_eq!(contiguous_heat.floor_breach_service_hours, fragmented_heat.floor_breach_service_hours);
+        assert_eq!(contiguous_heat.floor_breach_episode_count, 1);
+        assert_eq!(fragmented_heat.floor_breach_episode_count, 2);
+        assert_eq!(contiguous_heat.longest_consecutive_floor_breach_hours, 2.0);
+        assert_eq!(fragmented_heat.longest_consecutive_floor_breach_hours, 1.0);
+        assert_eq!(contiguous_policy.system_floor_breach_episode_count, 1);
+        assert_eq!(fragmented_policy.system_floor_breach_episode_count, 2);
+        assert_eq!(contiguous_policy.longest_consecutive_system_floor_breach_hours, 2.0);
+        assert_eq!(fragmented_policy.longest_consecutive_system_floor_breach_hours, 1.0);
     }
 
     #[test]
