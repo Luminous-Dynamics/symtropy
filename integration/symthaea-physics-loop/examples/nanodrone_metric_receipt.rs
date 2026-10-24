@@ -26,6 +26,7 @@ const COMMON_FIELDS: [&str; 9] = [
 ];
 const QUATERNION_FIELDS: [&str; 4] = ["qx", "qy", "qz", "qw"];
 const ROTVEC_FIELDS: [&str; 3] = ["rx", "ry", "rz"];
+const MOTOR_INPUT_FIELDS: [&str; 4] = ["m1_rads", "m2_rads", "m3_rads", "m4_rads"];
 const POSITION_FIELDS: [&str; 3] = ["x", "y", "z"];
 const VELOCITY_FIELDS: [&str; 3] = ["vx", "vy", "vz"];
 const ANGULAR_RATE_FIELDS: [&str; 3] = ["wx", "wy", "wz"];
@@ -58,6 +59,7 @@ struct RunInput {
     run_id: String,
     sha256: String,
     ground_truth_window_sha256: Option<String>,
+    conditioning_window_sha256: Option<String>,
     orientation_mode: OrientationMode,
     rows: Vec<HashMap<String, f64>>,
     has_complete_window_truth: bool,
@@ -423,7 +425,21 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         )).into());
     };
 
+    let motor_input_count = MOTOR_INPUT_FIELDS.iter()
+        .filter(|field| header_indices.contains_key(**field))
+        .count();
+    if motor_input_count != 0 && motor_input_count != MOTOR_INPUT_FIELDS.len() {
+        return Err(invalid_input(format!(
+            "{filename}: partial conditioning schema ({motor_input_count}/{} motor input columns); provide all four or none",
+            MOTOR_INPUT_FIELDS.len()
+        )).into());
+    }
+    let has_complete_conditioning_signals = motor_input_count == MOTOR_INPUT_FIELDS.len();
+
     let mut required = required_numeric_columns(orientation_mode, has_complete_window_truth);
+    if has_complete_conditioning_signals {
+        required.extend(MOTOR_INPUT_FIELDS.iter().map(|field| (*field).to_owned()));
+    }
     // In quaternion mode, also require the selected true quaternion and predictions.
     // In rotation-vector mode the metric conversion is mathematical and needs only rotvecs.
     for key in [
@@ -519,11 +535,32 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         None
     };
 
+    let conditioning_window_sha256 = if has_complete_conditioning_signals {
+        // Bind the current base state/time and the exact four motor inputs used by
+        // this prediction window; targets alone cannot prove like-for-like conditions.
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy-nanodrone-conditioning-windows-v1\0");
+        hasher.update((rows.len() as u64).to_le_bytes());
+        for row in &rows {
+            hasher.update(row["t"].to_bits().to_le_bytes());
+            for field in state_fields(orientation_mode) {
+                hasher.update(row[field].to_bits().to_le_bytes());
+            }
+            for field in MOTOR_INPUT_FIELDS {
+                hasher.update(row[field].to_bits().to_le_bytes());
+            }
+        }
+        Some(format!("{:x}", hasher.finalize()))
+    } else {
+        None
+    };
+
     Ok(RunInput {
         filename,
         run_id,
         sha256,
         ground_truth_window_sha256,
+        conditioning_window_sha256,
         orientation_mode,
         rows,
         has_complete_window_truth,
@@ -595,6 +632,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "run_id": run.run_id,
         "sha256": run.sha256,
         "ground_truth_window_sha256": run.ground_truth_window_sha256,
+        "conditioning_window_sha256": run.conditioning_window_sha256,
         "row_count": run.rows.len(),
         "orientation_representation": run.orientation_mode.label(),
         "legacy_shifted_truth_metric": score_run(run, false),
@@ -625,6 +663,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "evaluated_horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
             "ground_truth_pairing": "SHA-256 over each row timestamp and all h=1..50 target state values in fixed state-field/horizon order, hashing parsed IEEE-754 f64 bits in little-endian order; exact match required for cross-model pairing",
+            "conditioning_pairing": "when four motor input columns are present, SHA-256 over each row timestamp, current base-state channels, and m1_rads..m4_rads in fixed order; the comparator requires matching conditioning and target digests",
             "metric_definitions": {
                 "position": "mean Euclidean norm of 3D position error, metres",
                 "linear_velocity": "mean Euclidean norm of 3D world-frame velocity error, metres/second",
