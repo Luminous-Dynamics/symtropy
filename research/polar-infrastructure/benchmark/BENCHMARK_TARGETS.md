@@ -32,7 +32,7 @@ These are goals for a future preregistered experiment—not current results. Fre
 | Dimension | Proposed target | Pass/fail interpretation |
 |---|---|---|
 | Scoring integrity | 100% of defined negative controls rejected; zero false-pass outcomes in the test set | Any known floor-breaching control reported as eligible fails the benchmark |
-| Critical-service performance | At least **10% lower relative unserved critical-service-hours** than the strongest feasible baseline on held-out episodes | Uncertainty must support improvement; publish absolute values and per-service regressions |
+| Critical-service performance | At least **10% lower relative criticality-weighted unserved service-fraction-hours** than the strongest feasible baseline on held-out episodes | This time-integrated normalized deficit is not a physical unit sum; publish per-service physical shortfalls separately and require uncertainty to support improvement |
 | Outage persistence | Lower longest consecutive system-level service-floor breach duration than the strongest eligible baseline on held-out compound events, without increasing breach counts | Preserve timeline and event boundaries; equal total breach-hours must not hide longer continuous loss |
 | Endurance before failure | Longer time from event start to the first critical-service floor breach than the strongest eligible baseline on held-out outage trajectories | Treat traces without an observed breach as right-censored at the trace horizon; do not interpret them as infinite endurance |
 | Critical-floor protection | No new candidate floor failure on an episode/service where the comparator passes, unless explicitly approved through prior safety review | New critical-floor breach blocks an unqualified “better” claim |
