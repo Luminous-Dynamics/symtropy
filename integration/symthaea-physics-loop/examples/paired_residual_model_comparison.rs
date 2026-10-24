@@ -1,4 +1,4 @@
-//! Paired, episode-level comparison across raw ridge, compact MLP and HDC/LTC.
+//! Paired, episode-level comparison across instantaneous, explicit-history and HDC/LTC models.
 //!
 //! Episode RMSEs—not per-timestep residuals—are the resampling units. The bootstrap is
 //! stratified within observed scenario families, conditioning on this smoke suite's family
@@ -231,21 +231,27 @@ fn family_summaries(
     ridge: &[EpisodeScore],
     hdc: &[EpisodeScore],
     mlp: &[EpisodeScore],
+    history: &[EpisodeScore],
 ) -> Vec<Value> {
     let groups = grouped_indices(ridge);
     groups.into_iter().map(|(family, indices)| {
         let r = mean(indices.iter().map(|index| ridge[*index].rmse_m_s2));
         let h = mean(indices.iter().map(|index| hdc[*index].rmse_m_s2));
         let m = mean(indices.iter().map(|index| mlp[*index].rmse_m_s2));
+        let w = mean(indices.iter().map(|index| history[*index].rmse_m_s2));
         json!({
             "scenario_family": family,
             "episode_count": indices.len(),
             "raw_state_ridge_mean_episode_rmse_m_s2": r,
             "hdc_ltc_reservoir_mean_episode_rmse_m_s2": h,
             "compact_mlp_mean_episode_rmse_m_s2": m,
+            "explicit_history_mlp_mean_episode_rmse_m_s2": w,
             "hdc_minus_ridge_m_s2": h-r,
             "mlp_minus_ridge_m_s2": m-r,
-            "hdc_minus_mlp_m_s2": h-m
+            "history_minus_ridge_m_s2": w-r,
+            "hdc_minus_mlp_m_s2": h-m,
+            "hdc_minus_history_m_s2": h-w,
+            "history_minus_mlp_m_s2": w-m
         })
     }).collect()
 }
@@ -300,7 +306,7 @@ fn main() {
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "confidence_level": CONFIDENCE_LEVEL,
             "bootstrap_seed_hex": format!("{:016x}", BOOTSTRAP_SEED),
-            "pair_seed_scheme": "bootstrap_seed XOR pair identifiers 1, 2, 3",
+            "pair_seed_scheme": "bootstrap_seed XOR pair identifiers 1 through 6",
             "bootstrap_unit": "episode",
             "stratification": "resample episodes with replacement within each observed scenario family",
             "seed_hex_equality_required": true,
@@ -317,14 +323,20 @@ fn main() {
             "compact_mlp_worst_episode_rmse_m_s2": mlp.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap(),
             "hdc_ltc_reservoir_mean_episode_rmse_m_s2": mean(hdc.iter().map(|episode| episode.rmse_m_s2)),
             "hdc_ltc_reservoir_cvar90_episode_rmse_m_s2": cvar90(&hdc),
-            "hdc_ltc_reservoir_worst_episode_rmse_m_s2": hdc.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap()
+            "hdc_ltc_reservoir_worst_episode_rmse_m_s2": hdc.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap(),
+            "explicit_history_mlp_mean_episode_rmse_m_s2": mean(history.iter().map(|episode| episode.rmse_m_s2)),
+            "explicit_history_mlp_cvar90_episode_rmse_m_s2": cvar90(&history),
+            "explicit_history_mlp_worst_episode_rmse_m_s2": history.iter().map(|episode| episode.rmse_m_s2).max_by(f64::total_cmp).unwrap()
         },
         "paired_comparisons": [
             paired_summary("hdc_ltc_reservoir", "raw_state_ridge", &hdc, &ridge, 0x01),
             paired_summary("compact_mlp", "raw_state_ridge", &mlp, &ridge, 0x02),
-            paired_summary("hdc_ltc_reservoir", "compact_mlp", &hdc, &mlp, 0x03)
+            paired_summary("hdc_ltc_reservoir", "compact_mlp", &hdc, &mlp, 0x03),
+            paired_summary("explicit_history_mlp", "raw_state_ridge", &history, &ridge, 0x04),
+            paired_summary("explicit_history_mlp", "compact_mlp", &history, &mlp, 0x05),
+            paired_summary("hdc_ltc_reservoir", "explicit_history_mlp", &hdc, &history, 0x06)
         ],
-        "family_summary": family_summaries(&ridge, &hdc, &mlp),
+        "family_summary": family_summaries(&ridge, &hdc, &mlp, &history),
         "per_episode": (0..episodes_requested).map(|index| json!({
             "episode_index": index,
             "episode_seed_hex": ridge[index].seed_hex,
@@ -332,6 +344,7 @@ fn main() {
             "scenario_family": ridge[index].scenario_family,
             "raw_state_ridge_rmse_m_s2": ridge[index].rmse_m_s2,
             "compact_mlp_rmse_m_s2": mlp[index].rmse_m_s2,
+            "explicit_history_mlp_rmse_m_s2": history[index].rmse_m_s2,
             "hdc_ltc_reservoir_rmse_m_s2": hdc[index].rmse_m_s2
         })).collect::<Vec<_>>()
     }));
