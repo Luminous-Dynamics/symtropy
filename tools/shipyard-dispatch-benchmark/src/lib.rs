@@ -899,6 +899,11 @@ pub fn build_corpus_bundle(config: &CorpusConfig) -> Result<CorpusBundle, String
     let paired_summary_json = summarize_json(&build_comparison_rows(&evaluations), &evaluations);
     let paired_summary_sha256 = sha256_hex(paired_summary_json.as_bytes());
 
+    // Method-config artifacts are identical for the same policy/revision across
+    // episodes. Persist one content-addressed copy while keeping every ledger row.
+    let mut unique_artifact_names = BTreeSet::new();
+    artifacts.retain(|artifact| unique_artifact_names.insert(artifact.file_name.clone()));
+
     let run_receipt_json = format!(
         "{{\"receipt_contract_version\":\"shipyard-benchmark-run-receipt-v0\",\"benchmark_release_id\":{},\"generator_version\":{},\"master_seed_hex\":{},\"policy_revision\":{},\"evaluator_revision\":{},\"manifest_sha256\":{},\"ledger_sha256\":{},\"paired_summary_sha256\":{},\"artifact_count\":{},\"budget_contract\":\"not_enforced; runtime comparisons prohibited\",\"result_status_scope\":\"all records incomplete until full geometry, causality, receipt-integrity, and runtime-budget gates are executed\"}}",
         json_quote(RELEASE_ID),
@@ -1053,7 +1058,7 @@ mod tests {
         assert!(!bundle.paired_summary_json.contains("winner_score"));
         assert!(bundle.run_receipt_json.contains(&bundle.manifest_sha256));
         assert!(bundle.run_receipt_json.contains(&bundle.ledger_sha256));
-        assert_eq!(bundle.artifacts.len(), 16 * 14);
+        assert_eq!(bundle.artifacts.len(), 16 * 10 + 4);
         for artifact in &bundle.artifacts {
             assert_eq!(sha256_hex(artifact.contents.as_bytes()), artifact.sha256);
         }
