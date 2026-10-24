@@ -1,0 +1,101 @@
+name: CIV-INFRA Measurement Compatibility
+
+on:
+  pull_request:
+    paths:
+      - "tools/civ-infra-measurement-compatibility/**"
+      - "docs/tech/CIV_INFRA_MEASUREMENT_COMPATIBILITY_V0_1.md"
+      - ".github/workflows/civ-infra-measurement-compatibility.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/civ-infra-measurement-compatibility/**"
+      - "docs/tech/CIV_INFRA_MEASUREMENT_COMPATIBILITY_V0_1.md"
+      - ".github/workflows/civ-infra-measurement-compatibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+
+      - name: Record exact source and toolchain
+        run: |
+          rustc --version
+          cargo --version
+          git rev-parse HEAD
+
+      - name: Format check
+        run: cargo fmt --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml -- --check
+
+      - name: Run locked tests and emit generated compatibility corpus
+        env:
+          CIV_INFRA_COMPATIBILITY_CORPUS_OUT: ${{ runner.temp }}/civ-infra-compatibility-corpus.json
+        run: |
+          cargo test --locked \
+            --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml \
+            -- --nocapture
+          test -s "$CIV_INFRA_COMPATIBILITY_CORPUS_OUT"
+          jq -e '
+            .corpus_version == "civ-infra-measurement-compatibility-generated/v0.1" and
+            .world_count == 100 and
+            .states_per_world == 20 and
+            .outcomes_per_world == 5 and
+            .state_outcome_evaluations == 10000 and
+            (.cases | length) == 100 and
+            .generated_compatibility_edges > 0 and
+            .worlds_with_nonzero_discrepancy == 50
+          ' "$CIV_INFRA_COMPATIBILITY_CORPUS_OUT"
+
+      - name: Run frozen fixture through CLI
+        run: |
+          cargo run --locked \
+            --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml -- \
+            tools/civ-infra-measurement-compatibility/fixtures/compatibility-v0.1.json \
+            "$RUNNER_TEMP/civ-infra-compatibility-report.json"
+          test "$(sha256sum tools/civ-infra-measurement-compatibility/fixtures/compatibility-v0.1.json | cut -d ' ' -f 1)" = "$(jq -r '.input_sha256' "$RUNNER_TEMP/civ-infra-compatibility-report.json")"
+          jq -e '
+            .state_count == 4 and
+            .outcome_count == 3 and
+            .observed_update.status == "supported_by_model" and
+            (.observed_update.compatible_state_ids | length) == 2 and
+            .decision_ambiguity.states_outside_model_domain == 0 and
+            .decision_ambiguity.outcome_worst_case_is_conditional_on_declared_support == true and
+            .decision_ambiguity.support_failure_preserves_prior == true and
+            .decision_ambiguity.support_failure_preserved_state_count == 4 and
+            .model_discrepancy.interval.lower_ticks == 0 and
+            .model_discrepancy.interval.upper_ticks == 0 and
+            (.model_discrepancy.basis | contains("not calibrated")) and
+            any(.state_results[]; (.possible_outcome_ids | length) > 1)
+          ' "$RUNNER_TEMP/civ-infra-compatibility-report.json"
+
+      - name: Hash replay evidence
+        run: |
+          sha256sum \
+            "$RUNNER_TEMP/civ-infra-compatibility-corpus.json" \
+            "$RUNNER_TEMP/civ-infra-compatibility-report.json" \
+            > "$RUNNER_TEMP/civ-infra-compatibility-SHA256SUMS"
+          cat "$RUNNER_TEMP/civ-infra-compatibility-SHA256SUMS"
+
+      - name: Upload replayable evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-measurement-compatibility-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/civ-infra-compatibility-corpus.json
+            ${{ runner.temp }}/civ-infra-compatibility-report.json
+            ${{ runner.temp }}/civ-infra-compatibility-SHA256SUMS
+          retention-days: 14
