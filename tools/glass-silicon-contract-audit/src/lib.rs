@@ -3084,6 +3084,357 @@ mod grouped_split_manifest_tests {
 }
 
 
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct EvaluationReceiptReport {
+    pub status: String,
+    pub audit_kind: String,
+    pub receipt_id: Option<String>,
+    pub claimed_evaluation_class: Option<String>,
+    pub verified_evaluation_class: String,
+    pub result_disposition: Option<String>,
+    pub metrics_checked: usize,
+    pub findings: Vec<String>,
+    pub claim_ceiling: String,
+}
+
+impl EvaluationReceiptReport {
+    pub fn exit_code(&self) -> i32 {
+        match self.status.as_str() {
+            "PASS" => 0,
+            "FAIL" => 2,
+            _ => 3,
+        }
+    }
+}
+
+fn is_canonical_utc_timestamp(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+    {
+        return false;
+    }
+    let number = |range: std::ops::Range<usize>| -> Option<u32> {
+        let slice = bytes.get(range)?;
+        if slice.iter().any(|byte| !byte.is_ascii_digit()) {
+            return None;
+        }
+        std::str::from_utf8(slice).ok()?.parse().ok()
+    };
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
+        number(0..4), number(5..7), number(8..10),
+        number(11..13), number(14..16), number(17..19),
+    ) else {
+        return false;
+    };
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    (1..=max_day).contains(&day)
+}
+
+/// Validates the deterministic shape and internal chronology of an evaluation receipt.
+/// This verifier deliberately does not claim to verify external custody/isolation
+/// attestations or prevent access to hidden labels. A self-declared SEALED_CONFIRMATORY
+/// receipt therefore remains UNRESOLVED until a trusted external attestation verifier
+/// is composed into this path.
+pub fn audit_evaluation_receipt(receipt: &Value) -> EvaluationReceiptReport {
+    let receipt_id = nonempty_string(receipt, "receipt_id");
+    let claimed_class = nonempty_string(receipt, "evaluation_class");
+    let result_disposition = receipt
+        .pointer("/results/disposition")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    let metrics_checked = receipt
+        .pointer("/results/metrics")
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len);
+    let mut findings = Vec::new();
+    let mut failed = false;
+    let mut unresolved = false;
+    let allowed_evidence = [
+        "synthetic",
+        "retrospective",
+        "prospective_computational",
+        "prospective_physical",
+    ];
+    let allowed_claim_classes = ["UNSEALED_RETROSPECTIVE", "SEALED_CONFIRMATORY"];
+
+    if !feasibility_exact_object_keys(
+        receipt,
+        &[
+            "schema_version", "receipt_id", "evidence_class", "evaluation_class",
+            "claim_ceiling", "dataset", "split", "protocol", "submission",
+            "evaluation", "results",
+        ],
+        &[
+            "schema_version", "receipt_id", "evidence_class", "evaluation_class",
+            "claim_ceiling", "dataset", "split", "protocol", "submission",
+            "evaluation", "results",
+        ],
+    ) {
+        findings.push("RECEIPT_FIELDS:top-level fields are missing or unrecognized".to_string());
+        failed = true;
+    }
+    if receipt.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        findings.push("RECEIPT_SCHEMA_VERSION:schema_version must equal 1".to_string());
+        failed = true;
+    }
+    if receipt_id.as_deref().map_or(true, |id| !is_stable_slug(id)) {
+        findings.push("RECEIPT_ID:receipt_id must be a stable lowercase slug".to_string());
+        failed = true;
+    }
+    if !receipt.get("evidence_class").and_then(Value::as_str).is_some_and(|v| allowed_evidence.contains(&v)) {
+        findings.push("RECEIPT_EVIDENCE_CLASS:unknown evidence_class".to_string());
+        failed = true;
+    }
+    if !claimed_class.as_deref().is_some_and(|v| allowed_claim_classes.contains(&v)) {
+        findings.push("RECEIPT_EVALUATION_CLASS:evaluation_class must be UNSEALED_RETROSPECTIVE or SEALED_CONFIRMATORY".to_string());
+        failed = true;
+    }
+    if nonempty_string(receipt, "claim_ceiling").is_none() {
+        findings.push("RECEIPT_CLAIM_CEILING:claim_ceiling is required".to_string());
+        failed = true;
+    }
+
+    let null = Value::Null;
+    let dataset = receipt.get("dataset").unwrap_or(&null);
+    let split = receipt.get("split").unwrap_or(&null);
+    let protocol = receipt.get("protocol").unwrap_or(&null);
+    let submission = receipt.get("submission").unwrap_or(&null);
+    let evaluation = receipt.get("evaluation").unwrap_or(&null);
+    let results = receipt.get("results").unwrap_or(&null);
+    let commitment = dataset.get("test_set_commitment").unwrap_or(&null);
+
+    let sections: [(&Value, &[&str], &[&str], &str); 7] = [
+        (dataset, &["dataset_id", "version", "rights_status", "rights_evidence_ref", "test_set_commitment"],
+            &["dataset_id", "version", "rights_status", "rights_evidence_ref", "test_set_commitment"], "dataset"),
+        (commitment, &["scheme", "digest", "custodian_ref"], &["scheme", "digest", "custodian_ref"], "dataset.test_set_commitment"),
+        (split, &["manifest_sha256", "group_fields", "independent_unit_definition", "independent_unit_count", "frozen_at"],
+            &["manifest_sha256", "group_fields", "independent_unit_definition", "independent_unit_count", "frozen_at"], "split"),
+        (protocol, &["protocol_id", "pre_registered_at", "primary_endpoint", "budget_units_cap", "max_calls"],
+            &["protocol_id", "pre_registered_at", "primary_endpoint", "budget_units_cap", "max_calls"], "protocol"),
+        (submission, &["submitted_at", "source_sha256", "model_sha256", "environment_sha256", "policy_sha256", "config_sha256"],
+            &["submitted_at", "source_sha256", "model_sha256", "environment_sha256", "policy_sha256", "config_sha256"], "submission"),
+        (evaluation, &["evaluator_id", "runner_image_sha256", "verifier_version", "custody_attestation_ref", "isolation_attestation_ref",
+            "run_log_sha256", "output_sha256", "started_at", "finished_at", "calls_used", "budget_units_used"],
+            &["evaluator_id", "runner_image_sha256", "verifier_version", "custody_attestation_ref", "isolation_attestation_ref",
+            "run_log_sha256", "output_sha256", "started_at", "finished_at", "calls_used", "budget_units_used"], "evaluation"),
+        (results, &["disposition", "metrics", "failed_attempts", "abstentions", "exclusions"],
+            &["disposition", "metrics", "failed_attempts", "abstentions", "exclusions"], "results"),
+    ];
+    for (value, allowed, required, name) in sections {
+        if !feasibility_exact_object_keys(value, allowed, required) {
+            findings.push(format!("RECEIPT_SECTION_FIELDS:{name} has missing, unknown or non-object fields"));
+            failed = true;
+        }
+    }
+
+    for (value, field, length, name) in [
+        (dataset, "rights_status", 0usize, "dataset.rights_status"),
+        (commitment, "scheme", 0usize, "dataset.test_set_commitment.scheme"),
+        (split, "manifest_sha256", 64usize, "split.manifest_sha256"),
+        (submission, "source_sha256", 64usize, "submission.source_sha256"),
+        (submission, "model_sha256", 64usize, "submission.model_sha256"),
+        (submission, "environment_sha256", 64usize, "submission.environment_sha256"),
+        (submission, "policy_sha256", 64usize, "submission.policy_sha256"),
+        (submission, "config_sha256", 64usize, "submission.config_sha256"),
+        (evaluation, "runner_image_sha256", 64usize, "evaluation.runner_image_sha256"),
+        (evaluation, "run_log_sha256", 64usize, "evaluation.run_log_sha256"),
+        (evaluation, "output_sha256", 64usize, "evaluation.output_sha256"),
+    ] {
+        let valid = if length == 64 {
+            object_string(value, field).is_some_and(|digest| is_hex_digest(digest, 64))
+        } else {
+            nonempty_string(value, field).is_some()
+        };
+        if !valid {
+            findings.push(format!("RECEIPT_FIELD:{name} is missing or invalid"));
+            failed = true;
+        }
+    }
+    if object_string(commitment, "scheme") != Some("sha256-salted-v1")
+        || object_string(commitment, "digest").is_none_or(|digest| !is_hex_digest(digest, 64))
+        || nonempty_string(commitment, "custodian_ref").is_none()
+    {
+        findings.push("TEST_SET_COMMITMENT:require salted SHA-256 commitment and a custodian reference".to_string());
+        failed = true;
+    }
+    if object_string(dataset, "rights_status") == Some("resolved")
+        && nonempty_string(dataset, "rights_evidence_ref").is_none()
+    {
+        findings.push("RIGHTS_EVIDENCE_MISSING:resolved rights require an evidence reference".to_string());
+        failed = true;
+    }
+    let evidence_class = object_string(receipt, "evidence_class").unwrap_or("");
+    let rights_status = object_string(dataset, "rights_status").unwrap_or("");
+    if evidence_class == "synthetic" {
+        if !["not_applicable", "resolved"].contains(&rights_status) {
+            findings.push("RIGHTS_UNRESOLVED:synthetic receipt has an invalid rights status".to_string());
+            unresolved = true;
+        }
+    } else if rights_status != "resolved" || nonempty_string(dataset, "rights_evidence_ref").is_none() {
+        findings.push("RIGHTS_UNRESOLVED:non-synthetic evaluation does not carry declared rights evidence".to_string());
+        unresolved = true;
+    }
+
+    if !is_hex_digest(object_string(commitment, "digest").unwrap_or(""), 64) {
+        findings.push("TEST_SET_COMMITMENT_DIGEST:commitment digest must be 64 lowercase hexadecimal characters".to_string());
+        failed = true;
+    }
+    if !nonempty_string(dataset, "dataset_id").is_some_and(|v| is_stable_slug(&v))
+        || nonempty_string(dataset, "version").is_none()
+        || nonempty_string(split, "independent_unit_definition").is_none()
+        || nonempty_string(protocol, "protocol_id").is_none()
+        || nonempty_string(protocol, "primary_endpoint").is_none()
+        || nonempty_string(evaluation, "evaluator_id").is_none()
+        || nonempty_string(evaluation, "verifier_version").is_none()
+    {
+        findings.push("RECEIPT_METADATA:required identity or protocol metadata is missing".to_string());
+        failed = true;
+    }
+
+    let group_fields = split.get("group_fields").and_then(Value::as_array);
+    if group_fields.map_or(true, |fields| fields.is_empty() || fields.iter().any(|field| field.as_str().map_or(true, |s| !is_stable_slug(s)))) {
+        findings.push("SPLIT_GROUP_FIELDS:at least one stable group-field name is required".to_string());
+        failed = true;
+    }
+    if split.get("independent_unit_count").and_then(Value::as_u64).unwrap_or(0) == 0 {
+        findings.push("SPLIT_INDEPENDENT_UNITS:independent_unit_count must be positive".to_string());
+        failed = true;
+    }
+    let cap = protocol.get("budget_units_cap").and_then(Value::as_f64);
+    let max_calls = protocol.get("max_calls").and_then(Value::as_u64);
+    let spent = evaluation.get("budget_units_used").and_then(Value::as_f64);
+    let calls = evaluation.get("calls_used").and_then(Value::as_u64);
+    if cap.is_none_or(|v| !v.is_finite() || v < 0.0)
+        || max_calls.unwrap_or(0) == 0
+        || spent.is_none_or(|v| !v.is_finite() || v < 0.0)
+        || calls.is_none()
+    {
+        findings.push("RESOURCE_LEDGER:budget caps and observed resource use must be valid non-negative numbers".to_string());
+        failed = true;
+    } else if spent.unwrap() > cap.unwrap() + 1e-9 || calls.unwrap() > max_calls.unwrap() {
+        findings.push("RESOURCE_OVERRUN:observed evaluation spend exceeds the registered budget".to_string());
+        failed = true;
+    }
+
+    for field in ["pre_registered_at"] {
+        if !protocol.get(field).and_then(Value::as_str).is_some_and(is_canonical_utc_timestamp) {
+            findings.push(format!("RECEIPT_TIMESTAMP:protocol.{field} must be canonical UTC YYYY-MM-DDTHH:MM:SSZ"));
+            failed = true;
+        }
+    }
+    for (value, field, name) in [
+        (split, "frozen_at", "split.frozen_at"),
+        (submission, "submitted_at", "submission.submitted_at"),
+        (evaluation, "started_at", "evaluation.started_at"),
+        (evaluation, "finished_at", "evaluation.finished_at"),
+    ] {
+        if !value.get(field).and_then(Value::as_str).is_some_and(is_canonical_utc_timestamp) {
+            findings.push(format!("RECEIPT_TIMESTAMP:{name} must be canonical UTC YYYY-MM-DDTHH:MM:SSZ"));
+            failed = true;
+        }
+    }
+    let prereg = protocol.get("pre_registered_at").and_then(Value::as_str).unwrap_or("");
+    let frozen = split.get("frozen_at").and_then(Value::as_str).unwrap_or("");
+    let submitted = submission.get("submitted_at").and_then(Value::as_str).unwrap_or("");
+    let started = evaluation.get("started_at").and_then(Value::as_str).unwrap_or("");
+    let finished = evaluation.get("finished_at").and_then(Value::as_str).unwrap_or("");
+    if [prereg, frozen, submitted, started, finished].iter().all(|time| is_canonical_utc_timestamp(time))
+        && !(prereg <= frozen && frozen <= submitted && submitted <= started && started <= finished)
+    {
+        findings.push("RECEIPT_CHRONOLOGY:require preregistration <= split freeze <= submission <= evaluation start <= finish".to_string());
+        failed = true;
+    }
+
+    let disposition = result_disposition.as_deref().unwrap_or("");
+    if !["PASS", "FAIL", "UNRESOLVED"].contains(&disposition) {
+        findings.push("RESULT_DISPOSITION:results.disposition must be PASS, FAIL or UNRESOLVED".to_string());
+        failed = true;
+    }
+    for field in ["failed_attempts", "abstentions", "exclusions"] {
+        if results.get(field).and_then(Value::as_u64).is_none() {
+            findings.push(format!("RESULT_COUNTER:results.{field} must be a non-negative integer"));
+            failed = true;
+        }
+    }
+    let metrics = results.get("metrics").and_then(Value::as_array);
+    if metrics.map_or(true, |items| items.is_empty()) {
+        findings.push("RESULT_METRICS:at least one metric record is required".to_string());
+        failed = true;
+    } else {
+        let mut seen_metrics = BTreeSet::new();
+        for (index, metric) in metrics.unwrap().iter().enumerate() {
+            if !feasibility_exact_object_keys(
+                metric,
+                &["name", "value", "unit", "sample_count", "result_source_ref"],
+                &["name", "value", "unit", "sample_count", "result_source_ref"],
+            ) {
+                findings.push(format!("RESULT_METRIC_FIELDS:metric {index} has missing or unknown fields"));
+                failed = true;
+                continue;
+            }
+            let name = nonempty_string(metric, "name");
+            if name.as_deref().map_or(true, |v| !is_stable_slug(v)) || !seen_metrics.insert(name.clone().unwrap_or_default()) {
+                findings.push(format!("RESULT_METRIC_ID:metric {index} has missing or duplicate name"));
+                failed = true;
+            }
+            if metric.get("value").and_then(Value::as_f64).is_none_or(|value| !value.is_finite())
+                || nonempty_string(metric, "unit").is_none()
+                || metric.get("sample_count").and_then(Value::as_u64).unwrap_or(0) == 0
+                || nonempty_string(metric, "result_source_ref").is_none()
+            {
+                findings.push(format!("RESULT_METRIC_VALUE:metric {index} requires finite value, unit, positive sample_count and source reference"));
+                failed = true;
+            }
+        }
+    }
+
+    let claimed_sealed = claimed_class.as_deref() == Some("SEALED_CONFIRMATORY");
+    if claimed_sealed {
+        unresolved = true;
+        findings.push(
+            "SEALED_CLAIM_NOT_VERIFIED:receipt references alone do not verify custody/isolation attestations or hidden-label separation; use UNSEALED_RETROSPECTIVE until a trusted verifier is composed".to_string(),
+        );
+    }
+
+    findings.sort();
+    findings.dedup();
+    let status = if failed {
+        "FAIL"
+    } else if unresolved {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    EvaluationReceiptReport {
+        status: status.to_string(),
+        audit_kind: "evaluation_receipt_contract".to_string(),
+        receipt_id,
+        claimed_evaluation_class: claimed_class,
+        verified_evaluation_class: "UNSEALED_RETROSPECTIVE".to_string(),
+        result_disposition,
+        metrics_checked,
+        findings,
+        claim_ceiling: "Receipt structure and internal chronology only. External rights, custody/isolation attestations, hidden-label separation, label truth and physical/process outcomes are not verified by this command.".to_string(),
+    }
+}
+
+
 #[cfg(test)]
 mod false_feasible_bound_tests {
     use super::*;
