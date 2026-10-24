@@ -588,6 +588,71 @@ mod tests {
     }
 
     #[test]
+    fn seeded_order_is_repeatable_and_duplicate_free() {
+        let ids = expected_candidate_ids();
+        let first = shuffled_order(&ids, 42);
+        let second = shuffled_order(&ids, 42);
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 39);
+        assert_eq!(first.iter().collect::<BTreeSet<_>>().len(), 39);
+        assert_ne!(first, shuffled_order(&ids, 17));
+    }
+
+    #[test]
+    fn quantiles_use_deterministic_nearest_rank() {
+        let summary = quantile_summary((1_u64..=30).collect()).unwrap();
+        assert_eq!(summary.min, 1);
+        assert_eq!(summary.p10, 3);
+        assert_eq!(summary.p50, 15);
+        assert_eq!(summary.p90, 27);
+        assert_eq!(summary.max, 30);
+        assert!(quantile_summary(Vec::new()).is_err());
+    }
+
+    #[test]
+    fn thirty_seed_summary_requires_every_budget_for_every_seed() {
+        let mut runs = Vec::new();
+        for seed in 1_u64..=30 {
+            let mut curve = Vec::new();
+            for budget in BUDGETS {
+                curve.push(BudgetPoint {
+                    unique_proposal_budget: budget,
+                    unique_proposals: budget,
+                    duplicate_proposals: 0,
+                    selected_candidate_ids: Vec::new(),
+                    discovered_envelope_frontier_vector_count: 1,
+                    full_domain_oracle_frontier_vector_count: 2,
+                    oracle_frontier_recall_numerator: (seed % 3) as usize,
+                    oracle_frontier_recall_denominator: 2,
+                    axis_best_gap: AxisGaps {
+                        essential_unserved_quanta_gap: seed,
+                        flexible_unserved_quanta_gap: 0,
+                        operating_cost_units_gap: seed * 2,
+                        grid_carbon_grams_gap: 0,
+                        curtailed_pv_quanta_gap: 0,
+                        terminal_soc_quanta_gap: 0,
+                        semantics: "test-only",
+                    },
+                    best_discovered_worst_case_essential_unserved_quanta: seed + 10,
+                });
+            }
+            runs.push(PolicyRun {
+                policy_id: format!("seeded_random_without_replacement_seed_{seed}"),
+                seed: Some(seed),
+                candidate_order_sha256: "0".repeat(64),
+                candidate_order: Vec::new(),
+                budget_curve: curve,
+            });
+        }
+        let summaries = random_seed_summaries(&runs).unwrap();
+        assert_eq!(summaries.len(), 6);
+        assert_eq!(summaries[0].random_seed_count, 30);
+        assert_eq!(summaries[0].worst_case_essential_unserved_quanta.p50, 25);
+        assert_eq!(summaries[0].operating_cost_gap.p90, 54);
+        assert!(random_seed_summaries(&runs[..29]).is_err());
+    }
+
+    #[test]
     fn invalid_or_duplicate_proposal_order_fails_closed() {
         let ids = expected_candidate_ids();
         let expected = ids.iter().cloned().collect::<BTreeSet<_>>();
