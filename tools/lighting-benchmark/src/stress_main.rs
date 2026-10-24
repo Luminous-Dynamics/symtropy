@@ -19,6 +19,7 @@ fn split_name(split: lighting_benchmark::stress_matrix::Split) -> &'static str {
 
 fn perturbation_record(value: Perturbation) -> String {
     match value {
+        Perturbation::NominalBaseline => "nominal_baseline".to_owned(),
         Perturbation::FixtureTranslationMm { dx, dy } => {
             format!("fixture_translation_mm;dx={dx};dy={dy}")
         }
