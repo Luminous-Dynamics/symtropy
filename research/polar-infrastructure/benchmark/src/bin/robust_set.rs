@@ -522,6 +522,34 @@ mod tests {
     }
 
     #[test]
+    fn inactive_service_has_null_shortfall_in_the_probability_free_stress_set() {
+        let mut input = fixture();
+        for scenario in &mut input.scenarios {
+            for step in &mut scenario.score_input.episode.steps {
+                step.demand.insert("communications".to_string(), 0.0);
+            }
+            for policy in &mut scenario.score_input.policy_runs {
+                for step in &mut policy.steps {
+                    step.delivered.insert("communications".to_string(), 0.0);
+                }
+            }
+        }
+
+        let report = aggregate(&input).expect("inactive service remains explicitly represented");
+        let candidate = report.policy_results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let communications = candidate.service_results.iter()
+            .find(|service| service.service_id == "communications").unwrap();
+        assert!(!communications.active_in_all_scenarios);
+        assert!(communications.worst_case_service_shortfall.is_none());
+        assert!(communications.unweighted_mean_service_shortfall_across_stress_suite.is_none());
+        assert_eq!(communications.service_floor_breach_scenario_count, 0);
+        assert!(communications.passed_all_declared_service_floors);
+        assert_eq!(communications.scenario_outcomes.len(), 3);
+        assert!(communications.scenario_outcomes.iter().all(|outcome| outcome.service_fraction.is_none()));
+    }
+
+    #[test]
     fn reports_longest_contiguous_service_failure_across_stress_scenarios() {
         let mut input = fixture();
         let scenario_id = input.scenarios[0].scenario_id.clone();
