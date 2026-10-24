@@ -189,5 +189,11 @@ jq -e --slurpfile case "$CASE" '
     )
 ' "$RECEIPT" >/dev/null || fail "receipt, grid, summaries or evidence gates are inconsistent"
 
-printf 'lighting receipt audit: PASS (artifact digests, ordered grid, recomputed summary and eligibility gates)\n'
+status=$(jq -er '.run_status' "$RECEIPT")
+printf 'lighting receipt audit: PASS (receipt integrity; run_status=%s)\n' "$status"
+if [[ "$status" == "compliant" ]]; then
+  printf 'eligibility: compliant claim accepted against encoded case gates only\n'
+else
+  printf 'eligibility: NOT GRANTED (run_status=%s)\n' "$status"
+fi
 printf 'scope: complete-grid receipt consistency only; solver-output parsing and physical validity are not established\n'
