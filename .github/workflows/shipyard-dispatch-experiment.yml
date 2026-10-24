@@ -79,6 +79,7 @@ jobs:
           test "$(find /tmp/shipyard-paired-benchmark -type f -name 'disturbance-tape-*.json' | wc -l)" -eq 16
           while IFS=$'	' read -r method_digest candidate_digest audit_digest; do
             test "$(sha256sum "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json" | cut -d ' ' -f 1)" = "$method_digest"
+            test "$(jq -r '.base_config_sha256' "/tmp/shipyard-paired-benchmark/method-config-$method_digest.json")" = "$(sha256sum tools/shipyard-dispatch-experiment/fixtures/synthetic-method-config-v0.json | cut -d ' ' -f 1)"
             test "$(sha256sum "/tmp/shipyard-paired-benchmark/candidate-schedule-$candidate_digest.json" | cut -d ' ' -f 1)" = "$candidate_digest"
             test "$(sha256sum "/tmp/shipyard-paired-benchmark/independent-audit-$audit_digest.json" | cut -d ' ' -f 1)" = "$audit_digest"
           done < <(jq -r '[.artifact_digests.method_config_sha256, .artifact_digests.candidate_schedule_sha256, .artifact_digests.independent_audit_sha256] | @tsv' /tmp/shipyard-paired-benchmark/results.jsonl)
