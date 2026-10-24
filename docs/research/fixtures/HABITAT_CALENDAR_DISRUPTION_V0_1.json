@@ -1,0 +1,179 @@
+{
+  "schema_version": "luminous.habitat_calendar_disruption_micro_oracle.v0.1",
+  "suite_id": "HABITAT-CALENDAR-DISRUPTION-V0.1",
+  "status": "FROZEN_SYNTHETIC_REFERENCE_CONTRACT",
+  "synthetic_only": true,
+  "claim_ceiling": "nine_case_calendar_disruption_micro_oracle_not_real_project_performance_or_safety_authority",
+  "conventions": {
+    "time_origin": 0,
+    "time_unit": "abstract integer work units and calendar units on the same finite horizon",
+    "intervals": "half_open_start_inclusive_finish_exclusive",
+    "task_duration": "active_work_units_not_elapsed_calendar_time",
+    "execution_modes": {
+      "uninterrupted": "all required work occupies one contiguous segment",
+      "pause_resume": "work may be split across available segments; active segment lengths sum exactly to duration"
+    },
+    "resource_occupancy": "capacity is consumed only during active work segments",
+    "precedence": "finish(before) <= start(after)",
+    "scenario_blackouts": "subtract the declared resource intervals from that resource's working windows; overlapping blackouts are invalid input",
+    "objective": "minimize maximum task finish subject to all hard constraints and horizon",
+    "schedule_is_executed_work": false
+  },
+  "cases": [
+    {
+      "case_id": "CAL-001-parallel-distinct-crews",
+      "purpose": "Independent tasks should overlap when their resource calendars permit it.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "A", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"crew_a": 1}},
+        {"id": "B", "duration": 5, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"crew_b": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "crew_a", "capacity": 1, "work_windows": [[0, 10]]},
+        {"id": "crew_b", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 5, "canonical_witness": [{"task_id": "A", "start": 0, "finish": 3, "segments": [[0, 3]]}, {"task_id": "B", "start": 0, "finish": 5, "segments": [[0, 5]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-002-exclusive-crew-serializes",
+      "purpose": "An exclusive crew cannot perform two tasks at once.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "A", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"crew": 1}},
+        {"id": "B", "duration": 5, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"crew": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "crew", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 8, "canonical_witness": [{"task_id": "A", "start": 0, "finish": 3, "segments": [[0, 3]]}, {"task_id": "B", "start": 3, "finish": 8, "segments": [[3, 8]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-003-pause-and-resume-across-lunch",
+      "purpose": "A task measured in work units can pause when the resource calendar closes.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "T", "duration": 3, "execution_mode": "pause_resume", "release_time": 2, "task_windows": [[0, 10]], "resource_demands": {"worker": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "worker", "capacity": 1, "work_windows": [[0, 4], [6, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "lunch_break", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 7, "canonical_witness": [{"task_id": "T", "start": 2, "finish": 7, "segments": [[2, 4], [6, 7]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-004-uninterrupted-task-cannot-cross-lunch",
+      "purpose": "An uninterrupted task must fit inside one contiguous available interval.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "T", "duration": 3, "execution_mode": "uninterrupted", "release_time": 2, "task_windows": [[0, 10]], "resource_demands": {"worker": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "worker", "capacity": 1, "work_windows": [[0, 4], [6, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "lunch_break", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 9, "canonical_witness": [{"task_id": "T", "start": 6, "finish": 9, "segments": [[6, 9]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-005-inspection-window-after-prerequisite",
+      "purpose": "The downstream task must wait for both its prerequisite and inspection window.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "build", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"build_crew": 1}},
+        {"id": "inspect", "duration": 2, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[6, 10]], "resource_demands": {"inspector": 1}}
+      ],
+      "precedence": [{"before": "build", "after": "inspect"}],
+      "resources": [
+        {"id": "build_crew", "capacity": 1, "work_windows": [[0, 10]]},
+        {"id": "inspector", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 8, "canonical_witness": [{"task_id": "build", "start": 0, "finish": 3, "segments": [[0, 3]]}, {"task_id": "inspect", "start": 6, "finish": 8, "segments": [[6, 8]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-006-replan-after-machine-outage",
+      "purpose": "Recompute the whole schedule after a machine is unavailable; preserve baseline separately.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "A", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"machine": 1}},
+        {"id": "B", "duration": 2, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"machine": 1}}
+      ],
+      "precedence": [{"before": "A", "after": "B"}],
+      "resources": [
+        {"id": "machine", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 5, "canonical_witness": [{"task_id": "A", "start": 0, "finish": 3, "segments": [[0, 3]]}, {"task_id": "B", "start": 3, "finish": 5, "segments": [[3, 5]]}]}},
+        {"scenario_id": "machine_outage", "resource_blackouts": [{"resource_id": "machine", "start": 0, "finish": 5, "event_type": "machine_failure"}], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 10, "canonical_witness": [{"task_id": "A", "start": 5, "finish": 8, "segments": [[5, 8]]}, {"task_id": "B", "start": 8, "finish": 10, "segments": [[8, 10]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-007-holiday-closure-removes-all-valid-windows",
+      "purpose": "Do not schedule work through a closure or claim infeasibility when one valid interval remains.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "T", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"crew": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "crew", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 3, "canonical_witness": [{"task_id": "T", "start": 0, "finish": 3, "segments": [[0, 3]]}]}},
+        {"scenario_id": "holiday_shutdown", "resource_blackouts": [{"resource_id": "crew", "start": 2, "finish": 8, "event_type": "statutory_holiday_or_shutdown"}], "expected": {"status": "PROVEN_INFEASIBLE", "optimal_makespan": null, "canonical_witness": []}}
+      ]
+    },
+    {
+      "case_id": "CAL-008-intersection-of-required-resource-calendars",
+      "purpose": "A task requiring both machine and worker can only execute when both calendars overlap.",
+      "horizon_end": 10,
+      "hard_deadline": null,
+      "tasks": [
+        {"id": "T", "duration": 4, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"machine": 1, "worker": 1}}
+      ],
+      "precedence": [],
+      "resources": [
+        {"id": "machine", "capacity": 1, "work_windows": [[0, 10]]},
+        {"id": "worker", "capacity": 1, "work_windows": [[4, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 8, "canonical_witness": [{"task_id": "T", "start": 4, "finish": 8, "segments": [[4, 8]]}]}}
+      ]
+    },
+    {
+      "case_id": "CAL-009-outage-invalidates-hard-deadline",
+      "purpose": "A disrupted schedule that misses a hard deadline is infeasible even if the task graph remains schedulable.",
+      "horizon_end": 10,
+      "hard_deadline": 7,
+      "tasks": [
+        {"id": "A", "duration": 3, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"machine": 1}},
+        {"id": "B", "duration": 2, "execution_mode": "uninterrupted", "release_time": 0, "task_windows": [[0, 10]], "resource_demands": {"machine": 1}}
+      ],
+      "precedence": [{"before": "A", "after": "B"}],
+      "resources": [
+        {"id": "machine", "capacity": 1, "work_windows": [[0, 10]]}
+      ],
+      "scenarios": [
+        {"scenario_id": "baseline", "resource_blackouts": [], "expected": {"status": "OPTIMAL_EXACT", "optimal_makespan": 5, "canonical_witness": [{"task_id": "A", "start": 0, "finish": 3, "segments": [[0, 3]]}, {"task_id": "B", "start": 3, "finish": 5, "segments": [[3, 5]]}]}},
+        {"scenario_id": "early_shutdown", "resource_blackouts": [{"resource_id": "machine", "start": 0, "finish": 3, "event_type": "machine_failure"}], "expected": {"status": "PROVEN_INFEASIBLE", "optimal_makespan": null, "canonical_witness": []}}
+      ]
+    }
+  ]
+}

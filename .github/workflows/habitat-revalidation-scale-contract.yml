@@ -1,0 +1,63 @@
+name: Habitat Revalidation Scale Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.md"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+      - ".github/workflows/habitat-revalidation-scale-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.md"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+      - ".github/workflows/habitat-revalidation-scale-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate frozen profile matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+          jq -e '
+            .schema_version == "luminous.habitat_revalidation_scale_benchmark.v0.1" and
+            .synthetic_only == true and
+            .claim_ceiling == "benchmark_design_not_measured_scalability_or_real_world_authority" and
+            .provisional_performance_targets.performance_targets_are_measured_facts == false and
+            (.profiles | length == 7) and
+            (([.profiles[].profile_id] | unique | length) == 7) and
+            all(.profiles[];
+              .seed > 0 and
+              .artifact_count > 0 and
+              .task_count >= .reachable_task_count and
+              .gate_count > 0 and
+              .max_expanded_states > 0
+            ) and
+            all(.profiles[]; (.independent_exhaustive_oracle_required | type) == "boolean") and
+            ((.profiles[] | select(.profile_id == "micro_oracle") | .independent_exhaustive_oracle_required) == true) and
+            ((.profiles[] | select(.profile_id == "budget_exhaustion") | .budget_cases | length) == 2) and
+            all(.profiles[] | select(.profile_id == "budget_exhaustion") | .budget_cases[];
+              .expected_status == "SEARCH_INCOMPLETE" and
+              .expected_frontier_complete == false
+            )
+          ' "$fixture" >/dev/null
+          echo "Scale benchmark profile matrix: valid"
+
+      - name: Guard against reporting target values as measured results
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "no scale measurements have been collected" docs/research/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.md
+          grep -Fq "not results already obtained" docs/research/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.md
+          echo "Unmeasured-target wording: present"

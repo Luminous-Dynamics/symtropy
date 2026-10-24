@@ -1,0 +1,65 @@
+name: Habitat Evidence Invalidation Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-evidence-invalidation/**"
+      - "docs/research/fixtures/HABITAT_EVIDENCE_INVALIDATION_V0_1.json"
+      - ".github/workflows/habitat-evidence-invalidation.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-evidence-invalidation/**"
+      - "docs/research/fixtures/HABITAT_EVIDENCE_INVALIDATION_V0_1.json"
+      - ".github/workflows/habitat-evidence-invalidation.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  evidence-validity-invalidation:
+    name: Evidence validity and scoped invalidation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-evidence-invalidation/Cargo.toml -- --check
+
+      - name: Run evidence and invalidation tests
+        run: cargo test --locked --manifest-path tools/habitat-evidence-invalidation/Cargo.toml
+
+      - name: Verify frozen evidence-invalidation report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_EVIDENCE_INVALIDATION_V0_1.json"
+          report="$RUNNER_TEMP/habitat-evidence-invalidation-report.json"
+          cargo run --locked --manifest-path tools/habitat-evidence-invalidation/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_evidence_invalidation_report.v0.1" and
+            .fixture_id == "habitat-evidence-validity-and-scoped-invalidation-001" and
+            .input_sha256 == "f9f7c16c3b370170a2f2be175f74564b36062cbbe2b7c0caf96ef68323af5b1b" and
+            .verification_status == "SYNTHETIC_GRAPH_AND_EVIDENCE_CONTRACT_ONLY" and
+            .claim_ceiling == "synthetic_evidence_invalidation_not_real_world_authority" and
+            .artifact_count == 10 and .input_event_count == 4 and
+            .unique_event_count == 4 and .duplicate_events_ignored == 0 and
+            ([.event_impacts[].affected_artifact_count] == [10,9,3,2]) and
+            ([.event_impacts[].event_id] == [
+              "EV-01-TERRAIN-REVISION","EV-02-SURVEY-STALE",
+              "EV-03-MATERIAL-SUBSTITUTION","EV-04-FURNISHING-SUBSTITUTION"
+            ])
+          ' "$report"

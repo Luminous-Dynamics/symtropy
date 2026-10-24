@@ -1,0 +1,275 @@
+{
+  "manifest_version": "whole-property-habitat-scenarios-v0.1",
+  "status": "proposed_synthetic_conformance_corpus",
+  "synthetic_only": true,
+  "intended_use": "Schema/contract planning and future independent-verifier fixtures; not physical validation, a permit, a design approval, or a safety certification.",
+  "scenario_count": 19,
+  "scenarios": [
+    {
+      "id": "WP-001",
+      "profile": "HOME-BASE",
+      "domain": "site_evidence",
+      "setup": "Parcel has partial mapped coverage and no qualified subsurface report.",
+      "expected_gate_state": "needs_evidence",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Unknown coverage never means safe.",
+        "Foundation conclusions remain blocked until required ground evidence is accepted."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-002",
+      "profile": "HOME-BASE",
+      "domain": "site_constraints",
+      "setup": "A confirmed hard flood/drainage exclusion intersects the proposed building footprint.",
+      "expected_gate_state": "ineligible",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "A soft preference score cannot override a confirmed hard constraint."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-003",
+      "profile": "HOME-BASE",
+      "domain": "building_performance",
+      "setup": "Two shading/orientation variants have complete synthetic inputs and outputs from one named model profile.",
+      "expected_gate_state": "comparison_only",
+      "negative_control": false,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Report model identity, units, uncertainty and limitations.",
+        "Comparison does not certify physical performance."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-004",
+      "profile": "HOME-BASE",
+      "domain": "water_and_landscape",
+      "setup": "Declared irrigation plus household demand exceeds the bounded water source under the drought scenario.",
+      "expected_gate_state": "ineligible_or_redesign",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Reconcile sources, storage, demand, losses and time horizon.",
+        "Do not double count shared water."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-005",
+      "profile": "RESILIENCE-REFUGE",
+      "domain": "energy_continuity",
+      "setup": "Heatwave and grid outage exceed the declared essential-load energy envelope before the requested duration.",
+      "expected_gate_state": "service_floor_not_met",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Report duration and service floors per essential load.",
+        "Rated capacity is not delivered-service evidence."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-006",
+      "profile": "RESILIENCE-REFUGE",
+      "domain": "water_sanitation",
+      "setup": "A required treatment or wastewater dependency is missing during source interruption.",
+      "expected_gate_state": "needs_evidence",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Serial bottlenecks bound delivery.",
+        "Unknown water quality is not potable supply."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-007",
+      "profile": "HOME-BASE",
+      "domain": "smart_system_fallback",
+      "setup": "Network/cloud outage disables an essential function and no tested local/manual fallback is declared.",
+      "expected_gate_state": "hard_gate_failure",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Essential functions preserve user control and fallback.",
+        "Cloud reachability is not local operability."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-008",
+      "profile": "HOME-BASE",
+      "domain": "furnishings_and_access",
+      "setup": "A furniture revision blocks a resident-selected circulation task or a required egress route.",
+      "expected_gate_state": "ineligible_or_redesign",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Furniture changes invalidate affected topology/task results.",
+        "Room-area totals alone do not prove access."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-009",
+      "profile": "HOME-BASE",
+      "domain": "landscape_ecology",
+      "setup": "A proposed planting/landscape option conflicts with a confirmed ecological no-go area or declared fire/water constraint.",
+      "expected_gate_state": "ineligible_or_redesign",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Use separately sourced specialist evidence.",
+        "No universal green-score override."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-010",
+      "profile": "HOME-BASE",
+      "domain": "maintenance",
+      "setup": "A required pump/filter/battery/valve replacement cannot be reached or isolated under the declared task sequence.",
+      "expected_gate_state": "maintenance_requirement_unmet",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Modularity counts only when the replacement task is feasible.",
+        "Report tools, spares, isolation and downtime assumptions."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-011",
+      "profile": "HOME-BASE",
+      "domain": "procurement_change",
+      "setup": "A supplier substitution changes a product or material bound to a previously reviewed design revision.",
+      "expected_gate_state": "revalidation_required",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Preserve old approval as history only.",
+        "Re-evaluate affected assumptions and receipts."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-012",
+      "profile": "HOME-BASE",
+      "domain": "as_built_commissioning",
+      "setup": "Installed geometry or equipment differs from the accepted design and dependent checks have not been rerun.",
+      "expected_gate_state": "stale_evidence",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "No stale approval upgrades to current acceptance.",
+        "Commissioning compares intended, installed, measured and accepted states."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-013",
+      "profile": "HOME-BASE",
+      "domain": "resident_governance",
+      "setup": "Separate residents hold conflicting preferences and the decision authority/priority disposition is unresolved.",
+      "expected_gate_state": "needs_authorized_decision",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Do not infer preferences from demographic proxies.",
+        "Do not average away a mandatory task or unresolved dissent."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-014",
+      "profile": "STORM-SHELTER",
+      "domain": "shelter_scope",
+      "setup": "A proposed storm safe-room profile lacks required egress, ventilation, fire or qualified shelter-engineering evidence.",
+      "expected_gate_state": "needs_qualified_review",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "No safe-room claim from generic resilience evidence.",
+        "Scope is limited to named hazard and jurisdiction."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-015",
+      "profile": "SPECIALIST-HARDENED-REFUGE",
+      "domain": "hazard_scope",
+      "setup": "A request concerns a specialized hazard outside the model's declared validated scope.",
+      "expected_gate_state": "out_of_scope",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Never extrapolate storm-shelter evidence into another hazard class.",
+        "Require specialist requirements and professional review."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-016",
+      "profile": "HOME-BASE",
+      "domain": "uncertain_project_inputs",
+      "setup": "Cost, time, supplier availability or embodied-impact values are absent or only scenario bounds.",
+      "expected_gate_state": "indeterminate_or_bounded",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Do not impute unknowns as zero.",
+        "Preserve units, ranges, currency and evidence origin."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-017",
+      "profile": "HOME-BASE",
+      "domain": "small_exhaustive_oracle",
+      "setup": "A tiny frozen design space has complete synthetic hard constraints and a known feasible/Pareto set.",
+      "expected_gate_state": "oracle_match",
+      "negative_control": false,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Production selector matches independent exhaustive outcomes.",
+        "Deterministic tie handling and input-order invariance."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-018",
+      "profile": "HOME-BASE",
+      "domain": "change_invalidation",
+      "setup": "A high-impact source, geometry or model revision changes dependencies of prior analysis outputs.",
+      "expected_gate_state": "dependent_results_stale",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "All declared dependent outputs require revalidation.",
+        "Unrelated outputs may be reused only if dependency rules justify it."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-019",
+      "profile": "HOME-BASE",
+      "domain": "cyberphysical_resilience",
+      "setup": "The proposed smart-home architecture grants a compromised third-party cloud credential cross-subsystem control; after unauthorized changes, the resident network is disconnected and essential fallback has not been demonstrated.",
+      "expected_gate_state": "hard_gate_failure",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Remote or cloud identity compromise must not grant unbounded control across independent building subsystems.",
+        "Essential functions retain the declared local/manual fallback and authorized override during disconnection.",
+        "The test fixture is synthetic; it does not establish penetration-test coverage or physical security."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    }
+  ]
+}

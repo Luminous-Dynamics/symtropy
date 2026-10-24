@@ -1,0 +1,197 @@
+{
+  "schema_version": "luminous.habitat_evidence_invalidation_fixture.v0.1",
+  "fixture_id": "habitat-evidence-validity-and-scoped-invalidation-001",
+  "status": "proposed_synthetic_evidence_invalidation_benchmark",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_evidence_invalidation_not_real_world_authority",
+  "intended_use": "Verify evidence status, digest, scope, dependency invalidation, and deterministic event replay using invented artifacts only. Timestamps and universal freshness durations are deliberately excluded; domain-specific validity rules must be separately versioned and reviewed.",
+  "evidence_statuses": [
+    "valid_for_claim",
+    "unknown",
+    "stale",
+    "revoked",
+    "incomplete_coverage",
+    "contradictory",
+    "out_of_scope"
+  ],
+  "artifacts": [
+    {
+      "id": "E-GEO-SOURCE",
+      "kind": "terrain_source",
+      "version": 1,
+      "claim_id": "terrain.source.valid.v1",
+      "scope_id": "site:synthetic-parcel-001",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "8ce7d98d4bd84526d561f827ad248e8b8144ba096cc71fd56852ba3a5ca4f237",
+      "synthetic_payload": "SYNTHETIC ONLY | E-GEO-SOURCE | terrain_source | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": []
+    },
+    {
+      "id": "E-FLOOD-SURVEY",
+      "kind": "survey_result",
+      "version": 1,
+      "claim_id": "terrain.flood.screen.v1",
+      "scope_id": "site:synthetic-parcel-001",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "094142ecdc0c1e7bdbb828ed688aa85f5054dee221f8851819165c290b00ef9a",
+      "synthetic_payload": "SYNTHETIC ONLY | E-FLOOD-SURVEY | survey_result | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "E-GEO-SOURCE"
+      ]
+    },
+    {
+      "id": "D-SITE-DECISION",
+      "kind": "site_decision",
+      "version": 1,
+      "claim_id": "site.choice.robust.v1",
+      "scope_id": "site:synthetic-parcel-001",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "cd8ba34b9445e323475b8a0f1ff474f635812098f55e111334624ec3d6ff68ec",
+      "synthetic_payload": "SYNTHETIC ONLY | D-SITE-DECISION | site_decision | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "E-GEO-SOURCE",
+        "E-FLOOD-SURVEY"
+      ]
+    },
+    {
+      "id": "D-CONCEPT-R1",
+      "kind": "design_concept",
+      "version": 1,
+      "claim_id": "concept.design.brief.v1",
+      "scope_id": "design:concept-r1",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "81793246ba51652d991c34b8f0d060bcd59fdef4112303743a42d48a5d45319d",
+      "synthetic_payload": "SYNTHETIC ONLY | D-CONCEPT-R1 | design_concept | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-SITE-DECISION"
+      ]
+    },
+    {
+      "id": "D-STRUCTURAL-CALC",
+      "kind": "analysis_result",
+      "version": 1,
+      "claim_id": "structure.screening.v1",
+      "scope_id": "design:concept-r1",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "15381c821643099e42f951e981683a24ba9a18b6870af1b3a2f255538416de67",
+      "synthetic_payload": "SYNTHETIC ONLY | D-STRUCTURAL-CALC | analysis_result | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-CONCEPT-R1",
+        "E-GEO-SOURCE"
+      ]
+    },
+    {
+      "id": "D-MATERIAL-ORDER",
+      "kind": "procurement_record",
+      "version": 1,
+      "claim_id": "material.approved.v1",
+      "scope_id": "design:concept-r1",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "d7a1969abb38f47fa8c4ce80690132ab6fadc1202444e7e7ea2e18d6652d8818",
+      "synthetic_payload": "SYNTHETIC ONLY | D-MATERIAL-ORDER | procurement_record | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-CONCEPT-R1"
+      ]
+    },
+    {
+      "id": "D-ASBUILT-RECEIPT",
+      "kind": "as_built_record",
+      "version": 1,
+      "claim_id": "construction.as_built.v1",
+      "scope_id": "building:synthetic-house-001",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "b512ee62f19fbf67cc4d781f7d8ffbc9fb18b3d0dd4976ca6cb455499edab991",
+      "synthetic_payload": "SYNTHETIC ONLY | D-ASBUILT-RECEIPT | as_built_record | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-MATERIAL-ORDER",
+        "D-STRUCTURAL-CALC"
+      ]
+    },
+    {
+      "id": "D-COMMISSIONING-RECEIPT",
+      "kind": "commissioning_record",
+      "version": 1,
+      "claim_id": "building.commissioned.v1",
+      "scope_id": "building:synthetic-house-001",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "73675a47203906bfdb970b146f077ba13585f3c9bf5704633a5229193be33e20",
+      "synthetic_payload": "SYNTHETIC ONLY | D-COMMISSIONING-RECEIPT | commissioning_record | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-ASBUILT-RECEIPT",
+        "D-STRUCTURAL-CALC"
+      ]
+    },
+    {
+      "id": "D-FURNISHING-PACKAGE",
+      "kind": "furnishing_record",
+      "version": 1,
+      "claim_id": "interior.furnishing.v1",
+      "scope_id": "interior:concept-r1",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "24054573d902da9ab03cf68b5d6c4c6b6b8e2fc3f807d15e5174aba1f12ce2ee",
+      "synthetic_payload": "SYNTHETIC ONLY | D-FURNISHING-PACKAGE | furnishing_record | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-CONCEPT-R1"
+      ]
+    },
+    {
+      "id": "D-FURNISHING-INSTALL",
+      "kind": "installation_record",
+      "version": 1,
+      "claim_id": "interior.installation.v1",
+      "scope_id": "interior:concept-r1",
+      "status": "valid_for_claim",
+      "coverage_complete": true,
+      "content_sha256": "62359503472ec03485b811195da72ef354abc14d1d8c6b05c04c25067f26d2e6",
+      "synthetic_payload": "SYNTHETIC ONLY | D-FURNISHING-INSTALL | installation_record | version=1 | no physical evidence",
+      "validity_rule_id": "SYNTHETIC-RULE-ONLY-NOT-A-REAL-WORLD-TTL",
+      "depends_on": [
+        "D-FURNISHING-PACKAGE"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "EV-01-TERRAIN-REVISION",
+      "trigger_artifact_id": "E-GEO-SOURCE",
+      "new_version": 2,
+      "reason": "Synthetic terrain source revision changes an upstream site fact."
+    },
+    {
+      "id": "EV-02-SURVEY-STALE",
+      "trigger_artifact_id": "E-FLOOD-SURVEY",
+      "new_version": 2,
+      "reason": "Synthetic survey invalidated after a declared freshness/validity trigger."
+    },
+    {
+      "id": "EV-03-MATERIAL-SUBSTITUTION",
+      "trigger_artifact_id": "D-MATERIAL-ORDER",
+      "new_version": 2,
+      "reason": "Supplier/material substitution changes procurement evidence."
+    },
+    {
+      "id": "EV-04-FURNISHING-SUBSTITUTION",
+      "trigger_artifact_id": "D-FURNISHING-PACKAGE",
+      "new_version": 2,
+      "reason": "A non-structural furnishing substitution tests over-invalidation precision."
+    }
+  ]
+}

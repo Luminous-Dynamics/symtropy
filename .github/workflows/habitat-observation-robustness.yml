@@ -1,0 +1,64 @@
+name: Habitat Observation Robustness Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-observation-robustness/**"
+      - "docs/research/fixtures/HABITAT_OBSERVATION_ROBUSTNESS_V0_2.json"
+      - ".github/workflows/habitat-observation-robustness.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-observation-robustness/**"
+      - "docs/research/fixtures/HABITAT_OBSERVATION_ROBUSTNESS_V0_2.json"
+      - ".github/workflows/habitat-observation-robustness.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  adversarial-observation-model:
+    name: Frozen adversarial observation modes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-observation-robustness/Cargo.toml -- --check
+
+      - name: Run adversarial and independent-oracle tests
+        run: cargo test --locked --manifest-path tools/habitat-observation-robustness/Cargo.toml
+
+      - name: Verify frozen observation report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_OBSERVATION_ROBUSTNESS_V0_2.json"
+          report="$RUNNER_TEMP/habitat-observation-report.json"
+          cargo run --locked --manifest-path tools/habitat-observation-robustness/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_observation_report.v0.2" and
+            .fixture_id == "habitat-observation-adversarial-modes-001" and
+            .input_sha256 == "20da58685f63743f79e4aef94e8df528e7495bffb2103f0ccaa2471e2bf173f0" and
+            .verification_status == "SYNTHETIC_OBSERVATION_SEMANTICS_ONLY_NOT_PHYSICAL_VALIDATION" and
+            .claim_ceiling == "synthetic_observation_robustness_not_site_safety" and
+            .condition_count == 4 and .observation_mode_count == 6 and
+            .composite_state_count == 24 and .candidate_count == 3 and .action_count == 2 and
+            .adversarial_mode_state_action_count == 40 and .false_negative_control_count == 4 and
+            .unresolved_outcome_count == 2 and .false_safe_control_count == 0 and
+            ([.actions[].action_id] == ["A-FLOOD-SURVEY","A-GEOTECH-SURVEY"]) and
+            ([.actions[].outcomes[].selected_candidate_id] | all(. == "inland_fallback"))
+          ' "$report"

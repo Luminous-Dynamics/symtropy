@@ -1,0 +1,154 @@
+{
+  "schema_version": "luminous.habitat_revalidation_portfolio_fixture.v0.1",
+  "fixture_id": "habitat-joint-commissioning-and-handover-plan-001",
+  "status": "proposed_synthetic_revalidation_portfolio_benchmark",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_multi_target_revalidation_not_real_world_authority",
+  "intended_use": "Plan shared synthetic evidence repair to restore both commissioning and maintenance handover after an illustrative material substitution. Cost/duration are arbitrary sequential units; gate identifiers are abstract test tokens, not real approvals.",
+  "target_artifact_ids": [
+    "D-COMMISSIONING-RECEIPT",
+    "D-MAINTENANCE-HANDOVER"
+  ],
+  "max_expanded_states": 10000,
+  "artifacts": [
+    {
+      "id": "E-GEO-SOURCE",
+      "status": "valid_for_claim",
+      "depends_on": []
+    },
+    {
+      "id": "D-CONCEPT-R1",
+      "status": "valid_for_claim",
+      "depends_on": [
+        "E-GEO-SOURCE"
+      ]
+    },
+    {
+      "id": "D-STRUCTURAL-CALC",
+      "status": "valid_for_claim",
+      "depends_on": [
+        "D-CONCEPT-R1",
+        "E-GEO-SOURCE"
+      ]
+    },
+    {
+      "id": "D-MATERIAL-ORDER",
+      "status": "invalidated",
+      "depends_on": [
+        "D-CONCEPT-R1"
+      ]
+    },
+    {
+      "id": "D-ASBUILT-RECEIPT",
+      "status": "invalidated",
+      "depends_on": [
+        "D-MATERIAL-ORDER",
+        "D-STRUCTURAL-CALC"
+      ]
+    },
+    {
+      "id": "D-COMMISSIONING-RECEIPT",
+      "status": "invalidated",
+      "depends_on": [
+        "D-ASBUILT-RECEIPT",
+        "D-STRUCTURAL-CALC"
+      ]
+    },
+    {
+      "id": "D-MAINTENANCE-HANDOVER",
+      "status": "invalidated",
+      "depends_on": [
+        "D-ASBUILT-RECEIPT"
+      ]
+    }
+  ],
+  "declared_gate_ids": [
+    "PROCUREMENT_REVIEW",
+    "INDEPENDENT_QA",
+    "INSPECTION_SIGNOFF",
+    "COMMISSIONING_AUTHORITY",
+    "OPERATIONS_HANDOVER"
+  ],
+  "available_gate_ids": [
+    "PROCUREMENT_REVIEW",
+    "INDEPENDENT_QA",
+    "INSPECTION_SIGNOFF",
+    "COMMISSIONING_AUTHORITY",
+    "OPERATIONS_HANDOVER"
+  ],
+  "tasks": [
+    {
+      "id": "T-MATERIAL-REVIEW-LOW-COST",
+      "version": 1,
+      "produces_artifact_id": "D-MATERIAL-ORDER",
+      "required_artifact_ids": [
+        "D-CONCEPT-R1"
+      ],
+      "required_gate_ids": [
+        "PROCUREMENT_REVIEW"
+      ],
+      "cost_units": 5,
+      "duration_units": 5,
+      "description": "Review the synthetic material substitution with a lower cost and longer duration."
+    },
+    {
+      "id": "T-MATERIAL-REVIEW-FAST",
+      "version": 1,
+      "produces_artifact_id": "D-MATERIAL-ORDER",
+      "required_artifact_ids": [
+        "D-CONCEPT-R1"
+      ],
+      "required_gate_ids": [
+        "PROCUREMENT_REVIEW",
+        "INDEPENDENT_QA"
+      ],
+      "cost_units": 8,
+      "duration_units": 2,
+      "description": "Review the synthetic material substitution with independent QA, higher cost and shorter duration."
+    },
+    {
+      "id": "T-ASBUILT-REINSPECTION",
+      "version": 1,
+      "produces_artifact_id": "D-ASBUILT-RECEIPT",
+      "required_artifact_ids": [
+        "D-MATERIAL-ORDER",
+        "D-STRUCTURAL-CALC"
+      ],
+      "required_gate_ids": [
+        "INSPECTION_SIGNOFF"
+      ],
+      "cost_units": 4,
+      "duration_units": 2,
+      "description": "Inspect the as-built state against valid material and structural evidence."
+    },
+    {
+      "id": "T-COMMISSIONING",
+      "version": 1,
+      "produces_artifact_id": "D-COMMISSIONING-RECEIPT",
+      "required_artifact_ids": [
+        "D-ASBUILT-RECEIPT",
+        "D-STRUCTURAL-CALC"
+      ],
+      "required_gate_ids": [
+        "COMMISSIONING_AUTHORITY"
+      ],
+      "cost_units": 3,
+      "duration_units": 1,
+      "description": "Restore the synthetic commissioning receipt after required predecessors are valid."
+    },
+    {
+      "id": "T-MAINTENANCE-HANDOVER",
+      "version": 1,
+      "produces_artifact_id": "D-MAINTENANCE-HANDOVER",
+      "required_artifact_ids": [
+        "D-ASBUILT-RECEIPT"
+      ],
+      "required_gate_ids": [
+        "OPERATIONS_HANDOVER"
+      ],
+      "cost_units": 2,
+      "duration_units": 1,
+      "description": "Restore the synthetic maintenance handover receipt after the as-built evidence is valid."
+    }
+  ]
+}
