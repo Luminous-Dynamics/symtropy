@@ -20,19 +20,49 @@ pub enum Split {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Perturbation {
-    FixtureTranslationMm { dx: f64, dy: f64 },
-    FixtureHeightScale { scale: f64 },
-    UniformReflectanceDelta { delta: f64 },
-    PowerInputScale { scale: f64 },
-    WallReflectanceAsymmetry { north_delta: f64, south_delta: f64 },
-    OccluderPreset { preset: &'static str },
-    CoupledGeometryReflectance { dx_mm: f64, height_scale: f64, reflectance_delta: f64 },
-    AmbientSensorBias { bias_fraction: f64 },
-    AmbientSensorDropout { dropout_fraction: f64 },
-    ControlLatencySeconds { latency_s: f64 },
-    StaleSensorAgeSeconds { age_s: f64 },
-    BatteryStateOfCharge { fraction: f64 },
-    GridOutageDurationSeconds { duration_s: f64 },
+    FixtureTranslationMm {
+        dx: f64,
+        dy: f64,
+    },
+    FixtureHeightScale {
+        scale: f64,
+    },
+    UniformReflectanceDelta {
+        delta: f64,
+    },
+    PowerInputScale {
+        scale: f64,
+    },
+    WallReflectanceAsymmetry {
+        north_delta: f64,
+        south_delta: f64,
+    },
+    OccluderPreset {
+        preset: &'static str,
+    },
+    CoupledGeometryReflectance {
+        dx_mm: f64,
+        height_scale: f64,
+        reflectance_delta: f64,
+    },
+    AmbientSensorBias {
+        bias_fraction: f64,
+    },
+    AmbientSensorDropout {
+        dropout_fraction: f64,
+    },
+    ControlLatencySeconds {
+        latency_s: f64,
+    },
+    StaleSensorAgeSeconds {
+        age_s: f64,
+    },
+    BatteryStateOfCharge {
+        fraction: f64,
+    },
+    GridOutageDurationSeconds {
+        duration_s: f64,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -55,6 +85,22 @@ pub enum CorpusError {
     UnsupportedOccluderPreset,
 }
 
+fn scenario(
+    id: &'static str,
+    tier: ResearchTier,
+    family: &'static str,
+    split: Split,
+    perturbation: Perturbation,
+) -> StressScenario {
+    StressScenario {
+        id,
+        tier,
+        family,
+        split,
+        perturbation,
+    }
+}
+
 /// Fixed, reviewable interventions; values are synthetic stress points, not
 /// inferred from a site or a calibrated population distribution.
 pub fn scenarios() -> Vec<StressScenario> {
@@ -63,33 +109,233 @@ pub fn scenarios() -> Vec<StressScenario> {
     use Split::*;
 
     vec![
-        StressScenario { id: "OPT-GEO-NEG-100", tier: TaskPlaneOptics, family: "fixture_translation", split: Development, perturbation: FixtureTranslationMm { dx: -100.0, dy: 0.0 } },
-        StressScenario { id: "OPT-GEO-POS-100", tier: TaskPlaneOptics, family: "fixture_translation", split: Development, perturbation: FixtureTranslationMm { dx: 100.0, dy: 0.0 } },
-        StressScenario { id: "OPT-GEO-NEG-200", tier: TaskPlaneOptics, family: "fixture_translation", split: Development, perturbation: FixtureTranslationMm { dx: 0.0, dy: -200.0 } },
-        StressScenario { id: "OPT-GEO-POS-200", tier: TaskPlaneOptics, family: "fixture_translation", split: Development, perturbation: FixtureTranslationMm { dx: 0.0, dy: 200.0 } },
-        StressScenario { id: "OPT-HEIGHT-080", tier: TaskPlaneOptics, family: "fixture_height", split: Development, perturbation: FixtureHeightScale { scale: 0.8 } },
-        StressScenario { id: "OPT-HEIGHT-120", tier: TaskPlaneOptics, family: "fixture_height", split: Development, perturbation: FixtureHeightScale { scale: 1.2 } },
-        StressScenario { id: "OPT-REFLECT-LOW", tier: TaskPlaneOptics, family: "uniform_reflectance", split: Development, perturbation: UniformReflectanceDelta { delta: -0.1 } },
-        StressScenario { id: "OPT-REFLECT-HIGH", tier: TaskPlaneOptics, family: "uniform_reflectance", split: Development, perturbation: UniformReflectanceDelta { delta: 0.1 } },
-        StressScenario { id: "OPT-POWER-090", tier: TaskPlaneOptics, family: "power_input", split: Development, perturbation: PowerInputScale { scale: 0.9 } },
-        StressScenario { id: "OPT-POWER-110", tier: TaskPlaneOptics, family: "power_input", split: Development, perturbation: PowerInputScale { scale: 1.1 } },
-        StressScenario { id: "OPT-ASYM-A", tier: TaskPlaneOptics, family: "asymmetric_reflectance", split: HeldOut, perturbation: WallReflectanceAsymmetry { north_delta: 0.15, south_delta: -0.1 } },
-        StressScenario { id: "OPT-ASYM-B", tier: TaskPlaneOptics, family: "asymmetric_reflectance", split: HeldOut, perturbation: WallReflectanceAsymmetry { north_delta: -0.1, south_delta: 0.15 } },
-        StressScenario { id: "OPT-OCCLUSION-A", tier: TaskPlaneOptics, family: "partial_occlusion", split: HeldOut, perturbation: OccluderPreset { preset: "small_offset" } },
-        StressScenario { id: "OPT-OCCLUSION-B", tier: TaskPlaneOptics, family: "partial_occlusion", split: HeldOut, perturbation: OccluderPreset { preset: "edge_intersection" } },
-        StressScenario { id: "OPT-COUPLED-A", tier: TaskPlaneOptics, family: "coupled_geometry_reflectance", split: HeldOut, perturbation: CoupledGeometryReflectance { dx_mm: -120.0, height_scale: 1.15, reflectance_delta: -0.08 } },
-        StressScenario { id: "OPT-COUPLED-B", tier: TaskPlaneOptics, family: "coupled_geometry_reflectance", split: HeldOut, perturbation: CoupledGeometryReflectance { dx_mm: 120.0, height_scale: 0.85, reflectance_delta: 0.08 } },
-        StressScenario { id: "CTL-BIAS-NEG", tier: AdaptiveControl, family: "ambient_sensor_bias", split: Development, perturbation: AmbientSensorBias { bias_fraction: -0.1 } },
-        StressScenario { id: "CTL-BIAS-POS", tier: AdaptiveControl, family: "ambient_sensor_bias", split: Development, perturbation: AmbientSensorBias { bias_fraction: 0.1 } },
-        StressScenario { id: "CTL-DROPOUT-005", tier: AdaptiveControl, family: "ambient_sensor_dropout", split: Development, perturbation: AmbientSensorDropout { dropout_fraction: 0.05 } },
-        StressScenario { id: "CTL-DROPOUT-020", tier: AdaptiveControl, family: "ambient_sensor_dropout", split: Development, perturbation: AmbientSensorDropout { dropout_fraction: 0.2 } },
-        StressScenario { id: "CTL-LATENCY-250", tier: AdaptiveControl, family: "control_latency", split: HeldOut, perturbation: ControlLatencySeconds { latency_s: 0.25 } },
-        StressScenario { id: "CTL-STALE-030", tier: AdaptiveControl, family: "stale_sensor_measurement", split: HeldOut, perturbation: StaleSensorAgeSeconds { age_s: 30.0 } },
-        StressScenario { id: "CTL-STALE-120", tier: AdaptiveControl, family: "stale_sensor_measurement", split: HeldOut, perturbation: StaleSensorAgeSeconds { age_s: 120.0 } },
-        StressScenario { id: "GRID-LOW-SOC-020", tier: OffGridResilience, family: "battery_state_of_charge", split: Development, perturbation: BatteryStateOfCharge { fraction: 0.2 } },
-        StressScenario { id: "GRID-LOW-SOC-080", tier: OffGridResilience, family: "battery_state_of_charge", split: Development, perturbation: BatteryStateOfCharge { fraction: 0.8 } },
-        StressScenario { id: "GRID-OUTAGE-030", tier: OffGridResilience, family: "grid_outage_duration", split: HeldOut, perturbation: GridOutageDurationSeconds { duration_s: 30.0 } },
-        StressScenario { id: "GRID-OUTAGE-300", tier: OffGridResilience, family: "grid_outage_duration", split: HeldOut, perturbation: GridOutageDurationSeconds { duration_s: 300.0 } },
+        scenario(
+            "OPT-GEO-NEG-100",
+            TaskPlaneOptics,
+            "fixture_translation",
+            Development,
+            FixtureTranslationMm {
+                dx: -100.0,
+                dy: 0.0,
+            },
+        ),
+        scenario(
+            "OPT-GEO-POS-100",
+            TaskPlaneOptics,
+            "fixture_translation",
+            Development,
+            FixtureTranslationMm {
+                dx: 100.0,
+                dy: 0.0,
+            },
+        ),
+        scenario(
+            "OPT-GEO-NEG-200",
+            TaskPlaneOptics,
+            "fixture_translation",
+            Development,
+            FixtureTranslationMm {
+                dx: 0.0,
+                dy: -200.0,
+            },
+        ),
+        scenario(
+            "OPT-GEO-POS-200",
+            TaskPlaneOptics,
+            "fixture_translation",
+            Development,
+            FixtureTranslationMm {
+                dx: 0.0,
+                dy: 200.0,
+            },
+        ),
+        scenario(
+            "OPT-HEIGHT-080",
+            TaskPlaneOptics,
+            "fixture_height",
+            Development,
+            FixtureHeightScale { scale: 0.8 },
+        ),
+        scenario(
+            "OPT-HEIGHT-120",
+            TaskPlaneOptics,
+            "fixture_height",
+            Development,
+            FixtureHeightScale { scale: 1.2 },
+        ),
+        scenario(
+            "OPT-REFLECT-LOW",
+            TaskPlaneOptics,
+            "uniform_reflectance",
+            Development,
+            UniformReflectanceDelta { delta: -0.1 },
+        ),
+        scenario(
+            "OPT-REFLECT-HIGH",
+            TaskPlaneOptics,
+            "uniform_reflectance",
+            Development,
+            UniformReflectanceDelta { delta: 0.1 },
+        ),
+        scenario(
+            "OPT-POWER-090",
+            TaskPlaneOptics,
+            "power_input",
+            Development,
+            PowerInputScale { scale: 0.9 },
+        ),
+        scenario(
+            "OPT-POWER-110",
+            TaskPlaneOptics,
+            "power_input",
+            Development,
+            PowerInputScale { scale: 1.1 },
+        ),
+        scenario(
+            "OPT-ASYM-A",
+            TaskPlaneOptics,
+            "asymmetric_reflectance",
+            HeldOut,
+            WallReflectanceAsymmetry {
+                north_delta: 0.15,
+                south_delta: -0.1,
+            },
+        ),
+        scenario(
+            "OPT-ASYM-B",
+            TaskPlaneOptics,
+            "asymmetric_reflectance",
+            HeldOut,
+            WallReflectanceAsymmetry {
+                north_delta: -0.1,
+                south_delta: 0.15,
+            },
+        ),
+        scenario(
+            "OPT-OCCLUSION-A",
+            TaskPlaneOptics,
+            "partial_occlusion",
+            HeldOut,
+            OccluderPreset {
+                preset: "small_offset",
+            },
+        ),
+        scenario(
+            "OPT-OCCLUSION-B",
+            TaskPlaneOptics,
+            "partial_occlusion",
+            HeldOut,
+            OccluderPreset {
+                preset: "edge_intersection",
+            },
+        ),
+        scenario(
+            "OPT-COUPLED-A",
+            TaskPlaneOptics,
+            "coupled_geometry_reflectance",
+            HeldOut,
+            CoupledGeometryReflectance {
+                dx_mm: -120.0,
+                height_scale: 1.15,
+                reflectance_delta: -0.08,
+            },
+        ),
+        scenario(
+            "OPT-COUPLED-B",
+            TaskPlaneOptics,
+            "coupled_geometry_reflectance",
+            HeldOut,
+            CoupledGeometryReflectance {
+                dx_mm: 120.0,
+                height_scale: 0.85,
+                reflectance_delta: 0.08,
+            },
+        ),
+        scenario(
+            "CTL-BIAS-NEG",
+            AdaptiveControl,
+            "ambient_sensor_bias",
+            Development,
+            AmbientSensorBias {
+                bias_fraction: -0.1,
+            },
+        ),
+        scenario(
+            "CTL-BIAS-POS",
+            AdaptiveControl,
+            "ambient_sensor_bias",
+            Development,
+            AmbientSensorBias {
+                bias_fraction: 0.1,
+            },
+        ),
+        scenario(
+            "CTL-DROPOUT-005",
+            AdaptiveControl,
+            "ambient_sensor_dropout",
+            Development,
+            AmbientSensorDropout {
+                dropout_fraction: 0.05,
+            },
+        ),
+        scenario(
+            "CTL-DROPOUT-020",
+            AdaptiveControl,
+            "ambient_sensor_dropout",
+            Development,
+            AmbientSensorDropout {
+                dropout_fraction: 0.2,
+            },
+        ),
+        scenario(
+            "CTL-LATENCY-250",
+            AdaptiveControl,
+            "control_latency",
+            HeldOut,
+            ControlLatencySeconds { latency_s: 0.25 },
+        ),
+        scenario(
+            "CTL-STALE-030",
+            AdaptiveControl,
+            "stale_sensor_measurement",
+            HeldOut,
+            StaleSensorAgeSeconds { age_s: 30.0 },
+        ),
+        scenario(
+            "CTL-STALE-120",
+            AdaptiveControl,
+            "stale_sensor_measurement",
+            HeldOut,
+            StaleSensorAgeSeconds { age_s: 120.0 },
+        ),
+        scenario(
+            "GRID-LOW-SOC-020",
+            OffGridResilience,
+            "battery_state_of_charge",
+            Development,
+            BatteryStateOfCharge { fraction: 0.2 },
+        ),
+        scenario(
+            "GRID-LOW-SOC-080",
+            OffGridResilience,
+            "battery_state_of_charge",
+            Development,
+            BatteryStateOfCharge { fraction: 0.8 },
+        ),
+        scenario(
+            "GRID-OUTAGE-030",
+            OffGridResilience,
+            "grid_outage_duration",
+            HeldOut,
+            GridOutageDurationSeconds { duration_s: 30.0 },
+        ),
+        scenario(
+            "GRID-OUTAGE-300",
+            OffGridResilience,
+            "grid_outage_duration",
+            HeldOut,
+            GridOutageDurationSeconds { duration_s: 300.0 },
+        ),
     ]
 }
 
@@ -107,7 +353,10 @@ fn valid_perturbation(perturbation: Perturbation) -> Result<(), CorpusError> {
         Perturbation::PowerInputScale { scale } => {
             scale.is_finite() && (0.7..=1.3).contains(&scale)
         }
-        Perturbation::WallReflectanceAsymmetry { north_delta, south_delta } => {
+        Perturbation::WallReflectanceAsymmetry {
+            north_delta,
+            south_delta,
+        } => {
             north_delta.is_finite()
                 && south_delta.is_finite()
                 && (-0.2..=0.2).contains(&north_delta)
@@ -119,7 +368,11 @@ fn valid_perturbation(perturbation: Perturbation) -> Result<(), CorpusError> {
             }
             true
         }
-        Perturbation::CoupledGeometryReflectance { dx_mm, height_scale, reflectance_delta } => {
+        Perturbation::CoupledGeometryReflectance {
+            dx_mm,
+            height_scale,
+            reflectance_delta,
+        } => {
             dx_mm.is_finite()
                 && dx_mm.abs() <= 250.0
                 && height_scale.is_finite()
@@ -146,7 +399,11 @@ fn valid_perturbation(perturbation: Perturbation) -> Result<(), CorpusError> {
             duration_s.is_finite() && (0.0..=3600.0).contains(&duration_s)
         }
     };
-    if in_range { Ok(()) } else { Err(CorpusError::ParameterOutOfBounds) }
+    if in_range {
+        Ok(())
+    } else {
+        Err(CorpusError::ParameterOutOfBounds)
+    }
 }
 
 /// Enforce identity uniqueness, parameter bounds, and family-level split
@@ -169,7 +426,9 @@ pub fn validate_corpus(cases: &[StressScenario]) -> Result<(), CorpusError> {
             return Err(CorpusError::EmptyFamily);
         }
         match family_split.get(&(case.tier, case.family)) {
-            Some(split) if *split != case.split => return Err(CorpusError::FamilyLeaksAcrossSplits),
+            Some(split) if *split != case.split => {
+                return Err(CorpusError::FamilyLeaksAcrossSplits);
+            }
             _ => {
                 family_split.insert((case.tier, case.family), case.split);
             }
@@ -189,7 +448,9 @@ mod tests {
         assert_eq!(cases.len(), 27);
         assert_eq!(validate_corpus(&cases), Ok(()));
         assert!(cases.iter().any(|case| case.split == Split::HeldOut));
-        assert!(cases.iter().any(|case| case.tier == ResearchTier::OffGridResilience));
+        assert!(cases
+            .iter()
+            .any(|case| case.tier == ResearchTier::OffGridResilience));
     }
 
     #[test]
@@ -200,14 +461,20 @@ mod tests {
                 tier: ResearchTier::TaskPlaneOptics,
                 family: "geometry",
                 split: Split::Development,
-                perturbation: Perturbation::FixtureTranslationMm { dx: 10.0, dy: 0.0 },
+                perturbation: Perturbation::FixtureTranslationMm {
+                    dx: 10.0,
+                    dy: 0.0,
+                },
             },
             StressScenario {
                 id: "TEST-GEO",
                 tier: ResearchTier::TaskPlaneOptics,
                 family: "geometry",
                 split: Split::HeldOut,
-                perturbation: Perturbation::FixtureTranslationMm { dx: 20.0, dy: 0.0 },
+                perturbation: Perturbation::FixtureTranslationMm {
+                    dx: 20.0,
+                    dy: 0.0,
+                },
             },
         ];
         assert_eq!(
@@ -246,7 +513,9 @@ mod tests {
             tier: ResearchTier::TaskPlaneOptics,
             family: "occlusion",
             split: Split::HeldOut,
-            perturbation: Perturbation::OccluderPreset { preset: "unspecified" },
+            perturbation: Perturbation::OccluderPreset {
+                preset: "unspecified",
+            },
         };
         assert_eq!(
             validate_corpus(&[case]),
