@@ -1,6 +1,8 @@
 //! Fail-closed reference evaluator for a lighting-service benchmark.
 //!
 //! This crate evaluates supplied observations; it does not calculate photometry.
+//! Grid summaries are derived from raw samples so candidate-reported aggregates
+//! cannot contradict the grid submitted for evaluation.
 
 use std::collections::BTreeMap;
 
@@ -28,7 +30,8 @@ pub struct CaseLimits {
     pub minimum_to_average_uniformity_min: f64,
     pub maximum_peak_power_w: f64,
     pub maximum_average_power_w: f64,
-    /// This list comes from the frozen case, not from the candidate.
+    /// Frozen by the benchmark case, not selected by an optimizer.
+    pub expected_illuminance_points: usize,
     pub required_gate_names: Vec<String>,
 }
 
@@ -39,10 +42,95 @@ pub struct CandidateObservation {
     pub observed_hours: f64,
     pub compliant_task_hours: f64,
     pub peak_wall_power_w: f64,
-    pub average_illuminance_lx: f64,
-    pub minimum_illuminance_lx: f64,
-    pub minimum_to_average_uniformity: f64,
+    /// Raw samples at the case-defined grid positions, in lux.
+    pub illuminance_samples_lx: Vec<f64>,
     pub gates: Vec<GateResult>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GridSummary {
+    pub average_lx: f64,
+    pub minimum_lx: f64,
+    pub maximum_lx: f64,
+    pub minimum_to_average_uniformity: f64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GridError {
+    ZeroExpectedPoints,
+    EmptyGrid,
+    PointCountMismatch,
+    InvalidSample,
+    NonFiniteAggregate,
+}
+
+impl GridError {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ZeroExpectedPoints => "grid_expected_points_zero",
+            Self::EmptyGrid => "grid_empty",
+            Self::PointCountMismatch => "grid_point_count_mismatch",
+            Self::InvalidSample => "grid_sample_negative_or_non_finite",
+            Self::NonFiniteAggregate => "grid_aggregate_non_finite",
+        }
+    }
+}
+
+/// Derive all summary metrics from the raw illuminance grid.
+///
+/// The expected point count must come from the frozen test case. An empty,
+/// incomplete, negative or non-finite grid is invalid and cannot be ranked.
+pub fn summarize_illuminance_grid(
+    samples_lx: &[f64],
+    expected_points: usize,
+) -> Result<GridSummary, GridError> {
+    if expected_points == 0 {
+        return Err(GridError::ZeroExpectedPoints);
+    }
+    if samples_lx.is_empty() {
+        return Err(GridError::EmptyGrid);
+    }
+    if samples_lx.len() != expected_points {
+        return Err(GridError::PointCountMismatch);
+    }
+    if samples_lx
+        .iter()
+        .any(|sample| !sample.is_finite() || *sample < 0.0)
+    {
+        return Err(GridError::InvalidSample);
+    }
+
+    let mut sum = 0.0_f64;
+    let mut minimum = f64::INFINITY;
+    let mut maximum = f64::NEG_INFINITY;
+    for sample in samples_lx {
+        sum += *sample;
+        minimum = minimum.min(*sample);
+        maximum = maximum.max(*sample);
+    }
+    let average = sum / samples_lx.len() as f64;
+    if !sum.is_finite()
+        || !average.is_finite()
+        || !minimum.is_finite()
+        || !maximum.is_finite()
+    {
+        return Err(GridError::NonFiniteAggregate);
+    }
+    let uniformity = if average > 0.0 {
+        minimum / average
+    } else {
+        0.0
+    };
+    if !uniformity.is_finite() {
+        return Err(GridError::NonFiniteAggregate);
+    }
+
+    Ok(GridSummary {
+        average_lx: average,
+        minimum_lx: minimum,
+        maximum_lx: maximum,
+        minimum_to_average_uniformity: uniformity,
+    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -77,6 +165,7 @@ pub struct Evaluation {
     pub candidate_id: String,
     pub status: EvaluationStatus,
     pub average_wall_power_w: Option<f64>,
+    pub illuminance: Option<GridSummary>,
     pub energy_wh_per_compliant_task_hour: Option<f64>,
     pub reason_codes: Vec<String>,
 }
@@ -87,6 +176,7 @@ impl Evaluation {
             candidate_id: candidate_id.to_owned(),
             status: EvaluationStatus::InvalidInput,
             average_wall_power_w: None,
+            illuminance: None,
             energy_wh_per_compliant_task_hour: None,
             reason_codes: vec![reason.to_owned()],
         }
@@ -107,6 +197,7 @@ fn valid_limits(limits: &CaseLimits) -> bool {
         && limits.maximum_peak_power_w > 0.0
         && limits.maximum_average_power_w.is_finite()
         && limits.maximum_average_power_w > 0.0
+        && limits.expected_illuminance_points > 0
         && !limits.required_gate_names.is_empty()
         && limits.required_gate_names.iter().all(|name| !name.trim().is_empty())
         && {
@@ -123,6 +214,10 @@ fn status_from_required_gates(
 ) -> EvaluationStatus {
     let mut by_name = BTreeMap::new();
     for gate in gates {
+        if gate.name.trim().is_empty() {
+            reasons.push("empty_gate_name".to_owned());
+            return EvaluationStatus::InvalidInput;
+        }
         if by_name.insert(gate.name.as_str(), gate.status).is_some() {
             reasons.push("duplicate_gate_name".to_owned());
             return EvaluationStatus::InvalidInput;
@@ -156,8 +251,6 @@ fn status_from_required_gates(
         }
     }
 
-    // A known failure is enough to reject rankability. Otherwise, preserve the
-    // most concrete unresolved evidence state instead of turning it into a pass.
     if required_statuses.contains(&GateStatus::Fail) {
         EvaluationStatus::NonCompliant
     } else if required_statuses.contains(&GateStatus::InvalidOutput) {
@@ -177,8 +270,9 @@ fn status_from_required_gates(
 
 /// Evaluate an observation against frozen case limits.
 ///
-/// The energy/service metric is withheld unless every numeric constraint and
-/// every case-required evidence gate passes.
+/// The energy/service metric is withheld unless all numeric constraints and
+/// all case-required evidence gates pass. Illuminance metrics are calculated
+/// from raw samples, not trusted candidate-supplied summary fields.
 pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evaluation {
     if candidate.candidate_id.trim().is_empty() {
         return Evaluation::invalid("", "empty_candidate_id");
@@ -193,29 +287,32 @@ pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evalua
         || !finite_nonnegative(candidate.compliant_task_hours)
         || candidate.compliant_task_hours > candidate.observed_hours + 1.0e-9
         || !finite_nonnegative(candidate.peak_wall_power_w)
-        || !finite_nonnegative(candidate.average_illuminance_lx)
-        || !finite_nonnegative(candidate.minimum_illuminance_lx)
-        || !candidate.minimum_to_average_uniformity.is_finite()
-        || !(0.0..=1.0).contains(&candidate.minimum_to_average_uniformity)
         || candidate.energy_wh
             > candidate.peak_wall_power_w * candidate.observed_hours + 1.0e-6
     {
         return Evaluation::invalid(&candidate.candidate_id, "invalid_numeric_observation");
     }
 
+    let illuminance = match summarize_illuminance_grid(
+        &candidate.illuminance_samples_lx,
+        limits.expected_illuminance_points,
+    ) {
+        Ok(summary) => summary,
+        Err(error) => return Evaluation::invalid(&candidate.candidate_id, error.as_str()),
+    };
     let average_wall_power_w = candidate.energy_wh / candidate.observed_hours;
     let mut reasons = Vec::new();
     let mut numeric_failure = false;
 
-    if candidate.average_illuminance_lx < limits.average_illuminance_min_lx {
+    if illuminance.average_lx < limits.average_illuminance_min_lx {
         numeric_failure = true;
         reasons.push("average_illuminance_below_target".to_owned());
     }
-    if candidate.minimum_illuminance_lx < limits.minimum_illuminance_min_lx {
+    if illuminance.minimum_lx < limits.minimum_illuminance_min_lx {
         numeric_failure = true;
         reasons.push("minimum_illuminance_below_target".to_owned());
     }
-    if candidate.minimum_to_average_uniformity < limits.minimum_to_average_uniformity_min {
+    if illuminance.minimum_to_average_uniformity < limits.minimum_to_average_uniformity_min {
         numeric_failure = true;
         reasons.push("uniformity_below_target".to_owned());
     }
@@ -238,6 +335,7 @@ pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evalua
             candidate_id: candidate.candidate_id.clone(),
             status: gate_status,
             average_wall_power_w: Some(average_wall_power_w),
+            illuminance: Some(illuminance),
             energy_wh_per_compliant_task_hour: None,
             reason_codes: reasons,
         };
@@ -248,14 +346,12 @@ pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evalua
     } else {
         gate_status
     };
-
     let status = if status == EvaluationStatus::Compliant && candidate.compliant_task_hours <= 0.0 {
         reasons.push("zero_compliant_task_hours".to_owned());
         EvaluationStatus::NotEvaluated
     } else {
         status
     };
-
     let energy_metric = if status == EvaluationStatus::Compliant {
         Some(candidate.energy_wh / candidate.compliant_task_hours)
     } else {
@@ -266,14 +362,14 @@ pub fn evaluate(candidate: &CandidateObservation, limits: &CaseLimits) -> Evalua
         candidate_id: candidate.candidate_id.clone(),
         status,
         average_wall_power_w: Some(average_wall_power_w),
+        illuminance: Some(illuminance),
         energy_wh_per_compliant_task_hour: energy_metric,
         reason_codes: reasons,
     }
 }
 
 /// True only when vector a Pareto-dominates vector b for equal-length, finite
-/// minimization vectors. Missing objectives must be handled before this call;
-/// they are never replaced with zero.
+/// minimization vectors. Missing objectives must be handled before this call.
 pub fn dominates_minimization(a: &[f64], b: &[f64]) -> bool {
     if a.is_empty()
         || a.len() != b.len()
@@ -281,7 +377,6 @@ pub fn dominates_minimization(a: &[f64], b: &[f64]) -> bool {
     {
         return false;
     }
-
     let no_worse = a.iter().zip(b.iter()).all(|(left, right)| left <= right);
     let strictly_better = a.iter().zip(b.iter()).any(|(left, right)| left < right);
     no_worse && strictly_better
@@ -298,6 +393,7 @@ mod tests {
             minimum_to_average_uniformity_min: 0.6,
             maximum_peak_power_w: 15.0,
             maximum_average_power_w: 15.0,
+            expected_illuminance_points: 104,
             required_gate_names: vec![
                 "photometry".to_owned(),
                 "color_quality".to_owned(),
@@ -309,15 +405,15 @@ mod tests {
     }
 
     fn passing_candidate() -> CandidateObservation {
+        let mut samples = vec![520.0; 104];
+        samples[0] = 315.0;
         CandidateObservation {
             candidate_id: "synthetic-candidate-a".to_owned(),
             energy_wh: 8.0,
             observed_hours: 1.0,
             compliant_task_hours: 1.0,
             peak_wall_power_w: 10.0,
-            average_illuminance_lx: 520.0,
-            minimum_illuminance_lx: 310.0,
-            minimum_to_average_uniformity: 0.62,
+            illuminance_samples_lx: samples,
             gates: limits()
                 .required_gate_names
                 .iter()
@@ -330,12 +426,51 @@ mod tests {
     }
 
     #[test]
-    fn compliant_candidate_gets_energy_service_metric() {
+    fn grid_summary_is_calculated_from_samples() {
+        let summary = summarize_illuminance_grid(&[5.0, 10.0, 15.0], 3).unwrap();
+        assert_eq!(summary.average_lx, 10.0);
+        assert_eq!(summary.minimum_lx, 5.0);
+        assert_eq!(summary.maximum_lx, 15.0);
+        assert_eq!(summary.minimum_to_average_uniformity, 0.5);
+    }
+
+    #[test]
+    fn grid_rejects_wrong_point_count() {
+        assert_eq!(
+            summarize_illuminance_grid(&[500.0, 510.0], 3),
+            Err(GridError::PointCountMismatch)
+        );
+    }
+
+    #[test]
+    fn grid_rejects_non_finite_and_negative_samples() {
+        assert_eq!(
+            summarize_illuminance_grid(&[500.0, f64::NAN], 2),
+            Err(GridError::InvalidSample)
+        );
+        assert_eq!(
+            summarize_illuminance_grid(&[500.0, -1.0], 2),
+            Err(GridError::InvalidSample)
+        );
+    }
+
+    #[test]
+    fn compliant_candidate_gets_metric_based_on_raw_grid() {
         let result = evaluate(&passing_candidate(), &limits());
         assert_eq!(result.status, EvaluationStatus::Compliant);
         assert_eq!(result.average_wall_power_w, Some(8.0));
+        assert!(result.illuminance.unwrap().average_lx >= 500.0);
         assert_eq!(result.energy_wh_per_compliant_task_hour, Some(8.0));
-        assert!(result.reason_codes.is_empty());
+    }
+
+    #[test]
+    fn incomplete_grid_cannot_be_ranked() {
+        let mut candidate = passing_candidate();
+        candidate.illuminance_samples_lx.pop();
+        let result = evaluate(&candidate, &limits());
+        assert_eq!(result.status, EvaluationStatus::InvalidInput);
+        assert_eq!(result.energy_wh_per_compliant_task_hour, None);
+        assert_eq!(result.reason_codes, vec!["grid_point_count_mismatch"]);
     }
 
     #[test]
@@ -368,7 +503,7 @@ mod tests {
     #[test]
     fn non_finite_numeric_input_is_invalid() {
         let mut candidate = passing_candidate();
-        candidate.average_illuminance_lx = f64::NAN;
+        candidate.energy_wh = f64::NAN;
         let result = evaluate(&candidate, &limits());
         assert_eq!(result.status, EvaluationStatus::InvalidInput);
         assert_eq!(result.energy_wh_per_compliant_task_hour, None);
@@ -393,14 +528,14 @@ mod tests {
     }
 
     #[test]
-    fn missing_and_non_finite_pareto_objectives_never_dominate() {
+    fn pareto_dominance_rejects_missing_or_non_finite_values() {
         assert!(!dominates_minimization(&[1.0], &[1.0, 2.0]));
         assert!(!dominates_minimization(&[f64::NAN, 1.0], &[2.0, 2.0]));
         assert!(!dominates_minimization(&[1.0], &[1.0]));
     }
 
     #[test]
-    fn pareto_dominance_requires_no_worse_and_one_strict_improvement() {
+    fn pareto_dominance_requires_one_strict_improvement() {
         assert!(dominates_minimization(&[2.0, 4.0], &[3.0, 4.0]));
         assert!(!dominates_minimization(&[2.0, 5.0], &[3.0, 4.0]));
     }
