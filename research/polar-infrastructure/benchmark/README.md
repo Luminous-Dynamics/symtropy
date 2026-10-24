@@ -37,7 +37,7 @@ F = \frac{\sum_{s:D_s>0} w_s r_s}{\sum_{s:D_s>0} w_s}
 - An inactive service with zero demand throughout the episode is explicitly excluded from the headline fraction and reports a missing per-service fraction, not a zero.
 - Physical demanded/delivered unit-hours are preserved separately per service; unlike units are never summed into one physical total.
 - Weighted delivered/unserved service-fraction-hours integrate each active service's dimensionless delivered/unmet fraction over time and criticality weight. These are coverage metrics, not physical energy or water quantities.
-- Floor-breach service-hours sum the timestep duration for **each service** below its declared floor; two services breaching in one hour count as two service-hours.
+- Floor-breach service-hours sum the timestep duration for **each service** below its declared floor; two services breaching in one hour count as two service-hours. The scorer also reports each service's contiguous breach-episode count and longest consecutive breach duration, plus system-wide contiguous breach windows and their longest duration. Equal total breach-hours can therefore be distinguished by persistence (for example, one two-hour outage versus two separated one-hour outages).
 - `gate_pass` is false if any service-floor breach occurs.
 - Each policy declares an explicit `fuel_unit`; all policies in an episode must use the same fuel unit, and the ensemble/robust-set evaluators reject unit drift across scenarios. Fuel intensity divides declared fuel units by weighted delivered service-fraction-hours. It is only comparable between runs that share the fuel unit and service contract/weights.
 - The scorer fails on non-finite/negative measurements, missing/extra service IDs, duplicate IDs, invalid floors, mismatched series lengths, and unsupported evidence claims.
@@ -73,6 +73,7 @@ Not every remote-infrastructure failure mode has defensible occurrence probabili
 - worst-case service shortfall and worst floor-breach duration;
 - the unweighted mean over the enumerated stress suite, explicitly **not** an expected-value or probability claim;
 - maximum fuel intensity across the included scenarios where defined;
+- worst contiguous system-level service-floor breach duration, exposing whether the same total breach time occurs as one persistent outage or fragmented episodes;
 - Pareto non-dominance across breach-scenario count, worst shortfall, worst breach duration and maximum fuel intensity; gate eligibility remains a separate field. The report marks the entire frontier `incomplete_missing_fuel_data` and emits `null` Pareto flags if any option lacks comparable fuel-intensity data, rather than turning missing values into numeric infinities;
 - the full outcome for every scenario so that failures stay inspectable.
 
