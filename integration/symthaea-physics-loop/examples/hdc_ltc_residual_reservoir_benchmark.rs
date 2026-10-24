@@ -275,8 +275,10 @@ fn main() {
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or(1.0e-2);
+    let readout_fit_started = Instant::now();
     let readout = ReservoirRidgeReadout::fit(&train_samples, ridge_lambda)
         .expect("HDC-LTC ridge readout fit must be valid");
+    let readout_fit_seconds = readout_fit_started.elapsed().as_secs_f64();
 
     let episodes = env_usize("STFR_HDC_EVAL_EPISODES", 18);
     let steps_per_episode = env_usize("STFR_HDC_EVAL_STEPS", 64);
@@ -354,6 +356,7 @@ fn main() {
         "training": {
             "split": "train",
             "sample_count": train_samples.len(),
+            "readout_fit_seconds": readout_fit_seconds,
             "ridge_lambda": readout.ridge_lambda(),
             "hidden_force_labels_used_as_features": false
         },
