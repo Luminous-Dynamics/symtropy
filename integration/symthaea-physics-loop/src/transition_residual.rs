@@ -101,11 +101,13 @@ impl LinearTransitionResidual {
             1.0 - 2.0 * (x * x + y * y),
         ];
 
-        // The simulator clamps before applying the command. Use that applied thrust,
-        // never an unclamped policy proposal, when constructing the model target.
-        let applied_thrust_n = requested_action.clamped().thrust as f64;
+        // The action argument is the clamped command sent to the plant interface.
+        // Under the optional actuator-lag stress model, effective physical thrust can
+        // differ from this command; that discrepancy intentionally remains in the
+        // residual target instead of being leaked as a feature.
+        let commanded_thrust_n = requested_action.clamped().thrust as f64;
         let drag_accel_scale = nominal.linear_drag_n_s_per_m / nominal.mass_kg;
-        let thrust_accel_scale = applied_thrust_n / nominal.mass_kg;
+        let thrust_accel_scale = commanded_thrust_n / nominal.mass_kg;
 
         let mut observed = [0.0; 3];
         let mut predicted = [0.0; 3];
