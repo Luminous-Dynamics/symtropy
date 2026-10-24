@@ -504,7 +504,7 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
         // Hash canonical numeric values rather than CSV spellings so "1" and "1.0"
         // match, while any changed timestamp or target value invalidates the pair.
         let mut hasher = Sha256::new();
-        hasher.update(b"symtropy-nanodrone-ground-truth-windows-v1\\0");
+        hasher.update(b"symtropy-nanodrone-ground-truth-windows-v1\0");
         hasher.update((rows.len() as u64).to_le_bytes());
         for row in &rows {
             hasher.update(row["t"].to_bits().to_le_bytes());
