@@ -1,0 +1,114 @@
+{
+  "reference_id": "wang-yin-khan-2026-iet-cim2-70066-table-6",
+  "record_contract_version": "shipyard-published-baseline-anchor-v0",
+  "source": {
+    "title": "Spatial-Scheduling Strategy for Irregularly Shaped Blocks Under Disruption in Shipbuilding",
+    "authors": ["Ningfei Wang", "Jingbo Yin", "Rafi Ullah Khan"],
+    "journal": "IET Collaborative Intelligent Manufacturing",
+    "first_published": "2026-07-11",
+    "doi": "10.1049/cim2.70066",
+    "url": "https://doi.org/10.1049/cim2.70066",
+    "table": 6,
+    "data_availability": "The publication says experimental data and simulation results are available from the corresponding author upon request."
+  },
+  "evidence_status": "published_aggregate_reference_only",
+  "reproduced_by_this_repository": false,
+  "raw_per_run_outputs_available": false,
+  "repetitions_per_case_reported": 15,
+  "repetition_interpretation": "The paper reports each Case9_50_x was repeated 15 times under identical parameters and matched disruption scenarios. Table 6 values below are published aggregates, not raw runs.",
+  "metric_definitions_to_reconstruct": {
+    "Aur": "Average utilisation rate of initial blocks / planar storage yard utilisation as defined in the paper. Exact numerator and denominator must be reconstructed from source instance and yard/aisle geometry.",
+    "Act_s": "Reported algorithm computational time in seconds. Hardware, implementation and stopping protocol must be matched before treating runtime as directly comparable.",
+    "Vt_min": "Reported total vehicle travel time in minutes. Exact route/travel aggregation must be reconstructed from the source model."
+  },
+  "methods": {
+    "PA": "Proposed hybrid ABC + adaptive large neighbourhood search (ALNS) + disruption-recovery algorithm",
+    "IA": "Traditional artificial bee colony (ABC)",
+    "GA": "Genetic algorithm",
+    "DE": "Differential evolution"
+  },
+  "algorithm_parameters_reported": {
+    "nectar_sources_SN": 30,
+    "maximum_iterations_MaxIter": 200,
+    "objective_weights": {
+      "yard_utilisation": 0.5,
+      "vehicle_scheduling_time": 0.5
+    }
+  },
+  "cases": [
+    {
+      "case_id": "Case9_50_0",
+      "disrupted_blocks_workstation_D1": 0,
+      "disrupted_blocks_vehicle_D2": 0,
+      "values": {
+        "PA": {"Aur": 0.782, "Act_s": 119.4, "Vt_min": 2229},
+        "IA": {"Aur": 0.782, "Act_s": 232.5, "Vt_min": 2229},
+        "GA": {"Aur": 0.782, "Act_s": 185.3, "Vt_min": 2229},
+        "DE": {"Aur": 0.782, "Act_s": 201.6, "Vt_min": 2229}
+      }
+    },
+    {
+      "case_id": "Case9_50_1",
+      "disrupted_blocks_workstation_D1": 1,
+      "disrupted_blocks_vehicle_D2": 0,
+      "values": {
+        "PA": {"Aur": 0.782, "Act_s": 223.6, "Vt_min": 2276},
+        "IA": {"Aur": 0.782, "Act_s": 316.7, "Vt_min": 2276},
+        "GA": {"Aur": 0.782, "Act_s": 268.4, "Vt_min": 2276},
+        "DE": {"Aur": 0.782, "Act_s": 285.2, "Vt_min": 2276}
+      }
+    },
+    {
+      "case_id": "Case9_50_2",
+      "disrupted_blocks_workstation_D1": 1,
+      "disrupted_blocks_vehicle_D2": 1,
+      "values": {
+        "PA": {"Aur": 0.777, "Act_s": 248.4, "Vt_min": 2298},
+        "IA": {"Aur": 0.777, "Act_s": 388.01, "Vt_min": 2298},
+        "GA": {"Aur": 0.777, "Act_s": 295.7, "Vt_min": 2298},
+        "DE": {"Aur": 0.777, "Act_s": 312.6, "Vt_min": 2298}
+      }
+    },
+    {
+      "case_id": "Case9_50_3",
+      "disrupted_blocks_workstation_D1": 1,
+      "disrupted_blocks_vehicle_D2": 2,
+      "values": {
+        "PA": {"Aur": 0.768, "Act_s": 271.6, "Vt_min": 2315},
+        "IA": {"Aur": 0.761, "Act_s": 306.2, "Vt_min": 2327},
+        "GA": {"Aur": 0.758, "Act_s": 284.9, "Vt_min": 2368},
+        "DE": {"Aur": 0.764, "Act_s": 297.3, "Vt_min": 2342}
+      }
+    },
+    {
+      "case_id": "Case9_50_4",
+      "disrupted_blocks_workstation_D1": 2,
+      "disrupted_blocks_vehicle_D2": 2,
+      "values": {
+        "PA": {"Aur": 0.775, "Act_s": 308.0, "Vt_min": 2339},
+        "IA": {"Aur": 0.765, "Act_s": 398.7, "Vt_min": 2339},
+        "GA": {"Aur": 0.760, "Act_s": 335.6, "Vt_min": 2386},
+        "DE": {"Aur": 0.768, "Act_s": 352.1, "Vt_min": 2360}
+      }
+    },
+    {
+      "case_id": "Case9_50_5",
+      "disrupted_blocks_workstation_D1": 3,
+      "disrupted_blocks_vehicle_D2": 2,
+      "values": {
+        "PA": {"Aur": 0.772, "Act_s": 350.9, "Vt_min": 2375},
+        "IA": {"Aur": 0.770, "Act_s": 401.7, "Vt_min": 2361},
+        "GA": {"Aur": 0.764, "Act_s": 372.8, "Vt_min": 2412},
+        "DE": {"Aur": 0.769, "Act_s": 389.5, "Vt_min": 2390}
+      }
+    }
+  ],
+  "assumption_deltas_to_probe_separately": [
+    "Outgoing blocks are treated as fully relocated when incoming blocks arrive.",
+    "Loading and unloading durations are neglected.",
+    "The ordering of blocks arriving concurrently is not considered.",
+    "Adequate numbers and types of vehicles are assumed.",
+    "The published scalarized objective uses 0.5 weight for yard utilization and 0.5 weight for vehicle scheduling time."
+  ],
+  "forbidden_inference": "Do not compare this aggregate fixture directly with synthetic corpus metrics or claim a reproduction until original instance geometry, disruptions, objective denominators, algorithm settings, hardware, repetitions and raw outputs are reconstructed."
+}
