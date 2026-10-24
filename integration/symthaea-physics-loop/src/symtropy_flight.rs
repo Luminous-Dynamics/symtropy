@@ -330,6 +330,56 @@ mod tests {
     }
 
     #[test]
+    fn actuator_lag_is_observed_as_residual_against_direct_actuation_nominal() {
+        use crate::transition_residual::{LinearTransitionResidual, NominalLinearDynamics};
+
+        let nominal = NominalLinearDynamics {
+            mass_kg: MASS_KG,
+            gravity_m_s2: 9.81,
+            linear_drag_n_s_per_m: DRAG_N_S_PER_M,
+        };
+        let command = QuadrotorCommand::zero();
+        let mut direct = SymtropyFlightSimulator::new();
+        let mut lagged = SymtropyFlightSimulator::new();
+        direct.reset(0.1);
+        lagged.reset(0.1);
+        lagged
+            .set_actuator_lag_time_constant_s(Some(0.020))
+            .expect("positive finite lag is valid");
+
+        let direct_before = direct.state().clone();
+        direct.step(&command, 1.0 / 500.0);
+        let direct_target = LinearTransitionResidual::from_transition(
+            &direct_before,
+            &command,
+            direct.state(),
+            nominal,
+        )
+        .expect("valid direct-actuation transition");
+
+        let lagged_before = lagged.state().clone();
+        lagged.step(&command, 1.0 / 500.0);
+        let lagged_target = LinearTransitionResidual::from_transition(
+            &lagged_before,
+            &command,
+            lagged.state(),
+            nominal,
+        )
+        .expect("valid lagged transition");
+
+        assert!(
+            direct_target.residual_acceleration_world_m_s2[2].abs() < 0.25,
+            "direct actuation should approximately match the direct nominal model: {:?}",
+            direct_target.residual_acceleration_world_m_s2
+        );
+        assert!(
+            lagged_target.residual_acceleration_world_m_s2[2] > 1.0,
+            "hidden actuator lag must appear in the observed-minus-direct-nominal residual: {:?}",
+            lagged_target.residual_acceleration_world_m_s2
+        );
+    }
+
+    #[test]
     fn actuator_lag_rejects_invalid_constants_and_reset_reinitializes_filter() {
         let mut sim = SymtropyFlightSimulator::new();
         assert!(sim.set_actuator_lag_time_constant_s(Some(0.0)).is_err());
