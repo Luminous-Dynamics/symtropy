@@ -215,3 +215,39 @@ It refuses to compare receipts unless both use the same benchmark version, 100 H
 - **Safety gate:** prediction error is not closed-loop safety evidence. Before physical use, evaluate constraint violations, tracking error, recovery time, loss-of-control events, and predeclared tail-risk limits in simulation and hardware-in-the-loop; physical testing requires separate risk controls.
 
 Baseline families to reproduce include the benchmark's physics-based, neural, hybrid physics-plus-residual, and LSTM models. For Symthaea, compare persistent HDC/LTC against current-state and explicit-history learned models, plus a reset-each-step ablation. The persistent-state claim only survives if its gains persist on held-out data under matched parameter/runtime budgets.
+
+
+## Residual-spectrum diagnostic v0.1
+
+The paper motivating this benchmark identifies a specific unresolved pattern: rotational prediction errors remain difficult, while the standard quadratic motor model omits a slow, low-frequency actuation component. A fixed 50-step horizon is deliberate for embedded deployment, but that does not imply the latent state should forget history outside the forecast horizon. The next question is whether the remaining error is genuinely low-frequency and shared across horizons—or whether it is dominated by representation noise, timing errors, or high-frequency disturbances.
+
+The Rust example `nanodrone_residual_spectrum` measures residual power by frequency at horizons 1, 5, 10, 20, and 50 using a 256-sample Hann-window Welch estimate with 128-sample overlap at 100 Hz. It reports per-axis and combined spectra for position, velocity, shortest-relative-SO(3)-log orientation error, and angular rate. The bands are low 0–3 Hz, middle 3–10 Hz, and high 10–50 Hz. All values retain channel units; the diagnostic reports peak residual frequency and each band's fraction of total residual power.
+
+Example (one joined held-out run; choose a new output filename):
+
+```bash
+cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml \
+  --example nanodrone_residual_spectrum -- \
+  results/lstm-joined/melon_20251017_run1.csv \
+  results/lstm-run1-residual-spectrum.json
+```
+
+The input must be the timestamp-validated joined output containing all 50 truth/prediction horizons and the full initial-state plus motor-input conditioning window. This utility checks the 100 Hz source timebase and conditioning timestamps before calculating any spectrum. It is an analysis tool—not a test of statistical significance, causal mechanism, control performance, or flight safety. Welch windows and prediction windows overlap, so spectral peaks are evidence for targeted follow-up experiments rather than independent trials.
+
+### How the result changes the research choice
+
+- If rotational residual power concentrates below 3 Hz and persists at h=20/50, prioritize an explicit slow actuator/rotor state or two-timescale HDC/LTC latent, then test whether its gains survive explicit-history and reset-each-step ablations.
+- If most error power is above 10 Hz, prioritize sensor-noise modelling, timestamp/synchronization checks, and robust state representation before adding slow memory.
+- If the peak moves substantially with horizon, inspect free-rollout error growth and one-step teacher-forcing versus open-loop evaluation; a single model-size increase is not a sufficient diagnosis.
+- If spectra differ across runs, do not average away the shift. Preserve the run-level plots/receipts and expand independent flight coverage.
+
+These are decision rules to guide experimentation, not claims about the dataset's measured spectrum; the public Git LFS payload has not yet been scored in this environment.
+
+
+## Cross-benchmark evidence: why horizon-aware hybrids are worth testing
+
+The [NanoBench paper (2026)](https://arxiv.org/abs/2603.09908) reports 172 flights and 641,915 synchronized 100 Hz samples on the **brushed Crazyflie 2.1**, compared with the Nano-Drone system-identification benchmark's four trajectories on the **brushless Crazyflie 2.1 variant**. These are complementary, not interchangeable test sets.
+
+NanoBench's Table V illustrates why a single aggregate score can be misleading: its physics baseline has 0.3 mm position MAE at h=1 but 636 mm at h=50; its residual MLP has 228 mm position MAE at h=50; the physics-plus-residual hybrid has the best cumulative position error (4.41 m vs 5.68 m for the residual MLP); meanwhile, its LSTM angular-rate MAE at h=50 is 5.15 rad/s compared with 0.45 rad/s for the naive baseline. These figures belong only to NanoBench's reported split and metric implementation; do not compare them numerically with Nano-Drone's scores.
+
+The implication is methodological: report every channel and horizon, retain the per-horizon winning baseline as a **retrospective diagnostic envelope only**, then test a causal hybrid gate that is driven by observed state, motor history and uncertainty. A model must not use future ground truth or switch arms using test-set labels. The residual-spectrum tool in PR #2782 is the first diagnostic for deciding whether slow rotational/actuator state is a plausible missing component; the horizon-conditioned hybrid experiment is tracked in [issue #2783](https://github.com/Luminous-Dynamics/symtropy/issues/2783).
