@@ -310,8 +310,10 @@ mod tests {
             .find(|p| p.policy_id == "candidate_full_service").unwrap();
         assert!(result.worst_case_longest_consecutive_system_floor_breach_hours >= 2.0);
         assert!(result.expected_longest_consecutive_system_floor_breach_hours > 0.0);
+        assert!(result.expected_system_floor_breach_episode_count > 0.0);
         let first = result.scenario_outcomes.iter()
             .find(|outcome| outcome.scenario_id == scenario_id).unwrap();
+        assert!(first.system_floor_breach_episode_count > 0);
         assert!(first.longest_consecutive_system_floor_breach_hours >= 2.0);
     }
 
