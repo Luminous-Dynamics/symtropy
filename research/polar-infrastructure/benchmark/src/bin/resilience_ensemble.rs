@@ -488,6 +488,34 @@ mod tests {
     }
 
     #[test]
+    fn inactive_service_has_null_loss_distribution_not_a_fake_zero() {
+        let mut input = fixture();
+        for scenario in &mut input.scenarios {
+            for step in &mut scenario.score_input.episode.steps {
+                step.demand.insert("communications".to_string(), 0.0);
+            }
+            for policy in &mut scenario.score_input.policy_runs {
+                for step in &mut policy.steps {
+                    step.delivered.insert("communications".to_string(), 0.0);
+                }
+            }
+        }
+
+        let report = aggregate(&input).expect("inactive service remains explicitly represented");
+        let candidate = report.results.iter()
+            .find(|policy| policy.policy_id == "candidate_full_service").unwrap();
+        let communications = candidate.service_results.iter()
+            .find(|service| service.service_id == "communications").unwrap();
+        assert!(communications.expected_service_fraction.is_none());
+        assert!(communications.expected_service_shortfall.is_none());
+        assert!(communications.cvar_service_shortfall.is_none());
+        assert!(communications.worst_case_service_shortfall.is_none());
+        assert_eq!(communications.floor_breach_probability, 0.0);
+        assert_eq!(communications.scenario_outcomes.len(), 2);
+        assert!(communications.scenario_outcomes.iter().all(|outcome| outcome.service_fraction.is_none()));
+    }
+
+    #[test]
     fn reports_temporal_persistence_of_compound_service_failures() {
         let mut input = fixture();
         let scenario_id = input.scenarios[0].scenario_id.clone();
