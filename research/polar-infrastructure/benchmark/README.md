@@ -73,7 +73,7 @@ Not every remote-infrastructure failure mode has defensible occurrence probabili
 - worst-case service shortfall and worst floor-breach duration;
 - the unweighted mean over the enumerated stress suite, explicitly **not** an expected-value or probability claim;
 - maximum fuel intensity across the included scenarios where defined;
-- Pareto non-dominance across breach-scenario count, worst shortfall, worst breach duration and maximum fuel intensity; gate eligibility remains a separate field;
+- Pareto non-dominance across breach-scenario count, worst shortfall, worst breach duration and maximum fuel intensity; gate eligibility remains a separate field. The report marks the entire frontier `incomplete_missing_fuel_data` and emits `null` Pareto flags if any option lacks comparable fuel-intensity data, rather than turning missing values into numeric infinities;
 - the full outcome for every scenario so that failures stay inspectable.
 
 Run it with:
