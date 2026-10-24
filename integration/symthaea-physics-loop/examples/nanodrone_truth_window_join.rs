@@ -350,39 +350,15 @@ fn join_files_internal(
             }
         }
 
-        // Independently verify row alignment against the raw trajectory's first
-        // future state. The upstream result table's base truth columns represent x_(i+1),
-        // while prediction row i starts at raw row i and horizon h targets raw row i+h.
-        let one_step_truth = &raw.rows[index + 1];
-        for field in COMMON_FIELDS {
-            let observed = row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
-            let expected = one_step_truth[field];
-            if (observed - expected).abs() > STATE_ALIGNMENT_ATOL {
-                return Err(invalid_input(format!(
-                    "row alignment failed at prediction row {row_number}: base truth '{field}'={observed} does not match raw row {} value {expected} within {STATE_ALIGNMENT_ATOL}",
-                    index + 3
-                )).into());
-            }
-        }
-
-        let raw_q = [
-            one_step_truth["qx"], one_step_truth["qy"],
-            one_step_truth["qz"], one_step_truth["qw"],
-        ];
+        // Validate quaternion representations for every row at ingress. Row-to-raw
+        // alignment is checked only after the pooled table has been sliced into runs.
         if mode == OrientationMode::Quaternion {
-            let observed_q = [
+            check_quaternion([
                 row_value(&record, &prediction_indices, "qx", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qy", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qz", row_number, "prediction table")?,
                 row_value(&record, &prediction_indices, "qw", row_number, "prediction table")?,
-            ];
-            check_quaternion(observed_q, &format!("prediction table row {row_number} base orientation"))?;
-            let orientation_error = quaternion_distance_sign_invariant(raw_q, observed_q);
-            if orientation_error > ORIENTATION_ALIGNMENT_ATOL_RAD {
-                return Err(invalid_input(format!(
-                    "row alignment failed at prediction row {row_number}: base orientation error {orientation_error} rad exceeds {ORIENTATION_ALIGNMENT_ATOL_RAD}"
-                )).into());
-            }
+            ], &format!("prediction table row {row_number} base orientation"))?;
             for horizon in 1..=HORIZON {
                 check_quaternion([
                     row_value(&record, &prediction_indices, &prediction_key("qx", horizon), row_number, "prediction table")?,
@@ -390,17 +366,6 @@ fn join_files_internal(
                     row_value(&record, &prediction_indices, &prediction_key("qz", horizon), row_number, "prediction table")?,
                     row_value(&record, &prediction_indices, &prediction_key("qw", horizon), row_number, "prediction table")?,
                 ], &format!("prediction table row {row_number} prediction h={horizon}"))?;
-            }
-        } else {
-            let raw_rotvec = quaternion_to_rotvec(raw_q);
-            for (field, expected) in ["rx", "ry", "rz"].iter().zip(raw_rotvec) {
-                let observed = row_value(&record, &prediction_indices, field, row_number, "prediction table")?;
-                if (observed - expected).abs() > ORIENTATION_ALIGNMENT_ATOL_RAD {
-                    return Err(invalid_input(format!(
-                        "row alignment failed at prediction row {row_number}: base orientation '{field}'={observed} does not match raw row {} value {expected}",
-                        index + 3
-                    )).into());
-                }
             }
         }
         prediction_rows.push(record);
@@ -417,6 +382,55 @@ fn join_files_internal(
         )).into());
     }
     let segment_rows = &prediction_rows[prediction_row_offset..slice_end];
+
+    // Each slice has an independent raw-state index space. The upstream result table's
+    // base truth is x_(i+1), while horizon h targets raw row i+h; validate only after the
+    // pooled row segment has been assigned to its source run.
+    for (index, record) in segment_rows.iter().enumerate() {
+        let row_number = index + 2;
+        let one_step_truth = &raw.rows[index + 1];
+        for field in COMMON_FIELDS {
+            let observed = row_value(record, &prediction_indices, field, row_number, "prediction table run slice")?;
+            let expected = one_step_truth[field];
+            if (observed - expected).abs() > STATE_ALIGNMENT_ATOL {
+                return Err(invalid_input(format!(
+                    "row alignment failed for {raw_run_id} at prediction row {row_number}: base truth '{field}'={observed} does not match raw row {} value {expected} within {STATE_ALIGNMENT_ATOL}",
+                    index + 3
+                )).into());
+            }
+        }
+
+        let raw_q = [
+            one_step_truth["qx"], one_step_truth["qy"],
+            one_step_truth["qz"], one_step_truth["qw"],
+        ];
+        if mode == OrientationMode::Quaternion {
+            let observed_q = [
+                row_value(record, &prediction_indices, "qx", row_number, "prediction table run slice")?,
+                row_value(record, &prediction_indices, "qy", row_number, "prediction table run slice")?,
+                row_value(record, &prediction_indices, "qz", row_number, "prediction table run slice")?,
+                row_value(record, &prediction_indices, "qw", row_number, "prediction table run slice")?,
+            ];
+            let orientation_error = quaternion_distance_sign_invariant(raw_q, observed_q);
+            if orientation_error > ORIENTATION_ALIGNMENT_ATOL_RAD {
+                return Err(invalid_input(format!(
+                    "row alignment failed for {raw_run_id} at prediction row {row_number}: base orientation error {orientation_error} rad exceeds {ORIENTATION_ALIGNMENT_ATOL_RAD}"
+                )).into());
+            }
+        } else {
+            let raw_rotvec = quaternion_to_rotvec(raw_q);
+            for (field, expected) in ["rx", "ry", "rz"].iter().zip(raw_rotvec) {
+                let observed = row_value(record, &prediction_indices, field, row_number, "prediction table run slice")?;
+                if (observed - expected).abs() > ORIENTATION_ALIGNMENT_ATOL_RAD {
+                    return Err(invalid_input(format!(
+                        "row alignment failed for {raw_run_id} at prediction row {row_number}: base orientation '{field}'={observed} does not match raw row {} value {expected}",
+                        index + 3
+                    )).into());
+                }
+            }
+        }
+    }
+
     for index in 1..segment_rows.len() {
         let before = row_value(&segment_rows[index - 1], &prediction_indices, "t", index + prediction_row_offset + 1, "prediction table")?;
         let after = row_value(&segment_rows[index], &prediction_indices, "t", index + prediction_row_offset + 2, "prediction table")?;
