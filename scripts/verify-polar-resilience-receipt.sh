@@ -8,7 +8,10 @@ fail() {
 
 verify_bundle() {
   local dir="$1"
-  [[ -d "$dir" ]] || fail "artifact directory does not exist: $dir"
+  if [[ ! -d "$dir" ]]; then
+    fail "artifact directory does not exist: $dir"
+    return 1
+  fi
   (
     cd "$dir"
     for required in run-receipt.json run-receipt.sha256 SHA256SUMS TESTED_COMMIT; do
@@ -53,7 +56,6 @@ verify_bundle() {
       .checksums_file == "SHA256SUMS"
     ' run-receipt.json >/dev/null || { printf 'receipt contract is invalid\n' >&2; exit 1; }
 
-    local expected_commit
     expected_commit="$(jq -r '.tested_commit' run-receipt.json)"
     [[ "$(tr -d '\r\n' < TESTED_COMMIT)" == "$expected_commit" ]] || {
       printf 'TESTED_COMMIT does not match receipt\n' >&2
