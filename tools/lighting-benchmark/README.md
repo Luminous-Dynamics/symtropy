@@ -6,13 +6,14 @@ This isolated, dependency-free Rust crate implements a conservative reference ev
 
 - Validates numeric inputs and duplicate/missing gate evidence.
 - Accepts raw grid samples and derives average, minimum, maximum and minimum/average uniformity itself; it does not trust candidate-supplied illuminance aggregates.
-- Rejects empty, incomplete, negative, non-finite or overflowed grids before ranking.
+- Supports a separate robust-evaluation path that uses pointwise illuminance intervals, lower-bound service metrics, conservative uniformity and upper-bound energy/power. The interval semantics must be recorded; this is not an automatic guarantee of simultaneous statistical coverage.
+- Rejects empty, incomplete, negative, non-finite, inverted-interval or overflowed grids before ranking.
 - Enforces case-defined illuminance, uniformity and electrical-power limits.
 - Keeps pass, fail, unknown, unsupported, not-evaluated, timeout and invalid-output states distinct.
 - Makes candidates rankable only when all numeric constraints and every required evidence gate pass.
 - Emits energy per compliant task-hour only for a compliant, positive-duration observation.
 - Provides a small Pareto-dominance helper for already normalized minimization vectors.
-- Includes a deterministic synthetic-only CLI demonstration and negative-control unit tests.
+- Includes a deterministic synthetic-only CLI demonstration and 17 unit tests.
 
 ## Run
 
