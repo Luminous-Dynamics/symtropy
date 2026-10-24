@@ -1,0 +1,15 @@
+[package]
+name = "pirb-reference-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Reference semantic auditor for synthetic Peace Infrastructure and Resilience Benchmark fixtures"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+jsonschema = { version = "0.59", default-features = false }
+
+[workspace]
