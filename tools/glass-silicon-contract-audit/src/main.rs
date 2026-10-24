@@ -1,4 +1,4 @@
-use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_mass_balance, hash_artifact_files};
+use glass_silicon_contract_audit::{audit_adaptive_decision_campaign, audit_corpus, audit_decision_value_pool, audit_evaluation_receipt, audit_false_feasible_bound, audit_feasibility_corpus, audit_grouped_split_manifest, audit_mass_balance, hash_artifact_files};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -13,7 +13,7 @@ fn read_json(path: &str) -> Result<Value, String> {
 
 fn usage() {
     eprintln!(
-        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
+        "Usage:\n  glass-silicon-contract-audit audit-corpus <schema.json> <corpus.json>\n  glass-silicon-contract-audit audit-feasibility <corpus.json>\n  glass-silicon-contract-audit audit-grouped-split <manifest.json>\n  glass-silicon-contract-audit audit-false-feasible-bound <summary.json>\n  glass-silicon-contract-audit audit-eval-receipt <receipt.json>\n  glass-silicon-contract-audit audit-decision-value <pool.json>\n  glass-silicon-contract-audit audit-adaptive-campaign <pool.json>\n  glass-silicon-contract-audit check-mass <ledger.json>\n  glass-silicon-contract-audit hash-artifacts <corpus.json> <artifact-id> <directory>"
     );
 }
 
@@ -48,6 +48,29 @@ fn main() -> ExitCode {
                 }
             };
             let report = audit_corpus(&schema, &corpus);
+            let code = report.exit_code() as u8;
+            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            ExitCode::from(code)
+        }
+        Some("audit-eval-receipt") if args.len() == 3 => {
+            let receipt = match read_json(&args[2]) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", serde_json::json!({
+                        "status": "FAIL",
+                        "audit_kind": "evaluation_receipt_contract",
+                        "receipt_id": null,
+                        "claimed_evaluation_class": null,
+                        "verified_evaluation_class": "UNSEALED_RETROSPECTIVE",
+                        "result_disposition": null,
+                        "metrics_checked": 0,
+                        "findings": [format!("INPUT_JSON:{error}")],
+                        "claim_ceiling": "Input parsing only; external custody, isolation and hidden-label separation are not verified."
+                    }));
+                    return ExitCode::from(2);
+                }
+            };
+            let report = audit_evaluation_receipt(&receipt);
             let code = report.exit_code() as u8;
             println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
             ExitCode::from(code)
