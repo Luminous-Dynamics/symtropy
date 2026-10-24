@@ -23,3 +23,8 @@ serde_json = "1"
 # workspace because it resolves real Symthaea sources from a sibling checkout.
 # Give it an explicit workspace root so Cargo doesn't reject the excluded package.
 [workspace]
+
+# Ensure all transitive dependants use the same real Symthaea crate as the robotics
+# bridge; otherwise duplicate registry/path copies define incompatible Rust types.
+[patch.crates-io]
+symthaea-consciousness-equation = { path = "../../../symthaea/crates/domains/symthaea-consciousness-equation" }
