@@ -32,6 +32,6 @@ jobs:
         run: |
           set -euo pipefail
           cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-stress-matrix > lighting-stress-matrix.csv
-          test "$(wc -l < lighting-stress-matrix.csv)" -eq 28
+          test "$(wc -l < lighting-stress-matrix.csv)" -eq 31
       - name: Run Clippy
         run: cargo clippy --manifest-path tools/lighting-benchmark/Cargo.toml --locked -- -D warnings
