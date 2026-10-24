@@ -116,7 +116,7 @@ for receipt in "$ROOT"/docs/research/fixtures/lighting-failure-*.v0.1.json; do
     . as $r
     | $case[0].task_surface as $t
     | $t.measurement_grid.spacing_m as $spacing
-    | (($t.length_x_m / $spacing) | round) + 1 as $nx
+    | ((($t.length_x_m / $spacing) | round) + 1) as $nx
     | all($r.observation.samples[];
         . as $s
         | $s.x_m == ($t.origin_xyz_m[0] + (($s.grid_index % $nx) * $spacing))
