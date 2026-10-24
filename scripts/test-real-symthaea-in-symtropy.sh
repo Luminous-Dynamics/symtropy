@@ -181,6 +181,7 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and (.source_receipt.scenario_matrix_sha256 | test("^[0-9a-f]{64}$"))
     and (.source_receipt.training_dataset_sha256 | test("^[0-9a-f]{64}$"))
     and .training.sample_count > 0
+    and .training.training_seconds >= 0
     and .training.hidden_force_labels_used_as_features == false
     and .calibration.split == "validation"
     and .calibration.alpha == 0.1
@@ -194,11 +195,14 @@ if [ "${STFR_RUN_BENCHMARK:-0}" = "1" ]; then
     and .evaluation.summary.invalid_episode_count == 0
     and .evaluation.summary.metrics.ridge_residual_rmse_m_s2 >= 0
     and .evaluation.summary.metrics.zero_residual_physics_only_rmse_m_s2 >= 0
+    and .evaluation.summary.metrics.inference_p50_us != null
+    and .evaluation.summary.metrics.inference_p95_us != null
+    and .evaluation.summary.metrics.inference_p99_us != null
     and .evaluation.summary.conformal_coverage.radius_euclidean_m_s2 != null
     and .evaluation.summary.conformal_coverage.episode_coverage >= 0
     and .evaluation.summary.conformal_coverage.episode_coverage <= 1
     and (.evaluation.summary.family_metrics | length) == 3
-    and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null)
+    and all(.evaluation.summary.family_metrics[]; .sample_count > 0 and .invalid_samples == 0 and .episode_coverage != null and .inference_p95_us != null)
   ' "$ridge_out"
 fi
 
