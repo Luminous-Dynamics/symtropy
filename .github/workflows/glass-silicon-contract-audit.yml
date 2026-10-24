@@ -117,6 +117,22 @@ jobs:
           grep -q 'SEALED_CONFIRMATORY' "$protocol"
           echo "Feasibility-gate and held-out evaluation trust-boundary controls: PASS"
 
+      - name: Audit OOD acquisition-value protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'issue #2778' "$protocol"
+          grep -q '10.1038/s41524-026-02368-4' "$protocol"
+          grep -q '10.1038/s41467-023-42992-y' "$protocol"
+          grep -qi 'random selection' "$protocol"
+          grep -qi 'calibrated uncertainty' "$protocol"
+          grep -qi 'out-of-distribution' "$protocol"
+          grep -q 'same total budget' "$protocol"
+          grep -q 'calibration alone' "$protocol"
+          echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
+
       - name: Audit relationship graph JSON schema
         shell: bash
         run: |
