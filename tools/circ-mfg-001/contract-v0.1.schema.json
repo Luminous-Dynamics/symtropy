@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/circ-mfg-001/contract-v0.1.schema.json",
+  "title": "CIRC-MFG-001 Contract Manifest v0.1",
+  "description": "Synthetic contract fixtures only; passing the contract is not physical qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "Synthetic"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "decision": {
+      "enum": [
+        "Conformant",
+        "Blocked",
+        "Unresolved"
+      ]
+    },
+    "evidenceStatus": {
+      "enum": [
+        "Verified",
+        "Missing",
+        "Stale",
+        "Contradictory",
+        "WrongUnit",
+        "ScopeInvalid",
+        "DigestMismatch",
+        "Unresolved"
+      ]
+    },
+    "gateStatus": {
+      "enum": [
+        "Pass",
+        "Fail",
+        "Unresolved"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "status",
+        "payload",
+        "sha256"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/evidenceStatus"
+        },
+        "payload": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "Verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "status"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/gateStatus"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "expected_decision",
+        "required_evidence_ids",
+        "evidence",
+        "mandatory_gates",
+        "required_external_refs",
+        "external_refs"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_decision": {
+          "$ref": "#/$defs/decision"
+        },
+        "required_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "mandatory_gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        },
+        "required_external_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/externalRefRequirement"
+          }
+        },
+        "external_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/externalReference"
+          }
+        }
+      }
+    },
+    "externalRefRole": {
+      "enum": [
+        "ProcessPlanReference",
+        "ProcessExecutionReceipt",
+        "QualificationReceipt",
+        "MaterialFlowAccount",
+        "ChainOfCustodyProfile",
+        "SiteResourceObservation"
+      ]
+    },
+    "externalRefRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "reference_id",
+        "role"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "$ref": "#/$defs/externalRefRole"
+        },
+        "authority": {
+          "$ref": "#/$defs/externalAuthority"
+        }
+      }
+    },
+    "externalReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "reference_id",
+        "role"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "$ref": "#/$defs/externalRefRole"
+        },
+        "authority": {
+          "$ref": "#/$defs/externalAuthority"
+        }
+      }
+    },
+    "externalAuthority": {
+      "enum": [
+        "Mycelix",
+        "Symthaea",
+        "Symtropy",
+        "SolAtlas"
+      ]
+    }
+  }
+}

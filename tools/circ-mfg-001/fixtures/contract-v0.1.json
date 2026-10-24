@@ -1,0 +1,1360 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "CIRC-MFG-001-contract-v0.1",
+  "evidence_class": "Synthetic",
+  "cases": [
+    {
+      "case_id": "01-complete-evidence-and-external-bindings",
+      "expected_decision": "Conformant",
+      "required_evidence_ids": [
+        "design-revision",
+        "bom-revision",
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        },
+        {
+          "name": "functional-fit-check",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:01-complete-evidence-and-external-bindings",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:01-complete-evidence-and-external-bindings",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:01-complete-evidence-and-external-bindings",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:01-complete-evidence-and-external-bindings",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "02-verified-payload-digest-mismatch",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:02-verified-payload-digest-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:02-verified-payload-digest-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:02-verified-payload-digest-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:02-verified-payload-digest-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "03-required-material-lot-missing",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": [
+        "design-revision",
+        "material-lot"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "required-material-provenance",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:03-required-material-lot-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:03-required-material-lot-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:03-required-material-lot-missing",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:03-required-material-lot-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:03-required-material-lot-missing",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:03-required-material-lot-missing",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:03-required-material-lot-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:03-required-material-lot-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:03-required-material-lot-missing",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:03-required-material-lot-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:03-required-material-lot-missing",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:03-required-material-lot-missing",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "04-mandatory-quality-gate-fails",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "critical-defect-screen",
+          "status": "Fail"
+        },
+        {
+          "name": "functional-fit-check",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:04-mandatory-quality-gate-fails",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:04-mandatory-quality-gate-fails",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:04-mandatory-quality-gate-fails",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:04-mandatory-quality-gate-fails",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "05-required-material-flow-account-missing",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "process-acceptance",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:05-required-material-flow-account-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:05-required-material-flow-account-missing",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:05-required-material-flow-account-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:05-required-material-flow-account-missing",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:05-required-material-flow-account-missing",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:05-required-material-flow-account-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "custody-profile:05-required-material-flow-account-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:05-required-material-flow-account-missing",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:05-required-material-flow-account-missing",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "06-required-evidence-stale",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": [
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "inspection-result",
+          "status": "Stale",
+          "payload": null,
+          "sha256": null
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "inspection-currentness",
+          "status": "Unresolved"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:06-required-evidence-stale",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:06-required-evidence-stale",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:06-required-evidence-stale",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:06-required-evidence-stale",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:06-required-evidence-stale",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:06-required-evidence-stale",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:06-required-evidence-stale",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:06-required-evidence-stale",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:06-required-evidence-stale",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:06-required-evidence-stale",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:06-required-evidence-stale",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:06-required-evidence-stale",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "07-critical-evidence-wrong-unit",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "WrongUnit",
+          "payload": null,
+          "sha256": null
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:07-critical-evidence-wrong-unit",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:07-critical-evidence-wrong-unit",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:07-critical-evidence-wrong-unit",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:07-critical-evidence-wrong-unit",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "08-critical-evidence-contradictory",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Contradictory",
+          "payload": null,
+          "sha256": null
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:08-critical-evidence-contradictory",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:08-critical-evidence-contradictory",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:08-critical-evidence-contradictory",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:08-critical-evidence-contradictory",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:08-critical-evidence-contradictory",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:08-critical-evidence-contradictory",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:08-critical-evidence-contradictory",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:08-critical-evidence-contradictory",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:08-critical-evidence-contradictory",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:08-critical-evidence-contradictory",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "09-critical-evidence-scope-invalid",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "ScopeInvalid",
+          "payload": null,
+          "sha256": null
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:09-critical-evidence-scope-invalid",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:09-critical-evidence-scope-invalid",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:09-critical-evidence-scope-invalid",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:09-critical-evidence-scope-invalid",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "10-duplicate-evidence-record",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "design-revision",
+          "status": "Stale",
+          "payload": null,
+          "sha256": null
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:10-duplicate-evidence-record",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:10-duplicate-evidence-record",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:10-duplicate-evidence-record",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:10-duplicate-evidence-record",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:10-duplicate-evidence-record",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:10-duplicate-evidence-record",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:10-duplicate-evidence-record",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:10-duplicate-evidence-record",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:10-duplicate-evidence-record",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:10-duplicate-evidence-record",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:10-duplicate-evidence-record",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:10-duplicate-evidence-record",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "11-unreferenced-evidence-record",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:11-unreferenced-evidence-record",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:11-unreferenced-evidence-record",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:11-unreferenced-evidence-record",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:11-unreferenced-evidence-record",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:11-unreferenced-evidence-record",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:11-unreferenced-evidence-record",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:11-unreferenced-evidence-record",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:11-unreferenced-evidence-record",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:11-unreferenced-evidence-record",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:11-unreferenced-evidence-record",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "12-custody-reference-role-mismatch",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:12-custody-reference-role-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:12-custody-reference-role-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:12-custody-reference-role-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:12-custody-reference-role-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:12-custody-reference-role-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:12-custody-reference-role-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:12-custody-reference-role-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:12-custody-reference-role-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "13-duplicate-custody-reference",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:13-duplicate-custody-reference",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:13-duplicate-custody-reference",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:13-duplicate-custody-reference",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:13-duplicate-custody-reference",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:13-duplicate-custody-reference",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:13-duplicate-custody-reference",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:13-duplicate-custody-reference",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:13-duplicate-custody-reference",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:13-duplicate-custody-reference",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:13-duplicate-custody-reference",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:13-duplicate-custody-reference",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "14-external-reference-authority-mismatch",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision",
+        "bom-revision",
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        },
+        {
+          "name": "functional-fit-check",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:14-external-reference-authority-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:14-external-reference-authority-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:14-external-reference-authority-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:14-external-reference-authority-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:14-external-reference-authority-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:14-external-reference-authority-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:14-external-reference-authority-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:14-external-reference-authority-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:14-external-reference-authority-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:14-external-reference-authority-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "SolAtlas"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:14-external-reference-authority-mismatch",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:14-external-reference-authority-mismatch",
+          "role": "SiteResourceObservation"
+        }
+      ]
+    },
+    {
+      "case_id": "15-site-resource-observation-missing",
+      "expected_decision": "Unresolved",
+      "required_evidence_ids": [
+        "design-revision",
+        "bom-revision",
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        },
+        {
+          "name": "functional-fit-check",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:15-site-resource-observation-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:15-site-resource-observation-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:15-site-resource-observation-missing",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:15-site-resource-observation-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:15-site-resource-observation-missing",
+          "role": "ProcessPlanReference"
+        },
+        {
+          "authority": "SolAtlas",
+          "reference_id": "site-resource-observation:15-site-resource-observation-missing",
+          "role": "SiteResourceObservation"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:15-site-resource-observation-missing",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:15-site-resource-observation-missing",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:15-site-resource-observation-missing",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:15-site-resource-observation-missing",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        },
+        {
+          "authority": "Symthaea",
+          "reference_id": "process-plan:15-site-resource-observation-missing",
+          "role": "ProcessPlanReference"
+        }
+      ]
+    }
+  ]
+}
