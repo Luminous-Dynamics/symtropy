@@ -274,6 +274,13 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         || required_str(&robustness, "source_matrix_sha256")? != matrix_digest
         || required_str(&robustness, "source_design_space_manifest_sha256")? != manifest_digest
         || required_str(&matrix, "design_space_manifest_sha256")? != manifest_digest
+        || matrix["all_passed"].as_bool() != Some(true)
+        || required_u64(&matrix, "expected_row_count")? != 195
+        || required_u64(&matrix, "observed_row_count")? != 195
+        || required_u64(&matrix, "passing_row_count")? != 195
+        || required_u64(&matrix, "failed_or_unknown_row_count")? != 0
+        || required_u64(&robustness, "expected_row_count")? != 195
+        || required_u64(&robustness, "passed_row_count")? != 195
         || required_u64(&manifest, "requested_candidate_count")? != 36
         || manifest["candidates"].as_array().map(Vec::len) != Some(36)
         || manifest["rejected_candidates"].as_array().map(Vec::len) != Some(0)
@@ -283,6 +290,8 @@ fn run_report(root: &std::path::Path, output: &std::path::Path) -> Result<Search
         || required_u64(&robustness, "failed_or_unknown_row_count")? != 0
         || required_str(&ledger["candidate_scenario_matrix"], "robustness_report_sha256")? != robustness_digest
         || required_str(&ledger["candidate_scenario_matrix"], "matrix_report_sha256")? != matrix_digest
+        || ledger["candidate_scenario_matrix"]["all_passed"].as_bool() != Some(true)
+        || required_u64(&ledger["candidate_scenario_matrix"], "failed_or_unknown_row_count")? != 0
         || required_u64(&ledger["candidate_scenario_matrix"], "robustness_candidate_count")? != 39
         || required_u64(&ledger["candidate_scenario_matrix"], "robustness_scenario_count")? != 5
     {
