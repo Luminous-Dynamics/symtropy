@@ -4,10 +4,18 @@ on:
   pull_request:
     paths:
       - "tools/lighting-benchmark/**"
+      - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
+      - "docs/research/lighting-benchmark-case.schema.json"
+      - "docs/research/fixtures/task-light-room-v0.1.json"
       - ".github/workflows/lighting-benchmark.yml"
   push:
     paths:
       - "tools/lighting-benchmark/**"
+      - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
+      - "docs/research/lighting-benchmark-case.schema.json"
+      - "docs/research/fixtures/task-light-room-v0.1.json"
       - ".github/workflows/lighting-benchmark.yml"
 
 permissions:
