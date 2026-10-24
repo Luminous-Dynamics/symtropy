@@ -140,9 +140,14 @@ fn motor_sequence_key(field: &str, input_step: usize) -> String {
     format!("{field}_input_t{input_step}")
 }
 
+fn motor_sequence_time_key(input_step: usize) -> String {
+    format!("input_time_t{input_step}")
+}
+
 fn conditioning_column_names(mode: OrientationMode) -> Vec<String> {
     let mut columns = vec!["x0_t".to_owned()];
     columns.extend(state_fields(mode).iter().map(|field| input_state_key(field)));
+    columns.extend((0..HORIZON).map(motor_sequence_time_key));
     columns.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
         (0..HORIZON).map(move |step| motor_sequence_key(field, step))
     ));
@@ -580,6 +585,7 @@ fn load_run(path: &Path) -> Result<RunInput, Box<dyn Error>> {
                 hasher.update(row[&input_state_key(field)].to_bits().to_le_bytes());
             }
             for input_step in 0..HORIZON {
+                hasher.update(row[&motor_sequence_time_key(input_step)].to_bits().to_le_bytes());
                 for field in MOTOR_INPUT_FIELDS {
                     hasher.update(row[&motor_sequence_key(field, input_step)].to_bits().to_le_bytes());
                 }
@@ -698,7 +704,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "evaluated_horizons": HORIZON,
             "sample_period_s": EXPECTED_DT_S,
             "ground_truth_pairing": "SHA-256 over each row timestamp and all h=1..50 target state values in fixed state-field/horizon order, hashing parsed IEEE-754 f64 bits in little-endian order; exact match required for cross-model pairing",
-            "conditioning_pairing": "SHA-256 over raw input state x0 and the complete four-channel 50-step motor-input sequence u_seq for every prediction window; a few scalar motor columns cannot certify identical conditioning",
+            "conditioning_pairing": "SHA-256 over raw input state x0, each of the 50 source timestamps, and the complete four-channel 50-step motor-input sequence u_seq for every prediction window; scalar motor columns cannot certify identical conditioning",
             "metric_definitions": {
                 "position": "mean Euclidean norm of 3D position error, metres",
                 "linear_velocity": "mean Euclidean norm of 3D world-frame velocity error, metres/second",
@@ -795,6 +801,7 @@ mod tests {
         }
         headers.push("x0_t".to_owned());
         headers.extend(fields.iter().map(|field| input_state_key(field)));
+        headers.extend((0..HORIZON).map(motor_sequence_time_key));
         headers.extend(MOTOR_INPUT_FIELDS.iter().flat_map(|field|
             (0..HORIZON).map(move |step| motor_sequence_key(field, step))
         ));
@@ -814,8 +821,13 @@ mod tests {
                 }
                 row.push("0".to_owned());
                 row.extend(fields.iter().map(|_| "0".to_owned()));
-                for _ in 0..HORIZON {
-                    row.extend(MOTOR_INPUT_FIELDS.iter().map(|_| "100".to_owned()));
+                for input_step in 0..HORIZON {
+                    row.push(format!("{:.8}", input_step as f64 * EXPECTED_DT_S));
+                }
+                for (field_index, _) in MOTOR_INPUT_FIELDS.iter().enumerate() {
+                    for input_step in 0..HORIZON {
+                        row.push(format!("{}", field_index * 100 + input_step));
+                    }
                 }
                 writer.write_record(&row).unwrap();
             }
