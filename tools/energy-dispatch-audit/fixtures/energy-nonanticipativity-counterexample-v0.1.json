@@ -34,7 +34,7 @@
       "expected_information_set": "shared-t0"
     },
     {
-      "prefix_id": "early-outage-revealed",
+      "prefix_id": "early-outage-revealed-soc0",
       "time_index": 1,
       "observable_state": {
         "battery_soc_quanta": 0,
@@ -43,10 +43,34 @@
         "essential_demand_quanta": 1,
         "outage_observed": true
       },
-      "expected_information_set": "revealed-early-outage-t1"
+      "expected_information_set": "early-outage-revealed-soc0-t1"
     },
     {
-      "prefix_id": "no-outage-revealed",
+      "prefix_id": "early-outage-revealed-soc1",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 1,
+        "grid_available": false,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 1,
+        "outage_observed": true
+      },
+      "expected_information_set": "early-outage-revealed-soc1-t1"
+    },
+    {
+      "prefix_id": "no-outage-revealed-soc0",
+      "time_index": 1,
+      "observable_state": {
+        "battery_soc_quanta": 0,
+        "grid_available": true,
+        "flexible_demand_quanta": 0,
+        "essential_demand_quanta": 0,
+        "outage_observed": false
+      },
+      "expected_information_set": "no-outage-revealed-soc0-t1"
+    },
+    {
+      "prefix_id": "no-outage-revealed-soc1",
       "time_index": 1,
       "observable_state": {
         "battery_soc_quanta": 1,
@@ -55,7 +79,7 @@
         "essential_demand_quanta": 0,
         "outage_observed": false
       },
-      "expected_information_set": "revealed-no-outage-t1"
+      "expected_information_set": "no-outage-revealed-soc1-t1"
     }
   ],
   "scenarios": [
@@ -126,8 +150,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "early-outage-revealed",
-              "information_set_id": "revealed-early-outage-t1",
+              "observable_prefix_id": "early-outage-revealed-soc1",
+              "information_set_id": "early-outage-revealed-soc1-t1",
               "action": "serve_essential_from_battery"
             }
           ],
@@ -147,8 +171,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "no-outage-revealed",
-              "information_set_id": "revealed-no-outage-t1",
+              "observable_prefix_id": "no-outage-revealed-soc0",
+              "information_set_id": "no-outage-revealed-soc0-t1",
               "action": "idle"
             }
           ],
@@ -183,8 +207,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "early-outage-revealed",
-              "information_set_id": "revealed-early-outage-t1",
+              "observable_prefix_id": "early-outage-revealed-soc1",
+              "information_set_id": "early-outage-revealed-soc1-t1",
               "action": "serve_essential_from_battery"
             }
           ],
@@ -204,8 +228,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "no-outage-revealed",
-              "information_set_id": "revealed-no-outage-t1",
+              "observable_prefix_id": "no-outage-revealed-soc1",
+              "information_set_id": "no-outage-revealed-soc1-t1",
               "action": "idle"
             }
           ],
@@ -232,8 +256,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "early-outage-revealed",
-              "information_set_id": "revealed-early-outage-t1",
+              "observable_prefix_id": "early-outage-revealed-soc0",
+              "information_set_id": "early-outage-revealed-soc0-t1",
               "action": "idle"
             }
           ],
@@ -253,8 +277,8 @@
             },
             {
               "time_index": 1,
-              "observable_prefix_id": "no-outage-revealed",
-              "information_set_id": "revealed-no-outage-t1",
+              "observable_prefix_id": "no-outage-revealed-soc0",
+              "information_set_id": "no-outage-revealed-soc0-t1",
               "action": "idle"
             }
           ],
