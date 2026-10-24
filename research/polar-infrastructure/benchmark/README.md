@@ -68,6 +68,18 @@ These are method/design references, not evidence that this crate is compliant wi
 
 Before any real comparison, fill out the [benchmark preregistration template](PREREGISTRATION_TEMPLATE.md) to freeze thresholds, scenario splits, tuning budgets, exclusions, baselines and falsification conditions. The proposed quantitative targets and industry-comparison protocol are in [BENCHMARK_TARGETS.md](BENCHMARK_TARGETS.md); they are hypotheses, not achieved results.
 
+## Digest-pinned synthetic run receipt
+
+When the dedicated scorer workflow completes all tests and CLI checks, it emits a `polar-resilience-synthetic-receipt` artifact containing:
+- the tested PR-head commit and the exact scorer workflow used;
+- the Rust scorer/CLI source files, `Cargo.toml`, `Cargo.lock`, and `rust-toolchain.toml`;
+- all three synthetic input fixtures and the three generated JSON reports;
+- `SHA256SUMS` covering the copied source, toolchain, inputs, outputs and tested-commit marker;
+- `run-receipt.json` (receipt schema 0.2.0) recording repository, commit, run ID/attempt/event, runner OS/architecture, exact `rustc`/`cargo` version text and separate input/report schema versions;
+- `run-receipt.sha256`, verified alongside `SHA256SUMS` before upload.
+
+The custom workflow checks out and asserts the **PR head SHA**; general CI separately checks merge/integration behavior. A generated receipt means the listed workflow checks completed for the named commit. SHA-256 manifests provide tamper detection, not a cryptographic signature or proof of source authenticity. The receipt remains `synthetic_only`: it records scorer/report contract results, not physical-site validation, controller certification, or proof that the benchmark's scenario set is complete.
+
 ## Probability-free robust stress-set evaluation (synthetic-only)
 
 Not every remote-infrastructure failure mode has defensible occurrence probabilities. The `robust_set` binary is a second evaluation path for an **explicitly enumerated stress set** that reports:
