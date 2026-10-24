@@ -1,0 +1,29 @@
+name: lighting-benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/lighting-benchmark/**"
+      - ".github/workflows/lighting-benchmark.yml"
+  push:
+    paths:
+      - "tools/lighting-benchmark/**"
+      - ".github/workflows/lighting-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lighting-benchmark/Cargo.toml -- --check
+      - name: Run evaluator contract tests
+        run: cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/lighting-benchmark/Cargo.toml --locked -- -D warnings
