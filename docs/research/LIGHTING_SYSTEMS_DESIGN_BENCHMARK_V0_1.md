@@ -161,8 +161,8 @@ Queued CI, a valid JSON file, a plausible render, a simulated pass, or successfu
 
 ## Implementation sequence
 
-1. **Protocol and fixture** — merge the case/manifest contract; review target semantics and units.
-2. **Independent known-answer evaluator** — implement a small Rust-only validator for units, constraints, missing/invalid fields, service metrics and deterministic reports; include negative controls. Keep it isolated from Symthaea's proposal code.
+1. **Protocol and fixture** — drafted in this increment, including a versioned case schema and a synthetic no-daylight task-light scenario.
+2. **Independent known-answer evaluator** — an initial dependency-free Rust kernel is included at tools/lighting-benchmark/. It applies numeric service/power gates, preserves unresolved evidence states, withholds the energy/service metric unless rankable, rejects missing/duplicate required gates, and has negative-control unit tests. It does not yet parse the JSON fixture or calculate photometry. The focused CI workflow is added, but source/test status must be read from the exact-head run rather than inferred from the workflow file.
 3. **Tool adapters** — pinned Radiance invocation and parsed outputs first; EnergyPlus/OpenStudio only for T3. The adapter must fail closed when the executable, input file, output or version identity is missing.
 4. **Baselines and candidate store** — import versioned public IES/LDT and measured product data with rights/source metadata; never invent unavailable optical properties.
 5. **Budget-matched search** — connect Symthaea through a narrow typed candidate interface. Symtropy orchestrates the scenario and resource constraints; the verifier judges the output.
