@@ -49,6 +49,22 @@ struct PolicyVerdict {
 }
 
 #[derive(Clone, Debug, Serialize)]
+struct ScenarioObjectiveDelta {
+    scenario_id: String,
+    essential_unserved_delta_vs_wait_and_see: i64,
+    flexible_unserved_delta_vs_wait_and_see: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct PolicyObjectiveReferenceComparison {
+    policy_id: String,
+    scenario_deltas: Vec<ScenarioObjectiveDelta>,
+    worst_case_positive_excess_essential_unserved_quanta: u64,
+    worst_case_positive_excess_flexible_unserved_quanta: u64,
+    semantics: &'static str,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct NegativeControlResult {
     control_id: String,
     scope: String,
@@ -68,6 +84,7 @@ struct GateReport {
     observable_prefix_count: usize,
     policy_count: usize,
     policy_verdicts: Vec<PolicyVerdict>,
+    objective_reference_comparison: Vec<PolicyObjectiveReferenceComparison>,
     declared_negative_control_count: usize,
     gate_owned_negative_control_count: usize,
     gate_owned_negative_controls_detected: usize,
@@ -380,6 +397,97 @@ fn evaluate_policy(
     })
 }
 
+
+fn objective_value(trace: &Value, key: &str) -> Result<i64, Box<dyn Error>> {
+    let raw = trace.get("objective_vector")
+        .ok_or_else(|| invalid("trace objective_vector is missing"))?
+        .get(key).and_then(Value::as_u64)
+        .ok_or_else(|| invalid(format!("objective_vector.{key} must be an unsigned integer")))?;
+    i64::try_from(raw).map_err(|_| invalid(format!("objective_vector.{key} exceeds signed comparison range")))
+}
+
+fn objective_delta(
+    candidate_trace: &Value,
+    reference_trace: &Value,
+    key: &str,
+) -> Result<i64, Box<dyn Error>> {
+    let candidate = objective_value(candidate_trace, key)?;
+    let reference = objective_value(reference_trace, key)?;
+    candidate.checked_sub(reference)
+        .ok_or_else(|| invalid(format!("objective delta overflow for {key}")))
+}
+
+fn objective_reference_comparisons(
+    policies: &[Value],
+) -> Result<Vec<PolicyObjectiveReferenceComparison>, Box<dyn Error>> {
+    let reference = policies.iter()
+        .find(|policy| policy.get("policy_id").and_then(Value::as_str)
+            == Some("wait_and_see_oracle_noncausal_reference"))
+        .ok_or_else(|| invalid("missing wait-and-see objective reference policy"))?;
+    if reference.get("reference_only").and_then(Value::as_bool) != Some(true) {
+        return Err(invalid("wait-and-see objective reference must be non-deployable/reference-only"));
+    }
+    let reference_traces = reference["traces"].as_array()
+        .ok_or_else(|| invalid("wait-and-see reference traces must be an array"))?;
+    let mut reference_by_scenario = BTreeMap::<String, Value>::new();
+    for trace in reference_traces {
+        let scenario_id = required_str(trace, "scenario_id")?.to_owned();
+        if reference_by_scenario.insert(scenario_id.clone(), trace.clone()).is_some() {
+            return Err(invalid(format!("duplicate wait-and-see scenario trace {scenario_id}")));
+        }
+        // Ensure every named objective exists even if a policy happens to have a
+        // different objective vector later in the trace.
+        let _ = objective_value(trace, "essential_unserved_quanta")?;
+        let _ = objective_value(trace, "flexible_unserved_quanta")?;
+    }
+
+    let mut result = Vec::new();
+    for policy in policies {
+        if required_str(policy, "policy_id")? == "wait_and_see_oracle_noncausal_reference" {
+            continue;
+        }
+        let policy_id = required_str(policy, "policy_id")?.to_owned();
+        if policy["reference_only"].as_bool() != Some(false) {
+            return Err(invalid(format!("policy {policy_id} has an unknown reference_only classification")));
+        }
+        let traces = policy["traces"].as_array()
+            .ok_or_else(|| invalid(format!("policy {policy_id} traces must be an array")))?;
+        let mut scenario_deltas = Vec::new();
+        let mut worst_essential = 0_i64;
+        let mut worst_flexible = 0_i64;
+        let mut seen = BTreeSet::new();
+        for trace in traces {
+            let scenario_id = required_str(trace, "scenario_id")?.to_owned();
+            if !seen.insert(scenario_id.clone()) {
+                return Err(invalid(format!("duplicate scenario in objective comparison for {policy_id}")));
+            }
+            let reference_trace = reference_by_scenario.get(&scenario_id)
+                .ok_or_else(|| invalid(format!("no wait-and-see reference for scenario {scenario_id}")))?;
+            let essential_delta = objective_delta(trace, reference_trace, "essential_unserved_quanta")?;
+            let flexible_delta = objective_delta(trace, reference_trace, "flexible_unserved_quanta")?;
+            worst_essential = worst_essential.max(essential_delta);
+            worst_flexible = worst_flexible.max(flexible_delta);
+            scenario_deltas.push(ScenarioObjectiveDelta {
+                scenario_id,
+                essential_unserved_delta_vs_wait_and_see: essential_delta,
+                flexible_unserved_delta_vs_wait_and_see: flexible_delta,
+            });
+        }
+        if seen.len() != reference_by_scenario.len() {
+            return Err(invalid(format!("policy {policy_id} has incomplete scenario coverage for objective comparison")));
+        }
+        scenario_deltas.sort_by(|a,b| a.scenario_id.cmp(&b.scenario_id));
+        result.push(PolicyObjectiveReferenceComparison {
+            policy_id,
+            scenario_deltas,
+            worst_case_positive_excess_essential_unserved_quanta: worst_essential.max(0) as u64,
+            worst_case_positive_excess_flexible_unserved_quanta: worst_flexible.max(0) as u64,
+            semantics: "Signed per-objective difference from the selected wait-and-see reference schedule; positive means more unserved demand, negative means less for that objective. Positive-excess maxima preserve objective trade-offs. This is not an optimality gap to an exhaustive Pareto oracle, not one jointly attainable vector, and not a scalar score.",
+        });
+    }
+    Ok(result)
+}
+
 fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
     if required_str(fixture, "schema_version")? != FIXTURE_SCHEMA {
         return Err(invalid("unsupported non-anticipativity fixture schema"));
@@ -432,6 +540,8 @@ fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateRepo
         )?);
     }
 
+    let objective_reference_comparison = objective_reference_comparisons(policies)?;
+
     let hold_policy = policy_verdicts.iter()
         .find(|policy| policy.policy_id == "causal_policy_hold_for_critical")
         .ok_or_else(|| invalid("fixture lacks causal hold policy"))?;
@@ -455,6 +565,7 @@ fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateRepo
         observable_prefix_count: prefixes.len(),
         policy_count: policy_verdicts.len(),
         policy_verdicts,
+        objective_reference_comparison,
         declared_negative_control_count,
         gate_owned_negative_control_count: 0,
         gate_owned_negative_controls_detected: 0,
@@ -696,6 +807,19 @@ fn run_report(input: &Path, output: &Path) -> Result<GateReport, Box<dyn Error>>
     println!("PASS: qualified {} policy traces across {} scenarios and {} observable prefixes",
         report.policy_count, report.scenario_count, report.observable_prefix_count);
     println!("source_fixture_sha256={}", report.source_fixture_sha256);
+    for comparison in &report.objective_reference_comparison {
+        println!("objective_reference_delta policy={} worst_case_positive_excess_essential={} worst_case_positive_excess_flexible={}",
+            comparison.policy_id,
+            comparison.worst_case_positive_excess_essential_unserved_quanta,
+            comparison.worst_case_positive_excess_flexible_unserved_quanta);
+        for delta in &comparison.scenario_deltas {
+            println!("objective_reference_scenario policy={} scenario={} essential_delta={} flexible_delta={}",
+                comparison.policy_id,
+                delta.scenario_id,
+                delta.essential_unserved_delta_vs_wait_and_see,
+                delta.flexible_unserved_delta_vs_wait_and_see);
+        }
+    }
     println!("declared_negative_control_count={}", report.declared_negative_control_count);
     println!("gate_negative_controls={}/{}", report.gate_owned_negative_controls_detected, report.gate_owned_negative_control_count);
     println!("negative_controls_executed={}", report.negative_controls_executed);
@@ -773,6 +897,25 @@ mod tests {
         assert_eq!(oracle.actual_gate, "reject_as_deployable_policy");
         assert_eq!(oracle.non_anticipativity_violation_count, 1);
         assert_eq!(oracle.conflicts[0].time_index, 0);
+    }
+
+    #[test]
+    fn objective_comparison_preserves_tradeoffs_without_scalarizing() {
+        let report = report_for(&fixture()).unwrap();
+        assert_eq!(report.objective_reference_comparison.len(), 2);
+        let hold = report.objective_reference_comparison.iter()
+            .find(|entry| entry.policy_id == "causal_policy_hold_for_critical").unwrap();
+        assert_eq!(hold.worst_case_positive_excess_essential_unserved_quanta, 0);
+        assert_eq!(hold.worst_case_positive_excess_flexible_unserved_quanta, 1);
+        let discharge = report.objective_reference_comparison.iter()
+            .find(|entry| entry.policy_id == "causal_policy_discharge_to_flexible").unwrap();
+        assert_eq!(discharge.worst_case_positive_excess_essential_unserved_quanta, 1);
+        assert_eq!(discharge.worst_case_positive_excess_flexible_unserved_quanta, 0);
+        let early = discharge.scenario_deltas.iter()
+            .find(|delta| delta.scenario_id == "early_outage").unwrap();
+        assert_eq!(early.essential_unserved_delta_vs_wait_and_see, 1);
+        assert_eq!(early.flexible_unserved_delta_vs_wait_and_see, -1);
+        assert!(discharge.semantics.contains("not an optimality gap"));
     }
 
     #[test]
