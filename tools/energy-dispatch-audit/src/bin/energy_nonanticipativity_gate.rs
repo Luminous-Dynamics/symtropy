@@ -577,6 +577,15 @@ mod tests {
     }
 
     #[test]
+    fn unequal_observable_histories_cannot_share_an_information_set() {
+        let mut f = fixture();
+        let early = f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["prefix_id"].as_str() == Some("early-outage-revealed-soc1")).unwrap();
+        early["expected_information_set"] = Value::String("shared-t0".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
     fn missing_or_duplicate_time_steps_fail_closed() {
         let mut missing = fixture();
         let policy = policy_mut(&mut missing, "causal_policy_hold_for_critical");
