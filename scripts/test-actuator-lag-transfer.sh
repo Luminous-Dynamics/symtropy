@@ -124,37 +124,4 @@ jq -e '
   )
 ' "$summary_path" > /dev/null
 
-  . as $runs
-  | ($runs
-      | map(select((.plant_configuration.evaluation.actuator_lag_time_constant_s // 0) == 0.020))
-      | .[0]) as $matched
-  | {
-      benchmark_id: "symtropy-actuator-lag-transfer-sweep-v0.1",
-      claim_ceiling: "internal_simulator_actuator_lag_generalization_prediction_only_not_real_flight_or_control_evidence",
-      training_actuator_lag_time_constant_s: $training_tau,
-      matched_reference_eval_tau_s: 0.020,
-      evaluation_profiles: ($runs | map(
-        . as $run
-        | {
-            actuator_lag_time_constant_s: .plant_configuration.evaluation.actuator_lag_time_constant_s,
-            training_dataset_sha256: .source_receipt.training_dataset_sha256,
-            model_summary: .model_summary,
-            state_memory_ablation: .state_memory_ablation,
-            paired_comparisons: .paired_comparisons,
-            relative_rmse_degradation_vs_20ms: {
-              raw_state_ridge: (($run.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 - $matched.model_summary.raw_state_ridge_mean_episode_rmse_m_s2) / ([($matched.model_summary.raw_state_ridge_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
-              compact_mlp: (($run.model_summary.compact_mlp_mean_episode_rmse_m_s2 - $matched.model_summary.compact_mlp_mean_episode_rmse_m_s2) / ([($matched.model_summary.compact_mlp_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
-              explicit_history_mlp: (($run.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 - $matched.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2) / ([($matched.model_summary.explicit_history_mlp_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
-              persistent_hdc_ltc: (($run.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 - $matched.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2) / ([($matched.model_summary.hdc_ltc_reservoir_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max)),
-              ltc_reset_each_step_hdc: (($run.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2 - $matched.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2) / ([($matched.model_summary.hdc_ltc_reset_each_step_mean_episode_rmse_m_s2 | fabs), 1.0e-9] | max))
-            }
-          }
-      )),
-      all_training_dataset_digests_match:
-        ([$runs[].source_receipt.training_dataset_sha256] | unique | length) == 1,
-      interpretation:
-        "Compare which representation degrades least as held-out actuator response changes. Fractional deltas are relative to the 20 ms evaluation profile and are not evidence of real-flight dynamics or control performance."
-    }
-' "${comparison_files[@]}" > "$summary_path"
-
 echo "Actuator lag transfer sweep receipt: $summary_path"
