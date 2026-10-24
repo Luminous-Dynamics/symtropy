@@ -701,7 +701,7 @@ mod tests {
                 &[IlluminanceInterval { lower_lx: 20.0, upper_lx: 10.0 }],
                 1
             ),
-            Err(GridError::InvalidSample)
+            Err(GridError::InvalidInterval)
         );
         assert_eq!(
             summarize_illuminance_bounds(
