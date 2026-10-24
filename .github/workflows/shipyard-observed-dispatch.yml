@@ -61,11 +61,13 @@ jobs:
 
       - name: Generate 16-episode corpus and verify exact-byte evidence
         shell: bash
+        env:
+          SHIPYARD_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           rm -rf /tmp/shipyard-paired-benchmark
           cargo run --locked --offline --manifest-path tools/shipyard-dispatch-benchmark/Cargo.toml -- \
             --episodes 16 --seed 20261024 --out /tmp/shipyard-paired-benchmark \
-            --policy-revision "$GITHUB_SHA" --evaluator-revision "$GITHUB_SHA"
+            --policy-revision "$SHIPYARD_SOURCE_REVISION" --evaluator-revision "$SHIPYARD_SOURCE_REVISION"
           test "$(wc -l < /tmp/shipyard-paired-benchmark/results.jsonl)" -eq 64
           jq -e '.corpus_contract_version == "shipyard-paired-benchmark-corpus-v0" and .episode_count == 16 and (.episodes | length) == 16' /tmp/shipyard-paired-benchmark/benchmark-manifest.json
           jq -e '.receipt_contract_version == "shipyard-benchmark-run-receipt-v0" and .artifact_count == 164 and .budget_contract == "not_enforced; runtime comparisons prohibited"' /tmp/shipyard-paired-benchmark/run-receipt.json
@@ -88,7 +90,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shipyard-paired-benchmark-${{ github.sha }}
+          name: shipyard-paired-benchmark-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/shipyard-paired-benchmark/**
           if-no-files-found: ignore
           retention-days: 14
